@@ -57,7 +57,6 @@ Use code in tfrecords to create tfrecord files for your data
 * if you want to run oneclass detection, first convert yor json to oneclass using database_tools/make_oneclass_json.py 
 * If you run into issues with corrupted .jpg files, you can use database_tools/remove_corrupted_images_from_database.py to create a copy of your database without the images that tensorflow cannot read 
 
-
 ## Set up experiment directory
 * Create experiment directory
   * Within experiment directory create `configs` folder
@@ -74,6 +73,7 @@ Use code in tfrecords to create tfrecord files for your data
   * Point within config file to the locations of your training tfrecords, eval tfrecords, pretrained model
   * Make any other config changes you want for this experiment (learning rate, data augmentation, etc.) using the params described in [preprocessor.proto](https://github.com/tensorflow/models/blob/master/research/object_detection/protos/preprocessor.proto) 
   * Our example can be seen in sample_object_detection_experiment_directory/configs/pipeline.config
+  
 ## Run training
 
 You can use the bash script pipeline/run_training.sh
@@ -135,7 +135,7 @@ python tfmodels/research/object_detection/inference/infer_detections.py \
 Then you can use tfrecords/read_from_tfrecords.py to read detection results from inference tfrecords into python dicts
 
 
-#Evaluation
+# Evaluation
 detection_eval contains code for evaluating models, based on the python dicts returned from tfrecords/read_from_tfrecords and/or the bash scripts for inference.
 
 Evaluation scripts provided include evaluating at object, image, and sequence levels, evaluating detection models as classifiers (which allows you to evaluate on data that has only class-level annotations), evaluating models per-camera-location, and evaluating models per-species
