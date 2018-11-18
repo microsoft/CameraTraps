@@ -25,7 +25,7 @@ Code for creating, visualizing stats, or editing COCO-CameraTraps style json dat
 ## detection_eval
 Code for performing offline evaluation of detection results, with or without sequences
 
-## annotation
+## annotations
 Code for creating new annotation tasks and converting annotations to COCO-CameraTraps format
 
 ## pipeline
