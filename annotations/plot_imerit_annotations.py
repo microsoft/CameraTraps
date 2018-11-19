@@ -1,4 +1,9 @@
 # -*- coding: utf-8 -*-
+#
+# plot_imerit_annotations.py
+#
+# Takes a .json file full of bounding box annotations and renders those boxes on the source images.
+#
 
 #%% Imports and environment
 
@@ -6,77 +11,72 @@ import os
 import json
 import glob
 import re
-
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from PIL import Image
 import numpy as np
 import matplotlib.ticker as ticker
 
-bboxBase = r'e:\imageLabeling\iWildCam\responses'
-imageBase = r'e:\wildlife_data_sets\iWildCam2018'    
-outputBase = r'e:\imageLabeling\tmp'
+bboxBase = '/datadrive/iwildcam/imerit/microsoft_batch2_27july2018.json'
+imageBase = '/datadrive/iwildcam/'    
+outputBase = '/datadrive/iwildcam/imerit/tmp/'
+annotationFile = '/datadrive/iwildcam/annotations/CaltechCameraTrapsFullAnnotations.json'
 
-os.makedirs(outputBase, exist_ok=True)
+#os.makedirs(outputBase, exist_ok=True)
 
 
 #%%  Read all source images and build up a hash table from image name to full path
 
 # This spans training and validation directories, so it's not the same as
 # just joining the image name to a base path
+print("Loading json database")
+with open(annotationFile, 'r') as f:
+    data = json.load(f)
+
+images = data['images']
+annotations = data['annotations']
+categories = data['categories']
+im_id_to_im = {im['id']:im for im in images}
+
 
 print("Enumerating images...")
 
-allImages = glob.glob(os.path.join(imageBase,'**/*.jpg'), recursive=True)
-
+print(images[0])
 imageToPathMappings = {}
 
-for imageFilePath in allImages:
+for im in images:
+    imageToPathMappings[im['id']] = imageBase + im['file_name']
     
-    # Pull out the image name
-    pathName, fileName = os.path.split(imageFilePath)
+print("Built path name mappings for {} images".format(len(images)))
     
-    imageToPathMappings[fileName] = imageFilePath
-    
-print("Built path name mappings for {} images".format(len(allImages)))
-    
-
-#%% Get all .json files in the annotations directory
-
-allAnnotationFiles = glob.glob(os.path.join(bboxBase,'**/*.json'), recursive=True)
-nAnnotationFiles = len(allAnnotationFiles)
-annotationFile = allAnnotationFiles[0]
-
-print("Read {} annotation files from {}".format(len(allAnnotationFiles),bboxBase))
-
 
 #%% Iterate over annotations, draw bounding boxes, write to file
 
-# annotationFile = allAnnotationFiles[0]
-for iAnnotationFile,annotationFile in enumerate(allAnnotationFiles):
-    
-    print("Processing annotation file {} of {}: {}",iAnnotationFile,nAnnotationFiles,annotationFile)
-    
-    #%%  Read annotations from this file
-    
-    # os.startfile(annotationFile)
+annData = []
 
-    with open(annotationFile) as annotationFileHandle:
-        annData = json.load(annotationFileHandle)
+with open(annotationFile) as annotationFileHandle:
+    for line in annotationFileHandle:
+        annData.append(json.loads(line))
      
     # annData has keys:
     #
-    # annotations, categories, image
+    # annotations, categories, images
     #        
     # Each of these are lists of dictionaries
-    
-    sequenceImages = annData['images']
+
+new_images = []
+new_annotations = []
+
+for sequence in annData:
+    sequenceImages = sequence['images']
     
     if (len(sequenceImages) == 0):
         print("Annotation file {} has no images".format(annotationFile))
         continue
     
-    sequenceAnnotations = annData['annotations']
+    sequenceAnnotations = sequence['annotations']
     
             
     #%% Render all annotations on each image in the sequence
@@ -84,7 +84,7 @@ for iAnnotationFile,annotationFile in enumerate(allAnnotationFiles):
     for img in sequenceImages:
         
         #%% Pull out image metadata
-        
+        new_images.append(im_id_to_im[img['id']])
         imgID = img['id']
         imgFileName = img['file_name']
         
@@ -96,19 +96,20 @@ for iAnnotationFile,annotationFile in enumerate(allAnnotationFiles):
         # File names look like:
         #
         # seq6efffac2-5567-11e8-b3fe-dca9047ef277.frame1.img59a94e52-23d2-11e8-a6a3-ec086b02610b.jpg
-        m = re.findall(r'img(.*\.jpg)$', imgFileName, re.M|re.I)
-        assert(len(m) == 1)
-        queryFileName = m[0]
+        #m = re.findall(r'img(.*\.jpg)$', imgFileName, re.M|re.I)
+        #print(m)
+        #assert(len(m) == 1)
+        #queryFileName = m[0]
         
         physicalFileName = ''
         
         # Map this image back to the original directory
         try:
-            physicalFileName = imageToPathMappings[queryFileName]
+            physicalFileName = imageToPathMappings[imgID]
         except:
-            print("File name {} not found".format(queryFileName))
+            print("File name {} not found".format(imgID))
     
-        outputFileName = os.path.join(outputBase,imgFileName)
+        outputFileName = os.path.join(outputBase,imgID +'.jpg')
             
         sourceImage = Image.open(physicalFileName).convert("RGBA")
         
@@ -127,7 +128,8 @@ for iAnnotationFile,annotationFile in enumerate(allAnnotationFiles):
             
             if (imgID != annotationImgID):
                 continue
-            
+            if 'bbox' not in annotation:
+                continue
             annotationRelative = annotation['bbox']
             
             # x,y,w,h

@@ -1,3 +1,10 @@
+#
+# get_annotation_tool_link.py
+#
+# Takes a COCO-camera-traps-style .json file with URLs already embedded, and prepares
+# a link to the visipedia annotation tool that reviews a subset of those images.
+#
+
 import json
 import pickle
 
@@ -43,16 +50,6 @@ link = 'http://capybaravm.westus2.cloudapp.azure.com:8008/edit_task/?image_ids='
 for im in images_to_check[:100]:
     link += im+','
 print(link)
-
-empty_ims = pickle.load(open('/home/capybara/code/cameraTraps/ims_switched_to_empty.p','rb'))
-
-link = 'http://capybaravm.westus2.cloudapp.azure.com:8008/edit_task/?image_ids='
-
-for im in empty_ims[:100]:
-    link += im+','
-print(link)
-
-
 
 
 
