@@ -1,3 +1,12 @@
+#
+# make_oneclass_json.py
+#
+# Takes a coco-camera-traps .json database and collapses species classes to binary, optionally removing
+# labels from empty images (to be detector-friendly) (depending on "experiment_type").
+#
+# Assumes that empty images are labeled as "empty".
+#
+
 import json
 import argparse
 
@@ -15,7 +24,7 @@ def make_binary_json(data, experiment_type='detection',ignore_humans = False):
                 ann['category_id'] = 1
                 new_anns.append(ann)
         else:
-            if 'bbox' in ann and cat_id_to_name[ann['category_id']] not in ['car','empty']:
+            if 'bbox' in ann and cat_id_to_name[ann['category_id']] not in ['empty']:
                 ann['category_id'] = 1
                 new_anns.append(ann)
     print(len(data['annotations']),len(new_anns))
@@ -24,6 +33,7 @@ def make_binary_json(data, experiment_type='detection',ignore_humans = False):
     data['annotations'] = new_anns
 
     return data
+
 
 def parse_args():
 
@@ -43,6 +53,7 @@ def parse_args():
                          required=False, action='store_true',default=False)
     args = parser.parse_args()
     return args
+
 
 def main():
     args = parse_args()

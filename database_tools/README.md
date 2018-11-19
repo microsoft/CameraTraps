@@ -1,4 +1,4 @@
-The database should be formatted as shown below:
+Everything in this directory creates or operates on COCO-camera-traps databases, which are structured as...
 
 ```
 {

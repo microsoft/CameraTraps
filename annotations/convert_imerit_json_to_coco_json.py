@@ -1,5 +1,12 @@
 # coding: utf-8 -*-
 
+# 
+# convert_imerit_json_to_coco_json.py
+#
+# Converts iMerit-style .json file to COCO-camera-traps-style .json file, does not manipulate
+# filenames.
+
+
 #%% Imports and environment
 
 import os
@@ -18,11 +25,9 @@ import pickle
 
 batch_folder = '/ai4efs/annotations/'
 bboxFile = batch_folder+'incoming_annotations/microsoft_batch5_12sep2018.json'
-imageBase = batch_folder+'modified_annotations/images/imerit_batch_5/'    
-outputFile = batch_folder+'modified_annotations/imerit_batch_5_with_humans.json'
+imageBase = '/datadrive/snapshotserengeti/images/'    
+outputFile = batch_folder+'modified_annotations/imerit_batch_4a.json'
 annotationFile = '/ai4efs/databases/snapshotserengeti/SnapshotSerengeti.json'
-
-get_w_h_from_image = False
 
 #os.makedirs(outputBase, exist_ok=True)
 
@@ -34,10 +39,6 @@ get_w_h_from_image = False
 print("Loading json database")
 with open(annotationFile, 'r') as f:
     data = json.load(f)
-
-if not get_w_h_from_image:
-    w_h_db = json.load(open(batch_folder+'modified_annotations/imerit_batch_5.json'))
-    im_id_to_w_h = {im['id']:{'width':im['width'],'height':im['height']} for im in w_h_db['images']}
 
 images = data['images']
 annotations = data['annotations']
@@ -81,9 +82,6 @@ cats = []
 human_images = []
 trunc_images = []
 ann_images = []
-
-print(annData[0]['categories'])
-
 for sequence in annData:
     sequenceImages = sequence['images']
     if len(sequenceImages) > 10:
@@ -103,19 +101,24 @@ for sequence in annData:
         image_count += 1
         imID = im['id']
         imFileName = im['file_name']
+        #print(imFileName)
+        #print(imID)
         m = re.findall(r'img(.*\.jpg)$', imFileName, re.M|re.I)
-        old_fn = imFileName.split('.')[2][3:]
-        old_fn = old_fn.split('_')
+        #print(len(m))
+        #assert(len(m) == 1)
+        #old_file_name = m[0]
+        #old_id = old_file_name.split('.')[0]
+        old_fn = imFileName.split('.')[0].split('_')
         old_id = ''
         old_id_fn = ''
-        for chunk in old_fn:
+        for chunk in old_fn[2:]:
             old_id_fn += chunk + '_'
-        for idx in range(len(old_fn[:-1])):
-            chunk = old_fn[idx]
+        for idx in range(len(old_fn[2:-1])):
+            chunk = old_fn[2+idx]
             if idx != 2:
                 old_id += chunk + '/'
             else:
-                old_id += old_fn[idx-1]+'_'+chunk+'/'
+                old_id += old_fn[2+idx-1]+'_'+chunk+'/'
         old_id+=old_id_fn[:-1]
         #print(old_id)
         #assert(len(m) == 1)
@@ -124,11 +127,7 @@ for sequence in annData:
         if old_id in im_id_to_im:
             new_im = im_id_to_im[old_id]
             if 'height' not in new_im:
-                if get_w_h_from_image:
-                    im_w, im_h = Image.open(imageBase+old_id+'.JPG').size
-                else:
-                    im_w = im_id_to_w_h[new_im['id']]['width']
-                    im_h = im_id_to_w_h[new_im['id']]['height']
+                im_w, im_h = Image.open(imageBase+old_id+'.JPG').size
                 new_im['height'] = im_h
                 new_im['width'] = im_w
 
@@ -136,7 +135,7 @@ for sequence in annData:
             im_id_to_im[old_id] = new_im
         else:
             images_not_in_db.append(old_id)
-            #print(im, old_id)
+            print(im, old_id)
 
     # ...for each image
     for ann in sequenceAnnotations:
@@ -160,9 +159,7 @@ for sequence in annData:
             continue
 
         ann_im = im_id_to_im[new_ann['image_id']]
-        #if cat_id_to_cat[ann['category_id']]['name'] == 'human':
-        #    new_ann['category_id'] = ann['category_id']
-        new_ann['category_id'] = im_id_to_cats[new_ann['image_id']][0] #need to deal with images with multiple cats later
+        new_ann['category_id'] = im_id_to_cat[new_ann['image_id']][0] #need to deal with images with multiple cats later
            
         #new_annotations.append(ann)
         if 'bbox' not in ann and new_ann['category_id'] != empty_id:  
@@ -182,18 +179,10 @@ for sequence in annData:
             new_ann['bbox'][3] = new_ann['bbox'][3]*ann_im['height']
             bbox_count += 1
         
-        if int(ann['category_id']) == 3: #catch group annotations
-            new_ann['iscrowd'] = True
-        if int(ann['category_id']) == 2: #make sure humans are annotated as humans
-            new_ann['category_id'] = cat_name_to_cat_id['human']
         new_annotations.append(new_ann)
-
     # ... for each annotation 
-
-    if image_count % 100 == 0:
-        print('Processed '+str(image_count)+' images')
 for im in new_images:
-    if im['id'] not in ann_images and im_id_to_cats[im['id']][0] != empty_id:
+    if im['id'] not in ann_images and im_id_to_cat[im['id']] != empty_id:
         switch_to_empty.append(im['id'])
 
 print('Human images: ',len(human_images))

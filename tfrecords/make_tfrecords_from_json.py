@@ -1,8 +1,15 @@
+#
+# make_tfrecords_from_json.py
+#
+# Given a coco-camera-traps .json file, creates tfrecords
+#
+
 import json
 import pickle
 import numpy as np
 import argparse
 
+# from create_tfrecords_py3 import create
 from create_tfrecords import create
 from create_tfrecords_format import create_tfrecords_format
 
