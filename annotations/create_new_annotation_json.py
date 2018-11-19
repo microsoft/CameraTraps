@@ -1,3 +1,10 @@
+# 
+# create_new_annotation_json.py
+#
+# Creates a subset of a larger .json database, in this case specifically to pick some images
+# from snapshot.
+#
+
 import json
 import pickle
 import numpy as np
@@ -12,6 +19,7 @@ num_seqs_per_cat_per_loc = 1
 output_file = '/datadrive/snapshotserengeti/databases/imerit_annotation_images_ss_2.json'
 seasons_to_keep = ['S2', 'S3', 'S4']
 already_annotated = pickle.load(open(prev_ann_file,'rb'))
+
 print('Already annotated: ', len(already_annotated))
 
 with open(db_file,'r') as f:
