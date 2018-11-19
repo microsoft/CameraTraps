@@ -1,3 +1,9 @@
+#
+# create_classification_tfrecords_format.py
+#
+# Called from make_tfrecords_with_train_test_split.py if you're running a classification experiment.
+#
+
 import json
 import codecs
 import pickle
