@@ -1,3 +1,18 @@
+# overview
+
+This folder started from the visipedia tfrecords repo, but has changed significantly.  The following files are inherited:
+
+* create_tfrecords.py (was significant adapted, but generally corresponds to create_tfrecords.py in the original repo)
+* iterate_tfrecords.py (changed slightly from the original repo)
+* stat_tfrecords.py (identical-ish to the original repo)
+* This README
+
+Two top-level entry points:
+
+* make_tfrecords_with_train_test_split.py (using an existing train/test split)
+* make_tfrecords_from_json.py
+
+
 # tfrecords
 Convenience functions to create tfrecords that can be used with classification, detection and keypoint localization systems. The [create_tfrecords.py](create_tfrecords.py) file will help create the correct tfrecords to feed into those systems. 
 

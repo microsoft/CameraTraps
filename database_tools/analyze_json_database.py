@@ -1,3 +1,11 @@
+#
+# analyze_json_database.py
+#
+# Plots location/class/etc. distributions for classes in a coco-camera-traps .json file.
+#
+# Currently includes some one-off code for specific species.
+#
+
 import json
 import matplotlib
 matplotlib.use('Agg')
@@ -9,8 +17,8 @@ import numpy as np
 
 db_name = 'imerit_annotation_images_ss_2'
 db_file = '/datadrive/snapshotserengeti/databases/'+db_name+'.json'
-
 plot_directory = '/datadrive/snapshotserengeti/databases/Plots/'+db_name
+
 if not os.path.exists(plot_directory):
     os.makedirs(plot_directory)
 
@@ -150,5 +158,6 @@ for loc in lions_and_elephants:
     total.append(len(loc_to_elephant_ims[loc]+ loc_to_lion_ims[loc]))
 
 sorted_by_total = sorted(zip(lions_and_elephants,total),reverse=True, key = lambda t: t[1])
+
 # for loc in sorted_by_total[:25]:
 #     print('Location:' + loc[0] +', Lions: ' + str(len(loc_to_lion_ims[loc[0]])) + ', Elephants: ' + str(len(loc_to_elephant_ims[loc[0]])) + ', Total ims: ' + str(len(loc_to_ims[loc[0]])))

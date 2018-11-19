@@ -1,3 +1,9 @@
+#
+# iterate_tf_records.py
+#
+# Inherited from Visipedia tfrecords repo; not currently used in this repo.
+#
+
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function

@@ -1,7 +1,15 @@
+#
+# add_width_and_height_to_database.py
+#
+# Grabs width and height from actual image files for a .json database that is missing w/h.
+#
+# Originally used when we created a .json file for snapshot serengeti from .csv.
+#
+
 import json
 from PIL import Image
 
-datafile = '/datadrive/snapshotserengeti/databases/imerit_ss_annotations_1.json'
+datafile = '/datadrive/snapshotserengeti/databases/snapshotserengeti.json'
 image_base = '/datadrive/snapshotserengeti/images/'
 
 with open(datafile,'r') as f:
