@@ -1,9 +1,4 @@
-import json
-import os
-
-from PIL import Image
-from tqdm import tqdm
-
+#
 # create_tfrecords_format.py
 #
 # This script converts a COCO formatted json database to another json file that would be the
@@ -11,11 +6,18 @@ from tqdm import tqdm
 # to create tf_records
 #
 
-# configurations and paths
+import json
+import os
+
+from PIL import Image
+from tqdm import tqdm
+
+
+# Configurations and paths
 
 # eMammal
 coordinates_relative = True  # are the coordinates in bbox specification relative
-cat_to_ignore = ['empty'] #['person', 'empty']
+cat_to_ignore = ['empty'] # ['person', 'empty']
 # iMerit label for human is 'person'; 'empty' is not valid either as a bbox category,
 # but we actually rely on the image level label 'empty' to determine if an image is empty
 
@@ -81,7 +83,7 @@ def create_tfrecords_format(database_file, image_file_root):
         else:
             no_bbox_count += 1
     print('Anns with no bbox: ', no_bbox_count)
-    print('eMammal - number of empty images from the labeled set: ', empty_images_count)
+    print('Number of empty images from the labeled set: ', empty_images_count)
 
     num_img_with_anno = 0
     num_bboxes_skipped = 0
@@ -171,9 +173,7 @@ def create_tfrecords_format(database_file, image_file_root):
         print('Number of images with annotations: ', num_img_with_anno)
     print('Number of image entries: ', len(vis_data))
     print('num_bboxes_skipped: ', num_bboxes_skipped)
-    # print(images[0])
-    # print(vis_data[0])
-
+    
     return vis_data
 
 

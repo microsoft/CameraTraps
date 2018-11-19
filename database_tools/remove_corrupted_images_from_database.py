@@ -1,3 +1,10 @@
+#
+# remove_corrupted_images_from_database.py
+#
+# Given a coco-camera-traps .json file, checks all images for TF-friendliness and generates
+# a new .json file that only contains the non-corrupted images.
+#
+
 import json
 import tensorflow as tf
 import argparse
@@ -30,7 +37,6 @@ def remove_corrupted_images_from_database(data, image_file_root):
     return data
 
 
-
 def parse_args():
     parser = argparse.ArgumentParser(description = 'Convert a multiclass .json to a oneclass .json')
 
@@ -47,6 +53,7 @@ def parse_args():
     args = parser.parse_args()
     return args
  
+
 def main():
     args = parse_args()
     print('Reading input file')
@@ -56,6 +63,7 @@ def main():
     uncorrupted_data = remove_corrupted_images_from_database(data, args.image_file_root)
 
     json.dump(uncorrupted_data, open(args.output_file,'w'))
+
 
 if __name__ == '__main__':
     main()
