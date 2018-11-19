@@ -1,3 +1,10 @@
+#
+# make_tfrecords_with_train_test_split.py
+#
+# Given a .json file that contains a three-element list (train/val/test) of image IDs and a .json database that contains
+# those image IDs, generates tfrecords whose filenames include "train"/"val"/"test"
+# 
+
 import json
 import pickle
 import numpy as np

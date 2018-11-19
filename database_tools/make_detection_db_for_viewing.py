@@ -1,3 +1,11 @@
+#
+# make_detection_db_for_viewing.py
+#
+# Given a .json file with ground truth bounding boxes, and a .p file containing detections for the same images,
+# creates a new .json file with separate classes for ground truth and detection, suitable for viewing in the Visipedia
+# annotation tool.
+#
+ 
 import json
 import pickle
 import uuid
@@ -13,7 +21,6 @@ def make_detection_db(detection_file, gt_db, det_thresh=0.9):
 
     with open(gt_db,'r') as f:
         data = json.load(f)
-
     
     images = data['images']
     im_id_to_im = {im['id']:im for im in images}
@@ -62,7 +69,6 @@ def make_detection_db(detection_file, gt_db, det_thresh=0.9):
     new_data['annotations'] = annotations
     new_data['licenses'] = licenses
     new_data['info'] = info            
-
 
     return new_data
 
