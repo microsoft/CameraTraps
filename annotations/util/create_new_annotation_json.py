@@ -2,7 +2,7 @@
 # create_new_annotation_json.py
 #
 # Creates a subset of a larger .json database, in this case specifically to pick some images
-# from snapshot.
+# from Snapshot Serengeti.
 #
 
 import json
