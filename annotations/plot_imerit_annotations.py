@@ -4,13 +4,18 @@
 #
 # Takes a .json file full of bounding box annotations and renders those boxes on the source images.
 #
+# This assumes annotations in the format we receive them, specifically:
+#
+# 1) Relative bbox coordinates
+# 2) A list of .json objects, not a well-formatted .json file
+#
+# I.e., don't use this on a COCO-style .json file.
+#
 
 #%% Imports and environment
 
 import os
 import json
-import glob
-import re
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
