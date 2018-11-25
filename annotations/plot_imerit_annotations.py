@@ -1,15 +1,16 @@
-# -*- coding: utf-8 -*-
 #
 # plot_imerit_annotations.py
 #
-# Takes a .json file full of bounding box annotations and renders those boxes on the source images.
+# Takes a .json file full of bounding box annotations and renders those boxes on the 
+# source images.
 #
 # This assumes annotations in the format we receive them, specifically:
 #
 # 1) Relative bbox coordinates
 # 2) A list of .json objects, not a well-formatted .json file
 #
-# I.e., don't use this on a COCO-style .json file.
+# I.e., don't use this on a COCO-style .json file.  See plot_bounding_boxes.py
+# for the same operation performed on a proper COCO-camera-traps database.
 #
 
 #%% Imports and environment

@@ -1,11 +1,15 @@
 # 
 # convert_imerit_json_to_coco_json.py
 #
-# Takes a .json file with bounding boxes but no class labels, and a .json file containing the class
-# labels for those images, and creates a new json file with class labels and bounding boxes.
+# Takes a .json file with bounding boxes but no class labels, and a .json file containing the 
+# class labels for those images, and creates a new json file with class labels and bounding 
+# boxes.
 #
 # The bounding box .json file is in the format returned by our annotators, which is not
 # actually a fully-formed .json file; rather it's a series of .json objects
+#
+# Leaves filenames intact.
+#
 
 
 #%% Imports and constants
@@ -43,6 +47,15 @@ databaseFile = os.path.join(BASE_DIR,'SnapshotSerengeti.json')
 #
 # If this is "True", we'll expand the former to the latter
 SS_ID_EXPANSION = True
+
+# Handling a one-off issue we had with image naming, by specifically
+# requiring image IDs to start with "S".
+REQUIRE_SS_IMAGE_ID = True
+
+# Handling a one-off issue in which .'s were mysteriously replaced with -'s
+# in our annotations.  This will be set dynamically, but I keep it here as 
+# a constant to remind me to remove this code when we clean this issue up.
+CONVERT_DOTS_TO_DASHES = False
 
 assert(os.path.isfile(bboxFile))
 assert(os.path.isfile(databaseFile))
@@ -101,6 +114,8 @@ new_images = []
 new_annotations = []
 ambiguous_annotations = []
 image_count = 0
+empty_sequences = []
+sequences_with_no_bounding_boxes = []
 size_mismatch_count = 0
 bbox_count = 0
 new_id_to_old_id = {}
@@ -122,6 +137,10 @@ for iSequence,sequence in enumerate(annData):
     sequenceImages = sequence['images']    
     sequenceAnnotations = sequence['annotations']
         
+    if (len(sequenceAnnotations) == 0):
+        empty_sequences.append(sequence)
+        continue
+    
     # im = sequenceImages[0]
     
     # For each image in this sequence...
@@ -130,22 +149,36 @@ for iSequence,sequence in enumerate(annData):
         image_count += 1
         imID = im['id']
         
-        # E.g. datasetsnapshotserengeti.seqASG000001a-frame0.imgS1_B06_R1_PICT0008.JPG
+        # E.g. datasetsnapshotserengeti.seqASG000001a.frame0.imgS1_B06_R1_PICT0008.JPG
         imFileName = im['file_name']
         
         # Confirm that the file exists
         imPath = os.path.join(imageBase,imFileName)
-        # In one quirky case, our annotators replaced some .'s with -'s
+        
+        # Hande a one-off issue with our annotations
         if not (os.path.isfile(imPath)):
+            
+            # datasetsnapshotserengeti.seqASG000001a.frame0.imgS1_B06_R1_PICT0008.JPG
+            #
+            # ...had become:
+            #
+            # datasetsnapshotserengeti.seqASG000001a-frame0.imgS1_B06_R1_PICT0008.JPG
             imFileName = imFileName.replace('-','.')
             imPath = os.path.join(imageBase,imFileName)
+            
+            # Does it look like we encountered this issue?
+            if (os.path.isfile(imPath)):
+                if (not CONVERT_DOTS_TO_DASHES):
+                    print('Warning: converting .\'s to -\'s in filenames')
+                CONVERT_DOTS_TO_DASHES = True
+        
         assert(os.path.isfile(imPath))
         
-        # This was a one-off quirk in our naming
-        imFileName = re.sub(r'i..\.frame','.frame',imFileName)
-        imFileName = re.sub(r'i..-frame','.frame',imFileName)
-            
-        m = re.findall(r'img(.*)\.jpg$', imFileName, re.M|re.I)
+        if (REQUIRE_SS_IMAGE_ID):
+            pat = r'img(S.*)\.jpg$'
+        else:
+            pat = r'img(.*)\.jpg$'
+        m = re.findall(pat, imFileName, re.M|re.I)
         assert(len(m) == 1)
         
         if (not SS_ID_EXPANSION):
@@ -156,10 +189,10 @@ for iSequence,sequence in enumerate(annData):
             # Convert:
             #
             # S1_B06_R1_PICT0008
-            # 
+            #
             # ...to:
             # 
-            # S1\B06\B06_R1\S1_B06_R1_PICT0008            
+            # S1/B06/B06_R1/S1_B06_R1_PICT0008            
             tokens = m[0].split('_')
             assert(len(tokens)==4)
             old_id = tokens[0] + '/' + tokens[1] + '/' + tokens[1] + '_' + tokens[2] + '/' + m[0]
@@ -170,6 +203,7 @@ for iSequence,sequence in enumerate(annData):
         new_fn_to_old_id[imFileName] = old_id
                 
         new_im = im_id_to_im[old_id]
+        new_im['file_name'] = imFileName
         assert 'height' in new_im
         assert 'width' in new_im
         if ((new_im['height'] != im['height']) or
@@ -187,6 +221,16 @@ for iSequence,sequence in enumerate(annData):
         
     # ...for each image in this sequence
     
+    bSequenceHasBox = False
+    for ann in sequenceAnnotations:
+        if 'bbox' in ann:
+            bSequenceHasBox = True
+            break
+        
+    if (not bSequenceHasBox):
+        sequences_with_no_bounding_boxes.append(sequence)
+        continue
+        
     # For each annotation in this sequence...
     # ann = sequenceAnnotations[0]
     for ann in sequenceAnnotations:
@@ -201,9 +245,8 @@ for iSequence,sequence in enumerate(annData):
         imgID = ann['image_id']
         
         # This was a one-off quirk with our file naming
-        imgID = re.sub(r'i..\.frame','.frame',imgID)
-        imgID = re.sub(r'i..-frame','.frame',imgID)
-        imgID = re.sub(r'-frame','.frame',imgID)
+        if (CONVERT_DOTS_TO_DASHES):
+            imgID = imgID.replace('-','.')
         
         new_ann['image_id'] = new_fn_to_old_id[imgID]
         ann_images.append(new_ann['image_id'])
@@ -243,12 +286,16 @@ for iSequence,sequence in enumerate(annData):
 
 
 #%% Post-processing
-    
+
+# Empty sequences should have no bounding boxes, but should still have annotations
+assert (len(sequences_with_no_bounding_boxes) == 0)
+
 categories.append({'id':UNKNOWN_CATEGORY_ID, 'name': 'needs label'})
 categories.append({'id':AMBIGUOUS_CATEGORY_ID, 'name': 'ambiguous label'})
 
 # ...for each file
 print('Processed {} boxes on {} images'.format(bbox_count,image_count))
+print('{} empty sequences'.format(len(empty_sequences)))
 print('Writing {} annotations on {} images'.format(len(new_images),len(new_annotations)))
 print('Skipped {} ambiguous annotations'.format(len(ambiguous_annotations)))
 assert(len(ambiguous_annotations) + len(new_annotations) == bbox_count)
