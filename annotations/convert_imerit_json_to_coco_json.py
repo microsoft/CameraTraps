@@ -23,14 +23,6 @@ from PIL import Image
 
 #%% Configure files and paths
 
-# Previous configurations
-if False:
-    batch_folder = '/ai4efs/annotations/'
-    bboxFile = batch_folder+'incoming_annotations/microsoft_batch5_12sep2018.json'
-    outputFile = batch_folder+'modified_annotations/imerit_batch_4a.json'
-    imageBase = '/datadrive/snapshotserengeti/images/'    
-    databaseFile = '/ai4efs/databases/snapshotserengeti/SnapshotSerengeti.json'
-
 BASE_DIR = r'd:\temp\snapshot_serengeti_tfrecord_generation'
 bboxFile = os.path.join(BASE_DIR,'microsoft_batch7_12Nov2018.json')
 outputFile = os.path.join(BASE_DIR,'imerit_batch7.json')
@@ -48,10 +40,6 @@ databaseFile = os.path.join(BASE_DIR,'SnapshotSerengeti.json')
 # If this is "True", we'll expand the former to the latter
 SS_ID_EXPANSION = True
 
-# Handling a one-off issue we had with image naming, by specifically
-# requiring image IDs to start with "S".
-REQUIRE_SS_IMAGE_ID = True
-
 # Handling a one-off issue in which .'s were mysteriously replaced with -'s
 # in our annotations.  This will be set dynamically, but I keep it here as 
 # a constant to remind me to remove this code when we clean this issue up.
@@ -68,6 +56,10 @@ UNKNOWN_CATEGORY_ID = 1000
 # Used in the (rare) case where we added bounding boxes to an image with multiple species
 AMBIGUOUS_CATEGORY_ID = 1001
 
+# Should we include ambiguous bounding boxes (with the "ambiguous" category label)
+# in the output file?  Ambiguous boxes are boxes drawn on images with multiple species.
+INCLUDE_AMBIGUOUS_BOXES = True
+
 
 #%%  Read metadata from the master database, bounding boxes from the annotations file
 
@@ -83,6 +75,10 @@ with open(bboxFile) as annotationFileHandle:
 
 print('Finished reading database and annotations')
 
+# Each element of annData is a dictionary corresponding to a single sequence, with keys:
+#
+# annotations, categories, images
+# sequence = annData[0]
 
 
 #%% Build mappings for the master database
@@ -113,21 +109,19 @@ annCats = []
 new_images = []
 new_annotations = []
 ambiguous_annotations = []
-image_count = 0
 empty_sequences = []
-sequences_with_no_bounding_boxes = []
-size_mismatch_count = 0
-bbox_count = 0
-new_id_to_old_id = {}
-new_fn_to_old_id = {}
 images_not_in_db = []
 cats = []
 ann_images = []
 
-# Each element of annData is a dictionary corresponding to a single sequence, with keys:
-#
-# annotations, categories, images
-# sequence = annData[0]
+image_count = 0
+size_mismatch_count = 0
+bbox_count = 0
+
+new_fn_to_old_id = {}
+image_id_to_bounding_box_count = {}
+
+image_set = set()
 
 
 #%% Reformat annotations, grabbing category IDs from the master database (loop)
@@ -137,17 +131,23 @@ for iSequence,sequence in enumerate(annData):
     sequenceImages = sequence['images']    
     sequenceAnnotations = sequence['annotations']
         
+    # im = sequenceImages[0]
+    
+    # Are there any annotations in this sequence?
+    #
+    # We're still going to process all the images here, but
+    # we'll continue later, before processing annotations.
+    bSequenceEmpty = False
+    
     if (len(sequenceAnnotations) == 0):
         empty_sequences.append(sequence)
-        continue
-    
-    # im = sequenceImages[0]
+        bSequenceEmpty = True
     
     # For each image in this sequence...
     for iImage,im in enumerate(sequenceImages):
         
         image_count += 1
-        imID = im['id']
+        # imeritImageID = im['id']
         
         # E.g. datasetsnapshotserengeti.seqASG000001a.frame0.imgS1_B06_R1_PICT0008.JPG
         imFileName = im['file_name']
@@ -174,10 +174,7 @@ for iSequence,sequence in enumerate(annData):
         
         assert(os.path.isfile(imPath))
         
-        if (REQUIRE_SS_IMAGE_ID):
-            pat = r'img(S.*)\.jpg$'
-        else:
-            pat = r'img(.*)\.jpg$'
+        pat = r'\.img(.*)\.jpg$'
         m = re.findall(pat, imFileName, re.M|re.I)
         assert(len(m) == 1)
         
@@ -199,7 +196,16 @@ for iSequence,sequence in enumerate(annData):
             
         assert(old_id in im_id_to_im)
         
-        new_id_to_old_id[imID] = old_id
+        # Make sure we only see each image once
+        assert(old_id not in image_set)
+        image_set.add(old_id)
+        
+        if old_id not in image_id_to_bounding_box_count:
+            image_id_to_bounding_box_count[old_id] = 0
+                
+        if (bSequenceEmpty):
+            assert (image_id_to_bounding_box_count[old_id] == 0)    
+        
         new_fn_to_old_id[imFileName] = old_id
                 
         new_im = im_id_to_im[old_id]
@@ -220,16 +226,19 @@ for iSequence,sequence in enumerate(annData):
         new_images.append(new_im)
         
     # ...for each image in this sequence
+
+    # If there are no annotations for this sequence
+    if (bSequenceEmpty):
+        continue
     
+    # Sequences that have annotations shoud always have bboxes
     bSequenceHasBox = False
     for ann in sequenceAnnotations:
         if 'bbox' in ann:
             bSequenceHasBox = True
             break
         
-    if (not bSequenceHasBox):
-        sequences_with_no_bounding_boxes.append(sequence)
-        continue
+    assert(bSequenceHasBox)
         
     # For each annotation in this sequence...
     # ann = sequenceAnnotations[0]
@@ -242,13 +251,14 @@ for iSequence,sequence in enumerate(annData):
         # Generate an (arbitrary) ID for this annotation; the COCO format has a concept
         # of annotation ID, but our annotation files don't
         new_ann['id'] = str(uuid.uuid1())
-        imgID = ann['image_id']
+        imeritImageID = ann['image_id']
         
         # This was a one-off quirk with our file naming
         if (CONVERT_DOTS_TO_DASHES):
-            imgID = imgID.replace('-','.')
+            imeritImageID = imeritImageID.replace('-','.')
         
-        new_ann['image_id'] = new_fn_to_old_id[imgID]
+        old_id = new_fn_to_old_id[imeritImageID]
+        new_ann['image_id'] = old_id
         ann_images.append(new_ann['image_id'])
         
         ann_im = im_id_to_im[new_ann['image_id']]
@@ -257,16 +267,20 @@ for iSequence,sequence in enumerate(annData):
         # We'll do special handling of images with multiple categories later
         new_ann['category_id'] = imgCats[0]
         
-        # This annotation has no bounding box but wasn't originally annotated as empty
+        # This annotation has no bounding box but the image wasn't originally annotated as empty
         if 'bbox' not in ann and new_ann['category_id'] != empty_id:  
+            
             new_ann['category_id'] = empty_id
         
-        # This annotation has a bounding box but was originally annotated as empty
+        # This annotation has a bounding box but the image was originally annotated as empty
         if 'bbox' in ann and new_ann['category_id'] == empty_id:
+            
             new_ann['category_id'] = UNKNOWN_CATEGORY_ID
         
         if 'bbox' in ann:
             
+            image_id_to_bounding_box_count[old_id] += 1
+                
             new_ann['bbox'] = ann['bbox']
             
             # unnormalize the bbox
@@ -277,9 +291,15 @@ for iSequence,sequence in enumerate(annData):
             bbox_count += 1            
             
         if (len(imgCats) > 1):
+            
             new_ann['category_id'] = AMBIGUOUS_CATEGORY_ID
-            ambiguous_annotations.append(new_ann)    
+            if (INCLUDE_AMBIGUOUS_BOXES):
+                new_annotations.append(new_ann)
+            else:
+                ambiguous_annotations.append(new_ann)    
+            
         else:
+            
             new_annotations.append(new_ann)
         
     # ... for each annotation in this sequence
@@ -287,8 +307,11 @@ for iSequence,sequence in enumerate(annData):
 
 #%% Post-processing
 
-# Empty sequences should have no bounding boxes, but should still have annotations
-assert (len(sequences_with_no_bounding_boxes) == 0)
+assert (len(image_id_to_bounding_box_count) == image_count)
+
+# Count empty images
+bboxCounts = list(image_id_to_bounding_box_count.values())
+nEmptyImages = bboxCounts.count(0)
 
 categories.append({'id':UNKNOWN_CATEGORY_ID, 'name': 'needs label'})
 categories.append({'id':AMBIGUOUS_CATEGORY_ID, 'name': 'ambiguous label'})
@@ -296,8 +319,10 @@ categories.append({'id':AMBIGUOUS_CATEGORY_ID, 'name': 'ambiguous label'})
 # ...for each file
 print('Processed {} boxes on {} images'.format(bbox_count,image_count))
 print('{} empty sequences'.format(len(empty_sequences)))
+print('{} empty images'.format(nEmptyImages))
 print('Writing {} annotations on {} images'.format(len(new_images),len(new_annotations)))
-print('Skipped {} ambiguous annotations'.format(len(ambiguous_annotations)))
+if (not INCLUDE_AMBIGUOUS_BOXES):
+    print('Skipped {} ambiguous annotations'.format(len(ambiguous_annotations)))
 assert(len(ambiguous_annotations) + len(new_annotations) == bbox_count)
 
 new_data = {}
@@ -307,5 +332,3 @@ new_data['annotations'] = new_annotations
 new_data['info'] = data['info']
 new_data['licenses'] = {}
 json.dump(new_data, open(outputFile,'w'))
-    
-

@@ -7,13 +7,14 @@
 #
 # ...along with a COCO-camera-traps database referring to those files, and:
 #
-# 1) Creates a new directory with those images named according to the Snapshot Serengeti naming convention,
-#    including complete relative paths.
+# 1) Creates a new COCO-camera-traps database with the original filenames in them 
+#    (copying the annotations)
 #
-# 2) Creates a new COCO-camera-traps database with the original filenames in them (copying the annotations)
+# 2) Optionally creates a new directory with those images named according to the 
+#    Snapshot Serengeti naming convention, including complete relative paths.
 #
-# See convert_imerit_json_to_coco_json to see how we get from the original annotation .json 
-# to a COCO-camera-traps database.
+# See convert_imerit_json_to_coco_json to see how we get from the original annotation
+# .json to a COCO-camera-traps database.
 #
 
 #%% Constants and imports
@@ -48,12 +49,11 @@ assert(os.path.isfile(annotation_file))
 with open(annotation_file,'r') as f:
     data = json.load(f)
 
-print('Finished reading {} annotations from input file {}'.format(len(data['annotations']),annotation_file))
+print('Finished reading {} annotations and {} images from input file {}'.format(
+        len(data['annotations']),len(data['images']),annotation_file))
 
 
 #%% Update filenames, optionally copying files
-
-not_found = []
 
 # im = data['images'][0]
 
@@ -91,9 +91,6 @@ for im in data['images']:
         copyfile(old_path,new_path)
 
 # ...for each image        
-
-data['images'] = [im for im in data['images'] if im['id'] not in not_found]
-data['annotations'] = [ann for ann in data['annotations'] if ann['image_id'] not in not_found]
 
 
 #%% Write the revised database
