@@ -53,6 +53,8 @@ def check_images(images, image_file_root):
     count = 0
     nImages = len(images)
     
+    # We're about to start a lot of TF sessions, and we don't want gobs 
+    # of debugging information printing out for every session.
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
     config=tf.ConfigProto(log_device_placement=False)
     
@@ -136,7 +138,6 @@ if False:
     
     #%%
     
-    import os
     # base_dir = r'D:\temp\snapshot_serengeti_tfrecord_generation'
     base_dir = r'/data/ss_corruption_check'
     input_file = os.path.join(base_dir,'imerit_batch7_renamed.json')
@@ -157,7 +158,6 @@ if False:
     
     
 #%% Command-line driver
-
 
 def parse_args():
     
