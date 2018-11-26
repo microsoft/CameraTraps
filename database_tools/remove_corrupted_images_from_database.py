@@ -13,15 +13,22 @@ import argparse
 import numpy as np
 import time
 import humanfriendly
+import os
+import gc
 from multiprocessing.pool import ThreadPool
 import multiprocessing
 
-N_THREADS = 16 # multiprocessing.cpu_count()
+N_THREADS = 1 # 16 # multiprocessing.cpu_count()
 DEBUG_MAX_IMAGES = -1
 
 # I leave this at an annoying low number, since by definition weird stuff will
 # be happening in the TF kernel, and it's useful to keep having content in the console.
 IMAGE_PRINT_FREQUENCY = 10
+
+# I was having some GPU memory leak issues with the approach of starting a new
+# tf session for each image; this lets me move everything to the CPU (I think).
+FORCE_CPU = True
+GARBAGE_COLLECT_AFTER_EACH_IMAGE = True
 
 
 #%% Function definitions
@@ -48,7 +55,18 @@ def check_images(images, image_file_root):
         
     keep_im = {im['id']:True for im in images}
     
-    with tf.Session() as sess:
+    config = tf.ConfigProto()
+    
+    if (FORCE_CPU):
+        # Theoretically, I believe either of the following will
+        # do the job.
+        os.environ['CUDA_VISIBLE_DEVICES'] = ''    
+        config = tf.ConfigProto(
+            device_count = {'GPU': 0},
+            log_device_placement=True
+        )
+    
+    with tf.Session(config=config) as sess:
         
         count = 0
         nImages = len(images)
@@ -68,16 +86,14 @@ def check_images(images, image_file_root):
             
             try:
                 image_data = tf.gfile.FastGFile(image_file,'rb').read()
-            except:
-                print('Read error on file {}'.format(image_file))
-                raise
-            
-            try:
                 image = tf.image.decode_jpeg(image_data)
                 sess.run(image)
             except:
                 keep_im[im['id']] = False
 
+            if (GARBAGE_COLLECT_AFTER_EACH_IMAGE):
+                gc.collect()
+        
     return keep_im
 
 
@@ -150,6 +166,8 @@ if False:
     
     
 #%% Command-line driver
+    
+# python remove_corrupted_images_from_database.py --input_file "D:\temp\snapshot_serengeti_tfrecord_generation\imerit_batch7_renamed.json" --output_file "D:\temp\snapshot_serengeti_tfrecord_generation\imerit_batch7_renamed_uncorrupted.json" --image_file_root "D:\temp\snapshot_serengeti_tfrecord_generation\imerit_batch7_images_renamed"
     
 def parse_args():
     
