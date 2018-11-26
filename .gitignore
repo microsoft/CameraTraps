@@ -19,3 +19,4 @@ __pycache__/
 # IDE
 *.idea/
 
+.spyproject/workspace.ini
