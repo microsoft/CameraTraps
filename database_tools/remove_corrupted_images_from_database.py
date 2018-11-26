@@ -14,21 +14,16 @@ import numpy as np
 import time
 import humanfriendly
 import os
-import gc
 from multiprocessing.pool import ThreadPool
 import multiprocessing
+import gc
 
-N_THREADS = 1 # 16 # multiprocessing.cpu_count()
+N_THREADS = 16 # 1 # multiprocessing.cpu_count()
 DEBUG_MAX_IMAGES = -1
 
 # I leave this at an annoying low number, since by definition weird stuff will
 # be happening in the TF kernel, and it's useful to keep having content in the console.
 IMAGE_PRINT_FREQUENCY = 10
-
-# I was having some GPU memory leak issues with the approach of starting a new
-# tf session for each image; this lets me move everything to the CPU (I think).
-FORCE_CPU = True
-GARBAGE_COLLECT_AFTER_EACH_IMAGE = True
 
 
 #%% Function definitions
@@ -54,25 +49,21 @@ def check_images(images, image_file_root):
         jobID = 0
         
     keep_im = {im['id']:True for im in images}
-    
-    config = tf.ConfigProto()
-    
-    if (FORCE_CPU):
-        # Theoretically, I believe either of the following will
-        # do the job.
-        os.environ['CUDA_VISIBLE_DEVICES'] = ''    
-        config = tf.ConfigProto(
-            device_count = {'GPU': 0},
-            log_device_placement=True
-        )
-    
-    with tf.Session(config=config) as sess:
-        
-        count = 0
-        nImages = len(images)
-        
-        for iImage,im in enumerate(images):
             
+    count = 0
+    nImages = len(images)
+    
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+    config=tf.ConfigProto(log_device_placement=False)
+    
+    # At some point we were creating a single session and looping over images
+    # within that session, but the only way I found to reliably not run out
+    # of GPU memory was to create a session per image and gc.collect() after
+    # each session.
+    for iImage,im in enumerate(images):
+
+        with tf.Session(config=config) as sess:
+
             if ((DEBUG_MAX_IMAGES > 0) and (iImage >= DEBUG_MAX_IMAGES)):
                 print('Breaking after {} images'.format(DEBUG_MAX_IMAGES))
                 break
@@ -91,8 +82,7 @@ def check_images(images, image_file_root):
             except:
                 keep_im[im['id']] = False
 
-            if (GARBAGE_COLLECT_AFTER_EACH_IMAGE):
-                gc.collect()
+        gc.collect()
         
     return keep_im
 
@@ -147,7 +137,8 @@ if False:
     #%%
     
     import os
-    base_dir = r'D:\temp\snapshot_serengeti_tfrecord_generation'
+    # base_dir = r'D:\temp\snapshot_serengeti_tfrecord_generation'
+    base_dir = r'/data/ss_corruption_check'
     input_file = os.path.join(base_dir,'imerit_batch7_renamed.json')
     output_file = os.path.join(base_dir,'imerit_batch7_renamed_uncorrupted.json')
     image_file_root = os.path.join(base_dir,'imerit_batch7_images_renamed')
@@ -166,9 +157,8 @@ if False:
     
     
 #%% Command-line driver
-    
-# python remove_corrupted_images_from_database.py --input_file "D:\temp\snapshot_serengeti_tfrecord_generation\imerit_batch7_renamed.json" --output_file "D:\temp\snapshot_serengeti_tfrecord_generation\imerit_batch7_renamed_uncorrupted.json" --image_file_root "D:\temp\snapshot_serengeti_tfrecord_generation\imerit_batch7_images_renamed"
-    
+
+
 def parse_args():
     
     parser = argparse.ArgumentParser(description = 'Remove images from a .json file that can''t be opened in TF')
