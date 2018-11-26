@@ -13,10 +13,12 @@ import argparse
 import numpy as np
 import time
 import humanfriendly
+import os
 from multiprocessing.pool import ThreadPool
 import multiprocessing
+import gc
 
-N_THREADS = 16 # multiprocessing.cpu_count()
+N_THREADS = 16 # 1 # multiprocessing.cpu_count()
 DEBUG_MAX_IMAGES = -1
 
 # I leave this at an annoying low number, since by definition weird stuff will
@@ -47,14 +49,21 @@ def check_images(images, image_file_root):
         jobID = 0
         
     keep_im = {im['id']:True for im in images}
-    
-    with tf.Session() as sess:
-        
-        count = 0
-        nImages = len(images)
-        
-        for iImage,im in enumerate(images):
             
+    count = 0
+    nImages = len(images)
+    
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+    config=tf.ConfigProto(log_device_placement=False)
+    
+    # At some point we were creating a single session and looping over images
+    # within that session, but the only way I found to reliably not run out
+    # of GPU memory was to create a session per image and gc.collect() after
+    # each session.
+    for iImage,im in enumerate(images):
+
+        with tf.Session(config=config) as sess:
+
             if ((DEBUG_MAX_IMAGES > 0) and (iImage >= DEBUG_MAX_IMAGES)):
                 print('Breaking after {} images'.format(DEBUG_MAX_IMAGES))
                 break
@@ -68,16 +77,13 @@ def check_images(images, image_file_root):
             
             try:
                 image_data = tf.gfile.FastGFile(image_file,'rb').read()
-            except:
-                print('Read error on file {}'.format(image_file))
-                raise
-            
-            try:
                 image = tf.image.decode_jpeg(image_data)
                 sess.run(image)
             except:
                 keep_im[im['id']] = False
 
+        gc.collect()
+        
     return keep_im
 
 
@@ -131,7 +137,8 @@ if False:
     #%%
     
     import os
-    base_dir = r'D:\temp\snapshot_serengeti_tfrecord_generation'
+    # base_dir = r'D:\temp\snapshot_serengeti_tfrecord_generation'
+    base_dir = r'/data/ss_corruption_check'
     input_file = os.path.join(base_dir,'imerit_batch7_renamed.json')
     output_file = os.path.join(base_dir,'imerit_batch7_renamed_uncorrupted.json')
     image_file_root = os.path.join(base_dir,'imerit_batch7_images_renamed')
@@ -150,7 +157,8 @@ if False:
     
     
 #%% Command-line driver
-    
+
+
 def parse_args():
     
     parser = argparse.ArgumentParser(description = 'Remove images from a .json file that can''t be opened in TF')
