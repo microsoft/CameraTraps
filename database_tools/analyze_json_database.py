@@ -6,14 +6,18 @@
 # Currently includes some one-off code for specific species.
 #
 
+#%% Constants and imports
+
 import json
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import os
-import csv
 import colorsys
 import numpy as np
+
+
+#%% Path configuration
 
 db_name = 'imerit_annotation_images_ss_2'
 db_file = '/datadrive/snapshotserengeti/databases/'+db_name+'.json'
@@ -22,6 +26,9 @@ plot_directory = '/datadrive/snapshotserengeti/databases/Plots/'+db_name
 if not os.path.exists(plot_directory):
     os.makedirs(plot_directory)
 
+
+#%% Load source data
+    
 with open(db_file,'r') as f:
     data = json.load(f)
 
@@ -33,6 +40,8 @@ print('This database has:')
 print(str(len(images)) + ' images')
 print(str(len(annotations)) + ' annotations')
 
+
+#%% Build image/category dictionaries
 
 im_id_to_im = {im['id']: im for im in images}
 im_id_to_cat = {ann['image_id']:ann['category_id'] for ann in annotations}
@@ -60,7 +69,8 @@ for im in images:
     season_to_ims[im['season']].append(im['id'])
 
 
-#make plot of category distribution
+#%% Make plot of category distribution
+    
 sortedCats = sorted(zip([len(cat_to_ims[cat]) for cat in cat_to_ims],[cat for cat in cat_to_ims]), key = lambda t: t[0], reverse = True)
 plt.bar(range(len(sortedCats)),[cat[0] for cat in sortedCats], log = True)
 plt.ylabel('Number of images')
@@ -71,7 +81,9 @@ plt.tight_layout()
 plt.savefig(plot_directory + '/ims_per_cat.jpg')  
 plt.clf()
 
-#make plots of location distribution
+
+#%% make plots of location distribution
+
 sortedLocs = sorted(zip([len(loc_to_ims[loc]) for loc in loc_to_ims],[loc for loc in loc_to_ims]), key = lambda t: t[0], reverse = True)
 plt.bar(range(len(loc_to_ims)),[loc[0] for loc in sortedLocs])
 plt.ylabel('Number of images')
@@ -123,7 +135,9 @@ plt.tight_layout()
 plt.savefig(plot_directory + '/ims_per_season.jpg')   
 plt.clf()
 
-#make plot of lions per location
+
+#%% Make plot of lions per location
+
 lion_ids = [cat_to_id['lionMale'], cat_to_id['lionFemale']]
 loc_to_lion_ims = {loc:[i for i in loc_to_ims[loc] if im_id_to_cat[i] in lion_ids] for loc in loc_to_ims}
 loc_to_lion_ims = {loc:loc_to_lion_ims[loc] for loc in loc_to_lion_ims if len(loc_to_lion_ims[loc]) > 0}
@@ -138,7 +152,8 @@ plt.savefig(plot_directory + '/lion_ims_per_loc.jpg')
 plt.clf()
 
 
-#make plot of elephants per location
+#%% Make plot of elephants per location
+
 elephant_ids = [cat_to_id['elephant']]
 loc_to_elephant_ims = {loc:[i for i in loc_to_ims[loc] if im_id_to_cat[i] in elephant_ids] for loc in loc_to_ims}
 loc_to_elephant_ims = {loc:loc_to_elephant_ims[loc] for loc in loc_to_elephant_ims if len(loc_to_elephant_ims[loc]) > 0}

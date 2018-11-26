@@ -1,17 +1,26 @@
 #
 # make_oneclass_json.py
 #
-# Takes a coco-camera-traps .json database and collapses species classes to binary, optionally removing
-# labels from empty images (to be detector-friendly) (depending on "experiment_type").
+# Takes a coco-camera-traps .json database and collapses species classes to binary, 
+# optionally removing labels from empty images (to be detector-friendly) (depending on 
+# "experiment_type").
 #
 # Assumes that empty images are labeled as "empty".
 #
 
+#%% Imports and environment
+
 import json
 import argparse
 
+
+#%% Core conversion function
+
 def make_binary_json(data, experiment_type='detection',ignore_humans = False):
-    #converts a multiclass file to oneclass animal/no animal, for either detection or classification
+    '''
+    converts a multiclass .json object to one-class animal/no animal, for either detection or 
+    classification.
+    '''
     cat_id_to_name = {cat['id']:cat['name'] for cat in data['categories']}
     new_cats = [{'name': 'animal', 'id':1},{'name':'empty', 'id':0}]
     new_anns = []
@@ -23,18 +32,52 @@ def make_binary_json(data, experiment_type='detection',ignore_humans = False):
             else:
                 ann['category_id'] = 1
                 new_anns.append(ann)
-        else:
+        elif experiment_type == 'detection':
             if 'bbox' in ann and cat_id_to_name[ann['category_id']] not in ['empty']:
                 ann['category_id'] = 1
                 new_anns.append(ann)
-    print(len(data['annotations']),len(new_anns))
-
+        else:
+            raise ValueError('Unknown experiment type: {}'.format(experiment_type))
+    
     data['categories'] = new_cats
     data['annotations'] = new_anns
 
     return data
 
 
+#%% Interactive driver
+    
+if False:
+    
+    #%%
+    
+    import os
+    base_dir = r'D:\temp\snapshot_serengeti_tfrecord_generation'
+    input_file = os.path.join(base_dir,'imerit_batch7_renamed_uncorrupted.json')
+    output_file = os.path.join(base_dir,'imerit_batch7_renamed_uncorrupted_oneclass.json')
+    ignore_humans = True
+    experiment_type = 'detection'
+    
+    assert(os.path.isfile(input_file))
+    
+    # Load annotations
+    with open(input_file,'r') as f:
+            data = json.load(f)    
+            
+    # Check for corruption
+    data_oneclass = make_binary_json(data,experiment_type,ignore_humans)
+    
+    # Write out only the uncorrupted data
+    json.dump(data_oneclass, open(output_file,'w'))
+
+    print('Wrote {} annotations (of {} original annotations) to {}'.format(
+            len(data_oneclass['annotations']),
+            len(data['annotations']),
+            output_file))
+
+
+#%% Command-line driver
+    
 def parse_args():
 
     parser = argparse.ArgumentParser(description = 'Convert a multiclass .json to a oneclass .json')
@@ -56,6 +99,7 @@ def parse_args():
 
 
 def main():
+    
     args = parse_args()
     print('Reading input file')
     with open(args.input_file,'r') as f:
@@ -65,5 +109,7 @@ def main():
 
     json.dump(oneclass_data,open(args.output_file,'w'))
 
+
 if __name__ == '__main__':
+    
     main()
