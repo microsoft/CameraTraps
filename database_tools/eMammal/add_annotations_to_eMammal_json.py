@@ -22,10 +22,10 @@ overwrite_previous_annotations = True
 json_db_path = '/home/yasiyu/yasiyu_temp/eMammal_db/eMammal_images.json'
 
 # path to the new version of the database with annotations added
-output_db_path = '/home/yasiyu/yasiyu_temp/eMammal_db/eMammal_20180929.json'
+output_db_path = '/home/yasiyu/yasiyu_temp/eMammal_db/eMammal_20181126.json'
 
 # where to save other info
-other_output_dir = '/home/yasiyu/yasiyu_temp/eMammal_db/eMammal_20180929_others'
+other_output_dir = '/home/yasiyu/yasiyu_temp/eMammal_db/eMammal_20181126_others'
 os.makedirs(other_output_dir, exist_ok=True)
 
 # annotations obtained from our annotation vendor to be added to this database
@@ -44,15 +44,17 @@ assert len(db_images) > 0
 
 db_info = original_db.get('info', [])
 assert len(db_info) >= 5
-db_info['version'] = '0.0.2'
-db_info['description'] = 'eMammal dataset containing deployments in the McShea, Kays, and Long collections, in COCO format.'
+db_info['version'] = '0.0.3'
+db_info['description'] = 'eMammal dataset containing deployments in the McShea, Kays, and Long collections, \
+in COCO format with unnormalized bbox coordinates.'
 db_info['date_created'] = str(date.today())
 
-# map of all images' IDs in the ORIGINAL_DB to the label/category assigned to that image
-# (which is the category assigned to the image sequence from which the image comes from)
-db_image_ids = {
-    i['id'] for i in db_images
-}
+db_image_props = {}
+for im in db_images:
+    db_image_props[im['id']] = {
+        'width': im['width'],
+        'height': im['height']
+    }
 
 default_categories = [
     {'id': 0, 'name': 'empty'},  # identifies the image as empty, which create_tfrecords_format will get rid of
@@ -124,12 +126,23 @@ for annotation_path in new_annotation_paths:
             full_img_id = 'datasetemammal.project{}.deployment{}.seq{}.img{}'.format(
                 project_id, deployment_id, seq_id, image_id)
 
-            if full_img_id in db_image_ids:  # the image should exist in the original database
+            if full_img_id in db_image_props:  # the image should exist in the original database
+                im_width, im_height = db_image_props[full_img_id]['width'], db_image_props[full_img_id]['height']
+                if len(bbox_entry['bbox']) == 0:
+                    bbox = []
+                else:
+                    rel_x, rel_y, rel_width, rel_height = bbox_entry['bbox'] # [top left x, top left y, width, height] in relative coordinates
+                    x = rel_x * im_width
+                    y = rel_y * im_height
+                    w = rel_width * im_width
+                    h = rel_height * im_height
+                    bbox = [x, y, w, h]
+
                 db_annotations.append({
                     'image_id': full_img_id,
                     'category_id': int(bbox_entry['category_id']),
                     'id': bbox_entry['id'],
-                    'bbox': bbox_entry['bbox']  # [top left x, top left y, relative width, relative height]
+                    'bbox': bbox  # [top left x, top left y, width, height] in absolute coordinates (floats)
                 })
             else:
                 image_ids_not_found.append(full_img_id)
