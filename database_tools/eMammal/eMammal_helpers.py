@@ -149,7 +149,7 @@ def draw_bboxes(image, bboxes, classes, thickness=4, show_label=False):
     Draw bounding boxes on top of an image
     Args:
         image : Path to image or a loaded PIL image
-        bboxes: A list of bboxes to draw on the image, each bbox is [top left x, top left y, relative width, relative height]
+        bboxes: A list of bboxes to draw on the image, each bbox is [top left x, top left y, width, height] in relative coordinates
         classes: A list of classes corresponding to the bboxes
         thickness: Thickness of the line to draw, minimum is 1
     Outputs:
