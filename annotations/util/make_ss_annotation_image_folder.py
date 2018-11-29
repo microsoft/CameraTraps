@@ -22,10 +22,12 @@
 import json
 import os
 import re
+import time
+import humanfriendly
 from shutil import copyfile
 
-COPY_FILES = True
-CHECK_IMAGE_EXISTENCE = True
+COPY_FILES = False
+CHECK_IMAGE_EXISTENCE = False
 
 
 #%% Configure files/paths
@@ -54,6 +56,8 @@ print('Finished reading {} annotations and {} images from input file {}'.format(
 
 
 #%% Update filenames, optionally copying files
+
+startTime = time.time()
 
 # im = data['images'][0]
 
@@ -91,6 +95,9 @@ for im in data['images']:
         copyfile(old_path,new_path)
 
 # ...for each image        
+elapsed = time.time() - startTime
+print("Done processing {} files in {}".format(len(data['images']),
+      humanfriendly.format_timespan(elapsed)))
 
 
 #%% Write the revised database
