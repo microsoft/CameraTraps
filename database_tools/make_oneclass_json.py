@@ -12,16 +12,18 @@
 
 import json
 import argparse
+import copy
 
 
 #%% Core conversion function
 
-def make_binary_json(data, experiment_type='detection',ignore_humans = False):
+def make_binary_json(data,experiment_type='detection',ignore_humans = False):
     '''
     converts a multiclass .json object to one-class animal/no animal, for either detection or 
-    classification.
+    classification.  Modifies "data" in-place.
     '''
     cat_id_to_name = {cat['id']:cat['name'] for cat in data['categories']}
+    print('Mapping {} categories to binary'.format(len(cat_id_to_name)))
     new_cats = [{'name': 'animal', 'id':1},{'name':'empty', 'id':0}]
     new_anns = []
     for ann in data['annotations']:
@@ -33,9 +35,13 @@ def make_binary_json(data, experiment_type='detection',ignore_humans = False):
                 ann['category_id'] = 1
                 new_anns.append(ann)
         elif experiment_type == 'detection':
-            if 'bbox' in ann and cat_id_to_name[ann['category_id']] not in ['empty']:
+            # We're removing empty images from the annotation list, but not from
+            # the "images" list; they'll still get used in detector training.
+            if ('bbox' in ann) and (cat_id_to_name[ann['category_id']] not in ['empty']):
                 ann['category_id'] = 1
                 new_anns.append(ann)
+            else:
+                print('Ignoring empty annotation')
         else:
             raise ValueError('Unknown experiment type: {}'.format(experiment_type))
     
@@ -48,13 +54,13 @@ def make_binary_json(data, experiment_type='detection',ignore_humans = False):
 #%% Interactive driver
     
 if False:
-    
+
     #%%
     
     import os
     base_dir = r'D:\temp\snapshot_serengeti_tfrecord_generation'
-    input_file = os.path.join(base_dir,'imerit_batch7_renamed_uncorrupted.json')
-    output_file = os.path.join(base_dir,'imerit_batch7_renamed_uncorrupted_oneclass.json')
+    input_file = os.path.join(base_dir,'imerit_batch7_renamed_uncorrupted_filtered.json')
+    output_file = os.path.join(base_dir,'imerit_batch7_renamed_uncorrupted_filtered_oneclass.json')
     ignore_humans = True
     experiment_type = 'detection'
     
@@ -62,17 +68,18 @@ if False:
     
     # Load annotations
     with open(input_file,'r') as f:
-            data = json.load(f)    
+            data_multiclass = json.load(f)    
             
-    # Check for corruption
-    data_oneclass = make_binary_json(data,experiment_type,ignore_humans)
+    # Convert from multi-class to one-class
+    data_oneclass = copy.deepcopy(data_multiclass)
+    data_oneclass = make_binary_json(data_oneclass,experiment_type,ignore_humans)
     
-    # Write out only the uncorrupted data
+    # Write out the one-class data
     json.dump(data_oneclass, open(output_file,'w'))
 
     print('Wrote {} annotations (of {} original annotations) to {}'.format(
             len(data_oneclass['annotations']),
-            len(data['annotations']),
+            len(data_multiclass['annotations']),
             output_file))
 
 
