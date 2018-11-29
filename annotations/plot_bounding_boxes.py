@@ -11,6 +11,7 @@
 #%% Imports and environment
 
 import os
+from tqdm import tqdm
 import json
 import matplotlib
 matplotlib.use('Agg')
@@ -18,26 +19,24 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from PIL import Image
 import numpy as np
+import random
 import matplotlib.ticker as ticker
 
-# Old configurations
 BASE_DIR = r'd:\temp\snapshot_serengeti_tfrecord_generation'
-annotationFile = os.path.join(BASE_DIR,'imerit_batch7_renamed.json')
-outputBase = os.path.join(BASE_DIR,'imerit_batch7_bboxes')
+annotationFile = os.path.join(BASE_DIR,'imerit_batch7_renamed_uncorrupted_filtered.json')
+outputBase = os.path.join(BASE_DIR,'imerit_batch7_filtered_bboxes')
 imageBase = os.path.join(BASE_DIR,'imerit_batch7_images_renamed')
 
-if False:
-    imageBase = '/datadrive/iwildcam/'    
-    outputBase = '/datadrive/iwildcam/imerit/tmp/'
-    annotationFile = '/datadrive/iwildcam/annotations/CaltechCameraTrapsFullAnnotations.json'
-
 os.makedirs(outputBase, exist_ok=True)
+assert(os.path.isfile(annotationFile))
 
 LINE_WIDTH_HEIGHT_FRACTION = 0.003
 FONT_SIZE_HEIGHT_FRACTION = 0.015
-
+MAX_IMAGES = -1 # 100 # -1
+SHUFFLE_IMAGES = False
         
-#%%  Read all source images and build up convenience mappings 
+
+#%%  Read database and build up convenience mappings 
 
 print("Loading json database")
 with open(annotationFile, 'r') as f:
@@ -79,9 +78,17 @@ print("Loaded database and built mappings for {} images".format(len(images)))
 
 #%% Iterate over images, draw bounding boxes, write to file
 
+if (SHUFFLE_IMAGES):
+    print('Shuffling image list')
+    random.shuffle(images)
+    
 # For each image
 # image = images[0]
-for image in images:
+for iImage,image in tqdm(enumerate(images)):
+    
+    if (MAX_IMAGES > 0 and iImage >= MAX_IMAGES):
+        print('Breaking after {} of {} images'.format(iImage,len(images)))
+        break
     
     imageID = image['id']
     
@@ -97,8 +104,12 @@ for image in images:
     outputFileName = os.path.join(outputBase,outputID +'.jpg')
             
     # Load the image
-    sourceImage = Image.open(imageFileName).convert("RGBA")
-        
+    try:
+        sourceImage = Image.open(imageFileName).convert("RGBA")
+    except:
+        print('Warning: image read error on {}'.format(imageFileName))
+        continue
+    
     s = sourceImage.size
     imageWidth = s[0]
     imageHeight = s[1]
@@ -159,4 +170,4 @@ for image in images:
     plt.savefig(outputFileName, bbox_inches='tight', pad_inches=0.0)
     plt.close('all')
 
-    
+print('Finished rendering boxes')    
