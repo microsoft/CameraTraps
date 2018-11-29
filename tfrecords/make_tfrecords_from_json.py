@@ -4,30 +4,61 @@
 # Given a coco-camera-traps .json file, creates tfrecords
 #
 
+#%% Constants and imports
+
 import json
-import pickle
 import numpy as np
 import argparse
+import sys
+import os
 
-# from create_tfrecords_py3 import create
-from create_tfrecords import create
-from create_tfrecords_format import create_tfrecords_format
+try:
+    
+    if (sys.version_info.major >= 3):
+        from create_tfrecords_py3 import create
+    else:
+        from create_tfrecords import create
+    
+    from create_tfrecords_format import create_tfrecords_format
+    
+except:
+    
+    pass
 
 
-def make_tfrecords_from_json(input_json_file, output_tfrecords_folder, image_file_root, dataset_name, num_threads=5,ims_per_record=200): 
-    #check if the input file has already been converted to the tfrecords format, if not, convert
+#%% Constants and imports (interactive)
+
+if False:
+
+    #%%
+    
+    from tfrecords import *
+    
+    if (sys.version_info.major >= 3):
+        from tfrecords.create_tfrecords_py3 import create
+    else:
+        from tfrecords.create_tfrecords import create
+    
+    from tfrecords.create_tfrecords_format import create_tfrecords_format
+
+
+#%% Main tfrecord generation function
+
+def make_tfrecords_from_json(input_json_file, output_tfrecords_folder, image_file_root, 
+                             dataset_name, num_threads=5, ims_per_record=200): 
+    
+    # check whether the input file has already been converted to the tfrecords format,
+    # if not, convert
     if 'tfrecord_format' in input_json_file:
-        with open(database_file,'r') as f:
+        with open(input_json_file,'r') as f:
             dataset = json.load(f)
     else:
         dataset = create_tfrecords_format(input_json_file, image_file_root)
 
-    print('Images: ',len(dataset))
-
-    print('Creating '+dataset_name+' tfrecords')
+    print('Creating tfrecords for {} from {} images'.format(dataset_name,len(dataset)))
     
-    #calculate number of shards to get the desired number of images per record, ensure it is evenly divisible
-    #by the number of threads
+    # Calculate number of shards to get the desired number of images per record, 
+    # ensure it is evenly divisible by the number of threads
     num_shards = int(np.ceil(float(len(dataset))/ims_per_record))
     while num_shards % num_threads:
         num_shards += 1
@@ -42,6 +73,33 @@ def make_tfrecords_from_json(input_json_file, output_tfrecords_folder, image_fil
       store_images=True
     )
 
+    return failed_images
+
+
+#%% Interactive driver
+
+if False:
+    
+    #%%    
+    num_threads = 5
+    ims_per_record = 200
+    dataset_name = 'imerit_batch7_ss_oneclass'
+    baseDir = r'D:\temp\snapshot_serengeti_tfrecord_generation'    
+    input_json_file = os.path.join(baseDir,'imerit_batch7_renamed_uncorrupted_filtered_oneclass.json')
+    output_tfrecords_folder = os.path.join(baseDir,'imerit_batch7_renamed_uncorrupted_filtered_oneclass_tfrecords')
+    image_file_root = os.path.join(baseDir,'imerit_batch7_images_renamed')
+    
+    assert(os.path.isfile(input_json_file))
+    assert(os.path.isdir(image_file_root))
+    os.makedirs(output_tfrecords_folder, exist_ok=True)
+    
+    tfr_images = make_tfrecords_from_json(input_json_file, output_tfrecords_folder,
+                                              image_file_root,dataset_name, num_threads,
+                                              ims_per_record)
+    
+    
+#%% Command-line driver
+    
 def parse_args():
 
     parser = argparse.ArgumentParser(description = 'Make tfrecords from a CCT style json file')
@@ -69,11 +127,13 @@ def parse_args():
 
     return args
 
+
 def main():
     args = parse_args()
 
-    make_tfrecords_from_json(args.input_json_file, args.output_tfrecords_folder, args.image_file_root,
-                             args.dataset_name, args.num_threads,args.ims_per_record)
+    make_tfrecords_from_json(args.input_json_file, args.output_tfrecords_folder, 
+                             args.image_file_root, args.dataset_name, args.num_threads,
+                             args.ims_per_record)
 
 
 if __name__ == '__main__':
