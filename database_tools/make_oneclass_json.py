@@ -41,7 +41,8 @@ def make_binary_json(data,experiment_type='detection',ignore_humans = False):
                 ann['category_id'] = 1
                 new_anns.append(ann)
             else:
-                print('Ignoring empty annotation')
+                pass
+                # print('Ignoring empty annotation')
         else:
             raise ValueError('Unknown experiment type: {}'.format(experiment_type))
     
