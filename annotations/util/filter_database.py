@@ -9,6 +9,7 @@
 
 import os
 import json
+import math
 
 
 #%% Configuration
@@ -50,20 +51,21 @@ print('Finished loading .json data')
 
 filteredImages = {}
 filteredAnnotations = []
+nEmpty = 0
 
 # ann = annotations[0]
 for iAnn,ann in enumerate(annotations):
     
-    if not 'bbox' in ann:
-        continue
-    
     # Is this a tiny box or a group annotation?
     MIN_BOX_SIZE = 50
     
-    # x,y,w,h
-    bbox = ann['bbox']
-    w = bbox[2]; h = bbox[3]
-    minsize = min(w,h)
+    minsize = math.inf
+    
+    if ('bbox' in ann):
+        # x,y,w,h
+        bbox = ann['bbox']
+        w = bbox[2]; h = bbox[3]
+        minsize = min(w,h)
     
     annotationType = ann['annotation_type']
     
@@ -73,9 +75,18 @@ for iAnn,ann in enumerate(annotations):
         filteredImages[imageID] = imageInfo
         filteredAnnotations.append(ann)
         
-print('Filtered {} of {} images and {} of {} annotations'.format(
+    if (annotationType == 'empty'):
+        nEmpty +=1
+        assert 'bbox' not in ann
+        # All empty annotations should be classified as either empty or ambiguous
+        #
+        # The ambiguous cases are basically minor misses on the annotators' part,
+        # where two different small animals were present somewhere.
+        assert ann['category_id'] == 0 or ann['category_id'] == 1001
+        
+print('Filtered {} of {} images and {} of {} annotations ({} empty)'.format(
         len(filteredImages),len(images),
-        len(filteredAnnotations),len(annotations)))
+        len(filteredAnnotations),len(annotations),nEmpty))
     
 
 #%% Write output file

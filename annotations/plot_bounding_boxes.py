@@ -32,8 +32,12 @@ assert(os.path.isfile(annotationFile))
 
 LINE_WIDTH_HEIGHT_FRACTION = 0.003
 FONT_SIZE_HEIGHT_FRACTION = 0.015
-MAX_IMAGES = -1 # 100 # -1
-SHUFFLE_IMAGES = False
+
+# How many images should we process?  Set to -1 to process all images.
+MAX_IMAGES = 1000 # -1
+
+# Should we randomize the image order?
+SHUFFLE_IMAGES = True
         
 
 #%%  Read database and build up convenience mappings 
@@ -82,13 +86,16 @@ if (SHUFFLE_IMAGES):
     print('Shuffling image list')
     random.shuffle(images)
     
+if (MAX_IMAGES > 0):
+    print('Trimming image list to {}'.format(MAX_IMAGES))
+    images = images[:MAX_IMAGES]
+    
 # For each image
 # image = images[0]
-for iImage,image in tqdm(enumerate(images)):
+nImages = len(images)
+for iImage in tqdm(range(nImages)):
     
-    if (MAX_IMAGES > 0 and iImage >= MAX_IMAGES):
-        print('Breaking after {} of {} images'.format(iImage,len(images)))
-        break
+    image = images[iImage]
     
     imageID = image['id']
     
@@ -170,4 +177,6 @@ for iImage,image in tqdm(enumerate(images)):
     plt.savefig(outputFileName, bbox_inches='tight', pad_inches=0.0)
     plt.close('all')
 
+# ...for each image
+    
 print('Finished rendering boxes')    
