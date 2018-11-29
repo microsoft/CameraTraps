@@ -8,7 +8,8 @@
 # The bounding box .json file is in the format returned by our annotators, which is not
 # actually a fully-formed .json file; rather it's a series of .json objects
 #
-# Leaves filenames intact.
+# Leaves filenames intact.  Stores imerit "category IDs" (empty/human/group/animal) in a new 
+# field called "annotation_type".
 #
 
 
@@ -18,6 +19,7 @@ import json
 import re
 import os
 import uuid
+import copy
 from PIL import Image
 
 
@@ -81,7 +83,7 @@ print('Finished reading database and annotations')
 # sequence = annData[0]
 
 
-#%% Build mappings for the master database
+#%% Build convenience mappings 
 
 images = data['images']
 annotations = data['annotations']
@@ -90,7 +92,7 @@ categories = data['categories']
 # Image ID to images
 im_id_to_im = {im['id']:im for im in images}
 
-# Category ID to categiroes
+# Category ID to categories (referring to the database categories)
 cat_id_to_cat = {cat['id']:cat for cat in categories}
 cat_name_to_cat_id = {cat['name']:cat['id'] for cat in categories}
 empty_id = cat_name_to_cat_id['empty']
@@ -100,7 +102,28 @@ im_id_to_cats = {ann['image_id']:[] for ann in annotations}
 for ann in annotations:
     im_id_to_cats[ann['image_id']].append(ann['category_id'])
 
-print('Built master database mappings')
+imerit_cat_id_to_name = {}
+for ann in annData:
+    annCats = ann['categories']
+    for iMeritCat in annCats:
+        catId = iMeritCat['id']
+        catName = iMeritCat['name']
+        if catId in imerit_cat_id_to_name:
+            assert(catName == imerit_cat_id_to_name[catId])
+        else:
+            imerit_cat_id_to_name[catId] = catName
+assert '0' not in imerit_cat_id_to_name
+imerit_cat_id_to_name['0'] = 'empty'
+
+# Utility function we'll use to create annotations for images in empty
+# sequences (empty images in non-empty sequences already have annotations)
+def make_empty_annotation():
+    
+    ann = {'category_id':empty_id,'id':-1,'human_visible':0,'occlusion':0,
+           'truncation':0,'image_id':''}
+    return ann
+    
+print('Built database mappings')
 
 
 #%% Reformat annotations, grabbing category IDs from the master database (prep)
@@ -115,6 +138,7 @@ cats = []
 ann_images = []
 
 image_count = 0
+empty_annotations_created = 0
 size_mismatch_count = 0
 bbox_count = 0
 
@@ -123,34 +147,39 @@ image_id_to_bounding_box_count = {}
 
 image_set = set()
 
+# iSequence = 0; sequence = annData[0]
+
 
 #%% Reformat annotations, grabbing category IDs from the master database (loop)
 
 for iSequence,sequence in enumerate(annData):
     
     sequenceImages = sequence['images']    
-    sequenceAnnotations = sequence['annotations']
+    
+    # Make a copy here; we're going to manipulate the sequence annotations
+    # when we need to add synthetic annotations for empty images
+    sequenceAnnotations = copy.deepcopy(sequence['annotations'])
         
     # im = sequenceImages[0]
     
     # Are there any annotations in this sequence?
-    #
-    # We're still going to process all the images here, but
-    # we'll continue later, before processing annotations.
-    bSequenceEmpty = False
-    
     if (len(sequenceAnnotations) == 0):
         empty_sequences.append(sequence)
-        bSequenceEmpty = True
     
+    # Which images in this sequence have annotations?
+    sequenceAnnotatedImages = []
+    for s in sequenceAnnotations:
+        sequenceAnnotatedImages.append(s['image_id'])
+        
     # For each image in this sequence...
     for iImage,im in enumerate(sequenceImages):
-        
+                
         image_count += 1
         # imeritImageID = im['id']
         
         # E.g. datasetsnapshotserengeti.seqASG000001a.frame0.imgS1_B06_R1_PICT0008.JPG
         imFileName = im['file_name']
+        imFileNameOriginal = imFileName
         
         # Confirm that the file exists
         imPath = os.path.join(imageBase,imFileName)
@@ -203,11 +232,26 @@ for iSequence,sequence in enumerate(annData):
         if old_id not in image_id_to_bounding_box_count:
             image_id_to_bounding_box_count[old_id] = 0
                 
-        if (bSequenceEmpty):
+        # Create empty annotations for empty images
+        #
+        # Here we use the *unmodified* file name
+        if (imFileNameOriginal not in sequenceAnnotatedImages):
+            
             assert (image_id_to_bounding_box_count[old_id] == 0)    
-        
+                        
+            # Create an empty annotation for this image
+            emptyAnn = make_empty_annotation()
+            
+            # Annotations still use the annotation filename (not database ID) at this point;
+            # these will get converted to database IDs below when we process the 
+            # whole sequence.
+            emptyAnn['image_id'] = imFileName
+            sequenceAnnotations.append(emptyAnn)
+            empty_annotations_created += 1
+            
         new_fn_to_old_id[imFileName] = old_id
-                
+        
+        # Sanity-check image size
         new_im = im_id_to_im[old_id]
         new_im['file_name'] = imFileName
         assert 'height' in new_im
@@ -227,19 +271,6 @@ for iSequence,sequence in enumerate(annData):
         
     # ...for each image in this sequence
 
-    # If there are no annotations for this sequence
-    if (bSequenceEmpty):
-        continue
-    
-    # Sequences that have annotations shoud always have bboxes
-    bSequenceHasBox = False
-    for ann in sequenceAnnotations:
-        if 'bbox' in ann:
-            bSequenceHasBox = True
-            break
-        
-    assert(bSequenceHasBox)
-        
     # For each annotation in this sequence...
     # ann = sequenceAnnotations[0]
     for ann in sequenceAnnotations:
@@ -247,6 +278,8 @@ for iSequence,sequence in enumerate(annData):
         # Prepare an annotation using the category ID from the database and
         # the bounding box from the annotations file
         new_ann = {}
+        
+        # Maintain iMerit's annotation category
         
         # Generate an (arbitrary) ID for this annotation; the COCO format has a concept
         # of annotation ID, but our annotation files don't
@@ -266,13 +299,19 @@ for iSequence,sequence in enumerate(annData):
         
         # We'll do special handling of images with multiple categories later
         new_ann['category_id'] = imgCats[0]
-        
-        # This annotation has no bounding box but the image wasn't originally annotated as empty
+
+        # Store the annotation type (group/human/animal/empty)        
+        annotationType = str(ann['category_id'])
+        new_ann['annotation_type'] = imerit_cat_id_to_name[annotationType]
+
+        # This annotation has no bounding box but the image wasn't originally 
+        # annotated as empty
         if 'bbox' not in ann and new_ann['category_id'] != empty_id:  
             
             new_ann['category_id'] = empty_id
         
-        # This annotation has a bounding box but the image was originally annotated as empty
+        # This annotation has a bounding box but the image was originally 
+        # annotated as empty
         if 'bbox' in ann and new_ann['category_id'] == empty_id:
             
             new_ann['category_id'] = UNKNOWN_CATEGORY_ID
@@ -304,6 +343,8 @@ for iSequence,sequence in enumerate(annData):
         
     # ... for each annotation in this sequence
 
+# ... for each sequence
+    
 
 #%% Post-processing
 
@@ -312,18 +353,20 @@ assert (len(image_id_to_bounding_box_count) == image_count)
 # Count empty images
 bboxCounts = list(image_id_to_bounding_box_count.values())
 nEmptyImages = bboxCounts.count(0)
-
+nImagesInEmptySequences = 0
+for s in empty_sequences:
+    nImagesInEmptySequences += len(s['images'])
+    
 categories.append({'id':UNKNOWN_CATEGORY_ID, 'name': 'needs label'})
 categories.append({'id':AMBIGUOUS_CATEGORY_ID, 'name': 'ambiguous label'})
 
 # ...for each file
 print('Processed {} boxes on {} images'.format(bbox_count,image_count))
-print('{} empty sequences'.format(len(empty_sequences)))
+print('{} empty sequences containing {} images'.format(len(empty_sequences),nImagesInEmptySequences))
 print('{} empty images'.format(nEmptyImages))
 print('Writing {} annotations on {} images'.format(len(new_images),len(new_annotations)))
 if (not INCLUDE_AMBIGUOUS_BOXES):
     print('Skipped {} ambiguous annotations'.format(len(ambiguous_annotations)))
-assert(len(ambiguous_annotations) + len(new_annotations) == bbox_count)
 
 new_data = {}
 new_data['images'] = new_images
@@ -332,3 +375,18 @@ new_data['annotations'] = new_annotations
 new_data['info'] = data['info']
 new_data['licenses'] = {}
 json.dump(new_data, open(outputFile,'w'))
+
+
+#%% Sanity-check empty images
+
+nEmpty = 0
+annotations = new_data['annotations']
+categories = new_data['categories']
+emptyID = 0
+cat_id_to_name = {cat['id']:cat['name'] for cat in new_data['categories']}
+assert(cat_id_to_name[emptyID] == 'empty')
+for ann in annotations:
+    if (not 'bbox' in ann) or (ann['category_id'] == emptyID):
+        nEmpty += 1
+
+assert (nEmpty == nEmptyImages)
