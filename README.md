@@ -28,6 +28,9 @@ Code for performing offline evaluation of detection results, with or without seq
 ## annotations
 Code for creating new annotation tasks and converting annotations to COCO-CameraTraps format
 
+## active_learning
+An ongoing project to employ active learning for semi-automated camera trap image labeling
+
 ## pipeline
 Bash scripts for training, exporting, and running inference on detectors
 
