@@ -1,3 +1,12 @@
+#
+# make_full_SS_json.py
+#
+# Create a COCO-camera-traps .json file for Snapshot Serengeti data from
+# the original .csv files provided on Dryad.
+#
+
+#%% Imports and constants
+
 import csv
 import json
 import uuid
@@ -5,6 +14,11 @@ import datetime
 
 output_file = '/datadrive/snapshotserengeti/databases/SnapshotSerengeti_multiple_classes.json'
 csv_file_name = '/datadrive/snapshotserengeti/databases/consensus_data.csv'
+all_image_file = '/datadrive/snapshotserengeti/databases/all_images.csv'
+
+
+#%% Read annotation .csv file, format into a dictionary mapping field names to data arrays
+
 data = []
 with open(csv_file_name,'r') as f:
     reader = csv.reader(f, dialect = 'excel')
@@ -19,14 +33,15 @@ for event in data[1:]:
         data_dicts[event[0]] = []
     data_dicts[event[0]].append({data_fields[i]:event[i] for i in range(len(data_fields))})
 
+# Count the number of images with multiple species
 mult_species = 0
 for event in data_dicts:
     if len(data_dicts[event]) > 1:
         mult_species += 1
 
-#print(data_dicts[data[1][0]])
 
-all_image_file = '/datadrive/snapshotserengeti/databases/all_images.csv'
+#%% Read image .csv file, format into a dictionary mapping images to capture events
+
 with open(all_image_file,'r') as f:
     reader = csv.reader(f,dialect = 'excel')
     next(reader)
@@ -36,8 +51,8 @@ total_ims = len(im_name_to_cap_id)
 total_seqs = len(data_dicts)
 print('Percent seqs with mult species: ',float(mult_species)/float(total_seqs))
 
-#im_name_to_cap_id.pop('CaptureEventID')
-#print(len(im_name_to_cap_id))
+
+#%% Create CCT-style .json 
 
 images = []
 annotations = []
@@ -61,6 +76,7 @@ cat_count = 1
 seasons = []
 
 for im_id in im_name_to_cap_id:
+    
     im = {}
     im['id'] = im_id.split('.')[0]
     im['file_name'] = im_id
@@ -98,16 +114,20 @@ for im_id in im_name_to_cap_id:
             
     #still need image width and height
     images.append(im)
-    #annotations.append(ann)
+    
+# ...for each image
+    
 print(seasons)
-#print(cat_to_id)
+
 for cat in cat_to_id:
     new_cat = {}
     new_cat['id'] = cat_to_id[cat]
     new_cat['name'] = cat
     categories.append(new_cat) 
-#print(categories)
 
+
+#%% Write output files
+    
 json_data = {}
 json_data['images'] = images
 json_data['annotations'] = annotations
@@ -123,6 +143,4 @@ json.dump(json_data,open(output_file,'w'))
 
 print(images[0])
 print(annotations[0]) 
-    
 
-	

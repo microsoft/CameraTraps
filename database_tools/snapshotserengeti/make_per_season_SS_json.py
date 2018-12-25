@@ -1,3 +1,12 @@
+#
+# make_per_season_SS_json.py
+#
+# Create a COCO-camera-traps .json file for each Snapshot Serengeti season from 
+# the original .csv files provided on Dryad.
+#
+
+#%% Imports and constants
+
 import csv
 import json
 import uuid
@@ -5,6 +14,10 @@ import datetime
 
 output_file_folder = 'C:/Users/t-sabeer/Documents/databases/'
 csv_file_name = 'D:/consensus_data.csv'
+
+
+#%% Read annotation .csv file, format into a dictionary mapping field names to data arrays
+
 data = []
 with open(csv_file_name,'r') as f:
     reader = csv.reader(f, dialect = 'excel')
@@ -17,17 +30,18 @@ data_dicts = {}
 for event in data[1:]:
     data_dicts[event[0]] = {data_fields[i]:event[i] for i in range(len(data_fields))}
 
-#print(data_dicts[data[1][0]])
 
+#%% Read image .csv file, format into a dictionary mapping images to capture events
+    
 all_image_file = 'D:/all_images.csv'
 with open(all_image_file,'r') as f:
     reader = csv.reader(f,dialect = 'excel')
     next(reader)
     im_name_to_cap_id = {row[1]:row[0] for row in reader}
 
-#im_name_to_cap_id.pop('CaptureEventID')
-#print(len(im_name_to_cap_id))
 
+#%% Create CCT-style .json 
+    
 images = []
 annotations = []
 categories = []
@@ -75,18 +89,22 @@ for im_id in im_name_to_cap_id:
         ann['category_id'] = cat_to_id[im_data['Species']]
     else:
         ann['category_id'] = 0
-        
-    
+            
     #still need image width and height
     images.append(im)
     annotations.append(ann)
-#print(cat_to_id)
+
+# ...for each image ID
+    
 for cat in cat_to_id:
     new_cat = {}
     new_cat['id'] = cat_to_id[cat]
     new_cat['name'] = cat
     categories.append(new_cat) 
-#print(categories)
+
+
+#%% Write output files
+    
 output_file = output_file_folder + 'SnapshotSerengeti.json'
 json_data = {}
 json_data['images'] = images
@@ -102,6 +120,7 @@ json_data['info'] = info
 json.dump(json_data,open(output_file,'w'))
 
 for season in seasons:
+    
     output_file = output_file_folder + season + '.json'
     inSeason = {im['id']:False for im in images}
     for im in images:
@@ -127,3 +146,4 @@ for season in seasons:
     print(str(len(new_ims)) + ' images')
     print(str(len(new_anns)) + ' annotations') 
     
+# ...for each season    
