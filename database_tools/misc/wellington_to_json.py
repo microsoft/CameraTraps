@@ -40,7 +40,7 @@ print('Converted extensions to uppercase')
 
 #%% Map filenames to rows, verify image existence
 
-# Takes a while, since it's checking the existence of ~270k images
+# Takes ~30 seconds, since it's checking the existence of ~270k images
 
 startTime = time.time()
 filenamesToRows = {}
