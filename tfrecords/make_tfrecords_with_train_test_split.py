@@ -9,8 +9,8 @@ import json
 import pickle
 import numpy as np
 from create_tfrecords import create
-from create_tfrecords_format import create_tfrecords_format
-from create_classification_tfrecords_format import create_classification_tfrecords_format
+from create_tfrecords_from_json import create_tfrecords_from_json
+from create_classification_tfrecords_from_json import create_classification_tfrecords_from_json
 import tensorflow as tf
 
 datafolder = '/ai4efs/'
@@ -28,10 +28,10 @@ if 'tfrecord_format' in database_file:
 else:
     print('Creating tfrecords format database')
     if experiment_type == 'classification':
-        data = create_classification_tfrecords_format(database_file, image_file_root)
+        data = create_classification_tfrecords_from_json(database_file, image_file_root)
         json.dump(data,open('/ai4efs/databases/snapshotserengeti/oneclass/SnapshotSerengeti_Seasons_1_to_4_tfrecord_format.json','w'))
     else:
-        data = create_tfrecords_format(database_file, image_file_root)
+        data = create_tfrecords_from_json(database_file, image_file_root)
 
 print('Images: ',len(data))
 print(data[0])
