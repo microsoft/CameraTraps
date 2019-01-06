@@ -1,15 +1,21 @@
+#
+# add_bounding_boxes_to_json.py
+#
+# This script takes a COCO-json database and mreges in a .json of bounding box annotations.
+#
+# It's currently in a transitional state between being eMammal-specific and 
+# general-purpose, which is why it's in the "eMammal" folder.  It's only eMammal
+# specific in that it makes some assumptions about image IDs, but that's sufficiently
+# scoped that we should be able to pull that out.
+#
+
+#%% Constants and imports
+
 import json
 import os
 import re
-import sys
 from datetime import datetime, date
-
 from tqdm import tqdm
-
-# add_annotations_to_eMammal_json.py
-#
-# This scripts takes in the incomplete COCO formatted database with only image information and possibly
-# annotations added previously, and add new annotations to it, saving the new version.
 
 
 # configurations and paths
@@ -33,6 +39,12 @@ new_annotation_paths = [
     os.path.join('/home/yasiyu/yasiyu_temp/eMammal_annotations/', f) for f in os.listdir('/home/yasiyu/yasiyu_temp/eMammal_annotations/')
 ]
 
+version= ''
+description = ''
+
+
+#%% Execution
+
 start_time = datetime.now()
 
 # load the original database
@@ -44,9 +56,12 @@ assert len(db_images) > 0
 
 db_info = original_db.get('info', [])
 assert len(db_info) >= 5
-db_info['version'] = '0.0.3'
-db_info['description'] = 'eMammal dataset containing deployments in the McShea, Kays, and Long collections, \
-in COCO format with unnormalized bbox coordinates.'
+
+if len(version) > 0:
+    db_info['version'] = version
+if len(version) > 0:
+    db_info['description'] = description
+
 db_info['date_created'] = str(date.today())
 
 db_image_props = {}
@@ -57,7 +72,7 @@ for im in db_images:
     }
 
 default_categories = [
-    {'id': 0, 'name': 'empty'},  # identifies the image as empty, which create_tfrecords_format will get rid of
+    {'id': 0, 'name': 'empty'},
     {'id': 1, 'name': 'animal'},
     {'id': 2, 'name': 'person'}
 ]
