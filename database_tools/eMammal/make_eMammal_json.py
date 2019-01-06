@@ -1,42 +1,50 @@
+#
+# make_eMammal_json.py
+#
+# Produces the COCO formatted json database for an eMammal dataset, i.e. a 
+# collection of folders, each of which contains a deployment_manifest.xml file.
+#
+# In this process, each image needs to be loaded to size it.
+#
+# To add bounding box annotations to the resulting database, use 
+# add_annotations_to_eMammal_json.py.
+#
+
+#%% Constants and imports
+
+# Either add the eMammal directory to your path, or run from there
+# os.chdir(r'd:\git\CameraTraps\database_tools\eMammal')
+
 import json
 import multiprocessing
 import os
 import warnings
-from datetime import datetime, date
-from multiprocessing.dummy import Pool as ThreadPool  # this functions like threading
-
 import eMammal_helpers as helpers
+
+from datetime import datetime, date
+from multiprocessing.dummy import Pool as ThreadPool
 from lxml import etree
 from tqdm import tqdm
 
-warnings.filterwarnings('ignore')
-# ignoring all PIL cannot read EXIF metainfo for the images warnings
-
-
-# make_eMammal_json.py
-#
-# Produces the COCO formatted json database for the eMammal dataset, with only image information.
-# This contains all the images whether they were annotated with bounding boxes or not.
-# In this process, each image needs to be loaded to size it.
-#
-# To add annotations to the resulting database with only images to produce the complete COCO formatted
-# json, use add_annotations_to_eMammal_json.py.
-#
-# At DEPLOYMENTS_PATH, the top level folders are one for each deployment, since the folder
-# name has both projectID and deploymentID, uniquely identifying a deployment.
-#
-# This script is analogous to make_per_season_SS_json.py, but without adding any annotations.
-
+# ignoring all "PIL cannot read EXIF metainfo for the images" warnings
+# warnings.filterwarnings('ignore')
 
 # configurations and paths
+
+# Should we run the image size retrieval in parallel?
 run_parallel = False
+output_dir_path = r'd:\wildlife_data'
+deployments_path = r'd:\wildlife_data\apr_unzip'
+db_filename = 'apr.json'
+corrupt_images_db_filename = 'apr_corrupt.json'
 
-output_dir_path = '/home/yasiyu/yasiyu_temp/eMammal_db'
-deployments_path = '/datadrive/emammal'
 
+#%% Support functions
 
 def _add_image(entry, full_img_path):
+    
     """ Open the image to get size information and add height and width to the image entry. """
+    
     img_width, img_height = helpers.get_img_size(full_img_path)
     if img_width == -1 or img_height == -1:
         corrupt_images.append(full_img_path)
@@ -47,11 +55,15 @@ def _add_image(entry, full_img_path):
     return entry
 
 
+#%% Main loop (metadata processing; image sizes are retrieved later)
+    
 print('Creating tasks to get all images...')
 start_time = datetime.now()
 tasks = []
+folders = os.listdir(deployments_path)
 
-for deployment in tqdm(os.listdir(deployments_path)):
+for deployment in tqdm(folders):
+    
     deployment_path = os.path.join(deployments_path, deployment)
     manifest_path = os.path.join(deployment_path, 'deployment_manifest.xml')
 
@@ -118,7 +130,17 @@ for deployment in tqdm(os.listdir(deployments_path)):
             }
 
             tasks.append((entry, full_img_path))
+        
+        # ...for each image
+        
+    # ...for each sequence
+    
+# ...for each deployment
+    
 print('Finished creating tasks to get images.')
+
+
+#%% Post-process all images to get image size
 
 db_images = []
 corrupt_images = []
@@ -143,6 +165,9 @@ print('{} images could not be opened:'.format(len(corrupt_images)))
 print(corrupt_images)
 print('Done with images.')
 
+
+#%% Assemble and write out database
+
 db_info = {
     'year': 2018,
     'version': '0.0.1',
@@ -157,10 +182,10 @@ coco_formatted_json = {
 }
 
 print('Saving the json database to disk...')
-with open(os.path.join(output_dir_path, 'eMammal_images.json'), 'w') as f:
+with open(os.path.join(output_dir_path, db_filename), 'w') as f:
     json.dump(coco_formatted_json, f, indent=4, sort_keys=True)
 
-with open(os.path.join(output_dir_path, 'eMammal_corrupt_images.json'), 'w') as f:
+with open(os.path.join(output_dir_path, corrupt_images_db_filename, 'w') as f:
     json.dump(corrupt_images, f, indent=4)
 
 print('Running the script took {}.'.format(datetime.now() - start_time))
