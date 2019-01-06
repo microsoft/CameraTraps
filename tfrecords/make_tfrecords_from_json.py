@@ -3,6 +3,8 @@
 #
 # Given a coco-camera-traps .json file, creates tfrecords
 #
+# Thin wrapper for create_tfrecords_from_json.
+#
 
 #%% Constants and imports
 
@@ -19,7 +21,7 @@ try:
     else:
         from create_tfrecords import create
     
-    from create_tfrecords_format import create_tfrecords_format
+    from create_tfrecords_from_json import create_tfrecords_from_json
     
 except:
     
@@ -39,7 +41,7 @@ if False:
     else:
         from tfrecords.create_tfrecords import create
     
-    from tfrecords.create_tfrecords_format import create_tfrecords_format
+    from tfrecords.create_tfrecords_from_json import create_tfrecords_from_json
 
 
 #%% Main tfrecord generation function
@@ -53,7 +55,7 @@ def make_tfrecords_from_json(input_json_file, output_tfrecords_folder, image_fil
         with open(input_json_file,'r') as f:
             dataset = json.load(f)
     else:
-        dataset = create_tfrecords_format(input_json_file, image_file_root)
+        dataset = create_tfrecords_from_json(input_json_file, image_file_root)
 
     print('Creating tfrecords for {} from {} images'.format(dataset_name,len(dataset)))
     
