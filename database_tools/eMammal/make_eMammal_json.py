@@ -38,6 +38,11 @@ deployments_path = r'd:\wildlife_data\apr_unzip'
 db_filename = 'apr.json'
 corrupt_images_db_filename = 'apr_corrupt.json'
 
+description = 'American Prairie Reserve (via eMammal)'
+version = '0.0.1'
+contributor = 'American Prairie Reserve'
+curator = '.json created by Dan Morris'
+
 
 #%% Support functions
 
@@ -62,11 +67,16 @@ start_time = datetime.now()
 tasks = []
 folders = os.listdir(deployments_path)
 
+all_species_strings = set()
+
+# deployment = folders[0]
 for deployment in tqdm(folders):
     
     deployment_path = os.path.join(deployments_path, deployment)
     manifest_path = os.path.join(deployment_path, 'deployment_manifest.xml')
 
+    assert os.path.isfile(manifest_path)
+    
     with open(manifest_path, 'r') as f:
         tree = etree.parse(f)
 
@@ -76,7 +86,10 @@ for deployment in tqdm(folders):
     deployment_location = root.findtext('CameraSiteName')
 
     image_sequences = root.findall('ImageSequence')
+    
+    # sequence = image_sequences[0]
     for sequence in image_sequences:
+        
         seq_id = sequence.findtext('ImageSequenceId')
 
         # get species info for this sequence
@@ -90,25 +103,30 @@ for deployment in tqdm(folders):
                 species.add(species_common_name)
 
         species_str = ';'.join(sorted(list(species)))
-
+        all_species_strings.add(species_str)
+        
         # add each image's info to database
         images = sequence.findall('Image')
-        seq_num_frames = len(images)[0]  # total number of frames in this sequence
+        seq_num_frames = len(images) # total number of frames in this sequence
+        assert isinstance(seq_num_frames,int) and seq_num_frames > 0 # historical quirk
+        
+        # img = images[0]
         for img in images:
+            
             img_id = img.findtext('ImageId')
             img_file_name = img.findtext('ImageFileName')
-            assert img_file_name.lower().endswith('.jpg')  # some are .JPG and some are .jpg
+            assert img_file_name.lower().endswith('.jpg')
 
-            # img_frame info added to DB for potential motion based studies; it is obtained best-effort
             img_frame = img.findtext('ImageOrder')
             if img_frame == '' or img_frame is None:
-                # some Robert Long xml doesn't have the ImageOrder info, but the info is in the file name
+                # some manifests don't have the ImageOrder info, but the info is in the file name
                 img_frame = img_file_name.split('i')[1].split('.')[0]
 
-            # note that the full_img_id has no frame info.
+            # full_img_id has no frame info
+            #
             # frame number only used in requests to iMerit for ordering
             full_img_id = 'datasetemammal.project{}.deployment{}.seq{}.img{}'.format(
-                project_id, deployment_id, seq_id, img_id)
+                project_id, deployment_id, seq_id, img_id)            
             full_img_path = os.path.join(deployment_path, img_file_name)
 
             img_datetime, datetime_err = helpers.parse_timestamp(img.findtext('ImageDateTime'))
@@ -140,7 +158,12 @@ for deployment in tqdm(folders):
 print('Finished creating tasks to get images.')
 
 
-#%% Post-process all images to get image size
+#%% Get image sizes
+
+# 'tasks' is currently a list of 2-tuples, with each entry as [image dictionary,path].
+# 
+# Go through that and copy just the image dictionaries to 'db_images', adding size
+# information to each entry.  Takes a couple hours.
 
 db_images = []
 corrupt_images = []
@@ -163,16 +186,17 @@ db_images = [i for i in db_images if i is not None]
 
 print('{} images could not be opened:'.format(len(corrupt_images)))
 print(corrupt_images)
-print('Done with images.')
+print('Done getting image sizes')
 
 
-#%% Assemble and write out database
+#%% Assemble top-level dictionaries
 
 db_info = {
-    'year': 2018,
-    'version': '0.0.1',
-    'description': 'eMammal dataset containing 3140 deployments, in COCO format.',
-    'contributor': 'eMammal',
+    'year': 'unkown',
+    'version': version,
+    'description': description,
+    'contributor': contributor,
+    'curator': curator,
     'date_created': str(date.today())
 }
 
@@ -181,12 +205,18 @@ coco_formatted_json = {
     'images': db_images
 }
 
+
+#%% Write out .json
+
 print('Saving the json database to disk...')
 with open(os.path.join(output_dir_path, db_filename), 'w') as f:
     json.dump(coco_formatted_json, f, indent=4, sort_keys=True)
+print('...done')
 
-with open(os.path.join(output_dir_path, corrupt_images_db_filename, 'w') as f:
-    json.dump(corrupt_images, f, indent=4)
+print('Saving list of corrupt images...')
+with open(os.path.join(output_dir_path, corrupt_images_db_filename), 'w') as f:
+    json.dump(corrupt_images, f, indent=4)    
+print('...done')
 
 print('Running the script took {}.'.format(datetime.now() - start_time))
 
