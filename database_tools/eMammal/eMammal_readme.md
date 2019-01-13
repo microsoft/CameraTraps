@@ -1,2 +1,0 @@
-# eMammal dataset
-

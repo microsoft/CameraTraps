@@ -3,26 +3,25 @@ copy_and_unzip_emammal.py
 
 Siyu Yang
 
-Script to copy all deployments in the emammal container (mounted on the VM or not) to data disk at /datadrive
-and unzip them, deleting the copied zip file.
-
-Confirmed that the '0Bill McShea' and '0Roland Kays' collections of zip filenames are disjoint.
+Script to copy all deployments in the emammal container (mounted on the VM or not) to data
+disk at /datadrive and unzip them, deleting the copied zip file.
 
 Need to add exception handling.
 '''
 
+#%% Imports and constants
 
-import itertools
 import json
-import multiprocessing
 import os
 import zipfile
 from datetime import datetime
-from multiprocessing.dummy import Pool as ThreadPool  # this functions like threading
-from shutil import copy, copyfile
 from tqdm import tqdm
 from azure.storage.blob import BlockBlobService
 
+import itertools
+import multiprocessing
+from multiprocessing.dummy import Pool as ThreadPool  # this functions like threading
+from shutil import copy, copyfile
 
 # configurations and paths
 log_folder = '/home/yasiyu/yasiyu_log'
@@ -30,8 +29,10 @@ dest_folder = '/datadrive/emammal'  # data disk attached where data is stored
 origin = 'cloud'  # 'cloud' or 'mounted'
 
 
+#%% Helper functions
 
 def _copy_unzip(source_path, dest_folder):
+    
     try:
         dest_subfolder = os.path.join(dest_folder, os.path.basename(source_path).split('.zip')[0])
         if os.path.exists(dest_subfolder):
@@ -50,7 +51,7 @@ def _copy_unzip(source_path, dest_folder):
         print('{} copied and extracted'.format(dest_subfolder))
         return None
 
-    except Exception as e:
+    except Exception:
         try:
             print('Retrying...')
             dest_path = os.path.join(dest_folder, os.path.basename(source_path))
@@ -66,9 +67,8 @@ def _copy_unzip(source_path, dest_folder):
 
 
 def copy_from_mounted_container(source_folder, dest_folder):
+    
     sources = []
-
-
 
     collections = sorted(os.listdir(source_folder))
 
@@ -137,6 +137,8 @@ def download_from_container(dest_folder, blob_service, container='emammal', desi
         json.dump(results, f)
 
 
+#%% Command-line driver
+        
 if __name__ == '__main__':
     if origin == 'cloud':
         container = 'emammal'
