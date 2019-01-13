@@ -1,12 +1,25 @@
-from PIL import Image, ImageDraw, ImageFont
+#
+# eMammal_helpers.py
+#
+# Support functions for processing eMammal metadata
+#
 
+#%% Constants and imports
+
+from PIL import Image, ImageDraw
 import matplotlib.pyplot as plt
 import operator
 from datetime import datetime
 
 
+#%% Support functions
+
 def clean_species_name(common_name):
-    # constants
+    '''
+    Converts various forms of "human" to the token "human", and various forms
+    of "empty" to the token "empty"
+    '''
+    
     _people_tags = {
         'Bicycle',
         'Calibration Photos',
@@ -38,6 +51,7 @@ def clean_species_name(common_name):
 
 
 def clean_frame_number(img_frame):
+    
     # pad to a total of 3 digits if < 1000, or 4 digits otherwise
     # img_frame is a string from the xml tree
     length = len(img_frame)
@@ -56,6 +70,7 @@ def clean_frame_number(img_frame):
 
 
 def clean_frame_number_4_digit(img_frame):
+    
     # pad to a total of 4 digits
     # img_frame is a string from the xml tree
     length = len(img_frame)
@@ -92,14 +107,16 @@ def get_img_size(img_path):
 
 
 def get_total_from_distribution(d):
+    
     total = 0
     for key, count in d.items():
         total += int(key) * count
     return total
 
 
-def sort_dict_val_desc(d, percent=False):
+def sort_dict_val_desc(d, percent=False):    
     """ Sort a dictionary by the values in descending order. Returns a list of tuples. """
+    
     sorted_d = sorted(d.items(), key=operator.itemgetter(1), reverse=True)
 
     if percent:
@@ -114,6 +131,7 @@ def sort_dict_val_desc(d, percent=False):
 
 
 def plot_distribution(d, title='', top=15):
+    
     if top is None or top > len(d):
         top = len(d)
 
@@ -136,6 +154,7 @@ def plot_distribution(d, title='', top=15):
 
 
 def plot_histogram(l, title='', max_val=None, bins='auto'):
+    
     if max_val:
         l = [x for x in l if x < max_val]
 
@@ -145,6 +164,7 @@ def plot_histogram(l, title='', max_val=None, bins='auto'):
 
 
 def draw_bboxes(image, bboxes, classes, thickness=4, show_label=False):
+    
     """
     Draw bounding boxes on top of an image
     Args:
@@ -181,7 +201,10 @@ def draw_bboxes(image, bboxes, classes, thickness=4, show_label=False):
 
 
 def is_daytime(date_time):
-    """ Returns True if daytime as determined by the input timestamp, a rough decision based on two seasons"""
+    
+    """ Returns True if daytime as determined by the input timestamp, a rough 
+    decision based on two seasons"""
+    
     # summer day hours: 6am - 7pm
     # others day hours: 7am - 6pm
 
@@ -199,6 +222,7 @@ def is_daytime(date_time):
 
 
 def parse_timestamp(time_str):
+    
     """
     There are three datetime string formats in eMammal, and some have an empty field.
     Args:
