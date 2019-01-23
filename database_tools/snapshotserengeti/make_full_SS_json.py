@@ -112,7 +112,7 @@ for im_id in im_name_to_cap_id:
         ann['category_id'] = 0
         annotations.append(ann)
             
-    #still need image width and height
+    # still need image width and height
     images.append(im)
     
 # ...for each image

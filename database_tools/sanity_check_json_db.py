@@ -38,7 +38,8 @@ def sanityCheckJsonDb(jsonFile):
     images = data['images']
     annotations = data['annotations']
     categories = data['categories']
-    info = data['info']
+    # info = data['info']
+    assert 'info' in data
     
     
     ##%% Build dictionaries, checking ID uniqueness and internal validity as we go
@@ -174,10 +175,8 @@ jsonFiles = [r'd:\temp\CaltechCameraTraps.json',
              r'd:\temp\nacti_metadata.json',
              r'd:\temp\SnapshotSerengeti.json']
 
+jsonFiles = [r'd:\wildlife_data\tigerblobs\tigerblobs.json']
+
 for jsonFile in jsonFiles:
     sanityCheckJsonDb(jsonFile)
   
-if False:    
-    
-    jsonFile = r'd:\temp\nacti_metadata.json'
-    sanityCheckJsonDb(jsonFile)
