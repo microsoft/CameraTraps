@@ -18,7 +18,7 @@
 import json
 import multiprocessing
 import os
-import warnings
+# import warnings
 import eMammal_helpers as helpers
 
 from datetime import datetime, date
