@@ -19,6 +19,9 @@ from PIL import Image
 
 # ignoring all "PIL cannot read EXIF metainfo for the images" warnings
 warnings.filterwarnings("ignore", "(Possibly )?corrupt EXIF data", UserWarning)
+# Metadata Warning, tag 256 had too many entries: 42, expected 1
+warnings.filterwarnings("ignore", "Metadata warning", UserWarning)
+
 
 # Filenames will be stored in the output .json relative to this base dir
 baseDir = r'd:\wildlife_data\tigerblobs'
@@ -97,6 +100,7 @@ with io.open(outputCsvFilename, "w", encoding=outputEncoding) as outputFileHandl
 # ...csv file output
     
 print("Finished writing {} file names to {}".format(nFiles,outputCsvFilename))
+
 
 #%% Read from .csv if we're starting mid-script
 
