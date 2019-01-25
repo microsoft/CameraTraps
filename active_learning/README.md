@@ -13,7 +13,7 @@ The UI that presents images for labeling as part of the active learning process 
 
 ## Run the detector
 	
-Use archive/parallel_run_tf_detector.py . This is basically the code that you sent me, I just changed it a little bit to:
+Use `archive/parallel_run_tf_detector.py`. This is basically the code that you sent me, I just changed it a little bit to:
 
 a. Be more GPU efficient, It can use one GPU for two parallel processes speeding up the task two times
 b. Be more robust to corrupted images
@@ -39,7 +39,7 @@ Inside the main folder, each species should have its own subfolder.
 
 ## Train the embedding
 
-Run main.py (filebased_main in the master branch) with appropriate command-line arguments. Here is the list of options with a very short description:
+Run `main.py` (`filebased_main` in the master branch) with appropriate command-line arguments. Here is the list of options with a very short description:
 	
 	--train_data,  path to train dataset
 	--val_data, path to validation dataset, default=None, the code does not do validation if this is not provided
@@ -54,7 +54,7 @@ Run main.py (filebased_main in the master branch) with appropriate command-line 
 	--checkpoint_prefix, The scripts will add this as a prefix to saved checkpoints, this is handy when you want to run different experiments in the same folder
 	--pretrained, use a pre-trained model on imagenet as a starting weights. I recommend to always use this
 	--seed, random seed for being able to reproduce results
-	--loss_type, default='triplet', either triplet,siamese, or center 
+	--loss_type, default='triplet', either triplet, siamese, or center 
 	--margin, default=1.0, margin for siamese or triplet loss, leave the default value
 	-f or --feat_dim, default=256, number of features of the embedding (the embedding size)
 	--raw_size, The width, height and number of channels of images for loading from disk, leave the default value
@@ -66,7 +66,7 @@ Here is an example of training resnet50 with triplet loss from scratch on the em
 	
 `python filebased_main.py --train_data ~/all_crops/emammal_crops --arch resnet50  --epochs 55 --balanced_P 32 --balanced_K 8 --pretrained`
 	
-This will save 55 .tar files into the current folder. One after each epoch. The name of the last snapshot should look like this : triplet_model_0054.tar
+This will save 55 .tar files into the current folder. One after each epoch. The name of the last snapshot should look like this: triplet_model_0054.tar
 	
 To finetune an embedding model on a new dataset (SS for example) use a command like this:
 
@@ -77,7 +77,7 @@ Note that epochs will start at 55, and here 110 means 55 more epochs for fine tu
 	
 # Installing DB, creating tables, adding images, etc.
 
-The database can  be initialized using this code:
+The database can be initialized using this code:
 	
 ```
 from peewee import *
@@ -92,7 +92,7 @@ This will create empty tables and set up primary keys, foreign keys, and indices
 	
 To import images, I make a csv file of images and then import the csv file to the image table.
 	
-The archive/init.py contains two parts.
+The `archive/init.py` contains two parts.
 
 To import detections, The first part (it has been commented out in the file) assumes you have already imported the results of your detection model into the database (Table S6 here). Then this code will assign a UUID to each crop and save them in the detection table:
 
@@ -116,9 +116,9 @@ for row in rows:
 	conn.commit()
 ```
 	
-The second part, actually crops the bounding boxes and save the crops in a specified directory.  This code uses parallel CPUs.
+The second part, actually crops the bounding boxes and save the crops in a specified directory. This code uses parallel CPUs.
 	
 
 # Pointing UI code to a trained embedding
 
-Change line 121 of UI.py 
+Change line 121 of `UI.py` 
