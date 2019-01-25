@@ -205,3 +205,5 @@ data['annotations'] = annotations
 data['categories'] = categories
 
 json.dump(data, open(outputJsonFilename,'w'))    
+
+print('Finished writing json to {}'.format(outputJsonFilename))
