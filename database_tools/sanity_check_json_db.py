@@ -152,6 +152,8 @@ def sanityCheckJsonDb(jsonFile):
     
     print('')
     
+    return sortedCategories
+
 # ...def sanityCheckJsonDb()
     
 
@@ -178,5 +180,6 @@ jsonFiles = [r'd:\temp\CaltechCameraTraps.json',
 jsonFiles = [r'd:\wildlife_data\tigerblobs\tigerblobs.json']
 
 for jsonFile in jsonFiles:
-    sanityCheckJsonDb(jsonFile)
+    
+    sortedCategories = sanityCheckJsonDb(jsonFile)
   
