@@ -15,15 +15,15 @@ The UI that presents images for labeling as part of the active learning process 
 	
 Use archive/parallel_run_tf_detector.py . This is basically the code that you sent me, I just changed it a little bit to:
 
-a. Be more GPU efficient, It can use one GPU for two parallel processes speeding up the task two times
-b. Be more robust to corrupted images
-c. Save the detection results for reuses
+1. Be more GPU efficient, It can use one GPU for two parallel processes speeding up the task two times
+2. Be more robust to corrupted images
+3. Save the detection results for reuses
 	
 To use the scripts:
 
-a. Specify your model on line 126.
-b. Specify a folder containing all your images in line 128
-c. Specify number of parallel processes in line 128, each two processed use one GPU. So if you set to 6, the code will run 6 different sub process and they will consume 3 GPUs
+1. Specify your model on line 126.
+2. Specify a folder containing all your images in line 128
+3. Specify number of parallel processes in line 128, each two processed use one GPU. So if you set to 6, the code will run 6 different sub process and they will consume 3 GPUs
 	
 It will automatically read all the files inside the subfolders. Divide them between sub processes and run the detector on them. For each subprocess the code saves a csv file. The CSV file contains 6 columns:
 
