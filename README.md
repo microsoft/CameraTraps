@@ -56,30 +56,30 @@ If you are having protobuf errors, install protocol buffers from binary as descr
 ## Create tfrecords
 Use code in tfrecords to create tfrecord files for your data
 
-* make_tfrecords_from_json.py demonstrates how to use the provided functions to create one set of tfrecord files from a single .json file
-* if you want to run oneclass detection, first convert yor json to oneclass using database_tools/make_oneclass_json.py 
-* If you run into issues with corrupted .jpg files, you can use database_tools/remove_corrupted_images_from_database.py to create a copy of your database without the images that tensorflow cannot read 
+* `make_tfrecords_from_json.py` demonstrates how to use the provided functions to create one set of tfrecord files from a single .json file
+* if you want to run oneclass detection, first convert yor json to oneclass using `database_tools/make_oneclass_json.py` 
+* If you run into issues with corrupted .jpg files, you can use `database_tools/remove_corrupted_images_from_database.py` to create a copy of your database without the images that tensorflow cannot read 
 
 ## Set up experiment directory
 * Create experiment directory
   * Within experiment directory create `configs` folder
-  * Example can be seen in the ai4e fileshare at sample_object_detection_experiment_directory/
+  * Example can be seen in the ai4e fileshare at `sample_object_detection_experiment_directory/`
 * Decide on architecture
   * Our example uses Faster-RCNN with Inception Resvet V2 backbone and Atrous Convolutions 
 * Download appropriate pretrained model from [tensorflow model zoo](https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/detection_model_zoo.md)
-  * Our example pretrained model is at models/object_detection/faster_rcnn_inception_resnet_v2_atrous/faster_rcnn_inception_resnet_v2_atrous_coco_2018_01_28
+  * Our example pretrained model is at `models/object_detection/faster_rcnn_inception_resnet_v2_atrous/faster_rcnn_inception_resnet_v2_atrous_coco_2018_01_28`
   * You can also start training from a pretrained tensorflow classification model
-    * We have an example of this in the fileshare at models/object_detection/faster_rcnn_inception_resnet_v2_atrous/train_on_ss_with_ss_pretrained_backbone/
+    * We have an example of this in the fileshare at `models/object_detection/faster_rcnn_inception_resnet_v2_atrous/train_on_ss_with_ss_pretrained_backbone/`
     * Note that to start from a classification backbone, you must add "from_detection_checkpoint: false" to train_config{} in your config file
     * To train a classification backbone, we recommend using [this visipedia classification code base](https://github.com/visipedia/tf_classification)
-* Copy tf sample config (typically pipeline.config) for that architecture to your configs folder as a starting point (find samples in tfmodels/research/object_detection/samples/configs/)
+* Copy tf sample config (typically pipeline.config) for that architecture to your configs folder as a starting point (find samples in `tfmodels/research/object_detection/samples/configs/`)
   * Point within config file to the locations of your training tfrecords, eval tfrecords, pretrained model
   * Make any other config changes you want for this experiment (learning rate, data augmentation, etc.) using the params described in [preprocessor.proto](https://github.com/tensorflow/models/blob/master/research/object_detection/protos/preprocessor.proto) 
-  * Our example can be seen in sample_object_detection_experiment_directory/configs/pipeline.config
+  * Our example can be seen in `sample_object_detection_experiment_directory/configs/pipeline.config`
   
 ## Run training
 
-You can use the bash script pipeline/run_training.sh
+You can use the bash script `pipeline/run_training.sh`
 
 Alternatively, you can run everything from the command line.
 
@@ -95,7 +95,7 @@ python  tfmodels/research/object_detection/model_main.py \
 ```
 
 ## Watch training on tensorboard
-Make sure you have port 6006 open on your VM
+Make sure you have port `6006` open on your VM
 
 Example call:
 ```
@@ -104,7 +104,7 @@ tensorboard --logdir /ai4efs/sample_object_detection_experiment_directory/ --por
 
 ## Export best model
 
-Use pipeline/run_export_model.sh
+Use `pipeline/run_export_model.sh`
 
 Alternatively...
 
@@ -119,7 +119,7 @@ python tfmodels/research/object_detection/export_inference_graph.py \
 ```
 ## Run inference on test sets
 
-Use pipeline/run_inference_all.sh to extract bboxes for all test sets to python dicts, or use the individual bash scripts for individual test sets
+Use `pipeline/run_inference_all.sh` to extract bboxes for all test sets to python dicts, or use the individual bash scripts for individual test sets
 
 Alternatively...
 
@@ -135,11 +135,11 @@ python tfmodels/research/object_detection/inference/infer_detections.py \
 --inference_graph=/ai4efs/models/object_detection/faster_rcnn_inception_resnet_v2_atrous/megadetector_sample/frozen_inference_graph.pb \
 --discard_image_pixels
 ```
-Then you can use tfrecords/read_from_tfrecords.py to read detection results from inference tfrecords into python dicts
+Then you can use `tfrecords/read_from_tfrecords.py` to read detection results from inference tfrecords into python dicts
 
 
 # Evaluation
-detection_eval contains code for evaluating models, based on the python dicts returned from tfrecords/read_from_tfrecords and/or the bash scripts for inference.
+`detection_eval` contains code for evaluating models, based on the python dicts returned from `tfrecords/read_from_tfrecords` and/or the bash scripts for inference.
 
 Evaluation scripts provided include evaluating at object, image, and sequence levels, evaluating detection models as classifiers (which allows you to evaluate on data that has only class-level annotations), evaluating models per-camera-location, and evaluating models per-species
 
