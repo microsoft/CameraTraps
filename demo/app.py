@@ -28,6 +28,7 @@ def index():
 def upload():
     return render_template('upload.html')
 
+#note currently login code only works in staging site
 def is_logged_in():
     if 'logged in' in session:
         print('logged in')
