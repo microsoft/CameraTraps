@@ -15,11 +15,12 @@ import argparse
 import random
 import json
 import sys
-sys.path.append('../tfrecords')
+sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                             '../tfrecords'))
 if sys.version_info.major >= 3:
-    from create_tfrecords_py3 import *
+  import create_tfrecords_py3 as tfr
 else:
-    from create_tfrecords import *
+  import create_tfrecords as tfr
 import uuid
 
 print('If you run into import errors, please make sure you added "models/research" and ' +\
@@ -81,7 +82,7 @@ assert os.path.exists(IMAGE_DIR), IMAGE_DIR + ' does not exist'
 PATH_TO_FROZEN_GRAPH = args.frozen_graph
 INAT_OUTPUT_DIR = args.inat_style_output
 TFRECORDS_OUTPUT_DIR = args.tfrecords_output
-assert INAT_OUTPUT_DIR OR TFRECORDS_OUTPUT_DIR, 'Please provide either --inat_style_output or --tfrecords_output'
+assert INAT_OUTPUT_DIR or TFRECORDS_OUTPUT_DIR, 'Please provide either --inat_style_output or --tfrecords_output'
 if INAT_OUTPUT_DIR:
   DETECTION_OUTPUT = os.path.join(INAT_OUTPUT_DIR, 'detections_final.pkl')
 else:
@@ -110,13 +111,13 @@ assert IMS_PER_RECORD > 0, 'The number of images per shard should be greater tha
 TMP_IMAGE = str(uuid.uuid4()) + '.jpg'
 
 # Create output directories
-if not os.path.exist(INAT_OUTPUT_DIR):
+if INAT_OUTPUT_DIR and not os.path.exists(INAT_OUTPUT_DIR):
   print('Creating iNat style dataset output directory.')
   os.makedirs(INAT_OUTPUT_DIR)
-if not os.path.exist(TFRECORDS_OUTPUT_DIR):
+if TFRECORDS_OUTPUT_DIR and not os.path.exists(TFRECORDS_OUTPUT_DIR):
   print('Creating TFRecords output directory.')
   os.makedirs(TFRECORDS_OUTPUT_DIR)
-if not os.path.exist(os.path.dirname(DETECTION_OUTPUT)):
+if not os.path.exists(os.path.dirname(DETECTION_OUTPUT)):
   print('Creating output directory for detection file.')
   os.makedirs(os.path.dirname(DETECTION_OUTPUT))
 
@@ -170,30 +171,30 @@ else:
 
 # TFRecords variables
 class TFRecordsWriter(object):
-  def __init__(self, output_file, ims_per_batch):
+  def __init__(self, output_file, ims_per_record):
     self.output_file = output_file
-    self.ims_per_batch = ims_per_batch
+    self.ims_per_record = ims_per_record
     self.next_shard_idx = 0
     self.next_shard_img_idx = 0
-    self.coder = ImageCoder()
+    self.coder = tfr.ImageCoder()
     self.writer = None
 
   def add(self, data):
-    if self.shard_img_idx % self.ims_per_batch == 0:
+    if self.next_shard_img_idx % self.ims_per_record == 0:
       if self.writer:
         self.writer.close()
       self.writer = tf.python_io.TFRecordWriter(self.output_file%self.next_shard_idx)
       self.next_shard_idx = self.next_shard_idx + 1
-    image_buffer, height, width = _process_image(filename, coder)
-    example = _convert_to_example(data, image_buffer, height, width)
-    writer.write(example.SerializeToString())
+    image_buffer, height, width = tfr._process_image(data['filename'], self.coder)
+    example = tfr._convert_to_example(data, image_buffer, data['height'], data['width'])
+    self.writer.write(example.SerializeToString())
     self.next_shard_img_idx = self.next_shard_img_idx + 1
 
   def close(self):
     self.writer.close()
 
-training_tfr_writer = TFRecordsWriter(os.path.join(TFRECORDS_OUTPUT_DIR, 'train-%.5d'), IMS_PER_BATCH)
-test_trf_writer = TFRecordsWriter(os.path.join(TFRECORDS_OUTPUT_DIR, 'test-%.5d'), IMS_PER_BATCH)
+training_tfr_writer = TFRecordsWriter(os.path.join(TFRECORDS_OUTPUT_DIR, 'train-%.5d'), IMS_PER_RECORD)
+test_tfr_writer = TFRecordsWriter(os.path.join(TFRECORDS_OUTPUT_DIR, 'test-%.5d'), IMS_PER_RECORD)
 
 # The detection part
 images_missing = False
@@ -246,11 +247,12 @@ with graph.as_default():
       is_train = cur_image['location'] in training_locations
       # The file path as it will appear in the annotation json
       new_file_name = os.path.join(cur_cat_name, cur_file_name)
-      # The absolute file path where we will store the image
-      # Only used if an iNat style dataset is created
-      out_file = os.path.join(OUTPUT_DIR, new_file_name)
-      # Create the category directories if necessary
-      os.makedirs(os.path.dirname(out_file), exist_ok=True)
+      if INAT_OUTPUT_DIR:
+        # The absolute file path where we will store the image
+        # Only used if an iNat style dataset is created
+        out_file = os.path.join(INAT_OUTPUT_DIR, new_file_name)
+        # Create the category directories if necessary
+        os.makedirs(os.path.dirname(out_file), exist_ok=True)
 
       # Skip excluded categories
       if cur_cat_name in EXCLUDED_CATEGORIES:
@@ -334,7 +336,6 @@ with graph.as_default():
           else:
             Image.fromarray(cropped_img).save(TMP_IMAGE)
             image_data['filename'] = TMP_IMAGE
-            os.remove(TMP_IMAGE)
           image_data['id'] = next_image_id
 
           image_data['class'] = {}
@@ -346,16 +347,29 @@ with graph.as_default():
           image_data['width'] = cur_image['width']
 
           cur_tfr_writer.add(image_data)
+          if not INAT_OUTPUT_DIR:
+            os.remove(TMP_IMAGE)
 
         next_annotation_id = next_annotation_id + 1
         next_image_id = next_image_id + 1
 
 
-# Write out iNat style json files to the output directory
-with open(os.path.join(OUTPUT_DIR, 'train.json'), 'wt') as fi:
-  json.dump(training_json, fi)
-with open(os.path.join(OUTPUT_DIR, 'test.json'), 'wt') as fi:
-  json.dump(test_json, fi)
+if TFRECORDS_OUTPUT_DIR:
+  training_tfr_writer.close()
+  test_tfr_writer.close()
+
+  label_map = []
+  for cat in training_json['categories']:
+      label_map += ['item {{name: "{}" id: {}}}\n'.format(cat['name'], cat['id'])]
+  with open(os.path.join(args.output_tfrecords_folder, 'label_map.pbtxt'), 'w') as f:
+      f.write(''.join(label_map))
+
+if INAT_OUTPUT_DIR:
+  # Write out iNat style json files to the output directory
+  with open(os.path.join(OUTPUT_DIR, 'train.json'), 'wt') as fi:
+    json.dump(training_json, fi)
+  with open(os.path.join(OUTPUT_DIR, 'test.json'), 'wt') as fi:
+    json.dump(test_json, fi)
 
 # Write detections to file with pickle
 with open(DETECTION_OUTPUT, 'wb') as f:
