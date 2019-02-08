@@ -361,14 +361,14 @@ if TFRECORDS_OUTPUT_DIR:
   label_map = []
   for cat in training_json['categories']:
       label_map += ['item {{name: "{}" id: {}}}\n'.format(cat['name'], cat['id'])]
-  with open(os.path.join(args.output_tfrecords_folder, 'label_map.pbtxt'), 'w') as f:
+  with open(os.path.join(TFRECORDS_OUTPUT_DIR, 'label_map.pbtxt'), 'w') as f:
       f.write(''.join(label_map))
 
 if INAT_OUTPUT_DIR:
   # Write out iNat style json files to the output directory
-  with open(os.path.join(OUTPUT_DIR, 'train.json'), 'wt') as fi:
+  with open(os.path.join(INAT_OUTPUT_DIR, 'train.json'), 'wt') as fi:
     json.dump(training_json, fi)
-  with open(os.path.join(OUTPUT_DIR, 'test.json'), 'wt') as fi:
+  with open(os.path.join(INAT_OUTPUT_DIR, 'test.json'), 'wt') as fi:
     json.dump(test_json, fi)
 
 # Write detections to file with pickle
