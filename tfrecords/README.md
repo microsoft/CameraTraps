@@ -2,15 +2,15 @@
 
 This folder started from the visipedia tfrecords repo, but has changed significantly.  The following files are inherited:
 
-* create_tfrecords.py (was significant adapted, but generally corresponds to create_tfrecords.py in the original repo)
-* iterate_tfrecords.py (changed slightly from the original repo)
-* stat_tfrecords.py (identical-ish to the original repo)
+* `create_tfrecords.py` (was significant adapted, but generally corresponds to create_tfrecords.py in the original repo)
+* `iterate_tfrecords.py` (changed slightly from the original repo)
+* `stat_tfrecords.py` (identical-ish to the original repo)
 * This README
 
 Two top-level entry points:
 
-* make_tfrecords_with_train_test_split.py (using an existing train/test split)
-* make_tfrecords_from_json.py
+* `make_tfrecords_with_train_test_split.py` (using an existing train/test split)
+* `make_tfrecords_from_json.py`
 
 
 # tfrecords
@@ -56,7 +56,7 @@ Take note:
 
 * Many of the above fields can be empty. Most of the different systems using the tfrecords will only need a subset of the fields. 
 
-* The bounding box coordinates, part coordinates and areas need to be *normalized*. For the bounding boxes and parts this means that the x values have been divided by the width of the image, and the y values have been divided by the height of the image. This ensures that the pixel location can be recovered on any (aspect-perserved) resized version of the original image. The areas are normalized by they area of the image. 
+* The bounding box coordinates, part coordinates and areas need to be *normalized*. For the bounding boxes and parts this means that the x values have been divided by the width of the image, and the y values have been divided by the height of the image. This ensures that the pixel location can be recovered on any (aspect-preserved) resized version of the original image. The areas are normalized by they area of the image. 
 
 * The origin of an image is the top left. All pixel locations will be interpreted with respect to that origin. 
 
