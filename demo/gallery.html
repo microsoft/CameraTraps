@@ -1,0 +1,69 @@
+{% extends "layout.html" %}
+{% block font_Class_1 %}color-black{% endblock %}
+{% block font_Class_2 %}color-black{% endblock %}
+{% block font_Class_3 %}color-black{% endblock %}
+
+{% block camera_logo %}static/img/camera-grey.svg{% endblock %}
+{% block microsoft_logo %}static/img/microsoft-logo-grey.svg{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+        <div class="d-flex px-4 mt-5 no-d-flex">
+            <div class="col-sm-3 px-0">
+                <p class="font-size18 custm-gery-1 letter-spacing-1 w-50 mt-5 pt-5">Select any image to view the results</p>
+            </div>
+            <div class="col-sm-9 px-0">
+                <div class=" mt-5" style="display:none">
+                    <h1 class="font-size-36 font-biryani font-weight-bold letter-spacing-3 font-weight-800 color-black">GALLERY</h1>
+                </div>
+                <div class="my-2">
+                    <div class="row"> 
+                        <div class="scroll-class d-flex no-d-flex">
+                                <div class="column">
+                                        {% for gallery_image in gallery_images[:4]  %}
+                                            <div class="content m-3"> 
+                                                <a href="{{ url_for('gallery_results', img_index=gallery_image.split('/')[-1]) }}">
+                                                    <div class="content-overlay"></div>
+                                                    <img src="/static/img/loader.gif" data-src="{{ gallery_image}}" class="px-2 my-2 mw-100 align-middle b-lazy" alt="gallery" />
+                                                    <div class="content-details fadeIn-bottom">
+                                                            <p class="content-text font-size12 letter-spacing-2 mb-0">Click to Select</p>
+                                                    </div>
+                                                </a>
+                                             </div>
+                                        {% endfor %}
+                                </div>
+                                <div class="column">
+                                        
+                                        {% for gallery_image in gallery_images[4:8]  %}
+                                            <div class="content m-3">
+                                                <a href="{{ url_for('gallery_results', img_index=gallery_image.split('/')[-1]) }}">
+                                                    <div class="content-overlay"></div>
+                                                    <img src="/static/img/loader.gif" data-src="{{ gallery_image}}" class="px-2 my-2 mw-100 align-middle b-lazy" alt="gallery" />
+                                                    <div class="content-details fadeIn-bottom">
+                                                            <p class="content-text font-size12 letter-spacing-2 mb-0">Click to Select</p>
+                                                    </div>
+                                                </a>
+                                            </div>
+                                        {% endfor %}
+                                </div>
+                                <div class="column"> 
+                                        {% for gallery_image in gallery_images[8:12]  %}
+                                            <div class="content m-3">
+                                                <a href="{{ url_for('gallery_results', img_index=gallery_image.split('/')[-1]) }}">
+                                                    <div class="content-overlay"></div>
+                                                    <img src="/static/img/loader.gif" data-src="{{ gallery_image}}" class="px-2 my-2 mw-100 align-middle b-lazy" alt="gallery" />
+                                                    <div class="content-details fadeIn-bottom">
+                                                            <p class="content-text font-size12 letter-spacing-2 mb-0">Click to Select</p>
+                                                    </div>
+                                                </a>
+                                            </div>
+                                        {% endfor %}
+                                        
+                                </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
