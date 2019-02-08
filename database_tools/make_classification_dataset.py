@@ -14,6 +14,13 @@ from PIL import Image
 import argparse
 import random
 import json
+import sys
+sys.path.append('../tfrecords')
+if sys.version_info.major >= 3:
+    from create_tfrecords_py3 import *
+else:
+    from create_tfrecords import *
+import uuid
 
 print('If you run into import errors, please make sure you added "models/research" and ' +\
       ' "models/research/object_detection" of the tensorflow models repo to the PYTHONPATH\n\n')
@@ -39,9 +46,11 @@ parser.add_argument('frozen_graph', type=str, default='frozen_inference_graph.pb
                     help='Frozen graph of detection network as create by export_inference_graph.py of TFODAPI.')
 #parser.add_argument('detections_output', type=str, default='detections_final.pkl',
 #                    help='Pickle file with the detections, which can be used for cropping later on.')
-parser.add_argument('output_dir', type=str, default='./cropped_image_dataset/',
-                    help='Output directory for the newly created iNat style' + \
-                    ' classification dataset')
+
+parser.add_argument('--inat_style_output', type=str, default=None,
+                    help='Output directory for a dataset in iNaturalist competition format.')
+parser.add_argument('--tfrecords_output', type=str, default=None,
+                    help='Output directory for a dataset in TFRecords format.')
 
 parser.add_argument('--exclude_categories', type=str, nargs='+', default=[],
                     help='Categories to ignore. We will not run detection on images of that categorie and will ' + \
@@ -55,6 +64,8 @@ parser.add_argument('--padding_factor', type=float, default=1.3*1.3,
                    ' a reasonable amount of context')
 parser.add_argument('--test_fraction', type=float, default=0.2,
                     help='Proportion of the locations used for testing, should be in [0,1]. Default: 0.2')
+parser.add_argument('--ims_per_record', type=int, default=200,
+                    help='Number of images to store in each tfrecord file')
 args = parser.parse_args()
 
 
@@ -68,8 +79,13 @@ IMAGE_DIR = args.image_dir
 assert os.path.exists(IMAGE_DIR), IMAGE_DIR + ' does not exist'
 # /ai4edevfs/models/object_detection/faster_rcnn_inception_resnet_v2_atrous/megadetector/frozen_inference_graph.pb
 PATH_TO_FROZEN_GRAPH = args.frozen_graph
-OUTPUT_DIR = args.output_dir
-DETECTION_OUTPUT = os.path.join(OUTPUT_DIR, 'detections_final.pkl')
+INAT_OUTPUT_DIR = args.inat_style_output
+TFRECORDS_OUTPUT_DIR = args.tfrecords_output
+assert INAT_OUTPUT_DIR OR TFRECORDS_OUTPUT_DIR, 'Please provide either --inat_style_output or --tfrecords_output'
+if INAT_OUTPUT_DIR:
+  DETECTION_OUTPUT = os.path.join(INAT_OUTPUT_DIR, 'detections_final.pkl')
+else:
+  DETECTION_OUTPUT = os.path.join(TFRECORDS_OUTPUT_DIR, 'detections_final.pkl')
 
 DETECTION_INPUT = args.use_detection_file
 if DETECTION_INPUT:
@@ -88,15 +104,21 @@ assert PADDING_FACTOR >= 1, 'Padding factor should be equal or larger 1'
 TEST_FRACTION = args.test_fraction
 assert TEST_FRACTION >= 0 and TEST_FRACTION <= 1, 'test_fraction should be a value in [0,1]'
 
-args = parser.parse_args()
+IMS_PER_RECORD = args.ims_per_record
+assert IMS_PER_RECORD > 0, 'The number of images per shard should be greater than 0'
+
+TMP_IMAGE = str(uuid.uuid4()) + '.jpg'
 
 # Create output directories
-if not os.path.dirname(DETECTION_OUTPUT):
-  print('Creating output directory for detection output')
+if not os.path.exist(INAT_OUTPUT_DIR):
+  print('Creating iNat style dataset output directory.')
+  os.makedirs(INAT_OUTPUT_DIR)
+if not os.path.exist(TFRECORDS_OUTPUT_DIR):
+  print('Creating TFRecords output directory.')
+  os.makedirs(TFRECORDS_OUTPUT_DIR)
+if not os.path.exist(os.path.dirname(DETECTION_OUTPUT)):
+  print('Creating output directory for detection file.')
   os.makedirs(os.path.dirname(DETECTION_OUTPUT))
-if not os.path.exists(OUTPUT_DIR):
-  print(OUTPUT_DIR + ' does not exist, we will create it')
-  os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # Load a (frozen) Tensorflow model into memory.
 detection_graph = tf.Graph()
@@ -145,6 +167,33 @@ if DETECTION_INPUT:
     detections = pickle.load(f)
 else:
   detections = dict()
+
+# TFRecords variables
+class TFRecordsWriter(object):
+  def __init__(self, output_file, ims_per_batch):
+    self.output_file = output_file
+    self.ims_per_batch = ims_per_batch
+    self.next_shard_idx = 0
+    self.next_shard_img_idx = 0
+    self.coder = ImageCoder()
+    self.writer = None
+
+  def add(self, data):
+    if self.shard_img_idx % self.ims_per_batch == 0:
+      if self.writer:
+        self.writer.close()
+      self.writer = tf.python_io.TFRecordWriter(self.output_file%self.next_shard_idx)
+      self.next_shard_idx = self.next_shard_idx + 1
+    image_buffer, height, width = _process_image(filename, coder)
+    example = _convert_to_example(data, image_buffer, height, width)
+    writer.write(example.SerializeToString())
+    self.next_shard_img_idx = self.next_shard_img_idx + 1
+
+  def close(self):
+    self.writer.close()
+
+training_tfr_writer = TFRecordsWriter(os.path.join(TFRECORDS_OUTPUT_DIR, 'train-%.5d'), IMS_PER_BATCH)
+test_trf_writer = TFRecordsWriter(os.path.join(TFRECORDS_OUTPUT_DIR, 'test-%.5d'), IMS_PER_BATCH)
 
 # The detection part
 images_missing = False
@@ -198,6 +247,7 @@ with graph.as_default():
       # The file path as it will appear in the annotation json
       new_file_name = os.path.join(cur_cat_name, cur_file_name)
       # The absolute file path where we will store the image
+      # Only used if an iNat style dataset is created
       out_file = os.path.join(OUTPUT_DIR, new_file_name)
       # Create the category directories if necessary
       os.makedirs(os.path.dirname(out_file), exist_ok=True)
@@ -251,22 +301,24 @@ with graph.as_default():
       offsets = (PADDING_FACTOR * np.max(bbox_sizes, axis=1, keepdims=True) - bbox_sizes) / 2
       crop_boxes = selected_boxes + np.hstack([-offsets,offsets])
       crop_boxes = np.maximum(0,crop_boxes).astype(int)
-      # Read the image
-      img = np.array(Image.open(in_file))
       # We only use the image if there is exactly one detection as some images contain
       # multiple animals
       if selected_boxes.shape[0] == 1:
         # Crop the image to the padded box and save it
         bbox, crop_box = selected_boxes[0], crop_boxes[0]
+        # Read the image
+        img = np.array(Image.open(in_file))
         cropped_img = img[crop_box[0]:crop_box[2], crop_box[1]:crop_box[3]]
-        if not os.path.exists(out_file):
+        if INAT_OUTPUT_DIR and not os.path.exists(out_file):
           Image.fromarray(cropped_img).save(out_file)
 
         # Add annotations to the appropriate json
         if is_train:
           cur_json = training_json
+          cur_tfr_writer = training_tfr_writer
         else:
           cur_json = test_json
+          cur_tfr_writer = test_tfr_writer
         cur_json['images'].append(dict(id=next_image_id,
                                   width=cur_image['width'],
                                   height=cur_image['height'],
@@ -274,6 +326,27 @@ with graph.as_default():
         cur_json['annotations'].append(dict(id=next_annotation_id,
                                         image_id=next_image_id,
                                         category_id=cur_json_cat_id))
+
+        if TFRECORDS_OUTPUT_DIR:
+          image_data = {}
+          if INAT_OUTPUT_DIR:
+            image_data['filename'] = out_file
+          else:
+            Image.fromarray(cropped_img).save(TMP_IMAGE)
+            image_data['filename'] = TMP_IMAGE
+            os.remove(TMP_IMAGE)
+          image_data['id'] = next_image_id
+
+          image_data['class'] = {}
+          image_data['class']['label'] = cur_json_cat_id
+          image_data['class']['text'] = cur_cat_name
+
+          # Propagate optional metadata to tfrecords
+          image_data['height'] = cur_image['height']
+          image_data['width'] = cur_image['width']
+
+          cur_tfr_writer.add(image_data)
+
         next_annotation_id = next_annotation_id + 1
         next_image_id = next_image_id + 1
 
