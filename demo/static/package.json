@@ -1,0 +1,8 @@
+{
+  "devDependencies": {
+    "bootstrap": "4.1.3"
+  },
+  "dependencies": {
+    "jquery": "3.3.1"
+  }
+}
