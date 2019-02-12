@@ -8,8 +8,7 @@ body{
     height:100vh;
 }
 .landing-page{
-    background-color:white;
-    /*background-image: linear-gradient(#121219,rgba(0,0,0,0.9));*/
+    background-color:white !important;
 }
 
 li.nav-item.active{
@@ -19,7 +18,7 @@ li.nav-item.active{
     border-bottom:3px solid #6889EC;
 }
 .bg-img{
-    background-image:url('/static/img/landing-img.png');
+    background-image:url('/CameraTrapAssets/img/landing-img.png');
     background-repeat:no-repeat;
     background-size: cover;
     margin-top:-4%;
@@ -276,7 +275,7 @@ div ::-webkit-scrollbar-thumb {
 .carousel_wrap .nav_button { 
 	position:absolute;
 	left:0px;
-	top:38%;
+	top:40%;
 	font-size:40px;
 	font-weight:300;
 	color:#979797 !important;
@@ -352,191 +351,14 @@ div ::-webkit-scrollbar-thumb {
     color: #fff;
     font-size: 0.8em;
   }
-  @media (min-width: px){ 
-
-  }
-  @media (max-width: 1000px) { 
-     .navitems-mob li a{
-        color:#4A4A4A !important;
-    }
-    .navitems-mob{
-        border-bottom:1px solid #ECECEC;
-    }
-    li.nav-item.active{
-        border-bottom:3px solid #FFC11B;
-    }
-    .resp-title .mobile-title{
-        color:#000 !important;
-        display:block;
-    }
-    .about-pos{
-        margin-top:40px;
-    }
-    .resp-title{
-        margin-bottom:40px;
-        font-size:20px;
-    }
-    .pl-sm-50{
-        padding-right:50px;
-    }
-    .left-sm-0{
-        left:0;
-    }
-    .landing-page {
-        background: none;
-    }
-    .mobile-top{
-        top:17%;
-        left:0;
-        text-align:center;
-    }
-    .no-wrap{
-        flex-wrap: nowrap
-    }
-    .navitems-mob{
-        margin-left:0px !important;
-        flex-direction: row;
-    }
-    .mr-sm-custm{
-        margin-right:7rem;
-    }
-    /*about us page responsive css*/
-    .no-spacing{
-        padding:0px !important;
-        margin:0px !important;
-    }
-    .no-d-flex{
-        display:block !important;
-    }
-    .width-sm-custm{
-        width:auto !important;
-    }
-    /*gallery page*/
-    .column{
-        max-width:100%;
-    }
-    /*gallery details page*/
-    .top-0{
-        top:0 !important;
-    }
-    .h-auto{
-        height:auto;
-    }
-    /*upload page*/
-    .upload-page{
-        background: none;
-    }
-    .vh-sm-100{
-        height:auto !important;
-    }
-    .upload-pos{
-        position:relative !important;
-        width:auto !important;
-    }
-    .upload-sm-color{
-        color:#4A4A4A !important;
-        width:auto !important;
-        padding:0 !important;
-    }
-    #carousel img{
-        width:150px;
-        height:180px;
-    }
-    #carousel{
-        margin-top:0;
-    }
-    .mb-sm-5{
-        margin-bottom:3rem;
-    }
- }
-  /*about us page circle*/
-@media (max-width:576px){
-    .navitems-mob li a{
-        color:#4A4A4A !important;
-    }
-    .resp-title .mobile-title{
-        color:#000 !important;
-        display:block;
-    }
-    .resp-title{
-        margin-bottom:40px;
-        font-size:20px;
-    }
-    .left-sm-0{
-        left:0;
-    }
-    .landing-page {
-        background: none;
-    }
-    .mobile-top{
-        top:17%;
-        left:0;
-        text-align:center;
-    }
-    .no-wrap{
-        flex-wrap: nowrap
-    }
-    .navitems-mob{
-        margin-left:0px !important;
-        flex-direction: row;
-    }
-    .mr-sm-custm{
-        margin-right:7rem;
-    }
-    /*about us page responsive css*/
-    .no-spacing{
-        padding:0px !important;
-        margin:0px !important;
-    }
-    .no-d-flex{
-        display:block !important;
-    }
-    .width-sm-custm{
-        width:auto !important;
-    }
-    /*gallery page*/
-    .column{
-        max-width:100%;
-    }
-    /*gallery details page*/
-    .top-0{
-        top:0 !important;
-    }
-    .h-auto{
-        height:auto;
-    }
-    /*upload page*/
-    .upload-page{
-        background: none;
-    }
-    .vh-sm-100{
-        height:auto !important;
-    }
-    .upload-pos{
-        position:relative !important;
-        width:auto !important;
-    }
-    .upload-sm-color{
-        color:#4A4A4A !important;
-        width:auto !important;
-        padding:0 !important;
-    }
-    #carousel img{
-        width:150px;
-        height:180px;
-    }
-    #carousel{
-        margin-top:0;
-    }
-    .mb-sm-5{
-        margin-bottom:3rem;
-    }
+.top-8{
+	top:-8%;
 }
-
-  
 .table-scroll{
-    height:550px;
-    overflow:auto;
+    	height:450px;
+    	overflow:auto;
+	display:block;
+	width:100% !important;
 }
 .overlay {
     position: absolute;
@@ -616,7 +438,7 @@ div ::-webkit-scrollbar-thumb {
     height: 55px;
     position: absolute;
     top: 40%;
-    left: 50%;
+    left: calc(50% - 27.5px);   
     -webkit-animation: spin 2s linear infinite; /* Safari */
     animation: spin 2s linear infinite;
 }
@@ -769,14 +591,6 @@ div ::-webkit-scrollbar-thumb {
     background-color: #C1C1C1;
 
 }
-
-@media (max-width: 576px)  {
-    .bg-img {
-    background-position: right;
-    background-size: contain;
-    }
-}
-
 .text-align-center
 {
   text-align:center !important;
@@ -784,7 +598,7 @@ div ::-webkit-scrollbar-thumb {
 
 .w-80
 {
-  width: 80% !important;
+  width: 80%;
 }
 
 .popover{
@@ -824,15 +638,12 @@ div ::-webkit-scrollbar-thumb {
     display: none;
 }
 .aie-link {
-    font-weight: 400;
     font-size: 12pt;
-    margin-left: -8px;
     font-weight: 500;
-    margin-top: 4px !important;
 }
 .logo-divider
 {
-    margin-left: 5px;
+    margin-left: 8px;
 }
 .w-65
 {
@@ -850,3 +661,296 @@ div ::-webkit-scrollbar-thumb {
  {
      text-decoration: underline !important;
  }
+.dropzone{
+	min-height:300px !important;
+}
+.hm-logo-grey{
+	display:none;
+}
+.text-width{
+	width: 100px;
+    	overflow: hidden;
+    	text-overflow: ellipsis;
+    	white-space: nowrap;
+    	max-width: 150px;
+}
+.td-align td{
+	max-width: 126px;
+	min-width: 100px;
+}
+@media (min-width:1024px){
+	.navbar{
+	padding:0px;
+	}
+.bg-img{
+margin-top:-4%;
+}
+}
+
+@media (max-width:1024px){
+	.bg-img{
+margin-top:-10%;
+}
+.ai4e_title_show {
+    display: none !important;
+}
+.hm-white-logo{
+	display:none;
+}
+.hm-logo-grey{
+	display:block;
+}
+}
+@media (max-width:1024px){
+	.bg-img{
+		background-image:url('/CameraTrapAssets/img/mobile_cheetah.png');
+		background-repeat:no-repeat;
+		background-size: contain;
+		margin-top:-12%;
+		background-position:bottom;
+	}
+	.navbar a{
+		color:#000 !important;
+	}
+	.upload-title-text{
+		width:auto;
+	}
+	.width-resp {
+		width: 100%!important;
+	}
+	.content{
+		max-width:100%;
+	}
+	.scroll-class{
+		max-height:900px;
+	}
+	.navbar-toggler-icon {
+  	  	background-image: url(/CameraTrapAssets/img/horiz-menu.png);
+	}
+	.logo-divider{
+		color:#9b9b9b !important;
+	}
+	.bg-img span{
+		color:#000 !important;
+	}
+}
+@media (max-width: 1000px) { 
+    .navbar{
+	margin-bottom:15px;
+	}
+	.dropzone{
+	width:100% !important;
+	margin-left:0 !important;
+	}
+	.p-sm-0{
+	padding:0px !important;
+	}
+	.resp-title .mobile-title{
+        color:#000 !important;
+        display:block;
+    }
+    .resp-title{
+        margin-bottom:40px;
+        font-size:20px;
+    }
+    .left-sm-0{
+        left:0;
+    }
+    .landing-page {
+        background: none;
+    }
+    .mobile-top{
+        top:30%;
+        left:0;
+        text-align:center;
+    }
+    .no-wrap{
+        flex-wrap: nowrap
+    }
+    .navitems-mob{
+        margin-left:0px !important;
+        flex-direction: row;
+    }
+    .mr-sm-custm{
+        margin-right:7rem;
+    }
+    /*about us page responsive css*/
+    .no-spacing{
+        padding:0px !important;
+        margin:0px !important;
+    }
+    .no-d-flex{
+        display:block !important;
+    }
+    .width-sm-custm{
+        width:auto !important;
+    }
+    /*gallery page*/
+    .column{
+        max-width:100%;
+    }
+    /*gallery details page*/
+    .top-0{
+        top:0 !important;
+    }
+    .h-auto{
+        height:auto;
+    }
+    /*upload page*/
+    .upload-page{
+        background: none;
+    }
+    .vh-sm-100{
+        height:auto !important;
+    }
+    .upload-pos{
+        position:relative !important;
+        width:auto !important;
+    }
+    .upload-sm-color{
+        color:#4A4A4A !important;
+        width:auto !important;
+        padding:0 !important;
+    }
+    #carousel img{
+        width:150px;
+        height:180px;
+    }
+    #carousel{
+        margin-top:0;
+    }
+    .mb-sm-5{
+        margin-bottom:3rem;
+    }	
+	.resp-m-0{
+	margin:0 !important;
+	}
+}
+  /*about us page circle*/
+@media (max-width:768px){
+	 .navbar a{
+	color:#000 !important;
+	}
+	.mb-view{
+	border-top:1px solid #ccc;
+	margin-top:10px;
+}
+	.navbar{
+	margin-bottom:15px;
+	}
+	.dropzone{
+	width:100% !important;
+	margin-left:0 !important;
+	}
+	.p-sm-0{
+	padding:0px !important;
+	}
+	.bg-img{
+		background-image:url('/CameraTrapAssets/img/mobile_cheetah.png');
+		background-repeat:no-repeat;
+		background-size: contain;
+		margin-top:-12%;
+		background-position:bottom;
+	}
+        .resp-title .mobile-title{
+        color:#000 !important;
+        display:block;
+    }
+    .resp-title{
+        margin-bottom:40px;
+        font-size:20px;
+    }
+    .left-sm-0{
+        left:0;
+    }
+    .landing-page {
+        background: none;
+    }
+    .mobile-top{
+        top:30%;
+        left:0;
+        text-align:center;
+    }
+    .no-wrap{
+        flex-wrap: nowrap
+    }
+    .navitems-mob{
+        margin-left:0px !important;
+        flex-direction: row;
+    }
+    .mr-sm-custm{
+        margin-right:7rem;
+    }
+    /*about us page responsive css*/
+    .no-spacing{
+        padding:0px !important;
+        margin:0px !important;
+    }
+    .no-d-flex{
+        display:block !important;
+    }
+    .width-sm-custm{
+        width:auto !important;
+    }
+    /*gallery page*/
+    .column{
+        max-width:100%;
+    }
+    /*gallery details page*/
+    .top-0{
+        top:0 !important;
+    }
+    .h-auto{
+        height:auto;
+    }
+    /*upload page*/
+    .upload-page{
+        background: none;
+    }
+    .vh-sm-100{
+        height:auto !important;
+    }
+    .upload-pos{
+        position:relative !important;
+        width:auto !important;
+    }
+    .upload-sm-color{
+        color:#4A4A4A !important;
+        width:auto !important;
+        padding:0 !important;
+    }
+    #carousel img{
+        width:150px;
+        height:180px;
+    }
+    #carousel{
+        margin-top:0;
+    }
+    .mb-sm-5{
+        margin-bottom:3rem;
+    }
+.resp-m-0{
+margin:0 !important;
+}
+}
+@media (max-width:576px){
+.bg-img{
+	margin-top:-27% !important;
+}
+.hide-mobile{
+	display:none !important;
+}
+.width-resp{
+	width:100% !important;
+}
+.dropzone{
+ min-height:330px !important;
+}
+.text-sm-center{
+text-align:center;
+}
+.hide_white_logo
+{
+  display:none;
+}
+}

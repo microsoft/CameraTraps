@@ -9,27 +9,27 @@
 {% block active_2 %}non-active{% endblock %}
 {% block active_3 %}non-active{% endblock %}
 {% block ai4e_title_showhide %} ai4e_title_show {% endblock %}
+{% block display_white_logo %} hide_white_logo {% endblock %}
 
 
-{% block camera_logo %}static/img/camera-grey.svg{% endblock %}
-{% block microsoft_logo %}static/img/microsoft-logo-grey.svg{% endblock %}
-
-
+{% block camera_logo %}CameraTrapAssets/img/camera-grey.svg{% endblock %}
+{% block microsoft_logo %}<img src="CameraTrapAssets/img/microsoft-logo-grey.svg" alt="microsoft logo" />
+{% endblock %}
 
 {% block body %}
     <section class="container-fluid p-0 position-fixed w-100 upload-pos">
             <div class="vh-100 position-relative vh-sm-100">
                 <div class="position-relative top-10 d-flex no-d-flex">
-                    <div class="col-sm-3 col-lg-3 col-3">
-                        <div class="pl-4">
-                            <h1 class="upload-title-text font-size-36 font-weight-800 font-biryani letter-spacing-1">
+                    <div class="col-sm-12 col-md-12  col-lg-3 col-12">
+                        <div class="pl-4 hide-mobile">
+                            <h1 class="upload-title-text font-size-36 font-weight-800 font-biryani letter-spacing-1 text-sm-center">
                                 UPLOAD</h1>                  
-                                <img src="/static/img/elephant.svg" alt="animal" class="mt-5">
+                                <img src="/CameraTrapAssets/img/elephant.svg" alt="animal" class="mt-5 ml-auto mr-auto d-sm-none d-md-block hide-mobile">
                         </div>
                     </div>
-                    <div class="col-sm-9 col-lg-9 col-9">
-                            <form class="w-80 pl-5 width-sm-custm no-spacing">
-                                    <input type="text" class="form-control border-light-gray fontsize-24 pl-0" id="upload-url" placeholder="  Enter image URL here" />
+                    <div class="col-sm-12 col-md-12 col-lg-9 col-12">
+                            <form class="pl-5 p-sm-0">
+                                    <input type="text" class="form-control border-light-gray fontsize-24 pl-0 w-80 width-resp" id="upload-url" placeholder="  Enter image URL here" />
                                     <div class="or-color font-size10 my-3">OR</div>
                             </form>
                             {{ dropzone.create(action_view='processimages') }}

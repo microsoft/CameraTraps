@@ -5,15 +5,16 @@
 {% block font_Class_2 %}color-black{% endblock %}
 {% block font_Class_3 %}color-black{% endblock %}
 {% block ai4e_title_showhide %}ai4e_title_hide {% endblock %}
+{% block display_white_logo %} hide_white_logo {% endblock %}
 
-{% block camera_logo %}/static/img/camera-grey.svg{% endblock %}
-{% block microsoft_logo %}/static/img/microsoft-logo-grey.svg{% endblock %}
-
+{% block camera_logo %}/CameraTrapAssets/img/camera-grey.svg{% endblock %}
+{% block microsoft_logo %}<img src="../CameraTrapAssets/img/microsoft-logo-grey.svg" alt="microsoft logo" />
+{% endblock %}
 
 {% block body %}
 <div class="container-fluid px-0">
         <div class="d-flex mt-5 justify-content-between no-d-flex">
-            <div class="col-sm-12 col-lg-7 col-12">
+            <div class="col-sm-12 col-lg-7 col-md-12 col-12">
                 <div class="">
                     <h1 class="font-size-36 font-biryani font-weight-bold letter-spacing-3 font-weight-800 custm-gery-1 text-center">RESULTS</h1>
                 </div>
@@ -21,7 +22,8 @@
                     <div id="carousel">
 			 <div class="results-loading" style="visibility:visible"></div>
 			 {% for result in result_det %}
-                            <img src="{{ result.path }}" rel="popover" data-img="{{result.path }}"  id="carousel-{{ result.image_name.replace('.JPG', '') }}"  class="mw-100 carousel-image" />
+                            <img src="{{ result.path }}" rel="popover" data-img="{{result.path }}"  id="carousel-{{ result.image_name.replace('.JPG', '') }}"  
+                              class="mw-100 carousel-image" />
                          {% endfor %}  
                     </div>
                     <a id="prev" class="nav_button prev_button link pull-left" title="prev">&lt;</a>
@@ -29,18 +31,18 @@
                 </div>
                 <div class="detect-animal text-center mt-4 d-flex flex-column mb-sm-5">
                     <!-- <div class="letter-spacing-1 font-size18 font-weight-bold text-light-green">ANIMAL DETECTED</div> -->
-                    <button type="button" onclick="reset_upload()" class="btn border-radius-30 bg-transparent reset-btn-border font-size10 reset-btn-border px-4 height-38 text-block mt-4 w-25 ml-auto mr-auto"><img src="/static/img/reset.svg" alt="reload" class="pr-2" />RESET</button>
-                    <!--button type="button" value='{{ output_json|tojson|safe}}' id="export_result" class="btn border-radius-30 bg-transparent reset-btn-border font-size10 reset-btn-border px-4 height-38 text-block mt-4 w-25  ml-auto mr-auto"><img src="/static/img/reset.svg" alt="reload" class="pr-2" />EXPORT RESULTS</button--->
+                    <button type="button" onclick="reset_upload()" class="btn border-radius-30 bg-transparent reset-btn-border font-size10 reset-btn-border px-4 height-38 text-block mt-4 w-25 ml-auto mr-auto"><img src="/CameraTrapAssets/img/reset.svg" alt="reload" class="pr-2" />RESET</button>
+                    <!--button type="button" value='{{ output_json|tojson|safe}}' id="export_result" class="btn border-radius-30 bg-transparent reset-btn-border font-size10 reset-btn-border px-4 height-38 text-block mt-4 w-25  ml-auto mr-auto"><img src="/CameraTrapAssets/img/reset.svg" alt="reload" class="pr-2" />EXPORT RESULTS</button--->
                 </div>
             </div>
-            <div class="col-sm-5 px-0 col-12">
-                <div class="image-details-bg position-absolute w-100 px-4 py-5 top-27 top-0">
+            <div class="col-sm-12 col-lg-5 col-md-12 px-0 col-12">
+                <div class="image-details-bg position-absolute w-100 px-4 py-5 top-27">
                     <div class="font-size18 custm-grey-5 letter-spacing-1">IMAGE DETAILS</div>
                 </div>
                 <div class="table-bg p-4">
-                    <div class="table-scroll">
-                        <table class="table">
-                            <thead>
+                    <div class="table-responsive">
+                        <table class="table responsive-table td-align">
+                            <thead class="float-right w-100">
                                 <tr class="border-bottom border-white">
                                     <th scope="col" class="custm-gery-2 font-size12 letter-spacing-1 border-0 font-weight-normal">FILE NAME</th>
                                     <th scope="col" class="custm-gery-2 font-size12 letter-spacing-1 border-0 font-weight-normal">RESULTS</th>
@@ -48,16 +50,16 @@
                                     <th scope="col" class="custm-gery-2 font-size12 letter-spacing-1 border-0 font-weight-normal">PATH</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody class="table-scroll">
                                 {% for result in result_det %}
                                     <tr id="table-{{ result.image_name.replace('.JPG', '') }}" class="border-bottom border-white table-details">
-                                        <td class="custm-gery-2 font-size14 border-0">{{ result.image_name }}</td>
+                                        <td class="custm-gery-2 font-size14 border-0 text-width">{{ result.image_name }}</td>
                                         {% if result.num_objects > 0 %}
-                                            <td class="text-center border-0"><img src="/static/img/success-mark.svg" alt="success" /></td>
+                                            <td class="border-0"><img src="/CameraTrapAssets/img/success-mark.svg" alt="success" /></td>
                                         {% else %}
-                                            <td class="text-center border-0"><img src="/static/img/cancel.svg" alt="success" /></td>
+                                            <td class="border-0"><img src="/CameraTrapAssets/img/cancel.svg" alt="success" /></td>
                                         {% endif %}
-                                        <td class="custm-gery-2 font-size14 text-center border-0">{{ result.num_objects }}</td>
+                                        <td class="custm-gery-2 font-size14 border-0">{{ result.num_objects }}</td>
                                         <td class="custm-gery-2 font-size14 border-0"><span class="text-elipse d-block">{{result.org_path}}</span></td>
                                     </tr>
                                 {% endfor %}

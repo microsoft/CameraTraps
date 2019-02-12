@@ -9,12 +9,18 @@ from . import aadConfig as aad
 import os
 
 app = Flask(__name__)
+app.debug = True
 api = Api(app)
 
 webassets = Environment(app)
 dropzone = Dropzone(app)
 
 app.config['SECRET_KEY'] = 'supersecretkeygoeshere'
+
+#api url
+app.config['API_URL'] = 'http://23.101.140.63:8081/v1/camera_trap_api/detect'
+app.config['API_RESULTS_URL'] = 'http://23.101.140.63:8081/static/results/'
+
 
 # Dropzone settings
 app.config['DROPZONE_UPLOAD_MULTIPLE'] = True
@@ -31,7 +37,8 @@ app.config['TEMPLATE_AUTHZ_URL']= ('https://login.microsoftonline.com/{}/oauth2/
                       'response_type=code&client_id={}&redirect_uri={}&' +
                       'state={}&resource={}')
 app.config["REDIRECT_URI"] = ''
-
+app.jinja_env.auto_reload = True
+app.config['TEMPLATES_AUTO_RELOAD'] = True
 
 # app.config['DROPZONE_IN_FORM'] = True
 # app.config['DROPZONE_UPLOAD_ON_CLICK'] = True 
