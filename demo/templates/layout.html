@@ -18,14 +18,20 @@
     </head>
     <body class="{% block body_class %}{% endblock %} vh-100">
             <nav class="navbar navbar-expand-lg bg-transparent pl-4 z-index-999">
-                <a class="navbar-brand flex-column d-none d-sm-block" href="{{ url_for('index') }}">
-                  <img src="{% block microsoft_logo %}{% endblock %}" alt="microsoft_logo" />
+               <div class="d-flex align-items-center">
+
+		 <a class="navbar-brand d-flex mr-2" href="https://www.microsoft.com">
+                  {% block microsoft_logo %}{% endblock %}
+
                   <span class="{% block font_Color_1 %}{% endblock %} logo-divider"> | </span>
                 </a>
-                
-                  <a class="{% block font_Color_2 %}{% endblock %} aie-link letter-spacing-1" href="https://www.microsoft.com/en-us/aiforearth"> AI for Earth</a>
-               <div class="navbar-collapse collapse justify-content-between">
-                  <ul class="navbar-nav mr-auto h4 ml-5 navitems-mob">
+                <a class="{% block font_Color_2%}{% endblock %}  aie-link letter-spacing-1" href="https://www.microsoft.com/en-us/aiforearth"> AI for Earth</a>
+      		</div>
+		<button class="navbar-toggler bg-white border" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+   			 <span class="navbar-toggler-icon"></span>
+ 		 </button>
+               <div class="navbar-collapse justify-content-between collapse navbar-collapse mb-view" id="navbarSupportedContent">
+                  <ul class="navbar-nav mr-auto h4 ml-5 navitems-mob d-flex justify-content-center">
                     <li class="nav-item font-biryani mr-5">
                       <a class="nav-link letter-spacing-1 font-size12 {% block active_1 %}{% endblock %} {% block font_Class_1 %}{% endblock %}" 
                       href="{{ url_for('upload') }}">UPLOAD <span class="sr-only">(current)</span></a>
@@ -44,7 +50,7 @@
                               <a class="nav-link letter-spacing-1 font-size14 text-black " href="{{ url_for('about') }}">AI FOR EARTH CAMERA TRAP API</a>
                           </li>
                     </ul>                  
-                </div>            
+                </div>              
               </nav>	        
            <div id="overlay">
             <div class="loading" style="visibility: hidden"></div>

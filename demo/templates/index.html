@@ -1,17 +1,20 @@
-
 {% extends "layout.html" %}
 
 {% block font_Color_1 %}text-white{% endblock %}
 {% block font_Color_2 %}text-white{% endblock %}
+{% block font_Color_3 %}text-dark{% endblock %}
 {% block body_class %}landing-page{% endblock %}
 {% block font_Class_1 %}text-white{% endblock %}
 {% block font_Class_2 %}text-white{% endblock %}
 {% block font_Class_3 %}text-white{% endblock %}
+{% block Menu_Color_1 %}text-dark{% endblock %}
+{% block Menu_Color_2 %}text-dark{% endblock %}
+{% block Menu_Color_3 %}text-dark{% endblock %}
 {% block ai4e_title_showhide %}ai4e_title_hide {% endblock %}
 
-{% block camera_logo %}static/img/camera.svg{% endblock %}
-{% block microsoft_logo %}static/img/microsoft-logo.svg{% endblock %}
-
+{% block camera_logo %}CameraTrapAssets/img/camera.svg{% endblock %}
+{% block microsoft_logo %}<img src="CameraTrapAssets/img/microsoft-logo-grey.svg" alt="microsoft logo" class="hm-logo-grey" /><img src="CameraTrapAssets/img/microsoft-logo.svg" alt="microsoft logo" class="hm-white-logo" />
+{% endblock %}
 
 {% block body %}
 <section class="container-fluid p-0 position-fixed w-100">

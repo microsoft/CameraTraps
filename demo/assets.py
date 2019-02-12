@@ -9,7 +9,7 @@ js_all = Bundle("node_modules/jquery/dist/jquery.min.js",
                  "node_modules/noty/lib/noty.js",
                  "js/jquery.waterwheelCarousel.min.js",
                  "js/blazy.min.js",
-                "js/camera-trap.js",
+                 "js/camera-trap.js",
                  filters="jsmin",
                  output="js/libs.js")
 
