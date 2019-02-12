@@ -27,7 +27,7 @@
 #%% Constants and imports
 
 import os
-import warnings
+import warnings as wrn
 import glob
 import cv2
 import numpy as np
@@ -52,9 +52,9 @@ from iptcinfo3 import IPTCInfo
 import write_html_image_list        
 
 # ignoring all "PIL cannot read EXIF metainfo for the images" warnings
-warnings.filterwarnings("ignore", "(Possibly )?corrupt EXIF data", UserWarning)
+wrn.filterwarnings("ignore", "(Possibly )?corrupt EXIF data", UserWarning)
 # Metadata Warning, tag 256 had too many entries: 42, expected 1
-warnings.filterwarnings("ignore", "Metadata warning", UserWarning)
+wrn.filterwarnings("ignore", "Metadata warning", UserWarning)
 
 baseDir = r'd:\temp\camera_trap_images_for_metadata_extraction'
 
@@ -206,17 +206,12 @@ def crop_to_solid_region(image):
             rowCount = 0
             for x in range(w):
                 if analysisImage[y][x] > 0:
-                    rowCount += 1
+                    ++rowCount
             rowFraction = rowCount / w
             if rowFraction > minBackgroundFractionForBackgroundRow:
                 if minY == -1:
                     minY = y
                 maxY = y
-        
-        x = minX
-        y = minY
-        w = maxX-minX
-        h = maxY-minY
         
         x = minX
         y = minY
