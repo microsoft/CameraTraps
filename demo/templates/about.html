@@ -8,22 +8,23 @@
 {% block active_2 %}non-active{% endblock %}
 {% block active_3 %}active{% endblock %}
 {% block ai4e_title_showhide %}ai4e_title_show {% endblock %}
+{% block display_white_logo %} hide_white_logo {% endblock %}
 
-{% block camera_logo %}static/img/camera-grey.svg{% endblock %}
-{% block microsoft_logo %}static/img/microsoft-logo-grey.svg{% endblock %}
-
+{% block camera_logo %}CameraTrapAssets/img/camera-grey.svg{% endblock %}
+{% block microsoft_logo %}<img src="CameraTrapAssets/img/microsoft-logo-grey.svg" alt="microsoft logo" />
+{% endblock %}
 
 {% block body %}
 <div class="container-fluid" style="display:block">
     <div class="row pt-5 no-spacing mt-5">
-        <div class="ol-sm-12 col-md-9">
-            <div class="d-flex">
-                <div class="col-2 p-0 ml-5 mr-5">
-                    <img src="/static/img/elephant.svg" alt="animal" class="ml-5" />
+        <div class="col-sm-12 col-md-12 col-lg-9 col-12">
+            <div class="d-flex no-d-flex">
+                <div class="col-sm-12 col-md-12 col-lg-2 col-12 p-0 ml-5 mr-5 resp-m-0 text-center">
+                    <img src="/CameraTrapAssets/img/elephant.svg" alt="animal" class="ml-5" />
                 </div>
-                <div class="col-10 p-0 ml-5 mr-5">
+                <div class="col-12 col-sm-12 col-md-12 col-lg-10 p-0 ml-5 mr-5 resp-m-0">
                     <div class="mb-0">
-                        <div class="d-flex">
+                        <div class="d-flex no-d-flex">
                             <div class="pb-5">
                                 <p class="custm-gery-2 letter-spacing-1 font-size14 mt-2">
                                     This demo runs a detector model that was trained to find animals
