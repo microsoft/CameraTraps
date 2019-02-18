@@ -172,14 +172,18 @@ if __name__ == '__main__':
 
 #%% Interactive driver(s)
 
-jsonFiles = [r'd:\temp\CaltechCameraTraps.json',
-             r'd:\temp\wellington_camera_traps.json',
-             r'd:\temp\nacti_metadata.json',
-             r'd:\temp\SnapshotSerengeti.json']
-
-jsonFiles = [r'd:\wildlife_data\tigerblobs\tigerblobs.json']
-
-for jsonFile in jsonFiles:
+if False:
     
-    sortedCategories = sanityCheckJsonDb(jsonFile)
-  
+    #%%
+    
+    jsonFiles = [r'd:\temp\CaltechCameraTraps.json',
+                 r'd:\temp\wellington_camera_traps.json',
+                 r'd:\temp\nacti_metadata.json',
+                 r'd:\temp\SnapshotSerengeti.json']
+    
+    jsonFiles = [r'd:\wildlife_data\tigerblobs\tigerblobs.json']
+    
+    for jsonFile in jsonFiles:
+        
+        sortedCategories = sanityCheckJsonDb(jsonFile)
+      
