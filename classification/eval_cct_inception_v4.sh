@@ -3,7 +3,6 @@ DATASET_DIR=/data/lila/caltech/cct_cropped_tfrecords
 TRAIN_DIR=./log/$(ls log | tail -n 1)/
 CHECKPOINT_PATH=/home/loris/git/tf-classification/pre-trained/inception_v4/inception_v4.ckpt
 MODEL_NAME=inception_v4
-CHECKPOINT_EXCLUDE=InceptionV4/AuxLogits,InceptionV4/Logits
 NUM_GPUS=1
 
 # Run evaluation.
