@@ -156,7 +156,7 @@ test_json['categories'] = training_json['categories']
 # Split the dataset by locations
 random.seed(0)
 locations = set([ann['location'] for ann in coco.imgs.values()])
-test_locations = sorted(random.sample(locations, int(TEST_FRACTION * len(locations))))
+test_locations = sorted(random.sample(locations, max(1, int(TEST_FRACTION * len(locations)))))
 training_locations = sorted(list(set(locations) - set(test_locations)))
 print('{} locations in total, {} will be used for training, {} for testing'.format(len(locations), 
                                                                                    len(training_locations),
