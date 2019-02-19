@@ -312,7 +312,10 @@ with graph.as_default():
         img = np.array(Image.open(in_file))
         cropped_img = img[crop_box[0]:crop_box[2], crop_box[1]:crop_box[3]]
         if INAT_OUTPUT_DIR and not os.path.exists(out_file):
-          Image.fromarray(cropped_img).save(out_file)
+          try:
+            Image.fromarray(cropped_img).save(out_file)
+          except ValueError:
+            continue
 
         # Add annotations to the appropriate json
         if is_train:
