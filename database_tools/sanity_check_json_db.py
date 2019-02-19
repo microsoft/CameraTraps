@@ -8,6 +8,8 @@
 # * Verifies that annotations refer to valid categories
 # * Verifies that image, category, and annotation IDs are unique 
 #
+# * Optionally checks file existence
+#
 # * Finds un-annotated images
 # * Finds unused categories
 #
@@ -23,7 +25,8 @@ from operator import itemgetter
 
 #%% Main function
 
-def sanityCheckJsonDb(jsonFile):
+# If baseDir is non-empty, checks image existence
+def sanityCheckJsonDb(jsonFile,baseDir=''):
     
     assert os.path.isfile(jsonFile)
     
@@ -75,6 +78,11 @@ def sanityCheckJsonDb(jsonFile):
         assert isinstance(image['file_name'],str)
         assert isinstance(image['id'],str)
         
+        # Are we checking file existence?
+        if len(baseDir) > 0:
+            filePath = os.path.join(baseDir,image['file_name'])
+            assert os.path.isfile(filePath)
+            
         imageId = image['id']        
         
         # Confirm ID uniqueness
@@ -172,14 +180,18 @@ if __name__ == '__main__':
 
 #%% Interactive driver(s)
 
-jsonFiles = [r'd:\temp\CaltechCameraTraps.json',
-             r'd:\temp\wellington_camera_traps.json',
-             r'd:\temp\nacti_metadata.json',
-             r'd:\temp\SnapshotSerengeti.json']
-
-jsonFiles = [r'd:\wildlife_data\tigerblobs\tigerblobs.json']
-
-for jsonFile in jsonFiles:
+if False:
     
-    sortedCategories = sanityCheckJsonDb(jsonFile)
-  
+    #%%
+    
+    jsonFiles = [r'd:\temp\CaltechCameraTraps.json',
+                 r'd:\temp\wellington_camera_traps.json',
+                 r'd:\temp\nacti_metadata.json',
+                 r'd:\temp\SnapshotSerengeti.json']
+    
+    jsonFiles = [r'd:\wildlife_data\tigerblobs\tigerblobs.json']
+    
+    for jsonFile in jsonFiles:
+        
+        sortedCategories = sanityCheckJsonDb(jsonFile)
+      
