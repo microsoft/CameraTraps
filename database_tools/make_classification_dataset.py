@@ -193,8 +193,12 @@ class TFRecordsWriter(object):
   def close(self):
     self.writer.close()
 
-training_tfr_writer = TFRecordsWriter(os.path.join(TFRECORDS_OUTPUT_DIR, 'train-%.5d'), IMS_PER_RECORD)
-test_tfr_writer = TFRecordsWriter(os.path.join(TFRECORDS_OUTPUT_DIR, 'test-%.5d'), IMS_PER_RECORD)
+if TFRECORDS_OUTPUT_DIR:
+  training_tfr_writer = TFRecordsWriter(os.path.join(TFRECORDS_OUTPUT_DIR, 'train-%.5d'), IMS_PER_RECORD)
+  test_tfr_writer = TFRecordsWriter(os.path.join(TFRECORDS_OUTPUT_DIR, 'test-%.5d'), IMS_PER_RECORD)
+else:
+  training_tfr_writer = None
+  test_tfr_writer = None
 
 # The detection part
 images_missing = False
