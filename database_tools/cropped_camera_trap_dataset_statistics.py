@@ -35,13 +35,14 @@ def print_locations(json_file):
     class_to_name = {c['id']:c['name'] for c in js['categories']}
     if CLASSLIST_OUTPUT and json_file == TRAIN_JSON:
         with open(CLASSLIST_OUTPUT, 'wt') as fi:
-            fi.write('\n'.join([class_to_name[i] for i in range(max(class_to_name.keys()))]))
+            fi.write('\n'.join([class_to_name[i] for i in range(max(class_to_name.keys())+1)]))
     labels = np.array([a['category_id'] for a in js['annotations']])
     print('In total ', len(class_to_name), ' classes and ', len(labels), ' images.')
     print('Classes with one or more images: ', len(set(labels)))
     print('Images per class:')
     print('{:5} {:<15} {:>11}'.format('ID','Name','Image count'))
-    for cls in range(max(class_to_name.keys())):
+    print(class_to_name)
+    for cls in range(max(class_to_name.keys()) + 1):
         print('{:5} {:<15} {:>11}'.format(cls, class_to_name[cls], np.sum(labels==cls)))
 
 print('Statistics of the training split: ')
