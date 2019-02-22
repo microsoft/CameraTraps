@@ -37,10 +37,11 @@ def print_locations(json_file):
         with open(CLASSLIST_OUTPUT, 'wt') as fi:
             fi.write('\n'.join([class_to_name[i] for i in range(max(class_to_name.keys()))]))
     labels = np.array([a['category_id'] for a in js['annotations']])
-    print('Classes with one or more images: ')
-    print('In total ', len(set(labels)), ' classes and ', len(labels), ' images.')
+    print('In total ', len(class_to_name), ' classes and ', len(labels), ' images.')
+    print('Classes with one or more images: ', len(set(labels)))
+    print('Images per class:')
     print('{:5} {:<15} {:>11}'.format('ID','Name','Image count'))
-    for cls in set([a['category_id'] for a in js['annotations']]):
+    for cls in range(max(class_to_name.keys())):
         print('{:5} {:<15} {:>11}'.format(cls, class_to_name[cls], np.sum(labels==cls)))
 
 print('Statistics of the training split: ')
