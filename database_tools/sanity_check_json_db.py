@@ -20,6 +20,7 @@
 import sys
 import json
 import os
+import tqdm
 from operator import itemgetter
 
 
@@ -35,6 +36,9 @@ def sanityCheckJsonDb(jsonFile,baseDir=''):
     
     ##%% Read .json file, sanity-check fields
     
+    print('Reading .json {} with base dir [{}]...'.format(
+            jsonFile,baseDir))
+    
     with open(jsonFile,'r') as f:
         data = json.load(f)
     
@@ -44,14 +48,18 @@ def sanityCheckJsonDb(jsonFile,baseDir=''):
     # info = data['info']
     assert 'info' in data
     
-    
+    if len(baseDir) > 0:
+        assert(os.path.isdir(baseDir))
+        
     ##%% Build dictionaries, checking ID uniqueness and internal validity as we go
     
     imageIdToImage = {}
     annIdToAnn = {}
     catIdToCat = {}
     
-    for cat in categories:
+    print('Checking categories...')
+    
+    for cat in tqdm.tqdm(categories):
         
         # Confirm that required fields are present
         assert 'name' in cat
@@ -69,7 +77,9 @@ def sanityCheckJsonDb(jsonFile,baseDir=''):
         
     # ...for each category
         
-    for image in images:
+    print('Checking images...')
+    
+    for image in tqdm.tqdm(images):
         
         # Confirm that required fields are present
         assert 'file_name' in image
@@ -92,7 +102,9 @@ def sanityCheckJsonDb(jsonFile,baseDir=''):
         
     # ...for each image
     
-    for ann in annotations:
+    print('Checking annotations...')
+    
+    for ann in tqdm.tqdm(annotations):
     
         # Confirm that required fields are present
         assert 'image_id' in ann
@@ -160,7 +172,7 @@ def sanityCheckJsonDb(jsonFile,baseDir=''):
     
     print('')
     
-    return sortedCategories
+    return sortedCategories, data
 
 # ...def sanityCheckJsonDb()
     
@@ -169,8 +181,12 @@ def sanityCheckJsonDb(jsonFile,baseDir=''):
     
 def main():
     
-    assert(len(sys.argv) == 2)
-    sanityCheckJsonDb(sys.argv[1])
+    assert(len(sys.argv) >= 2)
+    baseDir = ''
+    jsonFile = sys.argv[1]
+    if len(sys.argv) > 2:
+        baseDir = sys.argv[2]
+    sanityCheckJsonDb(jsonFile,baseDir)
 
 
 if __name__ == '__main__':
@@ -191,7 +207,14 @@ if False:
     
     jsonFiles = [r'd:\wildlife_data\tigerblobs\tigerblobs.json']
     
+    jsonFiles = ['/datadrive1/nacti_metadata.json']; jsonFile = jsonFiles[0]
+    
+    # baseDir = ''
+    baseDir = '/datadrive1/nactiUnzip'
+    
     for jsonFile in jsonFiles:
         
-        sortedCategories = sanityCheckJsonDb(jsonFile)
+        sortedCategories,data = sanityCheckJsonDb(jsonFile,baseDir)
+        
+    
       
