@@ -13,18 +13,14 @@
 
 import tensorflow as tf
 import numpy as np
-import humanfriendly
-import time
 import matplotlib
 matplotlib.use('TkAgg')
 
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
-import matplotlib.ticker as ticker
 import os
 import glob
 from PIL import Image
 from multiprocessing import Process
+
 
 #%% Core detection functions
 
@@ -69,7 +65,7 @@ def generate_detections(pid, detection_graph,image_paths):
     scores = []
     classes = []
     
-    nImages = len(images)
+    # nImages = len(images)
     to_remove=[]
     gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.50)
     with detection_graph.as_default():
