@@ -65,8 +65,8 @@ def sanityCheckJsonDb(jsonFile,baseDir=''):
         assert 'name' in cat
         assert 'id' in cat
         
-        assert isinstance(cat['id'],int)
-        assert isinstance(cat['name'],str)
+        assert isinstance(cat['id'],int), 'Illegal category ID type'
+        assert isinstance(cat['name'],str), 'Illegal category name type'
         
         catId = cat['id']
         
@@ -85,8 +85,8 @@ def sanityCheckJsonDb(jsonFile,baseDir=''):
         assert 'file_name' in image
         assert 'id' in image
         
-        assert isinstance(image['file_name'],str)
-        assert isinstance(image['id'],str)
+        assert isinstance(image['file_name'],str), 'Illegal image filename type'
+        assert isinstance(image['id'],str), 'Illegal image ID type'
         
         # Are we checking file existence?
         if len(baseDir) > 0:
@@ -111,9 +111,9 @@ def sanityCheckJsonDb(jsonFile,baseDir=''):
         assert 'id' in ann
         assert 'category_id' in ann
         
-        assert isinstance(ann['id'],str)
-        assert isinstance(ann['category_id'],int)
-        assert isinstance(ann['image_id'],str)
+        assert isinstance(ann['id'],str), 'Illegal annotation ID type'
+        assert isinstance(ann['category_id'],int), 'Illegal annotation category ID type'
+        assert isinstance(ann['image_id'],str), 'Illegal annotation image ID type'
         
         annId = ann['id']        
         

@@ -37,8 +37,10 @@ assert(info['version'] == 1.0)
 info['version'] = 1.1
 nFilenameConversions = 0
 nCatConversions = 0
+nAnnConversions = 0
 
 for image in images:
+    
     assert 'filename' in image
     image['file_name'] = image['filename']
     del image['filename']
@@ -53,13 +55,23 @@ for image in images:
     del image['IMG_HEIGHT']
     
 for cat in categories:
+    
     assert 'id' in cat
     assert isinstance(cat['id'],str)
     cat['id'] = int(cat['id'])
     nCatConversions += 1
+
+for ann in annotations:
     
-print('Finished checking data, converted {} filename fields and {} category IDs'.format(
-        nFilenameConversions,nCatConversions))
+    assert 'id' in ann    
+    assert isinstance(ann['id'],str)
+    assert 'category_id' in ann
+    assert isinstance(ann['category_id'],str)
+    ann['category_id'] = int(ann['category_id'])
+    nAnnConversions += 1
+    
+print('Finished checking data, converted {} filename fields, {} category IDs, {} annotation category IDs'.format(
+        nFilenameConversions,nCatConversions,nAnnConversions))
 
 
 #%% Write json file
