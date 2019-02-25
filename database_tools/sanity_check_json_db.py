@@ -34,9 +34,9 @@ nThreads = 10
 # If baseDir is non-empty, checks image existence
 class SanityCheckOptions:
     
+    baseDir = ''
     bCheckImageSizes = False
     bFindUnusedImages = False
-    baseDir = ''
     iMaxNumImages = -1
     
 defaultOptions = SanityCheckOptions()
@@ -69,9 +69,12 @@ def checkImageExistenceAndSize(image,options=None):
   
 def sanityCheckJsonDb(jsonFile, options=None):
     
-    if options is None:        
-        options = SanityCheckOptions()
+    if options is None:   
         
+        options = SanityCheckOptions()
+    
+    print(options.__dict__)
+    
     assert os.path.isfile(jsonFile), '.json file {} does not exist'.format(jsonFile)
     
     print('\nProcessing .json file {}'.format(jsonFile))
@@ -274,14 +277,21 @@ def sanityCheckJsonDb(jsonFile, options=None):
 
 #%% Command-line driver
     
+import argparse
+
 def main():
     
-    assert(len(sys.argv) >= 2)
-    baseDir = ''
-    jsonFile = sys.argv[1]
-    if len(sys.argv) > 2:
-        baseDir = sys.argv[2]
-    sanityCheckJsonDb(jsonFile,baseDir)
+    # python sanity_check_json_db.py "e:\wildlife_data\wellington_data\wellington_camera_traps.json" --baseDir "e:\wildlife_data\wellington_data\images" --bFindUnusedImages --bCheckImageSizes
+    
+    parser = argparse.ArgumentParser()
+    parser.add_argument('jsonFile')
+    parser.add_argument('--bCheckImageSizes', action='store_true')
+    parser.add_argument('--bFindUnusedImages', action='store_true')
+    parser.add_argument('--baseDir',action="store", type=str, default='')
+    parser.add_argument('--iMaxNumImages',action="store", type=int, default=-1)
+    
+    args = parser.parse_args()    
+    sanityCheckJsonDb(args.jsonFile,args)
 
 
 if __name__ == '__main__':
