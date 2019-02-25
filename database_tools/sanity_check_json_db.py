@@ -22,12 +22,13 @@ import json
 import os
 import tqdm
 from operator import itemgetter
+from PIL import Image
 
 
 #%% Main function
 
 # If baseDir is non-empty, checks image existence
-def sanityCheckJsonDb(jsonFile,baseDir=''):
+def sanityCheckJsonDb(jsonFile, baseDir='', bCheckImageSizes=False, bFindUnlabeledImages=False):
     
     assert os.path.isfile(jsonFile)
     
@@ -93,13 +94,27 @@ def sanityCheckJsonDb(jsonFile,baseDir=''):
             filePath = os.path.join(baseDir,image['file_name'])
             assert os.path.isfile(filePath)
             
+            if bCheckImageSizes:
+                if ('height' in image) and ('width' in image):
+                    width, height = Image.open(filePath).size
+                    assert (width == image['width'] and height == image['height']), \
+                            'Size mismatch for image {}: {} (reported {},{}, actual {},{})'.format(
+                                    image['id'], filePath, image['width'], image['height'], width, height)
+                    
         imageId = image['id']        
         
         # Confirm ID uniqueness
-        assert imageId not in imageIdToImage
+        assert imageId not in imageIdToImage, 'Duplicate image ID {}'.format(imageId)
+        
         imageIdToImage[imageId] = image
         image['_count'] = 0
         
+        if 'height' in image:
+            assert 'width' in image, 'Image with height but no width: {}'.format(image['id'])
+        
+        if 'width' in image:
+            assert 'height' in image, 'Image with width but no height: {}'.format(image['id'])
+                
     # ...for each image
     
     print('Checking annotations...')
