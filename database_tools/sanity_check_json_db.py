@@ -58,8 +58,8 @@ def checkImageExistenceAndSize(image,options=None):
 
         width, height = Image.open(filePath).size
         if (not (width == image['width'] and height == image['height'])):
-            'Size mismatch for image {}: {} (reported {},{}, actual {},{})'.format(
-                    image['id'], filePath, image['width'], image['height'], width, height)
+            print('Size mismatch for image {}: {} (reported {},{}, actual {},{})'.format(
+                    image['id'], filePath, image['width'], image['height'], width, height))
             return False
         
     return True
