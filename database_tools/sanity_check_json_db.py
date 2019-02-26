@@ -17,23 +17,72 @@
 
 #%% Constants and environment
 
-import sys
 import json
 import os
+from tqdm import tqdm
 from operator import itemgetter
+from multiprocessing.pool import ThreadPool
+from PIL import Image
+
+nThreads = 10
 
 
-#%% Main function
+#%% Functions
 
 # If baseDir is non-empty, checks image existence
-def sanityCheckJsonDb(jsonFile,baseDir=''):
+class SanityCheckOptions:
     
-    assert os.path.isfile(jsonFile)
+    baseDir = ''
+    bCheckImageSizes = False
+    bFindUnusedImages = False
+    iMaxNumImages = -1
+    
+defaultOptions = SanityCheckOptions()
+
+
+def checkImageExistenceAndSize(image,options=None):
+
+    if options is None:
+        
+        options = defaultOptions
+        
+    filePath = os.path.join(options.baseDir,image['file_name'])
+    if not os.path.isfile(filePath):
+        print('Image path {} does not exist'.format(filePath))
+        return False
+    
+    if options.bCheckImageSizes:
+        if not ('height' in image and 'width' in image):
+            print('Missing image size in {}'.format(filePath))
+            return False
+
+        width, height = Image.open(filePath).size
+        if (not (width == image['width'] and height == image['height'])):
+            'Size mismatch for image {}: {} (reported {},{}, actual {},{})'.format(
+                    image['id'], filePath, image['width'], image['height'], width, height)
+            return False
+        
+    return True
+
+  
+def sanityCheckJsonDb(jsonFile, options=None):
+    
+    if options is None:   
+        
+        options = SanityCheckOptions()
+    
+    print(options.__dict__)
+    
+    assert os.path.isfile(jsonFile), '.json file {} does not exist'.format(jsonFile)
     
     print('\nProcessing .json file {}'.format(jsonFile))
     
-    
+    baseDir = options.baseDir
+        
     ##%% Read .json file, sanity-check fields
+    
+    print('Reading .json {} with base dir [{}]...'.format(
+            jsonFile,baseDir))
     
     with open(jsonFile,'r') as f:
         data = json.load(f)
@@ -44,21 +93,26 @@ def sanityCheckJsonDb(jsonFile,baseDir=''):
     # info = data['info']
     assert 'info' in data
     
-    
+    if len(baseDir) > 0:
+        
+        assert os.path.isdir(baseDir), 'Base directory {} does not exist'.format(baseDir)
+        
     ##%% Build dictionaries, checking ID uniqueness and internal validity as we go
     
     imageIdToImage = {}
     annIdToAnn = {}
     catIdToCat = {}
     
-    for cat in categories:
+    print('Checking categories...')
+    
+    for cat in tqdm(categories):
         
         # Confirm that required fields are present
         assert 'name' in cat
         assert 'id' in cat
         
-        assert isinstance(cat['id'],int)
-        assert isinstance(cat['name'],str)
+        assert isinstance(cat['id'],int), 'Illegal category ID type'
+        assert isinstance(cat['name'],str), 'Illegal category name type'
         
         catId = cat['id']
         
@@ -69,39 +123,97 @@ def sanityCheckJsonDb(jsonFile,baseDir=''):
         
     # ...for each category
         
-    for image in images:
+    print('\nChecking images...')
+    
+    if options.iMaxNumImages > 0 and len(images) > options.iMaxNumImages:
+        
+        print('Trimming image list to {}'.format(options.iMaxNumImages))
+        images = images[0:options.iMaxNumImages]
+        
+    imagePathsInJson = set()
+    
+    for image in tqdm(images):
+        
+        image['_count'] = 0
         
         # Confirm that required fields are present
         assert 'file_name' in image
         assert 'id' in image
+
+        imagePathsInJson.add(image['file_name'])
         
-        assert isinstance(image['file_name'],str)
-        assert isinstance(image['id'],str)
+        assert isinstance(image['file_name'],str), 'Illegal image filename type'
+        assert isinstance(image['id'],str), 'Illegal image ID type'
         
-        # Are we checking file existence?
-        if len(baseDir) > 0:
-            filePath = os.path.join(baseDir,image['file_name'])
-            assert os.path.isfile(filePath)
-            
         imageId = image['id']        
         
         # Confirm ID uniqueness
-        assert imageId not in imageIdToImage
-        imageIdToImage[imageId] = image
-        image['_count'] = 0
+        assert imageId not in imageIdToImage, 'Duplicate image ID {}'.format(imageId)
         
+        imageIdToImage[imageId] = image
+        
+        if 'height' in image:
+            assert 'width' in image, 'Image with height but no width: {}'.format(image['id'])
+        
+        if 'width' in image:
+            assert 'height' in image, 'Image with width but no height: {}'.format(image['id'])
+    
+    # Are we checking for unused images?
+    if (len(baseDir) > 0) and options.bFindUnusedImages:    
+        
+        print('Enumerating images...')
+        
+        # Recursively enumerate images
+        imagePaths = []
+        for root, dirs, files in os.walk(baseDir):
+            for file in files:
+                if file.lower().endswith(('.jpeg', '.jpg', '.png')):
+                    relDir = os.path.relpath(root, baseDir)
+                    relFile = os.path.join(relDir,file)
+                    
+                    # Remove leading ./ or .\, which relpath appears to produce on
+                    # Windows but not on Linux.
+                    if len(relFile) > 2 and \
+                        (relFile[0:2] == './' or relFile[0:2] == '.\\'):                     
+                            relFile = relFile[2:]
+                    imagePaths.append(relFile)
+          
+        unusedFiles = []
+        
+        for p in imagePaths:
+            if p not in imagePathsInJson:
+                print('Image {} is unused'.format(p))
+                unusedFiles.append(p)
+                
+    # Are we checking file existence and/or image size?
+    if (len(baseDir) > 0) and options.bCheckImageSizes:
+        
+        print('Checking image existence and image sizes...')
+        
+        pool = ThreadPool(nThreads)
+        # results = pool.imap_unordered(lambda x: fetch_url(x,nImages), indexedUrlList)
+        defaultOptions.baseDir = options.baseDir
+        defaultOptions.bCheckImageSizes = options.bCheckImageSizes
+        results = tqdm(pool.imap(checkImageExistenceAndSize, images), total=len(images))
+        
+        for iImage,r in enumerate(results):
+            if not r:
+                print('Image validation error for image {}'.format(iImage))
+                            
     # ...for each image
     
-    for ann in annotations:
+    print('Checking annotations...')
+    
+    for ann in tqdm(annotations):
     
         # Confirm that required fields are present
         assert 'image_id' in ann
         assert 'id' in ann
         assert 'category_id' in ann
         
-        assert isinstance(ann['id'],str)
-        assert isinstance(ann['category_id'],int)
-        assert isinstance(ann['image_id'],str)
+        assert isinstance(ann['id'],str), 'Illegal annotation ID type'
+        assert isinstance(ann['category_id'],int), 'Illegal annotation category ID type'
+        assert isinstance(ann['image_id'],str), 'Illegal annotation image ID type'
         
         annId = ann['id']        
         
@@ -160,17 +272,32 @@ def sanityCheckJsonDb(jsonFile,baseDir=''):
     
     print('')
     
-    return sortedCategories
+    return sortedCategories, data
 
 # ...def sanityCheckJsonDb()
     
 
 #%% Command-line driver
     
+import argparse
+
 def main():
     
-    assert(len(sys.argv) == 2)
-    sanityCheckJsonDb(sys.argv[1])
+    # python sanity_check_json_db.py "e:\wildlife_data\wellington_data\wellington_camera_traps.json" --baseDir "e:\wildlife_data\wellington_data\images" --bFindUnusedImages --bCheckImageSizes
+    
+    # Here the '-u' prevents buffering, which makes tee happier
+    #
+    # python -u sanity_check_json_db.py '/datadrive1/nacti_metadata.json' --baseDir '/datadrive1/nactiUnzip/' --bFindUnusedImages --bCheckImageSizes | tee ~/nactiTest.out
+    
+    parser = argparse.ArgumentParser()
+    parser.add_argument('jsonFile')
+    parser.add_argument('--bCheckImageSizes', action='store_true')
+    parser.add_argument('--bFindUnusedImages', action='store_true')
+    parser.add_argument('--baseDir',action="store", type=str, default='')
+    parser.add_argument('--iMaxNumImages',action="store", type=int, default=-1)
+    
+    args = parser.parse_args()    
+    sanityCheckJsonDb(args.jsonFile,args)
 
 
 if __name__ == '__main__':
@@ -184,14 +311,25 @@ if False:
     
     #%%
     
+    # Sanity-check .json files for LILA
+    options = SanityCheckOptions()
     jsonFiles = [r'd:\temp\CaltechCameraTraps.json',
                  r'd:\temp\wellington_camera_traps.json',
                  r'd:\temp\nacti_metadata.json',
                  r'd:\temp\SnapshotSerengeti.json']
     
-    jsonFiles = [r'd:\wildlife_data\tigerblobs\tigerblobs.json']
+    # Sanity-check one file with all the bells and whistles
+    jsonFiles = [r'e:\wildlife_data\wellington_data\wellington_camera_traps.json']; jsonFile = jsonFiles[0]; baseDir = r'e:\wildlife_data\wellington_data\images'
+    options = SanityCheckOptions()
+    options.baseDir = baseDir
+    options.bCheckImageSizes = False
+    options.bFindUnusedImages = True
+    
+    # options.iMaxNumImages = 10    
     
     for jsonFile in jsonFiles:
         
-        sortedCategories = sanityCheckJsonDb(jsonFile)
+        sortedCategories,data = sanityCheckJsonDb(jsonFile, options)
+        
+    
       
