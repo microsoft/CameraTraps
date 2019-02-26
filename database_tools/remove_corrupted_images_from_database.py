@@ -15,7 +15,7 @@ import time
 import humanfriendly
 import os
 from multiprocessing.pool import ThreadPool
-import multiprocessing
+# import multiprocessing
 import gc
 
 N_THREADS = 16 # 1 # multiprocessing.cpu_count()
