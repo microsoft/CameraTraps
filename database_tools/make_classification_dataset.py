@@ -5,7 +5,6 @@
 
 import numpy as np
 import os
-import os
 import tqdm
 import pickle
 import matplotlib; matplotlib.use('Agg')
