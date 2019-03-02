@@ -148,7 +148,7 @@ def render_bounding_boxes(boxes, scores, classes, inputFileNames, outputFileName
         s = image.shape; imageHeight = s[0]; imageWidth = s[1]
         figsize = imageWidth / float(dpi), imageHeight / float(dpi)
 
-        fig = plt.figure(figsize=figsize)
+        plt.figure(figsize=figsize)
         ax = plt.axes([0,0,1,1])
         
         # Display the image
