@@ -170,9 +170,6 @@ def sanityCheckJsonDb(jsonFile, options=None):
                 if file.lower().endswith(('.jpeg', '.jpg', '.png')):
                     relDir = os.path.relpath(root, baseDir)
                     relFile = os.path.join(relDir,file)
-                    
-                    # Remove leading ./ or .\, which relpath appears to produce on
-                    # Windows but not on Linux.
                     if len(relFile) > 2 and \
                         (relFile[0:2] == './' or relFile[0:2] == '.\\'):                     
                             relFile = relFile[2:]
