@@ -12,6 +12,11 @@ This project has adopted the [Microsoft Open Source Code of Conduct](https://ope
 For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or
 contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
 
+# Data
+
+This repo does not directly host camera trap data, but we work with our collaborators to make data and annotations available whenever possible at http://lila.science .
+
+
 # Contents
 
 This repo contains several different folders, organized by type of task:
