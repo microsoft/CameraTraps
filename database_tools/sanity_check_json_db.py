@@ -60,8 +60,8 @@ def checkImageExistenceAndSize(image,options=None):
 
         width, height = Image.open(filePath).size
         if (not (width == image['width'] and height == image['height'])):
-            'Size mismatch for image {}: {} (reported {},{}, actual {},{})'.format(
-                    image['id'], filePath, image['width'], image['height'], width, height)
+            print('Size mismatch for image {}: {} (reported {},{}, actual {},{})'.format(
+                    image['id'], filePath, image['width'], image['height'], width, height))
             return False
         
     return True
@@ -172,8 +172,10 @@ def sanityCheckJsonDb(jsonFile, options=None):
                 if file.lower().endswith(('.jpeg', '.jpg', '.png')):
                     relDir = os.path.relpath(root, baseDir)
                     relFile = os.path.join(relDir,file)
-                    assert(relFile[0] == '.' and len(relFile) > 2)
-                    relFile = relFile[2:]
+                    # Remove leading ./ or .\
+                    if len(relFile) > 2 and \
+                        (relFile[0:2] == './' or relFile[0:2] == '.\\'):
+                        relFile = relFile[2:]
                     imagePaths.append(relFile)
           
         unusedFiles = []
