@@ -17,10 +17,8 @@
 
 #%% Constants and environment
 
-import sys
 import json
 import os
-# from tqdm import tqdm_notebook as tqdm
 from tqdm import tqdm
 from operator import itemgetter
 from multiprocessing.pool import ThreadPool
@@ -172,10 +170,9 @@ def sanityCheckJsonDb(jsonFile, options=None):
                 if file.lower().endswith(('.jpeg', '.jpg', '.png')):
                     relDir = os.path.relpath(root, baseDir)
                     relFile = os.path.join(relDir,file)
-                    # Remove leading ./ or .\
                     if len(relFile) > 2 and \
-                        (relFile[0:2] == './' or relFile[0:2] == '.\\'):
-                        relFile = relFile[2:]
+                        (relFile[0:2] == './' or relFile[0:2] == '.\\'):                     
+                            relFile = relFile[2:]
                     imagePaths.append(relFile)
           
         unusedFiles = []
@@ -285,6 +282,10 @@ def main():
     
     # python sanity_check_json_db.py "e:\wildlife_data\wellington_data\wellington_camera_traps.json" --baseDir "e:\wildlife_data\wellington_data\images" --bFindUnusedImages --bCheckImageSizes
     
+    # Here the '-u' prevents buffering, which makes tee happier
+    #
+    # python -u sanity_check_json_db.py '/datadrive1/nacti_metadata.json' --baseDir '/datadrive1/nactiUnzip/' --bFindUnusedImages --bCheckImageSizes | tee ~/nactiTest.out
+    
     parser = argparse.ArgumentParser()
     parser.add_argument('jsonFile')
     parser.add_argument('--bCheckImageSizes', action='store_true')
@@ -307,20 +308,15 @@ if False:
     
     #%%
     
+    # Sanity-check .json files for LILA
+    options = SanityCheckOptions()
     jsonFiles = [r'd:\temp\CaltechCameraTraps.json',
                  r'd:\temp\wellington_camera_traps.json',
                  r'd:\temp\nacti_metadata.json',
                  r'd:\temp\SnapshotSerengeti.json']
     
-    jsonFiles = [r'd:\wildlife_data\tigerblobs\tigerblobs.json']
-    
-    jsonFiles = ['/datadrive1/nacti_metadata.json']; jsonFile = jsonFiles[0]; baseDir = '/datadrive1/nactiUnzip'
-        
+    # Sanity-check one file with all the bells and whistles
     jsonFiles = [r'e:\wildlife_data\wellington_data\wellington_camera_traps.json']; jsonFile = jsonFiles[0]; baseDir = r'e:\wildlife_data\wellington_data\images'
-    
-    # baseDir = ''
-    # baseDir = r'd:\temp\camera_trap_images_no_people'
-    
     options = SanityCheckOptions()
     options.baseDir = baseDir
     options.bCheckImageSizes = False
