@@ -236,7 +236,7 @@ with graph.as_default():
     # For all images listed in the annotations file
     next_image_id = 0
     next_annotation_id = 0
-    for cur_image_id in tqdm.tqdm([vv['id'] for vv in coco.imgs.values()]):
+    for cur_image_id in tqdm.tqdm(list(sorted([vv['id'] for vv in coco.imgs.values()]))):
       cur_image = coco.loadImgs([cur_image_id])[0]
       cur_file_name = cur_image['file_name']
       # Path to the input image
@@ -313,10 +313,10 @@ with graph.as_default():
         # Crop the image to the padded box and save it
         bbox, crop_box = selected_boxes[0], crop_boxes[0]
         # Read the image
-        img = np.array(Image.open(in_file))
-        cropped_img = img[crop_box[0]:crop_box[2], crop_box[1]:crop_box[3]]
         if INAT_OUTPUT_DIR and not os.path.exists(out_file):
           try:
+            img = np.array(Image.open(in_file))
+            cropped_img = img[crop_box[0]:crop_box[2], crop_box[1]:crop_box[3]]
             Image.fromarray(cropped_img).save(out_file)
           except ValueError:
             continue
@@ -341,6 +341,9 @@ with graph.as_default():
           if INAT_OUTPUT_DIR:
             image_data['filename'] = out_file
           else:
+            if 'cropped_img' not in locals():
+              img = np.array(Image.open(in_file))
+              cropped_img = img[crop_box[0]:crop_box[2], crop_box[1]:crop_box[3]]
             Image.fromarray(cropped_img).save(TMP_IMAGE)
             image_data['filename'] = TMP_IMAGE
           image_data['id'] = next_image_id
@@ -350,8 +353,8 @@ with graph.as_default():
           image_data['class']['text'] = cur_cat_name
 
           # Propagate optional metadata to tfrecords
-          image_data['height'] = cur_image['height']
-          image_data['width'] = cur_image['width']
+          image_data['height'] = crop_box[2] - crop_box[0]
+          image_data['width'] = crop_box[3] - crop_box[1]
 
           cur_tfr_writer.add(image_data)
           if not INAT_OUTPUT_DIR:
