@@ -1,7 +1,7 @@
 DATASET_NAME=wellington
 DATASET_DIR=/data/lila/well_cropped_tfrecords
-#TRAIN_DIR=./log/$(date +"%Y-%m-%d_%H.%M.%S")_well_incv4
-TRAIN_DIR=./log/2019-02-20_03.19.02_well_incv4
+TRAIN_DIR=./log/$(date +"%Y-%m-%d_%H.%M.%S")_well_incv4
+#TRAIN_DIR=./log/2019-02-20_03.19.02_well_incv4
 CHECKPOINT_PATH=/home/loris/git/tf-classification/pre-trained/inception_v4/inception_v4.ckpt
 MODEL_NAME=inception_v4
 CHECKPOINT_EXCLUDE=InceptionV4/AuxLogits,InceptionV4/Logits
@@ -33,7 +33,7 @@ python eval_image_classifier.py \
     --dataset_name=${DATASET_NAME} \
     --dataset_split_name=test \
     --model_name=${MODEL_NAME} \
-    --checkpoint_path=${TRAIN_DIR}
+    --checkpoint_path=${TRAIN_DIR}/init
 
 python train_image_classifier.py \
     --train_dir=${TRAIN_DIR}/all \
@@ -61,4 +61,4 @@ python eval_image_classifier.py \
     --dataset_name=${DATASET_NAME} \
     --dataset_split_name=test \
     --model_name=${MODEL_NAME} \
-    --checkpoint_path=${TRAIN_DIR}
+    --checkpoint_path=${TRAIN_DIR}/all
