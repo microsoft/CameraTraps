@@ -51,6 +51,11 @@ parser.add_argument('--inat_style_output', type=str, default=None,
                     help='Output directory for a dataset in iNaturalist competition format.')
 parser.add_argument('--tfrecords_output', type=str, default=None,
                     help='Output directory for a dataset in TFRecords format.')
+parser.add_argument('--location_key', type=str, default='location', metavar='location',
+                    help='Key in the image-level annotations that specifies the splitting criteria. ' + \
+                    'Usually we split camera-trap datasets by locations, i.e. training and testing locations. ' + \
+                    'In this case, you probably wnat to pass something like `--split_by location`. ' + \
+                    'The script prints the annotation of a randomly selected image which you can use for reference.')
 
 parser.add_argument('--exclude_categories', type=str, nargs='+', default=[],
                     help='Categories to ignore. We will not run detection on images of that categorie and will ' + \
@@ -91,6 +96,7 @@ DETECTION_INPUT = args.use_detection_file
 if DETECTION_INPUT:
   assert os.path.exists(DETECTION_INPUT), DETECTION_INPUT + ' does not exist'
 
+SPLIT_BY = args.location_key
 EXCLUDED_CATEGORIES = args.exclude_categories
 
 # Padding around the detected objects when cropping
@@ -154,7 +160,11 @@ test_json['categories'] = training_json['categories']
 
 # Split the dataset by locations
 random.seed(0)
-locations = set([ann['location'] for ann in coco.imgs.values()])
+print('Example of the annotation of a single image:')
+print(list(coco.imgs.items())[0])
+print('The corresponding category annoation:')
+print(coco.imgToAnns[list(coco.imgs.items())[0][0]])
+locations = set([ann[SPLIT_BY] for ann in coco.imgs.values()])
 test_locations = sorted(random.sample(locations, max(1, int(TEST_FRACTION * len(locations)))))
 training_locations = sorted(list(set(locations) - set(test_locations)))
 print('{} locations in total, {} will be used for training, {} for testing'.format(len(locations), 
@@ -247,7 +257,7 @@ with graph.as_default():
       # The remapped category ID for our json file
       cur_json_cat_id = cat_id_to_new_id[cur_cat_id]
       # Whether it belongs to a training or testing location
-      is_train = cur_image['location'] in training_locations
+      is_train = cur_image[SPLIT_BY] in training_locations
       # The file path as it will appear in the annotation json
       new_file_name = os.path.join(cur_cat_name, cur_file_name)
       if INAT_OUTPUT_DIR:
