@@ -44,7 +44,7 @@ relevant paths to your PYTHONPATH variable using
 before running any of the scripts. 
 
 # Animal detection and cropping
-The detection, cropping, and dataset generation is done in `../database_tools/make_classification_dataset.py`. You can run 
+The detection, cropping, and dataset generation is done in `database_tools/make_classification_dataset.py`. You can run 
 `python make_classification_dataset.py -h` for a description of all required parameters:
 
     usage: make_classification_dataset.py [-h]
