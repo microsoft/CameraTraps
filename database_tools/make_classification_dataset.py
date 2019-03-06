@@ -321,38 +321,40 @@ with graph.as_default():
       if selected_boxes.shape[0] == 1:
         # Crop the image to the padded box and save it
         bbox, crop_box = selected_boxes[0], crop_boxes[0]
-        # Read the image
-        if INAT_OUTPUT_DIR and not os.path.exists(out_file):
+        if not os.path.exists(out_file):
           try:
             img = np.array(Image.open(in_file))
             cropped_img = img[crop_box[0]:crop_box[2], crop_box[1]:crop_box[3]]
             Image.fromarray(cropped_img).save(out_file)
           except ValueError:
             continue
-
-        # Add annotations to the appropriate json
-        if is_train:
-          cur_json = training_json
-          cur_tfr_writer = training_tfr_writer
+          except FileNotFoundError:
+            continue
         else:
-          cur_json = test_json
-          cur_tfr_writer = test_tfr_writer
-        cur_json['images'].append(dict(id=next_image_id,
-                                  width=cur_image['width'],
-                                  height=cur_image['height'],
-                                  file_name=new_file_name))
-        cur_json['annotations'].append(dict(id=next_annotation_id,
-                                        image_id=next_image_id,
-                                        category_id=cur_json_cat_id))
+            cropped_img = np.array(Image.open(out_file))
+          
+        # Read the image
+        if INAT_OUTPUT_DIR:
+          # Add annotations to the appropriate json
+          if is_train:
+            cur_json = training_json
+            cur_tfr_writer = training_tfr_writer
+          else:
+            cur_json = test_json
+            cur_tfr_writer = test_tfr_writer
+          cur_json['images'].append(dict(id=next_image_id,
+                                    width=cropped_img.shape[1],
+                                    height=cropped_img.shape[0],
+                                    file_name=new_file_name))
+          cur_json['annotations'].append(dict(id=next_annotation_id,
+                                          image_id=next_image_id,
+                                          category_id=cur_json_cat_id))
 
         if TFRECORDS_OUTPUT_DIR:
           image_data = {}
           if INAT_OUTPUT_DIR:
             image_data['filename'] = out_file
           else:
-            if 'cropped_img' not in locals():
-              img = np.array(Image.open(in_file))
-              cropped_img = img[crop_box[0]:crop_box[2], crop_box[1]:crop_box[3]]
             Image.fromarray(cropped_img).save(TMP_IMAGE)
             image_data['filename'] = TMP_IMAGE
           image_data['id'] = next_image_id
@@ -362,8 +364,8 @@ with graph.as_default():
           image_data['class']['text'] = cur_cat_name
 
           # Propagate optional metadata to tfrecords
-          image_data['height'] = crop_box[2] - crop_box[0]
-          image_data['width'] = crop_box[3] - crop_box[1]
+          image_data['height'] = cropped_img.shape[0]
+          image_data['width'] = cropped_img.shape[1]
 
           cur_tfr_writer.add(image_data)
           if not INAT_OUTPUT_DIR:
