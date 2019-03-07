@@ -8,8 +8,8 @@ This repository contains a set of scripts for
 ## Preparing datasets
 The scripts need a dataset with image-level class annotations in Microsoft COCO format. We do not need or use bounding box annotations as the 
 purpose of the scripts is to locate the animals using a detector.
-Please refer to for http://cocodataset.org/#format-data for the specifications and to https://patrickwasp.com/create-your-own-coco-style-dataset/ 
-for a library, which should make the creation easier. 
+Please refer to for http://lila.science/faq#dataformats for the specifications and to https://patrickwasp.com/create-your-own-coco-style-dataset/ 
+for a library, which might make the creation easier. 
 
 You can check out the dataset at http://lila.science for examples. In addition to the standard format, we usually split the camera-trap datasets
 by locations, i.e. into training and testing locations. Hence it is advisable to have a field in your image annotation specifying the location 
