@@ -27,7 +27,11 @@ warnings.filterwarnings("ignore", "Metadata warning", UserWarning)
 baseDir = r'd:\wildlife_data\tigerblobs'
 outputJsonFilename = os.path.join(baseDir,'tigerblobs.json')
 outputCsvFilename = os.path.join(baseDir,'tigerblobs.csv')
+rawClassListFilename = os.path.join(baseDir,'tigerblobs_raw_classes.csv')
+classMappingsFilename = os.path.join(baseDir,'tigerblobs_class_mapping.csv')
 outputEncoding = 'utf-8'
+
+bLoadFileListIfAvailable = True
 
 info = {}
 info['year'] = 2019
@@ -46,67 +50,9 @@ fileInfo = []
 nonImages = []
 nFiles = 0
 
-print('Enumerating files from {} to {}'.format(baseDir,outputCsvFilename))
-
-with io.open(outputCsvFilename, "w", encoding=outputEncoding) as outputFileHandle:
+if bLoadFileListIfAvailable and os.path.isfile(outputCsvFilename):
     
-    for root, subdirs, files in os.walk(baseDir):
-    
-        for fname in files:
-      
-            nFiles = nFiles + 1
-            if maxFiles >= 0 and nFiles > maxFiles:            
-                print('Warning: early break at {} files'.format(maxFiles))
-                break
-            
-            fullPath = os.path.join(root,fname)            
-            relativePath = os.path.relpath(fullPath,baseDir)
-             
-            if maxFiles >= 0:
-                print(relativePath)
-        
-            h = -1
-            w = -1
-
-            # Read the image
-            try:
-            
-                im = Image.open(fullPath)
-                h = im.height
-                w = im.width
-                
-            except:
-                # Corrupt or not an image
-                nonImages.append(fullPath)
-                continue
-            
-            # Store file info
-            imageInfo = [relativePath, fullPath, w, h]
-            fileInfo.append(imageInfo)
-            
-            # Write to output file
-            outputFileHandle.write('"' + relativePath + '"' + ',' + 
-                                   '"' + fullPath + '"' + ',' + 
-                                   str(w) + ',' + str(h) + '\n')
-                                   
-        # ...if we didn't hit the max file limit, keep going
-        else:
-            continue
-        
-        break
-
-    # ...for each file
-
-# ...csv file output
-    
-print("Finished writing {} file names to {}".format(nFiles,outputCsvFilename))
-
-
-#%% Read from .csv if we're starting mid-script
-
-if False:
-    
-    #%%
+    print('Loading file list from {}'.format(outputCsvFilename))
     
     with open(outputCsvFilename,'r') as f:
         reader = csv.reader(f)
@@ -118,14 +64,75 @@ if False:
     
     fileInfo = csvInfo
     
+    print('Finished reading list of {} files'.format(len(fileInfo)))
     
-#%% Enumerate classes, add a class name to each row in the image table
+else:
+        
+    print('Enumerating files from {} to {}'.format(baseDir,outputCsvFilename))
+    
+    with io.open(outputCsvFilename, "w", encoding=outputEncoding) as outputFileHandle:
+        
+        for root, subdirs, files in os.walk(baseDir):
+        
+            for fname in files:
+          
+                nFiles = nFiles + 1
+                if maxFiles >= 0 and nFiles > maxFiles:            
+                    print('Warning: early break at {} files'.format(maxFiles))
+                    break
+                
+                fullPath = os.path.join(root,fname)            
+                relativePath = os.path.relpath(fullPath,baseDir)
+                 
+                if maxFiles >= 0:
+                    print(relativePath)
+            
+                h = -1
+                w = -1
+    
+                # Read the image
+                try:
+                
+                    im = Image.open(fullPath)
+                    h = im.height
+                    w = im.width
+                    
+                except:
+                    # Corrupt or not an image
+                    nonImages.append(fullPath)
+                    continue
+                
+                # Store file info
+                imageInfo = [relativePath, fullPath, w, h]
+                fileInfo.append(imageInfo)
+                
+                # Write to output file
+                outputFileHandle.write('"' + relativePath + '"' + ',' + 
+                                       '"' + fullPath + '"' + ',' + 
+                                       str(w) + ',' + str(h) + '\n')
+                                       
+            # ...if we didn't hit the max file limit, keep going
+            else:
+                continue
+            
+            break
+    
+        # ...for each file
+    
+    # ...csv file output
+        
+    print("Finished writing {} file names to {}".format(nFiles,outputCsvFilename))
+
+# ...if the file list is/isn't available
+    
+    
+#%% Enumerate classes
 
 # Maps classes to counts
 classList = {}
 
 for iRow,row in enumerate(fileInfo):
-    
+        
     fullPath = row[0]
     className = os.path.split(os.path.dirname(fullPath))[1]
     className = className.lower().strip()
@@ -134,6 +141,15 @@ for iRow,row in enumerate(fileInfo):
     else:
         classList[className] = 1
     row.append(className)
+
+classNames = list(classList.keys())
+
+# We like 'empty' to be class 0
+if 'empty' in classNames:
+    classNames.remove('empty')    
+classNames.insert(0,'empty')
+
+print('Finished enumerating classes')
 
 
 #%% Assemble dictionaries
@@ -144,11 +160,10 @@ categories = []
 
 categoryNameToId = {}
 idToCategory = {}
+imageIdToImage = {}
 
 nextId = 0
-classNames = list(classList.keys())
-classNames.insert(0,'empty')
-
+    
 for categoryName in classNames:
     
     catId = nextId
@@ -160,8 +175,7 @@ for categoryName in classNames:
     newCat['count'] = 0
     categories.append(newCat) 
     idToCategory[catId] = newCat
-    
-    
+            
 # ...for each category
     
     
@@ -183,6 +197,7 @@ for iRow,row in enumerate(fileInfo):
     im['height'] = h
     im['width'] = w
     images.append(im)
+    imageIdToImage[im['id']] = im
     
     ann = {}
     ann['id'] = str(uuid.uuid1())
@@ -195,7 +210,112 @@ for iRow,row in enumerate(fileInfo):
     
 # ...for each image
 
+oldNameToOldId = categoryNameToId
+originalCategories = categories
 
+print('Finished assembling dictionaries')
+
+
+#%% Write raw class table
+
+# cat = categories[0]
+if os.path.isfile(rawClassListFilename):
+    
+    print('Not over-writing raw class table')
+
+else:
+    
+    with io.open(rawClassListFilename, "w", encoding=outputEncoding) as classListFileHandle:
+        for cat in categories:
+            catId = cat['id']
+            categoryName = cat['name']
+            categoryCount = cat['count']
+            classListFileHandle.write(str(catId) + ',"' + categoryName + '",' + str(categoryCount) + '\n')
+    
+    print('Finished writing raw class table')
+
+
+#%% Read the mapped class table
+
+classMappings = {}
+
+if os.path.isfile(classMappingsFilename):
+
+    print('Loading file list from {}'.format(classMappingsFilename))
+        
+    with open(classMappingsFilename,'r') as f:
+        reader = csv.reader(f)
+        mappingInfo = list(list(item) for item in csv.reader(f, delimiter=','))
+    
+    for mapping in mappingInfo:
+        assert len(mapping) == 4
+        
+        # id, source, count, target
+        sourceClass = mapping[1]
+        targetClass = mapping[3]
+        assert sourceClass not in classMappings
+        classMappings[sourceClass] = targetClass
+    
+    print('Finished reading list of {} class mappings'.format(len(mappingInfo)))
+    
+    
+#%% Create new class list
+    
+categories = []
+categoryNameToId = {}
+oldIdToNewId = {}
+
+# Start at 1, explicitly assign 0 to "empty"
+nextCategoryId = 1
+for sourceClass in classMappings:
+    targetClass = classMappings[sourceClass]
+    
+    if targetClass not in categoryNameToId:
+        
+        if targetClass == 'empty':
+            categoryId = 0
+        else:
+            categoryId = nextCategoryId
+            nextCategoryId = nextCategoryId + 1
+            
+        categoryNameToId[targetClass] = categoryId
+        newCat = {}
+        newCat['id'] = categoryId
+        newCat['name'] = targetClass
+        newCat['count'] = 0
+        
+        if targetClass == 'empty':
+            categories.insert(0,newCat)
+        else:
+            categories.append(newCat)
+
+    else:
+        
+        categoryId = categoryNameToId[targetClass]
+    
+    # One-off issue with character encoding
+    if sourceClass == 'humanÃ¯â‚¬Â¨':
+        sourceClass = 'humanï€¨'
+        
+    assert sourceClass in oldNameToOldId
+    oldId = oldNameToOldId[sourceClass]
+    oldIdToNewId[oldId] = categoryId
+
+categoryIdToCat = {}
+for cat in categories:
+    categoryIdToCat[cat['id']] = cat
+    
+print('Mapped {} original classes to {} new classes'.format(len(mappingInfo),len(categories)))
+
+
+#%% Re-map annotations
+            
+# ann = annotations[0]            
+for ann in annotations:
+
+    ann['category_id'] = oldIdToNewId[ann['category_id']]
+    
+    
 #%% Write output .json
 
 data = {}
@@ -207,3 +327,39 @@ data['categories'] = categories
 json.dump(data, open(outputJsonFilename,'w'))    
 
 print('Finished writing json to {}'.format(outputJsonFilename))
+
+
+#%% Utilities
+
+if False:
+    
+    #%% 
+    # Find images with a particular tag
+    className = 'hum'
+    matches = []
+    assert className in categoryNameToId
+    catId = categoryNameToId[className]
+    for ann in annotations:
+        if ann['category_id'] == catId:
+            imageId = ann['image_id']
+            im = imageIdToImage[imageId]
+            matches.append(im['file_name'])
+    print('Found {} matches'.format(len(matches)))
+    
+    os.startfile(os.path.join(baseDir,matches[0]))
+    
+    
+    #%% Randomly sample annotations
+    
+    import random
+    nAnnotations = len(annotations)
+    iAnn = random.randint(0,nAnnotations)
+    ann = annotations[iAnn]
+    catId = ann['category_id']
+    imageId = ann['image_id']
+    im = imageIdToImage[imageId]
+    fn = os.path.join(baseDir,im['file_name'])
+    cat = categoryIdToCat[catId]
+    className = cat['name']
+    print('This should be a {}'.format(className))
+    os.startfile(fn)
