@@ -24,11 +24,11 @@ warnings.filterwarnings("ignore", "Metadata warning", UserWarning)
 
 
 # Filenames will be stored in the output .json relative to this base dir
-baseDir = r'd:\wildlife_data\tigerblobs'
-outputJsonFilename = os.path.join(baseDir,'tigerblobs.json')
-outputCsvFilename = os.path.join(baseDir,'tigerblobs.csv')
-rawClassListFilename = os.path.join(baseDir,'tigerblobs_raw_classes.csv')
-classMappingsFilename = os.path.join(baseDir,'tigerblobs_class_mapping.csv')
+baseDir = r'd:\wildlife_data\animalblobs'
+outputJsonFilename = os.path.join(baseDir,'animalblobs.json')
+outputCsvFilename = os.path.join(baseDir,'animalblobs.csv')
+rawClassListFilename = os.path.join(baseDir,'animalblobs_raw_classes.csv')
+classMappingsFilename = os.path.join(baseDir,'animalblobs_class_mapping.csv')
 outputEncoding = 'utf-8'
 
 bLoadFileListIfAvailable = True
