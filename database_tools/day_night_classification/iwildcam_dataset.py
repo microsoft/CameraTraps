@@ -1,6 +1,6 @@
 ################
 #
-# inat_dataset.py
+# iwildcam_dataset.py
 #
 # Loader for the iWildCam detection data set.
 #
@@ -198,8 +198,7 @@ class IWildCamBboxDataset:
         Returns:
             tuple of an image in CHW format, bounding boxes in 
             ('ymin', 'xmin', 'ymax', 'xmax')  format, label as int32
-            starting from 0 and difficult_flag, which is always 0 in 
-            iNat 
+            starting from 0 and difficult_flag, which is usually zero.
         """
 
         img_file = os.path.join(self.root, self.impaths[i])
