@@ -1,6 +1,6 @@
 # Overview
 
-This folder started from the visipedia tfrecords repo, but has changed significantly.  The following files are inherited:
+This folder started from the [Visipedia tfrecords repo](https://github.com/visipedia/tfrecords), but has changed significantly.  The following files are inherited:
 
 * `create_tfrecords.py` (was significant adapted, but generally corresponds to create_tfrecords.py in the original repo)
 * `iterate_tfrecords.py` (changed slightly from the original repo)
