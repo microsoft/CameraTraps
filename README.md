@@ -9,6 +9,8 @@ This repo contains the tools for training, running, and evaluating detectors and
 - Miscellaneous useful tools for manipulating camera trap data
 - Research experiments we're doing around camera trap data (i.e., some directories are highly experimental and you should take them with a grain of salt)
 
+Classifiers and detectors are trained using TensorFlow.
+
 This repo is maintained by folks in the [Microsoft AI for Earth](http://aka.ms/aiforearth) program who like looking at pictures of animals.  I mean, we want to use machine learning to support conservation too, but we also really like looking at pictures of animals.
 
 
@@ -36,19 +38,19 @@ For questions about this repo, contact [cameratraps@microsoft.com](mailto:camera
 
 This repo is organized into the following folders...
 
-## annotations
-
-Code for creating new annotation tasks and converting annotations to COCO-CameraTraps format.
-
 
 ## classification
 
 Code for training species classifiers on new data sets, generally trained on crops generated via an existing detector.
 
 
-## database_tools
+## data_management
 
-Code for creating, visualizing stats, or editing COCO-CameraTraps style json databases.
+Code for:
+
+- Converting frequently-used metadata formats to COCO Camera Traps
+- Creating, visualizing, and  editing COCO Camera Traps .json databases
+- Generating tfrecords
 
 ## demo
 
@@ -69,10 +71,6 @@ Ongoing research projects that use this repository in one way or another; as of 
 
 Random things that don't fit in any other directory.  Currently contains a single file, a not-super-useful but super-duper-satisfying and mostly-successful attempt to use OCR to pull metadata out of image pixels in a fairly generic way, to handle those pesky cases when image metadata is lost.
 
-
-## tfrecords
-
-Code for creating or reading from tfrecord files, based on https://github.com/visipedia/tfrecords .
 
 # Gratuitous pretty camera trap picture
 
