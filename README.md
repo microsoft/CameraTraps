@@ -78,7 +78,7 @@ Code for creating or reading from tfrecord files, based on https://github.com/vi
 
 ![alt text](http://lila.science/wp-content/uploads/2018/10/IMG_1881_web.jpg "Bird flying above water")
 
-
+Image credit USDA, from the [NACTI](http://lila.science/datasets/nacti) data set.
 
 # Contributing
 
