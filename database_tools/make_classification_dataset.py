@@ -51,6 +51,11 @@ parser.add_argument('--inat_style_output', type=str, default=None,
                     help='Output directory for a dataset in iNaturalist competition format.')
 parser.add_argument('--tfrecords_output', type=str, default=None,
                     help='Output directory for a dataset in TFRecords format.')
+parser.add_argument('--location_key', type=str, default='location', metavar='location',
+                    help='Key in the image-level annotations that specifies the splitting criteria. ' + \
+                    'Usually we split camera-trap datasets by locations, i.e. training and testing locations. ' + \
+                    'In this case, you probably wnat to pass something like `--split_by location`. ' + \
+                    'The script prints the annotation of a randomly selected image which you can use for reference.')
 
 parser.add_argument('--exclude_categories', type=str, nargs='+', default=[],
                     help='Categories to ignore. We will not run detection on images of that categorie and will ' + \
@@ -91,6 +96,7 @@ DETECTION_INPUT = args.use_detection_file
 if DETECTION_INPUT:
   assert os.path.exists(DETECTION_INPUT), DETECTION_INPUT + ' does not exist'
 
+SPLIT_BY = args.location_key
 EXCLUDED_CATEGORIES = args.exclude_categories
 
 # Padding around the detected objects when cropping
@@ -154,8 +160,12 @@ test_json['categories'] = training_json['categories']
 
 # Split the dataset by locations
 random.seed(0)
-locations = set([ann['location'] for ann in coco.imgs.values()])
-test_locations = sorted(random.sample(locations, int(TEST_FRACTION * len(locations))))
+print('Example of the annotation of a single image:')
+print(list(coco.imgs.items())[0])
+print('The corresponding category annoation:')
+print(coco.imgToAnns[list(coco.imgs.items())[0][0]])
+locations = set([ann[SPLIT_BY] for ann in coco.imgs.values()])
+test_locations = sorted(random.sample(locations, max(1, int(TEST_FRACTION * len(locations)))))
 training_locations = sorted(list(set(locations) - set(test_locations)))
 print('{} locations in total, {} will be used for training, {} for testing'.format(len(locations), 
                                                                                    len(training_locations),
@@ -192,8 +202,12 @@ class TFRecordsWriter(object):
   def close(self):
     self.writer.close()
 
-training_tfr_writer = TFRecordsWriter(os.path.join(TFRECORDS_OUTPUT_DIR, 'train-%.5d'), IMS_PER_RECORD)
-test_tfr_writer = TFRecordsWriter(os.path.join(TFRECORDS_OUTPUT_DIR, 'test-%.5d'), IMS_PER_RECORD)
+if TFRECORDS_OUTPUT_DIR:
+  training_tfr_writer = TFRecordsWriter(os.path.join(TFRECORDS_OUTPUT_DIR, 'train-%.5d'), IMS_PER_RECORD)
+  test_tfr_writer = TFRecordsWriter(os.path.join(TFRECORDS_OUTPUT_DIR, 'test-%.5d'), IMS_PER_RECORD)
+else:
+  training_tfr_writer = None
+  test_tfr_writer = None
 
 # The detection part
 images_missing = False
@@ -231,7 +245,7 @@ with graph.as_default():
     # For all images listed in the annotations file
     next_image_id = 0
     next_annotation_id = 0
-    for cur_image_id in tqdm.tqdm([vv['id'] for vv in coco.imgs.values()]):
+    for cur_image_id in tqdm.tqdm(list(sorted([vv['id'] for vv in coco.imgs.values()]))):
       cur_image = coco.loadImgs([cur_image_id])[0]
       cur_file_name = cur_image['file_name']
       # Path to the input image
@@ -243,7 +257,7 @@ with graph.as_default():
       # The remapped category ID for our json file
       cur_json_cat_id = cat_id_to_new_id[cur_cat_id]
       # Whether it belongs to a training or testing location
-      is_train = cur_image['location'] in training_locations
+      is_train = cur_image[SPLIT_BY] in training_locations
       # The file path as it will appear in the annotation json
       new_file_name = os.path.join(cur_cat_name, cur_file_name)
       if INAT_OUTPUT_DIR:
@@ -307,26 +321,34 @@ with graph.as_default():
       if selected_boxes.shape[0] == 1:
         # Crop the image to the padded box and save it
         bbox, crop_box = selected_boxes[0], crop_boxes[0]
-        # Read the image
-        img = np.array(Image.open(in_file))
-        cropped_img = img[crop_box[0]:crop_box[2], crop_box[1]:crop_box[3]]
-        if INAT_OUTPUT_DIR and not os.path.exists(out_file):
-          Image.fromarray(cropped_img).save(out_file)
-
-        # Add annotations to the appropriate json
-        if is_train:
-          cur_json = training_json
-          cur_tfr_writer = training_tfr_writer
+        if not os.path.exists(out_file):
+          try:
+            img = np.array(Image.open(in_file))
+            cropped_img = img[crop_box[0]:crop_box[2], crop_box[1]:crop_box[3]]
+            Image.fromarray(cropped_img).save(out_file)
+          except ValueError:
+            continue
+          except FileNotFoundError:
+            continue
         else:
-          cur_json = test_json
-          cur_tfr_writer = test_tfr_writer
-        cur_json['images'].append(dict(id=next_image_id,
-                                  width=cur_image['width'],
-                                  height=cur_image['height'],
-                                  file_name=new_file_name))
-        cur_json['annotations'].append(dict(id=next_annotation_id,
-                                        image_id=next_image_id,
-                                        category_id=cur_json_cat_id))
+            cropped_img = np.array(Image.open(out_file))
+          
+        # Read the image
+        if INAT_OUTPUT_DIR:
+          # Add annotations to the appropriate json
+          if is_train:
+            cur_json = training_json
+            cur_tfr_writer = training_tfr_writer
+          else:
+            cur_json = test_json
+            cur_tfr_writer = test_tfr_writer
+          cur_json['images'].append(dict(id=next_image_id,
+                                    width=cropped_img.shape[1],
+                                    height=cropped_img.shape[0],
+                                    file_name=new_file_name))
+          cur_json['annotations'].append(dict(id=next_annotation_id,
+                                          image_id=next_image_id,
+                                          category_id=cur_json_cat_id))
 
         if TFRECORDS_OUTPUT_DIR:
           image_data = {}
@@ -342,8 +364,8 @@ with graph.as_default():
           image_data['class']['text'] = cur_cat_name
 
           # Propagate optional metadata to tfrecords
-          image_data['height'] = cur_image['height']
-          image_data['width'] = cur_image['width']
+          image_data['height'] = cropped_img.shape[0]
+          image_data['width'] = cropped_img.shape[1]
 
           cur_tfr_writer.add(image_data)
           if not INAT_OUTPUT_DIR:
