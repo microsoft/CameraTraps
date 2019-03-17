@@ -1,20 +1,21 @@
-# Contributing
+# Overview
 
-This project welcomes contributions and suggestions.  Most contributions require you to agree to a
-Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
-the rights to use your contribution. For details, visit https://cla.microsoft.com.
+This repo contains the tools for training, running, and evaluating detectors and classifiers for images collected from motion-triggered camera traps.  The core functionality provided is:
 
-When you submit a pull request, a CLA-bot will automatically determine whether you need to provide
-a CLA and decorate the PR appropriately (e.g., label, comment). Simply follow the instructions
-provided by the bot. You will only need to do this once across all repos using our CLA.
+- Data parsing from frequently-used camera trap metadata formats into a common format
+- Training and evaluation of detectors, particularly our "megadetector", which does a pretty good job finding terrestrial animals in a variety of ecosystems
+- Training and evaluation of species-level classifiers for specific data sets
+- A Web-based demo that runs our models via a REST API that hosts them on a Web endpoint
+- Miscellaneous useful tools for manipulating camera trap data
+- Research experiments we're doing around camera trap data (i.e., some directories are highly experimental and you should take them with a grain of salt)
 
-This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/).
-For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or
-contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
 
 # Data
 
-This repo does not directly host camera trap data, but we work with our collaborators to make data and annotations available whenever possible at http://lila.science .
+This repo does not directly host camera trap data, but we work with our collaborators to make data and annotations available whenever possible on [lila.science](http://lila.science).
+
+
+# Contact
 
 
 # Contents
@@ -151,4 +152,18 @@ Evaluation scripts provided include evaluating at object, image, and sequence le
 
 
 
+
+# Contributing
+
+This project welcomes contributions and suggestions.  Most contributions require you to agree to a
+Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
+the rights to use your contribution. For details, visit https://cla.microsoft.com.
+
+When you submit a pull request, a CLA-bot will automatically determine whether you need to provide
+a CLA and decorate the PR appropriately (e.g., label, comment). Simply follow the instructions
+provided by the bot. You will only need to do this once across all repos using our CLA.
+
+This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/).
+For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or
+contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
 
