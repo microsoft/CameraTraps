@@ -1,5 +1,5 @@
 # Batch file for applying an object detection graph to a COCO style dataset,
-# cropping images to the detected animals inside and creating a iNat
+# cropping images to the detected animals inside and creating a COCO-
 # style classification dataset out of it. It also saves the detections 
 # to a file using pickle
 
@@ -47,14 +47,14 @@ parser.add_argument('frozen_graph', type=str, default='frozen_inference_graph.pb
 #parser.add_argument('detections_output', type=str, default='detections_final.pkl',
 #                    help='Pickle file with the detections, which can be used for cropping later on.')
 
-parser.add_argument('--inat_style_output', type=str, default=None,
-                    help='Output directory for a dataset in iNaturalist competition format.')
+parser.add_argument('-coco_style_output', type=str, default=None,
+                    help='Output directory for a dataset in COCO format.')
 parser.add_argument('--tfrecords_output', type=str, default=None,
                     help='Output directory for a dataset in TFRecords format.')
 parser.add_argument('--location_key', type=str, default='location', metavar='location',
                     help='Key in the image-level annotations that specifies the splitting criteria. ' + \
                     'Usually we split camera-trap datasets by locations, i.e. training and testing locations. ' + \
-                    'In this case, you probably wnat to pass something like `--split_by location`. ' + \
+                    'In this case, you probably want to pass something like `--split_by location`. ' + \
                     'The script prints the annotation of a randomly selected image which you can use for reference.')
 
 parser.add_argument('--exclude_categories', type=str, nargs='+', default=[],
@@ -84,11 +84,11 @@ IMAGE_DIR = args.image_dir
 assert os.path.exists(IMAGE_DIR), IMAGE_DIR + ' does not exist'
 # /ai4edevfs/models/object_detection/faster_rcnn_inception_resnet_v2_atrous/megadetector/frozen_inference_graph.pb
 PATH_TO_FROZEN_GRAPH = args.frozen_graph
-INAT_OUTPUT_DIR = args.inat_style_output
+COCO_OUTPUT_DIR = args.coco_style_output
 TFRECORDS_OUTPUT_DIR = args.tfrecords_output
-assert INAT_OUTPUT_DIR or TFRECORDS_OUTPUT_DIR, 'Please provide either --inat_style_output or --tfrecords_output'
-if INAT_OUTPUT_DIR:
-  DETECTION_OUTPUT = os.path.join(INAT_OUTPUT_DIR, 'detections_final.pkl')
+assert COCO_OUTPUT_DIR or TFRECORDS_OUTPUT_DIR, 'Please provide either --coco_style_output or --tfrecords_output'
+if COCO_OUTPUT_DIR:
+  DETECTION_OUTPUT = os.path.join(COCO_OUTPUT_DIR, 'detections_final.pkl')
 else:
   DETECTION_OUTPUT = os.path.join(TFRECORDS_OUTPUT_DIR, 'detections_final.pkl')
 
@@ -116,9 +116,9 @@ assert IMS_PER_RECORD > 0, 'The number of images per shard should be greater tha
 TMP_IMAGE = str(uuid.uuid4()) + '.jpg'
 
 # Create output directories
-if INAT_OUTPUT_DIR and not os.path.exists(INAT_OUTPUT_DIR):
-  print('Creating iNat style dataset output directory.')
-  os.makedirs(INAT_OUTPUT_DIR)
+if COCO_OUTPUT_DIR and not os.path.exists(COCO_OUTPUT_DIR):
+  print('Creating COCO-style dataset output directory.')
+  os.makedirs(COCO_OUTPUT_DIR)
 if TFRECORDS_OUTPUT_DIR and not os.path.exists(TFRECORDS_OUTPUT_DIR):
   print('Creating TFRecords output directory.')
   os.makedirs(TFRECORDS_OUTPUT_DIR)
@@ -148,7 +148,7 @@ for ignore_cat in EXCLUDED_CATEGORIES:
   assert ignore_cat in cat_id_to_names.values(), 'Category %s does not exist in the dataset'%ignore_cat
 
 
-# Prepare the iNat style json files
+# Prepare the coco-style json files
 training_json = dict(images=[], categories=[], annotations=[])
 test_json = dict(images=[], categories=[], annotations=[])
 
@@ -260,10 +260,10 @@ with graph.as_default():
       is_train = cur_image[SPLIT_BY] in training_locations
       # The file path as it will appear in the annotation json
       new_file_name = os.path.join(cur_cat_name, cur_file_name)
-      if INAT_OUTPUT_DIR:
+      if COCO_OUTPUT_DIR:
         # The absolute file path where we will store the image
-        # Only used if an iNat style dataset is created
-        out_file = os.path.join(INAT_OUTPUT_DIR, new_file_name)
+        # Only used if an coco-style dataset is created
+        out_file = os.path.join(COCO_OUTPUT_DIR, new_file_name)
         # Create the category directories if necessary
         os.makedirs(os.path.dirname(out_file), exist_ok=True)
 
@@ -334,7 +334,7 @@ with graph.as_default():
             cropped_img = np.array(Image.open(out_file))
           
         # Read the image
-        if INAT_OUTPUT_DIR:
+        if COCO_OUTPUT_DIR:
           # Add annotations to the appropriate json
           if is_train:
             cur_json = training_json
@@ -352,7 +352,7 @@ with graph.as_default():
 
         if TFRECORDS_OUTPUT_DIR:
           image_data = {}
-          if INAT_OUTPUT_DIR:
+          if COCO_OUTPUT_DIR:
             image_data['filename'] = out_file
           else:
             Image.fromarray(cropped_img).save(TMP_IMAGE)
@@ -368,7 +368,7 @@ with graph.as_default():
           image_data['width'] = cropped_img.shape[1]
 
           cur_tfr_writer.add(image_data)
-          if not INAT_OUTPUT_DIR:
+          if not COCO_OUTPUT_DIR:
             os.remove(TMP_IMAGE)
 
         next_annotation_id = next_annotation_id + 1
@@ -385,11 +385,11 @@ if TFRECORDS_OUTPUT_DIR:
   with open(os.path.join(TFRECORDS_OUTPUT_DIR, 'label_map.pbtxt'), 'w') as f:
       f.write(''.join(label_map))
 
-if INAT_OUTPUT_DIR:
-  # Write out iNat style json files to the output directory
-  with open(os.path.join(INAT_OUTPUT_DIR, 'train.json'), 'wt') as fi:
+if COCO_OUTPUT_DIR:
+  # Write out COCO-style json files to the output directory
+  with open(os.path.join(COCO_OUTPUT_DIR, 'train.json'), 'wt') as fi:
     json.dump(training_json, fi)
-  with open(os.path.join(INAT_OUTPUT_DIR, 'test.json'), 'wt') as fi:
+  with open(os.path.join(COCO_OUTPUT_DIR, 'test.json'), 'wt') as fi:
     json.dump(test_json, fi)
 
 # Write detections to file with pickle
