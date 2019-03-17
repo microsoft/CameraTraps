@@ -74,6 +74,11 @@ Random things that don't fit in any other directory.  Currently contains a singl
 
 Code for creating or reading from tfrecord files, based on https://github.com/visipedia/tfrecords .
 
+# Gratuitous pretty camera trap picture
+
+![alt text](http://lila.science/wp-content/uploads/2018/10/IMG_1881_web.jpg "Bird flying above water")
+
+
 
 # Contributing
 
