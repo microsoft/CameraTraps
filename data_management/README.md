@@ -40,6 +40,7 @@ annotation{
   "id" : str,
   "image_id" : str,
   "category_id" : int,
+  # These are in absolute, floating-point coordinates, with the origin at the upper-left
   "bbox": [x,y,width,height]
 }
 ```
