@@ -13,6 +13,13 @@
 import csv
 import os
 import json
+# from tqdm import tqdm_notebook as tqdm
+from tqdm import tqdm
+from joblib import Parallel, delayed
+# from multiprocessing import Pool
+# from multiprocessing.pool import ThreadPool
+# import multiprocessing
+# import joblib
 
 inputCsvFilename = r'D:\temp\WIItigers_20190308_all_output.csv'
 imageBase = r'D:\wildlife_data\tigerblobs'
@@ -22,7 +29,10 @@ headers = ['image_path','max_confidence','detections']
 confidenceThreshold = 0.8
 iouThreshold = 0.95
 
+# Set to zero to disable parallelism
+nWorkers = 8 # joblib.cpu_count()
 
+    
 #%% Helper functions
 
 imageExtensions = ['.jpg','.jpeg','.gif','.png']
@@ -147,15 +157,19 @@ for row in allRows:
 print('Finished separating {} files into {} directories'.format(len(allRows),len(rowsByDirectory)))
 
 
-#%% Look for matches
+#%% Look for matches (one directory)
 
-# For each directory
-# dirName = (list(rowsByDirectory.keys()))[0]
-for dirName in rowsByDirectory:
-    
-    #%%
+pbar = None
 
+def findMatchesInDirectory(dirName):
+
+    if pbar is not None:
+        pbar.update()
+        
+    # A list of all unique-ish bounding boxes 
     candidateDetections = []
+    
+    # For each bounding box, a list of image/index pairs where we saw this bounding box
     candidateDetectionOccurrenceIndices = []
     
     rows = rowsByDirectory[dirName]
@@ -189,8 +203,6 @@ for dirName in rowsByDirectory:
                     
                     if iou >= iouThreshold:                                        
                         
-                        assert not bFoundSimilarDetection
-                        
                         bFoundSimilarDetection = True
                         
                         # If so, add this example to the list for this detection
@@ -202,9 +214,62 @@ for dirName in rowsByDirectory:
                     
                     candidateDetections.append(detection)
                     candidateDetectionOccurrenceIndices.append([[iRow,iDetection]])
-                
+
+    return candidateDetections,candidateDetectionOccurrenceIndices
+
+
+#%% Look for matches
+
+# For each directory
+# dirName = (list(rowsByDirectory.keys()))[0]
+
+dirsToSearch = rowsByDirectory
+# dirsToSearch = list(rowsByDirectory.keys())[0:100]
+    
+allCandidateDetections = [None] * len(dirsToSearch)
+allOccurrenceIndices = [None] * len(dirsToSearch)
+
+if nWorkers == 0:
+        
+    for iDir,dirName in enumerate(tqdm(dirsToSearch)):
+        
+        candidateDetections,candidateDetectionOccurrenceIndices = findMatchesInDirectory(dirName)
+        allCandidateDetections[iDir] = candidateDetections
+        allOccurrenceIndices[iDir] = candidateDetectionOccurrenceIndices
+
+else:
+
+    pbar = tqdm(total=len(dirsToSearch))
+    allResults = Parallel(n_jobs=nWorkers,prefer='threads')(delayed(findMatchesInDirectory)(dirName) for dirName in tqdm(dirsToSearch))
+
+    for iResult,result in enumerate(allResults):
+        allCandidateDetections[iResult] = result[0]
+        allOccurrenceIndices[iResult] = result[1]
+        
 print('Finished looking for similar bounding boxes')    
     
+
+#%% Find problematic locations
+
+# For each directory
+
+occurrenceThreshold = 5
+
+# iDir = 0
+for iDir in range(len(dirsToSearch)):
+    
+    candidateDetectionOccurrenceIndices = allOccurrenceIndices[iDir]
+    
+    for iCandidate,occurenceList in enumerate(candidateDetectionOccurrenceIndices):
+        
+        # occurrenceList is a list of file/detection pairs
+        nOccurrences = len(occurenceList)
+        
+        if nOccurrences < occurrenceThreshold:
+            continue
+        
+        asfd
+                
 
 #%% Render problematic locations
     
