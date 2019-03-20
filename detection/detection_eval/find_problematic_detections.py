@@ -16,6 +16,16 @@ import json
 # from tqdm import tqdm_notebook as tqdm
 from tqdm import tqdm
 from joblib import Parallel, delayed
+
+# from ai4eutils; this is assumed to be on the path, as per repo convention
+import write_html_image_list
+
+# For bounding-box rendering functions
+# 
+# Definitely a heaviweight import just for this; some refactoring
+# is likely necessary here.
+from detection.run_tf_detector import render_bounding_boxes
+
 # from multiprocessing import Pool
 # from multiprocessing.pool import ThreadPool
 # import multiprocessing
@@ -290,6 +300,24 @@ print('Finished searching for problematic detections, found {} unique detections
 
 
 #%% Render problematic locations
+"""    
+def render_bounding_boxes(boxes, scores, classes, inputFileNames, outputFileNames=[],
+                          confidenceThreshold=0.9):
+"""    
+    """
+    Render bounding boxes on the image files specified in [inputFileNames].  
     
+    [boxes] and [scores] should be in the format returned by generate_detections, 
+    specifically [top, left, bottom, right] in normalized units, where the
+    origin is the upper-left.
+    """
+
+#%% Write html for those images
+    
+# def write_html_image_list(filename=None,imageFilenames=None,titles=(),options={}):
+options = write_html_image_list.write_html_image_list()
+options['imageStyle'] = 'max-width:700px;'
+write_html_image_list.write_html_image_list(OUTPUT_HTML_TEST_FILE, imageFilenames, titles, options)
+os.startfile(OUTPUT_HTML_TEST_FILE)
 
 #%% Write output
