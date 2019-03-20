@@ -122,8 +122,11 @@ def generate_detections(detection_graph,images):
 def render_bounding_boxes(boxes, scores, classes, inputFileNames, outputFileNames=[],
                           confidenceThreshold=0.9):
     """
-    Render bounding boxes on the image files specified in [inputFileNames].  [boxes] and [scores] should be in the format
-    returned by generate_detections.
+    Render bounding boxes on the image files specified in [inputFileNames].  
+    
+    [boxes] and [scores] should be in the format returned by generate_detections, 
+    specifically [top, left, bottom, right] in normalized units, where the
+    origin is the upper-left.
     """
 
     nImages = len(inputFileNames)
