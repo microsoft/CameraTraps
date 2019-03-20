@@ -249,15 +249,24 @@ else:
 print('Finished looking for similar bounding boxes')    
     
 
-#%% Find problematic locations
+#%% Find potentially-problematic locations
 
 # For each directory
 
-occurrenceThreshold = 5
+occurrenceThreshold = 10
+
+allProblematicDetections = []
+
+nImagesWithSuspiciousDetections = 0
+nSuspiciousDetections = 0
 
 # iDir = 0
 for iDir in range(len(dirsToSearch)):
+
+    problematicDetectionsThisDir = []    
     
+    # Each element is a unique-ish detection, represented as a list of 
+    # image/index pairs where we saw that detection
     candidateDetectionOccurrenceIndices = allOccurrenceIndices[iDir]
     
     for iCandidate,occurenceList in enumerate(candidateDetectionOccurrenceIndices):
@@ -268,8 +277,17 @@ for iDir in range(len(dirsToSearch)):
         if nOccurrences < occurrenceThreshold:
             continue
         
-        asfd
+        nImagesWithSuspiciousDetections += nOccurrences
+        nSuspiciousDetections += 1
+        
+        problematicDetectionsThisDir.append(candidateDetectionOccurrenceIndices)
+        # Find the images corresponding to this bounding box, render boxes
                 
+    allProblematicDetections.append(problematicDetectionsThisDir)
+
+print('Finished searching for problematic detections, found {} unique detections on {} images that are suspicious'.format(
+        nSuspiciousDetections,nImagesWithSuspiciousDetections))    
+
 
 #%% Render problematic locations
     
