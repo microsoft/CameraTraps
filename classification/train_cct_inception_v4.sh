@@ -26,12 +26,12 @@ python train_image_classifier.py \
 
 # Run evaluation.
 python eval_image_classifier.py \
-    --eval_dir=${TRAIN_DIR} \
+    --eval_dir=${TRAIN_DIR}/init \
     --dataset_dir=${DATASET_DIR} \
     --dataset_name=cct \
     --dataset_split_name=test \
     --model_name=${MODEL_NAME} \
-    --checkpoint_path=${TRAIN_DIR}
+    --checkpoint_path=${TRAIN_DIR}/init
 
 python train_image_classifier.py \
     --train_dir=${TRAIN_DIR}/all \
