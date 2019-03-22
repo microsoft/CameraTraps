@@ -33,14 +33,14 @@ from detection.run_tf_detector import render_bounding_box
 # import multiprocessing
 # import joblib
 
-inputCsvFilename = r'D:\temp\WIItigers_20190308_all_output.csv'
-imageBase = r'D:\wildlife_data\tigerblobs'
+inputCsvFilename = r'D:\temp\tigers_20190308_all_output.csv'
+imageBase = r'd:\wildlife_data\tigerblobs'
 outputBase = r'd:\temp\suspiciousDetections'
 
 headers = ['image_path','max_confidence','detections']
 
 # Don't consider detections with confidence lower than this as suspicious
-confidenceThreshold = 0.8
+confidenceThreshold = 0.85
 
 # What's the IOU threshold for considering two boxes the same?
 iouThreshold = 0.925
@@ -52,9 +52,10 @@ occurrenceThreshold = 10
 # Set to zero to disable parallelism
 nWorkers = 10 # joblib.cpu_count()
 
-debugMaxDir = -1 # 100
+debugMaxDir = -1
 debugMaxRenderDir = -1
-debugMaxDetection = -1 # 2
+debugMaxDetection = -1
+debugMaxInstance = -1
 bParallelizeComparisons = True
 bParallelizeRendering = True    
 
@@ -67,10 +68,11 @@ warnings.filterwarnings("ignore", "Metadata warning", UserWarning)
 #%% Helper functions
 
 def prettyPrintObject(obj,bPrint=True):
-    
+    '''
+    Prints an arbitrary object as .json
+    '''    
     # _ = prettyPrintObject(obj)
-        
-        
+                
     # Sloppy that I'm making a module-wide change here...
     jsonpickle.set_encoder_options('json', sort_keys=True, indent=4)
     a = jsonpickle.encode(candidateLocation)
@@ -83,18 +85,23 @@ def prettyPrintObject(obj,bPrint=True):
 imageExtensions = ['.jpg','.jpeg','.gif','.png']
     
 def isImageFile(s):
-    
+    '''
+    Check a file's extension against a hard-coded set of image file extensions    '
+    '''
     ext = os.path.splitext(s)[1]
     return ext.lower() in imageExtensions
     
     
 def findImageStrings(strings):
-    
+    '''
+    Given a list of strings that are potentially image file names, look for strings
+    that actually look like image file names (based on extension).
+    '''
     imageStrings = []
     bIsImage = [False] * len(strings)
     for iString,f in enumerate(strings):
         bIsImage[iString] = isImageFile(f)
-        if bIsImage[iString]:            
+        if bIsImage[iString]:
             continue
         else:
             imageStrings.append(f)
@@ -102,7 +109,9 @@ def findImageStrings(strings):
 
     
 def findImages(dirName):
-    
+    '''
+    Find all files in a directory that look like image file names
+    '''
     strings = os.listdir(dirName)
     return findImageStrings(strings)
     
@@ -308,8 +317,7 @@ allCandidateDetections = [None] * len(dirsToSearch)
 if bParallelizeComparisons:
         
     pbar = None
-    for iDir,dirName in enumerate(tqdm(dirsToSearch)):
-        
+    for iDir,dirName in enumerate(tqdm(dirsToSearch)):        
         allCandidateDetections[iDir] = findMatchesInDirectory(dirName)
          
 else:
@@ -320,15 +328,15 @@ else:
 print('Finished looking for similar bounding boxes')    
     
 
-#%% Find potentially-problematic locations
-
-# For each directory
+#%% Find suspicious locations based on match results
 
 suspiciousDetections = [None] * len(dirsToSearch)
 
 nImagesWithSuspiciousDetections = 0
 nSuspiciousDetections = 0
 
+# For each directory
+#
 # iDir = 51
 for iDir in range(len(dirsToSearch)):
 
@@ -416,6 +424,10 @@ def renderImagesForDirectory(iDir):
         # iInstance = 0; instance = detection.instances[iInstance]
         for iInstance,instance in enumerate(detection.instances):
             
+            if debugMaxInstance > 9 and iInstance > debugMaxInstance:
+                print('WARNING: DEBUG BREAK AFTER RENDERING {} INSTANCES'.format(debugMaxInstance))
+                break
+            
             imageRelativeFilename = 'image{:0>4d}.jpg'.format(iInstance)
             imageOutputFilename = os.path.join(detectionBaseDir,
                                                imageRelativeFilename)
@@ -476,7 +488,7 @@ if bParallelizeRendering:
     
 else:
 
-    pbar = None    
+    pbar = None
     
     # For each directory
     # iDir = 51
