@@ -23,8 +23,7 @@ import humanfriendly
 import time
 import matplotlib
 import glob
-# matplotlib.use('TkAgg')
-matplotlib.use('Agg')
+matplotlib.use('TkAgg')
 
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
