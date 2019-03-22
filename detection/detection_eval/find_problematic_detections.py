@@ -13,11 +13,11 @@
 import csv
 import os
 import json
-# from tqdm import tqdm_notebook as tqdm
+import jsonpickle
+import warnings
+import matplotlib.pyplot as plt
 from tqdm import tqdm
 from joblib import Parallel, delayed
-import jsonpickle
-import matplotlib.pyplot as plt
                         
 # from ai4eutils; this is assumed to be on the path, as per repo convention
 import write_html_image_list
@@ -52,13 +52,18 @@ occurrenceThreshold = 10
 # Set to zero to disable parallelism
 nWorkers = 10 # joblib.cpu_count()
 
-debugMaxDir = -1
+debugMaxDir = -1 # 100
 debugMaxRenderDir = -1
-debugMaxDetection = -1
+debugMaxDetection = -1 # 2
 bParallelizeComparisons = True
 bParallelizeRendering = True    
 
+# ignoring all "PIL cannot read EXIF metainfo for the images" warnings
+warnings.filterwarnings("ignore", "(Possibly )?corrupt EXIF data", UserWarning)
+# Metadata Warning, tag 256 had too many entries: 42, expected 1
+warnings.filterwarnings("ignore", "Metadata warning", UserWarning)
     
+
 #%% Helper functions
 
 def prettyPrintObject(obj,bPrint=True):
@@ -474,6 +479,7 @@ else:
     pbar = None    
     
     # For each directory
+    # iDir = 51
     for iDir in range(nDirs):
                 
         # Add this directory to the master list of html files
