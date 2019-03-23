@@ -35,6 +35,7 @@ from detection.run_tf_detector import render_bounding_box
 # import joblib
 
 inputCsvFilename = r'D:\temp\tigers_20190308_all_output.csv'
+imageInfoFile = r'd:\wildlife_data\tigerblobs\tigerblobs.json'
 imageBase = r'd:\wildlife_data\tigerblobs'
 outputBase = r'd:\temp\suspiciousDetections'
 
@@ -52,6 +53,10 @@ occurrenceThreshold = 10
 
 # Set to zero to disable parallelism
 nWorkers = 10 # joblib.cpu_count()
+
+# Ignore "suspicious" detections larger than some size; these are often animals
+# taking up the whole image.  This is expressed as a fraction of the image size.
+maxSuspiciousDetectionSize = 0.35
 
 debugMaxDir = -1
 debugMaxRenderDir = -1
@@ -195,6 +200,25 @@ allRows = allRows[1:]
 print('Read {} rows from {}'.format(len(allRows),inputCsvFilename))
 
 
+#%% Load .json file (for image sizes)
+
+# Not currently using this
+if False:
+    print('Loading {}'.format(imageInfoFile))
+        
+    with open(imageInfoFile,'r') as f:
+        imageInfo = json.load(f)
+        
+    print('Mapping filenames to image objects')    
+    
+    # Map filenames to images
+    filenameToImage = {}
+    for iImage,img in enumerate(imageInfo['images']):
+        filenameToImage[img['file_name']] = img
+    
+    print('Done')
+
+
 #%% Separate files into directories
 
 rowsByDirectory = {}
@@ -259,6 +283,7 @@ def findMatchesInDirectory(dirName):
     
     rows = rowsByDirectory[dirName]
     
+    # iRow = 0; row = rows[iRow]
     for iRow,row in enumerate(rows):
     
         filename = row[0]
@@ -276,21 +301,28 @@ def findMatchesInDirectory(dirName):
         detections = row[2]
         assert len(detections) > 0
         
-        # Sanity-check that we find at least one box above threshold (since
-        # maxP is above threshold)
-        bFoundConfidentBox = False
-        
-        # For each detection in this imag      
+        # For each detection in this image
         for iDetection,detection in enumerate(detections):
             
             assert len(detection) == 5
             
+            # Is this detection too big to be suspicious?
+            h = detection[2] - detection[0]
+            w = detection[3] - detection[1]
+            area = h * w
+            
+            # These are relative coordinates
+            assert area >= 0.0 and area <= 1.0
+            
+            if area > maxSuspiciousDetectionSize:
+                print('Ignoring very large detection with area {}'.format(area))
+                continue
+        
             confidence = detection[4]
             assert confidence >= 0.0 and confidence <= 1.0
             if confidence < confidenceThreshold:
                 continue
             
-            bFoundConfidentBox = True
             instance = IndexedDetection(iRow,iDetection,row[0],detection)
                     
             bFoundSimilarDetection = False
@@ -317,10 +349,7 @@ def findMatchesInDirectory(dirName):
                 candidateDetections.append(candidate)
 
         # ...for each detection
-        
-        # if maxP >= threshold, at least one individual box should be        
-        assert bFoundConfidentBox
-    
+                
     # ...for each row
     
     return candidateDetections
@@ -341,6 +370,7 @@ allCandidateDetections = [None] * len(dirsToSearch)
 if bParallelizeComparisons:
         
     pbar = None
+    # iDir = 0; dirName = dirsToSearch[iDir]
     for iDir,dirName in enumerate(tqdm(dirsToSearch)):        
         allCandidateDetections[iDir] = findMatchesInDirectory(dirName)
          
