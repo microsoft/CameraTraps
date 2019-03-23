@@ -18,7 +18,8 @@ import warnings
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 from joblib import Parallel, delayed
-                        
+from datetime import datetime
+      
 # from ai4eutils; this is assumed to be on the path, as per repo convention
 import write_html_image_list
 
@@ -57,7 +58,7 @@ debugMaxRenderDir = -1
 debugMaxDetection = -1
 debugMaxInstance = -1
 bParallelizeComparisons = True
-bParallelizeRendering = True    
+bParallelizeRendering = False
 
 # ignoring all "PIL cannot read EXIF metainfo for the images" warnings
 warnings.filterwarnings("ignore", "(Possibly )?corrupt EXIF data", UserWarning)
@@ -387,7 +388,8 @@ def renderImagesForDirectory(iDir):
     if len(suspiciousDetectionsThisDir) == 0:
         return None
     
-    print('Processing directory {} of {}'.format(iDir,nDirs))
+    timeStr = datetime.now().strftime('%H:%M:%S')
+    print('Processing directory {} of {} ({})'.format(iDir,nDirs,timeStr))
     
     dirBaseDir = os.path.join(outputBase,dirName)
     os.makedirs(dirBaseDir,exist_ok=True)
@@ -446,8 +448,10 @@ def renderImagesForDirectory(iDir):
             """
 
             inputFileName = os.path.join(imageBase,instance.filename)
-            assert(os.path.isfile(inputFileName))
-            render_bounding_box(instance.bbox,1,None,inputFileName,imageOutputFilename,0,10)
+            if not os.path.isfile(inputFileName):
+                print('Warning: could not find file {}'.format(inputFileName))
+            else:
+                render_bounding_box(instance.bbox,1,None,inputFileName,imageOutputFilename,0,10)
 
         # ...for each instance
 
@@ -480,8 +484,8 @@ directoryHtmlFiles = [None] * nDirs
 
 if bParallelizeRendering:
 
-    pbar = tqdm(total=nDirs)
-    # pbar = None
+    # pbar = tqdm(total=nDirs)
+    pbar = None
     
     directoryHtmlFiles = Parallel(n_jobs=nWorkers,prefer='threads')(delayed(
             renderImagesForDirectory)(iDir) for iDir in tqdm(range(nDirs)))
@@ -499,8 +503,6 @@ else:
     
     # ...for each directory
 
-#%% 
-    
 # Write master html file
 masterHtmlFile = os.path.join(outputBase,'index.html')   
 
