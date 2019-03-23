@@ -15,7 +15,7 @@ import os
 import json
 import jsonpickle
 import warnings
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 from tqdm import tqdm
 from joblib import Parallel, delayed
 from datetime import datetime
@@ -27,7 +27,8 @@ import write_html_image_list
 # 
 # Definitely a heaviweight import just for this; some refactoring
 # is likely necessary here.
-from detection.run_tf_detector import render_bounding_box
+# from detection.run_tf_detector import render_bounding_box
+from PIL import Image, ImageDraw
 
 # from multiprocessing import Pool
 # from multiprocessing.pool import ThreadPool
@@ -63,7 +64,7 @@ debugMaxRenderDir = -1
 debugMaxDetection = -1
 debugMaxInstance = -1
 bParallelizeComparisons = True
-bParallelizeRendering = False
+bParallelizeRendering = True
 
 # ignoring all "PIL cannot read EXIF metainfo for the images" warnings
 warnings.filterwarnings("ignore", "(Possibly )?corrupt EXIF data", UserWarning)
@@ -72,6 +73,20 @@ warnings.filterwarnings("ignore", "Metadata warning", UserWarning)
     
 
 #%% Helper functions
+
+def render_bounding_box(bbox,inputFileName,imageOutputFilename,linewidth):  
+    
+    im = Image.open(inputFileName)
+    imW = im.width; imH = im.height
+    
+    # [top, left, bottom, right] in normalized units, where the origin is the upper-left.
+    draw = ImageDraw.Draw(im)
+    x0 = bbox[1] * imW; x1 = bbox[3] * imW
+    y0 = bbox[0] * imH; y1 = bbox[2] * imH
+    draw.rectangle([x0,y0,x1,y1],width=linewidth,outline='#ff0000')
+    del draw
+    im.save(imageOutputFilename)
+    
 
 def prettyPrintObject(obj,bPrint=True):
     '''
@@ -315,7 +330,7 @@ def findMatchesInDirectory(dirName):
             assert area >= 0.0 and area <= 1.0
             
             if area > maxSuspiciousDetectionSize:
-                print('Ignoring very large detection with area {}'.format(area))
+                # print('Ignoring very large detection with area {}'.format(area))
                 continue
         
             confidence = detection[4]
@@ -420,10 +435,11 @@ print('Finished searching for problematic detections, found {} unique detections
   nSuspiciousDetections,nImagesWithSuspiciousDetections))    
 
 
-#%% Render problematic locations with html
+#%% Render problematic locations with html (prep)
 
-plt.close('all')
-
+nDirs = len(dirsToSearch)
+directoryHtmlFiles = [None] * nDirs
+  
 def renderImagesForDirectory(iDir):
     
     if pbar is not None:
@@ -504,8 +520,9 @@ def renderImagesForDirectory(iDir):
             if not os.path.isfile(inputFileName):
                 print('Warning: could not find file {}'.format(inputFileName))
             else:
-                render_bounding_box(instance.bbox,1,None,inputFileName,imageOutputFilename,0,10)
-
+                # render_bounding_box(instance.bbox,1,None,inputFileName,imageOutputFilename,0,10)
+                render_bounding_box(instance.bbox,inputFileName,imageOutputFilename,15)
+                
         # ...for each instance
 
         # Write html for this detection
@@ -534,9 +551,9 @@ def renderImagesForDirectory(iDir):
 
 # ...def renderImagesForDirectory(iDir)
     
-nDirs = len(dirsToSearch)
-directoryHtmlFiles = [None] * nDirs
 
+#%% Render problematic locations with html (loop)
+    
 if bParallelizeRendering:
 
     # pbar = tqdm(total=nDirs)
@@ -558,7 +575,9 @@ else:
     
     # ...for each directory
 
-# Write master html file
+
+#%% Write master html file
+    
 masterHtmlFile = os.path.join(outputBase,'index.html')   
 
 with open(masterHtmlFile,'w') as fHtml:
