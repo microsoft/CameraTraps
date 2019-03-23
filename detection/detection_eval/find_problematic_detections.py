@@ -101,7 +101,7 @@ def findImageStrings(strings):
     imageStrings = []
     bIsImage = [False] * len(strings)
     for iString,f in enumerate(strings):
-        bIsImage[iString] = isImageFile(f)
+        bIsImage[iString] = isImageFile(f) 
         if bIsImage[iString]:
             continue
         else:
@@ -265,45 +265,68 @@ def findMatchesInDirectory(dirName):
         if not isImageFile(filename):
             continue
         
-        # For each detection above threshold
-        maxP = float(row[1])
+        # Don't bother checking images with no detections above threshold
+        maxP = float(row[1])        
+        if maxP < confidenceThreshold:
+            continue
         
-        if maxP >= confidenceThreshold:
+        # Array of arrays, where each element is:
+        #
+        # [ymin, xmin, ymax, xmax, confidence], where (xmin, ymin) is the upper-left            
+        detections = row[2]
+        assert len(detections) > 0
         
-            # Array of arrays, where each element is:
-            #
-            # [ymin, xmin, ymax, xmax, confidence], where (xmin, ymin) is the upper-left            
-            detections = row[2]
-            assert len(detections) > 0
-                        
-            # For each detection in this image
-            for iDetection,detection in enumerate(detections):
-                
-                instance = IndexedDetection(iRow,iDetection,row[0],detection)
-                        
-                bFoundSimilarDetection = False
-                
-                # For each detection in our candidate list
-                for iCandidate,candidate in enumerate(candidateDetections):
-                
-                    # Is this a match?                    
-                    iou = get_iou(detection,candidate.bbox)
+        # Sanity-check that we find at least one box above threshold (since
+        # maxP is above threshold)
+        bFoundConfidentBox = False
+        
+        # For each detection in this imag      
+        for iDetection,detection in enumerate(detections):
+            
+            assert len(detection) == 5
+            
+            confidence = detection[4]
+            assert confidence >= 0.0 and confidence <= 1.0
+            if confidence < confidenceThreshold:
+                continue
+            
+            bFoundConfidentBox = True
+            instance = IndexedDetection(iRow,iDetection,row[0],detection)
                     
-                    if iou >= iouThreshold:                                        
-                        
-                        bFoundSimilarDetection = True
-                        
-                        # If so, add this example to the list for this detection
-                        candidate.instances.append(instance)
-                                                
-                # If we found no matches, add this to the candidate list
-                if not bFoundSimilarDetection:
+            bFoundSimilarDetection = False
+            
+            # For each detection in our candidate list
+            for iCandidate,candidate in enumerate(candidateDetections):
+            
+                # Is this a match?                    
+                iou = get_iou(detection,candidate.bbox)
+                
+                if iou >= iouThreshold:                                        
                     
-                    candidate = DetectionLocation(instance, detection)
-                    candidateDetections.append(candidate)
+                    bFoundSimilarDetection = True
+                    
+                    # If so, add this example to the list for this detection
+                    candidate.instances.append(instance)
+                    
+            # ...for each detection on our candidate list
+            
+            # If we found no matches, add this to the candidate list
+            if not bFoundSimilarDetection:
+                
+                candidate = DetectionLocation(instance, detection)
+                candidateDetections.append(candidate)
 
+        # ...for each detection
+        
+        # if maxP >= threshold, at least one individual box should be        
+        assert bFoundConfidentBox
+    
+    # ...for each row
+    
     return candidateDetections
 
+# ...def findMatchesInDirectory(dirName)
+    
 
 #%% Look for matches
 
@@ -479,6 +502,8 @@ def renderImagesForDirectory(iDir):
     
     return directoryHtmlFile
 
+# ...def renderImagesForDirectory(iDir)
+    
 nDirs = len(dirsToSearch)
 directoryHtmlFiles = [None] * nDirs
 
@@ -519,4 +544,4 @@ with open(masterHtmlFile,'w') as fHtml:
     fHtml.write('</body></html>\n')
 
 
-#%% Write .csv output
+#%% Write revised .csv output
