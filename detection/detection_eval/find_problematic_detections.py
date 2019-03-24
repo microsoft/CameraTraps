@@ -644,6 +644,8 @@ def writeRevisedCsv(suspiciousDetectionResults,options):
     # objects for that directory that have been flagged as suspicious
     suspiciousDetectionsByDirectory = suspiciousDetectionResults.suspiciousDetections
     
+    nBboxChanges = 0
+    
     # For each suspicious detection (two loops)
     for iDir,directoryEvents in enumerate(suspiciousDetectionsByDirectory):
         
@@ -661,24 +663,64 @@ def writeRevisedCsv(suspiciousDetectionResults,options):
                 
                 iDetection = instance.iDetection
                 
-                iRow = suspiciousDetectionResults.filenameToRow[instance.filename]
-                # Index into the master table
+                assert instance.filename in suspiciousDetectionResults.filenameToRow
+                iRow = suspiciousDetectionResults.filenameToRow[instance.filename]                
                 row = allRows[iRow]
                 rowDetections = row[CSV_COL_DETECTIONS]
                 detectionToModify = rowDetections[iDetection]
-                instanceBbox
+                
                 # Make sure the bounding box matches
-        
-        # Make the confidence negative
+                assert(instanceBbox == detectionToModify)
+                detectionToModify[4] = -1 * detectionToModify[4]
+                nBboxChanges += 1
+                
+            # ...for each instance
+            
+        # ...for each detection
+                
+    # ...for each director        
 
     # Update maximum probabilities
     
+    # For each row...
+    nProbChanges = 0
+    for iRow,row in enumerate(allRows):
+        
+        maxPOriginal = row[CSV_COL_MAXP]
+        maxP = None
+        detections = row[CSV_COL_DETECTIONS]
+        nNegative = 0
+        
+        for iDetection,detection in enumerate(detections):
+            p = detection[4]
+            
+            if p < 0:
+                nNegative += 1
+                
+            if maxP is None or p > maxP:
+                maxP = p
+        
+        row[CSV_COL_MAXP] = maxP
+        
+        if abs(maxP - maxPOriginal > 0.00000001):
+            
+            nProbChanges += 1
+            
+            # Negative probabilities should be the only reaosn maxP changed
+            assert nNegative > 0
+            
+        # ...if there was a change to the max probability for this row
+        
+    # ...for each row
+            
     # Open the output .csv
     
         # Write the header
         
         # Write the modified table                
         
+    return allRows
+
         
 #%% Interactive driver
     
