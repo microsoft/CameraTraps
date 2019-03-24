@@ -8,68 +8,115 @@
 # Currently the unit within which images are compared is a *directory*.
 #
 
-#%% Constants and imports
+#%% Imports and environment
 
 import csv
 import os
 import json
 import jsonpickle
 import warnings
-# import matplotlib.pyplot as plt
+
 from tqdm import tqdm
 from joblib import Parallel, delayed
 from datetime import datetime
+from PIL import Image, ImageDraw
       
 # from ai4eutils; this is assumed to be on the path, as per repo convention
 import write_html_image_list
 
-# For bounding-box rendering functions
-# 
-# Definitely a heaviweight import just for this; some refactoring
-# is likely necessary here.
-# from detection.run_tf_detector import render_bounding_box
-from PIL import Image, ImageDraw
-
+# Imports I'm not using but use when I tinker with parallelization
+#
 # from multiprocessing import Pool
 # from multiprocessing.pool import ThreadPool
 # import multiprocessing
 # import joblib
 
-inputCsvFilename = r'D:\temp\tigers_20190308_all_output.csv'
-imageInfoFile = r'd:\wildlife_data\tigerblobs\tigerblobs.json'
-imageBase = r'd:\wildlife_data\tigerblobs'
-outputBase = r'd:\temp\suspiciousDetections'
-
-headers = ['image_path','max_confidence','detections']
-
-# Don't consider detections with confidence lower than this as suspicious
-confidenceThreshold = 0.85
-
-# What's the IOU threshold for considering two boxes the same?
-iouThreshold = 0.925
-
-# How many occurrences of a single location (as defined by the IOU threshold)
-# are required before we declare it suspicious?
-occurrenceThreshold = 10
-
-# Set to zero to disable parallelism
-nWorkers = 10 # joblib.cpu_count()
-
-# Ignore "suspicious" detections larger than some size; these are often animals
-# taking up the whole image.  This is expressed as a fraction of the image size.
-maxSuspiciousDetectionSize = 0.35
-
-debugMaxDir = -1
-debugMaxRenderDir = -1
-debugMaxDetection = -1
-debugMaxInstance = -1
-bParallelizeComparisons = True
-bParallelizeRendering = True
-
 # ignoring all "PIL cannot read EXIF metainfo for the images" warnings
 warnings.filterwarnings("ignore", "(Possibly )?corrupt EXIF data", UserWarning)
 # Metadata Warning, tag 256 had too many entries: 42, expected 1
 warnings.filterwarnings("ignore", "Metadata warning", UserWarning)
+
+
+#%% Classes
+
+class SuspiciousDetectionOptions:
+    
+    # inputCsvFilename = r'D:\temp\tigers_20190308_all_output.csv'
+    
+    # Only relevant for HTML rendering
+    imageBase = ''
+    outputBase = ''
+    
+    expectedHeaders = ['image_path','max_confidence','detections']
+    
+    # Don't consider detections with confidence lower than this as suspicious
+    confidenceThreshold = 0.85
+    
+    # What's the IOU threshold for considering two boxes the same?
+    iouThreshold = 0.925
+    
+    # How many occurrences of a single location (as defined by the IOU threshold)
+    # are required before we declare it suspicious?
+    occurrenceThreshold = 10
+    
+    # Set to zero to disable parallelism
+    nWorkers = 10 # joblib.cpu_count()
+    
+    # Ignore "suspicious" detections larger than some size; these are often animals
+    # taking up the whole image.  This is expressed as a fraction of the image size.
+    maxSuspiciousDetectionSize = 0.35
+    
+    bRenderHtml = False
+    
+    debugMaxDir = -1
+    debugMaxRenderDir = -1
+    debugMaxRenderDetection = -1
+    debugMaxRenderInstance = -1
+    bParallelizeComparisons = True
+    bParallelizeRendering = True
+    
+    pbar = None
+
+  
+class SuspiciousDetectionResults:
+
+    allRows = None
+    rowsByDirectory = None
+    suspiciousDetections = None
+    masterHtmlFile = None
+    
+
+class IndexedDetection:
+    
+    iRow = -1
+    iDetection = -1
+    filename = ''
+    bbox = []
+    
+    def __init__(self, iRow, iDetection, filename, bbox):
+        self.iRow = iRow
+        self.iDetection = iDetection
+        self.filename = filename
+        self.bbox = bbox
+
+    def __repr__(self):
+        s = prettyPrintObject(self,False)
+        return s
+    
+    
+class DetectionLocation:
+    
+    # list of IndexedDetections
+    instances = []
+    bbox = []
+
+    def __init__(self, instance, bbox):
+        self.instances = [instance]
+        self.bbox = bbox
+    
+    def __repr__(self):
+        s = prettyPrintObject(self,False)
+        return s
     
 
 #%% Helper functions
@@ -96,7 +143,7 @@ def prettyPrintObject(obj,bPrint=True):
                 
     # Sloppy that I'm making a module-wide change here...
     jsonpickle.set_encoder_options('json', sort_keys=True, indent=4)
-    a = jsonpickle.encode(candidateLocation)
+    a = jsonpickle.encode(obj)
     s = '{}'.format(a)
     if bPrint:
         print(s)
@@ -188,110 +235,12 @@ def get_iou(bb1, bb2):
     return iou
 
 
-#%% Load file
+#%% Look for matches (one directory) (function)
 
-# Each row is filename, max confidence, bounding box info
+def findMatchesInDirectory(dirName,options,rowsByDirectory):
 
-allRows = []
-
-with open(inputCsvFilename) as f:
-    reader = csv.reader(f, delimiter=',')
-    iRow = 0
-    for row in reader:
-        iRow += 1
-        assert(len(row) == 3)
-        # Parse the detection info into an array
-        if iRow > 1:
-            row[2] = json.loads(row[2])
-        allRows.append(row)
-
-# [ymin, xmin, ymax, xmax, confidence], where (xmin, ymin) is the upper-left
-
-# Remove header row
-headerRow = allRows[0]
-assert(headerRow == headers)        
-allRows = allRows[1:]
-
-print('Read {} rows from {}'.format(len(allRows),inputCsvFilename))
-
-
-#%% Load .json file (for image sizes)
-
-# Not currently using this
-if False:
-    print('Loading {}'.format(imageInfoFile))
-        
-    with open(imageInfoFile,'r') as f:
-        imageInfo = json.load(f)
-        
-    print('Mapping filenames to image objects')    
-    
-    # Map filenames to images
-    filenameToImage = {}
-    for iImage,img in enumerate(imageInfo['images']):
-        filenameToImage[img['file_name']] = img
-    
-    print('Done')
-
-
-#%% Separate files into directories
-
-rowsByDirectory = {}
-
-# row = allRows[0]
-for row in allRows:
-    
-    relativePath = row[0]
-    dirName = os.path.dirname(relativePath)
-    
-    if not dirName in rowsByDirectory:
-        rowsByDirectory[dirName] = []
-        
-    rowsByDirectory[dirName].append(row)
-    
-print('Finished separating {} files into {} directories'.format(len(allRows),
-      len(rowsByDirectory)))
-
-
-#%% Look for matches (one directory)
-
-class IndexedDetection:
-    
-    iRow = -1
-    iDetection = -1
-    filename = ''
-    bbox = []
-    
-    def __init__(self, iRow, iDetection, filename, bbox):
-        self.iRow = iRow
-        self.iDetection = iDetection
-        self.filename = filename
-        self.bbox = bbox
-
-    def __repr__(self):
-        s = prettyPrintObject(self,False)
-        return s
-    
-class DetectionLocation:
-    
-    # list of IndexedDetections
-    instances = []
-    bbox = []
-
-    def __init__(self, instance, bbox):
-        self.instances = [instance]
-        self.bbox = bbox
-    
-    def __repr__(self):
-        s = prettyPrintObject(self,False)
-        return s
-    
-pbar = None
-
-def findMatchesInDirectory(dirName):
-
-    if pbar is not None:
-        pbar.update()
+    if options.pbar is not None:
+        options.pbar.update()
         
     # List of DetectionLocations
     candidateDetections = []
@@ -307,7 +256,7 @@ def findMatchesInDirectory(dirName):
         
         # Don't bother checking images with no detections above threshold
         maxP = float(row[1])        
-        if maxP < confidenceThreshold:
+        if maxP < options.confidenceThreshold:
             continue
         
         # Array of arrays, where each element is:
@@ -329,13 +278,13 @@ def findMatchesInDirectory(dirName):
             # These are relative coordinates
             assert area >= 0.0 and area <= 1.0
             
-            if area > maxSuspiciousDetectionSize:
+            if area > options.maxSuspiciousDetectionSize:
                 # print('Ignoring very large detection with area {}'.format(area))
                 continue
         
             confidence = detection[4]
             assert confidence >= 0.0 and confidence <= 1.0
-            if confidence < confidenceThreshold:
+            if confidence < options.confidenceThreshold:
                 continue
             
             instance = IndexedDetection(iRow,iDetection,row[0],detection)
@@ -348,7 +297,7 @@ def findMatchesInDirectory(dirName):
                 # Is this a match?                    
                 iou = get_iou(detection,candidate.bbox)
                 
-                if iou >= iouThreshold:                                        
+                if iou >= options.iouThreshold:                                        
                     
                     bFoundSimilarDetection = True
                     
@@ -372,81 +321,16 @@ def findMatchesInDirectory(dirName):
 # ...def findMatchesInDirectory(dirName)
     
 
-#%% Look for matches
+#%% Render problematic locations to html (function)
 
-# For each directory
-if debugMaxDir > 0:
-    print('TRIMMING TO {} DIRECTORIES FOR DEBUGGING'.format(debugMaxDir))
+def renderImagesForDirectory(iDir,directoryHtmlFiles,suspiciousDetections,options):
     
-dirsToSearch = list(rowsByDirectory.keys())[0:debugMaxDir]
+    nDirs = len(directoryHtmlFiles)
     
-allCandidateDetections = [None] * len(dirsToSearch)
-
-if bParallelizeComparisons:
-        
-    pbar = None
-    # iDir = 0; dirName = dirsToSearch[iDir]
-    for iDir,dirName in enumerate(tqdm(dirsToSearch)):        
-        allCandidateDetections[iDir] = findMatchesInDirectory(dirName)
-         
-else:
-
-    pbar = tqdm(total=len(dirsToSearch))
-    allCandidateDetections = Parallel(n_jobs=nWorkers,prefer='threads')(delayed(findMatchesInDirectory)(dirName) for dirName in tqdm(dirsToSearch))
-        
-print('Finished looking for similar bounding boxes')    
+    if options.pbar is not None:
+        options.pbar.update()
     
-
-#%% Find suspicious locations based on match results
-
-suspiciousDetections = [None] * len(dirsToSearch)
-
-nImagesWithSuspiciousDetections = 0
-nSuspiciousDetections = 0
-
-# For each directory
-#
-# iDir = 51
-for iDir in range(len(dirsToSearch)):
-
-    # A list of DetectionLocation objects
-    suspiciousDetectionsThisDir = []    
-    
-    # A list of DetectionLocation objects
-    candidateDetectionsThisDir = allCandidateDetections[iDir]
-    
-    for iLocation,candidateLocation in enumerate(candidateDetectionsThisDir):
-        
-        # occurrenceList is a list of file/detection pairs
-        nOccurrences = len(candidateLocation.instances)
-        
-        if nOccurrences < occurrenceThreshold:
-            continue
-        
-        nImagesWithSuspiciousDetections += nOccurrences
-        nSuspiciousDetections += 1
-        
-        suspiciousDetectionsThisDir.append(candidateLocation)
-        # Find the images corresponding to this bounding box, render boxes
-    
-    suspiciousDetections[iDir] = suspiciousDetectionsThisDir
-
-print('Finished searching for problematic detections, found {} unique detections on {} images that are suspicious'.format(
-  nSuspiciousDetections,nImagesWithSuspiciousDetections))    
-
-
-#%% Render problematic locations with html (prep)
-
-nDirs = len(dirsToSearch)
-directoryHtmlFiles = [None] * nDirs
-  
-def renderImagesForDirectory(iDir):
-    
-    if pbar is not None:
-        pbar.update()
-    
-    if debugMaxRenderDir > 0 and iDir > debugMaxRenderDir:
-        print('WARNING: DEBUG BREAK AFTER RENDERING {} DIRS'.format(debugMaxRenderDir))
+    if options.debugMaxRenderDir > 0 and iDir > options.debugMaxRenderDir:
         return None
     
     dirName = 'dir{:0>4d}'.format(iDir)
@@ -460,7 +344,7 @@ def renderImagesForDirectory(iDir):
     timeStr = datetime.now().strftime('%H:%M:%S')
     print('Processing directory {} of {} ({})'.format(iDir,nDirs,timeStr))
     
-    dirBaseDir = os.path.join(outputBase,dirName)
+    dirBaseDir = os.path.join(options.outputBase,dirName)
     os.makedirs(dirBaseDir,exist_ok=True)
     
     directoryDetectionHtmlFiles = []
@@ -473,8 +357,7 @@ def renderImagesForDirectory(iDir):
     nDetections = len(suspiciousDetectionsThisDir)
     for iDetection,detection in enumerate(suspiciousDetectionsThisDir):
     
-        if debugMaxDetection > 0 and iDetection > debugMaxDetection:
-            print('WARNING: DEBUG BREAK AFTER RENDERING {} DETECTIONS'.format(debugMaxDetection))
+        if options.debugMaxRenderDetection > 0 and iDetection > options.debugMaxRenderDetection:
             break
         
         nInstances = len(detection.instances)
@@ -485,7 +368,7 @@ def renderImagesForDirectory(iDir):
         os.makedirs(detectionBaseDir,exist_ok=True)
         
         # _ = prettyPrintObject(detection)
-        assert(nInstances >= occurrenceThreshold)
+        assert(nInstances >= options.occurrenceThreshold)
                         
         imageFileNames = []
         titles = []
@@ -495,28 +378,19 @@ def renderImagesForDirectory(iDir):
         # iInstance = 0; instance = detection.instances[iInstance]
         for iInstance,instance in enumerate(detection.instances):
             
-            if debugMaxInstance > 9 and iInstance > debugMaxInstance:
-                print('WARNING: DEBUG BREAK AFTER RENDERING {} INSTANCES'.format(debugMaxInstance))
+            if options.debugMaxRenderInstance > 9 and iInstance > options.debugMaxRenderInstance:
                 break
             
             imageRelativeFilename = 'image{:0>4d}.jpg'.format(iInstance)
             imageOutputFilename = os.path.join(detectionBaseDir,
                                                imageRelativeFilename)
             imageFileNames.append(imageRelativeFilename)
-            titles.append(instance.filename)
-            # Render bounding boxes
-            # def render_bounding_boxes(boxes, scores, classes, inputFileNames, outputFileNames=[],
-            #              confidenceThreshold=0.9):
+            confidence = instance.bbox[4]
+            confidenceStr = '{:.2f}'.format(confidence)
+            t = confidenceStr + ' (' + instance.filename + ')'
+            titles.append(t)
             
-            """
-            Render bounding boxes on the image files specified in [inputFileNames].  
-            
-            [boxes] and [scores] should be in the format returned by generate_detections, 
-            specifically [top, left, bottom, right] in normalized units, where the
-            origin is the upper-left.
-            """
-
-            inputFileName = os.path.join(imageBase,instance.filename)
+            inputFileName = os.path.join(options.imageBase,instance.filename)
             if not os.path.isfile(inputFileName):
                 print('Warning: could not find file {}'.format(inputFileName))
             else:
@@ -528,14 +402,15 @@ def renderImagesForDirectory(iDir):
         # Write html for this detection
         detectionHtmlFile = os.path.join(detectionBaseDir,'index.html')
         
-        options = write_html_image_list.write_html_image_list()
-        options['imageStyle'] = 'max-width:700px;'
+        htmlOptions = write_html_image_list.write_html_image_list()
+        htmlOptions['imageStyle'] = 'max-width:700px;'
         write_html_image_list.write_html_image_list(detectionHtmlFile, 
-                                                    imageFileNames, titles, options)
+                                                    imageFileNames, titles, htmlOptions)
 
         directoryDetectionHtmlFiles.append(detectionHtmlFile)
         directoryDetectionExampleImages.append(os.path.join(detectionName,imageFileNames[0]))
-        title = '<a href="{}">{}</a>'.format(detectionHtmlFile,detectionName)
+        detectionHtmlFileRelative = os.path.relpath(detectionHtmlFile,dirBaseDir)
+        title = '<a href="{}">{}</a>'.format(detectionHtmlFileRelative,detectionName)
         directoryDetectionTitles.append(title)
 
     # ...for each detection
@@ -545,52 +420,213 @@ def renderImagesForDirectory(iDir):
     
     write_html_image_list.write_html_image_list(directoryHtmlFile, 
                                                     directoryDetectionExampleImages, 
-                                                    directoryDetectionTitles, options)    
+                                                    directoryDetectionTitles, htmlOptions)    
     
     return directoryHtmlFile
 
 # ...def renderImagesForDirectory(iDir)
     
 
-#%% Render problematic locations with html (loop)
+#%% Main function
     
-if bParallelizeRendering:
+def findSuspiciousDetections(inputCsvFilename,outputCsvFilename,options=None):
+    
+    ##%% Input handling
+    
+    if options is None:
+        options = SuspiciousDetectionOptions()
 
-    # pbar = tqdm(total=nDirs)
-    pbar = None
+    toReturn = SuspiciousDetectionResults()
+            
+    ##%% Load file
     
-    directoryHtmlFiles = Parallel(n_jobs=nWorkers,prefer='threads')(delayed(
-            renderImagesForDirectory)(iDir) for iDir in tqdm(range(nDirs)))
+    # Each row is filename, max confidence, bounding box info
     
-else:
+    allRows = []
+    
+    print('Reading input file {}'.format(inputCsvFilename))
+    
+    with open(inputCsvFilename) as f:
+        reader = csv.reader(f, delimiter=',')
+        iRow = 0
+        for row in reader:
+            iRow += 1
+            assert(len(row) == 3)
+            # Parse the detection info into an array
+            if iRow > 1:
+                row[2] = json.loads(row[2])
+            allRows.append(row)
+    
+    # [ymin, xmin, ymax, xmax, confidence], where (xmin, ymin) is the upper-left
+    
+    # Remove header row
+    headerRow = allRows[0]
+    assert(headerRow == options.expectedHeaders)        
+    allRows = allRows[1:]
+    toReturn.allRows = allRows
+    
+    print('Read {} rows from {}'.format(len(allRows),inputCsvFilename))
 
-    pbar = None
+
+    ##%% Separate files into directories
+    
+    rowsByDirectory = {}
+    
+    # row = allRows[0]
+    for row in allRows:
+        
+        relativePath = row[0]
+        dirName = os.path.dirname(relativePath)
+        
+        if not dirName in rowsByDirectory:
+            rowsByDirectory[dirName] = []
+            
+        rowsByDirectory[dirName].append(row)
+        
+    print('Finished separating {} files into {} directories'.format(len(allRows),
+          len(rowsByDirectory)))
+    
+    toReturn.rowsByDirectory = rowsByDirectory
+    
+    
+    ##%% Look for matches
     
     # For each directory
+        
+    dirsToSearch = list(rowsByDirectory.keys())[0:options.debugMaxDir]
+        
+    allCandidateDetections = [None] * len(dirsToSearch)
+    
+    if not options.bParallelizeComparisons:
+            
+        options.pbar = None
+        # iDir = 0; dirName = dirsToSearch[iDir]
+        for iDir,dirName in enumerate(tqdm(dirsToSearch)):        
+            allCandidateDetections[iDir] = findMatchesInDirectory(dirName,options,rowsByDirectory)
+             
+    else:
+    
+        options.pbar = tqdm(total=len(dirsToSearch))
+        allCandidateDetections = Parallel(n_jobs=options.nWorkers,prefer='threads')(delayed(findMatchesInDirectory)(dirName,options,rowsByDirectory) for dirName in tqdm(dirsToSearch))
+            
+    print('Finished looking for similar bounding boxes')    
+    
+
+    ##%% Find suspicious locations based on match results
+    
+    suspiciousDetections = [None] * len(dirsToSearch)
+    
+    nImagesWithSuspiciousDetections = 0
+    nSuspiciousDetections = 0
+    
+    # For each directory
+    #
     # iDir = 51
-    for iDir in range(nDirs):
-                
-        # Add this directory to the master list of html files
-        directoryHtmlFiles[iDir] = renderImagesForDirectory(iDir)
+    for iDir in range(len(dirsToSearch)):
     
-    # ...for each directory
-
-
-#%% Write master html file
+        # A list of DetectionLocation objects
+        suspiciousDetectionsThisDir = []    
+        
+        # A list of DetectionLocation objects
+        candidateDetectionsThisDir = allCandidateDetections[iDir]
+        
+        for iLocation,candidateLocation in enumerate(candidateDetectionsThisDir):
+            
+            # occurrenceList is a list of file/detection pairs
+            nOccurrences = len(candidateLocation.instances)
+            
+            if nOccurrences < options.occurrenceThreshold:
+                continue
+            
+            nImagesWithSuspiciousDetections += nOccurrences
+            nSuspiciousDetections += 1
+            
+            suspiciousDetectionsThisDir.append(candidateLocation)
+            # Find the images corresponding to this bounding box, render boxes
+        
+        suspiciousDetections[iDir] = suspiciousDetectionsThisDir
     
-masterHtmlFile = os.path.join(outputBase,'index.html')   
-
-with open(masterHtmlFile,'w') as fHtml:
+    print('Finished searching for problematic detections, found {} unique detections on {} images that are suspicious'.format(
+      nSuspiciousDetections,nImagesWithSuspiciousDetections))    
     
-    fHtml.write('<html><body>\n')
-    fHtml.write('<h2><b>Suspicious detections by directory</b></h2></br>\n')
-    for iDir,dirHtmlFile in enumerate(directoryHtmlFiles):
-        if dirHtmlFile is None:
-            continue
-        relPath = os.path.relpath(dirHtmlFile,outputBase)
-        dirName = dirsToSearch[iDir]
-        fHtml.write('<a href={}>{}</a><br/>\n'.format(relPath,dirName))
-    fHtml.write('</body></html>\n')
+    toReturn.suspiciousDetections = suspiciousDetections
+    
+    if options.bRenderHtml:
+        
+        ##%% Render problematic locations with html (loop)
+    
+        nDirs = len(dirsToSearch)
+        directoryHtmlFiles = [None] * nDirs
+              
+        if options.bParallelizeRendering:
+        
+            # options.pbar = tqdm(total=nDirs)
+            options.pbar = None
+            
+            directoryHtmlFiles = Parallel(n_jobs=options.nWorkers,prefer='threads')(delayed(
+                    renderImagesForDirectory)(iDir,directoryHtmlFiles,suspiciousDetections,options) for iDir in tqdm(range(nDirs)))
+            
+        else:
+        
+            options.pbar = None
+            
+            # For each directory
+            # iDir = 51
+            for iDir in range(nDirs):
+                        
+                # Add this directory to the master list of html files
+                directoryHtmlFiles[iDir] = renderImagesForDirectory(iDir,directoryHtmlFiles,suspiciousDetections,options)
+            
+            # ...for each directory
 
 
-#%% Write revised .csv output
+        ##%% Write master html file
+            
+        masterHtmlFile = os.path.join(options.outputBase,'index.html')   
+        toReturn.masterHtmlFile = masterHtmlFile
+        
+        with open(masterHtmlFile,'w') as fHtml:
+            
+            fHtml.write('<html><body>\n')
+            fHtml.write('<h2><b>Suspicious detections by directory</b></h2></br>\n')
+            for iDir,dirHtmlFile in enumerate(directoryHtmlFiles):
+                if dirHtmlFile is None:
+                    continue
+                relPath = os.path.relpath(dirHtmlFile,options.outputBase)
+                dirName = dirsToSearch[iDir]
+                fHtml.write('<a href={}>{}</a><br/>\n'.format(relPath,dirName))
+            fHtml.write('</body></html>\n')
+
+    # ...if we're rendering html
+    
+    
+    ##%% Write revised .csv output
+    
+    return toReturn
+
+# ...findSuspiciousDetections()
+    
+#%% Interactive driver
+    
+if False:
+
+    #%%     
+    
+    options = SuspiciousDetectionOptions()
+    options.bRenderHtml = True
+    options.imageBase = r'd:\wildlife_data\tigerblobs'
+    options.outputBase = r'd:\temp\suspiciousDetections'
+    
+    options.debugMaxDir = 1000
+    options.debugMaxRenderDir = 500
+    options.debugMaxRenderDetection = 10
+    options.debugMaxRenderInstance = 2
+    
+    inputCsvFilename = r'D:\temp\tigers_20190308_all_output.csv'
+    outputCsvFilename = ''
+    
+    # def findSuspiciousDetections(inputCsvFilename,outputCsvFilename,options=None)
+    findSuspiciousDetections(inputCsvFilename,outputCsvFilename,options)
+    
+    
+#%% Command-line driver
