@@ -47,8 +47,6 @@ class SuspiciousDetectionOptions:
     imageBase = ''
     outputBase = ''
     
-    expectedHeaders = ['image_path','max_confidence','detections']
-    
     # Don't consider detections with confidence lower than this as suspicious
     confidenceThreshold = 0.85
     
@@ -74,10 +72,14 @@ class SuspiciousDetectionOptions:
     debugMaxRenderInstance = -1
     bParallelizeComparisons = True
     bParallelizeRendering = True
-    
+        
+    # State variables
     pbar = None
 
-  
+    # Constants
+    expectedHeaders = ['image_path','max_confidence','detections']
+    
+    
 class SuspiciousDetectionResults:
 
     allRows = None
@@ -617,10 +619,10 @@ if False:
     options.imageBase = r'd:\wildlife_data\tigerblobs'
     options.outputBase = r'd:\temp\suspiciousDetections'
     
-    options.debugMaxDir = 1000
-    options.debugMaxRenderDir = 500
-    options.debugMaxRenderDetection = 10
-    options.debugMaxRenderInstance = 2
+    options.debugMaxDir = -1
+    options.debugMaxRenderDir = -1
+    options.debugMaxRenderDetection = -1
+    options.debugMaxRenderInstance = -1
     
     inputCsvFilename = r'D:\temp\tigers_20190308_all_output.csv'
     outputCsvFilename = ''
@@ -630,3 +632,41 @@ if False:
     
     
 #%% Command-line driver
+
+import argparse
+
+def main():
+    
+    parser = argparse.ArgumentParser()
+    parser.add_argument('inputFile')
+    parser.add_argument('outputFile')
+    parser.add_argument('--imageBase', action='store', type=str, 
+                        help='Image base dir, only relevant if renderHtml is True')
+    parser.add_argument('--outputBase', action='store', type=str, 
+                        help='Html output dir, only relevant if renderHtml is True')
+    parser.add_argument('--confidenceThreshold',action="store", type=float, default=0.85, 
+                        help='Detection confidence threshold; don\'t process anything below this')
+    parser.add_argument('--occurrenceThreshold',action="store", type=int, default=10, 
+                        help='More than this many near-identical detections in a group (e.g. a folder) is considered suspicious')
+    parser.add_argument('--nWorkers',action="store", type=int, default=10, 
+                        help='Level of parallelism for rendering or IOU computation')
+    parser.add_argument('--maxSuspiciousDetectionSize',action="store", type=float, 
+                        default=0.35, help='Detections larger than this fraction of image area are not considered suspicious')
+    parser.add_argument('--renderHtml', action='store', type=bool, default=False, 
+                        dest='bRenderHtml', help='Should we render HTML output?')
+    
+    parser.add_argument('--debugMaxDir', action='store', type=int, default=-1)                        
+    parser.add_argument('--debugMaxRenderDir', action='store', type=int, default=-1)
+    parser.add_argument('--debugMaxRenderDetection', action='store', type=int, default=-1)
+    parser.add_argument('--debugMaxRenderInstance', action='store', type=int, default=-1)
+    
+    parser.add_argument('--bParallelizeComparisons', action='store', type=bool, default=True)
+    parser.add_argument('--bParallelizeRendering', action='store', type=bool, default=True)
+    
+    args = parser.parse_args()    
+    
+    findSuspiciousDetections(args.inputFile,args.outputFile,options)
+
+if __name__ == '__main__':
+    
+    main()
