@@ -15,7 +15,9 @@ import os
 import json
 import jsonpickle
 import warnings
-
+import argparse
+import copy
+    
 from tqdm import tqdm
 from joblib import Parallel, delayed
 from datetime import datetime
@@ -23,6 +25,7 @@ from PIL import Image, ImageDraw
       
 # from ai4eutils; this is assumed to be on the path, as per repo convention
 import write_html_image_list
+import matlab_porting_tools
 
 # Imports I'm not using but use when I tinker with parallelization
 #
@@ -35,6 +38,13 @@ import write_html_image_list
 warnings.filterwarnings("ignore", "(Possibly )?corrupt EXIF data", UserWarning)
 # Metadata Warning, tag 256 had too many entries: 42, expected 1
 warnings.filterwarnings("ignore", "Metadata warning", UserWarning)
+
+
+#%% Constants
+
+CSV_COL_FILENAME = 0
+CSV_COL_MAXP = 1
+CSV_COL_DETECTIONS = 2
 
 
 #%% Classes
@@ -82,21 +92,29 @@ class SuspiciousDetectionOptions:
     
 class SuspiciousDetectionResults:
 
+    # The data table, as loaded from the input .csv file 
     allRows = None
+    
+    # dict mapping folder names to whole rows from the data table
     rowsByDirectory = None
+    
+    # dict mapping filenames to rows in the master table
+    filenameToRow = None
+    
+    # An array of length nDirs, where each element is a list of DetectionLocation 
+    # objects for that directory that have been flagged as suspicious
     suspiciousDetections = None
+        
     masterHtmlFile = None
     
 
 class IndexedDetection:
     
-    iRow = -1
     iDetection = -1
     filename = ''
     bbox = []
     
-    def __init__(self, iRow, iDetection, filename, bbox):
-        self.iRow = iRow
+    def __init__(self, iDetection, filename, bbox):
         self.iDetection = iDetection
         self.filename = filename
         self.bbox = bbox
@@ -249,22 +267,22 @@ def findMatchesInDirectory(dirName,options,rowsByDirectory):
     
     rows = rowsByDirectory[dirName]
     
-    # iRow = 0; row = rows[iRow]
-    for iRow,row in enumerate(rows):
+    # iDirectoryRow = 0; row = rows[iDirectoryRow]
+    for iDirectoryRow,row in enumerate(rows):
     
-        filename = row[0]
+        filename = row[CSV_COL_FILENAME]
         if not isImageFile(filename):
             continue
         
         # Don't bother checking images with no detections above threshold
-        maxP = float(row[1])        
+        maxP = float(row[CSV_COL_MAXP])        
         if maxP < options.confidenceThreshold:
             continue
         
         # Array of arrays, where each element is:
         #
         # [ymin, xmin, ymax, xmax, confidence], where (xmin, ymin) is the upper-left            
-        detections = row[2]
+        detections = row[CSV_COL_DETECTIONS]
         assert len(detections) > 0
         
         # For each detection in this image
@@ -289,7 +307,8 @@ def findMatchesInDirectory(dirName,options,rowsByDirectory):
             if confidence < options.confidenceThreshold:
                 continue
             
-            instance = IndexedDetection(iRow,iDetection,row[0],detection)
+            instance = IndexedDetection(iDetection,
+                                        row[CSV_COL_FILENAME],detection)
                     
             bFoundSimilarDetection = False
             
@@ -456,7 +475,7 @@ def findSuspiciousDetections(inputCsvFilename,outputCsvFilename,options=None):
             assert(len(row) == 3)
             # Parse the detection info into an array
             if iRow > 1:
-                row[2] = json.loads(row[2])
+                row[CSV_COL_DETECTIONS] = json.loads(row[CSV_COL_DETECTIONS])
             allRows.append(row)
     
     # [ymin, xmin, ymax, xmax, confidence], where (xmin, ymin) is the upper-left
@@ -472,24 +491,27 @@ def findSuspiciousDetections(inputCsvFilename,outputCsvFilename,options=None):
 
     ##%% Separate files into directories
     
-    rowsByDirectory = {}
+    rowsByDirectory = {}    
+    filenameToRow = {}
     
     # row = allRows[0]
-    for row in allRows:
+    for iRow,row in enumerate(allRows):
         
-        relativePath = row[0]
+        relativePath = row[CSV_COL_FILENAME]
         dirName = os.path.dirname(relativePath)
         
         if not dirName in rowsByDirectory:
             rowsByDirectory[dirName] = []
             
         rowsByDirectory[dirName].append(row)
+        assert relativePath not in filenameToRow
+        filenameToRow[relativePath] = iRow
         
     print('Finished separating {} files into {} directories'.format(len(allRows),
           len(rowsByDirectory)))
     
     toReturn.rowsByDirectory = rowsByDirectory
-    
+    toReturn.filenameToRow = filenameToRow    
     
     ##%% Look for matches
     
@@ -607,7 +629,57 @@ def findSuspiciousDetections(inputCsvFilename,outputCsvFilename,options=None):
     return toReturn
 
 # ...findSuspiciousDetections()
+
+#%%    
     
+def writeRevisedCsv(suspiciousDetectionResults,options):
+    
+    # Make a copy of the input data
+    allRowsOriginal = suspiciousDetectionResults.allRows
+    allRows = copy.deepcopy(allRowsOriginal)
+    
+    #%% 
+    
+    # An array of length nDirs, where each element is a list of DetectionLocation 
+    # objects for that directory that have been flagged as suspicious
+    suspiciousDetectionsByDirectory = suspiciousDetectionResults.suspiciousDetections
+    
+    # For each suspicious detection (two loops)
+    for iDir,directoryEvents in enumerate(suspiciousDetectionsByDirectory):
+        
+        for iDetection,detectionEvent in enumerate(directoryEvents):
+                    
+            locationBbox = detectionEvent.bbox
+            
+            for iInstance,instance in enumerate(detectionEvent.instances):
+                
+                instanceBbox = instance.bbox
+                
+                # This should match the bbox for the detection event
+                iou = get_iou(instanceBbox,locationBbox)
+                assert iou > options.iouThreshold
+                
+                iDetection = instance.iDetection
+                
+                iRow = suspiciousDetectionResults.filenameToRow[instance.filename]
+                # Index into the master table
+                row = allRows[iRow]
+                rowDetections = row[CSV_COL_DETECTIONS]
+                detectionToModify = rowDetections[iDetection]
+                instanceBbox
+                # Make sure the bounding box matches
+        
+        # Make the confidence negative
+
+    # Update maximum probabilities
+    
+    # Open the output .csv
+    
+        # Write the header
+        
+        # Write the modified table                
+        
+        
 #%% Interactive driver
     
 if False:
@@ -615,7 +687,7 @@ if False:
     #%%     
     
     options = SuspiciousDetectionOptions()
-    options.bRenderHtml = True
+    options.bRenderHtml = False
     options.imageBase = r'd:\wildlife_data\tigerblobs'
     options.outputBase = r'd:\temp\suspiciousDetections'
     
@@ -625,15 +697,14 @@ if False:
     options.debugMaxRenderInstance = -1
     
     inputCsvFilename = r'D:\temp\tigers_20190308_all_output.csv'
-    outputCsvFilename = ''
+    outputCsvFilename = matlab_porting_tools.insert_before_extension(inputCsvFilename,
+                                                                    'filtered')
     
-    # def findSuspiciousDetections(inputCsvFilename,outputCsvFilename,options=None)
-    findSuspiciousDetections(inputCsvFilename,outputCsvFilename,options)
+    suspiciousDetectionResults = findSuspiciousDetections(inputCsvFilename,
+                                                          outputCsvFilename,options)
     
     
 #%% Command-line driver
-
-import argparse
 
 def main():
     
