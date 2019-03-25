@@ -5,6 +5,10 @@
 # that might be "problematic false positives", i.e. that random branch that it
 # really thinks is an animal.
 #
+# Writes out a new .csv file where "suspicious" detections have had their
+# probabilities multiplied by -1.  Optionally (and slowly) also writes an html
+# result set so you can examine what was deemed "suspicious"
+#
 # Currently the unit within which images are compared is a *directory*.
 #
 
@@ -17,6 +21,7 @@ import jsonpickle
 import warnings
 import argparse
 import copy
+import inspect
     
 from tqdm import tqdm
 from joblib import Parallel, delayed
@@ -94,6 +99,9 @@ class SuspiciousDetectionResults:
 
     # The data table, as loaded from the input .csv file 
     allRows = None
+    
+    # The data table after modification
+    allRowsFiltered = None
     
     # dict mapping folder names to whole rows from the data table
     rowsByDirectory = None
@@ -324,6 +332,10 @@ def findMatchesInDirectory(dirName,options,rowsByDirectory):
                     
                     # If so, add this example to the list for this detection
                     candidate.instances.append(instance)
+                
+                    # We *don't* break here; we allow this instance to possibly
+                    # match multiple candidates.  There isn't an obvious right or
+                    # wrong here.
                     
             # ...for each detection on our candidate list
             
@@ -448,6 +460,121 @@ def renderImagesForDirectory(iDir,directoryHtmlFiles,suspiciousDetections,option
 # ...def renderImagesForDirectory(iDir)
     
 
+#%% Update the detection table based on suspicious results, write .csv output
+    
+def updateDetectionTable(suspiciousDetectionResults,options,outputCsvFilename=None):   
+    
+    # Make a copy of the input data (this is really just for debugging, we're
+    # not doing anything further with the input data)
+    allRowsOriginal = suspiciousDetectionResults.allRows
+    allRows = copy.deepcopy(allRowsOriginal)
+    
+    # An array of length nDirs, where each element is a list of DetectionLocation 
+    # objects for that directory that have been flagged as suspicious
+    suspiciousDetectionsByDirectory = suspiciousDetectionResults.suspiciousDetections
+    
+    nBboxChanges = 0
+    
+    print('Updating output table')
+    
+    # For each suspicious detection (two loops)
+    for iDir,directoryEvents in enumerate(suspiciousDetectionsByDirectory):
+        
+        for iDetectionEvent,detectionEvent in enumerate(directoryEvents):
+            
+            locationBbox = detectionEvent.bbox
+            
+            for iInstance,instance in enumerate(detectionEvent.instances):
+                
+                instanceBbox = instance.bbox
+                
+                # This should match the bbox for the detection event
+                iou = get_iou(instanceBbox,locationBbox)
+                assert iou > options.iouThreshold                
+                
+                assert instance.filename in suspiciousDetectionResults.filenameToRow
+                iRow = suspiciousDetectionResults.filenameToRow[instance.filename]                
+                row = allRows[iRow]
+                rowDetections = row[CSV_COL_DETECTIONS]
+                detectionToModify = rowDetections[instance.iDetection]
+                
+                # Make sure the bounding box matches
+                assert(instanceBbox[0:3] == detectionToModify[0:3])
+                
+                # Make the probability negative, if it hasn't been switched by
+                # another bounding box
+                if detectionToModify[4] >= 0:
+                    detectionToModify[4] = -1 * detectionToModify[4]            
+                    nBboxChanges += 1
+                
+            # ...for each instance
+            
+        # ...for each detection
+                
+    # ...for each director        
+
+    # Update maximum probabilities
+    
+    # For each row...
+    nProbChanges = 0
+    for iRow,row in enumerate(allRows):
+        
+        detections = row[CSV_COL_DETECTIONS]
+        if len(detections) == 0:
+            continue
+        
+        maxPOriginal = float(row[CSV_COL_MAXP])
+        maxP = None
+        nNegative = 0
+        
+        for iDetection,detection in enumerate(detections):
+            p = detection[4]
+            
+            if p < 0:
+                nNegative += 1
+                
+            if (maxP is None) or (p > maxP):
+                maxP = p
+                
+        if abs(maxP - maxPOriginal) > 0.00000001:
+
+            # We should only be making detections *less* likely
+            assert maxP < maxPOriginal
+            row[CSV_COL_MAXP] = str(maxP)
+                    
+            nProbChanges += 1
+            
+            # Negative probabilities should be the only reaosn maxP changed, so
+            # we should have found at least one negative value
+            assert nNegative > 0
+            
+        # ...if there was a change to the max probability for this row
+        
+    # ...for each row
+         
+    if outputCsvFilename is not None:
+        
+        print('Writing .csv file')
+        
+        # Write the output .csv
+        with open(outputCsvFilename,'w')  as csvf:
+            
+            headerString = '#' + ','.join(options.expectedHeaders)
+            
+            # Write the header
+            csvf.write(headerString + '\n')
+            
+            for iRow,row in enumerate(allRows):
+                csvf.write('"' + row[0] + '",' + row[1] + ',"' + json.dumps(row[2]) + '"\n')
+                    
+    print('Finished updating detection table, changed {} detections that impacted {} maxPs'.format(
+            nBboxChanges,nProbChanges))        
+    
+    return allRows
+
+# ...def updateDetectionTable(suspiciousDetectionResults,options)
+        
+
 #%% Main function
     
 def findSuspiciousDetections(inputCsvFilename,outputCsvFilename,options=None):
@@ -461,8 +588,7 @@ def findSuspiciousDetections(inputCsvFilename,outputCsvFilename,options=None):
             
     ##%% Load file
     
-    # Each row is filename, max confidence, bounding box info
-    
+    # Each row is filename, max confidence, bounding box info    
     allRows = []
     
     print('Reading input file {}'.format(inputCsvFilename))
@@ -475,7 +601,7 @@ def findSuspiciousDetections(inputCsvFilename,outputCsvFilename,options=None):
             assert(len(row) == 3)
             # Parse the detection info into an array
             if iRow > 1:
-                row[CSV_COL_DETECTIONS] = json.loads(row[CSV_COL_DETECTIONS])
+                row[CSV_COL_DETECTIONS] = json.loads(row[CSV_COL_DETECTIONS])                
             allRows.append(row)
     
     # [ymin, xmin, ymax, xmax, confidence], where (xmin, ymin) is the upper-left
@@ -493,6 +619,8 @@ def findSuspiciousDetections(inputCsvFilename,outputCsvFilename,options=None):
     
     rowsByDirectory = {}    
     filenameToRow = {}
+    
+    print('Separating files into directories...')
     
     # row = allRows[0]
     for iRow,row in enumerate(allRows):
@@ -514,6 +642,8 @@ def findSuspiciousDetections(inputCsvFilename,outputCsvFilename,options=None):
     toReturn.filenameToRow = filenameToRow    
     
     ##%% Look for matches
+    
+    print('Finding similar detections...')
     
     # For each directory
         
@@ -537,6 +667,8 @@ def findSuspiciousDetections(inputCsvFilename,outputCsvFilename,options=None):
     
 
     ##%% Find suspicious locations based on match results
+
+    print('Filtering out suspicious detections...')    
     
     suspiciousDetections = [None] * len(dirsToSearch)
     
@@ -579,6 +711,8 @@ def findSuspiciousDetections(inputCsvFilename,outputCsvFilename,options=None):
         
         ##%% Render problematic locations with html (loop)
     
+        print('Rendering html')
+        
         nDirs = len(dirsToSearch)
         directoryHtmlFiles = [None] * nDirs
               
@@ -623,105 +757,13 @@ def findSuspiciousDetections(inputCsvFilename,outputCsvFilename,options=None):
 
     # ...if we're rendering html
     
-    
-    ##%% Write revised .csv output
+    toReturn.allRowsFiltered = updateDetectionTable(toReturn,options,outputCsvFilename)
     
     return toReturn
 
 # ...findSuspiciousDetections()
 
-#%%    
-    
-def writeRevisedCsv(suspiciousDetectionResults,options):
-    
-    # Make a copy of the input data
-    allRowsOriginal = suspiciousDetectionResults.allRows
-    allRows = copy.deepcopy(allRowsOriginal)
-    
-    #%% 
-    
-    # An array of length nDirs, where each element is a list of DetectionLocation 
-    # objects for that directory that have been flagged as suspicious
-    suspiciousDetectionsByDirectory = suspiciousDetectionResults.suspiciousDetections
-    
-    nBboxChanges = 0
-    
-    # For each suspicious detection (two loops)
-    for iDir,directoryEvents in enumerate(suspiciousDetectionsByDirectory):
-        
-        for iDetection,detectionEvent in enumerate(directoryEvents):
-                    
-            locationBbox = detectionEvent.bbox
-            
-            for iInstance,instance in enumerate(detectionEvent.instances):
-                
-                instanceBbox = instance.bbox
-                
-                # This should match the bbox for the detection event
-                iou = get_iou(instanceBbox,locationBbox)
-                assert iou > options.iouThreshold
-                
-                iDetection = instance.iDetection
-                
-                assert instance.filename in suspiciousDetectionResults.filenameToRow
-                iRow = suspiciousDetectionResults.filenameToRow[instance.filename]                
-                row = allRows[iRow]
-                rowDetections = row[CSV_COL_DETECTIONS]
-                detectionToModify = rowDetections[iDetection]
-                
-                # Make sure the bounding box matches
-                assert(instanceBbox == detectionToModify)
-                detectionToModify[4] = -1 * detectionToModify[4]
-                nBboxChanges += 1
-                
-            # ...for each instance
-            
-        # ...for each detection
-                
-    # ...for each director        
 
-    # Update maximum probabilities
-    
-    # For each row...
-    nProbChanges = 0
-    for iRow,row in enumerate(allRows):
-        
-        maxPOriginal = row[CSV_COL_MAXP]
-        maxP = None
-        detections = row[CSV_COL_DETECTIONS]
-        nNegative = 0
-        
-        for iDetection,detection in enumerate(detections):
-            p = detection[4]
-            
-            if p < 0:
-                nNegative += 1
-                
-            if maxP is None or p > maxP:
-                maxP = p
-        
-        row[CSV_COL_MAXP] = maxP
-        
-        if abs(maxP - maxPOriginal > 0.00000001):
-            
-            nProbChanges += 1
-            
-            # Negative probabilities should be the only reaosn maxP changed
-            assert nNegative > 0
-            
-        # ...if there was a change to the max probability for this row
-        
-    # ...for each row
-            
-    # Open the output .csv
-    
-        # Write the header
-        
-        # Write the modified table                
-        
-    return allRows
-
-        
 #%% Interactive driver
     
 if False:
@@ -748,7 +790,25 @@ if False:
     
 #%% Command-line driver
 
+# Copy all fields from a Namespace (i.e., the output from parse_args) to an object.  
+#
+# Skips fields starting with _.  Does not check existence in the target object.
+def argsToObject(args, obj):
+    for n, v in inspect.getmembers(args):
+        if not n.startswith('_'):
+            # print('Setting {} to {}'.format(n,v))
+            setattr(obj, n, v);
+
 def main():
+    
+    # With HTML (debug)
+    # python find_problematic_detections.py "D:\temp\tigers_20190308_all_output.csv" "D:\temp\tigers_20190308_all_output.filtered.csv" --renderHtml --debugMaxDir 100 --imageBase "d:\wildlife_data\tigerblobs" --outputBase "d:\temp\suspiciousDetections"
+    
+    # Without HTML (debug)
+    # python find_problematic_detections.py "D:\temp\tigers_20190308_all_output.csv" "D:\temp\tigers_20190308_all_output.filtered.csv" --debugMaxDir 100 --imageBase "d:\wildlife_data\tigerblobs" --outputBase "d:\temp\suspiciousDetections"
+    
+    # With HTML (for real)
+    # python find_problematic_detections.py "D:\temp\tigers_20190308_all_output.csv" "D:\temp\tigers_20190308_all_output.filtered.csv" --renderHtml --imageBase "d:\wildlife_data\tigerblobs" --outputBase "d:\temp\suspiciousDetections"
     
     parser = argparse.ArgumentParser()
     parser.add_argument('inputFile')
@@ -765,7 +825,7 @@ def main():
                         help='Level of parallelism for rendering or IOU computation')
     parser.add_argument('--maxSuspiciousDetectionSize',action="store", type=float, 
                         default=0.35, help='Detections larger than this fraction of image area are not considered suspicious')
-    parser.add_argument('--renderHtml', action='store', type=bool, default=False, 
+    parser.add_argument('--renderHtml', action='store_true', 
                         dest='bRenderHtml', help='Should we render HTML output?')
     
     parser.add_argument('--debugMaxDir', action='store', type=int, default=-1)                        
@@ -777,6 +837,10 @@ def main():
     parser.add_argument('--bParallelizeRendering', action='store', type=bool, default=True)
     
     args = parser.parse_args()    
+    
+    # Convert to an options object
+    options = SuspiciousDetectionOptions
+    argsToObject(args,options)
     
     findSuspiciousDetections(args.inputFile,args.outputFile,options)
 
