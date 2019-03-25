@@ -22,10 +22,10 @@ import numpy as np
 import random
 import matplotlib.ticker as ticker
 
-BASE_DIR = r'd:\temp\snapshot_serengeti_tfrecord_generation'
-annotationFile = os.path.join(BASE_DIR,'imerit_batch7_renamed_uncorrupted_filtered.json')
-outputBase = os.path.join(BASE_DIR,'imerit_batch7_filtered_bboxes')
-imageBase = os.path.join(BASE_DIR,'imerit_batch7_images_renamed')
+BASE_DIR = r'cameraTrapStuff'
+annotationFile = os.path.join(BASE_DIR,'annotations.json')
+outputBase = os.path.join(BASE_DIR,'output')
+imageBase = os.path.join(BASE_DIR,'imageBase')
 
 os.makedirs(outputBase, exist_ok=True)
 assert(os.path.isfile(annotationFile))
