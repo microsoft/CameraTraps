@@ -119,11 +119,30 @@ def generate_detections(detection_graph,images):
 
 #%% Rendering functions
 
-def render_bounding_boxes(boxes, scores, classes, inputFileNames, outputFileNames=[],
-                          confidenceThreshold=0.9):
+def render_bounding_box(box, score, classLabel, inputFileName, outputFileName=None,
+                          confidenceThreshold=0.9,linewidth=2):
     """
-    Render bounding boxes on the image files specified in [inputFileNames].  [boxes] and [scores] should be in the format
-    returned by generate_detections.
+    Convenience wrapper to apply render_bounding_boxes to a single image
+    """
+    outputFileNames = []
+    if outputFileName is not None:
+        outputFileNames = [outputFileName]
+    scores = [[score]]
+    boxes = [[box]]
+    render_bounding_boxes(boxes,scores,[classLabel],[inputFileName],outputFileNames,
+                          confidenceThreshold,linewidth)
+
+def render_bounding_boxes(boxes, scores, classes, inputFileNames, outputFileNames=[],
+                          confidenceThreshold=0.9,linewidth=2):
+    """
+    Render bounding boxes on the image files specified in [inputFileNames].  
+    
+    [boxes] and [scores] should be in the format returned by generate_detections, 
+    specifically [top, left, bottom, right] in normalized units, where the
+    origin is the upper-left.    
+    
+    "classes" is currently unused, it's a placeholder for adding text annotations
+    later.
     """
 
     nImages = len(inputFileNames)
@@ -180,7 +199,8 @@ def render_bounding_boxes(boxes, scores, classes, inputFileNames, outputFileName
             # Origin is the upper-left
             iLeft = x
             iBottom = y
-            rect = patches.Rectangle((iLeft,iBottom),w,h,linewidth=2,edgecolor='r',facecolor='none')
+            rect = patches.Rectangle((iLeft,iBottom),w,h,linewidth=linewidth,edgecolor='r',
+                                     facecolor='none')
             
             # Add the patch to the Axes
             ax.add_patch(rect)        
@@ -188,7 +208,8 @@ def render_bounding_boxes(boxes, scores, classes, inputFileNames, outputFileName
         # ...for each box
 
         # This is magic goop that removes whitespace around image plots (sort of)        
-        plt.subplots_adjust(top = 1, bottom = 0, right = 1, left = 0, hspace = 0, wspace = 0)
+        plt.subplots_adjust(top = 1, bottom = 0, right = 1, left = 0, hspace = 0, 
+                            wspace = 0)
         plt.margins(0,0)
         ax.xaxis.set_major_locator(ticker.NullLocator())
         ax.yaxis.set_major_locator(ticker.NullLocator())
@@ -198,6 +219,7 @@ def render_bounding_boxes(boxes, scores, classes, inputFileNames, outputFileName
 
         # plt.savefig(outputFileName, bbox_inches='tight', pad_inches=0.0, dpi=dpi, transparent=True)
         plt.savefig(outputFileName, dpi=dpi, transparent=True)
+        plt.close()
         # os.startfile(outputFileName)
 
     # ...for each image
