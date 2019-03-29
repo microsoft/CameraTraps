@@ -32,6 +32,8 @@ Here's a "teaser" image of what detector output looks like:
 
 ![alt text](images/detector_example.jpg "Red bounding box on fox")
 
+Image credit University of Washington.
+
 # Contact
 
 For questions about this repo, contact [cameratraps@microsoft.com](mailto:cameratraps@microsoft.com).
