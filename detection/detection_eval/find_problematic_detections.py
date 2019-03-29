@@ -517,6 +517,9 @@ def updateDetectionTable(suspiciousDetectionResults,options,outputCsvFilename=No
     
     # For each row...
     nProbChanges = 0
+    nProbChangesToNegative = 0
+    nProbChangesAcrossThreshold = 0
+    
     for iRow,row in enumerate(allRows):
         
         detections = row[CSV_COL_DETECTIONS]
@@ -524,6 +527,8 @@ def updateDetectionTable(suspiciousDetectionResults,options,outputCsvFilename=No
             continue
         
         maxPOriginal = float(row[CSV_COL_MAXP])
+        assert maxPOriginal >= 0
+        
         maxP = None
         nNegative = 0
         
@@ -543,6 +548,14 @@ def updateDetectionTable(suspiciousDetectionResults,options,outputCsvFilename=No
             row[CSV_COL_MAXP] = str(maxP)
                     
             nProbChanges += 1
+            
+            if maxP < 0:
+                
+                nProbChangesToNegative += 1
+            
+            if maxPOriginal >= options.confidenceThreshold and maxP < options.confidenceThreshold:
+                
+                nProbChangesAcrossThreshold += 1
             
             # Negative probabilities should be the only reaosn maxP changed, so
             # we should have found at least one negative value
@@ -567,8 +580,8 @@ def updateDetectionTable(suspiciousDetectionResults,options,outputCsvFilename=No
             for iRow,row in enumerate(allRows):
                 csvf.write('"' + row[0] + '",' + row[1] + ',"' + json.dumps(row[2]) + '"\n')
                     
-    print('Finished updating detection table, changed {} detections that impacted {} maxPs'.format(
-            nBboxChanges,nProbChanges))        
+    print('Finished updating detection table, changed {} detections that impacted {} maxPs ({} to negative) ({} across confidence threshold)'.format(
+            nBboxChanges,nProbChanges,nProbChangesToNegative,nProbChangesAcrossThreshold))        
     
     return allRows
 
