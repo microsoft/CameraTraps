@@ -28,6 +28,11 @@ This repo does not extensively host models, though we will release models when t
 
 Speaking of models that might be useful to other people, we have trained a one-class animal detector trained on several hundred thousand bounding boxes from a variety of ecosystems.  The model is trained with the TensorFlow Object Detection API; it can be downloaded [here](https://lilablobssc.blob.core.windows.net/models/camera_traps/megadetector/megadetector_v2.pb) (.pb).  We use this as our first stage for classifier training and inference.  An example script for invoking this detector on new images can be found [here](https://github.com/Microsoft/CameraTraps/blob/master/detection/run_tf_detector.py).  Let us know how it works on your images!
 
+Here's a "teaser" image of what detector output looks like:
+
+![alt text](images/detector_example.jpg "Red bounding box on fox")
+
+Image credit University of Washington.
 
 # Contact
 
@@ -74,7 +79,7 @@ Random things that don't fit in any other directory.  Currently contains a singl
 
 # Gratuitous pretty camera trap picture
 
-![alt text](http://lila.science/wp-content/uploads/2018/10/IMG_1881_web.jpg "Bird flying above water")
+![alt text](images/nacti.jpg "Bird flying above water")
 
 Image credit USDA, from the [NACTI](http://lila.science/datasets/nacti) data set.
 
