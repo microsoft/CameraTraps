@@ -572,7 +572,9 @@ def updateDetectionTable(suspiciousDetectionResults,options,outputCsvFilename=No
         # Write the output .csv
         with open(outputCsvFilename,'w')  as csvf:
             
-            headerString = '#' + ','.join(options.expectedHeaders)
+            # Likely to get read in pandas, don't use '#'
+            # headerString = '#' + ','.join(options.expectedHeaders)
+            headerString = ','.join(options.expectedHeaders)
             
             # Write the header
             csvf.write(headerString + '\n')
@@ -580,7 +582,7 @@ def updateDetectionTable(suspiciousDetectionResults,options,outputCsvFilename=No
             for iRow,row in enumerate(allRows):
                 csvf.write('"' + row[0] + '",' + row[1] + ',"' + json.dumps(row[2]) + '"\n')
                     
-    print('Finished updating detection table, changed {} detections that impacted {} maxPs ({} to negative) ({} across confidence threshold)'.format(
+    print('Finished updating detection table\nChanged {} detections that impacted {} maxPs ({} to negative) ({} across confidence threshold)'.format(
             nBboxChanges,nProbChanges,nProbChangesToNegative,nProbChangesAcrossThreshold))        
     
     return allRows
@@ -715,7 +717,7 @@ def findSuspiciousDetections(inputCsvFilename,outputCsvFilename,options=None):
         
         suspiciousDetections[iDir] = suspiciousDetectionsThisDir
     
-    print('Finished searching for problematic detections, found {} unique detections on {} images that are suspicious'.format(
+    print('Finished searching for problematic detections\nFound {} unique detections on {} images that are suspicious'.format(
       nSuspiciousDetections,nImagesWithSuspiciousDetections))    
     
     toReturn.suspiciousDetections = suspiciousDetections
@@ -807,6 +809,7 @@ if False:
 #
 # Skips fields starting with _.  Does not check existence in the target object.
 def argsToObject(args, obj):
+    
     for n, v in inspect.getmembers(args):
         if not n.startswith('_'):
             # print('Setting {} to {}'.format(n,v))
