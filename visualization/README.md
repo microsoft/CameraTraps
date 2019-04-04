@@ -1,6 +1,6 @@
 # Visualization tools
 
-This directory contains some stand-alone Python utility scripts that you can use to visualize the output files from our animal detector (and soon our classifier too).
+This directory contains some stand-alone Python utility scripts that you can use to visualize various incoming and predicted labels on images. 
 
 
 ## Environment setup
@@ -24,23 +24,32 @@ Once the environment is created, activate it using `conda activate cameratrap`. 
 To exit the conda environment, issue `conda deactivate cameratrap`.
 
 
-## Visualize detector outputs
+## Visualize detector output
 
-`visualize_detector_output.py` draws the bounding boxes with their confidence level annotated in red on top of the original images, and saves the annotated images to another directory. The original images can be in a local directory or in Azure Blob Storage. 
+`visualize_detector_output.py` draws the bounding boxes in red with their confidence level annotated on top of the original images, and saves the annotated images to another directory. The original images can be in a local directory or in Azure Blob Storage. 
 
 Please see the top of `visualize_detector_output.py` for the arguments it requires. You can also change the size of the output image by changing the `viz_size` variable found there.
 
-- If you are not running this on the computer with the original images, the script can download them from Azure Blob Storage using a SAS key to the container (supplied as the `--sas_url` argument). This will take about 1.5 seconds per image, depending on your location and network speed. The SAS key looks like
+- If you are not running this on the computer with the original images, the script can download them from Azure Blob Storage using a SAS key to the container (supplied as the `--sas_url` argument). It takes about 1.5 seconds per image, depending on your location and network speed. The SAS key looks like
 
 ```
-https://storageaccountname.blob.core.windows.net/containername?se=2019-04-06T23%3A38%3A00Z&sp=rl&sv=2018-03-28&sr=c&sig=A_LONG_STRING'
+https://storageaccountname.blob.core.windows.net/container-name?se=2019-04-06T23%3A38%3A00Z&sp=rl&sv=2018-03-28&sr=c&sig=A_LONG_STRING
 ```
 
 - You can choose to render a sample of `n` images by supplying the `--sample` argument.
 
-Example invocation of the script:
-```python
-
+Example invocation of the script, images stored locally:
+```
+python visualize_detector_output.py path_to/all_output.csv rendered_images_dir --confidence 0.9 --images_dir path_to_root_dir_of_original_images 
 ```
 
-If you encounter an error where it complains about not finding the module `visualization_utils`, you need to append `visualization` to your `PYTHONPATH`.
+Another example, for images stored in the cloud and drawing a sample of 20 images:
+```
+python visualize_detector_output.py path_to/all_output.csv rendered_images_dir --confidence 0.9 --sas_url https://storageaccountname.blob.core.windows.net/container-name?se=2019-04-06T23%3A38%3A00Z&sp=rl&sv=2018-03-28&sr=c&sig=A_LONG_STRING 
+```
+
+If you encounter an error where it complains about not finding the module `visualization_utils`, you need to append the absolute path to the current directory `visualization` to your `PYTHONPATH`. At your terminal or command line:
+
+```
+export PYTHONPATH=$PYTHONPATH:/absolute_path/CameraTraps/visualization
+```
