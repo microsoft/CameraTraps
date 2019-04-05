@@ -326,10 +326,10 @@ with graph.as_default():
       for box_id in range(selected_boxes.shape[0]):
         # bbox is the detected box, crop_box the padded / enlarged box
         bbox, crop_box = selected_boxes[box_id], crop_boxes[box_id]
-        if INAT_OUTPUT_DIR:
+        if COCO_OUTPUT_DIR:
           # The absolute file path where we will store the image
           # Only used if an iNat style dataset is created
-          out_file = os.path.join(INAT_OUTPUT_DIR, new_file_name)
+          out_file = os.path.join(COCO_OUTPUT_DIR, new_file_name)
           # Add numbering to the original file name if there are multiple boxes
           if selected_boxes.shape[0] > 1:
             out_base, out_ext = os.path.splitext(out_file)
