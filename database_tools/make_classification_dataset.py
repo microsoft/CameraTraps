@@ -251,7 +251,7 @@ with graph.as_default():
       # Path to the input image
       in_file = os.path.join(IMAGE_DIR, cur_file_name)
       # Skip the image if it is annotated with more than one category
-      if len(set([ann['category_id'] for ann in coco.imgToAnns[cur_image['id']]])) not 1:
+      if len(set([ann['category_id'] for ann in coco.imgToAnns[cur_image['id']]])) != 1:
         continue
       # Get category ID for this image
       cur_cat_id = coco.imgToAnns[cur_image['id']][0]['category_id']
