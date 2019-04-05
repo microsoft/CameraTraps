@@ -1,8 +1,7 @@
 #
-# create_tfrecords_from_iNat.py
+# create_tfrecords_from_coco.py
 #
-# This script creates a tfrecords file from a classification dataset, which uses the iNat
-# competition dataset format. 
+# This script creates a tfrecords file from a classification dataset in COCO format.
 
 #%% Imports and environment
 
@@ -82,15 +81,15 @@ def create_tfrecords_format(dataset_root, annotation_filename, output_tfrecords_
 
 #%% Driver
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description = 'Make tfrecords from a iNat style classification dataset.')
+    parser = argparse.ArgumentParser(description = 'Make tfrecords from a COCO-style classification dataset.')
     parser.add_argument('--data_root', required=True,
-                         type=str, metavar='DATASET_ROOT', help='Path to the root directory of the iNat dataset.')
+                         type=str, metavar='DATASET_ROOT', help='Path to the root directory of the dataset.')
     parser.add_argument('--train_file', default='trainval2017.json',
                         type=str, metavar='TRAIN_FILE', help='Name of the json file containing the training annotation ' + \
-                        '(default: trainval2017.json). Should be located within the iNat directory.')
+                        '(default: trainval2017.json). Should be located within the data directory.')
     parser.add_argument('--val_file', default='minival2017.json',
                         type=str, metavar='VAL_FILE', help='Name of the json file containing the validation annotation ' + \
-                        '(default: minival2017.json). Should be located within the iNat directory.')
+                        '(default: minival2017.json). Should be located within the data directory.')
     parser.add_argument('--output_tfrecords_folder', dest='output_tfrecords_folder',
                          help='Path to folder to save tfrecords in',
                          type=str, required=True)

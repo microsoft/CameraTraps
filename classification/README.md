@@ -1,19 +1,24 @@
-# Training a camera trap species classifier
-This repository contains a set of scripts for 
+# Species classification training
+
+This directory contains a set of scripts for:
+
 - Detecting animals in camera trap images with image-level annotations
 - Cropping the detected animals, associating the image-level annotation with the crop
-- Collecting all the cropped images as iNaturalist-style dataset or as TFRecords
-- Training an image classifier on the collected data using Tensorflow's slim library
+- Collecting all the cropped images as a COCO Camera Traps dataset or as TFRecords
+- Training an image classifier on the collected data using TensorFlow's slim library
+
 
 ## Preparing datasets
+
 The scripts need a dataset with image-level class annotations in Microsoft COCO format. We do not need or use bounding box annotations as the 
 purpose of the scripts is to locate the animals using a detector.
-Please refer to for http://lila.science/faq#dataformats for the specifications and to https://patrickwasp.com/create-your-own-coco-style-dataset/ 
-for a library, which might make the creation easier. 
+Please refer to [this page](http://lila.science/faq#dataformats) for format specifications.   [This library](https://patrickwasp.com/create-your-own-coco-style-dataset/)
+facilitates the creation of COCO-style data sets. 
 
-You can check out the dataset at http://lila.science for examples. In addition to the standard format, we usually split the camera-trap datasets
+You can check out [http://lila.science](lila.science) for example data sets. In addition to the standard format, we usually split the camera trap datasets
 by locations, i.e. into training and testing locations. Hence it is advisable to have a field in your image annotation specifying the location 
 as string or integer. This could look like:
+
     image{
       "id" : int, 
       "width" : int, 
@@ -21,34 +26,44 @@ as string or integer. This could look like:
       "file_name" : str, 
       "location": str
     }
-The corresponding category annotation might should contain at least
+    
+The corresponding category annotation should contain at least
+
     annotation{
       "id" : int, 
       "image_id" : int, 
       "category_id" : int
     }
 
-## Prepare environment
+    
+## Preparing your environment
+
 The scripts use the following libraries:
-- Tensorflow
-- Tensorflow object detection API (TFODAPI) `https://github.com/tensorflow/models/tree/master/research/object_detection`
+- TensorFlow
+- TensorFlow object detection API
 - pycocotools
 
-All these dependencies should be satisfied if you follow the installation instructions of TFODAPI at `https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/installation.md`. You can also conda for Tensorflow and pycocotools:
+All these dependencies should be satisfied if you follow the installation instructions for the [TFODAPI](https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/installation.md). You can also use conda for TensorFlow and pycocotools:
+
      conda install tensorflow-gpu
      conda install -c conda-forge pycocotools
+     
 However, you still need to follow the remaining parts of the TFODAPI installation. In particular, keep in mind that you always need to add 
-relevant paths to your PYTHONPATH variable using
+relevant paths to your PYTHONPATH variable using:
+
     # From tensorflow/models/research/
     export PYTHONPATH=$PYTHONPATH:`pwd`:`pwd`/slim
-before running any of the scripts. 
+    
+...before running any of the scripts. 
 
-# Animal detection and cropping
+
+## Animal detection and cropping
+
 The detection, cropping, and dataset generation is done in `database_tools/make_classification_dataset.py`. You can run 
-`python make_classification_dataset.py -h` for a description of all required parameters:
+`python make_classification_dataset.py -h` for a description of all required parameters.
 
     usage: make_classification_dataset.py [-h]
-                                          [--inat_style_output INAT_STYLE_OUTPUT]
+                                          [--coco_style_output COCO_STYLE_OUTPUT]
                                           [--tfrecords_output TFRECORDS_OUTPUT]
                                           [--location_key location]
                                           [--exclude_categories EXCLUDE_CATEGORIES [EXCLUDE_CATEGORIES ...]]
@@ -67,22 +82,21 @@ The detection, cropping, and dataset generation is done in `database_tools/make_
 
     optional arguments:
       -h, --help            show this help message and exit
-      --inat_style_output INAT_STYLE_OUTPUT
-                            Output directory for a dataset in iNaturalist
-                            competition format.
+      --coco_style_output COCO_STYLE_OUTPUT
+                            Output directory for a dataset in COCO format.
       --tfrecords_output TFRECORDS_OUTPUT
                             Output directory for a dataset in TFRecords format.
       --location_key location
                             Key in the image-level annotations that specifies the
                             splitting criteria. Usually we split camera-trap
                             datasets by locations, i.e. training and testing
-                            locations. In this case, you probably wnat to pass
+                            locations. In this case, you probably want to pass
                             something like `--location_key location`. The script
                             prints the annotation of a randomly selected image
                             which you can use for reference.
       --exclude_categories EXCLUDE_CATEGORIES [EXCLUDE_CATEGORIES ...]
                             Categories to ignore. We will not run detection on
-                            images of that categorie and will not use them for the
+                            images of that category and will not use them for the
                             classification dataset.
       --use_detection_file USE_DETECTION_FILE
                             Uses existing detections from a file generated by this
@@ -99,18 +113,19 @@ The detection, cropping, and dataset generation is done in `database_tools/make_
       --ims_per_record IMS_PER_RECORD
                             Number of images to store in each tfrecord file
 
+                            
 A typical command will look like:
     python make_classification_dataset.py \
             /path/to/dataset.json \
             /path/to/image/root/ \
             /path/to/frozen/detection/graph.pb \
-            --inat_style_output /path/to/inatstyle/output/ \
+            --coco_style_output /path/to/cocostyle/output/ \
             --tfrecords_output /path/to/tfrecords/output/ \
             --location_key location \
             --exclude_categories human empty
 
-It is generally advisable to generate both the iNat-style and TFRecords output, as the former allows to check the
-detection results while the latter is used for classification training. The iNat-style output folder will also contain a 
+It is generally advisable to generate both the COCO-style and TFRecords output, as the former allows to check the
+detection results while the latter is used for classification training. The COCO-style output folder will also contain a 
 file called `detections_final.pkl`, which will be used to store the complete detection output of all images. This file 
 can be used as input to the `make_classification_dataset.py` script, which makes sense if you added new images to the 
 dataset and want to re-use all the detection you have already. Images without any entry in the `detections_final.pkl`
@@ -130,7 +145,7 @@ with two or more detections.
 The file `database_tools/cropped_camera_trap_dataset_statistics.py` can be used to get some statistics about the generated
 datasets, in particular the number of images and classes. This information will be required later on. The input is 
 the original json file of the camera-trap dataset as well as the `train.json` and `test.json` files, which are located
-in the generated iNat-style output folder. 
+in the generated COCO-style output folder. 
 
 The usage of the script is as follows:
 
@@ -159,8 +174,8 @@ The usage of the script is as follows:
 This prints all statistics to stdout. You can save the output by redirecting it to a file:
     python cropped_camera_trap_dataset_statistics.py \
         /path/to/dataset.json \
-        /path/to/inatstyle/output/train.json \
-        /path/to/inatstyle/output/test.json \
+        /path/to/cocostyle/output/train.json \
+        /path/to/cocostyle/output/test.json \
         > stats.txt
 
 It is also useful to save the list of classes, which allows for associating the output of the classification CNN later with
