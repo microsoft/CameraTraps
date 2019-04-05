@@ -118,7 +118,10 @@ def do_chunk(pid,model,filelist):
           print("%s,%.6f,%.6f,%.6f,%.6f,%.6f"%(imagename,s,b[0],b[1],b[2],b[3]),file=out) 
     out.flush()
   out.close()
+
+
 #%% Test driver
+  
 MODEL_FILE = r'mnt/models/object_detection/faster_rcnn_inception_resnet_v2_atrous/train_on_eccv_18_and_imerit_2/frozen_inference_graph.pb'
 allfiles=[]
 subfolders= glob.glob('/datadrive0/dataD/snapshot/S3/')
@@ -128,6 +131,7 @@ for subf in subfolders:
     for f in files:
       if f.endswith(".JPG") or f.endswith(".jpg"):
         allfiles.append(os.path.join(path,f))
+        
 # Load and run detector on target images
 print(len(allfiles))
 total_records=len(allfiles)
