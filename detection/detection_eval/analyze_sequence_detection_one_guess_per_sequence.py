@@ -14,6 +14,7 @@ det_folder = '/ai4efs/models/object_detection/faster_rcnn_inception_resnet_v2_at
 db_file = '/ai4efs/databases/caltechcameratraps/CaltechCameraTrapsFullAnnotations.json'
 
 def get_im_to_seq_map(db_file):
+    
     with open(db_file,'r') as f:
         data = json.load(f)
     im_to_seq = {}
