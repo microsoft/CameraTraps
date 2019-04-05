@@ -1,6 +1,6 @@
-# overview
+# Overview
 
-This folder started from the visipedia tfrecords repo, but has changed significantly.  The following files are inherited:
+This folder started from the [Visipedia tfrecords repo](https://github.com/visipedia/tfrecords), but has changed significantly.  The following files are inherited:
 
 * `create_tfrecords.py` (was significant adapted, but generally corresponds to create_tfrecords.py in the original repo)
 * `iterate_tfrecords.py` (changed slightly from the original repo)
@@ -14,9 +14,11 @@ Two top-level entry points:
 
 
 # tfrecords
+
 Convenience functions to create tfrecords that can be used with classification, detection and keypoint localization systems. The [create_tfrecords.py](create_tfrecords.py) file will help create the correct tfrecords to feed into those systems. 
 
 There are configuration parameters that dictate whether to store the raw images in the tfrecords or not (`store_images=True` in `create_tfrecords.create` method or `--store_images` when calling `create_tfrecords.py` from the command line). If you choose not to store the raw images in the tfrecords, then you should be mindful that the `filename` field needs to be a valid path on the system where you will be processing the tfrecords. Also, if those images are too big, you may find that your input pipelines for your model struggle to fill the input queues. Resizing images to 800px seems to work well.  
+
 
 # Inputs
 

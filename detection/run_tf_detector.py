@@ -3,11 +3,17 @@
 # run_tf_detector.py
 #
 # Functions to load a TensorFlow detection model, run inference,
-# and render bounding boxes on images.
+# render bounding boxes on images, and write out the resulting
+# images (with bounding boxes).
 #
 # See the "test driver" cell for example invocation.
 #
+# It's clearly icky that if you give it blah.jpg, it writes the results to 
+# blah.detections.jpg, but I'm defending this with the "just a demo script"
+# argument.
+#
 ######
+
 
 #%% Constants, imports, environment
 
@@ -16,6 +22,7 @@ import numpy as np
 import humanfriendly
 import time
 import matplotlib
+import glob
 matplotlib.use('TkAgg')
 
 import matplotlib.image as mpimg
@@ -79,8 +86,11 @@ def generate_detections(detection_graph,images):
     nImages = len(images)
 
     with detection_graph.as_default():
+        
         with tf.Session(graph=detection_graph) as sess:
+            
             for iImage,imageNP in enumerate(images):                
+                
                 print('Processing image {} of {}'.format(iImage,nImages))
                 imageNP_expanded = np.expand_dims(imageNP, axis=0)
                 image_tensor = detection_graph.get_tensor_by_name('image_tensor:0')
@@ -97,7 +107,9 @@ def generate_detections(detection_graph,images):
                 boxes.append(box)
                 scores.append(score)
                 classes.append(clss)
-                
+            
+            # ...for each image                
+            
     boxes = np.squeeze(np.array(boxes))
     scores = np.squeeze(np.array(scores))
     classes = np.squeeze(np.array(classes)).astype(int)
@@ -107,10 +119,30 @@ def generate_detections(detection_graph,images):
 
 #%% Rendering functions
 
-def render_bounding_boxes(boxes,scores,classes,inputFileNames,outputFileNames=[],confidenceThreshold=0.9):
+def render_bounding_box(box, score, classLabel, inputFileName, outputFileName=None,
+                          confidenceThreshold=0.9,linewidth=2):
     """
-    Render bounding boxes on the image files specified in [inputFileNames].  [boxes] and [scores] should be in the format
-    returned by generate_detections.
+    Convenience wrapper to apply render_bounding_boxes to a single image
+    """
+    outputFileNames = []
+    if outputFileName is not None:
+        outputFileNames = [outputFileName]
+    scores = [[score]]
+    boxes = [[box]]
+    render_bounding_boxes(boxes,scores,[classLabel],[inputFileName],outputFileNames,
+                          confidenceThreshold,linewidth)
+
+def render_bounding_boxes(boxes, scores, classes, inputFileNames, outputFileNames=[],
+                          confidenceThreshold=0.9,linewidth=2):
+    """
+    Render bounding boxes on the image files specified in [inputFileNames].  
+    
+    [boxes] and [scores] should be in the format returned by generate_detections, 
+    specifically [top, left, bottom, right] in normalized units, where the
+    origin is the upper-left.    
+    
+    "classes" is currently unused, it's a placeholder for adding text annotations
+    later.
     """
 
     nImages = len(inputFileNames)
@@ -135,7 +167,7 @@ def render_bounding_boxes(boxes,scores,classes,inputFileNames,outputFileNames=[]
         s = image.shape; imageHeight = s[0]; imageWidth = s[1]
         figsize = imageWidth / float(dpi), imageHeight / float(dpi)
 
-        fig = plt.figure(figsize=figsize)
+        plt.figure(figsize=figsize)
         ax = plt.axes([0,0,1,1])
         
         # Display the image
@@ -167,7 +199,8 @@ def render_bounding_boxes(boxes,scores,classes,inputFileNames,outputFileNames=[]
             # Origin is the upper-left
             iLeft = x
             iBottom = y
-            rect = patches.Rectangle((iLeft,iBottom),w,h,linewidth=2,edgecolor='r',facecolor='none')
+            rect = patches.Rectangle((iLeft,iBottom),w,h,linewidth=linewidth,edgecolor='r',
+                                     facecolor='none')
             
             # Add the patch to the Axes
             ax.add_patch(rect)        
@@ -175,7 +208,8 @@ def render_bounding_boxes(boxes,scores,classes,inputFileNames,outputFileNames=[]
         # ...for each box
 
         # This is magic goop that removes whitespace around image plots (sort of)        
-        plt.subplots_adjust(top = 1, bottom = 0, right = 1, left = 0, hspace = 0, wspace = 0)
+        plt.subplots_adjust(top = 1, bottom = 0, right = 1, left = 0, hspace = 0, 
+                            wspace = 0)
         plt.margins(0,0)
         ax.xaxis.set_major_locator(ticker.NullLocator())
         ax.yaxis.set_major_locator(ticker.NullLocator())
@@ -185,6 +219,7 @@ def render_bounding_boxes(boxes,scores,classes,inputFileNames,outputFileNames=[]
 
         # plt.savefig(outputFileName, bbox_inches='tight', pad_inches=0.0, dpi=dpi, transparent=True)
         plt.savefig(outputFileName, dpi=dpi, transparent=True)
+        plt.close()
         # os.startfile(outputFileName)
 
     # ...for each image
@@ -192,25 +227,72 @@ def render_bounding_boxes(boxes,scores,classes,inputFileNames,outputFileNames=[]
 # ...def render_bounding_boxes
 
 
-#%% Test driver
+def load_and_run_detector(modelFile, imageFileNames, confidenceThreshold=0.85):
+    
+    # Load and run detector on target images
+    detection_graph = load_model(modelFile)
+    
+    startTime = time.time()
+    boxes,scores,classes,images = generate_detections(detection_graph,imageFileNames)
+    elapsed = time.time() - startTime
+    print("Done running detector on {} files in {}".format(len(images),
+          humanfriendly.format_timespan(elapsed)))
+    
+    assert len(boxes) == len(imageFileNames)
+    
+    outputFileNames = []
+    
+    plt.ioff()
+    
+    render_bounding_boxes(boxes=boxes, scores=scores, classes=classes, 
+                          inputFileNames=imageFileNames, outputFileNames=outputFileNames,
+                          confidenceThreshold=confidenceThreshold)
 
-MODEL_FILE = r'd:\temp\models\frozen_inference_graph.pb'
-TARGET_IMAGES = [r'd:\temp\test_images\d16558s6i1.jpg',r'D:\temp\test_images\d16558s1i6.jpg']
 
-# Load and run detector on target images
-detection_graph = load_model(MODEL_FILE)
+#%% Interactive driver
 
-startTime = time.time()
-boxes,scores,classes,images = generate_detections(detection_graph,TARGET_IMAGES)
-elapsed = time.time() - startTime
-print("Done running detector on {} files in {}".format(len(images),humanfriendly.format_timespan(elapsed)))
+if False:
+    
+    #%%
+    
+    modelFile = r'D:\temp\models\object_detection\megadetector\megadetector_v2.pb'
+    imageDir = r'D:\temp\demo_images\b2'    
+    imageFileNames = [fn for fn in glob.glob(os.path.join(imageDir,'*.jpg'))
+         if (not 'detections' in fn)]
+    
+    load_and_run_detector(modelFile,imageFileNames)
+    
+    
+#%% Command-line driver
+    
+import argparse
 
-assert len(boxes) == len(TARGET_IMAGES)
+def main():
+    
+    # python run_tf_detector.py "D:\temp\models\object_detection\megadetector\megadetector_v2.pb" --imageDir "D:\temp\demo_images\b2"
+    
+    parser = argparse.ArgumentParser()
+    parser.add_argument('detectorFile', type=str)
+    parser.add_argument('--imageDir', action="store", type=str, default='')
+    parser.add_argument('--imageFile', action="store", type=str, default='')
+    parser.add_argument('--threshold', action="store", type=float, default=0.85)
+    
+    args = parser.parse_args()    
+    
+    if len(args.imageFile) > 0 and len(args.imageDir) > 0:
+        raise Exception('Cannot specify both image file and image dir')
+    elif len(args.imageFile) > 0:
+        imageFileNames = [args.imageFile]
+    else:
+        imageFileNames = [fn for fn in glob.glob(os.path.join(args.imageDir,'*.jpg')) 
+            if (not 'detections' in fn)]
+                
+    print('Running detector on {} images'.format(len(imageFileNames)))    
+    
+    load_and_run_detector(modelFile=args.detectorFile, imageFileNames=imageFileNames, 
+                          confidenceThreshold=args.threshold)
+    
 
-inputFileNames = TARGET_IMAGES
-outputFileNames=[]
-confidenceThreshold=0.9
-
-plt.ioff()
-
-render_bounding_boxes(boxes, scores, classes, TARGET_IMAGES)
+if __name__ == '__main__':
+    
+    main()
