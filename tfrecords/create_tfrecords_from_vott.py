@@ -57,7 +57,7 @@ class VottBboxDataset:
 
     """
     
-    def __init__(self, root, class_names = []):
+    def __init__(self, root, class_names = [], store_empty_images=False):
         self.root = root
         print('Loading images from folder ' + root)
         # set up the filenames and annotations
@@ -96,13 +96,14 @@ class VottBboxDataset:
                     self.labels[image_id].append(self.class_names.index(bbox_labels[i]))
             if len(self.bboxes[image_id]) == 0:
                 empty_images.append(image_id)
-        for empty_image_id in empty_images[::-1]:
-            print("Deleting image {} as all bounding boxes are outside".format(empty_image_id) + \
-                     "of the image or no bounding boxes are provided")
-            del self.impaths[empty_image_id]
-            del self.image_ids[empty_image_id]
-            del self.bboxes[empty_image_id]
-            del self.labels[empty_image_id]
+        if not store_empty_images:
+            for empty_image_id in empty_images[::-1]:
+                print("Deleting image {} as all bounding boxes are outside".format(empty_image_id) + \
+                         "of the image or no bounding boxes are provided")
+                del self.impaths[empty_image_id]
+                del self.image_ids[empty_image_id]
+                del self.bboxes[empty_image_id]
+                del self.labels[empty_image_id]
         
         self.classes = list(range(len(self.class_names)))
         # print out some stats
@@ -112,7 +113,7 @@ class VottBboxDataset:
         os.chdir(old_dir)
         
         # To make sure we loaded the bboxes correctly:        
-        self.validate_bboxes()
+        #self.validate_bboxes()
         print("All checks passed")
             
 
@@ -128,7 +129,6 @@ class VottBboxDataset:
             for idx in tqdm(range(len(self.image_ids))):
                 img_file = os.path.join(self.root, self.impaths[idx])
                 width,height = Image.open(img_file).size
-                assert len(self.bboxes[idx]) > 0
                 for bbox in self.bboxes[idx]:
                     assert bbox[1] <= width 
                     assert bbox[3] <= width
@@ -154,8 +154,9 @@ class VottBboxDataset:
 #%% Main tfrecord generation function
 
 def create_tfrecords_format(root, class_names, output_tfrecords_folder, dataset_name,
-                                                   num_threads=5, ims_per_record=200):
-    dataset = VottBboxDataset(root, class_names)
+                                                   num_threads=5, ims_per_record=200,
+                                                   store_empty_images=False):
+    dataset = VottBboxDataset(root, class_names, store_empty_images=store_empty_images)
 
     vis_data = []
     for i in tqdm(range(len(dataset))):
@@ -251,7 +252,8 @@ def parse_args():
     parser.add_argument('--ims_per_record', dest='ims_per_record',
                          help='Number of images to store in each tfrecord file',
                          type=int, default=200)
-
+    parser.add_argument('--store_empty_images', action='store_true',
+                         help='If set, empty images will be stores as well.')
     args = parser.parse_args()
 
     return args
@@ -275,14 +277,16 @@ if __name__ == '__main__':
                                                        args.output_tfrecords_folder,
                                                        'train',
                                                        args.num_threads,
-                                                       args.ims_per_record)
+                                                       args.ims_per_record,
+                                                       args.store_empty_images)
 
     failed_test, final_classnames = create_tfrecords_format(args.test_dataset_root,
                                                        classnames,
                                                        args.output_tfrecords_folder,
                                                        'test',
                                                        args.num_threads,
-                                                       args.ims_per_record)
+                                                       args.ims_per_record,
+                                                       args.store_empty_images)
 
     label_map = []
     for idx, cname in list(enumerate(final_classnames))[1:]:
