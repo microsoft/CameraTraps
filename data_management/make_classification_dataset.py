@@ -250,7 +250,10 @@ with graph.as_default():
       cur_file_name = cur_image['file_name']
       # Path to the input image
       in_file = os.path.join(IMAGE_DIR, cur_file_name)
-      # Category ID from the original dataset
+      # Skip the image if it is annotated with more than one category
+      if len(set([ann['category_id'] for ann in coco.imgToAnns[cur_image['id']]])) not 1:
+        continue
+      # Get category ID for this image
       cur_cat_id = coco.imgToAnns[cur_image['id']][0]['category_id']
       # ... and the corresponding category name
       cur_cat_name = cat_id_to_names[cur_cat_id]
@@ -271,8 +274,10 @@ with graph.as_default():
       if cur_cat_name in EXCLUDED_CATEGORIES:
         continue
 
+      # If we already have detection results, we can use them
       if cur_image_id in detections.keys():
         output_dict = detections[cur_image_id]
+      # Otherwise run detector
       else:
         # We allow to skip images, which we do not have available right now
         # This is useful for processing parts of large datasets
@@ -316,12 +321,34 @@ with graph.as_default():
       offsets = (PADDING_FACTOR * np.max(bbox_sizes, axis=1, keepdims=True) - bbox_sizes) / 2
       crop_boxes = selected_boxes + np.hstack([-offsets,offsets])
       crop_boxes = np.maximum(0,crop_boxes).astype(int)
-      # We only use the image if there is exactly one detection as some images contain
-      # multiple animals
-      if selected_boxes.shape[0] == 1:
-        # Crop the image to the padded box and save it
-        bbox, crop_box = selected_boxes[0], crop_boxes[0]
-        if not os.path.exists(out_file):
+      # For each detected bounding box with high confidence, we will
+      # crop the image to the padded box and save it
+      for box_id in range(selected_boxes.shape[0]):
+        # bbox is the detected box, crop_box the padded / enlarged box
+        bbox, crop_box = selected_boxes[box_id], crop_boxes[box_id]
+        if INAT_OUTPUT_DIR:
+          # The absolute file path where we will store the image
+          # Only used if an iNat style dataset is created
+          out_file = os.path.join(INAT_OUTPUT_DIR, new_file_name)
+          # Add numbering to the original file name if there are multiple boxes
+          if selected_boxes.shape[0] > 1:
+            out_base, out_ext = os.path.splitext(out_file)
+            out_file = '{}_{}.{}'.format(out_base, box_id, out_ext)
+          # Create the category directories if necessary
+          os.makedirs(os.path.dirname(out_file), exist_ok=True)
+          if not os.path.exists(out_file):
+            try:
+              img = np.array(Image.open(in_file))
+              cropped_img = img[crop_box[0]:crop_box[2], crop_box[1]:crop_box[3]]
+              Image.fromarray(cropped_img).save(out_file)
+            except ValueError:
+              continue
+            except FileNotFoundError:
+              continue
+          else:
+              cropped_img = np.array(Image.open(out_file))
+        else:
+          out_file = TMP_IMAGE
           try:
             img = np.array(Image.open(in_file))
             cropped_img = img[crop_box[0]:crop_box[2], crop_box[1]:crop_box[3]]
@@ -330,8 +357,7 @@ with graph.as_default():
             continue
           except FileNotFoundError:
             continue
-        else:
-            cropped_img = np.array(Image.open(out_file))
+          
           
         # Read the image
         if COCO_OUTPUT_DIR:
