@@ -34,7 +34,7 @@ datasets_map = {
     'mnist': mnist,
     'cct': cct,
     'wellington': wellington,
-    'serengeti': serengeti
+    'serengeti': serengeti,
     'nacti': nacti
 }
 
