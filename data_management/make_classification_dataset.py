@@ -15,7 +15,7 @@ import random
 import json
 import sys
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                             '../tfrecords'))
+                             'tfrecords'))
 if sys.version_info.major >= 3:
   import create_tfrecords_py3 as tfr
 else:
@@ -47,7 +47,7 @@ parser.add_argument('frozen_graph', type=str, default='frozen_inference_graph.pb
 #parser.add_argument('detections_output', type=str, default='detections_final.pkl',
 #                    help='Pickle file with the detections, which can be used for cropping later on.')
 
-parser.add_argument('-coco_style_output', type=str, default=None,
+parser.add_argument('--coco_style_output', type=str, default=None,
                     help='Output directory for a dataset in COCO format.')
 parser.add_argument('--tfrecords_output', type=str, default=None,
                     help='Output directory for a dataset in TFRecords format.')
@@ -200,7 +200,10 @@ class TFRecordsWriter(object):
     self.next_shard_img_idx = self.next_shard_img_idx + 1
 
   def close(self):
-    self.writer.close()
+    if self.next_shard_idx == 0 and self.next_shard_img_idx == 0:
+      print('WARNING: No images were written to tfrecords!')
+    if self.writer:
+      self.writer.close()
 
 if TFRECORDS_OUTPUT_DIR:
   training_tfr_writer = TFRecordsWriter(os.path.join(TFRECORDS_OUTPUT_DIR, 'train-%.5d'), IMS_PER_RECORD)
