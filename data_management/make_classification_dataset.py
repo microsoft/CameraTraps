@@ -331,7 +331,7 @@ with graph.as_default():
         bbox, crop_box = selected_boxes[box_id], crop_boxes[box_id]
         if COCO_OUTPUT_DIR:
           # The absolute file path where we will store the image
-          # Only used if an iNat style dataset is created
+          # Only used if an COCO style dataset is created
           out_file = os.path.join(COCO_OUTPUT_DIR, new_file_name)
           # Add numbering to the original file name if there are multiple boxes
           if selected_boxes.shape[0] > 1:
