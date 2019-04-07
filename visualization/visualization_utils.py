@@ -1,9 +1,58 @@
 import numpy as np
-from PIL import ImageFont, ImageDraw
+from PIL import Image, ImageFile, ImageFont, ImageDraw
+ImageFile.LOAD_TRUNCATED_IMAGES = True
+
+def open_image(input):
+    """Opens an image in binary format using PIL.Image and convert to RGB mode.
+
+    Args:
+        input: an image in binary format read from the POST request's body or
+            path to an image file (anything that PIL can open)
+
+    Returns:
+        an PIL image object in RGB mode
+    """
+    image = Image.open(input)
+    if image.mode not in ('RGBA', 'RGB'):
+        raise AttributeError('Input image not in RGBA or RGB mode and cannot be processed.')
+    if image.mode == 'RGBA':
+        # PIL.Image.convert() returns a converted copy of this image
+        image = image.convert(mode='RGB')
+    return image
 
 
-def render_bounding_boxes(boxes_and_scores, image, label_map={}, confidence_threshold=0.5):
+def render_iMerit_boxes(boxes, classes, image, label_map=None):
+    """Renders bounding boxes and their category labels on a PIL image.
+
+    Args:
+        boxes: bounding box annotations from iMerit, format is [x_rel, y_rel, w_rel, h_rel] (rel = relative coords)
+        image: PIL.Image object to annotate on
+        label_map: optional dict mapping classes to a string for display
+
+    Returns:
+        image will be altered in place
+    """
+    display_boxes = []
+    display_strs = []  # list of list, one list of strings for each bounding box (to accommodate multiple labels)
+    for box, clss in zip(boxes, classes):
+        x_rel, y_rel, w_rel, h_rel = box
+        ymin, xmin = y_rel, x_rel
+        ymax = ymin + h_rel
+        xmax = xmin + w_rel
+
+        display_boxes.append([ymin, xmin, ymax, xmax])
+
+        if label_map:
+            clss = label_map[str(clss)]
+        display_strs.append([clss])
+
+    display_boxes = np.array(display_boxes)
+    draw_bounding_boxes_on_image(image, display_boxes, display_str_list_list=display_strs)
+
+
+def render_detection_bounding_boxes(boxes_and_scores, image, label_map={}, confidence_threshold=0.5):
     """Renders bounding boxes, label and confidence on an image if confidence is above the threshold.
+    This is works with the output of the detector batch processing API.
 
     Args:
         boxes, scores, classes:  outputs of generate_detections.
@@ -33,7 +82,7 @@ def render_bounding_boxes(boxes_and_scores, image, label_map={}, confidence_thre
 def draw_bounding_boxes_on_image(image,
                                  boxes,
                                  color='red',
-                                 thickness=4,
+                                 thickness=1,
                                  display_str_list_list=()):
     """Draws bounding boxes on image.
 
