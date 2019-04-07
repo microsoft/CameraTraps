@@ -18,18 +18,26 @@ sys.path.append('/home/yasiyu/repos/ai4eutils')  # path to the https://github.co
 from write_html_image_list import write_html_image_list
 
 #%% Settings - change everything in this section to match your task
-num_to_visualize = 500
+num_to_visualize = 400  # None if visualize all images
 
 viz_size = (675, 450)   # width by height, in pixels
 
-incoming_annotation_path = 'iMerit_annotations.json'
-output_dir = ''
+pandas_random_seed = None  # seed for sampling images from all annotation entries
 
-images_dir = ''
+incoming_annotation_path = './temp/batch7.json'
+output_dir = '/home/yasiyu/yasiyu_temp/201904_iMerit_verification/batch7_SS'
+
+images_dir = '/datadrive/SS_annotated/imerit_batch7_snapshotserengeti_2018_10_26/images'
+# '/home/yasiyu/mnt/wildlifeblobssc/rspb/gola/gola_camtrapr_data'
+# '/datadrive/IDFG/IDFG_20190104_images_to_annotate'
+# '/datadrive/emammal'
 
 os.makedirs(os.path.join(output_dir, 'rendered_images'), exist_ok=True)
 
 # functions for translating from image_id in the annotation files to path to images in images_dir
+def default_image_id_to_path(image_id, images_dir):
+    return os.path.join(images_dir, image_id)
+
 def emammal_image_id_to_path(image_id, images_dir):
     # the dash between seq and frame is different among the batches
     pattern = re.compile('^datasetemammal\.project(.+?)\.deployment(.+?)\.seq(.+?)[-_]frame(.+?)\.img(.+?)\.')
@@ -40,14 +48,15 @@ def emammal_image_id_to_path(image_id, images_dir):
     img_path = img_path1 if os.path.exists(img_path1) else img_path2
     return img_path
 
-def idfg_image_id_to_path(image_id, images_dir):
-    return os.path.join(images_dir, image_id)
-
 def rspb_image_id_to_path(image_id, images_dir):
     parts = image_id.split('__')
     return os.path.join(images_dir, parts[0], parts[1], image_id)
 
-image_id_to_path_func = idfg_image_id_to_path
+def ss_batch5_image_id_to_path(image_id, images_dir):
+    return os.path.join(images_dir, image_id.replace('-frame', '.frame'))
+
+# specify which of the above functions to use for your dataset
+image_id_to_path_func = ss_batch5_image_id_to_path
 
 
 #%% Read in the annotations
@@ -68,18 +77,19 @@ df_anno = pd.DataFrame(annotations)
 df_img = pd.DataFrame(images)
 
 
-#%% Get a numerical to English label map
+#%% Get a numerical to English label map; note that both the numerical key and the name are str
 label_map = {}
 for cat in entry['categories']:
-    label_map[cat['id']] = cat['name']
+    label_map[str(cat['id'])] = cat['name']
 
 
 #%% Visualize the bboxes on a sample of images
-sample_img = df_img.sample(n=num_to_visualize)
+if num_to_visualize is not None:
+    df_img = df_img.sample(n=num_to_visualize, random_state=pandas_random_seed)
 
 images_html = []
-for i in tqdm(range(len(sample_img))):
-    img_name = sample_img.iloc[i]['file_name']
+for i in tqdm(range(len(df_img))):
+    img_name = df_img.iloc[i]['file_name']
     img_path = image_id_to_path_func(img_name, images_dir)
 
     if not os.path.exists(img_path):
@@ -87,6 +97,12 @@ for i in tqdm(range(len(sample_img))):
         continue
 
     annos_i = df_anno.loc[df_anno['image_id'] == img_name, :]  # all annotations on this image
+
+    # if len(annos_i) < 20:
+    #     continue
+    #
+    # if len(images_html) > 400:
+    #     break
 
     try:
         image = vis_utils.open_image(img_path).resize(viz_size)
