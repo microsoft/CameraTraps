@@ -1,6 +1,6 @@
 import numpy as np
-from PIL import Image, ImageFont, ImageDraw
-
+from PIL import Image, ImageFile, ImageFont, ImageDraw
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 def open_image(input):
     """Opens an image in binary format using PIL.Image and convert to RGB mode.
