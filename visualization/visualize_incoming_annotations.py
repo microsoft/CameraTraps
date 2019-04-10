@@ -18,16 +18,17 @@ sys.path.append('/home/yasiyu/repos/ai4eutils')  # path to the https://github.co
 from write_html_image_list import write_html_image_list
 
 #%% Settings - change everything in this section to match your task
-num_to_visualize = 400  # None if visualize all images
+num_to_visualize = None  # None if visualize all images
 
 viz_size = (675, 450)   # width by height, in pixels
 
 pandas_random_seed = None  # seed for sampling images from all annotation entries
 
-incoming_annotation_path = './temp/batch7.json'
-output_dir = '/home/yasiyu/yasiyu_temp/201904_iMerit_verification/batch7_SS'
+incoming_annotation_path = './temp/batch8a_IDFG.json'
+output_dir = '/home/yasiyu/yasiyu_temp/201904_iMerit_verification/batch8_IDFG_group'
 
-images_dir = '/datadrive/SS_annotated/imerit_batch7_snapshotserengeti_2018_10_26/images'
+images_dir = '/datadrive/IDFG/IDFG_20190104_images_to_annotate'
+# '/datadrive/SS_annotated/imerit_batch7_snapshotserengeti_2018_10_26/images'
 # '/home/yasiyu/mnt/wildlifeblobssc/rspb/gola/gola_camtrapr_data'
 # '/datadrive/IDFG/IDFG_20190104_images_to_annotate'
 # '/datadrive/emammal'
@@ -100,8 +101,8 @@ for i in tqdm(range(len(df_img))):
 
     # if len(annos_i) < 20:
     #     continue
-    #
-    # if len(images_html) > 400:
+
+    # if len(images_html) > 400:  # cap on maximum to save
     #     break
 
     try:
@@ -109,6 +110,12 @@ for i in tqdm(range(len(df_img))):
     except Exception as e:
         print('Image {} failed to open. Error: {}'.format(img_path, e))
         continue
+
+    # only save images with a particular class
+    # classes = list(annos_i.loc[:, 'category_id'])
+    # classes = [str(i) for i in classes]
+    # if '3' not in classes:  # only save images with the 'group' class
+    #     continue
 
     if len(annos_i) > 0:
         bboxes = list(annos_i.loc[:, 'bbox'])
