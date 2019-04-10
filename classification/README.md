@@ -133,7 +133,8 @@ file will be analyzed using the detector.
 
 The script will only add images to the output folders, if they:
 - exist in the images folder and can be opened
-- have exactly one detection with confidence 0.5 or above
+- have at least one detection with confidence 0.5 or above
+- are annotated with exactly one class label (the COCO annotation format allows multiple class labels per image)
 - do not exist yet in the output folders (this can happen if you re-run the script with a `detections_final.pkl` file as show above
 All other images will be ignored without warning. 
 
