@@ -1,7 +1,7 @@
 #
 # add_bounding_boxes_to_json.py
 #
-# This script takes a COCO-json database and mreges in a .json of bounding box annotations.
+# This script takes a COCO-json database and mereges in a .json of bounding box annotations.
 #
 # It's currently in a transitional state between being eMammal-specific and 
 # general-purpose, which is why it's in the "eMammal" folder.  It's only eMammal
