@@ -72,20 +72,6 @@ def call_api():
     
     r = requests.post(apiconfig.api['base_url'] + 'detect', params=params, files=files, headers=get_api_headers())
     
-    start = time.time()
-
-    for f in posted_files:
-        file = posted_files.get(f)
-        image_name = secure_filename(file.filename)
-        try:
-            save_file = file
-            save_file.save(os.getcwd() + '/CameraTrapAssets/imgs/' + image_name)
-        except Exception as e:
-            print(str(e))
-    
-    end = time.time()
-    print(end - start)
-
     return r, images
 
 #def track_images(file, name):
