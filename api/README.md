@@ -1,6 +1,6 @@
 # Camera Traps APIs
 
-We package useful components developed in the Camera Traps project into APIs and host them using the [AI for Earth API Framework](https://github.com/Microsoft/AIforEarth-API-Development) on Azure. This folder contains the source code of the APIs and their documentation. To see the APIs in action or start using them for your own applications, visit our APIs [homepage](https://www.microsoft.com/en-us/ai/ai-for-earth-apis?activetab=pivot1%3aprimaryr3) to check out our demo apps and request a product key.
+We package useful components developed in the Camera Traps project into APIs and host them using the [AI for Earth API Platform](https://github.com/Microsoft/AIforEarth-API-Development) on Azure. This folder contains the source code of the APIs and their documentation. To see the APIs in action or start using them for your own applications, visit our APIs [homepage](https://www.microsoft.com/en-us/ai/ai-for-earth-apis?activetab=pivot1%3aprimaryr3) to check out our demo apps and request a product key.
 
 
 ## Detector
