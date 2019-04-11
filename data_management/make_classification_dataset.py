@@ -336,7 +336,7 @@ with graph.as_default():
           # Add numbering to the original file name if there are multiple boxes
           if selected_boxes.shape[0] > 1:
             out_base, out_ext = os.path.splitext(out_file)
-            out_file = '{}_{}.{}'.format(out_base, box_id, out_ext)
+            out_file = '{}_{}{}'.format(out_base, box_id, out_ext)
           # Create the category directories if necessary
           os.makedirs(os.path.dirname(out_file), exist_ok=True)
           if not os.path.exists(out_file):
