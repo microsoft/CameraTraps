@@ -4,15 +4,14 @@ This directory contains a set of scripts for:
 
 - Detecting animals in camera trap images with image-level annotations
 - Cropping the detected animals, associating the image-level annotation with the crop
-- Collecting all the cropped images as a COCO Camera Traps dataset or as TFRecords
+- Collecting all the cropped images as a [COCO Camera Traps](https://github.com/Microsoft/CameraTraps/blob/master/data_management/README.md#coco-cameratraps-format) dataset or as TFRecords
 - Training an image classifier on the collected data using TensorFlow's slim library
 
 
 ## Preparing datasets
 
-The scripts need a dataset with image-level class annotations in Microsoft COCO format. We do not need or use bounding box annotations as the 
-purpose of the scripts is to locate the animals using a detector.
-Please refer to [this page](http://lila.science/faq#dataformats) for format specifications.   [This library](https://patrickwasp.com/create-your-own-coco-style-dataset/)
+The scripts need a data set with image-level class annotations in [COCO Camera Traps](https://github.com/Microsoft/CameraTraps/blob/master/data_management/README.md#coco-cameratraps-format) format. We do not need or use bounding box annotations as the 
+purpose of the scripts is to locate the animals using a detector. [This library](https://patrickwasp.com/create-your-own-coco-style-dataset/)
 facilitates the creation of COCO-style data sets. 
 
 You can check out [http://lila.science](lila.science) for example data sets. In addition to the standard format, we usually split the camera trap datasets
