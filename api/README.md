@@ -5,7 +5,7 @@ We package useful components developed in the Camera Traps project into APIs and
 
 ## Detector
 
-Our animal detection model ([MegaDetector](https://github.com/Microsoft/CameraTraps/tree/siyu/sync_api#megadetector)) trained on camera trap images from a variety of ecosystems is exposed through two APIs, one for real-time applications or small batches of test images (synchronous API), and one for processing large collections of images (batch processing API). These APIs can be adapted to deploy any algorithms or models - see our tutorial in the [AI for Earth API Framework](https://github.com/Microsoft/AIforEarth-API-Development) repo.
+Our animal detection model ([MegaDetector](https://github.com/Microsoft/CameraTraps/tree/siyu/sync_api#megadetector)) trained on camera trap images from a variety of ecosystems is exposed through two APIs, one for real-time applications or small batches of test images (synchronous API), and one for processing large collections of images (batch processing API). These APIs can be adapted to deploy any algorithms or models - see our tutorial in the [AI for Earth API Platform](https://github.com/Microsoft/AIforEarth-API-Development) repo.
 
 
 ### Synchronous API
