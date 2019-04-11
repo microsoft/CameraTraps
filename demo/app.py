@@ -83,7 +83,6 @@ def process_images():
     print("calling api...")
     
     try:
-        
         r, images = call_api()
         results = decoder.MultipartDecoder.from_response(r)
 
