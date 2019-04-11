@@ -8,7 +8,8 @@ import pickle
 import pandas
 import numpy as np
 
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser('This file converts the CSV output of the batch processing API to a pickle file, ' + \
+                   'which can be used by the script ./make_classification_dataset.py')
 parser.add_argument("input_csv", type=str, help='Path to the CSV file that contains the API output')
 parser.add_argument("output_pkl", type=str, help='Path to the desired output pickle file')
 args = parser.parse_args()
