@@ -22,7 +22,7 @@
                     <div id="carousel">
 			 <div class="results-loading" style="visibility:visible"></div>
 			 {% for result in result_det %}
-                            <img src="{{ result.path }}" rel="popover" data-img="{{result.path }}"  id="carousel-{{ result.image_name.replace('.JPG', '') }}"  
+                            <img src="{{ result.path }}" rel="popover" data-img="{{result.path }}"  title="{{result.image_name}}" id="carousel-{{ result.image_name.replace('.JPG', '') }}"  
                               class="mw-100 carousel-image" />
                          {% endfor %}  
                     </div>
@@ -44,7 +44,7 @@
                         <table class="table responsive-table td-align">
                             <thead class="float-right w-100">
                                 <tr class="border-bottom border-white">
-                                    <th scope="col" class="custm-gery-2 font-size12 letter-spacing-1 border-0 font-weight-normal">FILE NAME</th>
+                                    <th scope="col" class="custm-gery-2 font-size12 letter-spacing-1 border-0 font-weight-normal file-name-heading">FILE NAME</th>
                                     <th scope="col" class="custm-gery-2 font-size12 letter-spacing-1 border-0 font-weight-normal">RESULTS</th>
                                     <th scope="col" class="custm-gery-2 font-size12 letter-spacing-1 border-0 font-weight-normal">BOUNDING BOXES</th>
                                     <th scope="col" class="custm-gery-2 font-size12 letter-spacing-1 border-0 font-weight-normal">PATH</th>
@@ -53,14 +53,14 @@
                             <tbody class="table-scroll">
                                 {% for result in result_det %}
                                     <tr id="table-{{ result.image_name.replace('.JPG', '') }}" class="border-bottom border-white table-details">
-                                        <td class="custm-gery-2 font-size14 border-0 text-width">{{ result.image_name }}</td>
+                                        <td class="custm-gery-2 font-size14 border-0 text-width image-name">{{ result.image_name }}</td>
                                         {% if result.num_objects > 0 %}
                                             <td class="border-0"><img src="/CameraTrapAssets/img/success-mark.svg" alt="success" /></td>
                                         {% else %}
                                             <td class="border-0"><img src="/CameraTrapAssets/img/cancel.svg" alt="success" /></td>
                                         {% endif %}
                                         <td class="custm-gery-2 font-size14 border-0">{{ result.num_objects }}</td>
-                                        <td class="custm-gery-2 font-size14 border-0"><span class="text-elipse d-block">{{result.org_path}}</span></td>
+                                        <td class="custm-gery-2 font-size14 border-0"><span class="text-elipse d-block" title="{{result.image_name}}">{{result.org_path}}</span></td>
                                     </tr>
                                 {% endfor %}
                             </tbody>
