@@ -44,6 +44,11 @@ For questions about this repo, contact [cameratraps@microsoft.com](mailto:camera
 This repo is organized into the following folders...
 
 
+## api
+
+Code for hosting our models as an API, either for synchronous operation (e.g. for real-time inference or for our Web-based demo) or as a batch process (for large biodiversity surveys).
+
+
 ## classification
 
 Code for training species classifiers on new data sets, generally trained on crops generated via an existing detector.
@@ -53,7 +58,7 @@ Code for training species classifiers on new data sets, generally trained on cro
 
 Code for:
 
-- Converting frequently-used metadata formats to COCO Camera Traps
+- Converting frequently-used metadata formats to [COCO Camera Traps](https://github.com/Microsoft/CameraTraps/blob/master/data_management/README.md#coco-cameratraps-format) format
 - Creating, visualizing, and  editing COCO Camera Traps .json databases
 - Generating tfrecords
 
