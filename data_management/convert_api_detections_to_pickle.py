@@ -33,4 +33,4 @@ for row in csv.itertuples():
 
 # Write detections to file with pickle
 with open(args.output_pkl, 'wb') as f:
-  pickle.dump(detection_dict, f, pickle.HIGHEST_PROTOCOL)
+    pickle.dump(detection_dict, f, pickle.HIGHEST_PROTOCOL)
