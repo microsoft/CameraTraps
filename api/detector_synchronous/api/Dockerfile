@@ -42,6 +42,7 @@ COPY ./LocalForwarder.config /lf/
 
 # Copy your API code
 COPY ./animal_detection_api /app/animal_detection_api/
+COPY ./uwsgi.ini /uwsgi.ini
 
 # Add this API directory to PYTHONPATH
 ENV PYTHONPATH="${PYTHONPATH}:/app/"
