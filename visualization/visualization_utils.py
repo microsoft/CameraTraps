@@ -43,7 +43,31 @@ def render_iMerit_boxes(boxes, classes, image, label_map=None):
         display_boxes.append([ymin, xmin, ymax, xmax])
 
         if label_map:
-            clss = label_map[str(clss)]
+            clss = label_map[int(clss)]
+        display_strs.append([clss])
+
+    display_boxes = np.array(display_boxes)
+    draw_bounding_boxes_on_image(image, display_boxes, display_str_list_list=display_strs)
+
+
+def render_db_bounding_boxes(boxes, classes, image, image_size, label_map=None):
+    display_boxes = []
+    display_strs = []
+
+    img_width, img_height = image_size
+    for box, clss in zip(boxes, classes):
+        x_min_abs, y_min_abs, width_abs, height_abs = box
+
+        ymin = y_min_abs / img_height
+        ymax = ymin + height_abs / img_height
+
+        xmin = x_min_abs / img_width
+        xmax = xmin + width_abs / img_width
+
+        display_boxes.append([ymin, xmin, ymax, xmax])
+
+        if label_map:
+            clss = label_map[int(clss)]
         display_strs.append([clss])
 
     display_boxes = np.array(display_boxes)
