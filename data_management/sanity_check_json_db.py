@@ -102,6 +102,7 @@ def sanityCheckJsonDb(jsonFile, options=None):
     imageIdToImage = {}
     annIdToAnn = {}
     catIdToCat = {}
+    imageLocationSet = set()
     
     print('Checking categories...')
     
@@ -157,6 +158,10 @@ def sanityCheckJsonDb(jsonFile, options=None):
         
         if 'width' in image:
             assert 'height' in image, 'Image with width but no height: {}'.format(image['id'])
+
+        if 'location' in image:
+            assert isinstance(image['location'], str) or isinstance(image['location'], int), 'Illegal image location type'
+            imageLocationSet.add(image['location'])
     
     # Are we checking for unused images?
     if (len(baseDir) > 0) and options.bFindUnusedImages:    
@@ -255,6 +260,9 @@ def sanityCheckJsonDb(jsonFile, options=None):
             
     print('\nDB contains {} images, {} annotations, and {} categories\n'.format(
             len(images),len(annotations),len(categories)))
+
+    if len(imageLocationSet) > 0:
+        print('DB contains images from {} locations\n'.format(len(imageLocationSet)))
     
     # Prints a list of categories sorted by count
     
