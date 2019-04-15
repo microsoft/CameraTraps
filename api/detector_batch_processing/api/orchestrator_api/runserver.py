@@ -133,7 +133,7 @@ def _request_detections(**kwargs):
 
             res = orchestrator.spot_check_blob_paths_exist(image_paths, input_container_sas)
             if res is not None:
-                raise LookupError('path {} provided in list of images to process does not exist in the container pointed to by data_container_sas.')
+                raise LookupError('failed - path {} provided in list of images to process does not exist in the container pointed to by data_container_sas.'.format(res))
 
         # apply the first_n and sample_n filters
         if first_n is not None:
@@ -143,10 +143,15 @@ def _request_detections(**kwargs):
         # TODO implement sample_n
 
         num_images = len(image_paths)
-        if num_images < 1:
-            api_task_manager.UpdateTaskStatus(request_id, 'completed - zero images found in container or in provided list of images after filtering with any provided parameters.')
-            return
         print('runserver.py, num_images: {}'.format(num_images))
+        if num_images < 1:
+            api_task_manager.UpdateTaskStatus(request_id, 'completed - zero images found in container or in provided list of images after filtering with the provided parameters.')
+            return
+        if num_images > api_config.MAX_NUMBER_IMAGES_ACCEPTED:
+            api_task_manager.UpdateTaskStatus(request_id,
+                                              'failed - the number of images ({}) requested for processing exceeds the maximum accepted ({}) in one call.'.format(
+                                                  num_images, api_config.MAX_NUMBER_IMAGES_ACCEPTED))
+            return
 
         image_paths_string = json.dumps(image_paths, indent=2)
         internal_storage_service.create_blob_from_text(internal_container,
