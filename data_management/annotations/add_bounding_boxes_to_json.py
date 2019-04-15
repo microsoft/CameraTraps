@@ -9,35 +9,36 @@
 #
 
 import json
+import os
 import re
 from datetime import datetime, date
-from tqdm import tqdm
 
+from tqdm import tqdm
 
 #%% Configurations and paths
 
 # images database
-image_db_path = '/Users/siyuyang/Source/temp_data/CameraTrap/databases_201904/idfg/idfg_20190409.json'
+image_db_path = '/Users/siyuyang/Source/temp_data/CameraTrap/databases_201904/rspb/rspb_20190409.json'
 image_db_has_dims = False  # does the image DB image entries have the height and width of the images
 
 # output bboxes database
-new_bbox_db_path = '/Users/siyuyang/Source/temp_data/CameraTrap/databases_201904/idfg/idfg_bboxes_20190409.json'
+new_bbox_db_path = '/Users/siyuyang/Source/temp_data/CameraTrap/databases_201904/rspb/rspb_bboxes_20190409.json'
 
 # annotation files (pseudo json) obtained from our annotation vendor that contain annotations for this dataset
 annotation_paths = [
-    '/Users/siyuyang/Source/temp_data/CameraTrap/annotations/201904/IDFG_20190104_images_to_annotate_56621.json'
+    '/Users/siyuyang/Source/temp_data/CameraTrap/annotations/201904/imerit_batch8b_gola_camtrapr_data_flat_77216.json'
 ]
 
 version_str = '20190409'
-description = 'Bounding box annotations for data from the Idaho Department of Fish and Game (IDFG) in five regions.'
+description = 'Bounding box annotations for the RSPB GOLA data.'
 
-# None or a string that is the prefix to all image_ids of interest / in this dataset in the annotation files
-dataset_prefix = None
+# None or a string or tuple of strings that is the prefix to all file_name of interest / in this dataset in the annotation files
+dataset_prefix = ''
 
 # functions for mapping the image_id in the annotation files (pseudo jsons) to the image_id used in the image DB
 
 old_emammal_pattern = re.compile('^datasetemammal\.project(.+?)\.deployment(.+?)\.seq(.+?)[-_]frame(.+?)\.img(.+?)\.')
-def old_emammal_annotation_image_file_name_to_db_image_id(image_file_name):
+def old_emammal_anno_image_file_name_to_db_image_id(image_file_name):
     # our img_id doesn't contain frame info
     match = old_emammal_pattern.match(image_file_name)
     project_id, deployment_id, seq_id, _, image_id = match.group(1, 2, 3, 4, 5)
@@ -45,14 +46,36 @@ def old_emammal_annotation_image_file_name_to_db_image_id(image_file_name):
         project_id, deployment_id, seq_id, image_id)
     return full_img_id
 
-def idfg_image_file_name_to_db_image_id(file_name):
+def idfg_anno_image_file_name_to_db_image_id(file_name):
     return file_name.replace('~', '/')
+
+def ss_anno_image_file_name_to_db_image_id(file_name):
+    # batch3 - "file_name":"ASG0000019_0_S1_B06_R1_PICT0007.JPG"
+    # batch5 and 7 - "file_name":"datasetsnapshotserengeti.seqASG000002m-frame0.imgS1_B06_R1_PICT0056.JPG"
+    # sometimes - 'datasetsnapshotserengeti.seqASG000001a.frame0.imgS1_B06_R1_PICT0008.JPG'
+    # id in DB (old_token): 'S6/J01/J01_R1/S6_J01_R1_IMAG0001', 'S1/B05/B05_R1/S1_B05_R1_PICT0036'
+    try:
+        file_name = file_name.replace('-', '.')  # particularity with the frame section
+        parts = file_name.split('.')
+
+        if len(parts) == 5:
+            tokens = parts[3].split('img')[1].split('_')
+        elif len(parts) == 2:
+            tokens = parts[0].split('_')[2:]
+
+        old_token = tokens[0] + '/' + tokens[1] + '/' + tokens[1] + '_' + tokens[2] + '/' + '_'.join(tokens)
+        return old_token
+    except Exception as e:
+        raise RuntimeError('Error with {}: {}'.format(file_name, e))
+
+def rspb_annotation_image_file_name_to_db_image_id(image_file_name):
+    return image_file_name.split('.JPG')[0]
 
 def default_annotation_image_file_name_to_db_image_id(image_file_name):
     return image_file_name.split('.jpg')[0]
 
 # specify which one to use for your dataset here
-annotation_image_file_name_to_db_image_id = idfg_image_file_name_to_db_image_id
+annotation_image_file_name_to_db_image_id = rspb_annotation_image_file_name_to_db_image_id
 
 
 #%% Load the image database and fill in DB info for the output bbox database
@@ -62,7 +85,10 @@ start_time = datetime.now()
 # load the images database
 print('Loading the image database...')
 image_db = json.load(open(image_db_path))
+print('Image database loaded.')
 all_images = { i['id']: i for i in image_db['images'] }
+
+print(list(all_images.keys())[:10])
 
 db_info = image_db.get('info', [])
 assert len(db_info) >= 5
@@ -75,11 +101,10 @@ if len(description) > 0:
 db_info['date_created'] = str(date.today())
 
 
-#%% Find the height and width of images from the annotation files
+#%% Find the height and width of images from the annotation files if they are not available in the images DB
 if not image_db_has_dims:
     height_width_from_anno = {}
     for i_batch, annotation_path in enumerate(annotation_paths):
-        print('Now processing annotation batch {}...'.format(annotation_path))
         with open(annotation_path, 'r') as f:
             content = f.readlines()
 
@@ -113,6 +138,23 @@ def idfg_add_image_entry(file_name):
         'location': location
     }
 
+original_rspb_db = json.load(open('/Users/siyuyang/Source/temp_data/CameraTrap/databases_2018/rspb/rspb_gola.json'))
+original_images = { i['id']: i for i in original_rspb_db['images']}
+def rspb_add_image_entry(image_id):
+    if image_id in original_images:
+        all_images[image_id] = original_images[image_id]
+    else:
+        parts = image_id.split('__')
+        file_name = image_id + '.JPG'
+        all_images[image_id] = {
+            'id': image_id,
+            'file_name': file_name,
+            'location': parts[0] + '__' + parts[1],
+            'width': height_width_from_anno[file_name]['width'],
+            'height': height_width_from_anno[file_name]['height']
+        }
+
+
 #%% Create the bbox database from all annotation files pertaining to this dataset
 
 # the four categories for bounding boxes - do not change
@@ -126,7 +168,7 @@ bbox_categories = [
 bbox_cat_map = { x['name']: x['id'] for x in bbox_categories }
 
 db_annotations = []
-db_images = []  # Only contain images sent for annotation, which could be confirmed to be empty
+db_images_dict = {}  # Only contain images sent for annotation, which could be confirmed to be empty
 
 # for each annotation pseudo-json, check that the image it refers to exists in the original database
 image_ids_not_found = []
@@ -144,6 +186,7 @@ for i_batch, annotation_path in enumerate(annotation_paths):
         # check that entry is for this dataset
         file_name = entry['images'][0]['file_name']
         if dataset_prefix is not None and not file_name.startswith(dataset_prefix):
+            print('Skipping ', file_name)
             continue
 
         # category map for this entry in the annotation file - usually the same across all entries but just in case
@@ -154,7 +197,7 @@ for i_batch, annotation_path in enumerate(annotation_paths):
         for bbox_entry in annotations_entry:
             img_id = annotation_image_file_name_to_db_image_id(bbox_entry['image_id'])
             if img_id not in all_images:
-                image_ids_not_found.append(img_id)
+                rspb_add_image_entry(img_id)
 
             # use the image length and width in the image DB
             if image_db_has_dims:
@@ -182,24 +225,25 @@ for i_batch, annotation_path in enumerate(annotation_paths):
                 'bbox': bbox  # [top left x, top left y, width, height] in absolute coordinates (floats)
             })
 
+        # add all images that have been sent to annotation, some of which may be empty of bounding boxes
         images_entry = entry.get('images', [])
         for im in images_entry:
             db_image_id = annotation_image_file_name_to_db_image_id(im['file_name'])
             if db_image_id not in all_images:
-                idfg_add_image_entry(db_image_id)
-            db_images.append(all_images[db_image_id])
+                rspb_add_image_entry(db_image_id)
+            db_images_dict[db_image_id] = all_images[db_image_id]
 
 
 coco_formatted_json = {
     'info': db_info,
-    'images': db_images,
+    'images': list(db_images_dict.values()),
     'annotations': db_annotations,
     'categories': bbox_categories
 }
 
 print('Number of bbox annotations in the bbox DB: {}'.format(num_bboxes))
 print('Number of annotation entries in the bbox DB (should be same as last line): {}'.format(len(db_annotations)))
-print('Number of images in the bbox DB: {}'.format(len(db_images)))
+print('Number of images in the bbox DB: {}'.format(len(db_images_dict)))
 
 print('Saving the new json database to disk...')
 with open(new_bbox_db_path, 'w') as f:
