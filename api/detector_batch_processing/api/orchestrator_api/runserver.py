@@ -158,7 +158,7 @@ def _request_detections(**kwargs):
         # set up connection to AML Compute and data stores
         # do this for each request since pipeline step is associated with the data stores
         aml_compute = orchestrator.AMLCompute(request_id, input_container_sas, internal_datastore)
-        print('AML Compute resource connected successfully.')
+        print('AMLCompute resource connected successfully.')
 
         num_images_per_job = api_config.NUM_IMAGES_PER_JOB
         num_jobs = math.ceil(num_images / num_images_per_job)
