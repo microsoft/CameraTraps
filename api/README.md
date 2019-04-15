@@ -17,7 +17,7 @@ To build the API, first download the model file from the [MegaDetector](https://
 
 ### Batch processing API
 
-This API runs the detector on up to 2 million images in one request using [Azure Machine Learning Service](https://azure.microsoft.com/en-us/services/machine-learning-service/)'s _Managed Compute_ functionality, formally known as Batch AI. To use this API the input images need to be copied to Azure [Blob Storage](https://azure.microsoft.com/en-us/services/storage/blobs/). Please see the [user guide](./detector_batch_processing/README.md) and get in touch with us if you're interested in processing camera trap images this way. 
+This API runs the detector on up to 2 million images in one request using [Azure Machine Learning Service](https://azure.microsoft.com/en-us/services/machine-learning-service/)'s _Managed Compute_ functionality, formerly known as Batch AI. To use this API the input images need to be copied to Azure [Blob Storage](https://azure.microsoft.com/en-us/services/storage/blobs/). Please see the [user guide](./detector_batch_processing/README.md) and get in touch with us if you're interested in processing camera trap images this way. 
 
 Upcoming improvements:
 - [ ] Adapt `runserver.py` to use the newest version of the AI4E API Framework
