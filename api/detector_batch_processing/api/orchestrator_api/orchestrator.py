@@ -297,15 +297,19 @@ class AMLMonitor:
         failures = []
         for blob_path in list_blobs:
             if blob_path.endswith('.csv'):
+                # blob_path is azureml/run_id/output_requestID/out_file_name.csv
                 out_file_name = blob_path.split('/')
-                if len(out_file_name) == 3:  # blob_path is run_id/output_requestID/out_file_name.csv
-                    out_file_name = out_file_name[2]
-                    if out_file_name.startswith('detections_request{}_'.format(self.request_id)):
-                        detection_results.append(self._download_read_csv(blob_path, 'detections'))
-                    elif out_file_name.startswith('failures_request{}_'.format(self.request_id)):
-                        failures.extend(self._download_read_csv(blob_path, 'failures'))
+                out_file_name = out_file_name[-1]
+                if out_file_name.startswith('detections_request{}_'.format(self.request_id)):
+                    detection_results.append(self._download_read_csv(blob_path, 'detections'))
+                elif out_file_name.startswith('failures_request{}_'.format(self.request_id)):
+                    failures.extend(self._download_read_csv(blob_path, 'failures'))
 
-        all_detections = pd.concat(detection_results)
+        if len(detection_results) < 1:
+            raise RuntimeError(('aggregate_results(), at least part of your request has been processed but monitoring '
+                                'thread failed to retrieve the results.'))
+
+        all_detections = pd.concat(detection_results)  # will error if detection_results is an empty list
         print('aggregate_results(), shape of all_detections: {}'.format(all_detections.shape))
         all_detections_string = all_detections.to_csv(index=False)  # a string is returned since no file/buffer provided
 
