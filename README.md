@@ -3,7 +3,7 @@
 This repo contains the tools for training, running, and evaluating detectors and classifiers for images collected from motion-triggered camera traps.  The core functionality provided is:
 
 - Data parsing from frequently-used camera trap metadata formats into a common format
-- Training and evaluation of detectors, particularly our "megadetector", which does a pretty good job finding terrestrial animals in a variety of ecosystems
+- Training and evaluation of detectors, particularly our "MegaDetector", which does a pretty good job finding terrestrial animals in a variety of ecosystems
 - Training and evaluation of species-level classifiers for specific data sets
 - A Web-based demo that runs our models via a REST API that hosts them on a Web endpoint
 - Miscellaneous useful tools for manipulating camera trap data
@@ -44,6 +44,11 @@ For questions about this repo, contact [cameratraps@microsoft.com](mailto:camera
 This repo is organized into the following folders...
 
 
+## api
+
+Code for hosting our models as an API, either for synchronous operation (e.g. for real-time inference or for our Web-based demo) or as a batch process (for large biodiversity surveys).
+
+
 ## classification
 
 Code for training species classifiers on new data sets, generally trained on crops generated via an existing detector.
@@ -53,13 +58,13 @@ Code for training species classifiers on new data sets, generally trained on cro
 
 Code for:
 
-- Converting frequently-used metadata formats to COCO Camera Traps
+- Converting frequently-used metadata formats to [COCO Camera Traps](https://github.com/Microsoft/CameraTraps/blob/master/data_management/README.md#coco-cameratraps-format) format
 - Creating, visualizing, and  editing COCO Camera Traps .json databases
 - Generating tfrecords
 
 ## demo
 
-Source for the Web-based demo that runs our models via a REST API that hosts them on a Web endpoint.
+Source for the Web-based demo of our MegaDetector model (which we'll release soon!).
 
 
 ## detection
