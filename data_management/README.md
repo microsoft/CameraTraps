@@ -2,6 +2,8 @@
 
 Everything in this directory creates or operates on COCO Camera Traps databases, which are .json files structured as...
 
+## COCO Camera Traps format
+
 ```
 {
   "info" : info,
@@ -24,7 +26,7 @@ image{
   "height" : int,
   "file_name" : str,
   "rights_holder" : str,
-  "location": int,
+  "location": str or int,
   "datetime": datetime,
   "seq_id": str,
   "seq_num_frames": int,
