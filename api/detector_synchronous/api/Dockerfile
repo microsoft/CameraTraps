@@ -27,7 +27,7 @@ RUN echo "source activate ai4e_py_api" >> ~/.bashrc \
 
 RUN /usr/local/envs/ai4e_py_api/bin/pip install --upgrade pip
 RUN /usr/local/envs/ai4e_py_api/bin/pip install tensorflow-gpu==1.9 pillow requests_toolbelt
-
+RUN /usr/local/envs/ai4e_py_api/bin/pip install gunicorn
 
 ### Copy the necessary files for running the API
 
