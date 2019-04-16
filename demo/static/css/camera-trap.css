@@ -674,9 +674,17 @@ div ::-webkit-scrollbar-thumb {
     	white-space: nowrap;
     	max-width: 150px;
 }
+.file-name-heading
+{
+    min-width: 190px;
+}
 .td-align td{
 	max-width: 126px;
 	min-width: 100px;
+}
+.image-name
+{
+	min-width: 210px !important;
 }
 @media (min-width:1024px){
 	.navbar{

@@ -1,0 +1,138 @@
+openapi: 3.0.0
+info:
+  title: Camera Trap Animal Detection Synchronous API
+  description: Camera trap animal detection synchronous API handling up to 8 images at a
+    time.
+  version: 0.2.0
+paths:
+  /model_version:
+    get:
+      summary: Returns the detector model version.
+      description: |
+        Returns a string indicating the version of the model currently used by
+        this API.
+      responses:
+        200:
+          description: A string indicating the version of the model used.
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: models/object_detection/faster_rcnn_inception_resnet_v2_atrous/megadetector
+  /detect:
+    post:
+      summary: Processes the input image(s) using the detection model.
+      description: |
+        By passing two optional parameters and up to 8 images as data, you can
+        have the images processed using the animal detection model, and the
+        resulting bounding boxes, confidences and optionally annotated images
+        are returned.
+      parameters:
+      - name: confidence
+        in: query
+        description: The threshold above which a proposed bounding box is considered
+          a detection. Set it to a low value such as 0.05 if you would like to receive
+          all condidate boxes and try different thresholds. If you would like to receive
+          the annotated images (by setting `render` to true) in the result, use a
+          higher threshold for clearer visualizations.
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: integer
+      - name: render
+        in: query
+        description: If true, the endpoint will return all input images annotated
+          with detection bounding boxes with confidence above the `confidence` threshold,
+          in addition to the json result.
+        required: false
+        allowEmptyValue: false
+        style: form
+        explode: true
+        schema:
+          type: boolean
+          default: false
+      requestBody:
+        description: "- Please send up to 8 images to be processed as files in a multipart\
+          \ form. \n\n- The keys (`image_name` in the following example) in the files\
+          \ dictionary should be unique identifiers of the images, as the returned\
+          \ result will also be keyed by these.\n\n- Make sure to set the content\
+          \ media type correctly for each file, as only files of the accepted types\
+          \ will be processed. \n\n- The accepted image types are `image/jpeg`, `image/png`,\
+          \ `application/octet-stream`. Please send jpeg images of usual camera trap\
+          \ images size (500KB - 4MB).\n\nFor example, in Python:\n```\n  import requests\n\
+          \  import os\n\n  num_images_to_upload = 3\n  params = {\n      'confidence':\
+          \ 0.8,\n      'render': True\n  }\n  \n  files = {}\n  num_images = 0\n\
+          \  for i, image_name in enumerate(sorted(os.listdir(sample_input_dir))):\n\
+          \      if not image_name.lower().endswith('.jpg'):\n          continue\n\
+          \      \n      if num_images >= num_images_to_upload:\n          break\n\
+          \      else:\n          num_images += 1\n      \n      img_path = os.path.join(sample_input_dir,\
+          \ image_name)\n      files[image_name] = (image_name, open(img_path, 'rb'),\
+          \ 'image/jpeg')\n      \n  r = requests.post(base_url + 'detect', params=params,\
+          \ files=files)\n```\n"
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/body'
+            encoding:
+              image_id_1:
+                contentType: image/jpeg, image/png, application/octet-stream
+                style: form
+      responses:
+        200:
+          description: "Images are successfully processed. The detection bounding\
+            \ boxes and their confidences will be returned in a json, in addition\
+            \ to annotated image files if `render` was true. Since multiple objects\
+            \ of different types may be returned, the response is encoded using `requests_toolbelt.multipart.encoder.MultipartEncoder`.\n\
+            \nHere is an example of how you can parse the result in Python:\n```\n\
+            import os\nimport json\nfrom requests_toolbelt.multipart import decoder\n\
+            from PIL import Image\n\nresults = decoder.MultipartDecoder.from_response(r)\n\
+            \ntext_results = {}\nimages = {}\nfor part in results.parts:\n    # part\
+            \ is a BodyPart object with b'Content-Type', and b'Content-Disposition',\
+            \ the later includes 'name' and 'filename' info\n    headers = {}\n  \
+            \  for k, v in part.headers.items():\n        headers[k.decode(part.encoding)]\
+            \ = v.decode(part.encoding)\n    if headers.get('Content-Type', None)\
+            \ == 'image/jpeg':\n        c = headers.get('Content-Disposition')\n \
+            \       image_name = c.split('name=\"')[1].split('\"')[0]  # this is an\
+            \ HTTP string; you can parse it more elegantly using a library\n     \
+            \   image = Image.open(io.BytesIO(part.content))\n        \n        images[image_name]\
+            \ = image\n    \n    elif headers.get('Content-Type', None) == 'application/json':\n\
+            \        text_result = json.loads(part.content.decode())\n        \nfor\
+            \ img_name, img in sorted(images.items()):\n  img.save(img_name + '.jpg')\n\
+            ```\n`text_result` looks like this:\n```\n{\n  'S1_D04_R6_PICT0022.JPG':\
+            \ [[0.011515299789607525,\n   0.11399328708648682,\n   0.9100480079650879,\n\
+            \   1.0,\n   0.9953194260597229]],\n 'S1_D04_R6_PICT0128.JPG': [[0.5885017514228821,\n\
+            \   0.019416160881519318,\n   0.6662894487380981,\n   0.16861802339553833,\n\
+            \   0.8873217105865479]],\n 'S1_D04_R6_PICT0129.JPG': []\n}\n```\nwhere\
+            \ the keys are the unique image identifier that you specified for each\
+            \ image in the request body. The value is an array containing the detections\
+            \ above `confidence` that were found. The array is empty if no animals\
+            \ are detected above the confidence threshold. Each detection is an array\
+            \ also, `[ymin, xmin, ymax, xmax, confidence]`, where the first four floats\
+            \ are the _relative_ coordinates of the bounding box.\n"
+          content:
+            multipart/form-data:
+              schema:
+                type: string
+        400:
+          description: |
+            No image(s) of accepted types (image/jpeg, image/png,
+            application/octet-stream) received, or the `confidence` parameter is
+            not a float between 0 and 1.
+        413:
+          description: |
+            More than 8 images are sent, or the total size of uploaded content is too
+            big.
+        500:
+          description: |
+            Error occurred reading the images, performing detection on the
+            images, consolidating the results or drawing annotations (if
+            requested). See the error message to diagnose the issue.
+components:
+  schemas:
+    body:
+      type: object
+      properties:
+        image_id_1:
+          type: string
+          format: binary
