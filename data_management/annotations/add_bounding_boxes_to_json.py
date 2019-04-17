@@ -18,19 +18,20 @@ from tqdm import tqdm
 #%% Configurations and paths
 
 # images database
-image_db_path = '/Users/siyuyang/Source/temp_data/CameraTrap/databases_201904/rspb/rspb_20190409.json'
-image_db_has_dims = False  # does the image DB image entries have the height and width of the images
+image_db_path = '/Users/siyuyang/Source/temp_data/CameraTrap/databases_201904/caltechcameratraps/caltech_20190409.json'
+image_db_has_dims = True  # does the image DB image entries have the height and width of the images
 
 # output bboxes database
-new_bbox_db_path = '/Users/siyuyang/Source/temp_data/CameraTrap/databases_201904/rspb/rspb_bboxes_20190409.json'
+new_bbox_db_path = '/Users/siyuyang/Source/temp_data/CameraTrap/databases_201904/caltechcameratraps/caltech_bboxes_20190409.json'
 
 # annotation files (pseudo json) obtained from our annotation vendor that contain annotations for this dataset
 annotation_paths = [
-    '/Users/siyuyang/Source/temp_data/CameraTrap/annotations/201904/imerit_batch8b_gola_camtrapr_data_flat_77216.json'
+    '/Users/siyuyang/Source/temp_data/CameraTrap/annotations/201904/microsoft_wildlife_reprocessing_1apr2019/batch1.json',
+    '/Users/siyuyang/Source/temp_data/CameraTrap/annotations/201904/microsoft_wildlife_reprocessing_1apr2019/batch2.json'
 ]
 
 version_str = '20190409'
-description = 'Bounding box annotations for the RSPB GOLA data.'
+description = 'Database of camera trap images and their bounding box annotations collected from the NPS and the USGS with help from Justin Brown and Erin Boydston.'
 
 # None or a string or tuple of strings that is the prefix to all file_name of interest / in this dataset in the annotation files
 dataset_prefix = ''
@@ -71,11 +72,15 @@ def ss_anno_image_file_name_to_db_image_id(file_name):
 def rspb_annotation_image_file_name_to_db_image_id(image_file_name):
     return image_file_name.split('.JPG')[0]
 
+def caltech_annotation_image_file_name_to_db_image_id(image_file_name):
+    jpg_name = image_file_name.split('.img')[1]
+    return jpg_name.split('.')[0]
+
 def default_annotation_image_file_name_to_db_image_id(image_file_name):
     return image_file_name.split('.jpg')[0]
 
 # specify which one to use for your dataset here
-annotation_image_file_name_to_db_image_id = rspb_annotation_image_file_name_to_db_image_id
+annotation_image_file_name_to_db_image_id = caltech_annotation_image_file_name_to_db_image_id
 
 
 #%% Load the image database and fill in DB info for the output bbox database
@@ -197,7 +202,9 @@ for i_batch, annotation_path in enumerate(annotation_paths):
         for bbox_entry in annotations_entry:
             img_id = annotation_image_file_name_to_db_image_id(bbox_entry['image_id'])
             if img_id not in all_images:
-                rspb_add_image_entry(img_id)
+                print('img_id not found: {}'.format(img_id))
+                continue
+                #rspb_add_image_entry(img_id)
 
             # use the image length and width in the image DB
             if image_db_has_dims:
@@ -230,7 +237,8 @@ for i_batch, annotation_path in enumerate(annotation_paths):
         for im in images_entry:
             db_image_id = annotation_image_file_name_to_db_image_id(im['file_name'])
             if db_image_id not in all_images:
-                rspb_add_image_entry(db_image_id)
+                continue
+                # rspb_add_image_entry(db_image_id)
             db_images_dict[db_image_id] = all_images[db_image_id]
 
 
