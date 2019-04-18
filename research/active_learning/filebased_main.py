@@ -1,7 +1,7 @@
 # 
 # filebased_main.py
 #
-# Command-line entry point for active learning experiments.
+# Command-line entry point for active learning research.
 #
 
 #%% Constants and imports
