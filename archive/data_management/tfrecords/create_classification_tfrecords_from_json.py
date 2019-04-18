@@ -1,5 +1,5 @@
 #
-# create_classification_tfrecords_format.py
+# create_classification_tfrecords_from_json.py
 #
 # Called from make_tfrecords_with_train_test_split.py if you're running a classification experiment.
 #

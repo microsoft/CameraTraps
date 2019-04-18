@@ -312,9 +312,10 @@ p = os.path.join(os.getcwd(),'database_tools')
 import sys
 if (p not in sys.path):
     sys.path.append(p)
-    
-import sanity_check_json_db
-sanity_check_json_db.sanityCheckJsonDb(outputFile,imageBaseDir)
+
+from databases import sanity_check_json_db
+
+sanity_check_json_db.sanityCheckJsonDb(outputFile, imageBaseDir)
 
 
 #%% One-time processing step: copy images to a flat directory

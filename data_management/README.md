@@ -58,7 +58,8 @@ Additional fields may be present for specific data sets.
 
 This directory is organized into the following subdirectories...
 
-## root
+
+## databases
 
 Miscellaneous tools for manipulating COCO Camera Traps .json files.  Of particular note is `sanity_check_json_db.py`, which validates that a CCT database is well-formatted, optionally checking image existence and size.
 
@@ -76,3 +77,8 @@ Code for converting frequently-used metadata formats (or sometimes one-off data 
 ## tfrecords
 
 Code for generating tfrecords from COCO Camera Traps .json files.  This directory is based on the [Visipedia tfrecords repo](https://github.com/visipedia/tfrecords).
+
+
+## classification_dataset
+
+Scripts for creating and analyzing a dataset for classification specifically.
