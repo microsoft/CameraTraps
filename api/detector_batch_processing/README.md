@@ -59,10 +59,10 @@ Not yet supported. Meanwhile, once the shards of images are submitted for proces
 | Parameter                | Is required | Explanation                                                                                                                          |
 |--------------------------|-------------|-------------------------------------------------------------------------------------------------------------------------------|
 | input_container_sas      | Yes         | SAS URL with list and read permissions to the Blob Storage container where the images are stored.                             |
-| images_required_json_sas | No          | SAS URL with list and read permissions to a json file in Blob Storage. The json contains a list, where each item (a string), is the full path to an image from the root of the container, e.g. `Season1/Location1/Camera1/image1.jpg`.  Only images whose paths are listed here will be processed. |
+| images_required_json_sas | No          | SAS URL with list and read permissions to a json file in Blob Storage. The json contains a list, where each item (a string) in the list is the full path to an image from the root of the container. An example of the content of this file: `["Season1/Location1/Camera1/image1.jpg", "Season1/Location1/Camera1/image2.jpg"]`.  Only images whose paths are listed here will be processed. |
 | image_path_prefix        | No          | Only process images whose full path starts with `image_path_prefix`. Note that any image paths specified in `images_required_json_sas` will need to be the full path from the root of the container, regardless of `image_path_prefix`. |
 | first_n                  | No          | Only process the first `first_n` images. Order of images is not guaranteed, but is likely to be alphabetical. Set this to a small number to avoid taking time to fully list all images in the blob (about 15 minutes for 1 million images) if you just want to try this API. |
-| sample_n                 | No          | Randomly sample `sample_n` images to process. |
+| sample_n (not yet implemented)                | No          | Randomly sample `sample_n` images to process. |
 
 
 - We assume that all images you would like to process in this batch are uploaded to a container in Azure Blob Storage. 
@@ -80,16 +80,15 @@ Example body of the POST request:
 ```json
 {
   "input_container_sas": "https://storageaccountname.blob.core.windows.net/container-name?se=2019-04-23T01%3A30%3A00Z&sp=rl&sv=2018-03-28&sr=c&sig=A_LONG_STRING",
-  "images_requested_json_sas": "https://cameratrap.blob.core.windows.net/container-name2/possibly_in_a_folder/my_list_of_images.json?se=2019-04-19T20%3A31%3A00Z&sp=rl&sv=2018-03-28&sr=b&sig=ANOTHER_LONG_STRING",
-  "image_path_prefix": "Alberta_location1_2019/",
-  "first_n": 100000,
-  "sample_n": 2000
+  "images_requested_json_sas": "https://storageaccountname2.blob.core.windows.net/container-name2/possibly_in_a_folder/my_list_of_images.json?se=2019-04-19T20%3A31%3A00Z&sp=rl&sv=2018-03-28&sr=b&sig=ANOTHER_LONG_STRING",
+  "image_path_prefix": "Alberta_location1_2019",
+  "first_n": 100000
 }
 ```
 
 You can manually call the API using applications such as Postman:
 
-![Screenshot of Azure Storage Explorer used for generating SAS tokens with read and list permissions](https://ai4enewsletter.blob.core.windows.net/2019assets/camera-trap/Postman_screenshot.png)
+![Screenshot of Azure Storage Explorer used for generating SAS tokens with read and list permissions](./documentation/Postman_screenshot.png)
 
 
 #### How to obtain a SAS token
@@ -103,7 +102,7 @@ Using Storage Explorer, right click on the container or blob you'd like to grant
 
 Click "Create", and the "URL" field on the next screen is the value required for `input_container_sas` or `images_requested_json_sas`. 
 
-![Screenshot of Azure Storage Explorer used for generating SAS tokens with read and list permissions](https://ai4enewsletter.blob.core.windows.net/2019assets/camera-trap/SAS_screenshot.png)
+![Screenshot of Azure Storage Explorer used for generating SAS tokens with read and list permissions](./documentation/SAS_screenshot.png)
 
 
 ### Outputs
