@@ -27,7 +27,7 @@ The data needs to be stored in an [Example protocol buffer](https://www.tensorfl
 | Key | Value |
 |-----|-------|
 | image/id | string containing an identifier for this image. |
-| image/filename | string containing a file system path to the of the image file. |
+| image/filename | string containing a file system path to that of the image file. |
 | image/encoded | string containing JPEG encoded image in RGB colorspace|
 | image/height | integer, image height in pixels |
 | image/width | integer, image width in pixels |
@@ -37,7 +37,7 @@ The data needs to be stored in an [Example protocol buffer](https://www.tensorfl
 | image/extra | string, any extra data can be stored here. For example, this can be a string encoded json structure.
 | image/class/label | integer specifying the index in a classification layer. The label ranges from [0, num_labels), e.g 0-99 if there are 100 classes. |
 |  image/class/text | string specifying the human-readable version of the label e.g. 'White-throated Sparrow' |
-| image/class/conf | float value specifying the confidence of the label. For example, a probability output from a classifier. |
+| image/class/conf | float value specifying the _confidence of the label_. For example, a probability output from a classifier. |
 | image/object/count | an integer, the number of object annotations. For example, this should match the number of bounding boxes. |
 | image/object/area | a float array of object areas; normalized coordinates. For example, the simplest case would simply be the area of the bounding boxes. Or it could be the size of the segmentation. Normalized in this case means that the area is divided by the (image width x image height) |
 | image/object/id | an array of strings indicating the id of each object. |
@@ -48,7 +48,7 @@ The data needs to be stored in an [Example protocol buffer](https://www.tensorfl
 | image/object/bbox/score | a float array, the score for the bounding box. For example, the confidence of a detector. |
 | image/object/bbox/label | an integer array, specifying the index in a classification layer. The label ranges from [0, num_labels) |
 | image/object/bbox/text | an array of strings, specifying the human readable label for the bounding box. |
-| image/object/bbox/conf | a float array, the confidence of the label for the bounding box. For example, a probability output from a classifier. |
+| image/object/bbox/conf | a float array, the _confidence of the label_ for the bounding box. For example, a probability output from a classifier. |
 | image/object/parts/x | a float array of x locations for a part; normalized coordinates. |
 | image/object/parts/y | a float array of y locations for a part; normalized coordinates. |
 | image/object/parts/v | an integer array of visibility flags for the parts. 0 indicates the part is not visible (e.g. out of the image plane). 1 indicates the part is occluded. 2 indicates the part is visible. |
@@ -62,7 +62,7 @@ Take note:
 
 * The origin of an image is the top left. All pixel locations will be interpreted with respect to that origin. 
 
-The [create_tfrecords.py](create_tfrecords.py) file has a convience function for generating the tfrecord files. You will need to preprocess your dataset and get it into a python list of dicts. Each dict represents an image and should have a structure that mimics the tfrecord structure above. However, slashes are replaced by nested dictionaries, and the outermost image dictionary is implied. Here is an example of a valid dictionary structure for one image:
+The [create_tfrecords.py](create_tfrecords.py) file has a convenience function for generating the tfrecord files. You will need to preprocess your dataset and get it into a python list of dicts. Each dict represents an image and should have a structure that mimics the tfrecord structure above. However, slashes are replaced by nested dictionaries, and the outermost image dictionary is implied. Here is an example of a valid dictionary structure for one image:
 
 ```python
 image_data = {

@@ -26,14 +26,13 @@ pandas_random_seed = None  # seed for sampling images from all annotation entrie
 
 incoming_annotation_path = './temp/batch8a_IDFG.json'
 output_dir = '/home/yasiyu/yasiyu_temp/201904_iMerit_verification/batch8_IDFG_group'
+os.makedirs(os.path.join(output_dir, 'rendered_images'), exist_ok=True)
 
 images_dir = '/datadrive/IDFG/IDFG_20190104_images_to_annotate'
 # '/datadrive/SS_annotated/imerit_batch7_snapshotserengeti_2018_10_26/images'
 # '/home/yasiyu/mnt/wildlifeblobssc/rspb/gola/gola_camtrapr_data'
 # '/datadrive/IDFG/IDFG_20190104_images_to_annotate'
 # '/datadrive/emammal'
-
-os.makedirs(os.path.join(output_dir, 'rendered_images'), exist_ok=True)
 
 # functions for translating from image_id in the annotation files to path to images in images_dir
 def default_image_id_to_path(image_id, images_dir):
@@ -81,7 +80,7 @@ df_img = pd.DataFrame(images)
 #%% Get a numerical to English label map; note that both the numerical key and the name are str
 label_map = {}
 for cat in entry['categories']:
-    label_map[str(cat['id'])] = cat['name']
+    label_map[int(cat['id'])] = cat['name']
 
 
 #%% Visualize the bboxes on a sample of images

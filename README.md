@@ -72,7 +72,7 @@ Source for the Web-based demo of our MegaDetector model (which we'll release soo
 Code for training and evaluating detectors.
 
 
-## experiments
+## research
 
 Ongoing research projects that use this repository in one way or another; as of the time I'm editing this README, there are projects in this folder around active learning and the use of simulated environments for training data augmentation.
 
