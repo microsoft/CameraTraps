@@ -61,7 +61,15 @@ def generate_detections(detection_graph,images):
     [images] can be a list of numpy arrays or a list of filenames.  Non-list inputs will be
     wrapped into a list.
 
-    Boxes are returned in relative coordinates as (top, left, bottom, right); x,y origin is the upper-left.
+    Boxes are returned in relative coordinates as (top, left, bottom, right); 
+    x,y origin is the upper-left.
+    
+    [boxes] will be returned as a numpy array of size nImages x nDetections x 4.
+    
+    [scores] and [classes] will each be returned as a numpy array of size nImages x nDetections.
+    
+    [images] is a set of numpy arrays corresponding to the input parameter [images], which may have
+    have been either arrays or filenames.    
     """
 
     if not isinstance(images,list):
@@ -109,11 +117,57 @@ def generate_detections(detection_graph,images):
                 classes.append(clss)
             
             # ...for each image                
+    
+    nBoxes = len(boxes)
+    
+    # Currently "boxes" is a list of length nImages, where each element is shaped as
+    #
+    # 1,nDetections,4
+    #
+    # This implicitly banks on TF giving us back a fixed number of boxes, let's assert on this
+    # to make sure this doesn't silently break in the future.
+    nDetections = -1
+    # iBox = 0; box = boxes[iBox]
+    for iBox,box in enumerate(boxes):
+        nDetectionsThisBox = box.shape[1]
+        assert (nDetections == -1 or nDetectionsThisBox == nDetections), 'Detection count mismatch'
+        nDetections = nDetectionsThisBox
+        assert(box.shape[0] == 1)
+    
+    # "scores" is a length-nImages list of elements with size 1,nDetections
+    assert(len(scores) == nImages)
+    for(iScore,score) in enumerate(scores):
+        assert score.shape[0] == 1
+        assert score.shape[1] == nDetections
+        
+    # "classes" is a length-nImages list of elements with size 1,nDetections
+    #
+    # Still as floats, but really representing ints
+    assert(len(classes) == nBoxes)
+    for(iClass,c) in enumerate(classes):
+        assert c.shape[0] == 1
+        assert c.shape[1] == nDetections
             
-    boxes = np.squeeze(np.array(boxes))
-    scores = np.squeeze(np.array(scores))
-    classes = np.squeeze(np.array(classes)).astype(int)
-
+    # Squeeze out the empty axis
+    boxes = np.squeeze(np.array(boxes),axis=1)
+    scores = np.squeeze(np.array(scores),axis=1)
+    classes = np.squeeze(np.array(classes),axis=1).astype(int)
+    
+    # boxes is nImages x nDetections x 4
+    assert(len(boxes.shape) == 3)
+    assert(boxes.shape[0] == nImages)
+    assert(boxes.shape[1] == nDetections)
+    assert(boxes.shape[2] == 4)
+    
+    # scores and classes are both nImages x nDetections
+    assert(len(scores.shape) == 2)
+    assert(scores.shape[0] == nImages)
+    assert(scores.shape[1] == nDetections)
+    
+    assert(len(classes.shape) == 2)
+    assert(classes.shape[0] == nImages)
+    assert(classes.shape[1] == nDetections)
+    
     return boxes,scores,classes,images
 
 
@@ -259,6 +313,7 @@ if False:
     imageDir = r'D:\temp\demo_images\b2'    
     imageFileNames = [fn for fn in glob.glob(os.path.join(imageDir,'*.jpg'))
          if (not 'detections' in fn)]
+    imageFileNames = [r"D:\temp\demo_images\snapshot_serengeti\S1_Q10_R2_PICT0152.JPG"]
     
     load_and_run_detector(modelFile,imageFileNames)
     
@@ -269,7 +324,8 @@ import argparse
 
 def main():
     
-    # python run_tf_detector.py "D:\temp\models\object_detection\megadetector\megadetector_v2.pb" --imageDir "D:\temp\demo_images\b2"
+    # python run_tf_detector.py "D:\temp\models\object_detection\megadetector\megadetector_v2.pb" --imageFile "D:\temp\demo_images\test\S1_J08_R1_PICT0120.JPG"
+    # python run_tf_detector.py "D:\temp\models\object_detection\megadetector\megadetector_v2.pb" --imageDir "d:\temp\demo_images\test"
     
     parser = argparse.ArgumentParser()
     parser.add_argument('detectorFile', type=str)
