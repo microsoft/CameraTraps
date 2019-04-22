@@ -305,7 +305,8 @@ def _process_image_files_batch(coder, thread_index, ranges, name, output_directo
                 shard_counter += 1
                 counter += 1
             except Exception as e:
-                raise
+                #raise
+                print('Exception in making example for {}.'.format(i))
                 error_counter += 1
                 error_msg = repr(e)
                 image_example['error_msg'] = error_msg
