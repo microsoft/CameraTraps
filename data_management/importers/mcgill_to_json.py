@@ -126,7 +126,8 @@ for iFile,row in input_metadata.iterrows():
     relPath = row['relative_path'].replace('\\','/')
     im = {}
     # Filenames look like "290716114012001a1116.jpg"
-    im['id'] = relPath.replace('/','_')
+    im['id'] = relPath.replace('/','_').replace(' ','_')
+    
     im['file_name'] = relPath
     
     im['seq_id'] = -1
