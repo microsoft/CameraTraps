@@ -26,6 +26,9 @@ from PIL import Image
 
 nThreads = 10
 
+# By arbitrary convention, operate using slashes in this file
+PATH_SEP = '/'
+
 
 #%% Functions
 
@@ -133,6 +136,7 @@ def sanityCheckJsonDb(jsonFile, options=None):
         
     imagePathsInJson = set()
     
+    # image = images[0]
     for image in tqdm(images):
         
         image['_count'] = 0
@@ -141,6 +145,9 @@ def sanityCheckJsonDb(jsonFile, options=None):
         assert 'file_name' in image
         assert 'id' in image
 
+        image['file_name'] = image['file_name'].replace('\\',PATH_SEP)
+        image['file_name'] = image['file_name'].replace('/',PATH_SEP)
+                
         imagePathsInJson.add(image['file_name'])
         
         assert isinstance(image['file_name'],str), 'Illegal image filename type'
@@ -175,6 +182,8 @@ def sanityCheckJsonDb(jsonFile, options=None):
                 if file.lower().endswith(('.jpeg', '.jpg', '.png')):
                     relDir = os.path.relpath(root, baseDir)
                     relFile = os.path.join(relDir,file)
+                    relFile = relFile.replace('\\',PATH_SEP)
+                    relFile = relFile.replace('/',PATH_SEP)                
                     if len(relFile) > 2 and \
                         (relFile[0:2] == './' or relFile[0:2] == '.\\'):                     
                             relFile = relFile[2:]
@@ -289,6 +298,7 @@ import argparse
 def main():
     
     # python sanity_check_json_db.py "e:\wildlife_data\wellington_data\wellington_camera_traps.json" --baseDir "e:\wildlife_data\wellington_data\images" --bFindUnusedImages --bCheckImageSizes
+    # python sanity_check_json_db.py "D:/wildlife_data/mcgill_test/mcgill_test.json" --baseDir "D:/wildlife_data/mcgill_test" --bFindUnusedImages --bCheckImageSizes
     
     # Here the '-u' prevents buffering, which makes tee happier
     #
@@ -323,11 +333,11 @@ if False:
                  r'd:\temp\nacti_metadata.json',
                  r'd:\temp\SnapshotSerengeti.json']
     
-    # Sanity-check one file with all the bells and whistles
-    jsonFiles = [r'e:\wildlife_data\wellington_data\wellington_camera_traps.json']; jsonFile = jsonFiles[0]; baseDir = r'e:\wildlife_data\wellington_data\images'
+    # Sanity-check one file with all the bells and whistles    
+    jsonFiles = [r'd:\wildlife_data\mcgill_test\mcgill_test.json']; jsonFile = jsonFiles[0]; baseDir = r'd:\wildlife_data\mcgill_test'
     options = SanityCheckOptions()
     options.baseDir = baseDir
-    options.bCheckImageSizes = False
+    options.bCheckImageSizes = True
     options.bFindUnusedImages = True
     
     # options.iMaxNumImages = 10    
