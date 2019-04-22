@@ -8,6 +8,8 @@ from utils.create_tfrecords_format import create_tfrecords_format
 from utils.create_splits import create_splits
 from utils.create_tfrecords_py3 import create
 
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
 
 #%% Configurations
 dataset_name = 'ss_1to6'  # this needs to be exactly 7 letters long
@@ -29,8 +31,8 @@ exclude_images_without_bbox = True
 
 # approximate fraction to split the new entries by
 split_frac = {
-    'train': 1.0,
-    'val': 0.0,
+    'train': 0.97,
+    'val': 0.03,
     'test': 0.0
 }
 
@@ -43,7 +45,7 @@ cats_to_include = ['animal', 'person']
 # in addition, any images with a 'group' label will not be included to avoid confusion
 # see 'image_contains_group' in create_tfrecords_format.py
 
-images_per_record = 500
+images_per_record = 700
 num_threads = 5
 
 
@@ -148,14 +150,16 @@ def create_tfrecords(dataset, dataset_name):
 
 
 failed_images = []
+
+# want the file names of all tfrecords to be of the same format and length in each part
 print('Creating train tfrecords...')
 failed_images.append(create_tfrecords(train, '{}~train'.format(dataset_name)))
 
 print('Creating val tfrecords...')
-failed_images.append(create_tfrecords(val, '{}~val'.format(dataset_name)))
+failed_images.append(create_tfrecords(val, '{}~val__'.format(dataset_name)))
 
 print('Creating test tfrecords...')
-failed_images.append(create_tfrecords(test, '{}~test'.format(dataset_name)))
+failed_images.append(create_tfrecords(test, '{}~test_'.format(dataset_name)))
 
 print('Saving failed images...')
 with open(os.path.join(others_out_dir, '{}_failed_images.json'.format(dataset_name)), 'w') as f:
