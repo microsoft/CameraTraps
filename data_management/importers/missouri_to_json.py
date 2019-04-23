@@ -8,10 +8,8 @@
 #%% Constants and imports
 
 import json
-import io
 import os
 import uuid
-import csv
 import warnings
 import ntpath
 import datetime
@@ -45,6 +43,7 @@ info['version'] = '1.0'
 info['description'] = 'Missouri Camera Traps (set 1)'
 info['contributor'] = ''
 info['date_created'] = str(datetime.date.today())
+infoSet1 = info
 
 info = {}
 info['year'] = 2019
@@ -52,6 +51,7 @@ info['version'] = '1.0'
 info['description'] = 'Missouri Camera Traps (set 2)'
 info['contributor'] = ''
 info['date_created'] = str(datetime.date.today())
+infoSet2 = info
 
 maxFiles = -1
 emptyCategoryId = 0
@@ -239,6 +239,10 @@ metadataSet2 = []
 
 relPathToMetadataSet2 = {}
 
+# Create class IDs for each *sequence*, which we'll use to attach classes to 
+# images for which we don't have metadata
+#
+# This only contains mappings for sequences that appear in the metadata.
 set2SequenceToClass = {}
 
 missingFilesSet2 = []
@@ -374,7 +378,8 @@ nSequenceLevelAnnotations = 0
 # iImage = 0; imageID = set1ImageIDs[iImage]
 for iImage,imageID in enumerate(set1ImageIDs):
     
-    im = imageIdToImage[imageID]    
+    im = imageIdToImage[imageID]
+    imagesSet1.append(im)
     
     # E.g. Set1\\1.80-Coiban_Agouti\\SEQ83155\\SEQ83155_IMG_0010.JPG
     relPath = im['file_name']
@@ -427,10 +432,6 @@ for iImage,imageID in enumerate(set1ImageIDs):
         
         nBoxes = int(imageMetadata[1])
         
-        if nBoxes > 1:
-            
-            nExtraBoxes = nBoxes - 1
-            
         if nBoxes == 0:
             
             ann = {}
@@ -498,103 +499,93 @@ idToCategory = {}
 
 # Not used in this data set, but stored by convention
 emptyCat = {}
+assert emptyCategoryId == 0
 emptyCat['id'] = emptyCategoryId
 emptyCat['name'] = emptyCategoryName
 emptyCat['count'] = 0
-categoriesSet1.append(emptyCat) 
+categoriesSet2.append(emptyCat) 
 
 humanCat = {}
 humanCat['id'] = 1
 humanCat['name'] = 'human'
 humanCat['count'] = 0
-categoriesSet1.append(humanCat) 
+categoriesSet2.append(humanCat) 
 
 animalCat = {}
 animalCat['id'] = 2
 animalCat['name'] = 'animal'
 animalCat['count'] = 0
-categoriesSet1.append(animalCat) 
+categoriesSet2.append(animalCat) 
+
+unknownCat = {}
+unknownCat['id'] = 3
+unknownCat['name'] = 'unknown'
+unknownCat['count'] = 0
+categoriesSet2.append(unknownCat) 
+
+categoryMappingsSet2 = {0:humanCat,1:animalCat}
+sequenceClassCategoryMappingsSet2 = {'human':humanCat,'animal':animalCat,
+                                     'mixed':unknownCat,'empty':emptyCat}
 
 nFoundMetadata = 0
+nImageLevelEmpties = 0
+nSequenceLevelAnnotations = 0
+nTotalBoxes = 0
 
 # For each image
 #
-# iImage = 0; imageID = set1ImageIDs[iImage]
-for iImage,imageID in enumerate(set1ImageIDs):
+# iImage = 0; imageID = set2ImageIDs[iImage]
+for iImage,imageID in enumerate(set2ImageIDs):
     
     im = imageIdToImage[imageID]    
+    imagesSet2.append(im)
     
-    # E.g. Set1\\1.80-Coiban_Agouti\\SEQ83155\\SEQ83155_IMG_0010.JPG
+    # E.g. 'Set2\\p1d100\\p1d100s10i1.JPG'
     relPath = im['file_name']
 
-    # Find the species name
+    # Find the sequence ID, sanity check filename against what we stored
     tokens = os.path.normpath(relPath).split(os.sep)
-    speciesTag = tokens[1]
-    tokens = speciesTag.split('-',1)
-    assert(len(tokens) == 2)
-    categoryName = tokens[1].lower()
+    sequenceID = tokens[1]
+    assert(sequenceID == im['seq_id'])
     
-    category = None
-    categoryId = None
-    
-    if categoryName not in categoryNameToId:
-        
-        categoryId = nextCategoryId
-        nextCategoryId += 1
-        categoryNameToId[categoryName] = categoryId
-        newCat = {}
-        newCat['id'] = categoryNameToId[categoryName]
-        newCat['name'] = categoryName
-        newCat['count'] = 0
-        categoriesSet1.append(newCat) 
-        idToCategory[categoryId] = newCat
-        category = newCat
-        
-    else:
-        
-        categoryId = categoryNameToId[categoryName]
-        category = idToCategory[categoryId]
-        category['count'] = category['count'] + 1
-                
-    # If we have bounding boxes, create image-level annotations    
-    if relPath in relPathToMetadataSet1:
+    # If we have bounding boxes or an explicit empty label, create image-level annotations    
+    if relPath in relPathToMetadataSet2:
         
         nFoundMetadata += 1
         
-        # filename, number of bounding boxes, boxes (four values per box)
-        imageMetadata = relPathToMetadataSet1[relPath]
+        # filename, number of bounding boxes, labeled boxes (five values per box)
+        imageMetadata = relPathToMetadataSet2[relPath]
         
         # Make sure the relative filename matches, allowing for the fact that
         # some of the filenames in the metadata aren't quite right
-        fn = imageMetadata[0]
-        s = relPath.replace('Set1','').replace('\\','/')[1:]
-        if (fn != s):
-            s = s.replace('IMG_','IMG')
-            
+        fn = os.path.normpath(imageMetadata[0])
+        s = os.path.normpath(relPath.replace('Set2\\',''))
         assert(fn == s)
         
         nBoxes = int(imageMetadata[1])
         
-        if nBoxes > 1:
-            
-            nExtraBoxes = nBoxes - 1
-            
         if nBoxes == 0:
             
             ann = {}
             ann['id'] = str(uuid.uuid1())
             ann['image_id'] = im['id']
-            ann['category_id'] = emptyCategoryId
+            ann['category_id'] = emptyCat['id']
             ann['sequence_level_annotation'] = False
-            annotationsSet1.append(ann)
+            annotationsSet2.append(ann)
             nImageLevelEmpties += 1
             
         else:
             
             for iBox in range(0,nBoxes):
                                 
-                boxCoords = imageMetadata[2+(iBox*4):6+(iBox*4)]
+                boxCoords = imageMetadata[2+(iBox*5):7+(iBox*5)]
                 boxCoords = list(map(int, boxCoords))
+                
+                boxClass = boxCoords[0]
+                boxCat = categoryMappingsSet2[boxClass]
+                categoryId = boxCat['id']
+                
+                boxCoords = boxCoords[1:]
                 
                 # Bounding box values are in absolute coordinates, with the origin 
                 # at the upper-left of the image, as [xmin1 ymin1 xmax1 ymax1].
@@ -612,278 +603,52 @@ for iImage,imageID in enumerate(set1ImageIDs):
                 ann['category_id'] = categoryId
                 ann['sequence_level_annotation'] = False
                 ann['bbox'] = box
-                annotationsSet1.append(ann)
+                annotationsSet2.append(ann)
                 nTotalBoxes += 1
                 
     # Else create a sequence-level annotation
     else:
+        
+        if sequenceID not in set2SequenceToClass:
+            sequenceClass = 'empty'
+        else:
+            sequenceClass = set2SequenceToClass[sequenceID]
+        category = sequenceClassCategoryMappingsSet2[sequenceClass]
+        categoryId = category['id']
         
         ann = {}
         ann['id'] = str(uuid.uuid1())
         ann['image_id'] = im['id']
         ann['category_id'] = categoryId
         ann['sequence_level_annotation'] = True
-        annotationsSet1.append(ann)
+        annotationsSet2.append(ann)
         nSequenceLevelAnnotations += 1
         
 # ...for each image
         
-print('Finished processing set 1, found metadata for {} of {} images, created {} annotations and {} boxes in {} categories'.format(
-        nFoundMetadata,len(set1ImageIDs),len(annotationsSet1),nTotalBoxes,len(categoriesSet1)))
+print('Finished processing set 2, found metadata for {} of {} images, created {} annotations and {} boxes in {} categories'.format(
+        nFoundMetadata,len(set2ImageIDs),len(annotationsSet2),nTotalBoxes,len(categoriesSet2)))
 
-assert len(annotationsSet1) == nSequenceLevelAnnotations + nTotalBoxes + nImageLevelEmpties
-assert len(set1ImageIDs) == nSequenceLevelAnnotations + nFoundMetadata
-
-
-#%% Create records for each image and annotation, accumulating classes as we go
-    
-images = []
-annotations = []
-categories = []
-
-imageIdToImage = {}
-relativeFilenameToImageId = {}
-sequenceIdToCount = {}
-
-
-# For each image...
-
-    # Confirm we haven't seen this image before
-    
-    # Pull out the species name
-    
-    # If we haven't seen this species, create a new record for the class
-    if False:
-        catId = nextCategoryId
-        nextCategoryId += 1
-        categoryNameToId[categoryName] = catId
-        newCat = {}
-        newCat['id'] = categoryNameToId[categoryName]
-        newCat['name'] = categoryName
-        newCat['count'] = 0
-        categories.append(newCat) 
-        idToCategory[catId] = newCat
-    
-    # Pull out the sequence ID
-    
-    # If we haven't seen this sequence before, create a count record for it
-    
-    # Else update the count
-    
-    # Give it an ID
-    im = {}
-    im['id'] = str(uuid.uuid1())
-    im['file_name'] = relativePath
-    im['height'] = h
-    im['width'] = w
-    im['seq_id'] = seqID
-    im['seq_num_frames'] = -1
-    im['frame_num'] = iFrame
-    images.append(im)
-    imageIdToImage[im['id']] = im
-    
-    # If this image is empty, create an empty annotation
-    
-    # Create one annotation per bounding box
-    ann = {}
-    ann['id'] = str(uuid.uuid1())
-    ann['image_id'] = im['id']
-    ann['category_id'] = categoryId
-    annotations.append(ann)
-
-# ...for each image
-    
-#%% Assemble dictionaries
-
-
-for categoryName in classNames:
+assert len(annotationsSet2) == nSequenceLevelAnnotations + nTotalBoxes + nImageLevelEmpties
+assert len(set2ImageIDs) == nSequenceLevelAnnotations + nFoundMetadata
     
     
-            
-# ...for each category
-    
-    
-# Each element is a list of relative path/full path/width/height/className
-    
-for iRow,row in enumerate(fileInfo):
-    
-    relativePath = row[0]
-    w = row[2]
-    h = row[3]    
-    className = row[4]  
-    
-    assert className in categoryNameToId
-    categoryId = categoryNameToId[className]
-    
-    im = {}
-    im['id'] = str(uuid.uuid1())
-    im['file_name'] = relativePath
-    im['height'] = h
-    im['width'] = w
-    images.append(im)
-    imageIdToImage[im['id']] = im
-    
-    ann = {}
-    ann['id'] = str(uuid.uuid1())
-    ann['image_id'] = im['id']
-    ann['category_id'] = categoryId
-    annotations.append(ann)
-    
-    cat = idToCategory[categoryId]
-    cat['count'] += 1
-    
-# ...for each image
-
-oldNameToOldId = categoryNameToId
-originalCategories = categories
-
-print('Finished assembling dictionaries')
-
-
-#%% Write raw class table
-
-# cat = categories[0]
-if os.path.isfile(rawClassListFilename):
-    
-    print('Not over-writing raw class table')
-
-else:
-    
-    with io.open(rawClassListFilename, "w", encoding=outputEncoding) as classListFileHandle:
-        for cat in categories:
-            catId = cat['id']
-            categoryName = cat['name']
-            categoryCount = cat['count']
-            classListFileHandle.write(str(catId) + ',"' + categoryName + '",' + str(categoryCount) + '\n')
-    
-    print('Finished writing raw class table')
-
-
-#%% Read the mapped class table
-
-classMappings = {}
-
-if os.path.isfile(classMappingsFilename):
-
-    print('Loading file list from {}'.format(classMappingsFilename))
-        
-    with open(classMappingsFilename,'r') as f:
-        reader = csv.reader(f)
-        mappingInfo = list(list(item) for item in csv.reader(f, delimiter=','))
-    
-    for mapping in mappingInfo:
-        assert len(mapping) == 4
-        
-        # id, source, count, target
-        sourceClass = mapping[1]
-        targetClass = mapping[3]
-        assert sourceClass not in classMappings
-        classMappings[sourceClass] = targetClass
-    
-    print('Finished reading list of {} class mappings'.format(len(mappingInfo)))
-    
-    
-#%% Create new class list
-    
-categories = []
-categoryNameToId = {}
-oldIdToNewId = {}
-
-# Start at 1, explicitly assign 0 to "empty"
-nextCategoryId = 1
-for sourceClass in classMappings:
-    targetClass = classMappings[sourceClass]
-    
-    if targetClass not in categoryNameToId:
-        
-        if targetClass == 'empty':
-            categoryId = 0
-        else:
-            categoryId = nextCategoryId
-            nextCategoryId = nextCategoryId + 1
-            
-        categoryNameToId[targetClass] = categoryId
-        newCat = {}
-        newCat['id'] = categoryId
-        newCat['name'] = targetClass
-        newCat['count'] = 0
-        
-        if targetClass == 'empty':
-            categories.insert(0,newCat)
-        else:
-            categories.append(newCat)
-
-    else:
-        
-        categoryId = categoryNameToId[targetClass]
-    
-    # One-off issue with character encoding
-    if sourceClass == 'humanÃ¯â‚¬Â¨':
-        sourceClass = 'humanï€¨'
-        
-    assert sourceClass in oldNameToOldId
-    oldId = oldNameToOldId[sourceClass]
-    oldIdToNewId[oldId] = categoryId
-
-categoryIdToCat = {}
-for cat in categories:
-    categoryIdToCat[cat['id']] = cat
-    
-print('Mapped {} original classes to {} new classes'.format(len(mappingInfo),len(categories)))
-
-
-#%% Re-map annotations
-            
-# ann = annotations[0]            
-for ann in annotations:
-
-    ann['category_id'] = oldIdToNewId[ann['category_id']]
-    
-    
-#%% Write output .json
+#%% Write output .json files
 
 data = {}
-data['info'] = info
-data['images'] = images
-data['annotations'] = annotations
-data['categories'] = categories
+data['info'] = infoSet1
+data['images'] = imagesSet1
+data['annotations'] = annotationsSet1
+data['categories'] = categoriesSet1
+json.dump(data, open(outputJsonFilenameSet1,'w'))    
+print('Finished writing json to {}'.format(outputJsonFilenameSet1))
 
-json.dump(data, open(outputJsonFilename,'w'))    
+data = {}
+data['info'] = infoSet2
+data['images'] = imagesSet2
+data['annotations'] = annotationsSet2
+data['categories'] = categoriesSet2
+json.dump(data, open(outputJsonFilenameSet2,'w'))    
+print('Finished writing json to {}'.format(outputJsonFilenameSet2))
 
-print('Finished writing json to {}'.format(outputJsonFilename))
 
-
-#%% Utilities
-
-if False:
-    
-    #%% 
-    # Find images with a particular tag
-    className = 'hum'
-    matches = []
-    assert className in categoryNameToId
-    catId = categoryNameToId[className]
-    for ann in annotations:
-        if ann['category_id'] == catId:
-            imageId = ann['image_id']
-            im = imageIdToImage[imageId]
-            matches.append(im['file_name'])
-    print('Found {} matches'.format(len(matches)))
-    
-    os.startfile(os.path.join(baseDir,matches[0]))
-    
-    
-    #%% Randomly sample annotations
-    
-    import random
-    nAnnotations = len(annotations)
-    iAnn = random.randint(0,nAnnotations)
-    ann = annotations[iAnn]
-    catId = ann['category_id']
-    imageId = ann['image_id']
-    im = imageIdToImage[imageId]
-    fn = os.path.join(baseDir,im['file_name'])
-    cat = categoryIdToCat[catId]
-    className = cat['name']
-    print('This should be a {}'.format(className))
-    os.startfile(fn)
