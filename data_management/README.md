@@ -42,8 +42,14 @@ annotation{
   "id" : str,
   "image_id" : str,
   "category_id" : int,
+  
   # These are in absolute, floating-point coordinates, with the origin at the upper-left
-  "bbox": [x,y,width,height]
+  "bbox": [x,y,width,height],
+  
+  # This indicates that this annotation is really applied at the *sequence* level,
+  # and may not be reliable at the individual-image level.  Since the *sequences* are
+  # the "atom of interest" for most ecology applications, this is common.
+  "sequence_level_annotation" : bool
 }
 ```
 
