@@ -230,12 +230,16 @@ with open(metadataFilenameSet2) as f:
 
 metadataSet2Lines = [x.strip() for x in metadataSet2Lines] 
 
+set2ClassMappings = {0:'human',1:'animal'}
+
 # List of lists, length varies according to number of bounding boxes
 #
 # Preserves original ordering
 metadataSet2 = []
 
 relPathToMetadataSet2 = {}
+
+set2SequenceToClass = {}
 
 missingFilesSet2 = []
 
@@ -252,6 +256,54 @@ for iLine,line in enumerate(metadataSet2Lines):
     relPath = tokens[0].replace('/',os.sep).replace('\\',os.sep)
     relPath = os.path.join('Set2',relPath)
     absPath = os.path.join(baseDir,relPath)
+
+    # E.g. 'Set2\\p1d101\\p1d101s100i10.JPG'
+    fnTokens = os.path.normpath(relPath).split(os.sep)
+    sequenceID = fnTokens[-2]
+    
+    # Make sure we don't have mixed classes within an image
+    nBoxes = int(tokens[1])
+    imageClass = None
+    if nBoxes == 0:
+        imageClass = 'empty'
+    else:
+        for iBox in range(0,nBoxes):
+            boxClass = int(tokens[2+5*(iBox)])
+            boxClass = set2ClassMappings[boxClass]
+            if imageClass is None:
+                imageClass = boxClass
+            elif boxClass != imageClass:
+                imageClass = 'mixed'                
+    
+    assert imageClass is not None
+    
+    # Figure out what class this *sequence* is, so we know how to handle unlabeled
+    # images from this sequence
+    if sequenceID in set2SequenceToClass:
+        
+        sequenceClass = set2SequenceToClass[sequenceID]
+        
+        # Can't un-do a mixed sequence
+        if sequenceClass == 'mixed':
+            pass
+        
+        # Previously-empty sequences get the image class label
+        elif sequenceClass == 'empty':
+            if imageClass != 'empty':
+                sequenceClass = imageClass
+        
+        # If the sequence has some non-empty class, possibly change it
+        else:
+            if imageClass == 'empty':
+                pass
+            elif imageClass != sequenceClass:
+                sequenceClass = imageClass
+        
+        set2SequenceToClass[sequenceID] = sequenceClass
+        
+    else:
+        
+        set2SequenceToClass[sequenceID] = imageClass
     
     if not os.path.isfile(absPath):
         missingFilesSet2.append(absPath)
@@ -265,28 +317,33 @@ for iLine,line in enumerate(metadataSet2Lines):
 
 print('Missing {} of {} files in set 2'.format(len(missingFilesSet2),len(metadataSet2Lines)))
 
-
-#%% Print missing files from Set 2 metadata
-
-for iFile,filename in enumerate(missingFilesSet2):
-    print(filename)
+if False:
+    for iFile,filename in enumerate(missingFilesSet2):
+        print(filename)
 
 
 #%% What Set 2 images do I not have metadata for?
     
-set2UnlabeledImageIndices = []
+# These are *mostly* empty images
 
-# iImage = 0; imageID = set2ImageIDs[iImage]
-for iImage,imageID in enumerate(set2ImageIDs):
+if False:
+
+    set2UnlabeledImageIndices = []
+    set2ImageIDsUnlabeled = []
     
-    im = imageIdToImage[imageID]
-    if not im['file_name'] in relPathToMetadataSet2:
-        set2UnlabeledImageIndices.append(iImage)
+    # iImage = 0; imageID = set2ImageIDs[iImage]
+    for iImage,imageID in enumerate(set2ImageIDs):
         
-print('{} of {} files in set 2 lack labels'.format(len(set2UnlabeledImageIndices),len(set2ImageIDs)))
-
-# Trim to only the images we have labels for
-set2ImageIDsLabeled = [x for i,x in enumerate(set2ImageIDs) if i not in set2UnlabeledImageIndices]    
+        im = imageIdToImage[imageID]
+        if not im['file_name'] in relPathToMetadataSet2:
+            set2UnlabeledImageIndices.append(iImage)
+            set2ImageIDsUnlabeled.append(imageID)
+            
+    print('{} of {} files in set 2 lack labels'.format(len(set2UnlabeledImageIndices),len(set2ImageIDs)))
+    
+    set2ImageIDsLabeled = [x for i,x in enumerate(set2ImageIDs) if i not in set2UnlabeledImageIndices]    
+    
+    assert len(set2ImageIDsLabeled) + len(set2ImageIDsUnlabeled) == len(set2ImageIDs)
 
 
 #%% Create categories and annotations for set 1
@@ -432,9 +489,9 @@ assert len(set1ImageIDs) == nSequenceLevelAnnotations + nFoundMetadata
 
 #%% Create categories and annotations for set 2
 
-imagesSet1 = []
-categoriesSet1 = []
-annotationsSet1 = []
+imagesSet2 = []
+categoriesSet2 = []
+annotationsSet2 = []
 
 categoryNameToId = {}
 idToCategory = {}
@@ -446,12 +503,19 @@ emptyCat['name'] = emptyCategoryName
 emptyCat['count'] = 0
 categoriesSet1.append(emptyCat) 
 
-nextCategoryId = emptyCategoryId + 1
-    
+humanCat = {}
+humanCat['id'] = 1
+humanCat['name'] = 'human'
+humanCat['count'] = 0
+categoriesSet1.append(humanCat) 
+
+animalCat = {}
+animalCat['id'] = 2
+animalCat['name'] = 'animal'
+animalCat['count'] = 0
+categoriesSet1.append(animalCat) 
+
 nFoundMetadata = 0
-nTotalBoxes = 0
-nImageLevelEmpties = 0
-nSequenceLevelAnnotations = 0
 
 # For each image
 #
@@ -569,7 +633,6 @@ print('Finished processing set 1, found metadata for {} of {} images, created {}
 
 assert len(annotationsSet1) == nSequenceLevelAnnotations + nTotalBoxes + nImageLevelEmpties
 assert len(set1ImageIDs) == nSequenceLevelAnnotations + nFoundMetadata
-
 
 
 #%% Create records for each image and annotation, accumulating classes as we go
