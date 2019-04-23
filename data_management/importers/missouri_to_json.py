@@ -33,7 +33,7 @@ set1BaseDir = os.path.join(baseDir,'Set1')
 set2BaseDir = os.path.join(baseDir,'Set2')
 
 metadataFilenameSet1 = os.path.join(set1BaseDir,'labels.txt')
-metadataFilenameSet2 = os.path.join(set1BaseDir,'labels.txt')
+metadataFilenameSet2 = os.path.join(set2BaseDir,'labels.txt')
 
 assert(os.path.isdir(baseDir))
 assert(os.path.isfile(metadataFilenameSet1))
@@ -162,7 +162,7 @@ with open(metadataFilenameSet1) as f:
     metadataSet1Lines = f.readlines()
 
 correctedFiles = []
-missingFiles = []
+missingFilesSet1 = []
 
 metadataSet1Lines = [x.strip() for x in metadataSet1Lines] 
 
@@ -171,10 +171,11 @@ metadataSet1Lines = [x.strip() for x in metadataSet1Lines]
 # Preserves original ordering
 metadataSet1 = []
 
-relPathToMetadata = {}
+relPathToMetadataSet1 = {}
 
 # iLine = 0; line = metadataSet1Lines[0]
 for iLine,line in enumerate(metadataSet1Lines):
+    
     tokens = line.split()
     nTokens = len(tokens)
     
@@ -195,12 +196,12 @@ for iLine,line in enumerate(metadataSet1Lines):
         
     if not os.path.isfile(absPath):
         
-        missingFiles.append([originalRelPath,originalAbsPath])
+        missingFilesSet1.append([originalRelPath,originalAbsPath])
         
     else:
         
         metadataSet1.append(tokens)
-        relPathToMetadata[relPath] = tokens
+        relPathToMetadataSet1[relPath] = tokens
         
         # Make sure we have image info for this image
         assert relPath in relPathToIm
@@ -209,16 +210,98 @@ print('Corrected {} paths, missing {} images of {}'.format(len(correctedFiles),
       len(missingFiles),len(metadataSet1Lines)))
 
 
-#%% Print missing files
+#%% Print missing files from Set 1 metadata
 
 # 'IMG' --> 'IMG_'
 # Red_Brocket_Deer --> Red_Deer
 # European-Hare --> European_Hare
 # Wood-Mouse --> Wood_Mouse
 # Coiban-Agouti --> Coiban_Agouti
-for iFile,fInfo in enumerate(missingFiles):
+for iFile,fInfo in enumerate(missingFilesSet1):
     print(fInfo[0])
     
+
+#%% Load the set 2 metadata file, split into tokens
+
+with open(metadataFilenameSet2) as f:
+    metadataSet2Lines = f.readlines()
+
+metadataSet2Lines = [x.strip() for x in metadataSet2Lines] 
+
+# List of lists, length varies according to number of bounding boxes
+#
+# Preserves original ordering
+metadataSet2 = []
+
+relPathToMetadataSet2 = {}
+
+missingFilesSet2 = []
+
+# iLine = 0; line = metadataSet2Lines[0]
+for iLine,line in enumerate(metadataSet2Lines):
+    
+    tokens = line.split()
+    nTokens = len(tokens)
+    
+    # Lines should be filename, number of bounding boxes, labeled boxes (five values per box)
+    #
+    # Empty images look like filename\t0\t0
+    assert (nTokens == 3 and tokens[1] == '0' and tokens[2] == '0') or (((nTokens - 2) % 5) == 0)
+    relPath = tokens[0].replace('/',os.sep).replace('\\',os.sep)
+    relPath = os.path.join('Set2',relPath)
+    absPath = os.path.join(baseDir,relPath)
+    
+    if not os.path.isfile(absPath):
+        missingFilesSet2.append(absPath)
+        continue
+    
+    metadataSet2.append(tokens)
+    relPathToMetadataSet2[relPath] = tokens
+        
+    # Make sure we have image info for this image
+    assert relPath in relPathToIm
+
+print('Missing {} of {} files in set 2'.format(len(missingFilesSet2),len(metadataSet2Lines)))
+
+
+#%% Print missing files from Set 2 metadata
+
+for iFile,filename in enumerate(missingFilesSet2):
+    print(filename)
+
+
+#%% What Set 2 images do I not have metadata for?
+    
+set2UnlabeledImageIndices = []
+
+# iImage = 0; imageID = set2ImageIDs[iImage]
+for iImage,imageID in enumerate(set2ImageIDs):
+    
+    im = imageIdToImage[imageID]
+    if not im['file_name'] in relPathToMetadataSet2:
+        set2UnlabeledImageIndices.append(iImage)
+        
+print('{} of {} files in set 2 lack labels'.format(len(set2UnlabeledImageIndices),len(set2ImageIDs)))
+
+# Trim to only the images we have labels for
+set2ImageIDsLabeled = [x for i,x in enumerate(set2ImageIDs) if i not in set2UnlabeledImageIndices]    
+
+
+#%% Create categories and annotations for set 1
+
+# For each image
+
+    # If we have bounding boxes, create image-level annotations
+    
+    # Else create sequence-level annotations
+    
+    # Either way, create a category if necessary
+
+
+
+#%% Create categories and annotations for set 2
+
+
 
 #%% Create records for each image and annotation, accumulating classes as we go
     
