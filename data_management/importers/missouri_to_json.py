@@ -2,7 +2,12 @@
 # missouri_to_json.py
 #
 # Create .json files from the original source files for the Missouri Camera Traps
-# data set.
+# data set.  Metadata was provided here in ~2 formats:
+#
+# 1) In one subset of the data, folder names indicated species names
+#
+# 2) An subset of the data (overlapping with (1)) was annotated with bounding
+#    boxes, specified in a whitespace-delimited text file.
 # 
 
 #%% Constants and imports
