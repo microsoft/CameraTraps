@@ -81,7 +81,8 @@ def sanityCheckJsonDb(jsonFile, options=None):
     print('\nProcessing .json file {}'.format(jsonFile))
     
     baseDir = options.baseDir
-        
+    
+    
     ##%% Read .json file, sanity-check fields
     
     print('Reading .json {} with base dir [{}]...'.format(
@@ -99,6 +100,7 @@ def sanityCheckJsonDb(jsonFile, options=None):
     if len(baseDir) > 0:
         
         assert os.path.isdir(baseDir), 'Base directory {} does not exist'.format(baseDir)
+        
         
     ##%% Build dictionaries, checking ID uniqueness and internal validity as we go
     
@@ -197,8 +199,11 @@ def sanityCheckJsonDb(jsonFile, options=None):
                 unusedFiles.append(p)
                 
     # Are we checking file existence and/or image size?
-    if (len(baseDir) > 0) and options.bCheckImageSizes:
+    if options.bCheckImageSizes:
         
+        if len(baseDir) == 0:
+            print('Warning: checking image sizes without a base directory, assuming "."')
+            
         print('Checking image existence and image sizes...')
         
         pool = ThreadPool(nThreads)
