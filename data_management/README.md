@@ -12,38 +12,60 @@ Everything in this directory creates or operates on COCO Camera Traps databases,
   "annotations" : [annotation]
 }
 
-info{
-  "year" : int,
+info 
+{
+  # Required
   "version" : str,
   "description" : str,
+  
+  # Optional
+  "year" : int,
   "contributor" : str
   "date_created" : datetime
 }
 
-image{
+image
+{
+  # Required
   "id" : str,
   "width" : int,
   "height" : int,
   "file_name" : str,
+  
+  # Optional
   "rights_holder" : str,
   "location": str or int,
-  "datetime": datetime,
+  "datetime": datetime,  
   "seq_id": str,
   "seq_num_frames": int,
   "frame_num": int
 }
 
-category{
+category
+{
+  # Required
+  
+  # Category ID 0 generally reserved for the class "empty"  
   "id" : int,
   "name" : str
 }
 
-annotation{
+annotation
+{
+  # Required
   "id" : str,
-  "image_id" : str,
+  "image_id" : str,  
   "category_id" : int,
+  
+  # Optional
+  
   # These are in absolute, floating-point coordinates, with the origin at the upper-left
-  "bbox": [x,y,width,height]
+  "bbox": [x,y,width,height],
+  
+  # This indicates that this annotation is really applied at the *sequence* level,
+  # and may not be reliable at the individual-image level.  Since the *sequences* are
+  # the "atom of interest" for most ecology applications, this is common.
+  "sequence_level_annotation" : bool
 }
 ```
 
@@ -51,8 +73,9 @@ annotation{
 
 `frame_num` specifies this frame's order in the sequence.
 
-Additional fields may be present for specific data sets.
+Fields listed as "optional" are intended to standardize commonly-used parameters (such as date/time information).  When present, fields should follow the above conventions.  Additional fields may be present for specific data sets.
 
+Whenever possible, the category ID 0 is associated with a class called "empty", even if there are no empty images in a data set.  When preparing data sets, we normalize all versions of "empty" (such as "none", "Empty", "no animal", etc.) to "empty".
 
 # Contents
 
