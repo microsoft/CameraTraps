@@ -44,6 +44,8 @@ image
 category
 {
   # Required
+  
+  # Category ID 0 generally reserved for the class "empty"  
   "id" : int,
   "name" : str
 }
@@ -52,7 +54,7 @@ annotation
 {
   # Required
   "id" : str,
-  "image_id" : str,
+  "image_id" : str,  
   "category_id" : int,
   
   # Optional
@@ -73,6 +75,7 @@ annotation
 
 Fields listed as "optional" are intended to standardize commonly-used parameters (such as date/time information).  When present, fields should follow the above conventions.  Additional fields may be present for specific data sets.
 
+Whenever possible, the category ID 0 is associated with a class called "empty", even if there are no empty images in a data set.  When preparing data sets, we normalize all versions of "empty" (such as "none", "Empty", "no animal", etc.) to "empty".
 
 # Contents
 
