@@ -33,21 +33,29 @@ image
   "file_name" : str,
   
   # Optional
-  "rights_holder" : str,
-  "location": str or int,
+  "rights_holder" : str,    
   "datetime": datetime,  
   "seq_id": str,
   "seq_num_frames": int,
   "frame_num": int
+  
+  # This is an int in older data sets, but convention is now strings
+  "location": str,
+  
+  # Image corruption is quite common in camera trap images, and throwing out corrupt
+  # images in database assembly is "dodging part of the problem".  Wherever possible,
+  # use this flag to indicate that an image failed to load, e.g. in PIL and/or TensorFlow.
+  "corrupt": bool
 }
 
 category
 {
   # Required
   
-  # Category ID 0 generally reserved for the class "empty"  
+  # Category ID 0 reserved for the class "empty"; all other categories vary by data
+  # set.  Positive integers only.
   "id" : int,
-  "name" : str
+  "name" : str  
 }
 
 annotation
