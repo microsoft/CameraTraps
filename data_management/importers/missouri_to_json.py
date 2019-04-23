@@ -54,6 +54,8 @@ info['contributor'] = ''
 info['date_created'] = str(datetime.date.today())
 
 maxFiles = -1
+emptyCategoryId = 0
+emptyCategoryName = 'empty'
 
 
 #%% Enumerate files, read image sizes
@@ -289,17 +291,284 @@ set2ImageIDsLabeled = [x for i,x in enumerate(set2ImageIDs) if i not in set2Unla
 
 #%% Create categories and annotations for set 1
 
+imagesSet1 = []
+categoriesSet1 = []
+annotationsSet1 = []
+
+categoryNameToId = {}
+idToCategory = {}
+
+# Not used in this data set, but stored by convention
+emptyCat = {}
+emptyCat['id'] = emptyCategoryId
+emptyCat['name'] = emptyCategoryName
+emptyCat['count'] = 0
+categoriesSet1.append(emptyCat) 
+
+nextCategoryId = emptyCategoryId + 1
+    
+nFoundMetadata = 0
+nTotalBoxes = 0
+nImageLevelEmpties = 0
+nSequenceLevelAnnotations = 0
+
 # For each image
-
-    # If we have bounding boxes, create image-level annotations
+#
+# iImage = 0; imageID = set1ImageIDs[iImage]
+for iImage,imageID in enumerate(set1ImageIDs):
     
-    # Else create sequence-level annotations
+    im = imageIdToImage[imageID]    
     
-    # Either way, create a category if necessary
+    # E.g. Set1\\1.80-Coiban_Agouti\\SEQ83155\\SEQ83155_IMG_0010.JPG
+    relPath = im['file_name']
 
+    # Find the species name
+    tokens = os.path.normpath(relPath).split(os.sep)
+    speciesTag = tokens[1]
+    tokens = speciesTag.split('-',1)
+    assert(len(tokens) == 2)
+    categoryName = tokens[1].lower()
+    
+    category = None
+    categoryId = None
+    
+    if categoryName not in categoryNameToId:
+        
+        categoryId = nextCategoryId
+        nextCategoryId += 1
+        categoryNameToId[categoryName] = categoryId
+        newCat = {}
+        newCat['id'] = categoryNameToId[categoryName]
+        newCat['name'] = categoryName
+        newCat['count'] = 0
+        categoriesSet1.append(newCat) 
+        idToCategory[categoryId] = newCat
+        category = newCat
+        
+    else:
+        
+        categoryId = categoryNameToId[categoryName]
+        category = idToCategory[categoryId]
+        category['count'] = category['count'] + 1
+                
+    # If we have bounding boxes, create image-level annotations    
+    if relPath in relPathToMetadataSet1:
+        
+        nFoundMetadata += 1
+        
+        # filename, number of bounding boxes, boxes (four values per box)
+        imageMetadata = relPathToMetadataSet1[relPath]
+        
+        # Make sure the relative filename matches, allowing for the fact that
+        # some of the filenames in the metadata aren't quite right
+        fn = imageMetadata[0]
+        s = relPath.replace('Set1','').replace('\\','/')[1:]
+        if (fn != s):
+            s = s.replace('IMG_','IMG')
+            
+        assert(fn == s)
+        
+        nBoxes = int(imageMetadata[1])
+        
+        if nBoxes > 1:
+            
+            nExtraBoxes = nBoxes - 1
+            
+        if nBoxes == 0:
+            
+            ann = {}
+            ann['id'] = str(uuid.uuid1())
+            ann['image_id'] = im['id']
+            ann['category_id'] = emptyCategoryId
+            ann['sequence_level_annotation'] = False
+            annotationsSet1.append(ann)
+            nImageLevelEmpties += 1
+            
+        else:
+            
+            for iBox in range(0,nBoxes):
+                                
+                boxCoords = imageMetadata[2+(iBox*4):6+(iBox*4)]
+                boxCoords = list(map(int, boxCoords))
+                
+                # Bounding box values are in absolute coordinates, with the origin 
+                # at the upper-left of the image, as [xmin1 ymin1 xmax1 ymax1].
+                #
+                # Convert to floats and to x/y/w/h
+                bboxW = boxCoords[2] - boxCoords[0]
+                bboxH = boxCoords[3] - boxCoords[1]
+                
+                box = [boxCoords[0], boxCoords[1], bboxW, bboxH]
+                box = list(map(float, box))
+                
+                ann = {}
+                ann['id'] = str(uuid.uuid1())
+                ann['image_id'] = im['id']
+                ann['category_id'] = categoryId
+                ann['sequence_level_annotation'] = False
+                ann['bbox'] = box
+                annotationsSet1.append(ann)
+                nTotalBoxes += 1
+                
+    # Else create a sequence-level annotation
+    else:
+        
+        ann = {}
+        ann['id'] = str(uuid.uuid1())
+        ann['image_id'] = im['id']
+        ann['category_id'] = categoryId
+        ann['sequence_level_annotation'] = True
+        annotationsSet1.append(ann)
+        nSequenceLevelAnnotations += 1
+        
+# ...for each image
+        
+print('Finished processing set 1, found metadata for {} of {} images, created {} annotations and {} boxes in {} categories'.format(
+        nFoundMetadata,len(set1ImageIDs),len(annotationsSet1),nTotalBoxes,len(categoriesSet1)))
+
+assert len(annotationsSet1) == nSequenceLevelAnnotations + nTotalBoxes + nImageLevelEmpties
+assert len(set1ImageIDs) == nSequenceLevelAnnotations + nFoundMetadata
 
 
 #%% Create categories and annotations for set 2
+
+imagesSet1 = []
+categoriesSet1 = []
+annotationsSet1 = []
+
+categoryNameToId = {}
+idToCategory = {}
+
+# Not used in this data set, but stored by convention
+emptyCat = {}
+emptyCat['id'] = emptyCategoryId
+emptyCat['name'] = emptyCategoryName
+emptyCat['count'] = 0
+categoriesSet1.append(emptyCat) 
+
+nextCategoryId = emptyCategoryId + 1
+    
+nFoundMetadata = 0
+nTotalBoxes = 0
+nImageLevelEmpties = 0
+nSequenceLevelAnnotations = 0
+
+# For each image
+#
+# iImage = 0; imageID = set1ImageIDs[iImage]
+for iImage,imageID in enumerate(set1ImageIDs):
+    
+    im = imageIdToImage[imageID]    
+    
+    # E.g. Set1\\1.80-Coiban_Agouti\\SEQ83155\\SEQ83155_IMG_0010.JPG
+    relPath = im['file_name']
+
+    # Find the species name
+    tokens = os.path.normpath(relPath).split(os.sep)
+    speciesTag = tokens[1]
+    tokens = speciesTag.split('-',1)
+    assert(len(tokens) == 2)
+    categoryName = tokens[1].lower()
+    
+    category = None
+    categoryId = None
+    
+    if categoryName not in categoryNameToId:
+        
+        categoryId = nextCategoryId
+        nextCategoryId += 1
+        categoryNameToId[categoryName] = categoryId
+        newCat = {}
+        newCat['id'] = categoryNameToId[categoryName]
+        newCat['name'] = categoryName
+        newCat['count'] = 0
+        categoriesSet1.append(newCat) 
+        idToCategory[categoryId] = newCat
+        category = newCat
+        
+    else:
+        
+        categoryId = categoryNameToId[categoryName]
+        category = idToCategory[categoryId]
+        category['count'] = category['count'] + 1
+                
+    # If we have bounding boxes, create image-level annotations    
+    if relPath in relPathToMetadataSet1:
+        
+        nFoundMetadata += 1
+        
+        # filename, number of bounding boxes, boxes (four values per box)
+        imageMetadata = relPathToMetadataSet1[relPath]
+        
+        # Make sure the relative filename matches, allowing for the fact that
+        # some of the filenames in the metadata aren't quite right
+        fn = imageMetadata[0]
+        s = relPath.replace('Set1','').replace('\\','/')[1:]
+        if (fn != s):
+            s = s.replace('IMG_','IMG')
+            
+        assert(fn == s)
+        
+        nBoxes = int(imageMetadata[1])
+        
+        if nBoxes > 1:
+            
+            nExtraBoxes = nBoxes - 1
+            
+        if nBoxes == 0:
+            
+            ann = {}
+            ann['id'] = str(uuid.uuid1())
+            ann['image_id'] = im['id']
+            ann['category_id'] = emptyCategoryId
+            ann['sequence_level_annotation'] = False
+            annotationsSet1.append(ann)
+            nImageLevelEmpties += 1
+            
+        else:
+            
+            for iBox in range(0,nBoxes):
+                                
+                boxCoords = imageMetadata[2+(iBox*4):6+(iBox*4)]
+                boxCoords = list(map(int, boxCoords))
+                
+                # Bounding box values are in absolute coordinates, with the origin 
+                # at the upper-left of the image, as [xmin1 ymin1 xmax1 ymax1].
+                #
+                # Convert to floats and to x/y/w/h
+                bboxW = boxCoords[2] - boxCoords[0]
+                bboxH = boxCoords[3] - boxCoords[1]
+                
+                box = [boxCoords[0], boxCoords[1], bboxW, bboxH]
+                box = list(map(float, box))
+                
+                ann = {}
+                ann['id'] = str(uuid.uuid1())
+                ann['image_id'] = im['id']
+                ann['category_id'] = categoryId
+                ann['sequence_level_annotation'] = False
+                ann['bbox'] = box
+                annotationsSet1.append(ann)
+                nTotalBoxes += 1
+                
+    # Else create a sequence-level annotation
+    else:
+        
+        ann = {}
+        ann['id'] = str(uuid.uuid1())
+        ann['image_id'] = im['id']
+        ann['category_id'] = categoryId
+        ann['sequence_level_annotation'] = True
+        annotationsSet1.append(ann)
+        nSequenceLevelAnnotations += 1
+        
+# ...for each image
+        
+print('Finished processing set 1, found metadata for {} of {} images, created {} annotations and {} boxes in {} categories'.format(
+        nFoundMetadata,len(set1ImageIDs),len(annotationsSet1),nTotalBoxes,len(categoriesSet1)))
+
+assert len(annotationsSet1) == nSequenceLevelAnnotations + nTotalBoxes + nImageLevelEmpties
+assert len(set1ImageIDs) == nSequenceLevelAnnotations + nFoundMetadata
 
 
 
@@ -309,13 +578,10 @@ images = []
 annotations = []
 categories = []
 
-categoryNameToId = {}
-idToCategory = {}
 imageIdToImage = {}
 relativeFilenameToImageId = {}
 sequenceIdToCount = {}
 
-nextCategoryId = 0
 
 # For each image...
 
