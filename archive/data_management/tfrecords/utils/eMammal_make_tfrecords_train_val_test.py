@@ -7,7 +7,7 @@ import numpy as np
 import random
 
 sys.path.insert(0, "./..")
-from create_tfrecords_py3 import create
+from utils.create_tfrecords_py3 import create
 
 # eMammal_make_tfrecords_train_val_test.py
 #
