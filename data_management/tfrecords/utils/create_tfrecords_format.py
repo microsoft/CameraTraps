@@ -84,7 +84,7 @@ def create_tfrecords_format(database_file, image_file_root, cats_to_include=[],
 
         db_file_name = im['file_name']
 
-        image_data['filename'] = os.path.join(image_file_root, db_file_name.replace('/', '~'))
+        image_data['filename'] = os.path.join(image_file_root, db_file_name)  # .replace('/', '~')
         image_data['id'] = im['id']
 
         # Propagate optional metadata to tfrecords
