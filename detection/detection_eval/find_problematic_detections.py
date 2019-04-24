@@ -186,29 +186,7 @@ def isImageFile(s):
     '''
     ext = os.path.splitext(s)[1]
     return ext.lower() in imageExtensions
-    
-    
-def findImageStrings(strings):
-    '''
-    Given a list of strings that are potentially image file names, look for strings
-    that actually look like image file names (based on extension).
-    '''
-    imageStrings = []
-    bIsImage = [False] * len(strings)
-    for iString,f in enumerate(strings):
-        bIsImage[iString] = isImageFile(f) 
-        if bIsImage[iString]:
-            imageStrings.append(f)
-    return imageStrings,bIsImage
-
-    
-def findImages(dirName):
-    '''
-    Find all files in a directory that look like image file names
-    '''
-    strings = os.listdir(dirName)
-    return findImageStrings(strings)
-    
+        
 
 # Adapted from:
 #
