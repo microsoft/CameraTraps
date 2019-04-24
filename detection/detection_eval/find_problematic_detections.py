@@ -1,3 +1,4 @@
+########
 #
 # find_problematic_detections.py
 #
@@ -11,11 +12,13 @@
 #
 # Currently the unit within which images are compared is a *directory*.
 #
+########
 
 #%% Imports and environment
 
 import csv
 import os
+import sys
 import json
 import jsonpickle
 import warnings
@@ -186,31 +189,7 @@ def isImageFile(s):
     '''
     ext = os.path.splitext(s)[1]
     return ext.lower() in imageExtensions
-    
-    
-def findImageStrings(strings):
-    '''
-    Given a list of strings that are potentially image file names, look for strings
-    that actually look like image file names (based on extension).
-    '''
-    imageStrings = []
-    bIsImage = [False] * len(strings)
-    for iString,f in enumerate(strings):
-        bIsImage[iString] = isImageFile(f) 
-        if bIsImage[iString]:
-            continue
-        else:
-            imageStrings.append(f)
-    return imageStrings,bIsImage
-
-    
-def findImages(dirName):
-    '''
-    Find all files in a directory that look like image file names
-    '''
-    strings = os.listdir(dirName)
-    return findImageStrings(strings)
-    
+        
 
 # Adapted from:
 #
@@ -812,7 +791,6 @@ def argsToObject(args, obj):
     
     for n, v in inspect.getmembers(args):
         if not n.startswith('_'):
-            # print('Setting {} to {}'.format(n,v))
             setattr(obj, n, v);
 
 def main():
@@ -852,10 +830,14 @@ def main():
     parser.add_argument('--bParallelizeComparisons', action='store', type=bool, default=True)
     parser.add_argument('--bParallelizeRendering', action='store', type=bool, default=True)
     
+    if len(sys.argv[1:])==0:
+        parser.print_help()
+        parser.exit()
+        
     args = parser.parse_args()    
     
     # Convert to an options object
-    options = SuspiciousDetectionOptions
+    options = SuspiciousDetectionOptions()
     argsToObject(args,options)
     
     findSuspiciousDetections(args.inputFile,args.outputFile,options)

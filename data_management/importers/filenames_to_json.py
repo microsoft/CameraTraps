@@ -3,7 +3,6 @@
 #
 # Take a directory of images in which species labels are encoded by folder
 # names, and produces a COCO-style .json file 
-#
 # 
 
 #%% Constants and imports
