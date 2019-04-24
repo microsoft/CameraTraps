@@ -12,27 +12,27 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 
 #%% Configurations
-dataset_name = 'ss_1to6'  # this needs to be exactly 7 letters long
+dataset_name = 'rspb_8b'  # this needs to be exactly 7 letters long
 
 # if the following two files are provided, only the tfrecord generation section will be executed
-tfrecord_format_json_path = '/datadrive/megadetectorv3_tfrecords/intermediate/snapshot_serengeti_bboxes_20190409_tfrecord_format.json'  # None
-split_file_path = '/datadrive/megadetectorv3_tfrecords/intermediate/snapshot_serengeti_bboxes_20190409_split.json' # None if no split files made yet
+tfrecord_format_json_path = '/datadrive/megadetectorv3_tfrecords/intermediate/rspb_bboxes_20190409_tfrecord_format.json'  # None
+split_file_path = '/datadrive/megadetectorv3_tfrecords/intermediate/rspb_bboxes_20190409_split.json' # None if no split files made yet
 
 # proceed to generate tfrecords if True
 generate_tfrecords = True
 
-database_path = '/datadrive/databases_201904/snapshot_serengeti_bboxes_20190409.json'
-image_file_root = '/datadrive/SS_all_annotated'
+database_path = '/datadrive/databases_201904/rspb_bboxes_20190409.json'
+image_file_root = '/home/yasiyu/mnt/wildlifeblobssc/rspb/gola/gola_camtrapr_data'
 
 tfrecords_out_dir = '/datadrive/megadetectorv3_tfrecords'
 others_out_dir = '/datadrive/megadetectorv3_tfrecords/intermediate'  # where the tfrecord_format json and the splits will be written
 
-exclude_images_without_bbox = True
+exclude_images_without_bbox = False
 
 # approximate fraction to split the new entries by
 split_frac = {
-    'train': 0.97,
-    'val': 0.03,
+    'train': 0.95,
+    'val': 0.05,
     'test': 0.0
 }
 
@@ -47,7 +47,6 @@ cats_to_include = ['animal', 'person']
 
 images_per_record = 700
 num_threads = 5
-
 
 
 #%% Input validation
