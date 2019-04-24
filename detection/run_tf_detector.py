@@ -23,6 +23,7 @@ import humanfriendly
 import time
 import matplotlib
 import glob
+import sys
 matplotlib.use('TkAgg')
 
 import matplotlib.image as mpimg
@@ -30,6 +31,9 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import matplotlib.ticker as ticker
 import os
+
+# Stick this into filenames before the extension for the rendered result
+DETECTION_FILENAME_INSERT = '_detections'
 
 
 #%% Core detection functions
@@ -213,7 +217,7 @@ def render_bounding_boxes(boxes, scores, classes, inputFileNames, outputFileName
 
         if len(outputFileName) == 0:
             name, ext = os.path.splitext(inputFileName)
-            outputFileName = "{}.{}{}".format(name,'_detections',ext)
+            outputFileName = "{}{}{}".format(name,DETECTION_FILENAME_INSERT,ext)
 
         image = mpimg.imread(inputFileName)
         iBox = 0; box = boxes[iImage][iBox]
@@ -283,6 +287,10 @@ def render_bounding_boxes(boxes, scores, classes, inputFileNames, outputFileName
 
 def load_and_run_detector(modelFile, imageFileNames, confidenceThreshold=0.85):
     
+    if len(imageFileNames) == 0:        
+        print('Warning: no files available')
+        return
+        
     # Load and run detector on target images
     detection_graph = load_model(modelFile)
     
@@ -317,6 +325,45 @@ if False:
     
     load_and_run_detector(modelFile,imageFileNames)
     
+
+#%% File helper functions
+
+imageExtensions = ['.jpg','.jpeg','.gif','.png']
+    
+def isImageFile(s):
+    '''
+    Check a file's extension against a hard-coded set of image file extensions    '
+    '''
+    ext = os.path.splitext(s)[1]
+    return ext.lower() in imageExtensions
+    
+    
+def findImageStrings(strings):
+    '''
+    Given a list of strings that are potentially image file names, look for strings
+    that actually look like image file names (based on extension).
+    '''
+    imageStrings = []
+    bIsImage = [False] * len(strings)
+    for iString,f in enumerate(strings):
+        bIsImage[iString] = isImageFile(f) 
+        if bIsImage[iString]:
+            imageStrings.append(f)
+        
+    return imageStrings
+
+    
+def findImages(dirName,bRecursive=False):
+    '''
+    Find all files in a directory that look like image file names
+    '''
+    if bRecursive:
+        strings = glob.glob(dirName + '/**/*.*', recursive=True)
+    else:
+        strings = os.listdir(dirName)
+        
+    return findImageStrings(strings)
+
     
 #%% Command-line driver
     
@@ -329,19 +376,29 @@ def main():
     
     parser = argparse.ArgumentParser()
     parser.add_argument('detectorFile', type=str)
-    parser.add_argument('--imageDir', action="store", type=str, default='')
-    parser.add_argument('--imageFile', action="store", type=str, default='')
-    parser.add_argument('--threshold', action="store", type=float, default=0.85)
+    parser.add_argument('--imageDir', action='store', type=str, default='', help='Directory to search for images, with optional recursion')
+    parser.add_argument('--imageFile', action='store', type=str, default='', help='Single file to process, mutually exclusive with imageDir')
+    parser.add_argument('--threshold', action='store', type=float, default=0.85, help='Confidence threshold, don''t render boxes below this confidence')
+    parser.add_argument('--recursive', action='store_true', help='Recurse into directories, only meaningful if using --imageDir')
+    
+    if len(sys.argv[1:])==0:
+        parser.print_help()
+        parser.exit()
     
     args = parser.parse_args()    
     
     if len(args.imageFile) > 0 and len(args.imageDir) > 0:
         raise Exception('Cannot specify both image file and image dir')
-    elif len(args.imageFile) > 0:
+    elif len(args.imageFile) == 0 and len(args.imageDir) == 0:
+        raise Exception('Must specify either an image file or an image directory')
+        
+    if len(args.imageFile) > 0:
         imageFileNames = [args.imageFile]
     else:
-        imageFileNames = [fn for fn in glob.glob(os.path.join(args.imageDir,'*.jpg')) 
-            if (not 'detections' in fn)]
+        imageFileNames = findImages(args.imageDir,args.recursive)
+    
+    # Hack to avoid running on already-detected images
+    imageFileNames = [x for x in imageFileNames if DETECTION_FILENAME_INSERT not in x]
                 
     print('Running detector on {} images'.format(len(imageFileNames)))    
     
