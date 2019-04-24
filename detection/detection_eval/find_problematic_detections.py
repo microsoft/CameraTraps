@@ -1,3 +1,4 @@
+########
 #
 # find_problematic_detections.py
 #
@@ -11,11 +12,13 @@
 #
 # Currently the unit within which images are compared is a *directory*.
 #
+########
 
 #%% Imports and environment
 
 import csv
 import os
+import sys
 import json
 import jsonpickle
 import warnings
@@ -788,7 +791,6 @@ def argsToObject(args, obj):
     
     for n, v in inspect.getmembers(args):
         if not n.startswith('_'):
-            # print('Setting {} to {}'.format(n,v))
             setattr(obj, n, v);
 
 def main():
@@ -828,10 +830,14 @@ def main():
     parser.add_argument('--bParallelizeComparisons', action='store', type=bool, default=True)
     parser.add_argument('--bParallelizeRendering', action='store', type=bool, default=True)
     
+    if len(sys.argv[1:])==0:
+        parser.print_help()
+        parser.exit()
+        
     args = parser.parse_args()    
     
     # Convert to an options object
-    options = SuspiciousDetectionOptions
+    options = SuspiciousDetectionOptions()
     argsToObject(args,options)
     
     findSuspiciousDetections(args.inputFile,args.outputFile,options)
