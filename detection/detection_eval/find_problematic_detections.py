@@ -198,8 +198,6 @@ def findImageStrings(strings):
     for iString,f in enumerate(strings):
         bIsImage[iString] = isImageFile(f) 
         if bIsImage[iString]:
-            continue
-        else:
             imageStrings.append(f)
     return imageStrings,bIsImage
 
