@@ -360,7 +360,7 @@ def findImages(dirName,bRecursive=False):
     if bRecursive:
         strings = glob.glob(dirName + '/**/*.*', recursive=True)
     else:
-        strings = os.listdir(dirName)
+        strings = glob.glob(dirName + '/*.*')
         
     return findImageStrings(strings)
 
