@@ -5,7 +5,6 @@
 
 #%% Imports and environment
 
-import json
 import os
 from PIL import Image
 from tqdm import tqdm
@@ -14,9 +13,9 @@ import numpy as np
 import argparse
 import sys
 if sys.version_info.major >= 3:
-    from create_tfrecords_py3 import create
+    from utils.create_tfrecords_py3 import create
 else:
-    from create_tfrecords import create
+    from utils.create_tfrecords import create
 
 
 class VottBboxDataset:
