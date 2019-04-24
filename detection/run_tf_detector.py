@@ -14,23 +14,25 @@
 #
 ######
 
-
 #%% Constants, imports, environment
 
 import tensorflow as tf
 import numpy as np
 import humanfriendly
 import time
-import matplotlib
 import glob
 import sys
+import argparse
+import matplotlib
+import PIL
 matplotlib.use('TkAgg')
-
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import matplotlib.ticker as ticker
 import os
+
+DEFAULT_CONFIDENCE_THRESHOLD = 0.85
 
 # Stick this into filenames before the extension for the rendered result
 DETECTION_FILENAME_INSERT = '_detections'
@@ -82,11 +84,28 @@ def generate_detections(detection_graph,images):
         images = images.copy()
 
     # Load images if they're not already numpy arrays
+    # iImage = 0; image = images[iImage]
     for iImage,image in enumerate(images):
         if isinstance(image,str):
             print('Loading image {}'.format(image))
-            # image = Image.open(image).convert("RGBA"); image = np.array(image)
-            image = mpimg.imread(image)
+
+            # Load the image as an nparray of size h,w,nChannels
+            
+            # There was a time when I was loading with PIL and switched to mpimg,
+            # but I can't remember why, and converting to RGB is a very good reason
+            # to load with PIL, since mpimg doesn't give any indication of color 
+            # order, which basically breaks all .png files.
+            #
+            # So if you find a bug related to using PIL, update this comment
+            # to indicate what it was, but also disable .png support.
+            image = PIL.Image.open(image).convert("RGB"); image = np.array(image)
+            # image = mpimg.imread(image)
+            
+            # This shouldn't be necessarily when loading with PIL and converting to RGB
+            nChannels = image.shape[2]
+            if nChannels > 3:
+                print('Warning: trimming channels from image')
+                image = image[:,:,0:3]
             images[iImage] = image
         else:
             assert isinstance(image,np.ndarray)
@@ -178,7 +197,7 @@ def generate_detections(detection_graph,images):
 #%% Rendering functions
 
 def render_bounding_box(box, score, classLabel, inputFileName, outputFileName=None,
-                          confidenceThreshold=0.9,linewidth=2):
+                          confidenceThreshold=DEFAULT_CONFIDENCE_THRESHOLD,linewidth=2):
     """
     Convenience wrapper to apply render_bounding_boxes to a single image
     """
@@ -191,7 +210,7 @@ def render_bounding_box(box, score, classLabel, inputFileName, outputFileName=No
                           confidenceThreshold,linewidth)
 
 def render_bounding_boxes(boxes, scores, classes, inputFileNames, outputFileNames=[],
-                          confidenceThreshold=0.9,linewidth=2):
+                          confidenceThreshold=DEFAULT_CONFIDENCE_THRESHOLD,linewidth=2):
     """
     Render bounding boxes on the image files specified in [inputFileNames].  
     
@@ -285,14 +304,16 @@ def render_bounding_boxes(boxes, scores, classes, inputFileNames, outputFileName
 # ...def render_bounding_boxes
 
 
-def load_and_run_detector(modelFile, imageFileNames, confidenceThreshold=0.85):
+def load_and_run_detector(modelFile, imageFileNames, 
+                          confidenceThreshold=DEFAULT_CONFIDENCE_THRESHOLD, detection_graph=None):
     
     if len(imageFileNames) == 0:        
         print('Warning: no files available')
         return
         
     # Load and run detector on target images
-    detection_graph = load_model(modelFile)
+    if detection_graph is None:
+        detection_graph = load_model(modelFile)
     
     startTime = time.time()
     boxes,scores,classes,images = generate_detections(detection_graph,imageFileNames)
@@ -310,6 +331,8 @@ def load_and_run_detector(modelFile, imageFileNames, confidenceThreshold=0.85):
                           inputFileNames=imageFileNames, outputFileNames=outputFileNames,
                           confidenceThreshold=confidenceThreshold)
 
+    return detection_graph
+
 
 #%% Interactive driver
 
@@ -317,13 +340,20 @@ if False:
     
     #%%
     
+    detection_graph = None
+    
+    #%%
+    
     modelFile = r'D:\temp\models\object_detection\megadetector\megadetector_v2.pb'
     imageDir = r'D:\temp\demo_images\b2'    
     imageFileNames = [fn for fn in glob.glob(os.path.join(imageDir,'*.jpg'))
          if (not 'detections' in fn)]
-    imageFileNames = [r"D:\temp\demo_images\snapshot_serengeti\S1_Q10_R2_PICT0152.JPG"]
+    # imageFileNames = [r"D:\temp\test\1\NE2881-9_RCNX0195.png"]
+    # imageFileNames = [r"D:\temp\test\1\NE2881-9_RCNX0195.jpeg"]
+    imageFileNames = [r"D:\temp\test\1\NE2881-9_RCNX0195_xparent.png"]
     
-    load_and_run_detector(modelFile,imageFileNames)
+    detection_graph = load_and_run_detector(modelFile,imageFileNames,
+                                            DEFAULT_CONFIDENCE_THRESHOLD,detection_graph)
     
 
 #%% File helper functions
@@ -362,13 +392,13 @@ def findImages(dirName,bRecursive=False):
     else:
         strings = glob.glob(os.path.join(dirName,'*.*'))
         
-    return findImageStrings(strings)
+    imageStrings = findImageStrings(strings)
+    
+    return imageStrings
 
     
 #%% Command-line driver
     
-import argparse
-
 def main():
     
     # python run_tf_detector.py "D:\temp\models\object_detection\megadetector\megadetector_v2.pb" --imageFile "D:\temp\demo_images\test\S1_J08_R1_PICT0120.JPG"
@@ -378,7 +408,7 @@ def main():
     parser.add_argument('detectorFile', type=str)
     parser.add_argument('--imageDir', action='store', type=str, default='', help='Directory to search for images, with optional recursion')
     parser.add_argument('--imageFile', action='store', type=str, default='', help='Single file to process, mutually exclusive with imageDir')
-    parser.add_argument('--threshold', action='store', type=float, default=0.85, help='Confidence threshold, don''t render boxes below this confidence')
+    parser.add_argument('--threshold', action='store', type=float, default=DEFAULT_CONFIDENCE_THRESHOLD, help='Confidence threshold, don''t render boxes below this confidence')
     parser.add_argument('--recursive', action='store_true', help='Recurse into directories, only meaningful if using --imageDir')
     
     if len(sys.argv[1:])==0:
