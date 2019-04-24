@@ -1,7 +1,7 @@
 #
 # create_classification_tfrecords_from_json.py
 #
-# Called from make_tfrecords_with_train_test_split.py if you're running a classification experiment.
+# Called from make_tfrecords_cis_trans.py if you're running a classification experiment.
 #
 
 import json
