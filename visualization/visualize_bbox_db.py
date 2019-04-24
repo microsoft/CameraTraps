@@ -15,15 +15,17 @@ import inspect
 import pandas as pd
 import math
 from tqdm import tqdm
-import visualization_utils as vis_utils
 from itertools import compress
 import sys
 import argparse
 
+# Convenience comment to allow me to work outside of the git folder
+# sys.path.append(r'd:\git\CameraTraps\visualization')
+import visualization_utils as vis_utils
+
 # Assumes ai4eutils is on the path (github.com/Microsoft/ai4eutils)
 #
 # sys.path.append('/home/yasiyu/repos/ai4eutils')
-# sys.path.append(r'd:\git\CameraTraps\visualization')
 from write_html_image_list import write_html_image_list
 
 
@@ -178,14 +180,16 @@ def processImages(bbox_db_path,output_dir,image_base_dir,options=None):
     if options.sort_by_filename:    
         images_html = sorted(images_html, key=lambda x: x['filename'])
         
+    htmlOutputFile = os.path.join(output_dir, 'index.html')
+    
     htmlOptions = options.htmlOptions
     htmlOptions['headerHtml'] = '<h1>Sample annotations from {}</h1>'.format(bbox_db_path)
     write_html_image_list(
-            filename=os.path.join(output_dir, 'index.html'),
+            filename=htmlOutputFile,
             images=images_html,
             options=htmlOptions)
 
-    print('Visualized {} images.'.format(len(images_html)))
+    print('Visualized {} images, wrote results to {}'.format(len(images_html),htmlOutputFile))
     
     return images_html
 
@@ -258,5 +262,5 @@ if False:
     options = BboxDbVizOptions()
     options.num_to_visualize = 100
     
-    processImages(bbox_db_path,output_dir,image_base_dir,options) 
+    htmlResult = processImages(bbox_db_path,output_dir,image_base_dir,options)
     
