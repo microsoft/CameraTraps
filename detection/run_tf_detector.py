@@ -358,9 +358,9 @@ def findImages(dirName,bRecursive=False):
     Find all files in a directory that look like image file names
     '''
     if bRecursive:
-        strings = glob.glob(dirName + '/**/*.*', recursive=True)
+        strings = glob.glob(os.path.join(dirName,'**','*.*'), recursive=True)
     else:
-        strings = glob.glob(dirName + '/*.*')
+        strings = glob.glob(os.path.join(dirName,'*.*'))
         
     return findImageStrings(strings)
 
