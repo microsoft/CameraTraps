@@ -1,3 +1,4 @@
+########
 #
 # sanity_check_json_db.py
 #
@@ -14,11 +15,15 @@
 # * Finds unused categories
 #
 # * Prints a list of categories sorted by count
+#
+########
 
 #%% Constants and environment
 
 import json
 import os
+import sys
+import argparse
 from tqdm import tqdm
 from operator import itemgetter
 from multiprocessing.pool import ThreadPool
@@ -26,7 +31,8 @@ from PIL import Image
 
 nThreads = 10
 
-# By arbitrary convention, operate using slashes in this file
+# By arbitrary convention, operate using slashes in this file.  This doesn't imply 
+# any assumptions about OS or file content, it's just used to standardize comparisons.
 PATH_SEP = '/'
 
 
@@ -40,6 +46,7 @@ class SanityCheckOptions:
     bFindUnusedImages = False
     iMaxNumImages = -1
     
+# This is used in a medium-hacky way to share modified options across threads
 defaultOptions = SanityCheckOptions()
 
 
@@ -81,7 +88,8 @@ def sanityCheckJsonDb(jsonFile, options=None):
     print('\nProcessing .json file {}'.format(jsonFile))
     
     baseDir = options.baseDir
-        
+    
+    
     ##%% Read .json file, sanity-check fields
     
     print('Reading .json {} with base dir [{}]...'.format(
@@ -99,6 +107,7 @@ def sanityCheckJsonDb(jsonFile, options=None):
     if len(baseDir) > 0:
         
         assert os.path.isdir(baseDir), 'Base directory {} does not exist'.format(baseDir)
+        
         
     ##%% Build dictionaries, checking ID uniqueness and internal validity as we go
     
@@ -197,8 +206,11 @@ def sanityCheckJsonDb(jsonFile, options=None):
                 unusedFiles.append(p)
                 
     # Are we checking file existence and/or image size?
-    if (len(baseDir) > 0) and options.bCheckImageSizes:
+    if options.bCheckImageSizes:
         
+        if len(baseDir) == 0:
+            print('Warning: checking image sizes without a base directory, assuming "."')
+            
         print('Checking image existence and image sizes...')
         
         pool = ThreadPool(nThreads)
@@ -293,8 +305,6 @@ def sanityCheckJsonDb(jsonFile, options=None):
 
 #%% Command-line driver
     
-import argparse
-
 def main():
     
     # python sanity_check_json_db.py "e:\wildlife_data\wellington_data\wellington_camera_traps.json" --baseDir "e:\wildlife_data\wellington_data\images" --bFindUnusedImages --bCheckImageSizes
@@ -306,11 +316,15 @@ def main():
     
     parser = argparse.ArgumentParser()
     parser.add_argument('jsonFile')
-    parser.add_argument('--bCheckImageSizes', action='store_true')
-    parser.add_argument('--bFindUnusedImages', action='store_true')
-    parser.add_argument('--baseDir',action="store", type=str, default='')
-    parser.add_argument('--iMaxNumImages',action="store", type=int, default=-1)
+    parser.add_argument('--bCheckImageSizes', action='store_true', help='Validate image size and existence, requires baseDir to be specified')
+    parser.add_argument('--bFindUnusedImages', action='store_true', help='Check for images in baseDir that aren''t in the database, requires baseDir to be specified')
+    parser.add_argument('--baseDir',action='store', type=str, default='', help='Base directory for images')
+    parser.add_argument('--iMaxNumImages',action='store', type=int, default=-1, help='Cap on total number of images to check, mostly for debugging')
     
+    if len(sys.argv[1:])==0:
+        parser.print_help()
+        parser.exit()
+        
     args = parser.parse_args()    
     sanityCheckJsonDb(args.jsonFile,args)
 
@@ -327,7 +341,6 @@ if False:
     #%%
     
     # Sanity-check .json files for LILA
-    options = SanityCheckOptions()
     jsonFiles = [r'd:\temp\CaltechCameraTraps.json',
                  r'd:\temp\wellington_camera_traps.json',
                  r'd:\temp\nacti_metadata.json',
