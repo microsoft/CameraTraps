@@ -36,6 +36,7 @@ ground_truth_json_file = r'd:\wildlife_data\mcgill_test\mcgill_test.json'
 output_dir = r'd:\temp\postprocessing_tmp'
 
 negative_classes = ['empty']
+confidence_threshold = 0.85
 
 
 #%% Helper classes and functions
@@ -187,13 +188,35 @@ for s in ['image_path','max_confidence','detections']:
 # Normalize paths to simplify comparisons later
 detection_results['image_path'] = detection_results['image_path'].apply(os.path.normpath)
 
-    
-#%% If ground truth is available, merge it into the detection results
+# Add a column (pred_detection_label) to indicate predicted detection status
+# detection_results['pred_detection_label'] = DetectionStatus.DS_UNKNOWN
 
-# Error on any matching failures
+import numpy as np
+detection_results['pred_detection_label'] = \
+    np.where(detection_results['max_confidence'] >= confidence_threshold,
+             DetectionStatus.DS_POSITIVE, DetectionStatus.DS_NEGATIVE)
+
+nPositives = sum(detection_results['pred_detection_label'] == DetectionStatus.DS_POSITIVE)
+print('Finished loading and preprocessing {} rows from detector output, predicted {} positives'.format(
+        len(detection_results),nPositives))
 
 
 #%% Find suspicious detections
+
+
+
+#%% If ground truth is available, match it to the detection results
+
+class DetectionGroundTruth:
+
+    gt_image_id = None
+    gt_presence_label = None
+    gt_class_label = None
+
+
+# For now, error on any matching failures
+
+# Add columns gt_image_id, gt_presence_label, gt_class_label
 
 
 
