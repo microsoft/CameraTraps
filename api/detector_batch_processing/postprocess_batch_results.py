@@ -61,9 +61,6 @@ target_recall = 0.9
 # Number of images to sample, -1 for "all images"
 num_images_to_sample = -1
 
-# Threshold for rendering bounding boxes; typically you want this to be the same
-# as confidence_threshold
-viz_threshold = confidence_threshold
 viz_target_width = 800
 
 sort_html_by_filename = True
@@ -151,6 +148,71 @@ def mark_detection_status(indexed_db,negative_classes=['empty']):
     return (nNegative,nPositive,nUnknown,nAmbiguous)
 
 
+def render_bounding_boxes(image_base_dir,image_relative_path,boxes_and_scores,res):
+    
+        # Leaving code in place for reading from blob storage, may support this
+        # in the future.
+        """
+        stream = io.BytesIO()
+        _ = blob_service.get_blob_to_stream(container_name, image_id, stream)
+        image = Image.open(stream).resize(viz_size)  # resize is to display them in this notebook or in the HTML more quickly
+        """
+        
+        image_full_path = os.path.join(image_base_dir,image_relative_path)
+        if not os.path.isfile(image_full_path):
+            print('Warning: could not find image file {}'.format(image_full_path))
+            return ''
+                        
+        image = vis_utils.open_image(image_full_path)
+        vis_utils.render_detection_bounding_boxes(boxes_and_scores, image, 
+                                                  confidence_threshold=confidence_threshold,
+                                                  thickness=6)
+        
+        image = vis_utils.resize_image(image, viz_target_width)
+        
+        # Render images to a flat folder... we can use os.pathsep here because we've
+        # already normalized paths
+        sample_name = res + '_' + image_id.replace(os.pathsep, '~')
+        
+        image.save(os.path.join(output_dir, res, sample_name))
+        
+        # Use slashes regardless of os
+        file_name = '{}/{}'.format(res, sample_name)
+        
+        return {
+            'filename': file_name,
+            'title': display_name,
+            'textStyle': 'font-family:verdana,arial,calibri;font-size:80%;text-align:left;margin-top:20;margin-bottom:5'
+        }
+    
+    
+def prepare_html_subpages(images_html,output_dir):
+    
+    # Count items in each category
+    image_counts = {}
+    for res, array in images_html.items():
+        image_counts[res] = len(array)
+
+    # Optionally sort by filename before writing to html    
+    if sort_html_by_filename:                
+        images_html_sorted = {}
+        for res, array in images_html.items():
+            sorted_array = sorted(array, key=lambda x: x['filename'])
+            images_html_sorted[res] = sorted_array        
+        images_html = images_html_sorted
+        
+    # Write the individual HTML files
+    for res, array in images_html.items():
+        write_html_image_list(
+            filename=os.path.join(output_dir, '{}.html'.format(res)), 
+            images=array,
+            options={
+                'headerHtml': '<h1>{}</h1>'.format(res.upper())
+            })
+    
+    return image_counts
+    
+
 #%% Prepare output dir
     
 os.makedirs(output_dir,exist_ok=True)
@@ -198,7 +260,15 @@ print('Finished loading and preprocessing {} rows from detector output, predicte
 #%% Find suspicious detections
 
     
+#%% Sample images for visualization
 
+images_to_visualize = detection_results
+    
+if num_images_to_sample > 0:
+    
+    images_to_visualize = images_to_visualize.sample(num_images_to_sample)
+
+    
 #%% Fork here depending on whether or not ground truth is available
     
 # If we have ground truth, we'll compute precision/recall and sample tp/fp/tn/fn.
@@ -320,12 +390,6 @@ if ground_truth_indexed_db is not None:
     os.makedirs(os.path.join(output_dir, 'tn'), exist_ok=True)
     os.makedirs(os.path.join(output_dir, 'fn'), exist_ok=True)
 
-    images_to_visualize = detection_results
-    
-    if num_images_to_sample > 0:
-        
-        images_to_visualize = images_to_visualize.sample(num_images_to_sample)
-    
     # Accumulate html image structs (in the format expected by write_html_image_lists) 
     # for each category
     images_html = {
@@ -366,7 +430,7 @@ if ground_truth_indexed_db is not None:
         max_conf = row['max_confidence']
         boxes_and_scores = json.loads(row['detections'])  
     
-        detected = True if max_conf > viz_threshold else False
+        detected = True if max_conf > confidence_threshold else False
         
         if gt_presence and detected:
             res = 'tp'
@@ -377,45 +441,88 @@ if ground_truth_indexed_db is not None:
         else:
             res = 'tn'
         
-        # Leaving code in place for reading from blob storage, may support this
-        # in the future.
-        """
-        stream = io.BytesIO()
-        _ = blob_service.get_blob_to_stream(container_name, image_id, stream)
-        image = Image.open(stream).resize(viz_size)  # resize is to display them in this notebook or in the HTML more quickly
-        """
-        
-        image_full_path = os.path.join(image_base_dir,image_relative_path)
-        if not os.path.isfile(image_full_path):
-            print('Warning: could not find image file {}'.format(image_full_path))
-            continue
-                        
-        image = vis_utils.open_image(image_full_path)
-        vis_utils.render_detection_bounding_boxes(boxes_and_scores, image, 
-                                                  confidence_threshold=viz_threshold,
-                                                  thickness=6)
-        
-        image = vis_utils.resize_image(image, viz_target_width)
-        
-        # Render images to a flat folder... we can use os.pathsep here because we've
-        # already normalized paths
-        sample_name = res + '_' + image_id.replace(os.pathsep, '~')
-        
-        image.save(os.path.join(output_dir, res, sample_name))
-        
-        # Use slashes regardless of os
-        file_name = '{}/{}'.format(res, sample_name)
         display_name = 'Result type: {}, presence: {}, class: {}, image: {}'.format(
             res.upper(),
             str(gt_presence),
             gt_class_name,
             image_relative_path)
 
-        images_html[res].append({
-            'filename': file_name,
-            'title': display_name,
-            'textStyle': 'font-family:verdana,arial,calibri;font-size:80%;text-align:left;margin-top:20;margin-bottom:5'
-        })
+        rendered_image_html_info = render_bounding_boxes(image_base_dir,image_relative_path,
+                                                        boxes_and_scores,res)        
+        if len(rendered_image_html_info) > 0:
+            images_html[res].append(rendered_image_html_info)
+            
+        count += 1
+        
+    # ...for each image in our sample
+    
+    print('{} images rendered'.format(count))
+        
+    # Prepare the individual html image files
+    image_counts = prepare_html_subpages(images_html,output_dir)
+            
+    # Write index.HTML    
+    index_page = """<html><body>
+    <p><strong>A sample of {} images, annotated with detections above {:.1f}% confidence.</strong></p>
+    
+    <a href="tp.html">True positives (tp)</a> ({})<br/>
+    <a href="tn.html">True negatives (tn)</a> ({})<br/>
+    <a href="fp.html">False positives (fp)</a> ({})<br/>
+    <a href="fn.html">False negatives (fn)</a> ({})<br/>
+    <br/><p><strong>Precision/recall summary for all {} images</strong></p><br/><img src="{}"><br/>
+    </body></html>""".format(
+        count, confidence_threshold * 100,
+        image_counts['tp'], image_counts['tn'], image_counts['fp'], image_counts['fn'],
+        len(detection_results),pr_figure_relative_filename
+    )
+    output_html_file = os.path.join(output_dir, 'index.html')
+    with open(output_html_file, 'w') as f:
+        f.write(index_page)
+    
+    print('Finished writing html to {}'.format(output_html_file))
+
+
+#%% Otherwise, if we don't have ground truth...
+    
+else:
+    
+    #%% Sample detections/non-detections
+    
+    os.makedirs(os.path.join(output_dir, 'detections'), exist_ok=True)
+    os.makedirs(os.path.join(output_dir, 'non_detections'), exist_ok=True)
+    
+    # Accumulate html image structs (in the format expected by write_html_image_lists) 
+    # for each category
+    images_html = {
+        'detections': [],
+        'non_detections': [],
+    }
+        
+    count = 0
+        
+    # i_row = 0; row = images_to_visualize.iloc[0]
+    for i_row, row in tqdm(images_to_visualize.iterrows(), total=len(images_to_visualize)):
+        
+        image_relative_path = row['image_path']
+        
+        # This should already have been normalized to either '/' or '\'
+        max_conf = row['max_confidence']
+        boxes_and_scores = json.loads(row['detections'])      
+        detected = True if max_conf > confidence_threshold else False
+        
+        if detected:
+            res = 'detections'
+        else:
+            res = 'non_detections'
+        
+        display_name = 'Result type: {}, image: {}'.format(
+            res.upper(),
+            image_relative_path)
+
+        rendered_image_html_info = render_bounding_boxes(image_base_dir,image_relative_path,
+                                                        boxes_and_scores,res)        
+        if len(rendered_image_html_info) > 0:
+            images_html[res].append(rendered_image_html_info)
         
         count += 1
         
@@ -423,24 +530,8 @@ if ground_truth_indexed_db is not None:
     
     print('{} images rendered'.format(count))
         
-    # Optionally sort by filename before writing to html    
-    if sort_html_by_filename:        
-        images_html_sorted = {}
-        image_counts = {}
-        for res, array in images_html.items():
-            print(res, len(array))
-            image_counts[res] = len(array)
-            sorted_array = sorted(array, key=lambda x: x['filename'])
-            images_html_sorted[res] = sorted_array
-        
-    # Write the individual HTML files
-    for res, array in images_html_sorted.items():
-        write_html_image_list(
-            filename=os.path.join(output_dir, '{}.html'.format(res)), 
-            images=array,
-            options={
-                'headerHtml': '<h1>{}</h1>'.format(res.upper())
-            })
+    # Prepare the individual html image files
+    image_counts = prepare_html_subpages(images_html,output_dir)
         
     # Write index.HTML    
     index_page = """<html><body>
@@ -452,7 +543,7 @@ if ground_truth_indexed_db is not None:
     <a href="fn.html">False negatives (fn)</a> ({})<br/>
     <br/><p><strong>Precision/recall summary for all {} images</strong></p><br/><img src="{}"><br/>
     </body></html>""".format(
-        count, viz_threshold * 100,
+        count, confidence_threshold * 100,
         image_counts['tp'], image_counts['tn'], image_counts['fp'], image_counts['fn'],
         len(detection_results),pr_figure_relative_filename
     )
@@ -462,9 +553,4 @@ if ground_truth_indexed_db is not None:
     
     print('Finished writing html to {}'.format(output_html_file))
 
-    #%%
-else:
     
-    #%% Sample detections/non-detections
-    
-    pass
