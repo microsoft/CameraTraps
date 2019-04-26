@@ -1,3 +1,11 @@
+#####
+#
+# visualization_utils.py
+#
+# Core rendering functions shared across visualization scripts
+#
+#####
+
 import numpy as np
 from PIL import Image, ImageFile, ImageFont, ImageDraw
 ImageFile.LOAD_TRUNCATED_IMAGES = True
@@ -83,7 +91,7 @@ def render_iMerit_boxes(boxes, classes, image, label_map=None):
     draw_bounding_boxes_on_image(image, display_boxes, display_str_list_list=display_strs)
 
 
-def render_db_bounding_boxes(boxes, classes, image, original_size=None, label_map=None):
+def render_db_bounding_boxes(boxes, classes, image, original_size=None, label_map=None, thickness=4):
     """
     Render bounding boxes (with class labels) on [image].  This is a wrapper for
     draw_bounding_boxes_on_image, allowing the caller to operate on a resized image
@@ -114,10 +122,10 @@ def render_db_bounding_boxes(boxes, classes, image, original_size=None, label_ma
         display_strs.append([clss])
 
     display_boxes = np.array(display_boxes)
-    draw_bounding_boxes_on_image(image, display_boxes, display_str_list_list=display_strs)
+    draw_bounding_boxes_on_image(image, display_boxes, display_str_list_list=display_strs, thickness=thickness)
 
 
-def render_detection_bounding_boxes(boxes_and_scores, image, label_map={}, confidence_threshold=0.5):
+def render_detection_bounding_boxes(boxes_and_scores, image, label_map={}, confidence_threshold=0.5, thickness=4):
     """
     Renders bounding boxes, label and confidence on an image if confidence is above the threshold.
     This is works with the output of the detector batch processing API.
@@ -142,7 +150,7 @@ def render_detection_bounding_boxes(boxes_and_scores, image, label_map={}, confi
             display_strs.append([displayed_label])
 
     display_boxes = np.array(display_boxes)
-    draw_bounding_boxes_on_image(image, display_boxes, display_str_list_list=display_strs)
+    draw_bounding_boxes_on_image(image, display_boxes, display_str_list_list=display_strs,thickness=thickness)
 
 
 # the following two functions are from https://github.com/tensorflow/models/blob/master/research/object_detection/utils/visualization_utils.py
