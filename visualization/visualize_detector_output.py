@@ -1,9 +1,14 @@
+#####
+#
+# visualize_detector_output.py
 #
 # Render images with bounding boxes annotated on them to a folder, based on a detector output result
 # file (CSV). The original images can be local or in Azure Blob Storage.
 #
+#####
 
 #%% Imports
+
 import argparse
 import io
 import json
@@ -17,8 +22,9 @@ from tqdm import tqdm
 import visualization_utils as vis_utils
 
 
-#%% Settings and user supplied arguments
-viz_size = (675, 450)   # width by height, in pixels
+#%% Settings and user-supplied arguments
+
+viz_size = (675, 450)  # width by height, in pixels
 
 
 parser = argparse.ArgumentParser(description=('Annotate the bounding boxes predicted by a detector '
@@ -72,6 +78,7 @@ os.makedirs(args.out_dir, exist_ok=True)
 
 
 #%% Helper functions
+
 def get_sas_key_from_uri(sas_uri):
     """Get the query part of the SAS token that contains permissions, access times and
     signature.

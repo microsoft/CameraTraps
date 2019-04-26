@@ -24,11 +24,26 @@ import sys
 import argparse
 import matplotlib.pyplot as plt
 import pandas as pd
-from enum import Enum
+from enum import IntEnum
 from tqdm import tqdm
-from collections import defaultdict
 from sklearn.metrics import precision_recall_curve, confusion_matrix, average_precision_score
 from sklearn.utils.fixes import signature
+
+if r'd:\git\CameraTraps\data_management' not in sys.path:
+    sys.path.append('d:\git\CameraTraps\data_management')
+
+if r'd:\git\CameraTraps\visualization' not in sys.path:
+    sys.path.append(r'd:\git\CameraTraps\visualization')
+    
+from cct_json_utils import CameraTrapJsonUtils
+from cct_json_utils import IndexedJsonDb
+import visualization_utils as vis_utils
+
+# Assumes ai4eutils is on the python path
+#
+# https://github.com/Microsoft/ai4eutils
+from write_html_image_list import write_html_image_list
+
 
 #%% To be moved into options/inputs
 
@@ -43,18 +58,31 @@ confidence_threshold = 0.85
 # Used for summary statistics only
 target_recall = 0.9
 
+# Number of images to sample, -1 for "all images"
+num_images_to_sample = -1
+
+# Threshold for rendering bounding boxes; typically you want this to be the same
+# as confidence_threshold
+viz_threshold = confidence_threshold
+viz_target_width = 800
+
+sort_html_by_filename = True
+
 
 #%% Helper classes and functions
 
 # Flags used to mark images as positive or negative for P/R analysis (according
 # to ground truth and/or detector output)
-class DetectionStatus(Enum):
+class DetectionStatus(IntEnum):
     
     # This image is a negative
     DS_NEGATIVE = 0
     
     # This image is a positive
     DS_POSITIVE = 1
+    
+    # Anything greater than this isn't clearly positive or negative
+    DS_MAX_DEFINITIVE_VALUE = DS_POSITIVE
     
     # This image has annotations suggesting both negative and positive
     DS_AMBIGUOUS = 2
@@ -63,52 +91,6 @@ class DetectionStatus(Enum):
     DS_UNKNOWN = 3
 
 
-class IndexedJsonDb:
-    """
-    Wrapper for a COCO Camera Traps database.
-    
-    Handles boilerplate dictionary creation that we do almost every time we load 
-    a .json database.
-    """
-    
-    # The underlying .json db
-    db = None
-    
-    # Useful dictionaries
-    cat_id_to_name = None
-    cat_name_to_id = None
-    filename_to_id = None
-    image_id_to_annotations = None
-
-    def __init__(self,jsonFilename,b_normalize_paths=False):
-       
-        self.db = json.load(open(jsonFilename))
-    
-        if b_normalize_paths:
-            # Normalize paths to simplify comparisons later
-            for im in self.db['images']:
-                im['file_name'] = os.path.normpath(im['file_name'])
-        
-        ### Build useful mappings to facilitate working with the DB
-        
-        # Category ID <--> name
-        self.cat_id_to_name = {cat['id']: cat['name'] for cat in self.db['categories']}
-        self.cat_name_to_id = {cat['name']: cat['id'] for cat in self.db['categories']}
-        
-        # Image filename --> ID
-        self.filename_to_id = {im['file_name']: im['id'] for im in self.db['images']}
-        
-        # Each image can potentially multiple annotations, hence using lists
-        self.image_id_to_annotations = defaultdict(list)
-        
-        # Image ID --> image object
-        self.image_id_to_image = {im['id'] : im for im in self.db['images']}
-        
-        # Image ID --> annotations
-        for ann in self.db['annotations']:
-            self.image_id_to_annotations[ann['image_id']].append(ann)
-            
-            
 def mark_detection_status(indexed_db,negative_classes=['empty']):
     """
     For each image in indexed_db.db['images'], add a '_detection_status' field
@@ -325,14 +307,162 @@ if ground_truth_indexed_db is not None:
     t = 'Precision-Recall curve: AP={:0.2f}, P@{:0.2f}={:0.2f}'.format(
             average_precision, target_recall, precision_at_target_recall)
     plt.title(t)
-    pr_figure_filename =os.path.join(output_dir, 'prec_recall.png')
+    pr_figure_relative_filename = 'prec_recall.png'
+    pr_figure_filename = os.path.join(output_dir, pr_figure_relative_filename)
     plt.savefig(pr_figure_filename)
     # plt.show()
         
         
     #%% Sample true/false positives/negatives and render to html
     
+    os.makedirs(os.path.join(output_dir, 'tp'), exist_ok=True)
+    os.makedirs(os.path.join(output_dir, 'fp'), exist_ok=True)
+    os.makedirs(os.path.join(output_dir, 'tn'), exist_ok=True)
+    os.makedirs(os.path.join(output_dir, 'fn'), exist_ok=True)
 
+    images_to_visualize = detection_results
+    
+    if num_images_to_sample > 0:
+        
+        images_to_visualize = images_to_visualize.sample(num_images_to_sample)
+    
+    # Accumulate html image structs (in the format expected by write_html_image_lists) 
+    # for each category
+    images_html = {
+        'tp': [],
+        'fp': [],
+        'tn': [],
+        'fn': []
+    }
+        
+    count = 0
+        
+    # i_row = 0; row = images_to_visualize.iloc[0]
+    for i_row, row in tqdm(images_to_visualize.iterrows(), total=len(images_to_visualize)):
+        
+        image_relative_path = row['image_path']
+        
+        # This should already have been normalized to either '/' or '\'
+        
+        image_id = ground_truth_indexed_db.filename_to_id.get(image_relative_path,None)
+        if image_id is None:
+            print('Warning: couldn''t find ground truth for image {}'.format(image_relative_path))
+            continue
+
+        image_info = ground_truth_indexed_db.image_id_to_image[image_id]
+        annotations = ground_truth_indexed_db.image_id_to_annotations[image_id]
+        
+        gt_status = image_info['_detection_status']
+        
+        if gt_status > DetectionStatus.DS_MAX_DEFINITIVE_VALUE:
+            print('Skipping image {}, does not have a definitive ground truth status'.format(gt_status))
+            continue
+        
+        gt_presence = bool(gt_status)
+        
+        gt_class_name = CameraTrapJsonUtils.annotationsToString(
+                annotations,ground_truth_indexed_db.cat_id_to_name)
+        
+        max_conf = row['max_confidence']
+        boxes_and_scores = json.loads(row['detections'])  
+    
+        detected = True if max_conf > viz_threshold else False
+        
+        if gt_presence and detected:
+            res = 'tp'
+        elif not gt_presence and detected:
+            res = 'fp'
+        elif gt_presence and not detected:
+            res = 'fn'
+        else:
+            res = 'tn'
+        
+        # Leaving code in place for reading from blob storage, may support this
+        # in the future.
+        """
+        stream = io.BytesIO()
+        _ = blob_service.get_blob_to_stream(container_name, image_id, stream)
+        image = Image.open(stream).resize(viz_size)  # resize is to display them in this notebook or in the HTML more quickly
+        """
+        
+        image_full_path = os.path.join(image_base_dir,image_relative_path)
+        if not os.path.isfile(image_full_path):
+            print('Warning: could not find image file {}'.format(image_full_path))
+            continue
+                        
+        image = vis_utils.open_image(image_full_path)
+        vis_utils.render_detection_bounding_boxes(boxes_and_scores, image, 
+                                                  confidence_threshold=viz_threshold,
+                                                  thickness=6)
+        
+        image = vis_utils.resize_image(image, viz_target_width)
+        
+        # Render images to a flat folder... we can use os.pathsep here because we've
+        # already normalized paths
+        sample_name = res + '_' + image_id.replace(os.pathsep, '~')
+        
+        image.save(os.path.join(output_dir, res, sample_name))
+        
+        # Use slashes regardless of os
+        file_name = '{}/{}'.format(res, sample_name)
+        display_name = 'Result type: {}, presence: {}, class: {}, image: {}'.format(
+            res.upper(),
+            str(gt_presence),
+            gt_class_name,
+            image_relative_path)
+
+        images_html[res].append({
+            'filename': file_name,
+            'title': display_name,
+            'textStyle': 'font-family:verdana,arial,calibri;font-size:80%;text-align:left;margin-top:20;margin-bottom:5'
+        })
+        
+        count += 1
+        
+    # ...for each image in our sample
+    
+    print('{} images rendered'.format(count))
+        
+    # Optionally sort by filename before writing to html    
+    if sort_html_by_filename:        
+        images_html_sorted = {}
+        image_counts = {}
+        for res, array in images_html.items():
+            print(res, len(array))
+            image_counts[res] = len(array)
+            sorted_array = sorted(array, key=lambda x: x['filename'])
+            images_html_sorted[res] = sorted_array
+        
+    # Write the individual HTML files
+    for res, array in images_html_sorted.items():
+        write_html_image_list(
+            filename=os.path.join(output_dir, '{}.html'.format(res)), 
+            images=array,
+            options={
+                'headerHtml': '<h1>{}</h1>'.format(res.upper())
+            })
+        
+    # Write index.HTML    
+    index_page = """<html><body>
+    <p><strong>A sample of {} images, annotated with detections above {:.1f}% confidence.</strong></p>
+    
+    <a href="tp.html">True positives (tp)</a> ({})<br/>
+    <a href="tn.html">True negatives (tn)</a> ({})<br/>
+    <a href="fp.html">False positives (fp)</a> ({})<br/>
+    <a href="fn.html">False negatives (fn)</a> ({})<br/>
+    <br/><p><strong>Precision/recall summary for all {} images</strong></p><br/><img src="{}"><br/>
+    </body></html>""".format(
+        count, viz_threshold * 100,
+        image_counts['tp'], image_counts['tn'], image_counts['fp'], image_counts['fn'],
+        len(detection_results),pr_figure_relative_filename
+    )
+    output_html_file = os.path.join(output_dir, 'index.html')
+    with open(output_html_file, 'w') as f:
+        f.write(index_page)
+    
+    print('Finished writing html to {}'.format(output_html_file))
+
+    #%%
 else:
     
     #%% Sample detections/non-detections
