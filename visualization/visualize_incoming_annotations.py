@@ -1,23 +1,28 @@
+#####
 #
-# Spot check the annotations received from iMerit by visualizing annotated bounding boxes on a sample of images
-# and display them in an HTML.
+# visualize_incoming_annotations.py
 #
+# Spot-check the annotations received from iMerit by visualizing annotated bounding 
+# boxes on a sample of images and display them in HTML.
+#
+#####
 
 #%% Imports
+
 import json
 import os
 import re
-
 import pandas as pd
 from tqdm import tqdm
 
 import visualization_utils as vis_utils
 
-import sys
-sys.path.append('/home/yasiyu/repos/ai4eutils')  # path to the https://github.com/Microsoft/ai4eutils repo
+# Assumes ai4eutils is on the path (github.com/Microsoft/ai4eutils)
 from write_html_image_list import write_html_image_list
 
+
 #%% Settings - change everything in this section to match your task
+
 num_to_visualize = None  # None if visualize all images
 
 viz_size = (675, 450)   # width by height, in pixels
@@ -60,6 +65,7 @@ image_id_to_path_func = ss_batch5_image_id_to_path
 
 
 #%% Read in the annotations
+
 with open(incoming_annotation_path, 'r') as f:
     content = f.readlines()
 
@@ -78,12 +84,14 @@ df_img = pd.DataFrame(images)
 
 
 #%% Get a numerical to English label map; note that both the numerical key and the name are str
+
 label_map = {}
 for cat in entry['categories']:
     label_map[int(cat['id'])] = cat['name']
 
 
 #%% Visualize the bboxes on a sample of images
+    
 if num_to_visualize is not None:
     df_img = df_img.sample(n=num_to_visualize, random_state=pandas_random_seed)
 
@@ -132,6 +140,7 @@ for i in tqdm(range(len(df_img))):
 
 
 #%% Write to HTML
+    
 images_html = sorted(images_html, key=lambda x: x['filename'])
 write_html_image_list(
         filename=os.path.join(output_dir, 'index.html'),
