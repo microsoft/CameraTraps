@@ -29,15 +29,10 @@ from enum import IntEnum
 from tqdm import tqdm
 from sklearn.metrics import precision_recall_curve, confusion_matrix, average_precision_score
 
-if r'd:\git\CameraTraps\data_management' not in sys.path:
-    sys.path.append('d:\git\CameraTraps\data_management')
-
-if r'd:\git\CameraTraps\visualization' not in sys.path:
-    sys.path.append(r'd:\git\CameraTraps\visualization')
-    
-from cct_json_utils import CameraTrapJsonUtils
-from cct_json_utils import IndexedJsonDb
-import visualization_utils as vis_utils
+# Assumes the cameratraps repo root is on the path
+from data_management.cct_json_utils import CameraTrapJsonUtils
+from data_management.cct_json_utils import IndexedJsonDb
+import visualization.visualization_utils as vis_utils
 
 # Assumes ai4eutils is on the python path
 #
