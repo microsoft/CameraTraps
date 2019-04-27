@@ -19,13 +19,10 @@ from itertools import compress
 import sys
 import argparse
 
-# Convenience comment to allow me to work outside of the git folder
-# sys.path.append(r'd:\git\CameraTraps\visualization')
-import visualization_utils as vis_utils
+# Assumes the cameratraps repo root is on the path
+import visualization.visualization_utils as vis_utils
 
 # Assumes ai4eutils is on the path (github.com/Microsoft/ai4eutils)
-#
-# sys.path.append('/home/yasiyu/repos/ai4eutils')
 from write_html_image_list import write_html_image_list
 
 
