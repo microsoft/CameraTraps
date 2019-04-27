@@ -6,6 +6,7 @@ We offer a service for processing a large quantity of camera trap images using o
 All references to "container" in this document refer to [Azure Blob Storage](https://azure.microsoft.com/en-us/services/storage/blobs/) containers. 
 
 ## Processing time
+
 It takes about 0.8 seconds per image per machine, and we have at most 16 machines that can process them in parallel. So if no one else is using the service and you'd like to process 1 million images, it will take 1,000,000 * 0.8 / (16 * 60 * 60) = 14 hours. 
 
 The API is still in testing, so we might have to give it a couple of tries - please contact us if you run into issues before retrying to make sure abandoned jobs are not using up resources.
@@ -92,6 +93,7 @@ You can manually call the API using applications such as Postman:
 
 
 #### How to obtain a SAS token
+
 You can easily generate a [SAS token](https://docs.microsoft.com/en-us/azure/storage/common/storage-dotnet-shared-access-signature-part-1) to a container or a particular blob (a file in blob storage) using the desktop app [Azure Storage Explorer](https://azure.microsoft.com/en-us/features/storage-explorer/) (available on Windows, macOS and Linux). You can also issue SAS tokens programmatically by using the [Azure Storage SDK for Python](https://azure-storage.readthedocs.io/ref/azure.storage.blob.baseblobservice.html#azure.storage.blob.baseblobservice.BaseBlobService.generate_blob_shared_access_signature).
 
 
@@ -131,8 +133,6 @@ These URLs are valid for 14 days from the time the request has finished. If you 
 | RequestID_failed_images.csv | Contains full paths to images in the blob that the API failed to open, possibly because they are corrupted, or failed to apply the detector model to. |
 | RequestID_images.json | Contains a list of the full paths to all images that the API was supposed to process, based on the content of the container at the time the API was called and the filtering parameters provided. |
 
-
-
 #### How to interpret the results
 
 The output of the detector is saved in `RequestID_detections.csv`. It looks like
@@ -158,4 +158,7 @@ where `(xmin, ymin)` is the upper-left corner of the detection bounding box. The
 
 When the detector model detects no animal, the confidence is shown as 0.0 (not confident that there is an animal) and the detection column is an empty list.
 
+## Post-processing tools
+
+[postprocess_batch_results.py](postprocess_batch_results.py) provides visualization and accuracy assessment tools for the output of the batch processing API.
 
