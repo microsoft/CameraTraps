@@ -5,17 +5,14 @@
 # and converts it to a .p file that's friendly to other tools in this repo.
 #
 
-import tensorflow as tf
-import numpy as np
-import iterate_tfrecords
-import json
+from tools import iterate_tfrecords
 import pickle
 import argparse
 
 
 def read_from_tfrecords(data_path, features_to_extract):
 
-    records = iterate_tfrecords.yield_record([data_path],features_to_extract)
+    records = iterate_tfrecords.yield_record([data_path], features_to_extract)
 
     data = []
     for record in records:
