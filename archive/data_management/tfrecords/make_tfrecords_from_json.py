@@ -12,16 +12,15 @@ import json
 import numpy as np
 import argparse
 import sys
-import os
 
 try:
     
     if (sys.version_info.major >= 3):
-        from create_tfrecords_py3 import create
+        from utils.create_tfrecords_py3 import create
     else:
-        from create_tfrecords import create
+        from utils.create_tfrecords import create
     
-    from create_tfrecords_from_json import create_tfrecords_from_json
+    from utils.create_tfrecords_format import create_tfrecords_from_json
     
 except:
     
@@ -33,15 +32,13 @@ except:
 if False:
 
     #%%
-    
-    from tfrecords import *
-    
+
     if (sys.version_info.major >= 3):
-        from tfrecords.create_tfrecords_py3 import create
+        from utils.create_tfrecords_py3 import create
     else:
-        from tfrecords.create_tfrecords import create
+        from utils.create_tfrecords import create
     
-    from tfrecords.create_tfrecords_from_json import create_tfrecords_from_json
+    from utils.create_tfrecords_format import create_tfrecords_from_json
 
 
 #%% Main tfrecord generation function
@@ -81,8 +78,8 @@ def make_tfrecords_from_json(input_json_file, output_tfrecords_folder, image_fil
 #%% Interactive driver
 
 if False:
-    
-    #%%    
+
+    #%%
     num_threads = 5
     ims_per_record = 200
     dataset_name = 'imerit_batch7_ss_oneclass'

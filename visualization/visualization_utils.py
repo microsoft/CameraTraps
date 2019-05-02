@@ -1,9 +1,18 @@
+#####
+#
+# visualization_utils.py
+#
+# Core rendering functions shared across visualization scripts
+#
+#####
+
 import numpy as np
 from PIL import Image, ImageFile, ImageFont, ImageDraw
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 def open_image(input):
-    """Opens an image in binary format using PIL.Image and convert to RGB mode.
+    """
+    Opens an image in binary format using PIL.Image and convert to RGB mode.
 
     Args:
         input: an image in binary format read from the POST request's body or
@@ -21,8 +30,40 @@ def open_image(input):
     return image
 
 
+def resize_image(image, targetWidth, targetHeight=-1):
+    """
+    Resizes a PIL image object to the specified width and height; does not resize
+    in place.  If either width or height are -1, resizes with aspect ratio preservation.  
+    If both are -1, returns the original image (does not copy in this case).
+    """
+    
+    # Null operation
+    if targetWidth == -1 and targetHeight == -1:
+        
+        return image    
+    
+    elif targetWidth == -1 or targetHeight == -1:
+    
+        # Aspect ratio as width over height
+        aspectRatio = image.size[0] / image.size[1]
+        
+        if targetWidth != -1:
+            # ar = w / h        
+            # h = w / ar
+            targetHeight = int(targetWidth / aspectRatio)
+            
+        else:
+            # ar = w / h
+            # w = ar * h
+            targetWidth = int(aspectRatio * targetHeight)
+            
+    resizedImage = image.resize((targetWidth, targetHeight), Image.ANTIALIAS)
+    return resizedImage
+
+
 def render_iMerit_boxes(boxes, classes, image, label_map=None):
-    """Renders bounding boxes and their category labels on a PIL image.
+    """
+    Renders bounding boxes and their category labels on a PIL image.
 
     Args:
         boxes: bounding box annotations from iMerit, format is [x_rel, y_rel, w_rel, h_rel] (rel = relative coords)
@@ -43,15 +84,50 @@ def render_iMerit_boxes(boxes, classes, image, label_map=None):
         display_boxes.append([ymin, xmin, ymax, xmax])
 
         if label_map:
-            clss = label_map[str(clss)]
+            clss = label_map[int(clss)]
         display_strs.append([clss])
 
     display_boxes = np.array(display_boxes)
     draw_bounding_boxes_on_image(image, display_boxes, display_str_list_list=display_strs)
 
 
-def render_detection_bounding_boxes(boxes_and_scores, image, label_map={}, confidence_threshold=0.5):
-    """Renders bounding boxes, label and confidence on an image if confidence is above the threshold.
+def render_db_bounding_boxes(boxes, classes, image, original_size=None, label_map=None, thickness=4):
+    """
+    Render bounding boxes (with class labels) on [image].  This is a wrapper for
+    draw_bounding_boxes_on_image, allowing the caller to operate on a resized image
+    by providing the original size of the image; bboxes will be scaled accordingly.
+    """
+    display_boxes = []
+    display_strs = []
+    
+    if original_size is not None:
+        image_size = original_size
+    else:
+        image_size = image.size
+        
+    img_width, img_height = image_size
+    for box, clss in zip(boxes, classes):
+        x_min_abs, y_min_abs, width_abs, height_abs = box
+
+        ymin = y_min_abs / img_height
+        ymax = ymin + height_abs / img_height
+
+        xmin = x_min_abs / img_width
+        xmax = xmin + width_abs / img_width
+
+        display_boxes.append([ymin, xmin, ymax, xmax])
+
+        if label_map:
+            clss = label_map[int(clss)]
+        display_strs.append([clss])
+
+    display_boxes = np.array(display_boxes)
+    draw_bounding_boxes_on_image(image, display_boxes, display_str_list_list=display_strs, thickness=thickness)
+
+
+def render_detection_bounding_boxes(boxes_and_scores, image, label_map={}, confidence_threshold=0.5, thickness=4):
+    """
+    Renders bounding boxes, label and confidence on an image if confidence is above the threshold.
     This is works with the output of the detector batch processing API.
 
     Args:
@@ -74,7 +150,7 @@ def render_detection_bounding_boxes(boxes_and_scores, image, label_map={}, confi
             display_strs.append([displayed_label])
 
     display_boxes = np.array(display_boxes)
-    draw_bounding_boxes_on_image(image, display_boxes, display_str_list_list=display_strs)
+    draw_bounding_boxes_on_image(image, display_boxes, display_str_list_list=display_strs,thickness=thickness)
 
 
 # the following two functions are from https://github.com/tensorflow/models/blob/master/research/object_detection/utils/visualization_utils.py
@@ -84,7 +160,8 @@ def draw_bounding_boxes_on_image(image,
                                  color='red',
                                  thickness=1,
                                  display_str_list_list=()):
-    """Draws bounding boxes on image.
+    """
+    Draws bounding boxes on image.
 
     Args:
       image: a PIL.Image object.

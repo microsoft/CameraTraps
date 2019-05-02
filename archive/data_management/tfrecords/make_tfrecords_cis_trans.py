@@ -1,16 +1,15 @@
 #
-# make_tfrecords_with_train_test_split.py
+# make_tfrecords_cis_trans.py
 #
 # Given a .json file that contains a three-element list (train/val/test) of image IDs and a .json database that contains
 # those image IDs, generates tfrecords whose filenames include "train"/"val"/"test"
 # 
 
 import json
-import pickle
 import numpy as np
-from create_tfrecords import create
-from create_tfrecords_from_json import create_tfrecords_from_json
-from create_classification_tfrecords_from_json import create_classification_tfrecords_from_json
+from utils.create_tfrecords import create
+from utils.create_tfrecords_format import create_tfrecords_from_json
+from archive.data_management.tfrecords.create_classification_tfrecords_format import create_classification_tfrecords_from_json
 import tensorflow as tf
 
 datafolder = '/ai4efs/'
