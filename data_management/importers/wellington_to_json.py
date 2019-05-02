@@ -138,7 +138,6 @@ for imageName in imageFilenames:
     
     # In the form "7/29/2016 11:40"
     im['datetime'] = row['date']
-    images.append(im)
     
     # Check image height and width
     imagePath = os.path.join(image_directory,fn)
@@ -148,6 +147,8 @@ for imageName in imageFilenames:
     im['width'] = width
     im['height'] = height
 
+    images.append(im)
+    
     category = row['label'].lower()
     
     # Use 'empty', to be consistent with other data on lila    
