@@ -15,7 +15,7 @@ import random
 import json
 import sys
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                             'tfrecords'))
+                             '../../tfrecords/utils'))
 if sys.version_info.major >= 3:
   import create_tfrecords_py3 as tfr
 else:
