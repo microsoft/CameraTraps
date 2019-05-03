@@ -17,9 +17,11 @@ slim = tf.contrib.slim
 
 _FILE_PATTERN = '%s-*'
 
-SPLITS_TO_SIZES = {'train': 112698, 'test': 24734}
+SPLITS_TO_SIZES = {'train': 1730648, 'test': 439292}
 
-_NUM_CLASSES = 17
+# The dataset has classes with no images (empty and human), which have ID 0 and 1,
+# so we need to specify 49 here despite having only 47 classes with images
+_NUM_CLASSES = 49
 
 _ITEMS_TO_DESCRIPTIONS = {
     'image': 'A color image of varying size.',

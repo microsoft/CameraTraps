@@ -1,6 +1,7 @@
-DATASET_NAME=wellington
-DATASET_DIR=/data/lila/well_cropped_tfrecords
-CHECKPOINT_DIR=./$(echo log/20* | sort | tail -n 1)/all
+DATASET_NAME=serengeti
+DATASET_DIR=/data/lila/serengeti/cropped_tfrecords
+#CHECKPOINT_DIR=./$(echo log/20* | sort | tail -n 1)/all
+CHECKPOINT_DIR=./log/2019-02-22_07.05.54_well_incv4/all/
 MODEL_NAME=inception_v4
 NUM_GPUS=1
 

@@ -19,6 +19,7 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
+tf.logging.set_verbosity(tf.logging.ERROR)
 
 from datasets import dataset_factory
 from deployment import model_deploy

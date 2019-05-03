@@ -17,9 +17,9 @@ slim = tf.contrib.slim
 
 _FILE_PATTERN = '%s-*'
 
-SPLITS_TO_SIZES = {'train': 46778, 'test': 5134}
+SPLITS_TO_SIZES = {'train': 136795, 'test': 36106}
 
-_NUM_CLASSES = 22
+_NUM_CLASSES = 17
 
 _ITEMS_TO_DESCRIPTIONS = {
     'image': 'A color image of varying size.',
