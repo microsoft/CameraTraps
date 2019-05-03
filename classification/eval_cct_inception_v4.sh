@@ -7,7 +7,7 @@ NUM_GPUS=1
 
 # Run evaluation.
 python eval_image_classifier.py \
-    --eval_dir=${TRAIN_DIR} \
+    --eval_dir=${TRAIN_DIR}/all \
     --dataset_dir=${DATASET_DIR} \
     --dataset_name=cct \
     --dataset_split_name=test \
