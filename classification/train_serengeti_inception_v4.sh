@@ -1,8 +1,11 @@
+# Adjust to your environment
 DATASET_NAME=serengeti
 DATASET_DIR=/data/lila/serengeti/serengeti_cropped_tfrecords
-#TRAIN_DIR=./log/$(date +"%Y-%m-%d_%H.%M.%S")_serengeti_incv4
-TRAIN_DIR=./log/2019-04-22_13.21.02_serengeti_incv4
+TRAIN_DIR=./log/$(date +"%Y-%m-%d_%H.%M.%S")_serengeti_incv4
+#TRAIN_DIR=./log/2019-04-22_13.21.02_serengeti_incv4
 CHECKPOINT_PATH=/home/meerkat/git/tf-classification/pre-trained/inception_v4/inception_v4.ckpt
+
+
 MODEL_NAME=inception_v4
 CHECKPOINT_EXCLUDE=InceptionV4/AuxLogits,InceptionV4/Logits
 NUM_GPUS=1
@@ -36,7 +39,7 @@ python eval_image_classifier.py \
     --model_name=${MODEL_NAME} \
     --checkpoint_path=${TRAIN_DIR}/init
 
-# 300k iters
+# 1.5M iters
 python train_image_classifier.py \
     --train_dir=${TRAIN_DIR}/all \
     --dataset_dir=${DATASET_DIR} \
