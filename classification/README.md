@@ -228,7 +228,7 @@ the variables at the top. In particular,
 - Assign `CHECKPOINT_PATH` the path to the pre-trained Inception V4 model. It is available at
 `http://download.tensorflow.org/models/inception_v4_2016_09_09.tar.gz`
 
-Now you are ready to run the training. Go to `classification/tf-slim/` and execute your script with `bash train_newdataset_inception_v4`. 
+Now you are ready to run the training. Go to `classification/tf-slim/` and execute your script with `bash ../train_newdataset_inception_v4`. 
 The provided script trains first only the last layer, executes one evaluation run, then fine-tunes the whole
 network, and then runs evaluation again. If everything goes well, the final top-1 and top-5 accuracy should be reported
 at the end. 
