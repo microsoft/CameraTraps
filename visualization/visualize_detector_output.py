@@ -1,9 +1,14 @@
+#####
+#
+# visualize_detector_output.py
 #
 # Render images with bounding boxes annotated on them to a folder, based on a detector output result
 # file (CSV). The original images can be local or in Azure Blob Storage.
 #
+#####
 
-# %% Imports
+#%% Imports
+
 import argparse
 import io
 import json
@@ -11,15 +16,15 @@ import os
 from urllib import parse
 
 import pandas as pd
-from PIL import Image
 from azure.storage.blob import BlockBlobService
 from tqdm import tqdm
 
 import visualization_utils as vis_utils
 
 
-#%% Settings and user supplied arguments
-viz_size = (675, 450)   # width by height, in pixels
+#%% Settings and user-supplied arguments
+
+viz_size = (675, 450)  # width by height, in pixels
 
 
 parser = argparse.ArgumentParser(description=('Annotate the bounding boxes predicted by a detector '
@@ -73,6 +78,7 @@ os.makedirs(args.out_dir, exist_ok=True)
 
 
 #%% Helper functions
+
 def get_sas_key_from_uri(sas_uri):
     """Get the query part of the SAS token that contains permissions, access times and
     signature.
@@ -147,8 +153,8 @@ for i_row, row in tqdm(df.iterrows()):
         image_obj = io.BytesIO()
         _ = blob_service.get_blob_to_stream(container_name, image_id, image_obj)
 
-    image = Image.open(image_obj).resize(viz_size)  # resize is to display them in this notebook more quickly
-    vis_utils.render_bounding_boxes(boxes_and_scores, image, confidence_threshold=args.confidence)
+    image = vis_utils.open_image(image_obj).resize(viz_size)  # resize is to display them more quickly
+    vis_utils.render_detection_bounding_boxes(boxes_and_scores, image, confidence_threshold=args.confidence)
 
     annotated_img_name = image_id.replace('/', '~')
     annotated_img_path = os.path.join(args.out_dir, annotated_img_name)
