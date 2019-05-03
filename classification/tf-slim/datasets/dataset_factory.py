@@ -24,6 +24,8 @@ from datasets import imagenet
 from datasets import mnist
 from datasets import cct
 from datasets import wellington
+from datasets import serengeti
+from datasets import nacti
 
 datasets_map = {
     'cifar10': cifar10,
@@ -31,7 +33,9 @@ datasets_map = {
     'imagenet': imagenet,
     'mnist': mnist,
     'cct': cct,
-    'wellington': wellington
+    'wellington': wellington,
+    'serengeti': serengeti,
+    'nacti': nacti
 }
 
 
