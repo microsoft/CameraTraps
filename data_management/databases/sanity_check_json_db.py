@@ -31,10 +31,6 @@ from PIL import Image
 
 nThreads = 10
 
-# By arbitrary convention, operate using slashes in this file.  This doesn't imply 
-# any assumptions about OS or file content, it's just used to standardize comparisons.
-PATH_SEP = '/'
-
 
 #%% Functions
 
@@ -145,6 +141,8 @@ def sanityCheckJsonDb(jsonFile, options=None):
         
     imagePathsInJson = set()
     
+    sequences = set()
+    
     # image = images[0]
     for image in tqdm(images):
         
@@ -154,8 +152,7 @@ def sanityCheckJsonDb(jsonFile, options=None):
         assert 'file_name' in image
         assert 'id' in image
 
-        image['file_name'] = image['file_name'].replace('\\',PATH_SEP)
-        image['file_name'] = image['file_name'].replace('/',PATH_SEP)
+        image['file_name'] = os.path.normpath(image['file_name'])
                 
         imagePathsInJson.add(image['file_name'])
         
@@ -179,6 +176,11 @@ def sanityCheckJsonDb(jsonFile, options=None):
             assert isinstance(image['location'], str) or isinstance(image['location'], int), 'Illegal image location type'
             imageLocationSet.add(image['location'])
     
+        if 'seq_id' in image:
+            sequences.add(image['seq_id'])
+            
+        assert not ('sequence_id' in image or 'sequence' in image), 'Illegal sequence identifier'
+            
     # Are we checking for unused images?
     if (len(baseDir) > 0) and options.bFindUnusedImages:    
         
@@ -191,8 +193,7 @@ def sanityCheckJsonDb(jsonFile, options=None):
                 if file.lower().endswith(('.jpeg', '.jpg', '.png')):
                     relDir = os.path.relpath(root, baseDir)
                     relFile = os.path.join(relDir,file)
-                    relFile = relFile.replace('\\',PATH_SEP)
-                    relFile = relFile.replace('/',PATH_SEP)                
+                    relFile = os.path.normpath(relFile)
                     if len(relFile) > 2 and \
                         (relFile[0:2] == './' or relFile[0:2] == '.\\'):                     
                             relFile = relFile[2:]
@@ -227,6 +228,8 @@ def sanityCheckJsonDb(jsonFile, options=None):
     
     print('Checking annotations...')
     
+    nBoxes = 0
+    
     for ann in tqdm(annotations):
     
         # Confirm that required fields are present
@@ -238,6 +241,9 @@ def sanityCheckJsonDb(jsonFile, options=None):
         assert isinstance(ann['category_id'],int), 'Illegal annotation category ID type'
         assert isinstance(ann['image_id'],str), 'Illegal annotation image ID type'
         
+        if 'bbox' in ann:
+            nBoxes += 1
+            
         annId = ann['id']        
         
         # Confirm ID uniqueness
@@ -279,8 +285,12 @@ def sanityCheckJsonDb(jsonFile, options=None):
     
     print('Found {} unused categories'.format(nUnusedCategories))
             
-    print('\nDB contains {} images, {} annotations, and {} categories\n'.format(
-            len(images),len(annotations),len(categories)))
+    sequenceString = 'no sequence info'
+    if len(sequences) > 0:
+        sequenceString = '{} sequences'.format(len(sequences))
+        
+    print('\nDB contains {} images, {} annotations, {} bboxes, {} categories, {}\n'.format(
+            len(images),len(annotations),nBoxes,len(categories),sequenceString))
 
     if len(imageLocationSet) > 0:
         print('DB contains images from {} locations\n'.format(len(imageLocationSet)))
@@ -350,7 +360,7 @@ if False:
     jsonFiles = [r'd:\wildlife_data\mcgill_test\mcgill_test.json']; jsonFile = jsonFiles[0]; baseDir = r'd:\wildlife_data\mcgill_test'
     options = SanityCheckOptions()
     options.baseDir = baseDir
-    options.bCheckImageSizes = True
+    options.bCheckImageSizes = False
     options.bFindUnusedImages = True
     
     # options.iMaxNumImages = 10    
