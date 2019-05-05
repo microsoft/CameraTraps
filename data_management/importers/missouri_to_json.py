@@ -15,6 +15,8 @@
 import json
 import os
 import uuid
+import time
+import humanfriendly
 import warnings
 import ntpath
 import datetime
@@ -80,8 +82,13 @@ sequenceIDtoCount = {}
 
 print('Enumerating files from {} to {}'.format(baseDir,fileListJsonFilename))
 
+startTime = time.time()
+
 for root, subdirs, files in os.walk(baseDir):
             
+    if root == baseDir:
+        continue
+    
     bn = ntpath.basename(root)
     
     if ('Set1' in root and 'SEQ' in root) or ('Set2' in root and bn != 'Set2'):
@@ -152,10 +159,15 @@ for root, subdirs, files in os.walk(baseDir):
 
 # ...for each file
 
+elapsed = time.time() - startTime
+print('Finished file enumeration in {}'.format(
+      humanfriendly.format_timespan(elapsed)))
+
 
 #%% Add sequence lengths
     
 for imageID in imageIdToImage:
+    
     im = imageIdToImage[imageID]
     sequenceID = im['seq_id']
     count = sequenceIDtoCount[sequenceID]
@@ -214,7 +226,7 @@ for iLine,line in enumerate(metadataSet1Lines):
         assert relPath in relPathToIm
 
 print('Corrected {} paths, missing {} images of {}'.format(len(correctedFiles),
-      len(missingFiles),len(metadataSet1Lines)))
+      len(missingFilesSet1),len(metadataSet1Lines)))
 
 
 #%% Print missing files from Set 1 metadata
@@ -301,7 +313,7 @@ for iLine,line in enumerate(metadataSet2Lines):
             if imageClass != 'empty':
                 sequenceClass = imageClass
         
-        # If the sequence has some non-empty class, possibly change it
+        # If the sequence has a non-empty class, possibly change it
         else:
             if imageClass == 'empty':
                 pass
@@ -377,6 +389,7 @@ nFoundMetadata = 0
 nTotalBoxes = 0
 nImageLevelEmpties = 0
 nSequenceLevelAnnotations = 0
+nRedundantBoxes = 0
 
 # For each image
 #
@@ -454,6 +467,25 @@ for iImage,imageID in enumerate(set1ImageIDs):
                 boxCoords = imageMetadata[2+(iBox*4):6+(iBox*4)]
                 boxCoords = list(map(int, boxCoords))
                 
+                # Some redundant bounding boxes crept in, don't add them twice
+                bRedundantBox = False
+                
+                # Check this bbox against previous bboxes
+                #
+                # Inefficient?  Yes.  In an important way?  No.
+                for iBoxComparison in range(0,iBox):
+                    assert iBox != iBoxComparison                        
+                    boxCoordsComparison = imageMetadata[2+(iBoxComparison*4):6+(iBoxComparison*4)]
+                    boxCoordsComparison = list(map(int, boxCoordsComparison))
+                    if boxCoordsComparison == boxCoords:
+                        print('Warning: redundant box on image {}'.format(fn))
+                        bRedundantBox = True
+                        nRedundantBoxes += 1
+                        break
+                
+                if bRedundantBox:
+                    continue
+                    
                 # Bounding box values are in absolute coordinates, with the origin 
                 # at the upper-left of the image, as [xmin1 ymin1 xmax1 ymax1].
                 #
@@ -486,8 +518,8 @@ for iImage,imageID in enumerate(set1ImageIDs):
         
 # ...for each image
         
-print('Finished processing set 1, found metadata for {} of {} images, created {} annotations and {} boxes in {} categories'.format(
-        nFoundMetadata,len(set1ImageIDs),len(annotationsSet1),nTotalBoxes,len(categoriesSet1)))
+print('Finished processing set 1, found metadata for {} of {} images\nCreated {} annotations and {} boxes in {} categories\nFound {} redundant annotations'.format(
+        nFoundMetadata,len(set1ImageIDs),len(annotationsSet1),nTotalBoxes,len(categoriesSet1),nRedundantBoxes))
 
 assert len(annotationsSet1) == nSequenceLevelAnnotations + nTotalBoxes + nImageLevelEmpties
 assert len(set1ImageIDs) == nSequenceLevelAnnotations + nFoundMetadata
@@ -657,3 +689,10 @@ json.dump(data, open(outputJsonFilenameSet2,'w'))
 print('Finished writing json to {}'.format(outputJsonFilenameSet2))
 
 
+#%% Next steps...
+
+# Sanity-check the final Set 1 .json file
+# python sanity_check_json_db.py --bCheckImageSizes --baseDir "E:\wildlife_data\missouri_camera_traps" "E:\wildlife_data\missouri_camera_traps\missouri_camera_traps_set1.json"
+
+# Generate previews
+# python visualize_bbox_db.py "e:\wildlife_data\missouri_camera_traps\missouri_camera_traps_set1.json" "e:\wildlife_data\missouri_camera_traps\preview" "e:\wildlife_data\missouri_camera_traps" --num_to_visualize 1000
