@@ -2,9 +2,12 @@ import numpy as np
 from PIL import Image, ImageFile, ImageFont, ImageDraw
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
+
 def open_image(input):
     """
-    Opens an image in binary format using PIL.Image and convert to RGB mode.
+    Opens an image in binary format using PIL.Image and convert to RGB mode. This operation is lazy; image will
+    not be actually loaded until the first operation that needs to load it (for example, resizing), so file opening
+    errors can show up later.
 
     Args:
         input: an image in binary format read from the POST request's body or
