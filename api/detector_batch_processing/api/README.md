@@ -52,7 +52,7 @@ You can supply your own tag (`-t` option) and build number. You may need to use 
 
 
 ### Step 4. Launch the Docker container
-To launch the service:
+To launch the service, in a `tmux` session, issue:
 
 ```
 docker run -p 6000:80 name.azurecr.io/camera-trap-detection-batch:2 |& tee -a camera-trap-api-async-log/log20190415.txt
