@@ -1,4 +1,5 @@
 
+
 # Tutorial for training a classifier
 This tutorial walks through all steps required to train an animal species classifier from an camera trap dataset. Instead of whole-image classification, we will focus on classification of the detected animals with unknown species.
 
@@ -185,4 +186,42 @@ and start the training with
 
     bash ../train_serengeti_inception_v4.sh
 
-The training will take several days to complete. At the end of the training, you will see a summary showing the top-5 and top-1 accuracy. 
+The training will take several days to complete. It is a two-step training, in which we first train only the last layer of the network. Afterward, all parameters are trained jointly. 
+
+## Evaluating the classifier
+The sample training scripts will run a evaluation run on the test data after the training finished. This evaluation run can be repeated later as well. We will adapt an existing evaluation script for this purpose. First, switch to the directory containing the sample scripts by executing
+
+    cd $CAMERATRAPS_DIR/classification
+
+and copy one of the existing script with
+
+    cp eval_cct_inception_v4.sh eval_serengeti_inception_v4.sh
+
+This scripts needs similar adjustments as the training script created in the previous section. Open the script `eval_serengeti_inception_v4.sh` with a text editor like `vim` by executing
+
+    vim eval_serengeti_inception_v4.sh
+
+and set the variables in the top:
+- `DATASET_NAME` to the key used in the training script, in our case `serengeti`
+- `DATASET_DIR` to the path to your TFRecords folder `$TFRECORDS_OUTPUT`
+- `CHECKPOINT_PATH` to the subfolder `all` of your log directory
+
+One log folder is created for each training run in the directory 
+
+    $CAMERATRAPS_DIR/classification/tf-slim/log
+
+and the folder name contains the starting date and time. Double check that that you pick the correct path as the evaluation will run even with an invalid path. In our case, the top of the script looks like this
+
+    DATASET_DIR=/data/serengeti_cropped_tfrecords
+    DATASET_NAME=serengeti
+    CHECKPOINT_DIR=/data/CameraTraps/classification/tf-slim/log/2019-02-22_07.05.54_well_incv4/all/
+
+The script is now ready for execution. Change to the `tf-slim` folder by executing
+
+    cd $CAMERATRAPS_DIR/classification/tf-slim
+
+and start the evaluation run with 
+
+    bash ../eval_serengeti_inception_v4.sh
+
+As before, the top-1 and top-5 accuracy will be printed at the end. 
