@@ -138,9 +138,9 @@ def _request_detections(**kwargs):
         # apply the first_n and sample_n filters
         if first_n is not None:
             assert first_n > 0, 'parameter first_n is zero.'
-            image_paths = image_paths[:first_n]
+            image_paths = image_paths[:first_n]  # will not error if first_n > total number of images
 
-        # TODO implement sample_n
+        # TODO implement sample_n - need to check that sample_n <= len(image_paths)
 
         num_images = len(image_paths)
         print('runserver.py, num_images: {}'.format(num_images))
