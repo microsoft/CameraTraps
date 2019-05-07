@@ -93,7 +93,7 @@ Example call:
 python models/research/object_detection/export_inference_graph.py \
     --input_type=image_tensor \
     --pipeline_config_path=/experiment1/run1/pipeline.config \
-    --trained_checkpoint_prefix=/experiment1/run1_out/model.ckpt-141004] \
+    --trained_checkpoint_prefix=/experiment1/run1_out/model.ckpt-141004 \
     --output_directory=/experiment1/run1_model_141004/
 ```
 
@@ -121,5 +121,5 @@ Then you can use `data_management/tfrecords/tools/read_from_tfrecords.py` to rea
 # Evaluation
 `detection_eval` contains code for evaluating the detection results, based on the pickle file obtained in the previous step.
 
-Evaluation scripts provided include evaluating at object, image, and sequence levels, evaluating detection models as classifiers (which allows you to evaluate on data that has only class-level annotations), evaluating models per-camera-location, and evaluating models per-species.
+Evaluation scripts provided will include evaluating at object, image, and sequence levels, evaluating detection models as classifiers (which allows you to evaluate on data that has only class-level annotations), evaluating models per-camera-location, and evaluating models per-species.
 
