@@ -224,4 +224,22 @@ and start the evaluation run with
 
     bash ../eval_serengeti_inception_v4.sh
 
-As before, the top-1 and top-5 accuracy will be printed at the end. 
+As before, the top-1 and top-5 accuracy will be printed at the end:
+
+    bash ../eval_serengeti_inception_v4.sh
+    INFO:tensorflow:Evaluation [439/4393]
+    INFO:tensorflow:Evaluation [878/4393]
+    INFO:tensorflow:Evaluation [1317/4393]
+    INFO:tensorflow:Evaluation [1756/4393]
+    INFO:tensorflow:Evaluation [2195/4393]
+    INFO:tensorflow:Evaluation [2634/4393]
+    INFO:tensorflow:Evaluation [3073/4393]
+    INFO:tensorflow:Evaluation [3512/4393]
+    INFO:tensorflow:Evaluation [3951/4393]
+    INFO:tensorflow:Evaluation [4390/4393]
+    INFO:tensorflow:Evaluation [4393/4393]
+    eval/Accuracy[0.863694489]eval/Recall_5[0.969760954]
+
+    INFO:tensorflow:Finished evaluation at 2019-05-07-03:34:21
+
+
