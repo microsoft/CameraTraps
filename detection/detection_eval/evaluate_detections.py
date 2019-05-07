@@ -22,9 +22,7 @@ import detection_eval_utils as utils
 PLOT_WIDTH = 5  # in inches
 
 
-def compute_precision_recall(results, num_gt_classes):
-    per_image_detections, per_image_gts = utils.group_detections_by_image(results)
-
+def _compute_precision_recall(per_image_detections, per_image_gts, num_gt_classes):
     per_image_eval = per_image_evaluation.PerImageEvaluation(
         num_groundtruth_classes=num_gt_classes,
         matching_iou_threshold=0.5,
@@ -123,27 +121,11 @@ def compute_precision_recall(results, num_gt_classes):
     return per_cat_metrics
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('detection_file', action='store', type=str,
-                        help='.p file containing detection results')
-    parser.add_argument('out_dir', action='store', type=str,
-                        help='path to directory where outputs will be stored (an image and a pickle file)')
-
-    if len(sys.argv[1:]) == 0:
-        parser.print_help()
-        parser.exit()
-
-    args = parser.parse_args()
-
-    os.makedirs(args.out_dir, exist_ok=True)
-
-    p = pickle.load(open(args.detection_file, 'rb'))
-
-    num_images = len(p['gt_labels'])
+def compute_precision_recall(results):
+    num_images = len(results['gt_labels'])
 
     gt_labels_flat = []
-    for gt_labels_im in p['gt_labels']:
+    for gt_labels_im in results['gt_labels']:
         gt_labels_flat.extend(gt_labels_im)
 
     num_gt_classes = len(set(gt_labels_flat))
@@ -152,7 +134,9 @@ def main():
     print('Number of gt bounding boxes: {}'.format(len(gt_labels_flat)))
     print('Number of gt classes: {}'.format(num_gt_classes))
 
-    per_cat_metrics = compute_precision_recall(p, num_gt_classes)
+    per_image_detections, per_image_gts = utils.group_detections_by_image(results)
+
+    per_cat_metrics = _compute_precision_recall(per_image_detections, per_image_gts, num_gt_classes)
 
     mAP_from_cats = sum([v['average_precision'] if k != 'one_class' and not math.isnan(v['average_precision']) else 0
                          for k, v in per_cat_metrics.items()]) / num_gt_classes
@@ -165,11 +149,29 @@ def main():
         utils.plot_precision_recall(ax, cat, metrics['precision'], metrics['recall'], metrics['average_precision'])
 
     fig.tight_layout()
-    fig.savefig(os.path.join(args.out_dir, 'precicision_recall.png'))
 
+    return per_cat_metrics, fig
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('detection_file', action='store', type=str,
+                        help='.p file containing detection results')
+    parser.add_argument('out_dir', action='store', type=str,
+                        help='path to directory where outputs will be stored (an image and a pickle file)')
+    if len(sys.argv[1:]) == 0:
+        parser.print_help()
+        parser.exit()
+    args = parser.parse_args()
+
+    os.makedirs(args.out_dir, exist_ok=True)
+    p = pickle.load(open(args.detection_file, 'rb'))
+
+    per_cat_metrics, fig_precision_recall = compute_precision_recall(p)
+
+    fig_precision_recall.savefig(os.path.join(args.out_dir, 'precicision_recall.png'))
     pickle.dump(per_cat_metrics, open(os.path.join(args.out_dir, 'per_category_metrics.p'), 'wb'))
 
 
 if __name__ == '__main__':
     main()
-
