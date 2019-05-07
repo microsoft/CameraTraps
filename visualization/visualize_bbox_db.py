@@ -169,7 +169,7 @@ def processImages(bbox_db_path,output_dir,image_base_dir,options=None):
             
             bbox = anno['bbox']        
             if isinstance(bbox,float):
-                assert math.isnan(bbox), 'I shouldn''t see a bbox that''s neither a box nor NaN'
+                assert math.isnan(bbox), "I shouldn't see a bbox that's neither a box nor NaN"
                 continue
             bboxes.append(bbox)
             boxClasses.append(anno['category_id'])
@@ -223,7 +223,7 @@ def argsToObject(args, obj):
     
     for n, v in inspect.getmembers(args):
         if not n.startswith('_'):
-            setattr(obj, n, v);
+            setattr(obj, n, v)
 
 
 def main():
