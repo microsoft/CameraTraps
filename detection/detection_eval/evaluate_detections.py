@@ -141,7 +141,9 @@ def compute_precision_recall(results, exclude_person_images):
     print('Number of gt classes: {}'.format(num_gt_classes))
 
     use_im = utils.get_non_person_images(results) if exclude_person_images else None
+
     per_image_detections, per_image_gts = utils.group_detections_by_image(results, use_im)
+    print('Length of per_image_detections:', len(per_image_detections))
 
     per_cat_metrics = _compute_precision_recall(per_image_detections, per_image_gts, num_gt_classes)
 
@@ -176,6 +178,8 @@ def main():
         parser.print_help()
         parser.exit()
     args = parser.parse_args()
+
+    print('Flag args.exclude_person_images:', args.exclude_person_images)
 
     os.makedirs(args.out_dir, exist_ok=True)
     p = pickle.load(open(args.detection_file, 'rb'))

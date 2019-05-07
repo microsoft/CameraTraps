@@ -6,7 +6,7 @@
 
 def get_non_person_images(results):
     num_boxes_excluded = 0
-    use_im = {im : True for im in results['images']}
+    use_im = {im: True for im in results['images']}
     for image_id, gt_labels in zip(results['images'], results['gt_labels']):
         for l in gt_labels:
             if int(l) == 2:
@@ -15,25 +15,29 @@ def get_non_person_images(results):
 
     num_images_excluded = sum([0 if include else 1 for im, include in use_im.items()])
     print('Number of bbox of person excluded: {}, images excluded: {}'.format(num_boxes_excluded, num_images_excluded))
+    return use_im
 
 def group_detections_by_image(results, use_im=None):
     if use_im == None:
-        use_im = {im : True for im in results['images']}
+        use_im = {im: True for im in results['images']}
 
-    per_image_detections = {results['images'][idx] :{'boxes': results['detection_boxes'][idx],
-                                                               'scores': results['detection_scores'][idx],
-                                                               'labels': results['detection_labels'][idx]} for
+    per_image_detections = {results['images'][idx]: {'boxes': results['detection_boxes'][idx],
+                                                     'scores': results['detection_scores'][idx],
+                                                     'labels': results['detection_labels'][idx]} for
                             idx in range(len(results['images'])) if use_im[results['images'][idx]]}
 
     # group the ground truth annotations by image id
     per_image_gts = {results['images'][idx]: {'gt_boxes': results['gt_boxes'][idx],
-                                                        'gt_labels': results['gt_labels'][idx]} for idx in
+                                              'gt_labels': results['gt_labels'][idx]} for idx in
                      range(len(results['images'])) if use_im[results['images'][idx]]}
 
     return per_image_detections, per_image_gts
 
 
 def plot_precision_recall(ax, cat, precision, recall, average_precision):
+    if precision is None or recall is None:
+        return
+
     ax.set_title('Category {}, AP {:.4f}'.format(cat, average_precision))
     ax.plot(recall, precision)
     ax.set_xlim([0, 1])
@@ -63,4 +67,3 @@ def find_precision_at_recall(precision, recall, recall_level=0.9):
         return p
 
     return 0.0  # recall level never reaches recall_level specified
-
