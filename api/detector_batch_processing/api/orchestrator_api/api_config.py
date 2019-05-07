@@ -1,12 +1,12 @@
 # version of the detector model in use
-MODEL_VERSION = 'models/object_detection/faster_rcnn_inception_resnet_v2_atrous/megadetector'
+MODEL_VERSION = 'models/object_detection/faster_rcnn_inception_resnet_v2_atrous/megadetector_v3/step_686872'
 
 # name of the container in the internal storage account to store user facing files:
 # image list, detection results and failed images list.
-INTERNAL_CONTAINER = 'async-api-v2'
+INTERNAL_CONTAINER = 'async-api-v3-2'
 
 # name of the container in the internal storage account to store outputs of each AML job
-AML_CONTAINER = 'aml-out'
+AML_CONTAINER = 'aml-out-2'
 
 # how often does the checking thread wake up to check if all jobs are done
 MONITOR_PERIOD_MINUTES = 30
@@ -31,12 +31,12 @@ AML_CONFIG = {
     'subscription_id': '74d91980-e5b4-4fd9-adb6-263b8f90ec5b',
     'workspace_region': 'eastus',
     'resource_group': 'camera_trap_api_rg',
-    'workspace_name': 'camera_trap_aml_workspace',
+    'workspace_name': 'camera_trap_aml_workspace_2',
     'aml_compute_name': 'camera-trap-com',
 
-    'model_name': 'megadetector',
+    'model_name': 'megadetector_v3',
 
-    'source_dir': '/app/orchestrator_api/aml_config_scripts',
+    'source_dir': '/app/orchestrator_api/aml_scripts',
     'script_name': 'score.py',
 
     'param_batch_size': 8,
