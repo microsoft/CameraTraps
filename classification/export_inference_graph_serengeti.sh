@@ -5,7 +5,7 @@ CHECKPOINT_DIR=/home/loris/git/tf-detection/CameraTraps/classification/log/seren
 MODEL_NAME=inception_v4
 NUM_GPUS=1
 
-python ../export_inference_graph_with_preprocessing.py \
+python ../export_inference_graph_definition.py \
     --model_name=${MODEL_NAME} \
     --output_file=${CHECKPOINT_DIR}/${MODEL_NAME}_inf_graph_def.pbtxt \
     --dataset_name=${DATASET_NAME} \
