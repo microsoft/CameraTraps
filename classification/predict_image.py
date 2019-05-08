@@ -11,10 +11,6 @@ parser.add_argument('--class_list', type=str,
                     help='Path to text file containing the names of all possible categories.')
 parser.add_argument('--image_path', type=str,
                     help='Path to image file.')
-parser.add_argument('--output_tensor_name', type=str, default='InceptionV4/Logits/Predictions:0',
-                    help='Name of output tensor, default: "InceptionV4/Logits/Predictions:0". Please check ' + \
-                   'your generated "MODEL_NAME_inf_graph_def.pbtxt" for the correct name.')
-
 args = parser.parse_args()
 
 # Check that all files exists for easier debugging
@@ -40,7 +36,7 @@ with model_graph.as_default():
     with tf.Session() as sess:
         # Collect tensors for input and output
         image_tensor = tf.get_default_graph().get_tensor_by_name('input:0')
-        predictions_tensor = tf.get_default_graph().get_tensor_by_name(args.output_tensor_name)
+        predictions_tensor = tf.get_default_graph().get_tensor_by_name('output:0')
         predictions_tensor = tf.squeeze(predictions_tensor, [0])
 
         # Read imag
