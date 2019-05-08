@@ -7,7 +7,7 @@ import numpy as np
 parser = argparse.ArgumentParser()
 parser.add_argument('--frozen_graph', type=str,
                     help='Frozen graph of detection network as create by export_inference_graph.py of TFODAPI.')
-parser.add_argument('--class_list', type=str,
+parser.add_argument('--classlist', type=str,
                     help='Path to text file containing the names of all possible categories.')
 parser.add_argument('--image_path', type=str,
                     help='Path to image file.')
@@ -15,7 +15,7 @@ args = parser.parse_args()
 
 # Check that all files exists for easier debugging
 assert os.path.exists(args.frozen_graph)
-assert os.path.exists(args.class_list)
+assert os.path.exists(args.classlist)
 assert os.path.exists(args.image_path)
 
 # Load frozen graph
@@ -28,9 +28,9 @@ with model_graph.as_default():
 graph = model_graph
 
 # Load class list
-class_list = open(args.class_list, 'rt').read().splitlines()
+classlist = open(args.classlist, 'rt').read().splitlines()
 # Remove empty lines
-class_list = [li for li in class_list if len(li)>0]
+classlist = [li for li in classlist if len(li)>0]
 
 with model_graph.as_default():
     with tf.Session() as sess:
@@ -50,4 +50,4 @@ with model_graph.as_default():
         # Print output
         print('Prediction finished. Most likely classes:')
         for class_id in np.argsort(-predictions)[:5]:
-            print('    "{}" with confidence {:.2f}%'.format(class_list[class_id], predictions[class_id]*100))
+            print('    "{}" with confidence {:.2f}%'.format(classlist[class_id], predictions[class_id]*100))
