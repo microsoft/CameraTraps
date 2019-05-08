@@ -122,14 +122,14 @@ def main(_):
     preprocessing_name = FLAGS.preprocessing_name or FLAGS.model_name
     image_preprocessing_fn = preprocessing_factory.get_preprocessing(
         preprocessing_name,
-        is_training=True)
+        is_training=FLAGS.is_training)
 
     network_fn = nets_factory.get_network_fn(
         FLAGS.model_name,
         num_classes=(dataset.num_classes - FLAGS.labels_offset),
         is_training=FLAGS.is_training)
     image_size = FLAGS.image_size or network_fn.default_image_size
-    input_shape = [image_size, image_size, 3]
+    input_shape = [None, None, 3]
     placeholder = tf.placeholder(name='input', dtype=tf.float32,
                                  shape=input_shape)
     input_preprocessed = image_preprocessing_fn(placeholder, image_size, image_size)
