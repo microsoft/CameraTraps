@@ -277,7 +277,7 @@ class AMLMonitor:
                 sas = self.internal_storage_service.generate_blob_shared_access_signature(
                     self.internal_container, blob_path, permission=BlobPermissions.READ, expiry=expiry
                 )
-                url = self.internal_storage_service.make_blob_url('async-api-v2', blob_path, sas_token=sas)
+                url = self.internal_storage_service.make_blob_url(self.internal_containert, blob_path, sas_token=sas)
                 urls[output] = url
             return urls
         except Exception as e:

@@ -151,12 +151,23 @@ The second column is the confidence value of the most confident detection on the
 The third column contains details of the detections so you can visualize them. It is a stringfied json of a list of lists, representing the detections made on that image. Each detection list has the coordinates of the bounding box surrounding the detection, followed by its confidence:
 
 ```
-[ymin, xmin, ymax, xmax, confidence]
+[ymin, xmin, ymax, xmax, confidence, (class)]
 ```
 
 where `(xmin, ymin)` is the upper-left corner of the detection bounding box. The coordinates are relative to the height and width of the image. 
 
-When the detector model detects no animal, the confidence is shown as 0.0 (not confident that there is an animal) and the detection column is an empty list.
+An integer `class` comes after `confidence` in versions of the API that uses MegaDetector version 3 or later. The `class` label corresponds to the following:
+
+```
+1: animal
+2: person
+4: vehicle
+```
+
+Note that the `vehicle` class (available in Mega Detector version 4 or later) is number 4. Class number 3 (group) is not included in training and should be ignored (and so should any other class labels not listed here) if it shows up in the result.
+
+When the detector model detects no animal (or person or vehicle), the confidence is shown as 0.0 (not confident that there is an object of interest) and the detection column is an empty list.
+
 
 ## Post-processing tools
 
