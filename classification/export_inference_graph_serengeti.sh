@@ -8,7 +8,7 @@ NUM_GPUS=1
 python ../export_inference_graph_with_preprocessing.py \
     --model_name=${MODEL_NAME} \
     --output_file=${CHECKPOINT_DIR}/${MODEL_NAME}_inf_graph_def.pbtxt \
-    --dataset_name=serengeti \
+    --dataset_name=${DATASET_NAME} \
     --write_text_graphdef=True
 
 
