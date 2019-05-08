@@ -1,9 +1,11 @@
 import copy
 import io
 import os
+import pickle
 from collections import defaultdict
 from datetime import datetime, timedelta
 
+import azureml.core
 import pandas as pd
 from azure.storage.blob import BlockBlobService, BlobPermissions
 from azureml.core import Workspace, Experiment
@@ -19,7 +21,6 @@ from azureml.pipeline.steps import PythonScriptStep
 import api_config
 from sas_blob_utils import SasBlob
 
-import azureml.core
 print('Version of AML: {}'.format(azureml.core.__version__))
 
 
@@ -277,7 +278,7 @@ class AMLMonitor:
                 sas = self.internal_storage_service.generate_blob_shared_access_signature(
                     self.internal_container, blob_path, permission=BlobPermissions.READ, expiry=expiry
                 )
-                url = self.internal_storage_service.make_blob_url(self.internal_containert, blob_path, sas_token=sas)
+                url = self.internal_storage_service.make_blob_url(self.internal_container, blob_path, sas_token=sas)
                 urls[output] = url
             return urls
         except Exception as e:
