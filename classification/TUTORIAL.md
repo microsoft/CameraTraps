@@ -1,5 +1,6 @@
 
 
+
 # Tutorial for training a classifier
 This tutorial walks through all steps required to train an animal species classifier from an camera trap dataset. Instead of whole-image classification, we will focus on classification of the detected animals with unknown species.
 
@@ -55,7 +56,7 @@ and change to the folder with the relevant scripts
 
     cd $CAMERATRAPS_DIR/data_management/databases/classification
 
-We will now use `make_classification_dataset.py` to generate the dataset. The script will create two output directories, one for a COCO-style classification dataset and one for a tfrecords output. While we actually only need the tfrecords output, it is recommended to create a COCO-style dataset as well. It allows for analyzing the created data and also contains the detected bounding boxes for each image. We will define the location of both output folders by running
+We will now use `make_classification_dataset.py` to generate the dataset. The script will create two output directories, one for a COCO-style classification dataset and one for a tfrecords output. While we actually only need the tfrecords output, it is recommended to create a COCO-style dataset as well. It is necessary for analyzing the created data and also contains the detected bounding boxes for each image. We will define the location of both output folders by running
 
     COCO_STYLE_OUTPUT=/data/serengeti_cropped_coco_style
     TFRECORDS_OUTPUT=/data/serengeti_cropped_tfrecords
@@ -86,7 +87,8 @@ The number of generated images depends on the number of detected animals in the 
     python cropped_camera_trap_dataset_statistics.py \
     $DATASET_DIR/SnapshotSerengeti.json \
     $COCO_STYLE_OUTPUT/train.json \
-    $COCO_STYLE_OUTPUT/test.json
+    $COCO_STYLE_OUTPUT/test.json \
+    --classlist_output $COCO_STYLE_OUTPUT/classlist.txt
 
 The script will print a complete overview of the generated data, which looks like this:
 
@@ -224,22 +226,68 @@ and start the evaluation run with
 
     bash ../eval_serengeti_inception_v4.sh
 
-As before, the top-1 and top-5 accuracy will be printed at the end:
+As before, the accuracy will be printed at the end:
 
-    bash ../eval_serengeti_inception_v4.sh
-    INFO:tensorflow:Evaluation [439/4393]
-    INFO:tensorflow:Evaluation [878/4393]
-    INFO:tensorflow:Evaluation [1317/4393]
-    INFO:tensorflow:Evaluation [1756/4393]
-    INFO:tensorflow:Evaluation [2195/4393]
-    INFO:tensorflow:Evaluation [2634/4393]
-    INFO:tensorflow:Evaluation [3073/4393]
-    INFO:tensorflow:Evaluation [3512/4393]
+    ...
     INFO:tensorflow:Evaluation [3951/4393]
     INFO:tensorflow:Evaluation [4390/4393]
     INFO:tensorflow:Evaluation [4393/4393]
     eval/Accuracy[0.863694489]eval/Recall_5[0.969760954]
 
     INFO:tensorflow:Finished evaluation at 2019-05-07-03:34:21
+
+The outputs `eval/Accuracy` and `eval/Recall_5` correspond to the top-1 and top-5 accuracy with values in [0,1]. 
+
+## Single-image prediction
+The trained model can be deployed and used for single-image prediction. The first step is exporting the model definition and creating a frozen graph. Start by changing to the `tf-slim` folder 
+
+    cd $CAMERATRAPS_DIR/classification/tf-slim
+
+and by making sure, that your `CHECKPOINT_PATH` points to the subfolder `all` of your training log directory. In our case it looks like this:
+
+    CHECKPOINT_DIR=/data/CameraTraps/classification/tf-slim/log/2019-02-22_07.05.54_well_incv4/all/
+
+We can now start exporting the model definition by running
+	
+	python ../export_inference_graph_definition.py \
+	    --model_name=inception_v4 \
+	    --output_file=${CHECKPOINT_DIR}/inception_v4_inf_graph_def.pbtxt \
+	    --dataset_name=serengeti \
+	    --write_text_graphdef=True
+
+where `$CHECKPOINT_DIR` is the path to the log directory of the model training as above. The export command will create a file called `inception_v4_inf_graph_def.pbtxt` in the log directory, which represents the structure of the classification model. The file does not contain the learned model parameters yet. These values are stored in the checkpoint files starting with `model.ckpt...`. 
+
+We will now fuse the model structure and learned parameter values into one file, which is called frozen graph:
+
+	python ../freeze_graph.py \
+	    --input_graph=${CHECKPOINT_DIR}/inception_v4_inf_graph_def.pbtxt \
+	    --input_checkpoint=`ls ${CHECKPOINT_DIR}/model.ckpt*meta | tail -n 1 | rev | cut -c 6- | rev` \
+	    --output_graph=${CHECKPOINT_DIR}/frozen_inference_graph.pb \
+	    --input_node_names=input \
+	    --output_node_names=output \
+	    --clear_devices=True
+
+You should be able to run this command without any modification as the only bash variable here is `$CHECKPOINT_DIR`. The script will create a file called `frozen_inference_graph.pb` in the folder `$CHECKPOINT_DIR`, which is a deployable self-contained inference model. This model also contains all image preprocessing steps required.
+
+We now can predict the category of a new image as follows. First, change to the following directory
+
+    cd $CAMERATRAPS_DIR/classification
+
+This folder contain the script `predict_image.py`, which takes the frozen graph, a list of class names, and an image as input. It will then read the image, pass it to the classification model, and print the five most likely categories. 
+
+	python predict_image.py \
+	--frozen_graph ${CHECKPOINT_DIR}/frozen_inference_graph.pb \
+	--class_list $COCO_STYLE_OUTPUT/classlist.txt \
+	--image_path $COCO_STYLE_OUTPUT/gazelleThomsons/S1/R10/R10_R1/S1_R10_R1_PICT1199_1.JPG
+
+This command will analyze the test image `$COCO_STYLE_OUTPUT/gazelleThomsons/S1/R10/R10_R1/S1_R10_R1_PICT1199_1.JPG` of our dataset and print the following output 
+
+	...
+	Prediction finished. Most likely classes:
+	    "gazelleThomsons" with confidence 90.73%
+	    "gazelleGrants" with confidence 3.97%
+	    "zebra" with confidence 1.96%
+	    "warthog" with confidence 0.41%
+	    "otherBird" with confidence 0.38%
 
 
