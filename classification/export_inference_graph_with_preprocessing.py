@@ -134,7 +134,8 @@ def main(_):
                                  shape=input_shape)
     input_preprocessed = image_preprocessing_fn(placeholder, image_size, image_size)
     input_preprocessed = tf.expand_dims(input_preprocessed, 0)
-    network_fn(input_preprocessed)
+    predictions = network_fn(input_preprocessed)[1]['Predictions']
+    tf.identity(predictions, name='output')
 
     if FLAGS.quantize:
       tf.contrib.quantize.create_eval_graph()
