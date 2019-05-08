@@ -234,16 +234,16 @@ def freeze_graph_with_def_protos(input_graph_def,
           output_node_names.replace(" ", "").split(","),
           variable_names_whitelist=variable_names_whitelist,
           variable_names_blacklist=variable_names_blacklist)
-    optimized_output_graph_def = optimize_for_inference_lib.optimize_for_inference(
-        output_graph_def,
-        input_node_names.replace(" ", "").split(","),
-        output_node_names.replace(" ", "").split(","),
-        tf.float32.as_datatype_enum)
+    #optimized_output_graph_def = optimize_for_inference_lib.optimize_for_inference(
+    #    output_graph_def,
+    #    input_node_names.replace(" ", "").split(","),
+    #    output_node_names.replace(" ", "").split(","),
+    #    tf.float32.as_datatype_enum)
 
   # Write GraphDef to file if output path has been given.
   if output_graph:
     with gfile.GFile(output_graph, "wb") as f:
-      f.write(optimized_output_graph_def.SerializeToString())
+      f.write(output_graph_def.SerializeToString())
 
   return output_graph_def
 
