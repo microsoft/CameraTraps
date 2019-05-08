@@ -9,7 +9,7 @@ INTERNAL_CONTAINER = 'async-api-v3-2'
 AML_CONTAINER = 'aml-out-2'
 
 # how often does the checking thread wake up to check if all jobs are done
-MONITOR_PERIOD_MINUTES = 30
+MONITOR_PERIOD_MINUTES = 15
 
 # if this number of times the thread wakes up to check is exceeded, stop the monitoring thread
 MAX_MONITOR_CYCLES = 14 * 48  # 2 weeks, 30-minute interval
@@ -34,7 +34,7 @@ AML_CONFIG = {
     'workspace_name': 'camera_trap_aml_workspace_2',
     'aml_compute_name': 'camera-trap-com',
 
-    'model_name': 'megadetector_v3',
+    'model_name': 'megadetector_v3_tf19',
 
     'source_dir': '/app/orchestrator_api/aml_scripts',
     'script_name': 'score.py',

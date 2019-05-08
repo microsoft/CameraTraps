@@ -19,6 +19,10 @@ from azureml.pipeline.steps import PythonScriptStep
 import api_config
 from sas_blob_utils import SasBlob
 
+import azureml.core
+print('Version of AML: {}'.format(azureml.core.__version__))
+
+
 # Service principle authentication for AML
 svc_pr_password = os.environ.get('AZUREML_PASSWORD')
 svc_pr = ServicePrincipalAuthentication(
@@ -97,6 +101,7 @@ class AMLCompute:
 
             batch_score_step = PythonScriptStep(aml_config['script_name'],
                                                 source_directory=aml_config['source_dir'],
+                                                hash_paths= ['.'],  # include all contents of source_directory
                                                 name='batch_scoring',
                                                 arguments=['--job_id', param_job_id,
                                                            '--model_name', aml_config['model_name'],

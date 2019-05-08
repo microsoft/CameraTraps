@@ -4,7 +4,7 @@ RUN echo "source activate ai4e_py_api" >> ~/.bashrc \
     && conda install -c conda-forge -n ai4e_py_api numpy pandas
 
 # Azure blob packages should already be installed in the base image. Just need to install Azure ML SDK
-RUN pip install --upgrade azureml-sdk
+RUN pip install azureml-sdk==1.0.23
 
 # Note: supervisor.conf reflects the location and name of your api code.
 # If the default (./my_api/runserver.py) is renamed, you must change supervisor.conf
@@ -35,7 +35,7 @@ ENV SERVICE_OWNER=AI4E_Test \
     SERVICE_MODEL_FRAMEOWRK_VERSION=3.6.6 \
     SERVICE_MODEL_VERSION=1.0
 
-ENV API_PREFIX=/v1/camera-trap/detection-batch
+ENV API_PREFIX=/v2/camera-trap/detection-batch
 
 ENV AZUREML_PASSWORD=
 

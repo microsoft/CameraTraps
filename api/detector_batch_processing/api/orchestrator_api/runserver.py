@@ -23,6 +23,7 @@ from sas_blob_utils import SasBlob
 print('Creating application')
 
 api_prefix = os.getenv('API_PREFIX')
+print('API prefix: ', api_prefix)
 app = Flask(__name__)
 api = Api(app)
 
