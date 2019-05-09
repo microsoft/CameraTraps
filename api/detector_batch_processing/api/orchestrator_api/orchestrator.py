@@ -22,8 +22,8 @@ from sas_blob_utils import SasBlob
 # Service principle authentication for AML
 svc_pr_password = os.environ.get('AZUREML_PASSWORD')
 svc_pr = ServicePrincipalAuthentication(
-    'my-tenant-id',  # 'my-tenant-id'
-    'my-application-id',  # 'my-application-id'
+    api_config.AML_CONFIG['tenant-id'],  # 'my-tenant-id'
+    api_config.AML_CONFIG['application-id'],  # 'my-application-id'
     svc_pr_password)
 
 
