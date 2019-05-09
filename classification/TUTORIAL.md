@@ -1,6 +1,7 @@
 
 
 
+
 # Tutorial for training a classifier
 This tutorial walks through all steps required to train an animal species classifier from an camera trap dataset. Instead of whole-image classification, we will focus on classification of the detected animals with unknown species.
 
@@ -100,14 +101,32 @@ The script will print a complete overview of the generated data, which looks lik
     Locations used:
     ['B04', 'B05', 'B06', ...
     In total  49  classes and  1730648  images.
+    Classes with one or more images:  47
+	Images per class:
+	ID    Name            Image count
+        0 empty                     0
+        1 human                     0
+        2 gazelleGrants          7968
+        3 reedbuck               2332
     ...
     
     Statistics of the testing split:
     ....
     In total  49  classes and  439292  images.
-    ...
+	Classes with one or more images:  46
+	Images per class:
+	ID    Name            Image count
+	    0 empty                     0
+	    1 human                     0
+	    2 gazelleGrants          1379
+	    3 reedbuck                830
+	
+This tells us that there are in total 49 classes. The training split has 1730648 images and the testing split 439292. 
 
-This tells us that there are in total 49 classes. The training split has 1730648 images and the testing split 439292.
+The output also contains the class distribution for each split, which allows to generate figures like the following using a spreadsheet program of your choice:
+
+![Serengeti class distribution](tutorial_images/serengeti_class_distribution.png?raw=true "Serengeti class distribution")
+
 
 
 ## Training a classifier
@@ -280,7 +299,11 @@ This folder contain the script `predict_image.py`, which takes the frozen graph,
 	--class_list $COCO_STYLE_OUTPUT/classlist.txt \
 	--image_path $COCO_STYLE_OUTPUT/gazelleThomsons/S1/R10/R10_R1/S1_R10_R1_PICT1199_1.JPG
 
-This command will analyze the test image `$COCO_STYLE_OUTPUT/gazelleThomsons/S1/R10/R10_R1/S1_R10_R1_PICT1199_1.JPG` of our dataset and print the following output 
+This command will analyze the test image `$COCO_STYLE_OUTPUT/gazelleThomsons/S1/R10/R10_R1/S1_R10_R1_PICT1199_1.JPG`, which looks like
+
+![Gazelle](tutorial_images/S1_R10_R1_PICT1199_1.JPG?raw=true "Gazelle")
+
+and print the following output:
 
 	...
 	Prediction finished. Most likely classes:
