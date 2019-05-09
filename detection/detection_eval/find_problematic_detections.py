@@ -194,7 +194,7 @@ def isImageFile(s):
 # Adapted from:
 #
 # https://stackoverflow.com/questions/25349178/calculating-percentage-of-bounding-box-overlap-for-image-detector-evaluation
-def get_iou(bb1, bb2):
+def getIOU(bb1, bb2):
     """
     Calculate the Intersection over Union (IoU) of two bounding boxes.
 
@@ -303,7 +303,7 @@ def findMatchesInDirectory(dirName,options,rowsByDirectory):
             for iCandidate,candidate in enumerate(candidateDetections):
             
                 # Is this a match?                    
-                iou = get_iou(detection,candidate.bbox)
+                iou = getIOU(detection,candidate.bbox)
                 
                 if iou >= options.iouThreshold:                                        
                     
@@ -468,7 +468,7 @@ def updateDetectionTable(suspiciousDetectionResults,options,outputCsvFilename=No
                 instanceBbox = instance.bbox
                 
                 # This should match the bbox for the detection event
-                iou = get_iou(instanceBbox,locationBbox)
+                iou = getIOU(instanceBbox,locationBbox)
                 assert iou > options.iouThreshold                
                 
                 assert instance.filename in suspiciousDetectionResults.filenameToRow
