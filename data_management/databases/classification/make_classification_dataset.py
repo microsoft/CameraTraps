@@ -374,7 +374,8 @@ with graph.as_default():
           cur_json['images'].append(dict(id=next_image_id,
                                     width=cropped_img.shape[1],
                                     height=cropped_img.shape[0],
-                                    file_name=new_file_name))
+                                    file_name=new_file_name),
+                                    original_key=cur_image_id)
           cur_json['annotations'].append(dict(id=next_annotation_id,
                                           image_id=next_image_id,
                                           category_id=cur_json_cat_id))
