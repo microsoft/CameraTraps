@@ -42,7 +42,11 @@ AML_CONFIG = {
     'param_batch_size': 8,
     'param_detection_threshold': 0.05,
 
-    'completed_status': ['Finished', 'Failed', 'Completed']
+    'completed_status': ['Finished', 'Failed', 'Completed'],
+
+    # service principle for authenticating to AML
+    'tenant-id': 'my-tenant-id',  # place holders
+    'application-id': 'my-application-id'
 }
 
 # max number of blobs to list in the output blob container
