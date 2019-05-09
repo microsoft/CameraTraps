@@ -107,7 +107,7 @@ def _request_detections(**kwargs):
 
         input_container_sas = body['input_container_sas']
         images_requested_json_sas = body.get('images_requested_json_sas', None)
-        image_path_prefix = body.get('image_path_prefix', '')
+        image_path_prefix = body.get('image_path_prefix', None)
 
         first_n = body.get('first_n', None)
         first_n = int(first_n) if first_n else None
@@ -122,22 +122,24 @@ def _request_detections(**kwargs):
             print('runserver.py, running - listing all images to process.')
 
             # list all images to process
+            blob_prefix = None if image_path_prefix is None else image_path_prefix
             image_paths = SasBlob.list_blobs_in_container(api_config.MAX_NUMBER_IMAGES_ACCEPTED,
                                                           sas_uri=input_container_sas,
-                                                          blob_prefix=image_path_prefix, blob_suffix='.jpg')
+                                                          blob_prefix=blob_prefix, blob_suffix='.jpg')
         else:
             print('runserver.py, running - using provided list of images.')
             image_paths_text = SasBlob.download_blob_to_text(images_requested_json_sas)
             image_paths = json.loads(image_paths_text)
             print('runserver.py, length of image_paths provided by the user: {}'.format(len(image_paths)))
-            
+
             image_paths = [i for i in image_paths if str(i).lower().endswith(api_config.ACCEPTED_IMAGE_FILE_ENDINGS)]
             print('runserver.py, length of image_paths provided by the user, after filtering to jpg: {}'.format(
                 len(image_paths)))
 
-            image_paths =[i for i in image_paths if str(i).startswith(image_path_prefix)]
-            print('runserver.py, length of image_paths provided by the user, after filtering for image_path_prefix: {}'.format(
-                len(image_paths)))
+            if image_path_prefix is not None:
+                image_paths =[i for i in image_paths if str(i).startswith(image_path_prefix)]
+                print('runserver.py, length of image_paths provided by the user, after filtering for image_path_prefix: {}'.format(
+                    len(image_paths)))
 
             res = orchestrator.spot_check_blob_paths_exist(image_paths, input_container_sas)
             if res is not None:
