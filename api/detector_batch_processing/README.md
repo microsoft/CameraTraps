@@ -68,6 +68,7 @@ Not yet supported. Meanwhile, once the shards of images are submitted for proces
 
 - We assume that all images you would like to process in this batch are uploaded to a container in Azure Blob Storage. 
 - Only images with file name ending in '.jpg' or '.jpeg' (case insensitive) will be processed, so please make sure the file names are compliant before you upload them to the container (you cannot rename a blob without copying it entirely once it is in Blob Storage). 
+- The path to the images in blob storage cannot contain commas (this would confuse the output CSV).
 
 - By default we process all such images in the specified container. You can choose to only process a subset of them by specifying the other input parameters, and the images will be filtered out accordingly in this order:
     - `images_requested_json_sas`
