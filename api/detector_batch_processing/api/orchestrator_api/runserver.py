@@ -130,8 +130,14 @@ def _request_detections(**kwargs):
             image_paths_text = SasBlob.download_blob_to_text(images_requested_json_sas)
             image_paths = json.loads(image_paths_text)
             print('runserver.py, length of image_paths provided by the user: {}'.format(len(image_paths)))
+            
             image_paths = [i for i in image_paths if str(i).lower().endswith(api_config.ACCEPTED_IMAGE_FILE_ENDINGS)]
-            print('runserver.py, length of image_paths provided by the user, after filtering to jpg: {}'.format(len(image_paths)))
+            print('runserver.py, length of image_paths provided by the user, after filtering to jpg: {}'.format(
+                len(image_paths)))
+
+            image_paths =[i for i in image_paths if str(i).startswith(image_path_prefix)]
+            print('runserver.py, length of image_paths provided by the user, after filtering for image_path_prefix: {}'.format(
+                len(image_paths)))
 
             res = orchestrator.spot_check_blob_paths_exist(image_paths, input_container_sas)
             if res is not None:
@@ -155,7 +161,7 @@ def _request_detections(**kwargs):
             image_paths = sorted(image_paths)
 
         num_images = len(image_paths)
-        print('runserver.py, num_images: {}'.format(num_images))
+        print('runserver.py, num_images after applying all filters: {}'.format(num_images))
         if num_images < 1:
             api_task_manager.UpdateTaskStatus(request_id, 'completed - zero images found in container or in provided list of images after filtering with the provided parameters.')
             return
