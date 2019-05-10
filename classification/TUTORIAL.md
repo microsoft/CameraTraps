@@ -111,7 +111,8 @@ The script will print a complete overview of the generated data, which looks lik
     ...
     
     Statistics of the testing split:
-    ....
+    Locations used:
+	['C05', 'C08', ...
     In total  49  classes and  439292  images.
 	Classes with one or more images:  46
 	Images per class:
@@ -120,10 +121,18 @@ The script will print a complete overview of the generated data, which looks lik
 	    1 human                     0
 	    2 gazelleGrants          1379
 	    3 reedbuck                830
+	...
 	
 This tells us that there are in total 49 classes. The training split has 1730648 images and the testing split 439292. 
 
-The output also contains the class distribution for each split, which allows to generate figures like the following using a spreadsheet program of your choice:
+The output also contains the class distribution for each split, which allows for generating nice figures using a spreadsheet program of your choice. Copy all the lines
+
+		0 empty                     0
+	    1 human                     0
+	    2 gazelleGrants          1379
+	    ....
+ 
+with image counts to a text file, replace all consecutive spaces by a single comma using regular expressions, and open the file as CSV in a spreadsheet program. The program should detect the class names and image counts as separate columns. You can now create a plot such as:
 
 ![Serengeti class distribution](tutorial_images/serengeti_class_distribution.png?raw=true "Serengeti class distribution")
 
