@@ -24,7 +24,7 @@ from data_management.databases import sanity_check_json_db
 # [location] is an obfuscation
 baseDir = r'e:\wildlife_data\rspb_gola_data'
 metadataFile = os.path.join(baseDir,'gola_camtrapr_master_renaming_table_2019-01-31.csv')
-outputFile = os.path.join(baseDir,'rspb_gola_v2.json')
+outputFile = os.path.join(baseDir,'rspb_gola_labeled.json')
 imageBaseDir = os.path.join(baseDir,'gola_camtrapr_data')
 imageFlatDir = os.path.join(baseDir,'gola_camtrapr_data_flat')
 unmatchedImagesFile = os.path.join(baseDir,'unmatchedImages.txt')
@@ -174,7 +174,10 @@ print('Finished checking file existence, extracting metadata in {}, found {} mat
       humanfriendly.format_timespan(elapsed),len(matchFailures)))
        
     
-#%% Check for images that aren't included in the metadata file
+#%% 
+
+# Check for images that aren't included in the metadata file, which we will
+# include as unlabeled.
 
 unattachedImages = []
 
