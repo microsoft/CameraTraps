@@ -262,16 +262,18 @@ def find_matches_in_directory(dirName,options,rowsByDirectory):
         if maxP < options.confidenceThreshold:
             continue
         
-        # Array of arrays, where each element is:
+        # Array of arrays, where each element is one of:
         #
         # [ymin, xmin, ymax, xmax, confidence], where (xmin, ymin) is the upper-left            
+        # [ymin, xmin, ymax, xmax, confidence, class], where (xmin, ymin) is the upper-left            
+        #
         detections = row['detections']
         assert len(detections) > 0
         
         # For each detection in this image
         for iDetection,detection in enumerate(detections):
             
-            assert len(detection) == 5
+            assert len(detection) == 5 or len(detection) == 6
             
             # Is this detection too big to be suspicious?
             h = detection[2] - detection[0]

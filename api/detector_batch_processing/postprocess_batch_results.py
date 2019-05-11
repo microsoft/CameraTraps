@@ -609,12 +609,41 @@ def process_batch_results(options):
 # ...process_batch_results
 
     
+#%% Interactive driver(s)
+
+if False:
+    
+    #%%
+    
+    baseDir = r'e:\wildlife_data\rspb_gola_data'
+    options = PostProcessingOptions()
+    options.image_base_dir = os.path.join(baseDir,'gola_camtrapr_data')
+    options.detector_output_filename_replacements = {'gola\\gola_camtrapr_data\\':''}
+    options.detector_output_file = os.path.join(baseDir,'RSPB_2123_detections.csv')
+        
+    # Using original, semi-coherent ground truth from metadata
+    if False:
+        options.ground_truth_json_file = os.path.join(baseDir,'rspb_20190409.json')
+        options.output_dir = os.path.join(baseDir,'postprocessing_output')
+
+    # Using iMerit labels as ground truth (all)
+    if False:
+        options.ground_truth_json_file = os.path.join(baseDir,'rspb_20190409_presence.json')
+        options.output_dir = os.path.join(baseDir,'postprocessing_output_mdv3_presence_verified')
+    
+    # Using iMerit labels as ground truth (val)
+    options.ground_truth_json_file = os.path.join(baseDir,'rspb_20190409_presence_val.json')
+    options.output_dir = os.path.join(baseDir,'postprocessing_output_mdv3_presence_verified_val')
+    
+    process_batch_results(options)        
+
+
 #%% Command-line driver
     
 # Copy all fields from a Namespace (i.e., the output from parse_args) to an object.  
 #
 # Skips fields starting with _.  Does not check existence in the target object.
-def argsToObject(args, obj):
+def args_to_object(args, obj):
     
     for n, v in inspect.getmembers(args):
         if not n.startswith('_'):
@@ -644,7 +673,7 @@ def main():
     args.sort_html_by_filename = not args.random_output_sort
     
     options = PostProcessingOptions()
-    argsToObject(args,options)
+    args_to_object(args,options)
     
     process_batch_results(options)
 
@@ -654,18 +683,3 @@ if __name__ == '__main__':
     main()
 
 
-#%% Interactive driver(s)
-
-if False:
-    
-    #%%
-    
-    baseDir = r'e:\wildlife_data\rspb_gola_data'
-    options = PostProcessingOptions()
-    options.detector_output_file = os.path.join(baseDir,'RSPB_detections_old_format_mdv3.19.05.09.1612.csv')
-    options.image_base_dir = os.path.join(baseDir,'gola_camtrapr_data')
-    options.ground_truth_json_file = os.path.join(baseDir,'rspb_gola_v2.json')
-    options.output_dir = os.path.join(baseDir,'postprocessing_output')
-    options.detector_output_filename_replacements = {'gola\\gola_camtrapr_data\\':''}
-    process_batch_results(options)        
-         
