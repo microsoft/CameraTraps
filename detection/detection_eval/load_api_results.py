@@ -60,7 +60,7 @@ def load_api_results(filename,normalize_paths=True,filename_replacements={}):
 
 def write_api_results(detection_results,filename):
     
-    print('Writing detection results to {}'.filename)
+    print('Writing detection results to {}'.format(filename))
         
     # Write the output .csv
     with open(filename,'w')  as csvf:
@@ -75,5 +75,5 @@ def write_api_results(detection_results,filename):
         for iRow,row in detection_results.iterrows():
             csvf.write('"' + row['image_path'] + '",' + str(row['max_confidence']) + ',"' + json.dumps(row['detections']) + '"\n')
     
-    print('Finished writing detection results to {}'.filename)
+    print('Finished writing detection results to {}'.format(filename))
     

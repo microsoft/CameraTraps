@@ -499,8 +499,11 @@ def process_batch_results(options):
                 gt_class_name,
                 image_relative_path)
     
-            rendered_image_html_info = render_bounding_boxes(options.image_base_dir,image_relative_path,
-                                                            display_name,boxes_and_scores,res,options)        
+            rendered_image_html_info = render_bounding_boxes(options.image_base_dir,
+                                                             image_relative_path,
+                                                             display_name,
+                                                             boxes_and_scores,res,options)        
+            
             if len(rendered_image_html_info) > 0:
                 images_html[res].append(rendered_image_html_info)
                 
