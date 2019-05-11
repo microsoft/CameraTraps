@@ -125,65 +125,57 @@ def render_db_bounding_boxes(boxes, classes, image, original_size=None, label_ma
         display_strs.append([clss])
 
     display_boxes = np.array(display_boxes)
-    draw_bounding_boxes_on_image(image, display_boxes, display_str_list_list=display_strs, thickness=thickness)
+    draw_bounding_boxes_on_image(image, display_boxes, display_str_list_list=display_strs, 
+                                 thickness=thickness)
 
 
-def render_detection_bounding_boxes(boxes_and_scores, image, label_map={}, confidence_threshold=0.5, thickness=4):
+def render_detection_bounding_boxes(boxes_and_scores, image, label_map={1:'animal',2:'human'}, 
+                                    confidence_threshold=0.5, thickness=4, color_map={1:'red',2:'green'}):
     """
     Renders bounding boxes, label and confidence on an image if confidence is above the threshold.
     This is works with the output of the detector batch processing API.
 
     Args:
-        boxes, scores, classes:  outputs of generate_detections.
+        boxes_and_scores:  outputs of generate_detections, in one of the following formats
+        
+            [x_rel, y_rel, w_rel, h_rel, p]
+            [x_rel, y_rel, w_rel, h_rel, p, class]
+            
         image: PIL.Image object, output of generate_detections.
         label_map: optional, mapping the numerical label to a string name.
-        confidence_threshold: threshold above which the bounding box is rendered.
+        confidence_threshold: optional, threshold above which the bounding box is rendered.
+        thickness: optional, rendering line thickness.
+        color_map: optional, mapping the numerical label to bbox color.
 
     image is modified in place!
     """
     display_boxes = []
-    display_strs = []  # list of list, one list of strings for each bounding box (to accommodate multiple labels)
+    display_strs = []  # list of lists, one list of strings for each bounding box (to accommodate multiple labels)
+    display_colors = []
     for detection in boxes_and_scores:
         score = detection[4]
         if score > confidence_threshold:
             display_boxes.append(detection[:4])
-            clss = 1  # we just detect animals right now
+            clss = 1
+            if len(detection) > 5:
+                clss = detection[5]
             label = label_map[clss] if clss in label_map else str(clss)
             displayed_label = '{}: {}%'.format(label, round(100 * score))
             display_strs.append([displayed_label])
+            if len(color_map) == 0 or clss not in color_map:
+                display_colors.append('red')
+            else:
+                display_colors.append(color_map[clss])
 
     display_boxes = np.array(display_boxes)
-    draw_bounding_boxes_on_image(image, display_boxes, display_str_list_list=display_strs,thickness=thickness)
+    draw_bounding_boxes_on_image(image, display_boxes, color=display_colors,
+                                 display_str_list_list=display_strs,
+                                 thickness=thickness)
 
 
-# the following functions are from https://github.com/tensorflow/models/blob/master/research/object_detection/utils/visualization_utils.py
-
-STANDARD_COLORS = [
-    'AliceBlue', 'Chartreuse', 'Aqua', 'Aquamarine', 'Azure', 'Beige', 'Bisque',
-    'BlanchedAlmond', 'BlueViolet', 'BurlyWood', 'CadetBlue', 'AntiqueWhite',
-    'Chocolate', 'Coral', 'CornflowerBlue', 'Cornsilk', 'Crimson', 'Cyan',
-    'DarkCyan', 'DarkGoldenRod', 'DarkGrey', 'DarkKhaki', 'DarkOrange',
-    'DarkOrchid', 'DarkSalmon', 'DarkSeaGreen', 'DarkTurquoise', 'DarkViolet',
-    'DeepPink', 'DeepSkyBlue', 'DodgerBlue', 'FireBrick', 'FloralWhite',
-    'ForestGreen', 'Fuchsia', 'Gainsboro', 'GhostWhite', 'Gold', 'GoldenRod',
-    'Salmon', 'Tan', 'HoneyDew', 'HotPink', 'IndianRed', 'Ivory', 'Khaki',
-    'Lavender', 'LavenderBlush', 'LawnGreen', 'LemonChiffon', 'LightBlue',
-    'LightCoral', 'LightCyan', 'LightGoldenRodYellow', 'LightGray', 'LightGrey',
-    'LightGreen', 'LightPink', 'LightSalmon', 'LightSeaGreen', 'LightSkyBlue',
-    'LightSlateGray', 'LightSlateGrey', 'LightSteelBlue', 'LightYellow', 'Lime',
-    'LimeGreen', 'Linen', 'Magenta', 'MediumAquaMarine', 'MediumOrchid',
-    'MediumPurple', 'MediumSeaGreen', 'MediumSlateBlue', 'MediumSpringGreen',
-    'MediumTurquoise', 'MediumVioletRed', 'MintCream', 'MistyRose', 'Moccasin',
-    'NavajoWhite', 'OldLace', 'Olive', 'OliveDrab', 'Orange', 'OrangeRed',
-    'Orchid', 'PaleGoldenRod', 'PaleGreen', 'PaleTurquoise', 'PaleVioletRed',
-    'PapayaWhip', 'PeachPuff', 'Peru', 'Pink', 'Plum', 'PowderBlue', 'Purple',
-    'Red', 'RosyBrown', 'RoyalBlue', 'SaddleBrown', 'Green', 'SandyBrown',
-    'SeaGreen', 'SeaShell', 'Sienna', 'Silver', 'SkyBlue', 'SlateBlue',
-    'SlateGray', 'SlateGrey', 'Snow', 'SpringGreen', 'SteelBlue', 'GreenYellow',
-    'Teal', 'Thistle', 'Tomato', 'Turquoise', 'Violet', 'Wheat', 'White',
-    'WhiteSmoke', 'Yellow', 'YellowGreen'
-]
-
+# The following functions are from:
+#
+# https://github.com/tensorflow/models/blob/master/research/object_detection/utils/visualization_utils.py
 
 def draw_bounding_boxes_on_image(image,
                                  boxes,
@@ -197,7 +189,7 @@ def draw_bounding_boxes_on_image(image,
       image: a PIL.Image object.
       boxes: a 2 dimensional numpy array of [N, 4]: (ymin, xmin, ymax, xmax).
              The coordinates are in normalized format between [0, 1].
-      color: color to draw bounding box. Default is red.
+      color: color to draw bounding box. Default is red.  Can be a list of colors, one per box.
       thickness: line thickness. Default value is 4.
       display_str_list_list: list of list of strings.
                              a list of strings for each bounding box.
@@ -215,11 +207,15 @@ def draw_bounding_boxes_on_image(image,
         # print('Input must be of size [N, 4], but is ' + str(boxes_shape))
         return  # no object detection on this image, return
     for i in range(boxes_shape[0]):
+        if isinstance(color,list):
+            boxcolor = color[i]
+        else:
+            boxcolor = color
         display_str_list = ()
         if display_str_list_list:
             display_str_list = display_str_list_list[i]
             draw_bounding_box_on_image(image, boxes[i, 0], boxes[i, 1], boxes[i, 2],
-                                       boxes[i, 3], color, thickness, display_str_list)
+                                       boxes[i, 3], boxcolor, thickness, display_str_list)
 
 
 def draw_bounding_box_on_image(image,
