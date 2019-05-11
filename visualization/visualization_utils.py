@@ -6,10 +6,15 @@
 #
 #####
 
+#%% Constants and imports
+
 import numpy as np
 from PIL import Image, ImageFile, ImageFont, ImageDraw
+from data_management.annotations import annotation_constants
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
+
+#%% Functions
 
 def open_image(input):
     """
@@ -64,7 +69,7 @@ def resize_image(image, targetWidth, targetHeight=-1):
     return resizedImage
 
 
-def render_iMerit_boxes(boxes, classes, image, label_map=None):
+def render_iMerit_boxes(boxes, classes, image, label_map=annotation_constants.bbox_category_id_to_name):
     """
     Renders bounding boxes and their category labels on a PIL image.
 
@@ -129,8 +134,8 @@ def render_db_bounding_boxes(boxes, classes, image, original_size=None, label_ma
                                  thickness=thickness)
 
 
-def render_detection_bounding_boxes(boxes_and_scores, image, label_map={1:'animal',2:'human'}, 
-                                    confidence_threshold=0.5, thickness=4, color_map={1:'red',2:'green'}):
+def render_detection_bounding_boxes(boxes_and_scores, image, label_map=annotation_constants.bbox_category_id_to_name, 
+                                    confidence_threshold=0.8, thickness=4, color_map=annotation_constants.bbox_color_map):
     """
     Renders bounding boxes, label and confidence on an image if confidence is above the threshold.
     This is works with the output of the detector batch processing API.
