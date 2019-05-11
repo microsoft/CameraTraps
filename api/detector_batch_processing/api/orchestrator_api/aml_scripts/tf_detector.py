@@ -124,10 +124,11 @@ class TFDetector:
                         boxes, scores, classes = b_box[i], b_score[i], b_class[i]
                         detections_cur_image = []  # will be empty for an image with no confident detections
 
-                        for b, s in zip(boxes, scores):
+                        for b, s, c in zip(boxes, scores, classes):
                             if s > detection_threshold:
                                 li = TFDetector.convert_numpy_floats(b)
                                 li.append(float(s))
+                                li.append(int(c))
                                 detections_cur_image.append(li)
 
                         detections.append(detections_cur_image)
