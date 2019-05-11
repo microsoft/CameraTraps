@@ -76,4 +76,3 @@ def write_api_results(detection_results,filename):
             csvf.write('"' + row['image_path'] + '",' + str(row['max_confidence']) + ',"' + json.dumps(row['detections']) + '"\n')
     
     print('Finished writing detection results to {}'.format(filename))
-    
