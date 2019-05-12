@@ -19,12 +19,14 @@ import ntpath
 import humanfriendly
 import PIL
 
+from data_management.databases import sanity_check_json_db
+
 # [location] is an obfuscation
-baseDir = r'e:\wildlife_data\rspb_[location]_data'
-metadataFile = os.path.join(baseDir,'[location]_camtrapr_master_renaming_table_2019-01-31.csv')
-outputFile = os.path.join(baseDir,'rspb_[location].json')
-imageBaseDir = os.path.join(baseDir,'[location]_camtrapr_data')
-imageFlatDir = os.path.join(baseDir,'[location]_camtrapr_data_flat')
+baseDir = r'e:\wildlife_data\rspb_gola_data'
+metadataFile = os.path.join(baseDir,'gola_camtrapr_master_renaming_table_2019-01-31.csv')
+outputFile = os.path.join(baseDir,'rspb_gola_labeled.json')
+imageBaseDir = os.path.join(baseDir,'gola_camtrapr_data')
+imageFlatDir = os.path.join(baseDir,'gola_camtrapr_data_flat')
 unmatchedImagesFile = os.path.join(baseDir,'unmatchedImages.txt')
 assert(os.path.isdir(imageBaseDir))
 
@@ -34,7 +36,7 @@ assert(os.path.isdir(imageBaseDir))
 info = {}
 info['year'] = 2019
 info['version'] = 1
-info['description'] = 'COCO style database for RSPB [location] data'
+info['description'] = 'COCO style database for RSPB gola data'
 info['secondary_contributor'] = 'Converted to COCO .json by Dan Morris'
 info['contributor'] = 'RSPB'
 
@@ -71,7 +73,9 @@ uniqueSpecies = set(species)
 print('Read {} unique species in {} rows'.format(len(uniqueSpecies),len(metadataTable)))
 
 speciesMappings = {}
-speciesMappings['BLANK'] = 'empty'
+
+# keys should be lowercase
+speciesMappings['blank'] = 'empty'
 speciesMappings[''] = 'unlabeled'
 
 
@@ -99,6 +103,7 @@ filenamesToRows = {}
 startTime = time.time()
 
 newRows = []
+matchFailures = []
 
 # iRow = 0; row = metadataTable.iloc[iRow]
 for iRow,row in tqdm.tqdm(metadataTable.iterrows(), total=metadataTable.shape[0]):
@@ -115,7 +120,7 @@ for iRow,row in tqdm.tqdm(metadataTable.iterrows(), total=metadataTable.shape[0]
     
     # Let's pull this out of the file name instead
     #
-    # Filenames look like:
+    # Filenames look like one of the following:
     #
     # A1__03224850850507__2015-11-28__10-45-04(1).JPG
     # Bayama2PH__C05__NA(NA).JPG
@@ -151,7 +156,11 @@ for iRow,row in tqdm.tqdm(metadataTable.iterrows(), total=metadataTable.shape[0]
     fn = os.path.join(station,camera,baseFn)
     fullPath = os.path.join(imageBaseDir,fn)
     row['filePath'] = fn
-    assert(os.path.isfile(fullPath))
+    # assert(os.path.isfile(fullPath))
+    if not os.path.isfile(fullPath):
+        print('Failed to match image {}'.format(fullPath))
+        matchFailures.append(fullPath)
+        continue
     
     # metadataTable.iloc[iRow] = row
     newRows.append(row)
@@ -161,11 +170,14 @@ elapsed = time.time() - startTime
 # Re-assemble into an updated table
 metadataTable = pd.DataFrame(newRows)
 
-print('Finished checking file existence, extracting metadata in {}'.format(
-      humanfriendly.format_timespan(elapsed)))
+print('Finished checking file existence, extracting metadata in {}, found {} match failures'.format(
+      humanfriendly.format_timespan(elapsed),len(matchFailures)))
        
     
-#%% Check for images that aren't included in the metadata file
+#%% 
+
+# Check for images that aren't included in the metadata file, which we will
+# include as unlabeled.
 
 unattachedImages = []
 
@@ -199,9 +211,9 @@ images = []
 annotations = []
 
 # Map categories to integer IDs (that's what COCO likes)
-nextCategoryID = 0
-categoriesToCategoryId = {}
-categoriesToCounts = {}
+nextCategoryID = 1
+categoriesToCategoryId = {'empty':0}
+categoriesToCounts = {'empty':0}
 
 # For each image
 #
@@ -281,6 +293,7 @@ for iRow,row in tqdm.tqdm(metadataTable.iterrows(), total=metadataTable.shape[0]
 categories = []
 
 for category in categoriesToCounts:
+    
     print('Category {}, count {}'.format(category,categoriesToCounts[category]))
     categoryID = categoriesToCategoryId[category]
     cat = {}
@@ -289,6 +302,7 @@ for category in categoriesToCounts:
     categories.append(cat)    
     
 elapsed = time.time() - startTime
+
 print('Finished creating CCT dictionaries in {}'.format(
       humanfriendly.format_timespan(elapsed)))
     
@@ -308,14 +322,11 @@ print('Finished writing .json file with {} images, {} annotations, and {} catego
 
 #%% Sanity-check
 
-p = os.path.join(os.getcwd(),'database_tools')
-import sys
-if (p not in sys.path):
-    sys.path.append(p)
-
-from databases import sanity_check_json_db
-
-sanity_check_json_db.sanityCheckJsonDb(outputFile, imageBaseDir)
+options = sanity_check_json_db.SanityCheckOptions()
+options.baseDir = imageBaseDir
+options.bCheckImageSizes = False
+options.bFindUnusedImages = False
+sanity_check_json_db.sanityCheckJsonDb(outputFile, options)
 
 
 #%% One-time processing step: copy images to a flat directory
