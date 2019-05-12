@@ -57,23 +57,24 @@ Not yet supported. Meanwhile, once the shards of images are submitted for proces
 
 ### Inputs
 
-| Parameter                | Is required | Explanation                                                                                                                          |
-|--------------------------|-------------|-------------------------------------------------------------------------------------------------------------------------------|
-| input_container_sas      | Yes         | SAS URL with list and read permissions to the Blob Storage container where the images are stored.                             |
-| images_required_json_sas | No          | SAS URL with list and read permissions to a json file in Blob Storage. The json contains a list, where each item (a string) in the list is the full path to an image from the root of the container. An example of the content of this file: `["Season1/Location1/Camera1/image1.jpg", "Season1/Location1/Camera1/image2.jpg"]`.  Only images whose paths are listed here will be processed. |
-| image_path_prefix        | No          | Only process images whose full path starts with `image_path_prefix`. Note that any image paths specified in `images_required_json_sas` will need to be the full path from the root of the container, regardless of `image_path_prefix`. |
-| first_n                  | No          | Only process the first `first_n` images. Order of images is not guaranteed, but is likely to be alphabetical. Set this to a small number to avoid taking time to fully list all images in the blob (about 15 minutes for 1 million images) if you just want to try this API. |
-| sample_n (not yet implemented)                | No          | Randomly sample `sample_n` images to process. |
+| Parameter                | Is required | Type | Explanation                                                                                                                          |
+|--------------------------|-------------|-------|-------------------------------------------------------------------------------------------------------------------------------|
+| input_container_sas      | Yes         | string | SAS URL with list and read permissions to the Blob Storage container where the images are stored.                             |
+| images_requested_json_sas | No          | string | SAS URL with list and read permissions to a json file in Blob Storage. The json contains a list, where each item (a string) in the list is the full path to an image from the root of the container. An example of the content of this file: `["Season1/Location1/Camera1/image1.jpg", "Season1/Location1/Camera1/image2.jpg"]`.  Only images whose paths are listed here will be processed. |
+| image_path_prefix        | No          | string | Only process images whose full path starts with `image_path_prefix` (case-_sensitive_). Note that any image paths specified in `images_requested_json_sas` will need to be the full path from the root of the container, regardless whether `image_path_prefix` is provided. |
+| first_n                  | No          | int | Only process the first `first_n` images. Order of images is not guaranteed, but is likely to be alphabetical. Set this to a small number to avoid taking time to fully list all images in the blob (about 15 minutes for 1 million images) if you just want to try this API. |
+| sample_n                | No          |int | Randomly select `sample_n` images to process. |
 
 
 - We assume that all images you would like to process in this batch are uploaded to a container in Azure Blob Storage. 
 - Only images with file name ending in '.jpg' or '.jpeg' (case insensitive) will be processed, so please make sure the file names are compliant before you upload them to the container (you cannot rename a blob without copying it entirely once it is in Blob Storage). 
+- The path to the images in blob storage cannot contain commas (this would confuse the output CSV).
 
 - By default we process all such images in the specified container. You can choose to only process a subset of them by specifying the other input parameters, and the images will be filtered out accordingly in this order:
     - `images_requested_json_sas`
     - `image_path_prefix`
     - `first_n`
-    - `sample_n`  (not yet implemented)
+    - `sample_n`
     
     - For example, if you specified both `images_requested_json_sas` and `first_n`, only images that are in your provided list at `images_requested_json_sas` will be considered, and then we process the `first_n` of those.
 
@@ -151,12 +152,23 @@ The second column is the confidence value of the most confident detection on the
 The third column contains details of the detections so you can visualize them. It is a stringfied json of a list of lists, representing the detections made on that image. Each detection list has the coordinates of the bounding box surrounding the detection, followed by its confidence:
 
 ```
-[ymin, xmin, ymax, xmax, confidence]
+[ymin, xmin, ymax, xmax, confidence, (class)]
 ```
 
 where `(xmin, ymin)` is the upper-left corner of the detection bounding box. The coordinates are relative to the height and width of the image. 
 
-When the detector model detects no animal, the confidence is shown as 0.0 (not confident that there is an animal) and the detection column is an empty list.
+An integer `class` comes after `confidence` in versions of the API that uses MegaDetector version 3 or later. The `class` label corresponds to the following:
+
+```
+1: animal
+2: person
+4: vehicle
+```
+
+Note that the `vehicle` class (available in Mega Detector version 4 or later) is number 4. Class number 3 (group) is not included in training and should be ignored (and so should any other class labels not listed here) if it shows up in the result.
+
+When the detector model detects no animal (or person or vehicle), the confidence is shown as 0.0 (not confident that there is an object of interest) and the detection column is an empty list.
+
 
 ## Post-processing tools
 
