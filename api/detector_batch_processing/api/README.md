@@ -36,7 +36,7 @@ You can do this at the command line (where Azure CLI is installed) of the VM whe
 ```
 az acr login --name ai4eregistry
 ```
-You need to have the subscription where this registry is set as the default subscription.
+You need to have the subscription where this registry is set as the default subscription, and you may need to use `sudo` with this command.
 
 
 ### Step 3. Build the Docker container
@@ -45,7 +45,7 @@ Now you're all set to build the container.
 Navigate to the current directory (`detector_batch_processing/api`) where the `Dockerfile` is.
 
 ```
-docker build . -t name.azurecr.io/camera-trap-detection-sync:2
+docker build . -t name.azurecr.io/camera-trap-detection-batch-v3:1
 ```
 
 You can supply your own tag (`-t` option) and build number. You may need to use `sudo` with this command.
@@ -55,7 +55,7 @@ You can supply your own tag (`-t` option) and build number. You may need to use 
 To launch the service, in a `tmux` session, issue:
 
 ```
-docker run -p 6000:80 name.azurecr.io/camera-trap-detection-batch:2 |& tee -a camera-trap-api-async-log/log20190415.txt
+docker run -p 6000:80 name.azurecr.io/camera-trap-detection-batch-v3:1 |& tee -a camera-trap-api-async-log/log20190415.txt
 ```
 
 Substitute the tag of the image you built in the last step (or that of a pre-built one), the port you'd like to expose the API at (6000 above), and specify the location to store the log messages (printed to console too).
@@ -65,6 +65,6 @@ You may need to use `sudo` with this command.
 
 ## Work items
 
-- [ ] Rename `aml_config_scripts` to `aml_scripts` now that the cluster config file is no longer used
+- [x] Rename `aml_config_scripts` to `aml_scripts` now that the cluster config file is no longer used
 
-- [ ] Make use of Key Vault to access crendentials
+- [ ] Make use of Key Vault to access credentials

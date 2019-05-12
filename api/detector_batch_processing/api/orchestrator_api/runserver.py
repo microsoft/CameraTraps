@@ -7,6 +7,7 @@ import math
 import os
 import time
 from datetime import datetime
+from random import shuffle
 
 from ai4e_app_insights import AppInsights
 from ai4e_app_insights_wrapper import AI4EAppInsights
@@ -23,6 +24,7 @@ from sas_blob_utils import SasBlob
 print('Creating application')
 
 api_prefix = os.getenv('API_PREFIX')
+print('API prefix: ', api_prefix)
 app = Flask(__name__)
 api = Api(app)
 
@@ -105,7 +107,7 @@ def _request_detections(**kwargs):
 
         input_container_sas = body['input_container_sas']
         images_requested_json_sas = body.get('images_requested_json_sas', None)
-        image_path_prefix = body.get('image_path_prefix', '')
+        image_path_prefix = body.get('image_path_prefix', None)
 
         first_n = body.get('first_n', None)
         first_n = int(first_n) if first_n else None
@@ -120,30 +122,48 @@ def _request_detections(**kwargs):
             print('runserver.py, running - listing all images to process.')
 
             # list all images to process
+            blob_prefix = None if image_path_prefix is None else image_path_prefix
             image_paths = SasBlob.list_blobs_in_container(api_config.MAX_NUMBER_IMAGES_ACCEPTED,
                                                           sas_uri=input_container_sas,
-                                                          blob_prefix=image_path_prefix, blob_suffix='.jpg')
+                                                          blob_prefix=blob_prefix, blob_suffix='.jpg')
         else:
             print('runserver.py, running - using provided list of images.')
             image_paths_text = SasBlob.download_blob_to_text(images_requested_json_sas)
             image_paths = json.loads(image_paths_text)
             print('runserver.py, length of image_paths provided by the user: {}'.format(len(image_paths)))
+
             image_paths = [i for i in image_paths if str(i).lower().endswith(api_config.ACCEPTED_IMAGE_FILE_ENDINGS)]
-            print('runserver.py, length of image_paths provided by the user, after filtering to jpg: {}'.format(len(image_paths)))
+            print('runserver.py, length of image_paths provided by the user, after filtering to jpg: {}'.format(
+                len(image_paths)))
+
+            if image_path_prefix is not None:
+                image_paths =[i for i in image_paths if str(i).startswith(image_path_prefix)]
+                print('runserver.py, length of image_paths provided by the user, after filtering for image_path_prefix: {}'.format(
+                    len(image_paths)))
 
             res = orchestrator.spot_check_blob_paths_exist(image_paths, input_container_sas)
             if res is not None:
-                raise LookupError('failed - path {} provided in list of images to process does not exist in the container pointed to by data_container_sas.'.format(res))
+                raise LookupError('path {} provided in list of images to process does not exist in the container pointed to by data_container_sas.'.format(res))
 
         # apply the first_n and sample_n filters
         if first_n is not None:
-            assert first_n > 0, 'parameter first_n is zero.'
+            assert first_n > 0, 'parameter first_n is 0.'
             image_paths = image_paths[:first_n]  # will not error if first_n > total number of images
 
-        # TODO implement sample_n - need to check that sample_n <= len(image_paths)
+        if sample_n is not None:
+            assert sample_n > 0, 'parameter sample_n is 0.'
+            if sample_n > len(image_paths):
+                raise ValueError('parameter sample_n specifies more images than available (after filtering by other provided params).')
+
+            # we sample by just shuffling the image paths and take the first sample_n images
+            print('First path before shuffling:', image_paths[0])
+            shuffle(image_paths)
+            print('First path after shuffling:', image_paths[0])
+            image_paths = image_paths[:sample_n]
+            image_paths = sorted(image_paths)
 
         num_images = len(image_paths)
-        print('runserver.py, num_images: {}'.format(num_images))
+        print('runserver.py, num_images after applying all filters: {}'.format(num_images))
         if num_images < 1:
             api_task_manager.UpdateTaskStatus(request_id, 'completed - zero images found in container or in provided list of images after filtering with the provided parameters.')
             return
@@ -173,7 +193,7 @@ def _request_detections(**kwargs):
             begin, end = job_index * num_images_per_job, (job_index + 1) * num_images_per_job
             job_id = 'request{}_jobindex{}_total{}'.format(request_id, job_index, num_jobs)
             list_jobs[job_id] = { 'begin': begin, 'end': end }
-        # TODO send list_jobs_submitted in a pickle to intermediate storage as a record / for restarting the monitoring thread
+
         list_jobs_submitted = aml_compute.submit_jobs(request_id, list_jobs, api_task_manager, num_images)
         api_task_manager.UpdateTaskStatus(request_id,
                                           'running - all {} images submitted to cluster for processing.'.format(num_images))
@@ -186,6 +206,7 @@ def _request_detections(**kwargs):
 
     try:
         aml_monitor = orchestrator.AMLMonitor(request_id, list_jobs_submitted)
+
         # start another thread to monitor the jobs and consolidate the results when they finish
         ai4e_wrapper.wrap_async_endpoint(_monitor_detections_request, 'post:_monitor_detections_request',
                                          request_id=request_id,
@@ -204,6 +225,8 @@ def _monitor_detections_request(**kwargs):
 
         max_num_checks = api_config.MAX_MONITOR_CYCLES
         num_checks = 0
+
+        print('Monitoring thread with _monitor_detections_request started.')
 
         # time.sleep() blocks the current thread only
         while True:
