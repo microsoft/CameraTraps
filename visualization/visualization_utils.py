@@ -141,7 +141,7 @@ def render_db_bounding_boxes(boxes, classes, image, original_size=None,
 
 def render_detection_bounding_boxes(boxes_scores_classes, image, 
                                     label_map=annotation_constants.bbox_category_id_to_name, 
-                                    confidence_threshold=0.5, thickness=4):
+                                    confidence_threshold=0.8, thickness=4):
     """
     Renders bounding boxes, label and confidence on an image if confidence is above the threshold.
     This is works with the output of the detector batch processing API.
