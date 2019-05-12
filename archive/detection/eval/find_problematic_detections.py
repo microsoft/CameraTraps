@@ -24,7 +24,7 @@ import argparse
 import inspect
 import pandas as pd
 from detection.detection_eval.load_api_results import load_api_results,write_api_results
-    
+from data_management.annotations import annotation_constants    
 from tqdm import tqdm
 from joblib import Parallel, delayed
 from datetime import datetime
@@ -67,12 +67,15 @@ class SuspiciousDetectionOptions:
     # are required before we declare it suspicious?
     occurrenceThreshold = 15
     
+    # A list of classes we don't want to treat as suspicious
+    excludeClasses = [annotation_constants.bbox_category_name_to_id['person']]
+    
     # Set to zero to disable parallelism
     nWorkers = 10 # joblib.cpu_count()
     
     # Ignore "suspicious" detections larger than some size; these are often animals
     # taking up the whole image.  This is expressed as a fraction of the image size.
-    maxSuspiciousDetectionSize = 0.35
+    maxSuspiciousDetectionSize = 0.2
     
     bRenderHtml = False
     
@@ -287,6 +290,12 @@ def find_matches_in_directory(dirName,options,rowsByDirectory):
                 # print('Ignoring very large detection with area {}'.format(area))
                 continue
         
+            # Optionally exclude some classes from consideration as suspicious
+            if len(options.excludeClasses) > 0 and len(detection) > 5:
+                iClass = detection[5]
+                if iClass in options.excludeClasses:
+                    continue
+                
             confidence = detection[4]
             assert confidence >= 0.0 and confidence <= 1.0
             if confidence < options.confidenceThreshold:

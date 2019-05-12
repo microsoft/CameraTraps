@@ -58,21 +58,11 @@ def load_api_results(filename,normalize_paths=True,filename_replacements={}):
     
     return detection_results
 
+
 def write_api_results(detection_results,filename):
     
     print('Writing detection results to {}'.format(filename))
-        
-    # Write the output .csv
-    with open(filename,'w')  as csvf:
-        
-        # Likely to get read in pandas, don't use '#'
-        # headerString = '#' + ','.join(options.expectedHeaders)
-        headerString = ','.join(headers)
-        
-        # Write the header
-        csvf.write(headerString + '\n')
-        
-        for iRow,row in detection_results.iterrows():
-            csvf.write('"' + row['image_path'] + '",' + str(row['max_confidence']) + ',"' + json.dumps(row['detections']) + '"\n')
+    
+    detection_results.to_csv(filename,index=False)
     
     print('Finished writing detection results to {}'.format(filename))
