@@ -630,7 +630,8 @@ if False:
     # Using iMerit labels as ground truth (all)
     if True:
         options.ground_truth_json_file = os.path.join(baseDir,'rspb_20190409_presence.json')
-        options.output_dir = os.path.join(baseDir,'postprocessing_output_mdv3_presence_verified_filtered')
+        # options.output_dir = os.path.join(baseDir,'postprocessing_output_mdv3_presence_verified_filtered')
+        options.output_dir = os.path.join(baseDir,'postprocessing_output_merge_test')
     
     # Using iMerit labels as ground truth (val)
     if False:
