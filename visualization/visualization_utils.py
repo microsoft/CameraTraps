@@ -6,10 +6,15 @@
 #
 #####
 
+#%% Constants and imports
+
 import numpy as np
 from PIL import Image, ImageFile, ImageFont, ImageDraw
+from data_management.annotations import annotation_constants
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
+
+#%% Functions
 
 def open_image(input):
     """
@@ -64,7 +69,8 @@ def resize_image(image, targetWidth, targetHeight=-1):
     return resizedImage
 
 
-def render_iMerit_boxes(boxes, classes, image, label_map=None):
+def render_iMerit_boxes(boxes, classes, image, 
+                        label_map=annotation_constants.bbox_category_id_to_name):
     """
     Renders bounding boxes and their category labels on a PIL image.
 
@@ -91,10 +97,11 @@ def render_iMerit_boxes(boxes, classes, image, label_map=None):
         display_strs.append([clss])
 
     display_boxes = np.array(display_boxes)
-    draw_bounding_boxes_on_image(image, display_boxes, classes, display_str_list_list=display_strs)
+    draw_bounding_boxes_on_image(image, display_boxes, classes, display_strs=display_strs)
 
 
-def render_db_bounding_boxes(boxes, classes, image, original_size=None, label_map=None, thickness=4):
+def render_db_bounding_boxes(boxes, classes, image, original_size=None, 
+                             label_map=None, thickness=4):
     """
     Render bounding boxes (with class labels) on [image].  This is a wrapper for
     draw_bounding_boxes_on_image, allowing the caller to operate on a resized image
@@ -109,7 +116,9 @@ def render_db_bounding_boxes(boxes, classes, image, original_size=None, label_ma
         image_size = image.size
         
     img_width, img_height = image_size
+    
     for box, clss in zip(boxes, classes):
+        
         x_min_abs, y_min_abs, width_abs, height_abs = box
 
         ymin = y_min_abs / img_height
@@ -125,32 +134,44 @@ def render_db_bounding_boxes(boxes, classes, image, original_size=None, label_ma
         display_strs.append([clss])
 
     display_boxes = np.array(display_boxes)
-    draw_bounding_boxes_on_image(image, display_boxes, classes, display_str_list_list=display_strs, thickness=thickness)
+    
+    draw_bounding_boxes_on_image(image, display_boxes, display_strs=display_strs, 
+                                 thickness=thickness)
 
 
-def render_detection_bounding_boxes(boxes_scores_classes, image, label_map={}, confidence_threshold=0.5, thickness=4):
+def render_detection_bounding_boxes(boxes_scores_classes, image, 
+                                    label_map=annotation_constants.bbox_category_id_to_name, 
+                                    confidence_threshold=0.8, thickness=4):
     """
     Renders bounding boxes, label and confidence on an image if confidence is above the threshold.
     This is works with the output of the detector batch processing API.
 
     Args:
-        boxes, scores, classes:  outputs of generate_detections.
+        boxes_and_scores:  outputs of generate_detections, in one of the following formats
+        
+            [x_rel, y_rel, w_rel, h_rel, p]
+            [x_rel, y_rel, w_rel, h_rel, p, class]
+            
         image: PIL.Image object, output of generate_detections.
         label_map: optional, mapping the numerical label to a string name.
-        confidence_threshold: threshold above which the bounding box is rendered.
+        confidence_threshold: optional, threshold above which the bounding box is rendered.
+        thickness: optional, rendering line thickness.
+        color_map: optional, mapping the numerical label to bbox color.
 
     image is modified in place!
     """
     display_boxes = []
-    display_strs = []  # list of list, one list of strings for each bounding box (to accommodate multiple labels)
+    display_strs = []  # list of lists, one list of strings for each bounding box (to accommodate multiple labels)
     classes = []
+    
     for detection in boxes_scores_classes:
+        
         score = detection[4]
         if score > confidence_threshold:
             display_boxes.append(detection[:4])
 
             if len(detection) < 6:
-                clss = 1  # megadetector_v2 outputs contain only the animal class
+                clss = 1  # megadetector_v2 did not output a class label
             else:
                 clss = int(detection[5])
 
@@ -162,10 +183,11 @@ def render_detection_bounding_boxes(boxes_scores_classes, image, label_map={}, c
     display_boxes = np.array(display_boxes)
 
     draw_bounding_boxes_on_image(image, display_boxes, classes,
-                                 display_str_list_list=display_strs, thickness=thickness)
+                                 display_strs=display_strs, thickness=thickness)
 
 
-# the following functions are modified versions of those at
+# The following functions are modified versions of those at:
+#
 # https://github.com/tensorflow/models/blob/master/research/object_detection/utils/visualization_utils.py
 
 COLORS = [
@@ -199,7 +221,7 @@ def draw_bounding_boxes_on_image(image,
                                  boxes,
                                  classes,
                                  thickness=1,
-                                 display_str_list_list=()):
+                                 display_strs=()):
     """
     Draws bounding boxes on image.
 
@@ -208,7 +230,7 @@ def draw_bounding_boxes_on_image(image,
       boxes: a 2 dimensional numpy array of [N, 4]: (ymin, xmin, ymax, xmax).
              The coordinates are in normalized format between [0, 1].
       thickness: line thickness. Default value is 4.
-      display_str_list_list: list of list of strings.
+      display_strs: list of list of strings.
                              a list of strings for each bounding box.
                              The reason to pass a list of strings for a
                              bounding box is that it might contain
@@ -221,8 +243,8 @@ def draw_bounding_boxes_on_image(image,
         # print('Input must be of size [N, 4], but is ' + str(boxes_shape))
         return  # no object detection on this image, return
     for i in range(boxes_shape[0]):
-        if display_str_list_list:
-            display_str_list = display_str_list_list[i]
+        if display_strs:
+            display_str_list = display_strs[i]
             draw_bounding_box_on_image(image,
                                        boxes[i, 0], boxes[i, 1], boxes[i, 2], boxes[i, 3],
                                        classes[i],
@@ -238,7 +260,8 @@ def draw_bounding_box_on_image(image,
                                thickness=4,
                                display_str_list=(),
                                use_normalized_coordinates=True):
-    """Adds a bounding box to an image.
+    """
+    Adds a bounding box to an image.
 
     Bounding box coordinates can be specified in either absolute (pixel) or
     normalized coordinates by setting the use_normalized_coordinates argument.
@@ -290,6 +313,7 @@ def draw_bounding_box_on_image(image,
         text_bottom = top
     else:
         text_bottom = bottom + total_display_str_height
+        
     # Reverse list and print from bottom to top.
     for display_str in display_str_list[::-1]:
         text_width, text_height = font.getsize(display_str)
