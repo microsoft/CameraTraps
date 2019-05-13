@@ -7,16 +7,14 @@ from datetime import datetime
 from io import BytesIO
 
 from ai4e_app_insights_wrapper import AI4EAppInsights
-from ai4e_service import AI4EService
+from ai4e_service import APIService
 from flask import Flask, Response, jsonify, abort
 from requests_toolbelt.multipart.encoder import MultipartEncoder
 
 import api_config
 from tf_detector import TFDetector
 
-
 print('Creating Application')
-
 app = Flask(__name__)
 
 # Use the AI4EAppInsights library to send log messages. NOT REQURIED
@@ -25,7 +23,7 @@ log = AI4EAppInsights()
 # Use the AI4EService to execute your functions within a logging trace, which supports long-running/async
 # functions, handles SIGTERM signals from AKS, etc., and handles concurrent requests.
 with app.app_context():
-    ai4e_service = AI4EService(app, log)
+    ai4e_service = APIService(app, log)
 
 detector = TFDetector(api_config.MODEL_PATH)
 
@@ -34,7 +32,7 @@ detector = TFDetector(api_config.MODEL_PATH)
 def _detect_process_request_data(request):
     files = request.files
     params = request.args
-
+    
     # check that the content uploaded is not too big
     # request.content_length is the length of the total payload
     content_length = request.content_length if request.content_length \
