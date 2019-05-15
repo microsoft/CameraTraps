@@ -165,11 +165,14 @@ print(list(coco.imgs.items())[0])
 print('The corresponding category annoation:')
 print(coco.imgToAnns[list(coco.imgs.items())[0][0]])
 locations = set([ann[SPLIT_BY] for ann in coco.imgs.values()])
-test_locations = sorted(random.sample(locations, max(1, int(TEST_FRACTION * len(locations)))))
+test_locations = sorted(random.sample(sorted(locations), max(1, int(TEST_FRACTION * len(locations)))))
 training_locations = sorted(list(set(locations) - set(test_locations)))
 print('{} locations in total, {} will be used for training, {} for testing'.format(len(locations), 
                                                                                    len(training_locations),
                                                                                    len(test_locations)))
+print('Training uses locations ', sorted(training_locations))
+print('Testing uses locations ', sorted(test_locations))
+
 # Load detections
 if DETECTION_INPUT:
   print('Loading existing detections from ' + DETECTION_INPUT)
@@ -264,14 +267,6 @@ with graph.as_default():
       cur_json_cat_id = cat_id_to_new_id[cur_cat_id]
       # Whether it belongs to a training or testing location
       is_train = cur_image[SPLIT_BY] in training_locations
-      # The file path as it will appear in the annotation json
-      new_file_name = os.path.join(cur_cat_name, cur_file_name)
-      if COCO_OUTPUT_DIR:
-        # The absolute file path where we will store the image
-        # Only used if an coco-style dataset is created
-        out_file = os.path.join(COCO_OUTPUT_DIR, new_file_name)
-        # Create the category directories if necessary
-        os.makedirs(os.path.dirname(out_file), exist_ok=True)
 
       # Skip excluded categories
       if cur_cat_name in EXCLUDED_CATEGORIES:
@@ -330,13 +325,15 @@ with graph.as_default():
         # bbox is the detected box, crop_box the padded / enlarged box
         bbox, crop_box = selected_boxes[box_id], crop_boxes[box_id]
         if COCO_OUTPUT_DIR:
-          # The absolute file path where we will store the image
-          # Only used if an COCO style dataset is created
-          out_file = os.path.join(COCO_OUTPUT_DIR, new_file_name)
+          # The file path as it will appear in the annotation json
+          new_file_name = os.path.join(cur_cat_name, cur_file_name)
           # Add numbering to the original file name if there are multiple boxes
           if selected_boxes.shape[0] > 1:
-            out_base, out_ext = os.path.splitext(out_file)
-            out_file = '{}_{}{}'.format(out_base, box_id, out_ext)
+            new_file_base, new_file_ext = os.path.splitext(new_file_name)
+            new_file_name = '{}_{}{}'.format(new_file_base, box_id, new_file_ext)
+          # The absolute file path where we will store the image
+          # Only used if an coco-style dataset is created
+          out_file = os.path.join(COCO_OUTPUT_DIR, new_file_name)
           # Create the category directories if necessary
           os.makedirs(os.path.dirname(out_file), exist_ok=True)
           if not os.path.exists(out_file):
@@ -349,7 +346,11 @@ with graph.as_default():
             except FileNotFoundError:
               continue
           else:
-              cropped_img = np.array(Image.open(out_file))
+              # if COCO_OUTPUT_DIR is set, then we will only use the shape
+              # of cropped_img in the following code. So instead of reading 
+              # cropped_img = np.array(Image.open(out_file))
+              # we can speed everything up by reading only the size of the image
+              cropped_img = np.zeros((3,) + Image.open(out_file).size).T
         else:
           out_file = TMP_IMAGE
           try:
@@ -374,7 +375,8 @@ with graph.as_default():
           cur_json['images'].append(dict(id=next_image_id,
                                     width=cropped_img.shape[1],
                                     height=cropped_img.shape[0],
-                                    file_name=out_file))
+                                    file_name=new_file_name,
+                                    original_key=cur_image_id))
           cur_json['annotations'].append(dict(id=next_annotation_id,
                                           image_id=next_image_id,
                                           category_id=cur_json_cat_id))
