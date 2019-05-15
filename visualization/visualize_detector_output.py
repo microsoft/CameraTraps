@@ -21,11 +21,7 @@ from tqdm import tqdm
 
 import visualization_utils as vis_utils
 
-
 #%% Settings and user-supplied arguments
-
-viz_size = (675, 450)  # width by height, in pixels
-
 
 parser = argparse.ArgumentParser(description=('Annotate the bounding boxes predicted by a detector '
                                               'above some confidence threshold, and save the annotated images.'))
@@ -35,7 +31,8 @@ parser.add_argument('detector_output_path', type=str,
                     default='RequestID_all_output.csv')
 
 parser.add_argument('out_dir', type=str,
-                    help='path to a directory where the annotated images will be saved. Created if does not already exist')
+                    help=('path to a directory where the annotated images will be saved. '
+                          'The directory will be created if does not exit'))
 
 parser.add_argument('-c', '--confidence', type=float,
                     help=('a value between 0 and 1, indicating the confidence threshold above which to visualize '
@@ -48,17 +45,26 @@ parser.add_argument('-i', '--images_dir', type=str,
                     default=None)
 
 parser.add_argument('-s', '--sas_url', type=str,
-                    help=('SAS URL with list and read permissions to an Azure blob storage container where the '
-                          'images are stored. You can use Azure Storage Explorer to obtain a SAS URL'),
+                    help=('SAS URL, in double quotes, with list and read permissions to an Azure blob storage '
+                          'container where the images are stored. '
+                          'You can use Azure Storage Explorer to obtain a SAS URL'),
                     default=None)
 
 parser.add_argument('-n', '--sample', type=int,
                     help=('an integer specifying how many images should be annotated and rendered. Default (-1) is all '
-                          'images that have detector result. There may result in fewer images if some are not '
-                          'found in images_dir'),
+                          'images that are in the detector output file. There may result in fewer images if some are '
+                          'not found in images_dir'),
                     default=-1)
 
+parser.add_argument('-w', '--output_image_width', type=int,
+                    help=('an integer indicating the desired width in pixels of the output annotated images. '
+                          'Use -1 to not resize.'),
+                    default=700)
+
 args = parser.parse_args()
+print('Options to the script: ')
+print(args)
+print()
 
 assert args.confidence < 1.0 and args.confidence > 0.0, \
     'The confidence threshold {} supplied is not valid; choose a threshold between 0 and 1.'.format(args.confidence)
@@ -77,7 +83,13 @@ images_local = True if args.images_dir is not None else False
 os.makedirs(args.out_dir, exist_ok=True)
 
 
-#%% Helper functions
+#%% Helper functions and constants
+
+DETECTOR_LABEL_MAP = {
+    1: 'animal',
+    2: 'person',
+    3: 'vehicle' # will be available in megadetector v4
+}
 
 def get_sas_key_from_uri(sas_uri):
     """Get the query part of the SAS token that contains permissions, access times and
@@ -143,9 +155,11 @@ for i_row, row in tqdm(df.iterrows()):
     if images_local:
         image_obj = os.path.join(args.images_dir, image_id)
         if not os.path.exists(image_obj):
-            print('Image {} is not found at images_dir; skipped.'.format(image_id))
+            print('Image {} is not found at local images_dir; skipped.'.format(image_id))
             continue
     else:
+        print('image_id:', image_id)
+        print('container_name:', container_name)
         if not blob_service.exists(container_name, blob_name=image_id):
             print('Image {} is not found in the blob container {}; skipped.'.format(image_id, container_name))
             continue
@@ -153,10 +167,13 @@ for i_row, row in tqdm(df.iterrows()):
         image_obj = io.BytesIO()
         _ = blob_service.get_blob_to_stream(container_name, image_id, image_obj)
 
-    image = vis_utils.open_image(image_obj).resize(viz_size)  # resize is to display them more quickly
-    vis_utils.render_detection_bounding_boxes(boxes_and_scores, image, confidence_threshold=args.confidence)
+    # resize is for displaying them more quickly
+    image = vis_utils.resize_image(vis_utils.open_image(image_obj), args.output_image_width)
 
-    annotated_img_name = image_id.replace('/', '~')
+    vis_utils.render_detection_bounding_boxes(boxes_and_scores, image, label_map=DETECTOR_LABEL_MAP,
+                                              confidence_threshold=args.confidence)
+
+    annotated_img_name = image_id.replace('/', '~').replace('\\', '~')
     annotated_img_path = os.path.join(args.out_dir, annotated_img_name)
     image.save(annotated_img_path)
     num_saved += 1
