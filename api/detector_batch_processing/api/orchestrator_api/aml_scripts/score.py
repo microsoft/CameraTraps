@@ -1,4 +1,4 @@
-print('score.py, beginning - NEW')
+print('score.py, beginning - megadetector_v3')
 
 import argparse
 import csv

@@ -74,7 +74,7 @@ os.makedirs(others_out_dir, exist_ok=True)
 # that aligns with the fields in the resulting tfrecords
 if tfrecord_format_json_path is None:
     print('Creating tfrecords format json...')
-    tfrecord_format_json = create_tfrecords_format(database_path, image_file_root,
+    tfrecord_format_json = create_tfrecords_format(dataset_name, database_path, image_file_root,
                                                    cats_to_include=cats_to_include,
                                                    exclude_images_without_bbox=exclude_images_without_bbox)
 
