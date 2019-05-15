@@ -15,7 +15,7 @@ from tqdm import tqdm
 
 #%% Main tfrecord generation function
 
-def create_tfrecords_format(database_file, image_file_root, cats_to_include=[],
+def create_tfrecords_format(dataset_name, database_file, image_file_root, cats_to_include=[],
                             exclude_images_without_bbox=False):
     
     print('Loading database...')
@@ -85,7 +85,10 @@ def create_tfrecords_format(database_file, image_file_root, cats_to_include=[],
         db_file_name = im['file_name']
 
         image_data['filename'] = os.path.join(image_file_root, db_file_name)  # .replace('/', '~')
-        image_data['id'] = im['id']
+
+        # prepend the dataset name to image_id because after inference on val set, records from
+        # different datasets are stored in one tfrecord
+        image_data['id'] = dataset_name + '~' + im['id']
 
         # Propagate optional metadata to tfrecords
         if 'seq_id' in im:
