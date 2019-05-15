@@ -3,7 +3,7 @@
 # visualize_bbox_db.py
 # 
 # Outputs an HTML page visualizing bounding boxes on a sample of images in a bbox database
-# in the COCO Camera Trap format (output of data_management/annotations/add_bounding_boxes_to_json.py).
+# in the COCO Camera Traps format
 #
 ########
 
@@ -62,11 +62,15 @@ def processImages(bbox_db_path,output_dir,image_base_dir,options=None):
     """
     Writes images and html to output_dir to visualize the annotations in the json file
     bbox_db_path.
+    
+    Returns the html filename.
     """    
     
     if options is None:
         options = BboxDbVizOptions()
-        
+    
+    print(options.__dict__)
+    
     os.makedirs(os.path.join(output_dir, 'rendered_images'), exist_ok=True)
     assert(os.path.isfile(bbox_db_path))
     assert(os.path.isdir(image_base_dir))
@@ -142,17 +146,30 @@ def processImages(bbox_db_path,output_dir,image_base_dir,options=None):
         # All the class labels we've seen for this image (with out without bboxes)
         imageCategories = set()
         
+        annotationLevelForImage = ''
+        
         # Iterate over annotations for this image
         # iAnn = 0; anno = annos_i.iloc[iAnn]
         for iAnn,anno in annos_i.iterrows():
         
+            if 'sequence_level_annotation' in anno:
+                bSequenceLevelAnnotation = anno['sequence_level_annotation']
+                if bSequenceLevelAnnotation:
+                    annLevel = 'sequence'
+                else:
+                    annLevel = 'image'
+                if annotationLevelForImage == '':
+                    annotationLevelForImage = annLevel
+                elif annotationLevelForImage != annLevel:
+                    annotationLevelForImage = 'mixed'
+                    
             categoryID = anno['category_id']
             categoryName = label_map[categoryID]
             imageCategories.add(categoryName)
             
             bbox = anno['bbox']        
             if isinstance(bbox,float):
-                assert math.isnan(bbox), 'I shouldn''t see a bbox that''s neither a box nor NaN'
+                assert math.isnan(bbox), "I shouldn't see a bbox that's neither a box nor NaN"
                 continue
             bboxes.append(bbox)
             boxClasses.append(anno['category_id'])
@@ -166,9 +183,13 @@ def processImages(bbox_db_path,output_dir,image_base_dir,options=None):
         file_name = file_name.replace('/', '~')
         image.save(os.path.join(output_dir, 'rendered_images', file_name))
     
+        labelLevelString = ''
+        if len(annotationLevelForImage) > 0:
+            labelLevelString = ' (annotation level: {})'.format(annotationLevelForImage)
+            
         images_html.append({
             'filename': '{}/{}'.format('rendered_images', file_name),
-            'title': '{}<br/>{}, number of boxes: {}, class labels: {}'.format(img_relative_path,img_id, len(bboxes), imageClasses),
+            'title': '{}<br/>{}, number of boxes: {}, class labels: {}{}'.format(img_relative_path,img_id, len(bboxes), imageClasses, labelLevelString),
             'textStyle': 'font-family:verdana,arial,calibri;font-size:80%;text-align:left;margin-top:20;margin-bottom:5'
         })
     
@@ -188,7 +209,7 @@ def processImages(bbox_db_path,output_dir,image_base_dir,options=None):
 
     print('Visualized {} images, wrote results to {}'.format(len(images_html),htmlOutputFile))
     
-    return images_html
+    return htmlOutputFile
 
 # def processImages(...)
     
@@ -202,24 +223,24 @@ def argsToObject(args, obj):
     
     for n, v in inspect.getmembers(args):
         if not n.startswith('_'):
-            setattr(obj, n, v);
+            setattr(obj, n, v)
 
 
 def main():
     
     parser = argparse.ArgumentParser()
-    parser.add_argument('--bbox_db_path', action='store', type=str, 
+    parser.add_argument('bbox_db_path', action='store', type=str, 
                         help='.json file to visualize')
-    parser.add_argument('--output_dir', action='store', type=str, 
+    parser.add_argument('output_dir', action='store', type=str, 
                         help='Output directory for html and rendered images')
-    parser.add_argument('--image_base_dir', action='store', type=str, 
+    parser.add_argument('image_base_dir', action='store', type=str, 
                         help='Base directory for input images')
 
     parser.add_argument('--num_to_visualize', action='store', type=int, default=None, 
                         help='Number of images to visualize (randomly drawn) (defaults to all)')
-    parser.add_argument('--random_sort', action='store_true', type=bool,
+    parser.add_argument('--random_sort', action='store_true', 
                         help='Sort randomly (rather than by filename) in output html')
-    parser.add_argument('--trim_to_images_with_bboxes', action='store_true', type=bool,
+    parser.add_argument('--trim_to_images_with_bboxes', action='store_true', 
                         help='Only include images with bounding boxes (defaults to false)')
     parser.add_argument('--random_seed', action='store', type=int, default=None,
                         help='Random seed for image selection')
@@ -238,7 +259,7 @@ def main():
     if options.random_sort:
         options.sort_by_filename = False
         
-    processImages(bbox_db_path,output_dir,image_base_dir,options) 
+    processImages(options.bbox_db_path,options.output_dir,options.image_base_dir,options) 
 
 
 if __name__ == '__main__':
@@ -252,12 +273,13 @@ if False:
     
     #%%
     
-    bbox_db_path = r'e:\wildlife_data\missouri_camera_traps\missouri_camera_traps_set2.json'
-    output_dir = r'd:\temp\tmp'
+    bbox_db_path = r'e:\wildlife_data\missouri_camera_traps\missouri_camera_traps_set1.json'
+    output_dir = r'e:\wildlife_data\missouri_camera_traps\preview'
     image_base_dir = r'e:\wildlife_data\missouri_camera_traps'
     
     options = BboxDbVizOptions()
     options.num_to_visualize = 100
     
-    htmlResult = processImages(bbox_db_path,output_dir,image_base_dir,options)
-    
+    htmlOutputFile = processImages(bbox_db_path,output_dir,image_base_dir,options)
+    # os.startfile(htmlOutputFile)
+    #     
