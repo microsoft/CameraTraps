@@ -16,16 +16,15 @@
 
 #%% Imports and environment
 
-import csv
 import os
 import sys
-import json
 import jsonpickle
 import warnings
 import argparse
-import copy
 import inspect
-    
+import pandas as pd
+from detection.detection_eval.load_api_results import load_api_results,write_api_results
+from data_management.annotations import annotation_constants    
 from tqdm import tqdm
 from joblib import Parallel, delayed
 from datetime import datetime
@@ -48,14 +47,7 @@ warnings.filterwarnings("ignore", "(Possibly )?corrupt EXIF data", UserWarning)
 warnings.filterwarnings("ignore", "Metadata warning", UserWarning)
 
 
-#%% Constants
-
-CSV_COL_FILENAME = 0
-CSV_COL_MAXP = 1
-CSV_COL_DETECTIONS = 2
-
-
-#%% Classes
+##%% Classes
 
 class SuspiciousDetectionOptions:
     
@@ -69,18 +61,21 @@ class SuspiciousDetectionOptions:
     confidenceThreshold = 0.85
     
     # What's the IOU threshold for considering two boxes the same?
-    iouThreshold = 0.925
+    iouThreshold = 0.95
     
     # How many occurrences of a single location (as defined by the IOU threshold)
     # are required before we declare it suspicious?
-    occurrenceThreshold = 10
+    occurrenceThreshold = 15
+    
+    # A list of classes we don't want to treat as suspicious
+    excludeClasses = [annotation_constants.bbox_category_name_to_id['person']]
     
     # Set to zero to disable parallelism
     nWorkers = 10 # joblib.cpu_count()
     
     # Ignore "suspicious" detections larger than some size; these are often animals
     # taking up the whole image.  This is expressed as a fraction of the image size.
-    maxSuspiciousDetectionSize = 0.35
+    maxSuspiciousDetectionSize = 0.2
     
     bRenderHtml = False
     
@@ -90,21 +85,25 @@ class SuspiciousDetectionOptions:
     debugMaxRenderInstance = -1
     bParallelizeComparisons = True
     bParallelizeRendering = True
-        
+    
+    bPrintMissingImageWarnings = True    
+    missingImageWarningType = 'once' # 'all'
+    
     # State variables
     pbar = None
 
-    # Constants
-    expectedHeaders = ['image_path','max_confidence','detections']
+    # Replace filename tokens after reading, useful when the directory structure
+    # has changed relative to the structure the detector saw
+    filenameReplacements = {}
     
     
 class SuspiciousDetectionResults:
 
     # The data table, as loaded from the input .csv file 
-    allRows = None
+    detectionResults = None
     
     # The data table after modification
-    allRowsFiltered = None
+    detectionResultsFiltered = None
     
     # dict mapping folder names to whole rows from the data table
     rowsByDirectory = None
@@ -131,7 +130,7 @@ class IndexedDetection:
         self.bbox = bbox
 
     def __repr__(self):
-        s = prettyPrintObject(self,False)
+        s = pretty_print_object(self,False)
         return s
     
     
@@ -146,11 +145,11 @@ class DetectionLocation:
         self.bbox = bbox
     
     def __repr__(self):
-        s = prettyPrintObject(self,False)
+        s = pretty_print_object(self,False)
         return s
     
 
-#%% Helper functions
+##%% Helper functions
 
 def render_bounding_box(bbox,inputFileName,imageOutputFilename,linewidth):  
     
@@ -166,11 +165,11 @@ def render_bounding_box(bbox,inputFileName,imageOutputFilename,linewidth):
     im.save(imageOutputFilename)
     
 
-def prettyPrintObject(obj,bPrint=True):
+def pretty_print_object(obj,bPrint=True):
     '''
     Prints an arbitrary object as .json
     '''    
-    # _ = prettyPrintObject(obj)
+    # _ = pretty_print_object(obj)
                 
     # Sloppy that I'm making a module-wide change here...
     jsonpickle.set_encoder_options('json', sort_keys=True, indent=4)
@@ -183,7 +182,7 @@ def prettyPrintObject(obj,bPrint=True):
 
 imageExtensions = ['.jpg','.jpeg','.gif','.png']
     
-def isImageFile(s):
+def is_image_file(s):
     '''
     Check a file's extension against a hard-coded set of image file extensions    '
     '''
@@ -242,9 +241,9 @@ def get_iou(bb1, bb2):
     return iou
 
 
-#%% Look for matches (one directory) (function)
+##%% Look for matches (one directory) (function)
 
-def findMatchesInDirectory(dirName,options,rowsByDirectory):
+def find_matches_in_directory(dirName,options,rowsByDirectory):
 
     if options.pbar is not None:
         options.pbar.update()
@@ -254,28 +253,30 @@ def findMatchesInDirectory(dirName,options,rowsByDirectory):
     
     rows = rowsByDirectory[dirName]
     
-    # iDirectoryRow = 0; row = rows[iDirectoryRow]
-    for iDirectoryRow,row in enumerate(rows):
+    # iDirectoryRow = 0; row = rows.iloc[iDirectoryRow]
+    for iDirectoryRow,row in rows.iterrows():
     
-        filename = row[CSV_COL_FILENAME]
-        if not isImageFile(filename):
+        filename = row['image_path']
+        if not is_image_file(filename):
             continue
         
         # Don't bother checking images with no detections above threshold
-        maxP = float(row[CSV_COL_MAXP])        
+        maxP = float(row['max_confidence'])        
         if maxP < options.confidenceThreshold:
             continue
         
-        # Array of arrays, where each element is:
+        # Array of arrays, where each element is one of:
         #
         # [ymin, xmin, ymax, xmax, confidence], where (xmin, ymin) is the upper-left            
-        detections = row[CSV_COL_DETECTIONS]
+        # [ymin, xmin, ymax, xmax, confidence, class], where (xmin, ymin) is the upper-left            
+        #
+        detections = row['detections']
         assert len(detections) > 0
         
         # For each detection in this image
         for iDetection,detection in enumerate(detections):
             
-            assert len(detection) == 5
+            assert len(detection) == 5 or len(detection) == 6
             
             # Is this detection too big to be suspicious?
             h = detection[2] - detection[0]
@@ -289,13 +290,19 @@ def findMatchesInDirectory(dirName,options,rowsByDirectory):
                 # print('Ignoring very large detection with area {}'.format(area))
                 continue
         
+            # Optionally exclude some classes from consideration as suspicious
+            if len(options.excludeClasses) > 0 and len(detection) > 5:
+                iClass = detection[5]
+                if iClass in options.excludeClasses:
+                    continue
+                
             confidence = detection[4]
             assert confidence >= 0.0 and confidence <= 1.0
             if confidence < options.confidenceThreshold:
                 continue
             
             instance = IndexedDetection(iDetection,
-                                        row[CSV_COL_FILENAME],detection)
+                                        row['image_path'],detection)
                     
             bFoundSimilarDetection = False
             
@@ -330,12 +337,12 @@ def findMatchesInDirectory(dirName,options,rowsByDirectory):
     
     return candidateDetections
 
-# ...def findMatchesInDirectory(dirName)
+# ...def find_matches_in_directory(dirName)
     
 
-#%% Render problematic locations to html (function)
+##%% Render problematic locations to html (function)
 
-def renderImagesForDirectory(iDir,directoryHtmlFiles,suspiciousDetections,options):
+def render_images_for_directory(iDir,directoryHtmlFiles,suspiciousDetections,options):
     
     nDirs = len(directoryHtmlFiles)
     
@@ -360,13 +367,14 @@ def renderImagesForDirectory(iDir,directoryHtmlFiles,suspiciousDetections,option
     os.makedirs(dirBaseDir,exist_ok=True)
     
     directoryDetectionHtmlFiles = []
-    directoryDetectionExampleImages = []
-    directoryDetectionTitles = []
+    directoryDetectionImageInfo = []
         
     # For each problematic detection in this directory
     #
     # iDetection = 0; detection = suspiciousDetectionsThisDir[iDetection];
     nDetections = len(suspiciousDetectionsThisDir)
+    bPrintedMissingImageWarning = False
+    
     for iDetection,detection in enumerate(suspiciousDetectionsThisDir):
     
         if options.debugMaxRenderDetection > 0 and iDetection > options.debugMaxRenderDetection:
@@ -379,32 +387,36 @@ def renderImagesForDirectory(iDir,directoryHtmlFiles,suspiciousDetections,option
         detectionBaseDir = os.path.join(dirBaseDir,detectionName)
         os.makedirs(detectionBaseDir,exist_ok=True)
         
-        # _ = prettyPrintObject(detection)
+        # _ = pretty_print_object(detection)
         assert(nInstances >= options.occurrenceThreshold)
-                        
-        imageFileNames = []
-        titles = []
+              
+        imageInfo = []
         
         # Render images
         
         # iInstance = 0; instance = detection.instances[iInstance]
         for iInstance,instance in enumerate(detection.instances):
             
-            if options.debugMaxRenderInstance > 9 and iInstance > options.debugMaxRenderInstance:
+            if options.debugMaxRenderInstance > 0 and iInstance > options.debugMaxRenderInstance:
                 break
             
             imageRelativeFilename = 'image{:0>4d}.jpg'.format(iInstance)
             imageOutputFilename = os.path.join(detectionBaseDir,
                                                imageRelativeFilename)
-            imageFileNames.append(imageRelativeFilename)
+            thisImageInfo = {}
+            thisImageInfo['filename'] = imageRelativeFilename
             confidence = instance.bbox[4]
             confidenceStr = '{:.2f}'.format(confidence)
             t = confidenceStr + ' (' + instance.filename + ')'
-            titles.append(t)
+            thisImageInfo['title'] = t
+            imageInfo.append(thisImageInfo)
             
             inputFileName = os.path.join(options.imageBase,instance.filename)
             if not os.path.isfile(inputFileName):
-                print('Warning: could not find file {}'.format(inputFileName))
+                if options.bPrintMissingImageWarnings:
+                    if (options.missingImageWarningType == 'all') or (not bPrintedMissingImageWarning):
+                        print('Warning: could not find file {}'.format(inputFileName))
+                        bPrintedMissingImageWarning = True
             else:
                 # render_bounding_box(instance.bbox,1,None,inputFileName,imageOutputFilename,0,10)
                 render_bounding_box(instance.bbox,inputFileName,imageOutputFilename,15)
@@ -415,38 +427,38 @@ def renderImagesForDirectory(iDir,directoryHtmlFiles,suspiciousDetections,option
         detectionHtmlFile = os.path.join(detectionBaseDir,'index.html')
         
         htmlOptions = write_html_image_list.write_html_image_list()
-        htmlOptions['imageStyle'] = 'max-width:700px;'
-        write_html_image_list.write_html_image_list(detectionHtmlFile, 
-                                                    imageFileNames, titles, htmlOptions)
+        htmlOptions['defaultImageStyle'] = 'max-width:650px;'
+        write_html_image_list.write_html_image_list(detectionHtmlFile, imageInfo, htmlOptions)
 
+        thisDirectoryImageInfo = {}
         directoryDetectionHtmlFiles.append(detectionHtmlFile)
-        directoryDetectionExampleImages.append(os.path.join(detectionName,imageFileNames[0]))
+        thisDirectoryImageInfo['filename'] = os.path.join(detectionName,imageInfo[0]['filename'])
         detectionHtmlFileRelative = os.path.relpath(detectionHtmlFile,dirBaseDir)
         title = '<a href="{}">{}</a>'.format(detectionHtmlFileRelative,detectionName)
-        directoryDetectionTitles.append(title)
-
+        thisDirectoryImageInfo['title'] = title
+        directoryDetectionImageInfo.append(thisDirectoryImageInfo)
+        
     # ...for each detection
         
     # Write the html file for this directory
     directoryHtmlFile = os.path.join(dirBaseDir,'index.html')
     
+    htmlOptions = write_html_image_list.write_html_image_list()
+    htmlOptions['defaultImageStyle'] = 'max-width:650px;'        
     write_html_image_list.write_html_image_list(directoryHtmlFile, 
-                                                    directoryDetectionExampleImages, 
-                                                    directoryDetectionTitles, htmlOptions)    
+                                                    directoryDetectionImageInfo, 
+                                                    htmlOptions)    
     
     return directoryHtmlFile
 
-# ...def renderImagesForDirectory(iDir)
+# ...def render_images_for_directory(iDir)
     
 
-#%% Update the detection table based on suspicious results, write .csv output
+##%% Update the detection table based on suspicious results, write .csv output
     
-def updateDetectionTable(suspiciousDetectionResults,options,outputCsvFilename=None):   
+def update_detection_table(suspiciousDetectionResults,options,outputCsvFilename=None):   
     
-    # Make a copy of the input data (this is really just for debugging, we're
-    # not doing anything further with the input data)
-    allRowsOriginal = suspiciousDetectionResults.allRows
-    allRows = copy.deepcopy(allRowsOriginal)
+    detectionResults = suspiciousDetectionResults.detectionResults
     
     # An array of length nDirs, where each element is a list of DetectionLocation 
     # objects for that directory that have been flagged as suspicious
@@ -472,9 +484,9 @@ def updateDetectionTable(suspiciousDetectionResults,options,outputCsvFilename=No
                 assert iou > options.iouThreshold                
                 
                 assert instance.filename in suspiciousDetectionResults.filenameToRow
-                iRow = suspiciousDetectionResults.filenameToRow[instance.filename]                
-                row = allRows[iRow]
-                rowDetections = row[CSV_COL_DETECTIONS]
+                iRow = suspiciousDetectionResults.filenameToRow[instance.filename]
+                row = detectionResults.iloc[iRow]
+                rowDetections = row['detections']
                 detectionToModify = rowDetections[instance.iDetection]
                 
                 # Make sure the bounding box matches
@@ -490,7 +502,7 @@ def updateDetectionTable(suspiciousDetectionResults,options,outputCsvFilename=No
             
         # ...for each detection
                 
-    # ...for each director        
+    # ...for each directory       
 
     # Update maximum probabilities
     
@@ -499,13 +511,13 @@ def updateDetectionTable(suspiciousDetectionResults,options,outputCsvFilename=No
     nProbChangesToNegative = 0
     nProbChangesAcrossThreshold = 0
     
-    for iRow,row in enumerate(allRows):
+    for iRow,row in detectionResults.iterrows():
         
-        detections = row[CSV_COL_DETECTIONS]
+        detections = row['detections']
         if len(detections) == 0:
             continue
         
-        maxPOriginal = float(row[CSV_COL_MAXP])
+        maxPOriginal = float(row['max_confidence'])
         assert maxPOriginal >= 0
         
         maxP = None
@@ -524,7 +536,8 @@ def updateDetectionTable(suspiciousDetectionResults,options,outputCsvFilename=No
 
             # We should only be making detections *less* likely
             assert maxP < maxPOriginal
-            row[CSV_COL_MAXP] = str(maxP)
+            # row['max_confidence'] = str(maxP)
+            detectionResults.at[iRow,'max_confidence'] = maxP
                     
             nProbChanges += 1
             
@@ -546,96 +559,77 @@ def updateDetectionTable(suspiciousDetectionResults,options,outputCsvFilename=No
          
     if outputCsvFilename is not None:
         
-        print('Writing .csv file')
-        
-        # Write the output .csv
-        with open(outputCsvFilename,'w')  as csvf:
-            
-            # Likely to get read in pandas, don't use '#'
-            # headerString = '#' + ','.join(options.expectedHeaders)
-            headerString = ','.join(options.expectedHeaders)
-            
-            # Write the header
-            csvf.write(headerString + '\n')
-            
-            for iRow,row in enumerate(allRows):
-                csvf.write('"' + row[0] + '",' + row[1] + ',"' + json.dumps(row[2]) + '"\n')
+        write_api_results(detectionResults,outputCsvFilename)
                     
     print('Finished updating detection table\nChanged {} detections that impacted {} maxPs ({} to negative) ({} across confidence threshold)'.format(
             nBboxChanges,nProbChanges,nProbChangesToNegative,nProbChangesAcrossThreshold))        
     
-    return allRows
+    return detectionResults
 
-# ...def updateDetectionTable(suspiciousDetectionResults,options)
+# ...def update_detection_table(suspiciousDetectionResults,options)
         
 
-#%% Main function
+##%% Main function
     
-def findSuspiciousDetections(inputCsvFilename,outputCsvFilename,options=None):
+def find_suspicious_detections(inputCsvFilename,outputCsvFilename,options=None):
     
     ##%% Input handling
     
     if options is None:
+        
         options = SuspiciousDetectionOptions()
 
     toReturn = SuspiciousDetectionResults()
             
+    
     ##%% Load file
-    
-    # Each row is filename, max confidence, bounding box info    
-    allRows = []
-    
-    print('Reading input file {}'.format(inputCsvFilename))
-    
-    with open(inputCsvFilename) as f:
-        reader = csv.reader(f, delimiter=',')
-        iRow = 0
-        for row in reader:
-            iRow += 1
-            assert(len(row) == 3)
-            # Parse the detection info into an array
-            if iRow > 1:
-                row[CSV_COL_DETECTIONS] = json.loads(row[CSV_COL_DETECTIONS])                
-            allRows.append(row)
+
+    detection_results = load_api_results(inputCsvFilename,normalize_paths=True,
+                                 filename_replacements=options.filenameReplacements)
+    toReturn.detectionResults = detection_results
     
     # [ymin, xmin, ymax, xmax, confidence], where (xmin, ymin) is the upper-left
-    
-    # Remove header row
-    headerRow = allRows[0]
-    assert(headerRow == options.expectedHeaders)        
-    allRows = allRows[1:]
-    toReturn.allRows = allRows
-    
-    print('Read {} rows from {}'.format(len(allRows),inputCsvFilename))
 
-
+    
     ##%% Separate files into directories
     
+    # This will be a map from a directory name to smaller data frames
     rowsByDirectory = {}    
+    
+    # This is a mapping back into the rows of the original table
     filenameToRow = {}
     
     print('Separating files into directories...')
     
-    # row = allRows[0]
-    for iRow,row in enumerate(allRows):
+    # iRow = 0; row = detection_results.iloc[0]
+    for iRow,row in detection_results.iterrows():
         
-        relativePath = row[CSV_COL_FILENAME]
+        relativePath = row['image_path']
         dirName = os.path.dirname(relativePath)
         
         if not dirName in rowsByDirectory:
+            # Create a new DataFrame with just this row
+            # rowsByDirectory[dirName] = pd.DataFrame(row)
             rowsByDirectory[dirName] = []
-            
+        
         rowsByDirectory[dirName].append(row)
+            
         assert relativePath not in filenameToRow
         filenameToRow[relativePath] = iRow
         
-    print('Finished separating {} files into {} directories'.format(len(allRows),
+    print('Finished separating {} files into {} directories'.format(len(detection_results),
           len(rowsByDirectory)))
     
+    # Convert lists of rows to proper DataFrames
+    dirs = list(rowsByDirectory.keys())
+    for d in dirs:
+        rowsByDirectory[d] = pd.DataFrame(rowsByDirectory[d])
+        
     toReturn.rowsByDirectory = rowsByDirectory
     toReturn.filenameToRow = filenameToRow    
     
-    ##%% Look for matches
+    
+    # Look for matches
     
     print('Finding similar detections...')
     
@@ -650,14 +644,14 @@ def findSuspiciousDetections(inputCsvFilename,outputCsvFilename,options=None):
         options.pbar = None
         # iDir = 0; dirName = dirsToSearch[iDir]
         for iDir,dirName in enumerate(tqdm(dirsToSearch)):        
-            allCandidateDetections[iDir] = findMatchesInDirectory(dirName,options,rowsByDirectory)
+            allCandidateDetections[iDir] = find_matches_in_directory(dirName,options,rowsByDirectory)
              
     else:
     
         options.pbar = tqdm(total=len(dirsToSearch))
-        allCandidateDetections = Parallel(n_jobs=options.nWorkers,prefer='threads')(delayed(findMatchesInDirectory)(dirName,options,rowsByDirectory) for dirName in tqdm(dirsToSearch))
+        allCandidateDetections = Parallel(n_jobs=options.nWorkers,prefer='threads')(delayed(find_matches_in_directory)(dirName,options,rowsByDirectory) for dirName in tqdm(dirsToSearch))
             
-    print('Finished looking for similar bounding boxes')    
+    print('\nFinished looking for similar bounding boxes')    
     
 
     ##%% Find suspicious locations based on match results
@@ -703,7 +697,7 @@ def findSuspiciousDetections(inputCsvFilename,outputCsvFilename,options=None):
     
     if options.bRenderHtml:
         
-        ##%% Render problematic locations with html (loop)
+        # Render problematic locations with html (loop)
     
         print('Rendering html')
         
@@ -716,7 +710,7 @@ def findSuspiciousDetections(inputCsvFilename,outputCsvFilename,options=None):
             options.pbar = None
             
             directoryHtmlFiles = Parallel(n_jobs=options.nWorkers,prefer='threads')(delayed(
-                    renderImagesForDirectory)(iDir,directoryHtmlFiles,suspiciousDetections,options) for iDir in tqdm(range(nDirs)))
+                    render_images_for_directory)(iDir,directoryHtmlFiles,suspiciousDetections,options) for iDir in tqdm(range(nDirs)))
             
         else:
         
@@ -727,14 +721,14 @@ def findSuspiciousDetections(inputCsvFilename,outputCsvFilename,options=None):
             for iDir in range(nDirs):
                         
                 # Add this directory to the master list of html files
-                directoryHtmlFiles[iDir] = renderImagesForDirectory(iDir,directoryHtmlFiles,suspiciousDetections,options)
+                directoryHtmlFiles[iDir] = render_images_for_directory(iDir,directoryHtmlFiles,suspiciousDetections,options)
             
             # ...for each directory
 
-
-        ##%% Write master html file
+        # Write master html file
             
         masterHtmlFile = os.path.join(options.outputBase,'index.html')   
+        os.makedirs(options.outputBase,exist_ok=True)
         toReturn.masterHtmlFile = masterHtmlFile
         
         with open(masterHtmlFile,'w') as fHtml:
@@ -751,11 +745,11 @@ def findSuspiciousDetections(inputCsvFilename,outputCsvFilename,options=None):
 
     # ...if we're rendering html
     
-    toReturn.allRowsFiltered = updateDetectionTable(toReturn,options,outputCsvFilename)
+    toReturn.allRowsFiltered = update_detection_table(toReturn,options,outputCsvFilename)
     
     return toReturn
 
-# ...findSuspiciousDetections()
+# ...find_suspicious_detections()
 
 
 #%% Interactive driver
@@ -765,30 +759,33 @@ if False:
     #%%     
     
     options = SuspiciousDetectionOptions()
-    options.bRenderHtml = False
-    options.imageBase = r'd:\wildlife_data\tigerblobs'
-    options.outputBase = r'd:\temp\suspiciousDetections'
+    options.bRenderHtml = True
+    options.imageBase = r'e:\wildlife_data\rspb_gola_data\gola_camtrapr_data'
+    options.outputBase = r'e:\wildlife_data\rspb_gola_data\suspicious_detections'
+    options.filenameReplacements = {'gola\\gola_camtrapr_data\\':''}
     
     options.debugMaxDir = -1
     options.debugMaxRenderDir = -1
     options.debugMaxRenderDetection = -1
     options.debugMaxRenderInstance = -1
     
-    inputCsvFilename = r'D:\temp\tigers_20190308_all_output.csv'
+    # inputCsvFilename = r'e:\wildlife_data\rspb_gola_data\RSPB_detections_old_format_mdv3.19.05.09.1612.csv'
+    inputCsvFilename = r'e:\wildlife_data\rspb_gola_data\RSPB_2123_detections.csv'
     outputCsvFilename = matlab_porting_tools.insert_before_extension(inputCsvFilename,
                                                                     'filtered')
     
-    suspiciousDetectionResults = findSuspiciousDetections(inputCsvFilename,
+    suspiciousDetectionResults = find_suspicious_detections(inputCsvFilename,
                                                           outputCsvFilename,options)
     
+#%%
     
-#%% Command-line driver
+##%% Command-line driver
 
 # Copy all fields from a Namespace (i.e., the output from parse_args) to an object.  
 #
 # Skips fields starting with _.  Does not check existence in the target object.
-def argsToObject(args, obj):
-    
+def args_to_object(args, obj):
+
     for n, v in inspect.getmembers(args):
         if not n.startswith('_'):
             setattr(obj, n, v);
@@ -838,9 +835,9 @@ def main():
     
     # Convert to an options object
     options = SuspiciousDetectionOptions()
-    argsToObject(args,options)
+    args_to_object(args,options)
     
-    findSuspiciousDetections(args.inputFile,args.outputFile,options)
+    find_suspicious_detections(args.inputFile,args.outputFile,options)
 
 if __name__ == '__main__':
     
