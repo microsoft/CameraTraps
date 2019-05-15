@@ -165,11 +165,14 @@ print(list(coco.imgs.items())[0])
 print('The corresponding category annoation:')
 print(coco.imgToAnns[list(coco.imgs.items())[0][0]])
 locations = set([ann[SPLIT_BY] for ann in coco.imgs.values()])
-test_locations = sorted(random.sample(locations, max(1, int(TEST_FRACTION * len(locations)))))
+test_locations = sorted(random.sample(sorted(locations), max(1, int(TEST_FRACTION * len(locations)))))
 training_locations = sorted(list(set(locations) - set(test_locations)))
 print('{} locations in total, {} will be used for training, {} for testing'.format(len(locations), 
                                                                                    len(training_locations),
                                                                                    len(test_locations)))
+print('Training uses locations ', sorted(training_locations))
+print('Testing uses locations ', sorted(test_locations))
+
 # Load detections
 if DETECTION_INPUT:
   print('Loading existing detections from ' + DETECTION_INPUT)
@@ -349,7 +352,11 @@ with graph.as_default():
             except FileNotFoundError:
               continue
           else:
-              cropped_img = np.array(Image.open(out_file))
+              # if COCO_OUTPUT_DIR is set, then we will only use the shape
+              # of cropped_img in the following code. So instead of reading 
+              # cropped_img = np.array(Image.open(out_file))
+              # we can speed everything up by reading only the size of the image
+              cropped_img = np.zeros((3,) + Image.open(out_file).size).T
         else:
           out_file = TMP_IMAGE
           try:
