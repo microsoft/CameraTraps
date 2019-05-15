@@ -8,7 +8,7 @@ This tutorial walks through all steps required to train an animal species classi
 ## Requirements
 
 ### Hardware and software
-We will assume that you have a Linux-based (virtual) machine running. It is also highly recommended to use a GPU for accelerating the animals detection and classifier training. The following steps will assume, that you have already set up the NVIDIA drivers and CUDA. 
+We will assume that you have a Linux-based (virtual) machine running. It is also highly recommended to use a GPU for accelerating the animal detection and classifier training. The following steps will assume, that you have already set up the NVIDIA drivers and CUDA. 
 
 Our code was tested with Python 3.6 and uses the libraries [Tensorflow](https://www.tensorflow.org/), [pycocotools](https://github.com/cocodataset/cocoapi/tree/master/PythonAPI), and the [Tensorflow object detection library](https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/installation.md). 
 
@@ -18,7 +18,7 @@ The input to our scripts is a dataset with image-level species labels. Please re
 This tutorial will use the [Snapshot Serengeti](http://lila.science/datasets/snapshot-serengeti) dataset as an example. 
 
 ## Copying data
-First, we will copy the image data from the blob storage to the local machine. All images and the metadata will be placed the the directory `/data/serengeti`. You can run
+First, we will copy the image data from the blob storage to the local machine. All images and the metadata will be placed in the directory `/data/serengeti`. You can run
 
     DATASET_DIR=/data/serengeti
 
@@ -152,7 +152,7 @@ We already have the TFRecords, so we can directly jump to step 2, downloading th
     wget -O inc4.tar.gz http://download.tensorflow.org/models/inception_v4_2016_09_09.tar.gz
     tar xzf inc4.tar.gz 
 
-Now, we continue with the the code modifications. Each dataset requires a separate dataset description file, which is located in 
+Now, we continue with the code modifications. Each dataset requires a separate dataset description file, which is located in 
 `$CAMERATRAPS_DIR/classification/tf-slim/datasets/`. We will create a file for our Serengeti dataset from scratch to explain the procedure:
 
     cd $CAMERATRAPS_DIR/classification/tf-slim/datasets/
@@ -219,15 +219,15 @@ and start the training with
 The training will take several days to complete. It is a two-step training, in which we first train only the last layer of the network. Afterward, all parameters are trained jointly. 
 
 ## Evaluating the classifier
-The sample training scripts will run a evaluation run on the test data after the training finished. This evaluation run can be repeated later as well. We will adapt an existing evaluation script for this purpose. First, switch to the directory containing the sample scripts by executing
+The sample training scripts will run an evaluation run on the test data after the training finished. This evaluation run can be repeated later as well. We will adapt an existing evaluation script for this purpose. First, switch to the directory containing the sample scripts by executing
 
     cd $CAMERATRAPS_DIR/classification
 
-and copy one of the existing script with
+and copy one of the existing scripts with
 
     cp eval_cct_inception_v4.sh eval_serengeti_inception_v4.sh
 
-This scripts needs similar adjustments as the training script created in the previous section. Open the script `eval_serengeti_inception_v4.sh` with a text editor like `vim` by executing
+This script needs similar adjustments as the training script created in the previous section. Open the script `eval_serengeti_inception_v4.sh` with a text editor like `vim` by executing
 
     vim eval_serengeti_inception_v4.sh
 
@@ -301,7 +301,7 @@ We now can predict the category of a new image as follows. First, change to the 
 
     cd $CAMERATRAPS_DIR/classification
 
-This folder contain the script `predict_image.py`, which takes the frozen graph, a list of class names, and an image as input. It will then read the image, pass it to the classification model, and print the five most likely categories. 
+This folder contains the script `predict_image.py`, which takes the frozen graph, a list of class names, and an image as input. It will then read the image, pass it to the classification model, and print the five most likely categories. 
 
 	python predict_image.py \
 	--frozen_graph ${CHECKPOINT_DIR}/frozen_inference_graph.pb \
