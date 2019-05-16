@@ -167,12 +167,13 @@ def processImages(bbox_db_path,output_dir,image_base_dir,options=None):
             categoryName = label_map[categoryID]
             imageCategories.add(categoryName)
             
-            bbox = anno['bbox']        
-            if isinstance(bbox,float):
-                assert math.isnan(bbox), "I shouldn't see a bbox that's neither a box nor NaN"
-                continue
-            bboxes.append(bbox)
-            boxClasses.append(anno['category_id'])
+            if 'bbox' in anno:
+                bbox = anno['bbox']        
+                if isinstance(bbox,float):
+                    assert math.isnan(bbox), "I shouldn't see a bbox that's neither a box nor NaN"
+                    continue
+                bboxes.append(bbox)
+                boxClasses.append(anno['category_id'])
         
         imageClasses = ', '.join(imageCategories)
         
