@@ -28,7 +28,7 @@ def print_locations(json_file):
     with open(json_file, 'rt') as fi:
         js = json.load(fi)
     print('Locations used: ')
-    print(sorted(list(set([coco.loadImgs(['/'.join(im['file_name'].split('/')[1:])[:-4]])[0][LOCATION_KEY] for im in js['images']]))))
+    print(sorted(list(set([coco.loadImgs([im['original_key']])[0][LOCATION_KEY] for im in js['images']]))))
     #js_keys = ['/'.join(im['file_name'].split('/')[1:])[:-4] for im in js['images']]
     #for tk in js_keys:
     #    assert np.isclose(1, np.sum(detections[tk]['detection_scores'] > 0.5))
