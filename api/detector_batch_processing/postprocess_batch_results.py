@@ -615,29 +615,15 @@ if False:
     
     #%%
     
-    baseDir = r'e:\wildlife_data\rspb_gola_data'
+    baseDir = r'D:\wildlife_data\awc'
     options = PostProcessingOptions()
-    options.image_base_dir = os.path.join(baseDir,'gola_camtrapr_data')
-    options.detector_output_filename_replacements = {'gola\\gola_camtrapr_data\\':''}
-    # options.detector_output_file = os.path.join(baseDir,'RSPB_2123_detections.csv')
-    options.detector_output_file = os.path.join(baseDir,'RSPB_2123_detections.filtered.csv')
+    options.image_base_dir = baseDir
+    options.output_dir = os.path.join(baseDir,'postprocessing')
+    options.detector_output_filename_replacements = {'20190430cameratraps\\':''} # {'gola\\gola_camtrapr_data\\':''}
+    # options.detector_output_file = os.path.join(baseDir,'awc_4712_detections.csv')
+    options.detector_output_file = os.path.join(baseDir,'awc_4712_detections.filtered.csv')
+    options.ground_truth_json_file = os.path.join(baseDir,'awc_imageinfo.json')
         
-    # Using original, semi-coherent ground truth from metadata
-    if False:
-        options.ground_truth_json_file = os.path.join(baseDir,'rspb_20190409.json')
-        options.output_dir = os.path.join(baseDir,'postprocessing_output')
-
-    # Using iMerit labels as ground truth (all)
-    if True:
-        options.ground_truth_json_file = os.path.join(baseDir,'rspb_20190409_presence.json')
-        # options.output_dir = os.path.join(baseDir,'postprocessing_output_mdv3_presence_verified_filtered')
-        options.output_dir = os.path.join(baseDir,'postprocessing_output_merge_test')
-    
-    # Using iMerit labels as ground truth (val)
-    if False:
-        options.ground_truth_json_file = os.path.join(baseDir,'rspb_20190409_presence_val.json')
-        options.output_dir = os.path.join(baseDir,'postprocessing_output_mdv3_presence_verified_val_filtered')
-    
     process_batch_results(options)        
 
 
