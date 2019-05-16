@@ -24,7 +24,6 @@ import argparse
 import inspect
 import pandas as pd
 from detection.detection_eval.load_api_results import load_api_results,write_api_results
-from data_management.annotations import annotation_constants    
 from tqdm import tqdm
 from joblib import Parallel, delayed
 from datetime import datetime
@@ -58,7 +57,10 @@ class SuspiciousDetectionOptions:
     outputBase = ''
     
     # Don't consider detections with confidence lower than this as suspicious
-    confidenceThreshold = 0.85
+    confidenceMin = 0.85
+    
+    # Don't consider detections with confidence higher than this as suspicious
+    confidenceMax = 0.95
     
     # What's the IOU threshold for considering two boxes the same?
     iouThreshold = 0.95
@@ -67,15 +69,15 @@ class SuspiciousDetectionOptions:
     # are required before we declare it suspicious?
     occurrenceThreshold = 15
     
-    # A list of classes we don't want to treat as suspicious
-    excludeClasses = [annotation_constants.bbox_category_name_to_id['person']]
-    
-    # Set to zero to disable parallelism
-    nWorkers = 10 # joblib.cpu_count()
-    
     # Ignore "suspicious" detections larger than some size; these are often animals
     # taking up the whole image.  This is expressed as a fraction of the image size.
     maxSuspiciousDetectionSize = 0.2
+    
+    # A list of classes we don't want to treat as suspicious
+    excludeClasses = [] # [annotation_constants.bbox_category_name_to_id['person']]
+    
+    # Set to zero to disable parallelism
+    nWorkers = 10 # joblib.cpu_count()
     
     bRenderHtml = False
     
@@ -262,7 +264,7 @@ def find_matches_in_directory(dirName,options,rowsByDirectory):
         
         # Don't bother checking images with no detections above threshold
         maxP = float(row['max_confidence'])        
-        if maxP < options.confidenceThreshold:
+        if maxP < options.confidenceMin:
             continue
         
         # Array of arrays, where each element is one of:
@@ -298,7 +300,9 @@ def find_matches_in_directory(dirName,options,rowsByDirectory):
                 
             confidence = detection[4]
             assert confidence >= 0.0 and confidence <= 1.0
-            if confidence < options.confidenceThreshold:
+            if confidence < options.confidenceMin:
+                continue
+            if confidence >= options.confidenceMax:
                 continue
             
             instance = IndexedDetection(iDetection,
@@ -418,7 +422,6 @@ def render_images_for_directory(iDir,directoryHtmlFiles,suspiciousDetections,opt
                         print('Warning: could not find file {}'.format(inputFileName))
                         bPrintedMissingImageWarning = True
             else:
-                # render_bounding_box(instance.bbox,1,None,inputFileName,imageOutputFilename,0,10)
                 render_bounding_box(instance.bbox,inputFileName,imageOutputFilename,15)
                 
         # ...for each instance
@@ -545,7 +548,7 @@ def update_detection_table(suspiciousDetectionResults,options,outputCsvFilename=
                 
                 nProbChangesToNegative += 1
             
-            if maxPOriginal >= options.confidenceThreshold and maxP < options.confidenceThreshold:
+            if maxPOriginal >= options.confidenceMin and maxP < options.confidenceMin:
                 
                 nProbChangesAcrossThreshold += 1
             
@@ -760,17 +763,22 @@ if False:
     
     options = SuspiciousDetectionOptions()
     options.bRenderHtml = True
-    options.imageBase = r'e:\wildlife_data\rspb_gola_data\gola_camtrapr_data'
-    options.outputBase = r'e:\wildlife_data\rspb_gola_data\suspicious_detections'
-    options.filenameReplacements = {'gola\\gola_camtrapr_data\\':''}
+    options.imageBase = r'D:\wildlife_data\awc'
+    options.outputBase = r'D:\wildlife_data\awc\suspicious_detections'
+    options.filenameReplacements = {'20190430cameratraps\\':''}
+    
+    options.confidenceMin = 0.85
+    options.confidenceMax = 0.99
+    options.iouThreshold = 0.95
+    options.occurrenceThreshold = 10
+    options.maxSuspiciousDetectionSize = 0.2
     
     options.debugMaxDir = -1
     options.debugMaxRenderDir = -1
     options.debugMaxRenderDetection = -1
     options.debugMaxRenderInstance = -1
     
-    # inputCsvFilename = r'e:\wildlife_data\rspb_gola_data\RSPB_detections_old_format_mdv3.19.05.09.1612.csv'
-    inputCsvFilename = r'e:\wildlife_data\rspb_gola_data\RSPB_2123_detections.csv'
+    inputCsvFilename = r'D:\wildlife_data\awc\awc_4712_detections.csv'
     outputCsvFilename = matlab_porting_tools.insert_before_extension(inputCsvFilename,
                                                                     'filtered')
     
@@ -808,7 +816,7 @@ def main():
                         help='Image base dir, only relevant if renderHtml is True')
     parser.add_argument('--outputBase', action='store', type=str, 
                         help='Html output dir, only relevant if renderHtml is True')
-    parser.add_argument('--confidenceThreshold',action="store", type=float, default=0.85, 
+    parser.add_argument('--confidenceMin',action="store", type=float, default=0.85, 
                         help='Detection confidence threshold; don\'t process anything below this')
     parser.add_argument('--occurrenceThreshold',action="store", type=int, default=10, 
                         help='More than this many near-identical detections in a group (e.g. a folder) is considered suspicious')
