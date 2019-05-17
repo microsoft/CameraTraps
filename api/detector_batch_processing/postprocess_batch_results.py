@@ -75,6 +75,9 @@ class PostProcessingOptions:
     # Number of images to sample, -1 for "all images"
     num_images_to_sample = 500 # -1
     
+    # Random seed for sampling, or None
+    sample_seed = 0 # None
+    
     viz_target_width = 800
     
     sort_html_by_filename = True
@@ -254,7 +257,7 @@ def prepare_html_subpages(images_html,output_dir,options=None):
     return image_counts
     
 
-##%% Main function
+#%% Main function
     
 def process_batch_results(options):
     
@@ -330,7 +333,7 @@ def process_batch_results(options):
         
     if options.num_images_to_sample > 0 and options.num_images_to_sample < len(detection_results):
         
-        images_to_visualize = images_to_visualize.sample(options.num_images_to_sample)
+        images_to_visualize = images_to_visualize.sample(options.num_images_to_sample, random_state=options.sample_seed)
     
         
     ##%% Fork here depending on whether or not ground truth is available
@@ -402,12 +405,13 @@ def process_batch_results(options):
         # Flatten the confusion matrix
         tn, fp, fn, tp = cm.ravel()
     
-        precision = tp / (tp + fp)
-        recall = tp / (tp + fn)
-        f1 = 2.0 * (precision * recall) / (precision + recall)
+        precision_at_confidence_threshold = tp / (tp + fp)
+        recall_at_confidence_threshold = tp / (tp + fn)
+        f1 = 2.0 * (precision_at_confidence_threshold * recall_at_confidence_threshold) / \
+            (precision_at_confidence_threshold + recall_at_confidence_threshold)
         
         print('At a confidence threshold of {:.2f}, precision={:.2f}, recall={:.2f}, f1={:.2f}'.format(
-                confidence_threshold,precision, recall, f1))
+                confidence_threshold, precision_at_confidence_threshold, recall_at_confidence_threshold, f1))
             
         
         ##%% Render output
@@ -418,6 +422,7 @@ def process_batch_results(options):
     
         # Write precision/recall plot to .png file in output directory
         step_kwargs = ({'step': 'post'})
+        fig = plt.figure()
         plt.step(recalls, precisions, color='b', alpha=0.2,
                  where='post')
         plt.fill_between(recalls, precisions, alpha=0.2, color='b', **step_kwargs)
@@ -432,7 +437,8 @@ def process_batch_results(options):
         pr_figure_relative_filename = 'prec_recall.png'
         pr_figure_filename = os.path.join(output_dir, pr_figure_relative_filename)
         plt.savefig(pr_figure_filename)
-        # plt.show()
+        # plt.show(block=False)
+        plt.close(fig)
             
             
         ##%% Sample true/false positives/negatives and render to html
@@ -524,10 +530,12 @@ def process_batch_results(options):
         <a href="tn.html">True negatives (tn)</a> ({})<br/>
         <a href="fp.html">False positives (fp)</a> ({})<br/>
         <a href="fn.html">False negatives (fn)</a> ({})<br/>
+        <br/><p>At a confidence threshold of {:0.1f}%, precision={:0.2f}, recall={:0.2f}</p>
         <br/><p><strong>Precision/recall summary for all {} images</strong></p><img src="{}"><br/>
         </body></html>""".format(
             count, confidence_threshold * 100,
             image_counts['tp'], image_counts['tn'], image_counts['fp'], image_counts['fn'],
+            confidence_threshold * 100, precision_at_confidence_threshold, recall_at_confidence_threshold,
             len(detection_results),pr_figure_relative_filename
         )
         output_html_file = os.path.join(output_dir, 'index.html')

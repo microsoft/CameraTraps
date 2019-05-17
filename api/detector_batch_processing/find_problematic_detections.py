@@ -823,6 +823,8 @@ def find_suspicious_detections(inputCsvFilename,outputCsvFilename,options=None):
     toReturn.allRowsFiltered = update_detection_table(toReturn,options,outputCsvFilename)
     
     # Create filtering directory
+    print('Creating filtering folder...')
+    
     dateString = datetime.now().strftime('%Y.%m.%d.%H.%M.%S')
     filteringDir = os.path.join(options.outputBase,'filtering_' + dateString)
     os.makedirs(filteringDir,exist_ok=True)
