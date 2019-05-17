@@ -435,6 +435,9 @@ def render_images_for_directory(iDir,directoryHtmlFiles,suspiciousDetections,opt
 
         thisDirectoryImageInfo = {}
         directoryDetectionHtmlFiles.append(detectionHtmlFile)
+        
+        # Use the first image from this detection (arbitrary) as the canonical example
+        # that we'll render for the directory-level page.
         thisDirectoryImageInfo['filename'] = os.path.join(detectionName,imageInfo[0]['filename'])
         detectionHtmlFileRelative = os.path.relpath(detectionHtmlFile,dirBaseDir)
         title = '<a href="{}">{}</a>'.format(detectionHtmlFileRelative,detectionName)
@@ -750,6 +753,57 @@ def find_suspicious_detections(inputCsvFilename,outputCsvFilename,options=None):
     
     toReturn.allRowsFiltered = update_detection_table(toReturn,options,outputCsvFilename)
     
+    #%%
+    
+    class SuspiciousDetectionForFiltering:
+        filename = ''
+        bbox = []
+        relativeDir = ''
+        iDir = -1
+        
+        def __init__(self, filename, bbox, relativeDir, iDir):
+            self.filename = filename
+            self.bbox = bbox
+            self.relativeDir = relativeDir
+            self.iDir = iDir
+        
+    # Create filtering directory
+    filteringDir = os.path.join(options.outputBase,'filtering')
+    os.makedirs(filteringDir,exist_ok=True)
+    
+    detectionRecords = []
+    # iDir = 0; suspiciousDetectionsThisDir = suspiciousDetections[iDir]
+    for iDir,suspiciousDetectionsThisDir in enumerate(suspiciousDetections):
+        
+        # suspiciousDetectionsThisDir is a list of DetectionLocation objects
+        for iDetection,detection in enumerate(suspiciousDetectionsThisDir):
+        
+            bbox = detection.bbox
+            instance = detection.instances[0]
+            relativePath = instance.filename
+            inputFullPath = os.path.join(options.imageBase,relativePath)
+            assert(os.path.isfile(inputFullPath))
+            outputRelativePath = 'dir{:0>4d}_det{:0>4d}.jpg'.format(iDir,iDetection)
+            outputFullPath = os.path.join(filteringDir,outputRelativePath)
+            render_bounding_box(bbox,inputFullPath,outputFullPath,15)
+            
+            relativeDir = dirsToSearch[iDir]
+            d = SuspiciousDetectionForFiltering(outputRelativePath, bbox, relativeDir, iDir)
+            detectionRecords.append(d)
+            
+    # Write out the detection index
+    detectionIndexFileName = os.path.join(filteringDir,'detectionIndex.json')
+    jsonpickle.set_encoder_options('json', sort_keys=True, indent=4)
+    s = jsonpickle.encode(detectionRecords)
+    with open(detectionIndexFileName, 'w') as f:
+        f.write(s)
+        
+    if False:
+        sIn = open(detectionIndexFileName,'r').read()
+        obj = jsonpickle.decode(sIn)
+        
+    #%%
+    
     return toReturn
 
 # ...find_suspicious_detections()
@@ -763,9 +817,9 @@ if False:
     
     options = SuspiciousDetectionOptions()
     options.bRenderHtml = True
-    options.imageBase = r'D:\wildlife_data\awc'
-    options.outputBase = r'D:\wildlife_data\awc\suspicious_detections'
-    options.filenameReplacements = {'20190430cameratraps\\':''}
+    options.imageBase = r'D:\wildlife_data\bh'
+    options.outputBase = r'D:\wildlife_data\bh\suspicious_detections'
+    options.filenameReplacements = {} # {'20190430cameratraps\\':''}    
     
     options.confidenceMin = 0.85
     options.confidenceMax = 0.99
@@ -778,7 +832,7 @@ if False:
     options.debugMaxRenderDetection = -1
     options.debugMaxRenderInstance = -1
     
-    inputCsvFilename = r'D:\wildlife_data\awc\awc_4712_detections.csv'
+    inputCsvFilename = r'D:\wildlife_data\bh\bh_5570_detections.csv'
     outputCsvFilename = matlab_porting_tools.insert_before_extension(inputCsvFilename,
                                                                     'filtered')
     
