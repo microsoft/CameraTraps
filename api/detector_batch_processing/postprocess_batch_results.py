@@ -48,7 +48,7 @@ import visualization.visualization_utils as vis_utils
 from write_html_image_list import write_html_image_list
 
 
-#%% Options
+##%% Options
 
 DEFAULT_NEGATIVE_CLASSES = ['empty']
 DEFAULT_UNKNOWN_CLASSES = ['unknown','unlabeled']
@@ -86,7 +86,7 @@ class PostProcessingOptions:
     ground_truth_filename_replacements = {}
     
     
-#%% Helper classes and functions
+##%% Helper classes and functions
 
 # Flags used to mark images as positive or negative for P/R analysis (according
 # to ground truth and/or detector output)
@@ -254,7 +254,7 @@ def prepare_html_subpages(images_html,output_dir,options=None):
     return image_counts
     
 
-#%% Main function
+##%% Main function
     
 def process_batch_results(options):
     
