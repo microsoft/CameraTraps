@@ -54,7 +54,7 @@ def load_api_results(filename,normalize_paths=True,filename_replacements={}):
             fn = fn.replace(string_to_replace,replacement_string)
             detection_results.at[iRow,'image_path'] = fn
     
-    print('Finished loading and de-serializing API results from {}'.format(filename))    
+    print('Finished loading and de-serializing API results for {} images from {}'.format(len(detection_results),filename))    
     
     return detection_results
 
