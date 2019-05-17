@@ -126,6 +126,8 @@ class SuspiciousDetectionResults:
         
     masterHtmlFile = None
     
+    filterFile = None
+    
     
 class IndexedDetection:
     '''
@@ -852,6 +854,8 @@ def find_suspicious_detections(inputCsvFilename,outputCsvFilename,options=None):
     with open(detectionIndexFileName, 'w') as f:
         f.write(s)
             
+    toReturn.filterFile = detectionIndexFileName
+    
     return toReturn
 
 # ...find_suspicious_detections()

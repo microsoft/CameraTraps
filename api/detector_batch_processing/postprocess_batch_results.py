@@ -228,7 +228,12 @@ def render_bounding_boxes(image_base_dir,image_relative_path,
     
     
 def prepare_html_subpages(images_html,output_dir,options=None):
+    """
+    Write out a series of html image lists, e.g. the fp/tp/fn/tn pages.
     
+    image_html is a dictionary mapping an html page name (e.g. "fp") to a list
+    of image structs friendly to write_html_image_list
+    """
     if options is None:
             options = PostProcessingOptions()
             
@@ -499,11 +504,9 @@ def process_batch_results(options):
             else:
                 res = 'tn'
             
-            display_name = '<b>Result type</b>: {}, <b>Presence</b>: {}, <b>Class</b>: {}, <b>Image</b>: {}'.format(
-                res.upper(),
-                str(gt_presence),
-                gt_class_name,
-                image_relative_path)
+            display_name = '<b>Result type</b>: {}, <b>Presence</b>: {}, <b>Class</b>: {}, <b>Max conf</b>: {:0.2f}%, <b>Image</b>: {}'.format(
+                res.upper(), str(gt_presence), gt_class_name,
+                max_conf * 100, image_relative_path)
     
             rendered_image_html_info = render_bounding_boxes(options.image_base_dir,
                                                              image_relative_path,
@@ -530,8 +533,8 @@ def process_batch_results(options):
         <a href="tn.html">True negatives (tn)</a> ({})<br/>
         <a href="fp.html">False positives (fp)</a> ({})<br/>
         <a href="fn.html">False negatives (fn)</a> ({})<br/>
-        <br/><p>At a confidence threshold of {:0.1f}%, precision={:0.2f}, recall={:0.2f}</p>
-        <br/><p><strong>Precision/recall summary for all {} images</strong></p><img src="{}"><br/>
+        <p>At a confidence threshold of {:0.1f}%, precision={:0.2f}, recall={:0.2f}</p>
+        <p><strong>Precision/recall summary for all {} images</strong></p><img src="{}"><br/>
         </body></html>""".format(
             count, confidence_threshold * 100,
             image_counts['tp'], image_counts['tn'], image_counts['fp'], image_counts['fn'],
