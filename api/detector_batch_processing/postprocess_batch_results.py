@@ -14,11 +14,12 @@
 # Upcoming improvements:
 #
 # * Elimination of "suspicious detections", i.e. detections repeated numerous times with
-#   unrealistically limited movement
+#   unrealistically limited movement... this is implemented, but currently as a step that
+#   runs *before* this script.  See find_problematic_detections.py.
 # 
 # * Support for accessing blob storage directly (currently images are accessed by
 #   file paths, so images in Azure blobs should be accessed by mounting the 
-#   containers)
+#   containers).
 #
 ########
 
@@ -274,11 +275,12 @@ def process_batch_results(options):
     
     if len(options.ground_truth_json_file) > 0:
             
-        ground_truth_indexed_db = IndexedJsonDb(options.ground_truth_json_file,True)
+        ground_truth_indexed_db = IndexedJsonDb(options.ground_truth_json_file,b_normalize_paths=True,
+                                                filename_replacements=options.ground_truth_filename_replacements)
         
         # Mark images in the ground truth as positive or negative
         (nNegative,nPositive,nUnknown,nAmbiguous) = mark_detection_status(ground_truth_indexed_db,
-            options.negative_classes)
+            negative_classes=options.negative_classes,unknown_classes=options.unlabeled_classes)
         print('Finished loading and indexing ground truth: {} negative, {} positive, {} unknown, {} ambiguous'.format(
                 nNegative,nPositive,nUnknown,nAmbiguous))
     
@@ -299,11 +301,9 @@ def process_batch_results(options):
             len(detection_results),nPositives))
     
     
-    ##%% Find suspicious detections
-    
-        
     ##%% If we have ground truth, remove images we can't match to ground truth
     
+    # ground_truth_indexed_db.db['images'][0]
     if ground_truth_indexed_db is not None:
     
         b_match = [False] * len(detection_results)
@@ -615,14 +615,16 @@ if False:
     
     #%%
     
-    baseDir = r'D:\wildlife_data\awc'
+    baseDir = r'D:\wildlife_data\bh'
     options = PostProcessingOptions()
     options.image_base_dir = baseDir
-    options.output_dir = os.path.join(baseDir,'postprocessing')
-    options.detector_output_filename_replacements = {'20190430cameratraps\\':''} # {'gola\\gola_camtrapr_data\\':''}
-    # options.detector_output_file = os.path.join(baseDir,'awc_4712_detections.csv')
-    options.detector_output_file = os.path.join(baseDir,'awc_4712_detections.filtered.csv')
-    options.ground_truth_json_file = os.path.join(baseDir,'awc_imageinfo.json')
+    options.output_dir = os.path.join(baseDir,'postprocessing_filtered')
+    options.detector_output_filename_replacements = {} # {'20190430cameratraps\\':''} 
+    options.ground_truth_filename_replacements = {'\\data\\blob\\':''}
+    # options.detector_output_file = os.path.join(baseDir,'bh_5570_detections.csv')
+    options.detector_output_file = os.path.join(baseDir,'bh_5570_detections.filtered.csv')
+    options.ground_truth_json_file = os.path.join(baseDir,'bh.json')
+    options.unlabeled_classes = ['human']
         
     process_batch_results(options)        
 
