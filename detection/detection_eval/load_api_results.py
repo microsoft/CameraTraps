@@ -18,11 +18,11 @@ headers = ['image_path','max_confidence','detections']
 
 #%% Functions
 
-def load_api_results(filename,normalize_paths=True,filename_replacements={}):
+def load_api_results(filename,normalize_paths=True,filename_replacements={},nrows=None):
     
     print('Loading API results from {}'.format(filename))
     
-    detection_results = pd.read_csv(filename)
+    detection_results = pd.read_csv(filename,nrows=nrows)
     
     print('De-serializing API results from {}'.format(filename))
     
