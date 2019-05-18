@@ -61,6 +61,8 @@ class IndexedJsonDb:
        
         self.db = json.load(open(jsonFilename))
     
+        assert 'images' in self.db, 'Could not find image list in file {}, are you sure this is a COCO camera traps file?'.format(jsonFilename)
+        
         if b_normalize_paths:
             # Normalize paths to simplify comparisons later
             for im in self.db['images']:
