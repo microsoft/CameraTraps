@@ -8,21 +8,40 @@
 
 import json
 import os
+from itertools import compress
 
 
 #%% Main function
 
-def convertJsonToStringList(inputFilename,outputFilename):
+def convertJsonToStringList(inputFilename,outputFilename=None,prepend='',bConfirmExists=False,
+                            bForceForwardSlash=True,imageBase=''):
 
     assert os.path.isfile(inputFilename), '.json file {} does not exist'.format(inputFilename)
-                         
+    if outputFilename is None:
+        outputFilename = inputFilename + '_images.json'
+        
     with open(inputFilename,'r') as f:
         data = json.load(f)
     
     images = data['images']
     
     filenames = [im['file_name'] for im in images]
+    
+    if bConfirmExists:
+        bValid = [False] * len(filenames)
+        for iFile,f in enumerate(filenames):
+            fullPath = os.path.join(imageBase,f)
+            if os.path.isfile(fullPath):
+                bValid[iFile] = True
+        nFilesTotal = len(filenames)
+        filenames = list(compress(filenames, bValid))
+        nFilesValid = len(filenames)
+        print('Marking {} of {} as valid'.format(nFilesValid,nFilesTotal))
 
+    filenames = [prepend + s for s in filenames]
+    if bForceForwardSlash:
+        filenames = [s.replace('\\','/') for s in filenames]
+        
     # json.dump(s,open(outputFilename,'w'))
         
     s =  json.dumps(filenames)    
@@ -55,7 +74,8 @@ if __name__ == '__main__':
 if False:
 
     #%%    
-    inputFilename = r"D:\wildlife_data\mcgill_test\mcgill_test.json"
-    outputFilename = "D:\wildlife_data\mcgill_test\mcgill_test_list.json"
-    convertJsonToStringList(inputFilename,outputFilename)
+    prepend = '20190430cameratraps/'
+    inputFilename = r"D:\wildlife_data\awc\awc_imageinfo.json"
+    outputFilename = r"D:\wildlife_data\awc\awc_image_list.json"
+    convertJsonToStringList(inputFilename,outputFilename,prepend=prepend,bConfirmExists=True,imageBase=r'D:\wildlife_data\awc')
     print('Finished converting {} to {}'.format(inputFilename,outputFilename))
