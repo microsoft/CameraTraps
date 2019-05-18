@@ -135,7 +135,7 @@ def render_db_bounding_boxes(boxes, classes, image, original_size=None,
 
     display_boxes = np.array(display_boxes)
     
-    draw_bounding_boxes_on_image(image, display_boxes, display_strs=display_strs, 
+    draw_bounding_boxes_on_image(image, display_boxes, classes, display_strs=display_strs, 
                                  thickness=thickness)
 
 
