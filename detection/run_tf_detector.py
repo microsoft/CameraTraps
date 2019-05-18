@@ -36,8 +36,9 @@ DEFAULT_CONFIDENCE_THRESHOLD = 0.85
 # Stick this into filenames before the extension for the rendered result
 DETECTION_FILENAME_INSERT = '_detections'
 
-BOX_COLORS = ['r','g','b']
+BOX_COLORS = ['b','g','r']
 DEFAULT_LINE_WIDTH = 10
+SHOW_CONFIDENCE_VALUES = False
 
 
 #%% Core detection functions
@@ -213,7 +214,7 @@ def render_bounding_box(box, score, classLabel, inputFileName, outputFileName=No
 
 
 def render_bounding_boxes(boxes, scores, classes, inputFileNames, outputFileNames=[],
-                          confidenceThreshold=DEFAULT_CONFIDENCE_THRESHOLD,linewidth=2):
+                          confidenceThreshold=DEFAULT_CONFIDENCE_THRESHOLD, linewidth=DEFAULT_LINE_WIDTH):
     """
     Render bounding boxes on the image files specified in [inputFileNames].  
     
@@ -279,13 +280,20 @@ def render_bounding_boxes(boxes, scores, classes, inputFileNames, outputFileName
             # Origin is the upper-left
             iLeft = x
             iBottom = y
-            boxColor = BOX_COLORS[int(classes[iImage][iBox]) % len(BOX_COLORS)]
+            iClass = int(classes[iImage][iBox])
+            
+            boxColor = BOX_COLORS[iClass % len(BOX_COLORS)]
             rect = patches.Rectangle((iLeft,iBottom),w,h,linewidth=linewidth,edgecolor=boxColor,
                                      facecolor='none')
             
             # Add the patch to the Axes
             ax.add_patch(rect)        
-
+            
+            if SHOW_CONFIDENCE_VALUES:
+                pLabel = 'Class {} ({:.2f})'.format(iClass,score)
+                ax.text(iLeft+5,iBottom+5,pLabel,color=boxColor,fontsize=12,
+                        verticalalignment='top',bbox=dict(facecolor='black'))
+            
         # ...for each box
 
         # This is magic goop that removes whitespace around image plots (sort of)        
@@ -329,10 +337,16 @@ def load_and_run_detector(modelFile, imageFileNames, outputDir=None,
     
     outputFullPaths = []
     outputFileNames = {}
+    
     if outputDir is not None:
+        
         os.makedirs(outputDir,exist_ok=True)
+        
         for iFn,fullInputPath in enumerate(imageFileNames):
-            fn = os.path.basename(fullInputPath).lower()
+            
+            fn = os.path.basename(fullInputPath).lower()            
+            name, ext = os.path.splitext(fn)
+            fn = "{}{}{}".format(name,DETECTION_FILENAME_INSERT,ext)
             
             # Since we'll be writing a bunch of files to the same folder, rename
             # as necessary to avoid collisions
@@ -343,6 +357,10 @@ def load_and_run_detector(modelFile, imageFileNames, outputDir=None,
             else:
                 outputFileNames[fn] = 0
             outputFullPaths.append(os.path.join(outputDir,fn))
+    
+        # ...for each file
+        
+    # ...if we're writing files to a directory other than the input directory
     
     plt.ioff()
     
