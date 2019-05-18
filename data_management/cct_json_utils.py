@@ -57,14 +57,21 @@ class IndexedJsonDb:
     filename_to_id = None
     image_id_to_annotations = None
 
-    def __init__(self,jsonFilename,b_normalize_paths=False):
+    def __init__(self,jsonFilename,b_normalize_paths=False,filename_replacements={}):
        
         self.db = json.load(open(jsonFilename))
     
+        assert 'images' in self.db, 'Could not find image list in file {}, are you sure this is a COCO camera traps file?'.format(jsonFilename)
+        
         if b_normalize_paths:
             # Normalize paths to simplify comparisons later
             for im in self.db['images']:
                 im['file_name'] = os.path.normpath(im['file_name'])
+        
+        for s in filename_replacements:
+            r = filename_replacements[s]
+            for im in self.db['images']:
+                im['file_name'] = im['file_name'].replace(s,r)
         
         ### Build useful mappings to facilitate working with the DB
         
