@@ -1,9 +1,9 @@
 import copy
 import io
 import os
-import pickle
 from collections import defaultdict
 from datetime import datetime, timedelta
+import json
 
 import azureml.core
 import pandas as pd
@@ -19,10 +19,9 @@ from azureml.pipeline.core.graph import PipelineParameter
 from azureml.pipeline.steps import PythonScriptStep
 
 import api_config
-from sas_blob_utils import SasBlob
+from .sas_blob_utils import SasBlob
 
 print('Version of AML: {}'.format(azureml.core.__version__))
-
 
 # Service principle authentication for AML
 svc_pr_password = os.environ.get('AZUREML_PASSWORD')
@@ -32,13 +31,32 @@ svc_pr = ServicePrincipalAuthentication(
     svc_pr_password)
 
 
-#%% Utility functions
+# %% Utility functions
+
+def get_utc_time():
+    # return the current UTC time in string format '2019-05-19 08:57:43'
+    return datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+
+
+def get_utc_timestamp():
+    # return current UTC time in succinct format as a string, e.g. '20190519085759'
+    return datetime.utcnow().strftime("%Y%m%d%H%M%S")
+
+
+def get_task_status(request_status, message):
+    return json.dumps({
+        'request_status': request_status,
+        'time': get_utc_time(),
+        'message': message
+    })
+
 
 def check_data_container_sas(sas_uri):
     permissions = SasBlob.get_permissions_from_uri(sas_uri)
     if 'read' not in permissions or 'list' not in permissions:
         return (400, 'input_container_sas provided does not have both read and list permissions.')
     return None
+
 
 def spot_check_blob_paths_exist(paths, container_sas):
     ''' Check that the first blob in paths exists in the container specified in container_sas.
@@ -59,7 +77,7 @@ def spot_check_blob_paths_exist(paths, container_sas):
     return path
 
 
-#%% AML Compute
+# %% AML Compute
 
 class AMLCompute:
     def __init__(self, request_id, input_container_sas, internal_datastore):
@@ -102,7 +120,7 @@ class AMLCompute:
 
             batch_score_step = PythonScriptStep(aml_config['script_name'],
                                                 source_directory=aml_config['source_dir'],
-                                                hash_paths= ['.'],  # include all contents of source_directory
+                                                hash_paths=['.'],  # include all contents of source_directory
                                                 name='batch_scoring',
                                                 arguments=['--job_id', param_job_id,
                                                            '--model_name', aml_config['model_name'],
@@ -125,7 +143,6 @@ class AMLCompute:
         except Exception as e:
             raise RuntimeError('Error in setting up AML Compute resource: {}.'.format(str(e)))
 
-
     def _get_data_references(self, request_id, internal_datastore):
         print('AMLCompute, _get_data_references() called. Request ID: {}'.format(request_id))
         try:
@@ -138,9 +155,9 @@ class AMLCompute:
             internal_account_key = internal_datastore['account_key']
             internal_container_name = internal_datastore['container_name']
             internal_datastore = Datastore.register_azure_blob_container(self.ws, internal_datastore_name,
-                                                                             internal_container_name,
-                                                                             internal_account_name,
-                                                                             account_key=internal_account_key)
+                                                                         internal_container_name,
+                                                                         internal_account_name,
+                                                                         account_key=internal_account_key)
             print('internal_datastore done')
 
             # output_datastore stores the output from score.py in each job, which is another container
@@ -148,9 +165,9 @@ class AMLCompute:
             output_datastore_name = 'output_datastore_{}'.format(request_id)
             output_container_name = api_config.AML_CONTAINER
             output_datastore = Datastore.register_azure_blob_container(self.ws, output_datastore_name,
-                                                                         output_container_name,
-                                                                         internal_account_name,
-                                                                         account_key=internal_account_key)
+                                                                       output_container_name,
+                                                                       internal_account_name,
+                                                                       account_key=internal_account_key)
             print('output_datastore done')
 
         except Exception as e:
@@ -158,8 +175,8 @@ class AMLCompute:
 
         try:
             internal_dir = DataReference(datastore=internal_datastore,
-                                              data_reference_name='internal_dir',
-                                              mode='mount')
+                                         data_reference_name='internal_dir',
+                                         mode='mount')
 
             output_dir = PipelineData('output_{}'.format(request_id),
                                       datastore=output_datastore,
@@ -169,7 +186,6 @@ class AMLCompute:
             raise RuntimeError('Error in creating data references for AML Compute: {}.'.format(str(e)))
 
         return internal_dir, output_dir
-
 
     def submit_jobs(self, request_id, list_jobs, api_task_manager, num_images):
         try:
@@ -202,21 +218,22 @@ class AMLCompute:
                 #     child_run_id = c.id
                 # print('=' * 20)
 
-                #list_jobs_active[job_id]['step_run_id']  = child_run_id  # this is the ID we can identify the output folder with
+                # list_jobs_active[job_id]['step_run_id']  = child_run_id  # this is the ID we can identify the output folder with
 
                 print('Submitted job {}.'.format(job_id))
 
                 if i % api_config.JOB_SUBMISSION_UPDATE_INTERVAL == 0:
-                    api_task_manager.UpdateTaskStatus(request_id,
-                                                      'running - {} images out of total {} submitted for processing.'.format(
-                                                          i * api_config.NUM_IMAGES_PER_JOB, num_images))
+                    api_task_manager.UpdateTaskStatus(request_id, get_task_status('running',
+                                                                                  '{} images out of total {} submitted for processing.'.format(
+                                                                                      i * api_config.NUM_IMAGES_PER_JOB,
+                                                                                      num_images)))
             print('AMLCompute, submit_jobs() finished.')
             return list_jobs_active
         except Exception as e:
             raise RuntimeError('Error in submitting jobs to AML Compute cluster: {}.'.format(str(e)))
 
 
-#%% AML Monitor
+# %% AML Monitor
 
 class AMLMonitor:
     def __init__(self, request_id, list_jobs_submitted):
@@ -301,6 +318,7 @@ class AMLMonitor:
                                                      blob_suffix='.csv')
         detection_results = []
         failures = []
+        num_aggregated = 0
         for blob_path in list_blobs:
             if blob_path.endswith('.csv'):
                 # blob_path is azureml/run_id/output_requestID/out_file_name.csv
@@ -308,9 +326,10 @@ class AMLMonitor:
                 out_file_name = out_file_name[-1]
                 if out_file_name.startswith('detections_request{}_'.format(self.request_id)):
                     detection_results.append(self._download_read_csv(blob_path, 'detections'))
+                    num_aggregated += 1
+                    print('Number of results aggregated: ', num_aggregated)
                 elif out_file_name.startswith('failures_request{}_'.format(self.request_id)):
                     failures.extend(self._download_read_csv(blob_path, 'failures'))
-
         if len(detection_results) < 1:
             raise RuntimeError(('aggregate_results(), at least part of your request has been processed but monitoring '
                                 'thread failed to retrieve the results.'))
