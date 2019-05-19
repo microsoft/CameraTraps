@@ -323,7 +323,7 @@ data['images'] = images
 data['annotations'] = annotations
 data['categories'] = categories
 
-json.dump(data, open(outputJsonFilename,'w'))    
+json.dump(data, open(outputJsonFilename,'w'), indent=4)
 
 print('Finished writing json to {}'.format(outputJsonFilename))
 
