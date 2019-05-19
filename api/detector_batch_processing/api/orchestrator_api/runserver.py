@@ -344,14 +344,22 @@ def _monitor_detections_request(**kwargs):
         print('runserver.py, exception in _monitor_detections_request(): ', str(e))
 
 
-@app.route(api_prefix + '/model_version', methods=['GET'])
-def model_version():
+@app.route(api_prefix + '/default_model_version', methods=['GET'])
+def default_model_version():
     # wrap_sync_endpoint wraps your function within a logging trace.
-    return ai4e_wrapper.wrap_sync_endpoint(_model_version, 'get:model_version')
+    return ai4e_wrapper.wrap_sync_endpoint(_default_model_version, 'get:default_model_version')
+
+def _default_model_version():
+    return api_config.AML_CONFIG['default_model_version']
 
 
-def _model_version():
-    return api_config.MODEL_VERSION
+@app.route(api_prefix + '/supported_model_versions', methods=['GET'])
+def supported_model_versions():
+    # wrap_sync_endpoint wraps your function within a logging trace.
+    return ai4e_wrapper.wrap_sync_endpoint(_supported_model_versions, 'get:supported_model_versions')
+
+def _supported_model_versions():
+    return api_config.SUPPORTED_MODEL_VERSIONS
 
 
 if __name__ == '__main__':
