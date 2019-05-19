@@ -71,7 +71,7 @@ print('Finished checking data, converted {} filename fields, {} category IDs, {}
 
 #%% Write json file
     
-json.dump(data, open(outputJsonFile, 'w'))
+json.dump(data, open(outputJsonFile, 'w'), indent=4)
 
 print('Finished writing output .json to {}'.format(outputJsonFile))
 

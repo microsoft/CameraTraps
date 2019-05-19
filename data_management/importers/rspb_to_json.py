@@ -20,6 +20,7 @@ import humanfriendly
 import PIL
 
 from data_management.databases import sanity_check_json_db
+from visualization import visualize_db
 
 # [location] is an obfuscation
 baseDir = r'e:\wildlife_data\rspb_gola_data'
@@ -309,7 +310,7 @@ json_data['images'] = images
 json_data['annotations'] = annotations
 json_data['categories'] = categories
 json_data['info'] = info
-json.dump(json_data,open(outputFile,'w'))
+json.dump(json_data,open(outputFile,'w'),indent=4)
 
 print('Finished writing .json file with {} images, {} annotations, and {} categories'.format(
         len(images),len(annotations),len(categories)))
@@ -326,6 +327,13 @@ sanity_check_json_db.sanityCheckJsonDb(outputFile, options)
 
 #%% Preview a few images to make sure labels were passed along sensibly
 
+db_path = outputFile
+output_dir = os.path.join(baseDir,'label_preview')
+image_base_dir = imageBaseDir
+options = visualize_db.DbVizOptions()
+options.num_to_visualize = 100
+htmlOutputFile = visualize_db.processImages(db_path,output_dir,image_base_dir,options)
+    
 
 #%% One-time processing step: copy images to a flat directory for annotation
 
