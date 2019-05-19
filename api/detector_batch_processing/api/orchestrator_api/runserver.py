@@ -3,6 +3,7 @@
 # # /ai4e_api_tools has been added to the PYTHONPATH, so we can reference those
 # libraries directly.
 import json
+import logging
 import math
 import os
 import time
@@ -19,6 +20,7 @@ from task_management.api_task import ApiTaskManager
 
 import api_config
 import orchestrator
+from orchestrator import get_task_status
 from sas_blob_utils import SasBlob
 
 print('Creating application')
@@ -53,6 +55,12 @@ internal_datastore = {
 }
 print('Internal storage container {} in account {} is set up.'.format(internal_container, storage_account_name))
 
+# Local logging
+logging.basicConfig(level=logging.DEBUG,
+                    format='{asctime} {levelname} {thread} {module} {funcName} {lineno} {message}',
+                    style='{',
+                    datefmt='%Y-%m-%d %H:%M:%S')
+
 
 @app.route('/', methods=['GET'])
 def health_check():
@@ -60,7 +68,7 @@ def health_check():
 
 
 def _stop_aync(request_id, error_message):
-    api_task_manager.UpdateTaskStatus(request_id, 'failed, error: {}'.format(error_message))
+    api_task_manager.UpdateTaskStatus(request_id, get_task_status('failed', 'Error: {}'.format(error_message)))
     # plus any telemetry to be collected
 
 
@@ -115,10 +123,10 @@ def _request_detections(**kwargs):
         sample_n = int(sample_n) if sample_n else None
 
         request_id = kwargs['request_id']
-        api_task_manager.UpdateTaskStatus(request_id, 'running.')
+        api_task_manager.UpdateTaskStatus(request_id, get_task_status('running', 'Request received.'))
 
         if images_requested_json_sas is None:
-            api_task_manager.UpdateTaskStatus(request_id, 'running - listing all images to process.')
+            api_task_manager.UpdateTaskStatus(request_id, get_task_status('running', 'Listing all images to process.'))
             print('runserver.py, running - listing all images to process.')
 
             # list all images to process
@@ -137,13 +145,16 @@ def _request_detections(**kwargs):
                 len(image_paths)))
 
             if image_path_prefix is not None:
-                image_paths =[i for i in image_paths if str(i).startswith(image_path_prefix)]
-                print('runserver.py, length of image_paths provided by the user, after filtering for image_path_prefix: {}'.format(
-                    len(image_paths)))
+                image_paths = [i for i in image_paths if str(i).startswith(image_path_prefix)]
+                print(
+                    'runserver.py, length of image_paths provided by the user, after filtering for image_path_prefix: {}'.format(
+                        len(image_paths)))
 
             res = orchestrator.spot_check_blob_paths_exist(image_paths, input_container_sas)
             if res is not None:
-                raise LookupError('path {} provided in list of images to process does not exist in the container pointed to by data_container_sas.'.format(res))
+                raise LookupError(
+                    'path {} provided in list of images to process does not exist in the container pointed to by data_container_sas.'.format(
+                        res))
 
         # apply the first_n and sample_n filters
         if first_n is not None:
@@ -153,7 +164,8 @@ def _request_detections(**kwargs):
         if sample_n is not None:
             assert sample_n > 0, 'parameter sample_n is 0.'
             if sample_n > len(image_paths):
-                raise ValueError('parameter sample_n specifies more images than available (after filtering by other provided params).')
+                raise ValueError(
+                    'parameter sample_n specifies more images than available (after filtering by other provided params).')
 
             # we sample by just shuffling the image paths and take the first sample_n images
             print('First path before shuffling:', image_paths[0])
@@ -165,19 +177,24 @@ def _request_detections(**kwargs):
         num_images = len(image_paths)
         print('runserver.py, num_images after applying all filters: {}'.format(num_images))
         if num_images < 1:
-            api_task_manager.UpdateTaskStatus(request_id, 'completed - zero images found in container or in provided list of images after filtering with the provided parameters.')
+            api_task_manager.UpdateTaskStatus(request_id,
+                                              get_task_status('completed',
+                                                              'Zero images found in container or in provided list of images after filtering with the provided parameters.'))
             return
         if num_images > api_config.MAX_NUMBER_IMAGES_ACCEPTED:
             api_task_manager.UpdateTaskStatus(request_id,
-                                              'failed - the number of images ({}) requested for processing exceeds the maximum accepted ({}) in one call.'.format(
-                                                  num_images, api_config.MAX_NUMBER_IMAGES_ACCEPTED))
+                                              get_task_status('failed',
+                                                              'The number of images ({}) requested for processing exceeds the maximum accepted ({}) in one call.'.format(
+                                                                  num_images, api_config.MAX_NUMBER_IMAGES_ACCEPTED)))
             return
 
         image_paths_string = json.dumps(image_paths, indent=2)
         internal_storage_service.create_blob_from_text(internal_container,
                                                        '{}/{}_images.json'.format(request_id, request_id),
                                                        image_paths_string)
-        api_task_manager.UpdateTaskStatus(request_id, 'running - images listed; processing {} images.'.format(num_images))
+        api_task_manager.UpdateTaskStatus(request_id,
+                                          get_task_status('running',
+                                                          'Images listed; processing {} images.'.format(num_images)))
         print('runserver.py, running - images listed; processing {} images.'.format(num_images))
 
         # set up connection to AML Compute and data stores
@@ -192,15 +209,19 @@ def _request_detections(**kwargs):
         for job_index in range(num_jobs):
             begin, end = job_index * num_images_per_job, (job_index + 1) * num_images_per_job
             job_id = 'request{}_jobindex{}_total{}'.format(request_id, job_index, num_jobs)
-            list_jobs[job_id] = { 'begin': begin, 'end': end }
+            list_jobs[job_id] = {'begin': begin, 'end': end}
 
         list_jobs_submitted = aml_compute.submit_jobs(request_id, list_jobs, api_task_manager, num_images)
         api_task_manager.UpdateTaskStatus(request_id,
-                                          'running - all {} images submitted to cluster for processing.'.format(num_images))
+                                          get_task_status('running',
+                                                          'All {} images submitted to cluster for processing.'.format(
+                                                              num_images)))
 
     except Exception as e:
         api_task_manager.UpdateTaskStatus(request_id,
-                                          'failed - an error occurred while processing the request: {}'.format(str(e)))
+                                          get_task_status('failed',
+                                                          'An error occurred while processing the request: {}'.format(
+                                                              e)))
         print('runserver.py, exception in _request_detections: {}'.format(str(e)))
         return  # do not initiate _monitor_detections_request
 
@@ -213,8 +234,10 @@ def _request_detections(**kwargs):
                                          aml_monitor=aml_monitor)
     except Exception as e:
         api_task_manager.UpdateTaskStatus(request_id,
-            'failed - an error occurred when starting the status monitoring process. ' +
-            'The images should be submitted for processing though - please contact us to retrieve your results. Error: {}'.format(str(e)))
+                                          get_task_status('problem', (
+                                              'An error occurred when starting the status monitoring process. '
+                                              'The images should be submitted for processing though - please contact us to retrieve your results. '
+                                              'Error: {}'.format(e))))
         print('runserver.py, exception when starting orchestrator.AMLMonitor: ', str(e))
 
 
@@ -225,6 +248,8 @@ def _monitor_detections_request(**kwargs):
 
         max_num_checks = api_config.MAX_MONITOR_CYCLES
         num_checks = 0
+        num_errors_job_status = 0  # number of errors encountered during aml_monitor.check_job_status()
+        num_errors_aggregation = 0  # number of errors encountered during aml_monitor.aggregate_results()
 
         print('Monitoring thread with _monitor_detections_request started.')
 
@@ -235,8 +260,23 @@ def _monitor_detections_request(**kwargs):
             print('runserver.py, _monitor_detections_request, woke up at {} for check number {}.'.format(
                 datetime.now(), num_checks))
 
-            # check the status of the jobs and end if all jobs finished and results aggregated
-            all_jobs_finished, status_tally = aml_monitor.check_job_status()
+            # check the status of the jobs, with retries
+            try:
+                all_jobs_finished, status_tally = aml_monitor.check_job_status()
+            except Exception as e:
+                num_errors_job_status += 1
+                print(
+                    'runserver.py, _monitor_detections_request, exception in aml_monitor.check_job_status(): {}'.format(
+                        e))
+
+                if num_errors_job_status <= api_config.NUM_RETRIES:
+                    print('Will retry in the next monitoring cycle. Number of errors so far: {}'.format(
+                        num_errors_job_status))
+                    continue
+                else:
+                    print('Number of retries reached for aml_monitor.check_job_status().')
+                    raise e
+
             print('all jobs finished? {}'.format(all_jobs_finished))
             for status, count in status_tally.items():
                 print('status {}, number of jobs = {}'.format(status, count))
@@ -245,37 +285,62 @@ def _monitor_detections_request(**kwargs):
             # need to periodically check the enumerations are what AML returns - not the same as in their doc
             num_finished = status_tally['Finished'] + num_failed
 
-            # all jobs finished, aggregate the results and return the URLs to the output files
+            # if all jobs finished, aggregate the results and return the URLs to the output files
             if all_jobs_finished:
                 api_task_manager.UpdateTaskStatus(request_id,
-                                                  'almost completed - model inference finished, now aggregating results.')
-                output_file_urls = aml_monitor.aggregate_results()
+                                                  get_task_status('almost completed',
+                                                                  'Model inference finished; now aggregating results.'))
+
+                # retrieve and join the output CSVs from each job, with retries
+                try:
+                    output_file_urls = aml_monitor.aggregate_results()
+                except Exception as e:
+                    num_errors_aggregation += 1
+                    print(('runserver.py, _monitor_detections_request, exception in '
+                           'aml_monitor.aggregate_results(): {}').format(e))
+
+                    if num_errors_aggregation <= api_config.NUM_RETRIES:
+                        print('Will retry during the next monitoring wake-up cycle. Number of errors so far: {}'.format(
+                            num_errors_aggregation))
+                        api_task_manager.UpdateTaskStatus(request_id,
+                                                          get_task_status('almost completed',
+                                                                          'All shards finished but results aggregation failed. Will retry in {} minutes.'.format(
+                                                                              api_config.MONITOR_PERIOD_MINUTES)))
+                        continue
+                    else:
+                        print('Number of retries reached for aml_monitor.aggregate_results().')
+                        raise e
+
                 output_file_urls_str = json.dumps(output_file_urls)
-                api_task_manager.UpdateTaskStatus(request_id,
-                          'completed - timestamp {}. Number of failed shards: {}. URLs to output files: {}'.format(
-                              str(datetime.now()), num_failed, output_file_urls_str))
+                api_task_manager.UpdateTaskStatus(request_id, get_task_status('completed',
+                                                                              'Completed at {}. Number of failed shards: {}. URLs to output files: {}'.format(
+                                                                                  orchestrator.get_utc_time(),
+                                                                                  num_failed, output_file_urls_str)))
                 break
 
             # not all jobs are finished, update the status with number of shards finished
-            api_task_manager.UpdateTaskStatus(request_id,
-                          'running - last status check at {}, {} out of {} shards finished processing, {} failed.'.format(
-                              str(datetime.now()), num_finished, aml_monitor.get_total_jobs(), num_failed))
+            api_task_manager.UpdateTaskStatus(request_id, get_task_status('running',
+                                                                          'Last status check at {}, {} out of {} shards finished processing, {} failed.'.format(
+                                                                              orchestrator.get_utc_time(), num_finished,
+                                                                              aml_monitor.get_total_jobs(),
+                                                                              num_failed)))
 
             # not all jobs are finished but the maximum number of checking cycle is reached, stop this thread
             num_checks += 1
             if num_checks >= max_num_checks:
-                api_task_manager.UpdateTaskStatus(request_id,
-                'request unfinished after {} x {} minutes; abandoning the monitoring thread. Please contact us to retrieve any results.'.format(
-                                                      api_config.MAX_MONITOR_CYCLES,
-                                                      api_config.MONITOR_PERIOD_MINUTES
-                                                  ))
+                api_task_manager.UpdateTaskStatus(request_id, get_task_status('problem',
+                                                                              'Request unfinished after {} x {} minutes; abandoning the monitoring thread. Please contact us to retrieve any results.'.format(
+                                                                                  api_config.MAX_MONITOR_CYCLES,
+                                                                                  api_config.MONITOR_PERIOD_MINUTES
+                                                                              )))
                 print('runserver.py, _monitor_detections_request, ending!')
 
                 break
     except Exception as e:
-        api_task_manager.UpdateTaskStatus(request_id,
-            'failed - an error occurred while monitoring the status of this request. ' +
-            'The images should be processing though - please contact us to retrieve your results. Error: {}'.format(str(e)))
+        api_task_manager.UpdateTaskStatus(request_id, get_task_status('problem', (
+            'An error occurred while monitoring the status of this request. '
+            'The images should be processing though - please contact us to retrieve your results. Error: {}'.format(
+                e))))
         print('runserver.py, exception in _monitor_detections_request(): ', str(e))
 
 
@@ -283,6 +348,7 @@ def _monitor_detections_request(**kwargs):
 def model_version():
     # wrap_sync_endpoint wraps your function within a logging trace.
     return ai4e_wrapper.wrap_sync_endpoint(_model_version, 'get:model_version')
+
 
 def _model_version():
     return api_config.MODEL_VERSION
