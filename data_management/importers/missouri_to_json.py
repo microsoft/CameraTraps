@@ -677,7 +677,7 @@ data['info'] = infoSet1
 data['images'] = imagesSet1
 data['annotations'] = annotationsSet1
 data['categories'] = categoriesSet1
-json.dump(data, open(outputJsonFilenameSet1,'w'))    
+json.dump(data, open(outputJsonFilenameSet1,'w'), indent=4)    
 print('Finished writing json to {}'.format(outputJsonFilenameSet1))
 
 data = {}
@@ -685,7 +685,7 @@ data['info'] = infoSet2
 data['images'] = imagesSet2
 data['annotations'] = annotationsSet2
 data['categories'] = categoriesSet2
-json.dump(data, open(outputJsonFilenameSet2,'w'))    
+json.dump(data, open(outputJsonFilenameSet2,'w'), indent=4)
 print('Finished writing json to {}'.format(outputJsonFilenameSet2))
 
 
