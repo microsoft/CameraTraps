@@ -18,7 +18,7 @@ from azureml.pipeline.core.graph import PipelineParameter
 from azureml.pipeline.steps import PythonScriptStep
 
 import api_config
-from sas_blob_utils import SasBlob
+from .sas_blob_utils import SasBlob
 
 print('Version of AML: {}'.format(azureml.core.__version__))
 
@@ -48,7 +48,6 @@ def get_task_status(request_status, message):
         'time': get_utc_time(),
         'message': message
     }
-
 
 def check_data_container_sas(sas_uri):
     permissions = SasBlob.get_permissions_from_uri(sas_uri)
@@ -336,7 +335,6 @@ class AMLMonitor:
                     print('Number of results aggregated: ', num_aggregated)
                 elif out_file_name.startswith('failures_request{}_'.format(self.request_id)):
                     failures.extend(self._download_read_json(blob_path))
-
         print('aggregate_results(), length of all_detections: {}'.format(len(all_detections)))
 
         detection_output_content = {
