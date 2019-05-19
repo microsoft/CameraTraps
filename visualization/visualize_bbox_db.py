@@ -1,9 +1,9 @@
 ########
 #
-# visualize_bbox_db.py
+# visualize_db.py
 # 
-# Outputs an HTML page visualizing bounding boxes on a sample of images in a bbox database
-# in the COCO Camera Traps format
+# Outputs an HTML page visualizing annotations (class labels and/or bounding boxes)
+# on a sample of images in a database in the COCO Camera Traps format
 #
 ########
 
@@ -28,7 +28,7 @@ from write_html_image_list import write_html_image_list
 
 #%% Settings
 
-class BboxDbVizOptions:
+class DbVizOptions:
     
     # Set to None to visualize all images
     num_to_visualize = None
@@ -49,7 +49,7 @@ class BboxDbVizOptions:
 
 # Translate the file name in an image entry in the json database to a path, possibly doing
 # some manipulation of path separators
-def image_file_name_to_path(image_file_name, image_base_dir, pathsep_replacement=''):
+def imageFilenameToPath(image_file_name, image_base_dir, pathsep_replacement=''):
     
     if len(pathsep_replacement) > 0:
         image_file_name = os.path.normpath(image_file_name).replace(os.pathsep,pathsep_replacement)        
@@ -58,25 +58,25 @@ def image_file_name_to_path(image_file_name, image_base_dir, pathsep_replacement
 
 #%% Core functions
 
-def processImages(bbox_db_path,output_dir,image_base_dir,options=None):
+def processImages(db_path,output_dir,image_base_dir,options=None):
     """
     Writes images and html to output_dir to visualize the annotations in the json file
-    bbox_db_path.
+    db_path.
     
     Returns the html filename.
     """    
     
     if options is None:
-        options = BboxDbVizOptions()
+        options = DbVizOptions()
     
     print(options.__dict__)
     
     os.makedirs(os.path.join(output_dir, 'rendered_images'), exist_ok=True)
-    assert(os.path.isfile(bbox_db_path))
+    assert(os.path.isfile(db_path))
     assert(os.path.isdir(image_base_dir))
     
     print('Loading the database...')
-    bbox_db = json.load(open(bbox_db_path))
+    bbox_db = json.load(open(db_path))
     print('...done')
     
     annotations = bbox_db['annotations']
@@ -124,7 +124,7 @@ def processImages(bbox_db_path,output_dir,image_base_dir,options=None):
         
         img_id = df_img.iloc[iImage]['id']
         img_relative_path = df_img.iloc[iImage]['file_name']
-        img_path = os.path.join(image_base_dir, image_file_name_to_path(img_relative_path, image_base_dir))
+        img_path = os.path.join(image_base_dir, imageFilenameToPath(img_relative_path, image_base_dir))
     
         if not os.path.exists(img_path):
             print('Image {} cannot be found'.format(img_path))
@@ -202,7 +202,7 @@ def processImages(bbox_db_path,output_dir,image_base_dir,options=None):
     htmlOutputFile = os.path.join(output_dir, 'index.html')
     
     htmlOptions = options.htmlOptions
-    htmlOptions['headerHtml'] = '<h1>Sample annotations from {}</h1>'.format(bbox_db_path)
+    htmlOptions['headerHtml'] = '<h1>Sample annotations from {}</h1>'.format(db_path)
     write_html_image_list(
             filename=htmlOutputFile,
             images=images_html,
@@ -230,7 +230,7 @@ def argsToObject(args, obj):
 def main():
     
     parser = argparse.ArgumentParser()
-    parser.add_argument('bbox_db_path', action='store', type=str, 
+    parser.add_argument('db_path', action='store', type=str, 
                         help='.json file to visualize')
     parser.add_argument('output_dir', action='store', type=str, 
                         help='Output directory for html and rendered images')
@@ -255,12 +255,12 @@ def main():
     args = parser.parse_args()
     
     # Convert to an options object
-    options = BboxDbVizOptions()
+    options = DbVizOptions()
     argsToObject(args,options)
     if options.random_sort:
         options.sort_by_filename = False
         
-    processImages(options.bbox_db_path,options.output_dir,options.image_base_dir,options) 
+    processImages(options.db_path,options.output_dir,options.image_base_dir,options) 
 
 
 if __name__ == '__main__':
@@ -274,13 +274,13 @@ if False:
     
     #%%
     
-    bbox_db_path = r'e:\wildlife_data\missouri_camera_traps\missouri_camera_traps_set1.json'
+    db_path = r'e:\wildlife_data\missouri_camera_traps\missouri_camera_traps_set1.json'
     output_dir = r'e:\wildlife_data\missouri_camera_traps\preview'
     image_base_dir = r'e:\wildlife_data\missouri_camera_traps'
     
-    options = BboxDbVizOptions()
+    options = DbVizOptions()
     options.num_to_visualize = 100
     
-    htmlOutputFile = processImages(bbox_db_path,output_dir,image_base_dir,options)
+    htmlOutputFile = processImages(db_path,output_dir,image_base_dir,options)
     # os.startfile(htmlOutputFile)
-    #     
+
