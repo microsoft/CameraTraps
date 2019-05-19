@@ -5,16 +5,14 @@ We offer a service for processing a large quantity of camera trap images using o
 
 All references to "container" in this document refer to [Azure Blob Storage](https://azure.microsoft.com/en-us/services/storage/blobs/) containers. 
 
-## Processing time
+## 1. Processing time
 
 It takes about 0.8 seconds per image per machine, and we have at most 16 machines that can process them in parallel. So if no one else is using the service and you'd like to process 1 million images, it will take 1,000,000 * 0.8 / (16 * 60 * 60) = 14 hours. 
 
-The API is still in testing, so we might have to give it a couple of tries - please contact us if you run into issues before retrying to make sure abandoned jobs are not using up resources.
 
+## 2. API
 
-## API
-
-### Endpoints
+### 2.1 Endpoints
 
 The endpoints of this API are available at
 
@@ -34,37 +32,43 @@ with a json body containing input fields defined below. The API will return with
 }
 ```
 
-
 #### `/task`
 Check the status of your request by calling the `/task` endpoint via a GET call, passing in your RequestID:
 
 ```http://URL/v1/camera-trap/detection-batch/task/RequestID```
 
-This returns a json with the field `status`, which starts with `running`, `failed`, `almost completed`, or `completed`, followed by a description of the request's status, an error message, or a stringfied json object with URLs to the 3 output files. 
+This returns a json with the fields `status`, `uuid`, and a few others. The `status` field contains a stringfield json object with the following fields: 
+
+- `request_status`: one of `running`, `failed`, `problem`, `almost completed` and `completed`. The status `failed` indicates that the images have not been submitted to the cluster for processing, and so you can go ahead and call the endpoint again, correcting your inputs according to the message shown. The status `problem` indicates that the images have already been submitted for processing but the API encountered an error while monitoring progress; in this case, *please do not retry*, contact us to retrieve your results so that abandoned jobs are not using up resources. 
+
+- `message`: a longer string describing the request_status and any errors; when the request is completed, the URLs to the output files will also be here (see Outputs section below).
+
+- `time`: timestamp in UTC time.
 
 
-#### `/model_version`
-Check the detector model's version by making a GET call to
+#### `/supported_models`
+Check which versions of the MegaDetector are supported by this API by making a GET call to 
 
-```http://URL/v1/camera-trap/detection-batch/model_version```
-
-to see a string that identifies the model used.
+```http://URL/v1/camera-trap/detection-batch/supported_models```
 
 
 #### Canceling a request
-Not yet supported. Meanwhile, once the shards of images are submitted for processing (status "running - all x images submitted to cluster for processing." has appeared), please do not retry if a subsequent call to the `\task` endpoint indicates that there has been an error. Instead, contact us to retrieve any results (the error message will mention "please contact us" in that case).
+Not yet supported. 
+
+Meanwhile, once the shards of images are submitted for processing, please do not retry if a subsequent call to the `/task` endpoint indicates that there has been a problem. Instead, contact us to retrieve any results. In this case, the `/task` endpoint will return a message object where the `message` field mentions "please contact us", and the `request_status` field is "problem").
 
 
-### Inputs
+### 2.2 Inputs
 
-| Parameter                | Is required | Type | Explanation                                                                                                                          |
-|--------------------------|-------------|-------|-------------------------------------------------------------------------------------------------------------------------------|
-| input_container_sas      | Yes         | string | SAS URL with list and read permissions to the Blob Storage container where the images are stored.                             |
+| Parameter                | Is required | Type | Explanation                 |
+|--------------------------|-------------|-------|----------------------------|
+| input_container_sas      | Yes         | string | SAS URL with list and read permissions to the Blob Storage container where the images are stored. |
 | images_requested_json_sas | No          | string | SAS URL with list and read permissions to a json file in Blob Storage. The json contains a list, where each item (a string) in the list is the full path to an image from the root of the container. An example of the content of this file: `["Season1/Location1/Camera1/image1.jpg", "Season1/Location1/Camera1/image2.jpg"]`.  Only images whose paths are listed here will be processed. |
 | image_path_prefix        | No          | string | Only process images whose full path starts with `image_path_prefix` (case-_sensitive_). Note that any image paths specified in `images_requested_json_sas` will need to be the full path from the root of the container, regardless whether `image_path_prefix` is provided. |
 | first_n                  | No          | int | Only process the first `first_n` images. Order of images is not guaranteed, but is likely to be alphabetical. Set this to a small number to avoid taking time to fully list all images in the blob (about 15 minutes for 1 million images) if you just want to try this API. |
 | sample_n                | No          |int | Randomly select `sample_n` images to process. |
-
+| model_version           | No          |int | Version of the MegaDetector model to use. Default is the most updated stable version. |
+| request_name            | No          |string | A string with no whitespace characters that will be appended to the output file names to help you identify the resulting files. |
 
 - We assume that all images you would like to process in this batch are uploaded to a container in Azure Blob Storage. 
 - Only images with file name ending in '.jpg' or '.jpeg' (case insensitive) will be processed, so please make sure the file names are compliant before you upload them to the container (you cannot rename a blob without copying it entirely once it is in Blob Storage). 
@@ -108,20 +112,22 @@ Click "Create", and the "URL" field on the next screen is the value required for
 ![Screenshot of Azure Storage Explorer used for generating SAS tokens with read and list permissions](./documentation/SAS_screenshot.png)
 
 
-### Outputs
+### 2.3 Outputs
 
-Once your request is submitted and parameters validated, the API divides all images into shards of about 2000 images each, and send them to an Azure Machine Learning compute cluster for processing. Another process will monitor how many shards have been evaluated, checking every 30 minutes, and update the status of the request, which you can check via the `\task` endpoint. 
+Once your request is submitted and parameters validated, the API divides all images into shards of about 2000 images each, and send them to an Azure Machine Learning compute cluster for processing. Another process will monitor how many shards have been evaluated, checking every 30 minutes, and update the status of the request, which you can check via the `/task` endpoint. 
 
-When all shards have finished processing, the status at `\task` will contain a string that can be loaded as a json, with 3 fields each containing an URL to a downloadable file. The string looks like
+When all shards have finished processing, the `status` returned by the `/task` endpoint will have a `message` field containing a string that can be loaded as a json, with 3 fields each containing an URL to a downloadable file. The `message` field looks like
 
 ```
-"completed - timestamp 2019-03-25 01:00:13.990985. Number of failed shards: 0. URLs to output files: {\"detections\": \"https://cameratrap.blob.core.windows.net/async-api-v2/RequestID/RequestID_detections.csv?se=2019-04-08T01%3A00%3A13Z&sp=r&sv=2018-03-28&sr=b&sig=LONG_STRING_1\", \"failed_images\": \"https://cameratrap.blob.core.windows.net/async-api-v2/6171/RequestID_failed_images.csv?se=2019-04-08T01%3A00%3A13Z&sp=r&sv=2018-03-28&sr=b&sig=LONG_STRING_2\", \"images\": \"https://cameratrap.blob.core.windows.net/async-api-v2/RequestID/RequestID_images.json?se=2019-04-08T01%3A00%3A13Z&sp=r&sv=2018-03-28&sr=b&sig=LONG_STRING_3\"}"
+"Completed at 2019-03-25 01:00:13. Number of failed shards: 0. URLs to output files: {\"detections\": \"https://cameratrap.blob.core.windows.net/async-api-v2/RequestID/RequestID_detections.csv?se=2019-04-08T01%3A00%3A13Z&sp=r&sv=2018-03-28&sr=b&sig=LONG_STRING_1\", \"failed_images\": \"https://cameratrap.blob.core.windows.net/async-api-v2/6171/RequestID_failed_images.csv?se=2019-04-08T01%3A00%3A13Z&sp=r&sv=2018-03-28&sr=b&sig=LONG_STRING_2\", \"images\": \"https://cameratrap.blob.core.windows.net/async-api-v2/RequestID/RequestID_images.json?se=2019-04-08T01%3A00%3A13Z&sp=r&sv=2018-03-28&sr=b&sig=LONG_STRING_3\"}"
 ```
  which you can parse to obtain the URLs:
 ```python
 import json
 
-output_files_str = body['status'].split('URLs to output files: ')[1]
+task_status = json.loads(body['status'])
+assert task_status['request_status'] == 'completed'
+output_files_str = task_status['message'].split('URLs to output files: ')[1]
 output_files = json.loads(output_files_str)
 url_to_result = output_files['detections']
 ```
@@ -170,7 +176,7 @@ Note that the `vehicle` class (available in Mega Detector version 4 or later) is
 When the detector model detects no animal (or person or vehicle), the confidence is shown as 0.0 (not confident that there is an object of interest) and the detection column is an empty list.
 
 
-## Post-processing tools
+## 3. Post-processing tools
 
 [postprocess_batch_results.py](postprocess_batch_results.py) provides visualization and accuracy assessment tools for the output of the batch processing API.
 
