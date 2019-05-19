@@ -21,6 +21,4 @@ This API runs the detector on up to 2 million images in one request using [Azure
 
 Upcoming improvements:
 - [ ] Adapt `runserver.py` to use the newest version of the AI4E API Framework
-- [ ] Process a sample of `sample_n` images from all input images
-- [ ] Allow the job status monitoring thread to be re-started
 - [ ] More checks on the input container and image list SAS keys
