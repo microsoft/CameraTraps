@@ -46,10 +46,16 @@ This returns a json with the fields `status`, `uuid`, and a few others. The `sta
 - `time`: timestamp in UTC time.
 
 
-#### `/supported_models`
+#### `/supported_model_versions`
 Check which versions of the MegaDetector are supported by this API by making a GET call to 
 
-```http://URL/v1/camera-trap/detection-batch/supported_models```
+```http://URL/v1/camera-trap/detection-batch/supported_model_versions```
+
+
+#### `/default_model_version`
+Check which versions of the MegaDetector is used by default by making a GET call to
+
+```http://URL/v1/camera-trap/detection-batch/default_model_version```
 
 
 #### Canceling a request
@@ -67,7 +73,7 @@ Meanwhile, once the shards of images are submitted for processing, please do not
 | image_path_prefix        | No          | string | Only process images whose full path starts with `image_path_prefix` (case-_sensitive_). Note that any image paths specified in `images_requested_json_sas` will need to be the full path from the root of the container, regardless whether `image_path_prefix` is provided. |
 | first_n                  | No          | int | Only process the first `first_n` images. Order of images is not guaranteed, but is likely to be alphabetical. Set this to a small number to avoid taking time to fully list all images in the blob (about 15 minutes for 1 million images) if you just want to try this API. |
 | sample_n                | No          |int | Randomly select `sample_n` images to process. |
-| model_version           | No          |int | Version of the MegaDetector model to use. Default is the most updated stable version. |
+| model_version           | No          |string | Version of the MegaDetector model to use. Default is the most updated stable version. |
 | request_name            | No          |string | A string with no whitespace characters that will be appended to the output file names to help you identify the resulting files. |
 
 - We assume that all images you would like to process in this batch are uploaded to a container in Azure Blob Storage. 

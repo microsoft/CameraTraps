@@ -1,5 +1,7 @@
+import json
+
 # version of the detector model in use
-MODEL_VERSION = 'models/object_detection/faster_rcnn_inception_resnet_v2_atrous/megadetector_v3/step_686872'
+SUPPORTED_MODEL_VERSIONS = json.dumps(['2', '3'])
 
 # name of the container in the internal storage account to store user facing files:
 # image list, detection results and failed images list.
@@ -12,7 +14,10 @@ AML_CONTAINER = 'aml-out-2'
 MONITOR_PERIOD_MINUTES = 15
 
 # if this number of times the thread wakes up to check is exceeded, stop the monitoring thread
-MAX_MONITOR_CYCLES = 14 * 48  # 2 weeks, 30-minute interval
+MAX_MONITOR_CYCLES = 4 * 7 * int((60 * 24) / MONITOR_PERIOD_MINUTES)  # 4 weeks
+
+# number of retries in the monitoring thread for getting job status and aggregating results (each counted separately)
+NUM_RETRIES = 2
 
 # lower case; must be tuple for endswith to take as arg
 ACCEPTED_IMAGE_FILE_ENDINGS = ('.jpeg', '.jpg')
@@ -34,7 +39,11 @@ AML_CONFIG = {
     'workspace_name': 'camera_trap_aml_workspace_2',
     'aml_compute_name': 'camera-trap-com',
 
-    'model_name': 'megadetector_v3_tf19',
+    'default_model_version': '3',
+    'models': {
+        '3': 'megadetector_v3_tf19',  # user input model_version : name of model registered with AML
+        '2': 'megadetector_v2'
+    },
 
     'source_dir': '/app/orchestrator_api/aml_scripts',
     'script_name': 'score.py',
