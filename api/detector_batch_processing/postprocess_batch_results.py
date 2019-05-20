@@ -26,26 +26,28 @@
 
 #%% Constants and imports
 
+import argparse
 import inspect
 import os
 import sys
-import argparse
+from enum import IntEnum
+
+import matplotlib
+matplotlib.use('agg')
 import matplotlib.pyplot as plt
 import pandas as pd
-from enum import IntEnum
-from tqdm import tqdm
 from sklearn.metrics import precision_recall_curve, confusion_matrix, average_precision_score
-from detection.detection_eval.load_api_results import load_api_results
-
-# Assumes the cameratraps repo root is on the path
-from data_management.cct_json_utils import CameraTrapJsonUtils
-from data_management.cct_json_utils import IndexedJsonDb
-import visualization.visualization_utils as vis_utils
+from tqdm import tqdm
 
 # Assumes ai4eutils is on the python path
-#
 # https://github.com/Microsoft/ai4eutils
 from write_html_image_list import write_html_image_list
+
+# Assumes the cameratraps repo root is on the path
+import visualization.visualization_utils as vis_utils
+from data_management.cct_json_utils import CameraTrapJsonUtils
+from data_management.cct_json_utils import IndexedJsonDb
+from detection.detection_eval.load_api_results import load_api_results
 
 
 ##%% Options
@@ -281,7 +283,7 @@ def process_batch_results(options):
     
     ground_truth_indexed_db = None
     
-    if len(options.ground_truth_json_file) > 0:
+    if options.ground_truth_json_file and len(options.ground_truth_json_file) > 0:
             
         ground_truth_indexed_db = IndexedJsonDb(options.ground_truth_json_file,b_normalize_paths=True,
                                                 filename_replacements=options.ground_truth_filename_replacements)
@@ -316,7 +318,7 @@ def process_batch_results(options):
     
         b_match = [False] * len(detection_results)
         
-        detector_files = detection_results['image_path'].to_list()
+        detector_files = detection_results['image_path'].tolist()
             
         for iFn,fn in enumerate(detector_files):
             
@@ -327,7 +329,7 @@ def process_batch_results(options):
         print('Confirmed filename matches to ground truth for {} of {} files'.format(sum(b_match),len(detector_files)))
         
         detection_results = detection_results[b_match]
-        detector_files = detection_results['image_path'].to_list()
+        detector_files = detection_results['image_path'].tolist()
         
         print('Trimmed detection results to {} files'.format(len(detector_files)))
         
