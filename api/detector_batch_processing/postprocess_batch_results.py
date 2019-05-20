@@ -283,7 +283,7 @@ def process_batch_results(options):
     
     ground_truth_indexed_db = None
     
-    if len(options.ground_truth_json_file) > 0:
+    if options.ground_truth_json_file and len(options.ground_truth_json_file) > 0:
             
         ground_truth_indexed_db = IndexedJsonDb(options.ground_truth_json_file,b_normalize_paths=True,
                                                 filename_replacements=options.ground_truth_filename_replacements)
