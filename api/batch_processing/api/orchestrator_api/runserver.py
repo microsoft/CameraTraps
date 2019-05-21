@@ -209,7 +209,9 @@ def _request_detections(**kwargs):
 
         image_paths_string = json.dumps(image_paths, indent=1)
         internal_storage_service.create_blob_from_text(internal_container,
-                                                       '{}/{}_images.json'.format(request_id, request_id),
+                                                       '{}/{}_images_{}_{}.json'.format(request_id, request_id,
+                                                                                        request_name,
+                                                                                        request_submission_timestamp),
                                                        image_paths_string)
         # the list of images json does not have request_name or timestamp in the file name so that score.py can locate it
 

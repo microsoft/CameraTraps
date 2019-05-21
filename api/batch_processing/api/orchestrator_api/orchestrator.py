@@ -18,7 +18,7 @@ from azureml.pipeline.core.graph import PipelineParameter
 from azureml.pipeline.steps import PythonScriptStep
 
 import api_config
-from .sas_blob_utils import SasBlob
+from sas_blob_utils import SasBlob
 
 print('Version of AML: {}'.format(azureml.core.__version__))
 
