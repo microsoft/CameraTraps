@@ -73,8 +73,8 @@ Meanwhile, once the shards of images are submitted for processing, please do not
 | image_path_prefix        | No          | string | Only process images whose full path starts with `image_path_prefix` (case-_sensitive_). Note that any image paths specified in `images_requested_json_sas` will need to be the full path from the root of the container, regardless whether `image_path_prefix` is provided. |
 | first_n                  | No          | int | Only process the first `first_n` images. Order of images is not guaranteed, but is likely to be alphabetical. Set this to a small number to avoid taking time to fully list all images in the blob (about 15 minutes for 1 million images) if you just want to try this API. |
 | sample_n                | No          |int | Randomly select `sample_n` images to process. |
-| model_version           | No          |string | Version of the MegaDetector model to use. Default is the most updated stable version. |
-| request_name            | No          |string | A string with no whitespace characters that will be appended to the output file names to help you identify the resulting files. |
+| model_version           | No          |string | Version of the MegaDetector model to use. Default is the most updated stable version (check using the `/default_model_version` endpoint). |
+| request_name            | No          |string | A string (letters, digits, `_`, `-` allowed, max length 32 characters) that will be appended to the output file names to help you identify the resulting files. A timestamp in UTC ("%Y%m%d%H%M%S") of time of submission will be appended to the resulting files automatically. |
 
 - We assume that all images you would like to process in this batch are uploaded to a container in Azure Blob Storage. 
 - Only images with file name ending in '.jpg' or '.jpeg' (case insensitive) will be processed, so please make sure the file names are compliant before you upload them to the container (you cannot rename a blob without copying it entirely once it is in Blob Storage). 
