@@ -3,12 +3,12 @@
 # # /ai4e_api_tools has been added to the PYTHONPATH, so we can reference those
 # libraries directly.
 import json
-import logging
 import math
 import os
 import time
 from datetime import datetime
 from random import shuffle
+import string
 
 from ai4e_app_insights import AppInsights
 from ai4e_app_insights_wrapper import AI4EAppInsights
@@ -22,6 +22,7 @@ import api_config
 import orchestrator
 from orchestrator import get_task_status
 from sas_blob_utils import SasBlob
+
 
 print('Creating application')
 
@@ -54,13 +55,6 @@ internal_datastore = {
     'container_name': internal_container
 }
 print('Internal storage container {} in account {} is set up.'.format(internal_container, storage_account_name))
-
-# Local logging
-logging.basicConfig(level=logging.DEBUG,
-                    format='{asctime} {levelname} {thread} {module} {funcName} {lineno} {message}',
-                    style='{',
-                    datefmt='%Y-%m-%d %H:%M:%S')
-
 
 @app.route('/', methods=['GET'])
 def health_check():
@@ -95,6 +89,22 @@ def request_detections():
     if result is not None:
         return _abort(result[0], result[1])
 
+    # check model_version and request_name params are valid
+    model_version = post_body.get('model_version', None)
+    if model_version is not None and model_version != '':
+        model_version = str(model_version)  # in case an int is specified
+        if model_version not in api_config.SUPPORTED_MODEL_VERSIONS:
+            return _abort(400, 'model_version {} is not supported.'.format(model_version))
+
+    # check request_name has only allowed characters
+    request_name = post_body.get('request_name', '')
+    if request_name != '':
+        if len(request_name) > 32:
+            return _abort(400, 'request_name is longer than 32 characters.')
+        allowed = set(string.ascii_letters + string.digits + '_' + '-')
+        if not set(request_name) <= allowed:
+            return _abort(400, 'request_name contains unallowed characters (only letters, digits, - and _ are allowed).')
+
     # TODO check that the expiry date of input_container_sas is at least a month into the future
 
     # TODO check images_requested_json_sas is a blob not a container
@@ -114,13 +124,25 @@ def _request_detections(**kwargs):
         body = kwargs.get('post_body')
 
         input_container_sas = body['input_container_sas']
+
         images_requested_json_sas = body.get('images_requested_json_sas', None)
+
         image_path_prefix = body.get('image_path_prefix', None)
 
         first_n = body.get('first_n', None)
         first_n = int(first_n) if first_n else None
+
         sample_n = body.get('sample_n', None)
         sample_n = int(sample_n) if sample_n else None
+
+        model_version = body.get('model_version', None)
+        if model_version is None or model_version == '':
+            model_version = api_config.AML_CONFIG['default_model_version']
+        print('runserver.py, model_version to use is {}'.format(model_version))
+
+        # request_name and request_submission_timestamp are for appending to output file names
+        request_name = body.get('request_name', '')
+        request_submission_timestamp = orchestrator.get_utc_timestamp()
 
         request_id = kwargs['request_id']
         api_task_manager.UpdateTaskStatus(request_id, get_task_status('running', 'Request received.'))
@@ -190,7 +212,9 @@ def _request_detections(**kwargs):
 
         image_paths_string = json.dumps(image_paths, indent=2)
         internal_storage_service.create_blob_from_text(internal_container,
-                                                       '{}/{}_images.json'.format(request_id, request_id),
+                                                       '{}/{}_images_{}_{}.json'.format(request_id, request_id,
+                                                                                        request_name,
+                                                                                        request_submission_timestamp),
                                                        image_paths_string)
         api_task_manager.UpdateTaskStatus(request_id,
                                           get_task_status('running',
@@ -226,7 +250,8 @@ def _request_detections(**kwargs):
         return  # do not initiate _monitor_detections_request
 
     try:
-        aml_monitor = orchestrator.AMLMonitor(request_id, list_jobs_submitted)
+        aml_monitor = orchestrator.AMLMonitor(request_id, list_jobs_submitted,
+                                              request_name, request_submission_timestamp)
 
         # start another thread to monitor the jobs and consolidate the results when they finish
         ai4e_wrapper.wrap_async_endpoint(_monitor_detections_request, 'post:_monitor_detections_request',
@@ -359,7 +384,7 @@ def supported_model_versions():
     return ai4e_wrapper.wrap_sync_endpoint(_supported_model_versions, 'get:supported_model_versions')
 
 def _supported_model_versions():
-    return api_config.SUPPORTED_MODEL_VERSIONS
+    return json.dumps(api_config.SUPPORTED_MODEL_VERSIONS)
 
 
 if __name__ == '__main__':
