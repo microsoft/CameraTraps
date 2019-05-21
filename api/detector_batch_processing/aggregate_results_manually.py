@@ -4,8 +4,10 @@
 # aggregate results from each shard using this script, assuming all jobs submitted to AML have finished.
 #
 # Need to have set environment variables STORAGE_ACCOUNT_NAME and STORAGE_ACCOUNT_KEY to those of the
-# storage account backing the API
+# storage account backing the API.
 #
+# May need to change the import statement in api/orchestrator_api/orchestrator.py "from sas_blob_utils import SasBlob"
+# to "from .sas_blob_utils import SasBlob" to not confuse with the module in AI4Eutils
 
 import argparse
 import json
