@@ -19,7 +19,7 @@ from azureml.pipeline.core.graph import PipelineParameter
 from azureml.pipeline.steps import PythonScriptStep
 
 import api_config
-from .sas_blob_utils import SasBlob
+from sas_blob_utils import SasBlob
 
 print('Version of AML: {}'.format(azureml.core.__version__))
 
@@ -236,9 +236,11 @@ class AMLCompute:
 # %% AML Monitor
 
 class AMLMonitor:
-    def __init__(self, request_id, list_jobs_submitted):
+    def __init__(self, request_id, list_jobs_submitted, request_name, request_submission_timestamp):
         self.request_id = request_id
         self.jobs_submitted = list_jobs_submitted
+        self.request_name = request_name  # None if not provided by the user
+        self.request_submission_timestamp = request_submission_timestamp  # str
 
         storage_account_name = os.getenv('STORAGE_ACCOUNT_NAME')
         storage_account_key = os.getenv('STORAGE_ACCOUNT_KEY')
@@ -281,11 +283,15 @@ class AMLMonitor:
     def _generate_urls_for_outputs(self):
         try:
             request_id = self.request_id
+            request_name, request_submission_timestamp = self.request_name, self.request_submission_timestamp
 
             blob_paths = {
-                'detections': '{}/{}_detections.csv'.format(request_id, request_id),
-                'failed_images': '{}/{}_failed_images.csv'.format(request_id, request_id),
-                'images': '{}/{}_images.json'.format(request_id, request_id)
+                'detections': '{}/{}_detections_{}_{}.csv'.format(request_id, request_id,
+                                                                  request_name, request_submission_timestamp),
+                'failed_images': '{}/{}_failed_images_{}_{}.csv'.format(request_id, request_id,
+                                                                        request_name, request_submission_timestamp),
+                'images': '{}/{}_images_{}_{}.json'.format(request_id, request_id,
+                                                           request_name, request_submission_timestamp)
             }
 
             expiry = datetime.utcnow() + timedelta(days=api_config.EXPIRATION_DAYS)
@@ -344,13 +350,15 @@ class AMLMonitor:
         print('aggregate_results(), starts to upload')
         # upload aggregated results to output_store
         self.internal_storage_service.create_blob_from_text(self.internal_container,
-                                                            '{}/{}_detections.csv'.format(
-                                                                self.request_id, self.request_id),
+                                                            '{}/{}_detections_{}_{}.csv'.format(
+                                                                self.request_id, self.request_id,
+                                                                self.request_name, self.request_submission_timestamp),
                                                             all_detections_string, max_connections=4)
         print('aggregate_results(), detections uploaded')
         self.internal_storage_service.create_blob_from_text(self.internal_container,
-                                                            '{}/{}_failed_images.csv'.format(
-                                                                self.request_id, self.request_id),
+                                                            '{}/{}_failed_images_{}_{}.csv'.format(
+                                                                self.request_id, self.request_id,
+                                                                self.request_name, self.request_submission_timestamp),
                                                             failures_text)
         print('aggregate_results(), failures uploaded')
 
