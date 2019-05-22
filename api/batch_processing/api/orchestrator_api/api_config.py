@@ -6,7 +6,7 @@ INTERNAL_CONTAINER = 'async-api-v3-2'
 AML_CONTAINER = 'aml-out-2'
 
 # how often does the checking thread wake up to check if all jobs are done
-MONITOR_PERIOD_MINUTES = 5
+MONITOR_PERIOD_MINUTES = 15
 
 # if this number of times the thread wakes up to check is exceeded, stop the monitoring thread
 MAX_MONITOR_CYCLES = 4 * 7 * int((60 * 24) / MONITOR_PERIOD_MINUTES)  # 4 weeks
