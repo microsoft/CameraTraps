@@ -6,7 +6,6 @@ from datetime import datetime, timedelta
 import json
 
 import azureml.core
-import pandas as pd
 from azure.storage.blob import BlockBlobService, BlobPermissions
 from azureml.core import Workspace, Experiment
 from azureml.core.authentication import ServicePrincipalAuthentication
