@@ -61,11 +61,6 @@ def health_check():
     return 'Health check OK'
 
 
-def _stop_aync(request_id, error_message):
-    api_task_manager.UpdateTaskStatus(request_id, get_task_status('failed', 'Error: {}'.format(error_message)))
-    # plus any telemetry to be collected
-
-
 def _abort(error_code, error_message):
     return make_response(jsonify({'error': error_message}), error_code)
 
@@ -139,7 +134,6 @@ def _request_detections(**kwargs):
         if model_version == '':
             model_version = api_config.AML_CONFIG['default_model_version']
         model_name = api_config.AML_CONFIG['models'][model_version]
-        print('runserver.py, model_version to use is {}, model_name is'.format(model_version, model_name))
 
         # request_name and request_submission_timestamp are for appending to output file names
         request_name = body.get('request_name', '')
@@ -147,6 +141,8 @@ def _request_detections(**kwargs):
 
         request_id = kwargs['request_id']
         api_task_manager.UpdateTaskStatus(request_id, get_task_status('running', 'Request received.'))
+        print(('runserver.py, request_id {}, model_version {}, model_name {}, request_name {}, submission timestamp '
+               'is {}').format(request_id, model_version, model_name, request_name, request_submission_timestamp))
 
         if images_requested_json_sas is None:
             api_task_manager.UpdateTaskStatus(request_id, get_task_status('running', 'Listing all images to process.'))
