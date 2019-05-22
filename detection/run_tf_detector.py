@@ -123,7 +123,7 @@ def generate_detections(detection_graph,images):
             assert isinstance(image,np.ndarray)
 
     elapsed = time.time() - startTime
-    print("Done loading {} files in {}".format(len(images),
+    print("Finished loading {} file(s) in {}".format(len(images),
           humanfriendly.format_timespan(elapsed)))    
     
     boxes = []
@@ -134,7 +134,7 @@ def generate_detections(detection_graph,images):
 
     print('Running detector...')    
     startTime = time.time()
-    firstImageCompleteTime = startTime
+    firstImageCompleteTime = None
     
     with detection_graph.as_default():
         
@@ -168,14 +168,14 @@ def generate_detections(detection_graph,images):
     # ...with detection_graph.as_default()
     
     elapsed = time.time() - startTime
-    firstImageElapsed = firstImageCompleteTime - startTime
-    remainingImagesElapsed = elapsed - firstImageElapsed
-    remainingImagesTimePerImage = remainingImagesElapsed/(nImages-1)
     if nImages == 1:
-        print("Done running detector on {} image in {}".format(len(images),
-          humanfriendly.format_timespan(elapsed)))
+        print("Finished running detector in {}".format(humanfriendly.format_timespan(elapsed)))
     else:
-        print("Done running detector on {} images in {} ({} for the first image, {} for each subsequent image)".format(len(images),
+        firstImageElapsed = firstImageCompleteTime - startTime
+        remainingImagesElapsed = elapsed - firstImageElapsed
+        remainingImagesTimePerImage = remainingImagesElapsed/(nImages-1)
+        
+        print("Finished running detector on {} images in {} ({} for the first image, {} for each subsequent image)".format(len(images),
               humanfriendly.format_timespan(elapsed),
               humanfriendly.format_timespan(firstImageElapsed),
               humanfriendly.format_timespan(remainingImagesTimePerImage)))
