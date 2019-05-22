@@ -165,15 +165,8 @@ url_to_all_images_processed = output_files['images']
 
 ```
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-These URLs are valid for 30 days from the time the request has completed. If you neglected to retrieve them before the links expired, contact us with the RequestID and we can send the results to you. Here are the 3 files to expect:
-=======
 These URLs are valid for 30 days from the time the request has finished. If you neglected to retrieve them before the links expired, contact us with the RequestID and we can send the results to you. Here are the 3 files to expect:
->>>>>>> 073cac4... Modify visualize_detector_output script to use new API output format.
-=======
-These URLs are valid for 30 days from the time the request has completed. If you neglected to retrieve them before the links expired, contact us with the RequestID and we can send the results to you. Here are the 3 files to expect:
->>>>>>> 78a77e5... Update API user guide to reflect new output format.
+
 
 | File name                | Description | 
 |--------------------------|-------------|
@@ -226,7 +219,7 @@ The output of the detector is saved in `requestID_detections_requestName_timesta
                     "bbox": [0.0451, 0.1849, 0.9642, 0.4636]
                 }
             ]
-        }​
+        }
     ]
 }
 ```
