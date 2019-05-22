@@ -335,6 +335,7 @@ class AMLMonitor:
                     print('Number of results aggregated: ', num_aggregated)
                 elif out_file_name.startswith('failures_request{}_'.format(self.request_id)):
                     failures.extend(self._download_read_json(blob_path))
+
         print('aggregate_results(), length of all_detections: {}'.format(len(all_detections)))
 
         detection_output_content = {
