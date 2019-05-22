@@ -1,5 +1,3 @@
-print('score.py, beginning - megadetector_v3')
-
 import argparse
 import io
 import json
@@ -8,12 +6,14 @@ import sys
 from datetime import datetime
 from urllib import parse
 
+import azureml.core
 from azure.storage.blob import BlockBlobService
 from azureml.core.model import Model
 from azureml.core.run import Run
 
 from tf_detector import TFDetector
 
+print('score.py, beginning, using AML version {}'.format(azureml.core.__version__))
 
 class BatchScorer:
 
@@ -140,8 +140,8 @@ if __name__ == '__main__':
     os.makedirs(args.output_dir, exist_ok=True)
     print('score.py, output_dir', args.output_dir)
 
-    # get model from model registry
-    model_path = Model.get_model_path(args.model_name)
+    # get model from model registry; always use version 1 - we don't use AML to manage model versions.
+    model_path = Model.get_model_path(args.model_name, version=1)
 
     print('score.py, model_path', model_path)
 
