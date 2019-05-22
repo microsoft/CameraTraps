@@ -1,8 +1,5 @@
 import json
 
-# version of the detector model in use
-SUPPORTED_MODEL_VERSIONS = json.dumps(['2', '3'])
-
 # name of the container in the internal storage account to store user facing files:
 # image list, detection results and failed images list.
 INTERNAL_CONTAINER = 'async-api-v3-2'
@@ -11,7 +8,7 @@ INTERNAL_CONTAINER = 'async-api-v3-2'
 AML_CONTAINER = 'aml-out-2'
 
 # how often does the checking thread wake up to check if all jobs are done
-MONITOR_PERIOD_MINUTES = 15
+MONITOR_PERIOD_MINUTES = 5
 
 # if this number of times the thread wakes up to check is exceeded, stop the monitoring thread
 MAX_MONITOR_CYCLES = 4 * 7 * int((60 * 24) / MONITOR_PERIOD_MINUTES)  # 4 weeks
@@ -49,7 +46,7 @@ AML_CONFIG = {
     'script_name': 'score.py',
 
     'param_batch_size': 8,
-    'param_detection_threshold': 0.05,
+    'param_detection_threshold': 0.1,  # megadetector v3 tends to have more very low confident detections and issues with NMS
 
     'completed_status': ['Finished', 'Failed', 'Completed'],
 
@@ -58,8 +55,16 @@ AML_CONFIG = {
     'application-id': 'my-application-id'
 }
 
+# version of the detector model in use
+SUPPORTED_MODEL_VERSIONS = sorted([k for k in AML_CONFIG['models']])
+
 # max number of blobs to list in the output blob container
 MAX_BLOBS_IN_OUTPUT_CONTAINER = 1000 * 1000
 
 # URLs to the 3 output files expires after this many days
 EXPIRATION_DAYS = 14
+
+DETECTION_CATEGORIES = {
+    '1': 'animal',
+    '2': 'person'
+}
