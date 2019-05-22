@@ -8,6 +8,10 @@ print('tf_detector.py, tf.test.is_gpu_available:', tf.test.is_gpu_available())
 MIN_DIM = 600
 MAX_DIM = 1024
 
+# Number of decimal places to round to for confidence and bbox coordinates
+CONF_DIGITS = 3
+COORD_DIGITS = 4
+
 
 class TFDetector:
 
@@ -61,10 +65,10 @@ class TFDetector:
         return image.resize((width, height))  # PIL is lazy, so image only loaded here, not in open_image()
 
     @staticmethod
-    def convert_numpy_floats(np_array):
+    def convert_numpy_floats_coords(np_array):
         new = []
         for i in np_array:
-            new.append(float(i))
+            new.append(round(float(i), COORD_DIGITS))
         return new
 
     def _generate_detections_batch(self, images, sess, image_tensor, box_tensor, score_tensor, class_tensor):
@@ -89,13 +93,19 @@ class TFDetector:
             batch_size: mini-bath size to use during inference
             detection_threshold: detection confidence above which to record the detection result
 
-        Returns: list of [[y1, x1, y2, x2, confidence], []], where each item is the detections for an image.
-        If no detection above the detection_threshold is found, the item is an empty list.
+        Returns:
+            detections: list of detection entries with fields
+                'category': str, numerical class label
+                'conf': float rounded to CONF_DIGITS decimal places, score/confidence of the detection
+                'bbox': list of floats rounded to COORD_DIGITS decimal places, relative coordinates [y1, x1, y2, x2]
+            image_ids_completed: list of image_ids that were successfully processed
+            failed_images_during_detection: list of image_ids that failed to process
         """
 
         # number of images should be small - all are loaded at once and a copy of resized version exists at one point
-        # 1000 images are okay on a NC6s_v3
+        # 2000 images are okay on a NC6s_v3
         print('tf_detector.py: generate_detections_batch...')
+
         # group the images into batches; image_batches is a list of lists
         image_batches = [images[i:i + batch_size] for i in range(0, len(images), batch_size)]
         image_id_batches = [image_ids[i:i + batch_size] for i in range(0, len(images), batch_size)]
@@ -123,15 +133,23 @@ class TFDetector:
                         # apply the confidence threshold
                         boxes, scores, classes = b_box[i], b_score[i], b_class[i]
                         detections_cur_image = []  # will be empty for an image with no confident detections
-
+                        max_detection_conf = 0.0
                         for b, s, c in zip(boxes, scores, classes):
                             if s > detection_threshold:
-                                li = TFDetector.convert_numpy_floats(b)
-                                li.append(float(s))
-                                li.append(int(c))
-                                detections_cur_image.append(li)
+                                detection_entry = {
+                                    'category': str(int(c)),  # use string type for the numerical class label, not int
+                                    'conf': round(float(s), CONF_DIGITS),  # cast to float for json serialization
+                                    'bbox': TFDetector.convert_numpy_floats_coords(b)
+                                }
+                                detections_cur_image.append(detection_entry)
+                                if s > max_detection_conf:
+                                    max_detection_conf = s
 
-                        detections.append(detections_cur_image)
+                        detections.append({
+                            'file': image_id,
+                            'max_detection_conf': round(float(max_detection_conf), CONF_DIGITS),
+                            'detections': detections_cur_image
+                        })
                         image_ids_completed.append(image_id)
                 except Exception as e:
                     failed_images_during_detection.extent(image_id_batch)
