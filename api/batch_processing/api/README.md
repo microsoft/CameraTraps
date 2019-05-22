@@ -23,7 +23,7 @@ In `orchestrator_api/api_config.py`, fill out information on the AML workspace a
 
 - replace `INTERNAL_CONTAINER` with the name of the container in the storage account specified in `Dockerfile` (see `STORAGE_ACCOUNT_NAME` above) that you created for storing outputs presented to the user. Replace `AML_CONTAINER` with the name of another container (can be the same container) in that same account for storing sharded outputs of the AML jobs.
 
-- fill out the top six fields in `AML_CONFIG` (up to and including `model_name`) with the ID of the Azure subscription used for the AML instance, region, resource group and workspace name of the AML workspace you created for this deployment, the name of the compute target in that AML workspace, and the name of the model reigstered and uploaded to the workspace. 
+- fill out the top seven fields in `AML_CONFIG` (up to and including `models`) with the ID of the Azure subscription used for the AML instance, region, resource group and workspace name of the AML workspace you created for this deployment, the name of the compute target in that AML workspace, and the name of the model reigstered and uploaded to the workspace. 
 
 - also in the `AML_CONFIG` dict, fill out the `tenant-id` and `application-id`, which is near where `AZUREML_PASSWORD` is found in Azure Portal. They are called "Directory (tenant) ID" and "Application (client) ID" respectively.
 
