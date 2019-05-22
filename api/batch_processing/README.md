@@ -1,9 +1,14 @@
 
 # Detector batch processing API user guide
 
-We offer a service for processing a large quantity of camera trap images using our [MegaDetector](https://github.com/Microsoft/CameraTraps#megadetector) by calling an API, documented here. You can process a batch of up to 2 million images in one request to the API. If in addition you have some images that are labeled, we can evaluate the performance of the MegaDetector on your labeled images (not documented here).
+We offer a service for processing a large quantity of camera trap images using our [MegaDetector](https://github.com/Microsoft/CameraTraps#megadetector) by calling an API, documented here. The output is most helpful for separating empty from non-empty images based on some detector confidence threshold that you select, and putting bounding boxes around animals so that manual review can proceed faster.
+
+You can process a batch of up to 2 million images in one request to the API. If in addition you have some images that are labeled, we can evaluate the performance of the MegaDetector on your labeled images (see [3. Post processing tools](#3-post-processing-tools)).
+
+If you would like to try automating species identification as well, we can train a project-specific classifier based on the output of this detector API and the labels you provide. The species classification predictions will be added to the detector API output json file.
 
 All references to "container" in this document refer to [Azure Blob Storage](https://azure.microsoft.com/en-us/services/storage/blobs/) containers. 
+
 
 ## 1. Processing time
 
@@ -17,51 +22,59 @@ It takes about 0.8 seconds per image per machine, and we have at most 16 machine
 The endpoints of this API are available at
 
 ```
-http://URL/v1/camera-trap/detection-batch
+http://URL/v2/camera-trap/detection-batch
 ```
 
 #### `/request_detections`
 To submit a request for batch processing, make a POST call to
 
-```http://URL/v1/camera-trap/detection-batch/request_detections```.
+```http://URL/v2/camera-trap/detection-batch/request_detections```.
 
-with a json body containing input fields defined below. The API will return with a json response very quickly to give you a RequestID representing the request you have submitted (or an error message, if your inputs are not acceptable), for example:
+with a json body containing input fields defined below. The API will return with a json response very quickly to give you a RequestID representing the request you have submitted, for example:
 ```json
 {
   "request_id": "13H8A43FDE"
 }
 ```
+or an error message, if your inputs are not acceptable:
+```json
+{
+  "error": "error message."
+}
+```
+
 
 #### `/task`
 Check the status of your request by calling the `/task` endpoint via a GET call, passing in your RequestID:
 
-```http://URL/v1/camera-trap/detection-batch/task/RequestID```
+```http://URL/v2/camera-trap/detection-batch/task/RequestID```
 
-This returns a json with the fields `status`, `uuid`, and a few others. The `status` field contains a stringfield json object with the following fields: 
+This returns a json with the fields `status`, `uuid`, and a few others. The `status` field is a json object with the following fields: 
 
-- `request_status`: one of `running`, `failed`, `problem`, and `completed`. The status `failed` indicates that the images have not been submitted to the cluster for processing, and so you can go ahead and call the endpoint again, correcting your inputs according to the message shown. The status `problem` indicates that the images have already been submitted for processing but the API encountered an error while monitoring progress; in this case, *please do not retry*, contact us to retrieve your results so that abandoned jobs are not using up resources. 
+- `request_status`: one of `running`, `failed`, `problem`, and `completed`. 
 
-- `message`: a longer string describing the request_status and any errors; when the request is completed, the URLs to the output files will also be here (see Outputs section below).
+    - The status `failed` indicates that the images have not been submitted to the cluster for processing, and so you can go ahead and call the endpoint again, correcting your inputs according to the message shown. 
+    - The status `problem` indicates that the images have already been submitted for processing but the API encountered an error while monitoring progress; in this case, *please do not retry*; contact us to retrieve your results so that no unnecessary processing would occupy the cluster (`message` field will mention "please contact us").
 
-- `time`: timestamp in UTC time.
+- `message`: a longer string describing the `request_status` and any errors; when the request is completed, the URLs to the output files will also be here (see [Outputs](#23-outputs) section below).
+
+- `time`: timestamp in UTC.
 
 
 #### `/supported_model_versions`
 Check which versions of the MegaDetector are supported by this API by making a GET call to 
 
-```http://URL/v1/camera-trap/detection-batch/supported_model_versions```
+```http://URL/v2/camera-trap/detection-batch/supported_model_versions```
 
 
 #### `/default_model_version`
 Check which versions of the MegaDetector is used by default by making a GET call to
 
-```http://URL/v1/camera-trap/detection-batch/default_model_version```
+```http://URL/v2/camera-trap/detection-batch/default_model_version```
 
 
 #### Canceling a request
-Not yet supported. 
-
-Meanwhile, once the shards of images are submitted for processing, please do not retry if a subsequent call to the `/task` endpoint indicates that there has been a problem. Instead, contact us to retrieve any results. In this case, the `/task` endpoint will return a message object where the `message` field mentions "please contact us", and the `request_status` field is "problem").
+Not yet supported. If you have accidentally submitted a request, please contact us to cancel it.
 
 
 ### 2.2 Inputs
@@ -73,12 +86,11 @@ Meanwhile, once the shards of images are submitted for processing, please do not
 | image_path_prefix        | No          | string | Only process images whose full path starts with `image_path_prefix` (case-_sensitive_). Note that any image paths specified in `images_requested_json_sas` will need to be the full path from the root of the container, regardless whether `image_path_prefix` is provided. |
 | first_n                  | No          | int | Only process the first `first_n` images. Order of images is not guaranteed, but is likely to be alphabetical. Set this to a small number to avoid taking time to fully list all images in the blob (about 15 minutes for 1 million images) if you just want to try this API. |
 | sample_n                | No          |int | Randomly select `sample_n` images to process. |
-| model_version           | No          |string | Version of the MegaDetector model to use. Default is the most updated stable version (check using the `/default_model_version` endpoint). Supported versions can be listed by calling the `/supported_model_versions` endpoint.|
-| request_name            | No          |string | A string (letters, digits, `_`, `-` allowed, max length 32 characters) that will be appended to the output file names to help you identify the resulting files. A timestamp in UTC ("%Y%m%d%H%M%S") of time of submission will be appended to the resulting files automatically. |
+| model_version           | No          |string | Version of the MegaDetector model to use. Default is the most updated stable version (check using the `/default_model_version` endpoint). Supported versions are available at the `/supported_model_versions` endpoint.|
+| request_name            | No          |string | A string (letters, digits, `_`, `-` allowed, max length 32 characters) that will be appended to the output file names to help you identify the resulting files. A timestamp in UTC (`%Y%m%d%H%M%S`) of the time of submission will be appended to the resulting files automatically. |
 
 - We assume that all images you would like to process in this batch are uploaded to a container in Azure Blob Storage. 
 - Only images with file name ending in '.jpg' or '.jpeg' (case insensitive) will be processed, so please make sure the file names are compliant before you upload them to the container (you cannot rename a blob without copying it entirely once it is in Blob Storage). 
-- The path to the images in blob storage cannot contain commas (this would confuse the output CSV).
 
 - By default we process all such images in the specified container. You can choose to only process a subset of them by specifying the other input parameters, and the images will be filtered out accordingly in this order:
     - `images_requested_json_sas`
@@ -93,8 +105,10 @@ Example body of the POST request:
 {
   "input_container_sas": "https://storageaccountname.blob.core.windows.net/container-name?se=2019-04-23T01%3A30%3A00Z&sp=rl&sv=2018-03-28&sr=c&sig=A_LONG_STRING",
   "images_requested_json_sas": "https://storageaccountname2.blob.core.windows.net/container-name2/possibly_in_a_folder/my_list_of_images.json?se=2019-04-19T20%3A31%3A00Z&sp=rl&sv=2018-03-28&sr=b&sig=ANOTHER_LONG_STRING",
-  "image_path_prefix": "Alberta_location1_2019",
-  "first_n": 100000
+  "image_path_prefix": "2019/Alberta_location1",
+  "first_n": 100000,
+  "request_name": "Alberta_l1",
+  "model_version": "3"
 }
 ```
 
@@ -110,7 +124,7 @@ You can easily generate a [SAS token](https://docs.microsoft.com/en-us/azure/sto
 
 Using Storage Explorer, right click on the container or blob you'd like to grant access for, and choose "Get Shared Access Signature...". On the dialogue window that appears, 
 - cross out the "Start time" field if you will be using the SAS token right away
-- set the "Expiry time" to a date in the future, about a month ahead is reasonable. The SAS token needs to be valid for the duration of this the batch processing request. 
+- set the "Expiry time" to a date in the future, about a month ahead is reasonable. The SAS token needs to be valid for the duration of the batch processing request. 
 - make sure "Read" and "List" are checked under "Permissions" (see screenshot) 
 
 Click "Create", and the "URL" field on the next screen is the value required for `input_container_sas` or `images_requested_json_sas`. 
@@ -120,9 +134,9 @@ Click "Create", and the "URL" field on the next screen is the value required for
 
 ### 2.3 Outputs
 
-Once your request is submitted and parameters validated, the API divides all images into shards of about 2000 images each, and send them to an Azure Machine Learning compute cluster for processing. Another process will monitor how many shards have been evaluated, checking every 30 minutes, and update the status of the request, which you can check via the `/task` endpoint. 
+Once your request is submitted and parameters validated, the API divides all images into shards of about 2000 images each, and send them to an Azure Machine Learning Service compute cluster for processing. Another process will monitor how many shards have been evaluated, checking every 15 minutes, and update the status of the request, which you can check via the `/task` endpoint. 
 
-When all shards have finished processing, the `status` returned by the `/task` endpoint will have a `message` field containing a string that can be loaded as a json, with 3 fields each containing an URL to a downloadable file. The `message` field looks like
+When all shards have finished processing, the `status` returned by the `/task` endpoint will have the `request_status` field as `completed`, and the `message` field contain a string that can be loaded as a json with 3 fields, each containing an URL to a downloadable file. The returned body looks like
 
 ```json
 {
@@ -130,13 +144,14 @@ When all shards have finished processing, the `status` returned by the `/task` e
     "status": {
         "request_status": "completed",
         "time": "2019-05-22 00:31:51",
-        "message": "Completed at 2019-05-22 00:31:51. Number of failed shards: 0. URLs to output files: {'detections': 'https://cameratrap.blob.core.windows.net/async-api-v3-2/3821/3821_detections__20190522002119.json?se=2019-06-05T00%3A31%3A51Z&sp=r&sv=2018-03-28&sr=b&sig=hYWcHrnMbZ8EjQ1t4Rmtx0Ay/DZDa%2BsQehBP4/nySko%3D', 'failed_images': 'https://cameratrap.blob.core.windows.net/async-api-v3-2/3821/3821_failed_images__20190522002119.json?se=2019-06-05T00%3A31%3A51Z&sp=r&sv=2018-03-28&sr=b&sig=xwoi9tFD9pKhAKdoEwx%2BsnS5gRpEE5x3hR1IY4Jll2Y%3D', 'images': 'https://cameratrap.blob.core.windows.net/async-api-v3-2/3821/3821_images.json?se=2019-06-05T00%3A31%3A51Z&sp=r&sv=2018-03-28&sr=b&sig=llDBCWK%2B%2BQHae5rK7U8RchjPN/DZYb96XHB0r/yX8LU%3D'}"
+        "message": "Completed at 2019-05-22 00:31:51. Number of failed shards: 0. URLs to output files: {'detections': 'https://cameratrap.blob.core.windows.net/async-api-v3-2/3821/3821_detections_Alberta_l1_20190522002119.json?se=2019-06-05T00%3A31%3A51Z&sp=r&sv=2018-03-28&sr=b&sig=hYWcHrnMbZ8EjQ1t4Rmtx0Ay/DZDa%2BsQehBP4/nySko%3D', 'failed_images': 'https://cameratrap.blob.core.windows.net/async-api-v3-2/3821/3821_failed_images_Alberta_l1_20190522002119.json?se=2019-06-05T00%3A31%3A51Z&sp=r&sv=2018-03-28&sr=b&sig=xwoi9tFD9pKhAKdoEwx%2BsnS5gRpEE5x3hR1IY4Jll2Y%3D', 'images': 'https://cameratrap.blob.core.windows.net/async-api-v3-2/3821/3821_images.json?se=2019-06-05T00%3A31%3A51Z&sp=r&sv=2018-03-28&sr=b&sig=llDBCWK%2B%2BQHae5rK7U8RchjPN/DZYb96XHB0r/yX8LU%3D'}"
     },
     "timestamp": "2019-05-22 00:21:19",
     "endpoint": "uri"
 }
 ```
- which you can parse to obtain the URLs:
+ 
+ You can parse it to obtain the URLs:
 ```python
 import json
 
@@ -150,51 +165,88 @@ url_to_all_images_processed = output_files['images']
 
 ```
 
-These URLs are valid for 30 days from the time the request has finished. If you neglected to retrieve them before the links expired, contact us with the RequestID and we can send the results to you. Here are the 3 files to expect:
+These URLs are valid for 30 days from the time the request has completed. If you neglected to retrieve them before the links expired, contact us with the RequestID and we can send the results to you. Here are the 3 files to expect:
 
 | File name                | Description | 
 |--------------------------|-------------|
-| RequestID_detections.csv | Contains the result produced by the detector. It is a table with 3 columns (see below for explanation).   |
-| RequestID_failed_images.csv | Contains full paths to images in the blob that the API failed to open, possibly because they are corrupted, or failed to apply the detector model to. |
-| RequestID_images.json | Contains a list of the full paths to all images that the API was supposed to process, based on the content of the container at the time the API was called and the filtering parameters provided. |
+| requestID_detections_requestName_timestamp.json | Contains the predictions produced by the detector, in the format defined below.   |
+| requestID_failed_images_requestName_timestamp.json | Contains a list of full paths to images in the blob that the API failed to open or process, possibly because they are corrupted. |
+| requestID_images.json | Contains a list of the full paths to all images that the API was supposed to process, based on the content of the container at the time the API was called and the filtering parameters provided. |
 
-#### How to interpret the results
 
-The output of the detector is saved in `RequestID_detections.csv`. It looks like
+#### Batch processing API output format
 
-| image_path | max_confidence | detections | 
-|------------|----------------|------------|
-| folder/subfolders/image1.JPG | 0.9960 | "[[0.5252, 0.1727, 0.9546, 0.43948, 0.9960], [0.8804, 0.4575, 0.94537, 0.5313, 0.1468]]" |
-| folder/subfolders/image2.JPG | 0.0 | [] |
-| folder/subfolders/image3.jpg | 0.0 | [] |
-| folder/subfolders/image4.jpg | 0.4091 | "[[0.2823, 0.1759, 0.3608, 0.2458, 0.4091]]" |
+The output of the detector is saved in `requestID_detections_requestName_timestamp.json`. The `classifications` fields will be added if a classifier was trained for your project and applied to the images. Example output with both detection and classification results:
 
-The first column contains the full path to the image in the blob container. 
+```json
+{
+    "info": {
+        "detector": "megadetector_v3",
+        "detection_completion_time": "2019-05-22 02:12:19",
+        "classifier": "ecosystem1_v2",
+        "classification_completion_time": "2019-05-26 01:52:08"
+    },
+    "detection_categories": {
+        "1": "animal",
+        "2": "person",
+        "4": "vehicle"
+    },
+    "classification_categories": {
+        "1": "elk",
+        "2": "wolf",
+        "3": "bear",
+        "4": "moose"
+    },
+    "images": [
+        {
+            "file": "/path/from/base/dir/image.jpg",
+            "max_detection_conf": 0.996,
+            "detections": [
+                {
+                    "category": "1",
+                    "conf": 0.926,
+                    "bbox": [0.0, 0.2762, 0.9539, 0.9825], 
+                    "classifications": [
+                        ["3", 0.901],
+                        ["1", 0.071],
+                        ["4", 0.025]
+                    ]
+                },
+                {
+                    "category": "1",
+                    "conf": 0.061,
+                    "bbox": [0.0451, 0.1849, 0.9642, 0.4636]
+                }
+            ]
+        }​
+    ]
+}
+```
 
-The second column is the confidence value of the most confident detection on the image (all detections above confidence 0.05 are included so you can select a confidence threshold for determining empty from non-empty).
+##### Detector outputs
 
-The third column contains details of the detections so you can visualize them. It is a stringfied json of a list of lists, representing the detections made on that image. Each detection list has the coordinates of the bounding box surrounding the detection, followed by its confidence:
+The bounding box in the `bbox` field is represented as
 
 ```
-[ymin, xmin, ymax, xmax, confidence, (class)]
+[ymin, xmin, ymax, xmax]
 ```
 
-where `(xmin, ymin)` is the upper-left corner of the detection bounding box. The coordinates are relative to the height and width of the image. 
+where `(xmin, ymin)` is the upper-left corner of the detection bounding box. The coordinates are relative to the width and height of the image. 
 
-An integer `class` comes after `confidence` in versions of the API that uses MegaDetector version 3 or later. The `class` label corresponds to the following:
-
-```
-1: animal
-2: person
-4: vehicle
-```
-
-Note that the `vehicle` class (available in Mega Detector version 4 or later) is number 4. Class number 3 (group) is not included in training and should be ignored (and so should any other class labels not listed here) if it shows up in the result.
-
-When the detector model detects no animal (or person or vehicle), the confidence is shown as 0.0 (not confident that there is an object of interest) and the detection column is an empty list.
+The detection category `category` can be interpreted using the `detection_categories` dictionary. 
 
 
-All detections above confidence threshold 0.05 are recorded in the output file.
+Note that the `vehicle` detection class (available in Mega Detector version 4 or later) is "4". Class number "3" (group) is not included in training and should be ignored (and so should any other class labels not listed here) if it shows up in the result.
+
+When the detector model detects no animal (or person or vehicle), the confidence `conf` is shown as 0.0 (not confident that there is an object of interest) and the `detections` field is an empty list.
+
+
+All detections above confidence threshold 0.05 or 0.1 (depending on the version of the API) are recorded in the output file.
+
+
+##### Classifier outputs
+
+After a classifier is applied, each tuple in a `classifications` list represents `[species, confidence]`. They are listed in order of confidence. The species categories should be interpreted using the `classification_categories` dictionary.
 
 
 ## 3. Post-processing tools
