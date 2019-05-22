@@ -13,9 +13,9 @@ import argparse
 import io
 import json
 import os
+import random
 from urllib import parse
 
-import pandas as pd
 from azure.storage.blob import BlockBlobService
 from tqdm import tqdm
 
@@ -27,8 +27,7 @@ parser = argparse.ArgumentParser(description=('Annotate the bounding boxes predi
                                               'above some confidence threshold, and save the annotated images.'))
 
 parser.add_argument('detector_output_path', type=str,
-                    help='path to the csv output file of the detector',
-                    default='RequestID_all_output.csv')
+                    help='path to the json output file of the detector')
 
 parser.add_argument('out_dir', type=str,
                     help=('path to a directory where the annotated images will be saved. '
@@ -61,6 +60,10 @@ parser.add_argument('-w', '--output_image_width', type=int,
                           'Use -1 to not resize.'),
                     default=700)
 
+parser.add_argument('-r', '--random_seed', type=int,
+                    help=('an integer to seed random so that the sample of images drawn is deterministic'),
+                    default=None)
+
 args = parser.parse_args()
 print('Options to the script: ')
 print(args)
@@ -85,10 +88,10 @@ os.makedirs(args.out_dir, exist_ok=True)
 
 #%% Helper functions and constants
 
-DETECTOR_LABEL_MAP = {
-    1: 'animal',
-    2: 'person',
-    3: 'vehicle' # will be available in megadetector v4
+DEFAULT_DETECTOR_LABEL_MAP = {
+    '1': 'animal',
+    '2': 'person',
+    '4': 'vehicle' # will be available in megadetector v4
 }
 
 def get_sas_key_from_uri(sas_uri):
@@ -123,20 +126,30 @@ def get_container_from_uri(sas_uri):
 
 
 #%% Load detector output
+detector_output = json.load(open(args.detector_output_path))
 
-df = pd.read_csv(args.detector_output_path)
+assert 'images' in detector_output, 'Detector output file should be a json with an "images" field.'
+images = detector_output['images']
 
-assert len(df.shape) == 2 and df.shape[1] == 3, 'Detector output file should be a csv with 3 columns.'
+detector_label_map = DEFAULT_DETECTOR_LABEL_MAP
+if 'detection_categories' in detector_output:
+    print('detection_categories provided')
+    detector_label_map = detector_output['detection_categories']
 
-num_rows = df.shape[0]
-print('Detector output file contains {} entries.'.format(num_rows))
+num_images = len(images)
+print('Detector output file contains {} entries.'.format(num_images))
 
 if args.sample > 0:
-    assert num_rows >= args.sample, \
-        'Sample size {} specified greater than number of entries in detector result.'.format(args.sample)
+    assert num_images >= args.sample, \
+        'Sample size {} specified greater than number of entries ({}) in detector result.'.format(args.sample, num_images)
 
-    df = df.sample(args.sample)
-    print('Sampled {} entries from the detector output file.'.format(df.shape[0]))
+    if args.random_seed:
+        images = sorted(images, key=lambda x: x['file'])
+        random.seed(args.random_seed)
+
+    random.shuffle(images)
+    images = sorted(images[:args.sample], key=lambda x: x['file'])
+    print('Sampled {} entries from the detector output file.'.format(len(images)))
 
 
 #%% Load images, annotate them and save
@@ -147,10 +160,11 @@ if not images_local:
 
 print('Starting to annotate the images...')
 num_saved = 0
-for i_row, row in tqdm(df.iterrows()):
-    image_id = row[0]
-    max_conf = float(row[1])
-    boxes_and_scores = json.loads(row[2])
+
+for entry in tqdm(images):
+    image_id = entry['file']
+    max_conf = entry['max_detection_conf']
+    detections = entry['detections']
 
     if images_local:
         image_obj = os.path.join(args.images_dir, image_id)
@@ -158,8 +172,6 @@ for i_row, row in tqdm(df.iterrows()):
             print('Image {} is not found at local images_dir; skipped.'.format(image_id))
             continue
     else:
-        print('image_id:', image_id)
-        print('container_name:', container_name)
         if not blob_service.exists(container_name, blob_name=image_id):
             print('Image {} is not found in the blob container {}; skipped.'.format(image_id, container_name))
             continue
@@ -170,10 +182,10 @@ for i_row, row in tqdm(df.iterrows()):
     # resize is for displaying them more quickly
     image = vis_utils.resize_image(vis_utils.open_image(image_obj), args.output_image_width)
 
-    vis_utils.render_detection_bounding_boxes(boxes_and_scores, image, label_map=DETECTOR_LABEL_MAP,
+    vis_utils.render_detection_bounding_boxes(detections, image, label_map=detector_label_map,
                                               confidence_threshold=args.confidence)
 
-    annotated_img_name = image_id.replace('/', '~').replace('\\', '~')
+    annotated_img_name = 'anno_' + image_id.replace('/', '~').replace('\\', '~')
     annotated_img_path = os.path.join(args.out_dir, annotated_img_name)
     image.save(annotated_img_path)
     num_saved += 1
