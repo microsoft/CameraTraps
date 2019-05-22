@@ -90,8 +90,8 @@ def request_detections():
         return _abort(result[0], result[1])
 
     # check model_version and request_name params are valid
-    model_version = post_body.get('model_version', None)
-    if model_version is not None and model_version != '':
+    model_version = post_body.get('model_version', '')
+    if model_version != '':
         model_version = str(model_version)  # in case an int is specified
         if model_version not in api_config.SUPPORTED_MODEL_VERSIONS:
             return _abort(400, 'model_version {} is not supported.'.format(model_version))
@@ -135,10 +135,11 @@ def _request_detections(**kwargs):
         sample_n = body.get('sample_n', None)
         sample_n = int(sample_n) if sample_n else None
 
-        model_version = body.get('model_version', None)
-        if model_version is None or model_version == '':
+        model_version = body.get('model_version', '')
+        if model_version == '':
             model_version = api_config.AML_CONFIG['default_model_version']
-        print('runserver.py, model_version to use is {}'.format(model_version))
+        model_name = api_config.AML_CONFIG['models'][model_version]
+        print('runserver.py, model_version to use is {}, model_name is'.format(model_version, model_name))
 
         # request_name and request_submission_timestamp are for appending to output file names
         request_name = body.get('request_name', '')
@@ -210,12 +211,12 @@ def _request_detections(**kwargs):
                                                                   num_images, api_config.MAX_NUMBER_IMAGES_ACCEPTED)))
             return
 
-        image_paths_string = json.dumps(image_paths, indent=2)
+        image_paths_string = json.dumps(image_paths, indent=1)
         internal_storage_service.create_blob_from_text(internal_container,
-                                                       '{}/{}_images_{}_{}.json'.format(request_id, request_id,
-                                                                                        request_name,
-                                                                                        request_submission_timestamp),
+                                                       '{}/{}_images.json'.format(request_id, request_id),
                                                        image_paths_string)
+        # the list of images json does not have request_name or timestamp in the file name so that score.py can locate it
+
         api_task_manager.UpdateTaskStatus(request_id,
                                           get_task_status('running',
                                                           'Images listed; processing {} images.'.format(num_images)))
@@ -223,7 +224,8 @@ def _request_detections(**kwargs):
 
         # set up connection to AML Compute and data stores
         # do this for each request since pipeline step is associated with the data stores
-        aml_compute = orchestrator.AMLCompute(request_id, input_container_sas, internal_datastore)
+        aml_compute = orchestrator.AMLCompute(request_id=request_id, input_container_sas=input_container_sas,
+                                              internal_datastore=internal_datastore, model_name=model_name)
         print('AMLCompute resource connected successfully.')
 
         num_images_per_job = api_config.NUM_IMAGES_PER_JOB
@@ -250,8 +252,10 @@ def _request_detections(**kwargs):
         return  # do not initiate _monitor_detections_request
 
     try:
-        aml_monitor = orchestrator.AMLMonitor(request_id, list_jobs_submitted,
-                                              request_name, request_submission_timestamp)
+        aml_monitor = orchestrator.AMLMonitor(request_id=request_id, list_jobs_submitted=list_jobs_submitted,
+                                              request_name=request_name,
+                                              request_submission_timestamp=request_submission_timestamp,
+                                              model_version=model_version)
 
         # start another thread to monitor the jobs and consolidate the results when they finish
         ai4e_wrapper.wrap_async_endpoint(_monitor_detections_request, 'post:_monitor_detections_request',
@@ -313,7 +317,7 @@ def _monitor_detections_request(**kwargs):
             # if all jobs finished, aggregate the results and return the URLs to the output files
             if all_jobs_finished:
                 api_task_manager.UpdateTaskStatus(request_id,
-                                                  get_task_status('almost completed',
+                                                  get_task_status('running',
                                                                   'Model inference finished; now aggregating results.'))
 
                 # retrieve and join the output CSVs from each job, with retries
@@ -328,7 +332,7 @@ def _monitor_detections_request(**kwargs):
                         print('Will retry during the next monitoring wake-up cycle. Number of errors so far: {}'.format(
                             num_errors_aggregation))
                         api_task_manager.UpdateTaskStatus(request_id,
-                                                          get_task_status('almost completed',
+                                                          get_task_status('running',
                                                                           'All shards finished but results aggregation failed. Will retry in {} minutes.'.format(
                                                                               api_config.MONITOR_PERIOD_MINUTES)))
                         continue
@@ -336,11 +340,11 @@ def _monitor_detections_request(**kwargs):
                         print('Number of retries reached for aml_monitor.aggregate_results().')
                         raise e
 
-                output_file_urls_str = json.dumps(output_file_urls)
+                # output_file_urls_str = json.dumps(output_file_urls)
                 api_task_manager.UpdateTaskStatus(request_id, get_task_status('completed',
                                                                               'Completed at {}. Number of failed shards: {}. URLs to output files: {}'.format(
                                                                                   orchestrator.get_utc_time(),
-                                                                                  num_failed, output_file_urls_str)))
+                                                                                  num_failed, output_file_urls)))
                 break
 
             # not all jobs are finished, update the status with number of shards finished
@@ -384,7 +388,7 @@ def supported_model_versions():
     return ai4e_wrapper.wrap_sync_endpoint(_supported_model_versions, 'get:supported_model_versions')
 
 def _supported_model_versions():
-    return json.dumps(api_config.SUPPORTED_MODEL_VERSIONS)
+    return jsonify(api_config.SUPPORTED_MODEL_VERSIONS)
 
 
 if __name__ == '__main__':

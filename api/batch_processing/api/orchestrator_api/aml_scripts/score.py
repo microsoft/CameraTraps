@@ -1,7 +1,6 @@
 print('score.py, beginning - megadetector_v3')
 
 import argparse
-import csv
 import io
 import json
 import os
@@ -32,7 +31,7 @@ class BatchScorer:
         self.detection_threshold = kwargs.get('detection_threshold')
         self.batch_size = kwargs.get('batch_size')
 
-        self.image_ids = kwargs.get('image_ids')
+        self.image_ids_to_score = kwargs.get('image_ids_to_score')
         self.images = []
 
         self.detections = []
@@ -75,7 +74,7 @@ class BatchScorer:
             sas_token=BatchScorer.get_sas_key_from_uri(self.input_container_sas))
         container_name = BatchScorer.get_container_from_uri(self.input_container_sas)
 
-        for image_id in image_ids:
+        for image_id in self.image_ids_to_score:
             try:
                 stream = io.BytesIO()
                 _ = blob_service.get_blob_to_stream(container_name, image_id, stream)
@@ -98,29 +97,19 @@ class BatchScorer:
         self.failed_images.extend(failed_images_during_detection)
 
     def write_output(self):
-        """Outputs csv where each row is image_path, True if there is detection,
-           "[ [y1, x1, y2, x2, confidence], [...] ]"
+        """Uploads a json containing all the detections (a subset of the "images" field of the final
+        output), as well as a json list of failed images.
         """
         print('BatchScorer, write_output()')
-        detections_path = os.path.join(self.output_dir, 'detections_{}.csv'.format(self.job_id))
 
-        with open(detections_path, 'w', newline='') as f:
-            writer = csv.writer(f, delimiter=',')
-            writer.writerow(['image_path', 'max_confidence', 'detections'])
-            for image_id, detections in zip(self.image_ids, self.detections):
-                # has_detections = len(detections) > 0
-                max_conf = 0.0  # detections should be sorted from higih to low confidence but to be sure
-                for detection in detections:
-                    conf = detection[4]
-                    if conf > max_conf:
-                        max_conf = conf
-                writer.writerow([image_id, max_conf, str(detections)])
+        detections_path = os.path.join(self.output_dir, 'detections_{}.json'.format(self.job_id))
 
-        failed_path = os.path.join(self.output_dir, 'failures_{}.csv'.format(self.job_id))
-        with open(failed_path, 'w', newline='') as f:
-            writer = csv.writer(f)
-            for i in self.failed_images:
-                writer.writerow([i])
+        with open(detections_path, 'w') as f:
+            json.dump(self.detections, f, indent=1)
+
+        failed_path = os.path.join(self.output_dir, 'failures_{}.json'.format(self.job_id))
+        with open(failed_path, 'w') as f:
+            json.dump(self.failed_images, f, indent=1)
 
 
 if __name__ == '__main__':
@@ -142,7 +131,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--output_dir', required=True)  # API's AML container storing jobs' outputs
 
-    parser.add_argument('--detection_threshold', type=float, default=0.9)
+    parser.add_argument('--detection_threshold', type=float, default=0.05)
     parser.add_argument('--batch_size', type=int, default=8)
 
     args = parser.parse_args()
@@ -183,14 +172,14 @@ if __name__ == '__main__':
         raise ValueError('Indices {} and {} are not allowed for the image list of length {}'.format(
             args.begin_index, args.end_index, len(list_images)
         ))
-    image_ids = list_images[begin_index:end_index]
+    image_ids_to_score = list_images[begin_index:end_index]
     print('score.py, processing from index {} to {}. Length of images_shard is {}.'.format(
-        begin_index, end_index, len(image_ids)))
+        begin_index, end_index, len(image_ids_to_score)))
 
     scorer = BatchScorer(model_path=model_path,
                          input_container_sas=args.input_container_sas,
                          job_id=args.job_id,
-                         image_ids=image_ids,
+                         image_ids_to_score=image_ids_to_score,
                          output_dir=args.output_dir,
                          detection_threshold=args.detection_threshold,
                          batch_size=args.batch_size)
