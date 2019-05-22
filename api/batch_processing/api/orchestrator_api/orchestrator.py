@@ -44,11 +44,11 @@ def get_utc_timestamp():
 
 
 def get_task_status(request_status, message):
-    return json.dumps({
+    return {
         'request_status': request_status,
         'time': get_utc_time(),
         'message': message
-    })
+    }
 
 
 def check_data_container_sas(sas_uri):
@@ -80,7 +80,7 @@ def spot_check_blob_paths_exist(paths, container_sas):
 # %% AML Compute
 
 class AMLCompute:
-    def __init__(self, request_id, input_container_sas, internal_datastore):
+    def __init__(self, request_id, input_container_sas, internal_datastore, model_name):
         try:
             aml_config = api_config.AML_CONFIG
 
@@ -123,7 +123,7 @@ class AMLCompute:
                                                 hash_paths=['.'],  # include all contents of source_directory
                                                 name='batch_scoring',
                                                 arguments=['--job_id', param_job_id,
-                                                           '--model_name', aml_config['model_name'],
+                                                           '--model_name', model_name,
                                                            '--input_container_sas', input_container_sas,
                                                            '--internal_dir', internal_dir,
                                                            '--begin_index', param_begin_index,  # inclusive
@@ -236,11 +236,12 @@ class AMLCompute:
 # %% AML Monitor
 
 class AMLMonitor:
-    def __init__(self, request_id, list_jobs_submitted, request_name, request_submission_timestamp):
+    def __init__(self, request_id, list_jobs_submitted, request_name, request_submission_timestamp, model_version):
         self.request_id = request_id
         self.jobs_submitted = list_jobs_submitted
         self.request_name = request_name  # None if not provided by the user
         self.request_submission_timestamp = request_submission_timestamp  # str
+        self.model_version = model_version  # str
 
         storage_account_name = os.getenv('STORAGE_ACCOUNT_NAME')
         storage_account_key = os.getenv('STORAGE_ACCOUNT_KEY')
@@ -274,10 +275,10 @@ class AMLMonitor:
 
         return all_jobs_finished, status_tally
 
-    def _download_read_csv(self, blob_path, result_type):
+    def _download_read_json(self, blob_path):
         blob = self.internal_storage_service.get_blob_to_text(self.aml_output_container, blob_path)
         stream = io.StringIO(blob.content)
-        result = pd.read_csv(stream) if result_type == 'detections' else stream.readlines()
+        result = json.load(stream)
         return result
 
     def _generate_urls_for_outputs(self):
@@ -286,12 +287,12 @@ class AMLMonitor:
             request_name, request_submission_timestamp = self.request_name, self.request_submission_timestamp
 
             blob_paths = {
-                'detections': '{}/{}_detections_{}_{}.csv'.format(request_id, request_id,
-                                                                  request_name, request_submission_timestamp),
-                'failed_images': '{}/{}_failed_images_{}_{}.csv'.format(request_id, request_id,
-                                                                        request_name, request_submission_timestamp),
-                'images': '{}/{}_images_{}_{}.json'.format(request_id, request_id,
-                                                           request_name, request_submission_timestamp)
+                'detections': '{}/{}_detections_{}_{}.json'.format(request_id, request_id,
+                                                                   request_name, request_submission_timestamp),
+                'failed_images': '{}/{}_failed_images_{}_{}.json'.format(request_id, request_id,
+                                                                         request_name, request_submission_timestamp),
+                # list of images do not have request_name and timestamp in the file name so score.py can locate it easily
+                'images': '{}/{}_images.json'.format(request_id, request_id)
             }
 
             expiry = datetime.utcnow() + timedelta(days=api_config.EXPIRATION_DAYS)
@@ -321,45 +322,49 @@ class AMLMonitor:
         datastore_aml_container['container_name'] = self.aml_output_container
         list_blobs = SasBlob.list_blobs_in_container(api_config.MAX_BLOBS_IN_OUTPUT_CONTAINER,
                                                      datastore=datastore_aml_container,
-                                                     blob_suffix='.csv')
-        detection_results = []
+                                                     blob_suffix='.json')
+        all_detections = []
         failures = []
         num_aggregated = 0
         for blob_path in list_blobs:
-            if blob_path.endswith('.csv'):
-                # blob_path is azureml/run_id/output_requestID/out_file_name.csv
-                out_file_name = blob_path.split('/')
-                out_file_name = out_file_name[-1]
+            if blob_path.endswith('.json'):
+                # blob_path is azureml/run_id/output_requestID/out_file_name.json
+                out_file_name = blob_path.split('/')[-1]
+                # "request" is part of the AML job_id
                 if out_file_name.startswith('detections_request{}_'.format(self.request_id)):
-                    detection_results.append(self._download_read_csv(blob_path, 'detections'))
+                    all_detections.extend(self._download_read_json(blob_path))
                     num_aggregated += 1
                     print('Number of results aggregated: ', num_aggregated)
                 elif out_file_name.startswith('failures_request{}_'.format(self.request_id)):
-                    failures.extend(self._download_read_csv(blob_path, 'failures'))
-        if len(detection_results) < 1:
-            raise RuntimeError(('aggregate_results(), at least part of your request has been processed but monitoring '
-                                'thread failed to retrieve the results.'))
+                    failures.extend(self._download_read_json(blob_path))
 
-        all_detections = pd.concat(detection_results)  # will error if detection_results is an empty list
-        print('aggregate_results(), shape of all_detections: {}'.format(all_detections.shape))
-        all_detections_string = all_detections.to_csv(index=False)  # a string is returned since no file/buffer provided
+        print('aggregate_results(), length of all_detections: {}'.format(len(all_detections)))
 
-        print('aggregate_results(), number of failed images: {}'.format(len(failures)))
-        failures_text = os.linesep.join(failures)
+        detection_output_content = {
+            'info': {
+                'detector': 'megadetector_v{}'.format(self.model_version),
+                'detection_completion_time': get_utc_time()
+            },
+            'detection_categories': api_config.DETECTION_CATEGORIES,
+            'images': all_detections
+        }
+        detection_output_str = json.dumps(detection_output_content, indent=1)
 
-        print('aggregate_results(), starts to upload')
         # upload aggregated results to output_store
         self.internal_storage_service.create_blob_from_text(self.internal_container,
-                                                            '{}/{}_detections_{}_{}.csv'.format(
+                                                            '{}/{}_detections_{}_{}.json'.format(
                                                                 self.request_id, self.request_id,
                                                                 self.request_name, self.request_submission_timestamp),
-                                                            all_detections_string, max_connections=4)
+                                                            detection_output_str, max_connections=4)
         print('aggregate_results(), detections uploaded')
+
+        print('aggregate_results(), number of failed images: {}'.format(len(failures)))
+        failures_str = json.dumps(failures, indent=1)
         self.internal_storage_service.create_blob_from_text(self.internal_container,
-                                                            '{}/{}_failed_images_{}_{}.csv'.format(
+                                                            '{}/{}_failed_images_{}_{}.json'.format(
                                                                 self.request_id, self.request_id,
                                                                 self.request_name, self.request_submission_timestamp),
-                                                            failures_text)
+                                                            failures_str)
         print('aggregate_results(), failures uploaded')
 
         output_file_urls = self._generate_urls_for_outputs()
