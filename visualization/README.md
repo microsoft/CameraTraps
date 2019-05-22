@@ -26,7 +26,7 @@ To exit the conda environment, issue `conda deactivate cameratrap`.
 
 ## Visualize detector output
 
-`visualize_detector_output.py` draws the bounding boxes in red with their confidence level annotated on top of the original images, and saves the annotated images to another directory. The original images can be in a local directory or in Azure Blob Storage. 
+`visualize_detector_output.py` draws the bounding boxes, their confidence level and predicted category annotated on top of the original images, and saves the annotated images to another directory. The original images can be in a local directory or in Azure Blob Storage. 
 
 Please see the top of `visualize_detector_output.py` for the arguments it requires. You can also change the size of the output image by changing the `viz_size` variable found there.
 
@@ -40,12 +40,12 @@ https://storageaccountname.blob.core.windows.net/container-name?se=2019-04-06T23
 
 Example invocation of the script, images stored locally:
 ```
-python visualize_detector_output.py path_to/all_output.csv rendered_images_dir --confidence 0.9 --images_dir path_to_root_dir_of_original_images 
+python visualize_detector_output.py path_to/requestID_detections.json rendered_images_dir --confidence 0.9 --images_dir path_to_root_dir_of_original_images 
 ```
 
 Another example, for images stored in the cloud and drawing a sample of 20 images:
 ```
-python visualize_detector_output.py path_to/all_output.csv rendered_images_dir --confidence 0.9 --sas_url https://storageaccountname.blob.core.windows.net/container-name?se=2019-04-06T23%3A38%3A00Z&sp=rl&sv=2018-03-28&sr=c&sig=A_LONG_STRING 
+python visualize_detector_output.py path_to/requestID_detections.json rendered_images_dir --confidence 0.9 --sas_url https://storageaccountname.blob.core.windows.net/container-name?se=2019-04-06T23%3A38%3A00Z&sp=rl&sv=2018-03-28&sr=c&sig=A_LONG_STRING 
 ```
 
 If you encounter an error where it complains about not finding the module `visualization_utils`, you need to append the absolute path to the current directory `visualization` to your `PYTHONPATH`. At your terminal or command line:

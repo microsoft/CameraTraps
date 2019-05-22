@@ -150,7 +150,7 @@ url_to_all_images_processed = output_files['images']
 
 ```
 
-These URLs are valid for 14 days from the time the request has finished. If you neglected to retrieve them before the links expired, contact us with the RequestID and we can send the results to you. Here are the 3 files to expect:
+These URLs are valid for 30 days from the time the request has finished. If you neglected to retrieve them before the links expired, contact us with the RequestID and we can send the results to you. Here are the 3 files to expect:
 
 | File name                | Description | 
 |--------------------------|-------------|
