@@ -28,7 +28,7 @@ To submit a request for batch processing, make a POST call to
 with a json body containing input fields defined below. The API will return with a json response very quickly to give you a RequestID representing the request you have submitted (or an error message, if your inputs are not acceptable), for example:
 ```json
 {
-  "request_id": "134329085438975"
+  "request_id": "13H8A43FDE"
 }
 ```
 
@@ -39,7 +39,7 @@ Check the status of your request by calling the `/task` endpoint via a GET call,
 
 This returns a json with the fields `status`, `uuid`, and a few others. The `status` field contains a stringfield json object with the following fields: 
 
-- `request_status`: one of `running`, `failed`, `problem`, `almost completed` and `completed`. The status `failed` indicates that the images have not been submitted to the cluster for processing, and so you can go ahead and call the endpoint again, correcting your inputs according to the message shown. The status `problem` indicates that the images have already been submitted for processing but the API encountered an error while monitoring progress; in this case, *please do not retry*, contact us to retrieve your results so that abandoned jobs are not using up resources. 
+- `request_status`: one of `running`, `failed`, `problem`, and `completed`. The status `failed` indicates that the images have not been submitted to the cluster for processing, and so you can go ahead and call the endpoint again, correcting your inputs according to the message shown. The status `problem` indicates that the images have already been submitted for processing but the API encountered an error while monitoring progress; in this case, *please do not retry*, contact us to retrieve your results so that abandoned jobs are not using up resources. 
 
 - `message`: a longer string describing the request_status and any errors; when the request is completed, the URLs to the output files will also be here (see Outputs section below).
 
@@ -73,7 +73,7 @@ Meanwhile, once the shards of images are submitted for processing, please do not
 | image_path_prefix        | No          | string | Only process images whose full path starts with `image_path_prefix` (case-_sensitive_). Note that any image paths specified in `images_requested_json_sas` will need to be the full path from the root of the container, regardless whether `image_path_prefix` is provided. |
 | first_n                  | No          | int | Only process the first `first_n` images. Order of images is not guaranteed, but is likely to be alphabetical. Set this to a small number to avoid taking time to fully list all images in the blob (about 15 minutes for 1 million images) if you just want to try this API. |
 | sample_n                | No          |int | Randomly select `sample_n` images to process. |
-| model_version           | No          |string | Version of the MegaDetector model to use. Default is the most updated stable version (check using the `/default_model_version` endpoint). |
+| model_version           | No          |string | Version of the MegaDetector model to use. Default is the most updated stable version (check using the `/default_model_version` endpoint). Supported versions can be listed by calling the `/supported_model_versions` endpoint.|
 | request_name            | No          |string | A string (letters, digits, `_`, `-` allowed, max length 32 characters) that will be appended to the output file names to help you identify the resulting files. A timestamp in UTC ("%Y%m%d%H%M%S") of time of submission will be appended to the resulting files automatically. |
 
 - We assume that all images you would like to process in this batch are uploaded to a container in Azure Blob Storage. 
@@ -124,18 +124,30 @@ Once your request is submitted and parameters validated, the API divides all ima
 
 When all shards have finished processing, the `status` returned by the `/task` endpoint will have a `message` field containing a string that can be loaded as a json, with 3 fields each containing an URL to a downloadable file. The `message` field looks like
 
-```
-"Completed at 2019-03-25 01:00:13. Number of failed shards: 0. URLs to output files: {\"detections\": \"https://cameratrap.blob.core.windows.net/async-api-v2/RequestID/RequestID_detections.csv?se=2019-04-08T01%3A00%3A13Z&sp=r&sv=2018-03-28&sr=b&sig=LONG_STRING_1\", \"failed_images\": \"https://cameratrap.blob.core.windows.net/async-api-v2/6171/RequestID_failed_images.csv?se=2019-04-08T01%3A00%3A13Z&sp=r&sv=2018-03-28&sr=b&sig=LONG_STRING_2\", \"images\": \"https://cameratrap.blob.core.windows.net/async-api-v2/RequestID/RequestID_images.json?se=2019-04-08T01%3A00%3A13Z&sp=r&sv=2018-03-28&sr=b&sig=LONG_STRING_3\"}"
+```json
+{
+    "uuid": 3821,
+    "status": {
+        "request_status": "completed",
+        "time": "2019-05-22 00:31:51",
+        "message": "Completed at 2019-05-22 00:31:51. Number of failed shards: 0. URLs to output files: {'detections': 'https://cameratrap.blob.core.windows.net/async-api-v3-2/3821/3821_detections__20190522002119.json?se=2019-06-05T00%3A31%3A51Z&sp=r&sv=2018-03-28&sr=b&sig=hYWcHrnMbZ8EjQ1t4Rmtx0Ay/DZDa%2BsQehBP4/nySko%3D', 'failed_images': 'https://cameratrap.blob.core.windows.net/async-api-v3-2/3821/3821_failed_images__20190522002119.json?se=2019-06-05T00%3A31%3A51Z&sp=r&sv=2018-03-28&sr=b&sig=xwoi9tFD9pKhAKdoEwx%2BsnS5gRpEE5x3hR1IY4Jll2Y%3D', 'images': 'https://cameratrap.blob.core.windows.net/async-api-v3-2/3821/3821_images.json?se=2019-06-05T00%3A31%3A51Z&sp=r&sv=2018-03-28&sr=b&sig=llDBCWK%2B%2BQHae5rK7U8RchjPN/DZYb96XHB0r/yX8LU%3D'}"
+    },
+    "timestamp": "2019-05-22 00:21:19",
+    "endpoint": "uri"
+}
 ```
  which you can parse to obtain the URLs:
 ```python
 import json
 
-task_status = json.loads(body['status'])
+task_status = body['status']
 assert task_status['request_status'] == 'completed'
 output_files_str = task_status['message'].split('URLs to output files: ')[1]
 output_files = json.loads(output_files_str)
 url_to_result = output_files['detections']
+url_to_failed_images = output_files['failed_images']
+url_to_all_images_processed = output_files['images']
+
 ```
 
 These URLs are valid for 14 days from the time the request has finished. If you neglected to retrieve them before the links expired, contact us with the RequestID and we can send the results to you. Here are the 3 files to expect:
@@ -180,6 +192,9 @@ An integer `class` comes after `confidence` in versions of the API that uses Meg
 Note that the `vehicle` class (available in Mega Detector version 4 or later) is number 4. Class number 3 (group) is not included in training and should be ignored (and so should any other class labels not listed here) if it shows up in the result.
 
 When the detector model detects no animal (or person or vehicle), the confidence is shown as 0.0 (not confident that there is an object of interest) and the detection column is an empty list.
+
+
+All detections above confidence threshold 0.05 are recorded in the output file.
 
 
 ## 3. Post-processing tools
