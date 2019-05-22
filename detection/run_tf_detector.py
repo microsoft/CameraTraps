@@ -6,6 +6,10 @@
 # render bounding boxes on images, and write out the resulting
 # images (with bounding boxes).
 #
+# This script is not a good way to process lots and lots of images; it loads all
+# the images first, then runs the model, which makes for more accurate timing
+# and more robust testing, but is not ideal for processing lots of images.
+#
 # See the "test driver" cell for example invocation.
 #
 # If no output directory is specified, writes detections for c:\foo\bar.jpg to
@@ -30,6 +34,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import matplotlib.ticker as ticker
 import os
+from tqdm import tqdm
 
 DEFAULT_CONFIDENCE_THRESHOLD = 0.85
 
@@ -40,6 +45,10 @@ BOX_COLORS = ['b','g','r']
 DEFAULT_LINE_WIDTH = 10
 SHOW_CONFIDENCE_VALUES = False
 
+# Suppress excessive tensorflow output
+tf.logging.set_verbosity(tf.logging.ERROR)
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
 
 #%% Core detection functions
 
@@ -48,7 +57,6 @@ def load_model(checkpoint):
     Load a detection model (i.e., create a graph) from a .pb file
     """
 
-    print('Creating Graph...')
     detection_graph = tf.Graph()
     with detection_graph.as_default():
         od_graph_def = tf.GraphDef()
@@ -56,8 +64,7 @@ def load_model(checkpoint):
             serialized_graph = fid.read()
             od_graph_def.ParseFromString(serialized_graph)
             tf.import_graph_def(od_graph_def, name='')
-    print('...done')
-
+    
     return detection_graph
 
 
@@ -86,12 +93,14 @@ def generate_detections(detection_graph,images):
     else:
         images = images.copy()
 
+    print('Loading images...')
+    startTime = time.time()
+    
     # Load images if they're not already numpy arrays
     # iImage = 0; image = images[iImage]
-    for iImage,image in enumerate(images):
+    for iImage,image in enumerate(tqdm(images)):
         if isinstance(image,str):
-            print('Loading image {}'.format(image))
-
+            
             # Load the image as an nparray of size h,w,nChannels
             
             # There was a time when I was loading with PIL and switched to mpimg,
@@ -113,19 +122,26 @@ def generate_detections(detection_graph,images):
         else:
             assert isinstance(image,np.ndarray)
 
+    elapsed = time.time() - startTime
+    print("Finished loading {} file(s) in {}".format(len(images),
+          humanfriendly.format_timespan(elapsed)))    
+    
     boxes = []
     scores = []
     classes = []
     
     nImages = len(images)
 
+    print('Running detector...')    
+    startTime = time.time()
+    firstImageCompleteTime = None
+    
     with detection_graph.as_default():
         
         with tf.Session(graph=detection_graph) as sess:
             
-            for iImage,imageNP in enumerate(images):                
+            for iImage,imageNP in tqdm(enumerate(images)): 
                 
-                print('Processing image {} of {}'.format(iImage,nImages))
                 imageNP_expanded = np.expand_dims(imageNP, axis=0)
                 image_tensor = detection_graph.get_tensor_by_name('image_tensor:0')
                 box = detection_graph.get_tensor_by_name('detection_boxes:0')
@@ -142,7 +158,27 @@ def generate_detections(detection_graph,images):
                 scores.append(score)
                 classes.append(clss)
             
+                if iImage == 0:
+                    firstImageCompleteTime = time.time()
+                    
             # ...for each image                
+    
+        # ...with tf.Session
+
+    # ...with detection_graph.as_default()
+    
+    elapsed = time.time() - startTime
+    if nImages == 1:
+        print("Finished running detector in {}".format(humanfriendly.format_timespan(elapsed)))
+    else:
+        firstImageElapsed = firstImageCompleteTime - startTime
+        remainingImagesElapsed = elapsed - firstImageElapsed
+        remainingImagesTimePerImage = remainingImagesElapsed/(nImages-1)
+        
+        print("Finished running detector on {} images in {} ({} for the first image, {} for each subsequent image)".format(len(images),
+              humanfriendly.format_timespan(elapsed),
+              humanfriendly.format_timespan(firstImageElapsed),
+              humanfriendly.format_timespan(remainingImagesTimePerImage)))
     
     nBoxes = len(boxes)
     
@@ -324,25 +360,28 @@ def load_and_run_detector(modelFile, imageFileNames, outputDir=None,
         return
         
     # Load and run detector on target images
+    print('Loading model...')
+    startTime = time.time()
     if detection_graph is None:
         detection_graph = load_model(modelFile)
-    
-    startTime = time.time()
-    boxes,scores,classes,images = generate_detections(detection_graph,imageFileNames)
     elapsed = time.time() - startTime
-    print("Done running detector on {} files in {}".format(len(images),
-          humanfriendly.format_timespan(elapsed)))
+    print("Loaded model in {}".format(humanfriendly.format_timespan(elapsed)))
+    
+    boxes,scores,classes,images = generate_detections(detection_graph,imageFileNames)
     
     assert len(boxes) == len(imageFileNames)
+    
+    print('Rendering output...')
+    startTime = time.time()
     
     outputFullPaths = []
     outputFileNames = {}
     
     if outputDir is not None:
-        
+            
         os.makedirs(outputDir,exist_ok=True)
         
-        for iFn,fullInputPath in enumerate(imageFileNames):
+        for iFn,fullInputPath in enumerate(tqdm(imageFileNames)):
             
             fn = os.path.basename(fullInputPath).lower()            
             name, ext = os.path.splitext(fn)
@@ -367,7 +406,10 @@ def load_and_run_detector(modelFile, imageFileNames, outputDir=None,
     render_bounding_boxes(boxes=boxes, scores=scores, classes=classes, 
                           inputFileNames=imageFileNames, outputFileNames=outputFullPaths,
                           confidenceThreshold=confidenceThreshold)
-
+    
+    elapsed = time.time() - startTime
+    print("Rendered output in {}".format(humanfriendly.format_timespan(elapsed)))
+    
     return detection_graph
 
 
@@ -441,6 +483,7 @@ def main():
     
     # python run_tf_detector.py "D:\temp\models\object_detection\megadetector\megadetector_v2.pb" --imageFile "D:\temp\demo_images\test\S1_J08_R1_PICT0120.JPG"
     # python run_tf_detector.py "D:\temp\models\object_detection\megadetector\megadetector_v2.pb" --imageDir "d:\temp\demo_images\test"
+    # python run_tf_detector.py "d:\temp\models\object_detection\megadetector\megadetector_v3.pb" --imageDir "d:\temp\test\in" --outputDir "d:\temp\test\out"
     
     parser = argparse.ArgumentParser()
     parser.add_argument('detectorFile', type=str)
