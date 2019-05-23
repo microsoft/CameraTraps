@@ -1,19 +1,7 @@
-#
-# Engine.py
-#
-# Training driver
-#
-
-#%% Constants and imports
-
 from .utils import *
 
-import torch
 import time
 import sys
-import numpy as np
-
-#%% Utility functions
 
 def log(total,current,t,l,epoch=-1,top1=None,top5=None):
     if epoch!=-1:
@@ -30,28 +18,24 @@ def log(total,current,t,l,epoch=-1,top1=None,top5=None):
               'Loss %.4f %.4f'%(current, total, t.val, t.avg, l.val, l.avg))
     sys.stdout.flush()
 
-
-#%% Training engine
-    
 class Engine():
 
     def __init__(self,model,criterion,optimizer, verbose=False, print_freq=10, progressBar=None):
-        self.model = model
-        self.criterion = criterion
-        self.optimizer = optimizer
-        self.verbose = verbose
-        self.print_freq = print_freq
-        self.progressBar = progressBar
+        self.model=model
+        self.criterion= criterion
+        self.optimizer= optimizer
+        self.verbose= verbose
+        self.print_freq= print_freq
+        self.progressBar= progressBar
 
     def train_one_batch(self, input,target,iter_num,calcAccuracy):
-        
-        start = time.time()
+        start=time.time()
 
-        input = input.cuda(non_blocking=True)
-        target = target.cuda(non_blocking=True)
+        input = input.cuda()#non_blocking=True)
+        target = target.cuda()#non_blocking=True)
 
         # compute output
-        output = self.model(input)
+        output, _ = self.model(input)
 
         # measure accuracy and record loss
         if calcAccuracy:
@@ -76,12 +60,13 @@ class Engine():
             top1 = AverageMeter()
             top5 = AverageMeter()
 
-    	# switch to train mode
+	# switch to train mode
         self.model.train()
         for i, batch in enumerate(train_loader):
             input= batch[0]
             target= batch[1]
-            # measure accuracy and record loss
+
+	    # measure accuracy and record loss
             if calcAccuracy:
                 loss,t,acc1,acc5= self.train_one_batch(input,target,i,True)
                 top1.update(acc1,input.size(0))
@@ -98,13 +83,13 @@ class Engine():
 
     def validate_one_batch(self, input, target, iter_num, calcAccuracy):
         with torch.no_grad():
-            start = time.time()
+            start=time.time()
 
             input = input.cuda(non_blocking=True)
             target = target.cuda(non_blocking=True)
 
 	    # compute output
-            output = self.model(input)
+            output, _ = self.model(input)
 
 	    # measure accuracy and record loss
             if calcAccuracy:
@@ -131,8 +116,8 @@ class Engine():
         self.model.eval()
 
         for i, batch in enumerate(val_loader):
-            input = batch[0]
-            target = batch[1]
+            input= batch[0]
+            target= batch[1]
             if calcAccuracy:
                 loss,t,acc1,acc5= self.validate_one_batch(input,target,i, True)
                 top1.update(acc1,input.size(0))
@@ -158,7 +143,7 @@ class Engine():
         with torch.no_grad():
             input = input.cuda(non_blocking=True)
             # compute output
-            output = self.model(input)
+            output, _ = self.model(input)
         if self.progressBar:
            self.progressBar.setValue(iter_num)
 
@@ -184,8 +169,35 @@ class Engine():
             k += len(images)
             if self.verbose and i % self.print_freq == 0:
               print("Batch %d"%(i))
+              sys.stdout.flush()
         if load_info:
             return embeddings, labels, paths
         else:
             return embeddings, labels
 
+    def embedding_one_batch(self, input, iter_num):
+        with torch.no_grad():
+            input = input.cuda(non_blocking=True)
+            # compute output
+            _, output = self.model(input)
+        if self.progressBar:
+           self.progressBar.setValue(iter_num)
+
+        return output
+
+    def embedding(self, dataloader, dim=256):
+
+        # switch to evaluate mode
+        self.model.eval()
+        embeddings = np.zeros((len(dataloader.dataset), dim), dtype=np.float32)
+        k = 0
+        for i, batch in enumerate(dataloader):
+            images=batch[0]
+            embedding= self.embedding_one_batch(images,i)
+            embeddings[k:k+len(images)] = embedding.data.cpu().numpy()
+            k += len(images)
+            if self.verbose and i % self.print_freq == 0:
+              print("Batch %d"%(i))
+              sys.stdout.flush()
+
+        return embeddings

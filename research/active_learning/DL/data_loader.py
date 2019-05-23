@@ -1,23 +1,14 @@
-#
-# data_loader.py
-#
-# torch-friendly data loader for file-based image sets
-#
-
-#%% Constants and imports
-
+from torch.utils.data import Dataset
 from torchvision.datasets import ImageFolder
 from torchvision.transforms import *
 from torch.utils.data import DataLoader
 from torch.utils.data.sampler import BatchSampler
 
 import numpy as np
+import matplotlib.pyplot as plt
 import os
 import random
 from PIL import ImageStat
-
-
-#%% Utility functions
 
 def normalize(X):
   mean= X.view(3,-1).mean(1)
@@ -26,23 +17,19 @@ def normalize(X):
     t.sub_(m).div_(s)
   return X
 
-
-#%% Data loader and sampler
-  
 class BaseDataLoader(ImageFolder):
 
-  def __init__(self, base_folder, is_training, batch_size=None, shuffle=None, 
-               num_workers=8, raw_size=[256,256], processed_size=[224,224]):
-    self.base_folder = base_folder
+  def __init__(self, base_folder, is_training, batch_size=None, shuffle=None, num_workers=8, raw_size=[256,256], processed_size=[224,224]):
+    self.base_folder= base_folder
     super().__init__(base_folder)
-    self.is_training = is_training
+    self.is_training= is_training
     if batch_size is None:
       self.batch_size= 128 if self.is_training else 512
     else:
-      self.batch_size = batch_size
-    self.shuffle = shuffle if shuffle is not None else is_training 
-    self.num_workers = num_workers
-    transform_list = []
+      self.batch_size= batch_size
+    self.shuffle= shuffle if shuffle is not None else is_training 
+    self.num_workers= num_workers
+    transform_list=[]
     transform_list.append(Resize(raw_size))
     if self.is_training:
       transform_list.append(RandomCrop(processed_size))
@@ -58,29 +45,31 @@ class BaseDataLoader(ImageFolder):
     #transform_list.append(Lambda(lambda X: normalize(X)))
     self.transform = transforms.Compose(transform_list)
 
+
   def calc_mean_std(self):
 
-      cache_file = self.base_folder+"/.meanstd"+".cache"
+      cache_file= self.base_folder+"/.meanstd"+".cache"
       if not os.path.exists(cache_file):
         print("Calculating Mean and Std")
-        means = np.zeros((3))
+        means= np.zeros((3))
         stds = np.zeros((3))
-        sample_size = min(len(self.samples), 10000)
+        sample_size= min(len(self.samples), 10000)
         for i in range(sample_size):
           img = self.loader(random.choice(self.samples)[0])
           stat = ImageStat.Stat(img)
-          means += np.array(stat.mean)/255.0
-          stds += np.array(stat.stddev)/255.0
-        means = means/sample_size
-        stds = stds/sample_size
+          means+= np.array(stat.mean)/255.0
+          stds+= np.array(stat.stddev)/255.0
+        means= means/sample_size
+        stds= stds/sample_size
         np.savetxt(cache_file, np.vstack((means, stds)))
       else:
         print("Load Mean and Std from "+cache_file)
-        contents = np.loadtxt(cache_file)
-        means = contents[0,:]
-        stds = contents[1,:]
+        contents= np.loadtxt(cache_file)
+        means= contents[0,:]
+        stds= contents[1,:]
 
       return means, stds
+
 
   def __getitem__(self, index):
     """
@@ -106,15 +95,12 @@ class BaseDataLoader(ImageFolder):
     return DataLoader(self, batch_sampler=train_batch_sampler, num_workers= self.num_workers)
 
   def getSingleLoader(self):
-    return DataLoader(self, batch_size= self.batch_size, shuffle= self.shuffle, 
-                      num_workers= self.num_workers)
+    return DataLoader(self, batch_size= self.batch_size, shuffle= self.shuffle, num_workers= self.num_workers)
 
 
 class BalancedBatchSampler(BatchSampler):
     """
-    BatchSampler - from a MNIST-like dataset, samples n_classes and within these 
-    classes samples n_samples.
-    
+    BatchSampler - from a MNIST-like dataset, samples n_classes and within these classes samples n_samples.
     Returns batches of size n_classes * n_samples
     """
 
