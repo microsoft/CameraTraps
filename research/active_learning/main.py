@@ -17,11 +17,12 @@ from torch.optim.lr_scheduler import StepLR
 
 import numpy as np
 
-from DL.data_loader import BaseDataLoader
+from DL.sqlite_data_loader import SQLDataLoader
 from DL.losses import *
 from DL.utils import *
 from DL.networks import *
 from DL.Engine import Engine
+from UIComponents.DBObjects import *
 
 model_names = sorted(name for name in models.__dict__
     if name.islower() and not name.startswith("__")
@@ -65,6 +66,9 @@ parser.add_argument('--loss_type', default='triplet',
                     help='Loss Type')
 parser.add_argument('--margin', default=1.0, type=float, metavar='M',
                     help='margin for siamese or triplet loss')
+parser.add_argument('--num_classes', default=48, type=int, metavar='K',
+                    help='margin for siamese or triplet loss')
+
 parser.add_argument('-f', '--feat_dim', default=256, type=int,
                     metavar='N', help='embedding size (default: 256)')
 
@@ -75,7 +79,7 @@ parser.add_argument('--balanced_K', default= 10, type= int, action= 'store', hel
 best_acc1 = 0
 
 def custom_policy(step):
-  details_str= '21, 36, 46, 0.001, 0.0005, 0.0001, 0.00005'
+  details_str= '15, 41, 56, 66, 0.01, 0.001, 0.0005, 0.0001, 0.00005'
   details= [float(x) for x in details_str.split(",")]
   length = len(details)
   for i,x in enumerate(details[0:int((length-1)/2)]):
@@ -87,11 +91,11 @@ def adjust_lr(optimizer, step):
   param= custom_policy(step)
   for param_group in optimizer.param_groups:
     param_group['lr'] = param
-  print("Learning rate is set to %f"%param)
 
 def main():
     global args, best_acc1
     args = parser.parse_args()
+    print(args)
 
     if args.seed is not None:
         random.seed(args.seed)
@@ -109,60 +113,81 @@ def main():
       args.feat_dim= checkpoint['feat_dim']
       best_accl= checkpoint['best_acc1']
 
-    train_dataset = BaseDataLoader(args.train_data,True, batch_size= args.batch_size, num_workers= args.workers, raw_size= args.raw_size, processed_size= args.processed_size)
+    db_path = os.path.join(args.train_data, os.path.basename(args.train_data)) + ".db"
+    print(db_path)
+    db = SqliteDatabase(db_path)
+    proxy.initialize(db)
+    db.connect()
+    """
+    to use full images
+    train_query =  Detection.select(Detection.image_id,Oracle.label,Detection.kind).join(Oracle).order_by(fn.random()).limit(limit)
+    
+    train_dataset = SQLDataLoader('/lscratch/datasets/serengeti', is_training= True, num_workers= args.workers, 
+            raw_size= args.raw_size, processed_size= args.processed_size)
+    """
+    train_dataset = SQLDataLoader(os.path.join(args.train_data, 'crops'), is_training= True, num_workers= args.workers, 
+            raw_size= args.raw_size, processed_size= args.processed_size)
+    train_dataset.setKind(DetectionKind.UserDetection.value)
     if args.val_data is not None:
-        val_dataset = BaseDataLoader(args.val_data,False, batch_size= args.batch_size, num_workers= args.workers)
-    num_classes= len(train_dataset.getClassesInfo()[0])
+        val_dataset = SQLDataLoader(os.path.join(args.val_data, 'crops'), is_training= False, num_workers= args.workers)
+    #num_classes= len(train_dataset.getClassesInfo()[0])
+    num_classes=args.num_classes
     if args.balanced_P==-1:
       args.balanced_P= num_classes
-    print("Num Classes= "+str(num_classes))
-    if args.loss_type.lower()=='center':
-      train_loader = train_dataset.getSingleLoader()
+    #print("Num Classes= "+str(num_classes))
+    if args.loss_type.lower()=='center' or args.loss_type.lower() == 'softmax':
+      train_loader = train_dataset.getSingleLoader(batch_size = args.batch_size)
       train_embd_loader= train_loader
       if args.val_data is not None:
-          val_loader = val_dataset.getSingleLoader()
+          val_loader = val_dataset.getSingleLoader(batch_size = args.batch_size)
           val_embd_loader= val_loader
     else:
       train_loader = train_dataset.getBalancedLoader(P=args.balanced_P, K=args.balanced_K)
-      train_embd_loader= train_dataset.getSingleLoader()
+      train_embd_loader= train_dataset.getSingleLoader(batch_size = args.batch_size)
       if args.val_data is not None:
           val_loader = val_dataset.getBalancedLoader(P=args.balanced_P, K=args.balanced_K)
-          val_embd_loader = val_dataset.getSingleLoader()
+          val_embd_loader = val_dataset.getSingleLoader(batch_size = args.batch_size)
 
-    embedding_net = EmbeddingNet(args.arch, args.feat_dim, args.pretrained)
     center_loss= None
-    if args.loss_type.lower()=='center':
-      model = torch.nn.DataParallel(ClassificationNet(embedding_net, n_classes=num_classes)).cuda()
-      criterion= CenterLoss(num_classes= num_classes, feat_dim= args.feat_dim)
-      params = list(model.parameters()) + list(criterion.parameters())
-    else:
-      model= torch.nn.DataParallel(embedding_net).cuda()
-      if args.loss_type.lower()=='siamese':
-        criterion= OnlineContrastiveLoss(args.margin, RandomNegativePairSelector())
+    if args.loss_type.lower() == 'center' or args.loss_type.lower() == 'softmax':
+      model = torch.nn.DataParallel(SoftmaxNet(args.arch, args.feat_dim, num_classes, use_pretrained = args.pretrained)).cuda()
+      if args.loss_type.lower() == 'center':
+          criterion = CenterLoss(num_classes = num_classes, feat_dim = args.feat_dim)
+          params = list(model.parameters()) + list(criterion.parameters())
       else:
-        criterion= OnlineTripletLoss(args.margin, SemihardNegativeTripletSelector(args.margin))
+          criterion = nn.CrossEntropyLoss().cuda()
+          params = model.parameters()
+    else:
+      model = torch.nn.DataParallel(NormalizedEmbeddingNet(args.arch, args.feat_dim, use_pretrained = args.pretrained)).cuda()
+      if args.loss_type.lower() == 'siamese':
+        criterion = OnlineContrastiveLoss(args.margin, HardNegativePairSelector())
+      else:
+        criterion = OnlineTripletLoss(args.margin, RandomNegativeTripletSelector(args.margin))
       params = model.parameters()
 
     # define loss function (criterion) and optimizer
-    #optimizer = torch.optim.Adam(params, lr=args.lr, weight_decay= args.weight_decay)
-    optimizer = torch.optim.SGD(params, lr=args.lr, weight_decay= args.weight_decay, momentum= 0.9)
-    start_epoch= 0
+    optimizer = torch.optim.Adam(params, lr=args.lr, weight_decay= args.weight_decay)
+    #optimizer = torch.optim.SGD(params, momentum = 0.9, lr = args.lr, weight_decay = args.weight_decay)
+    start_epoch = 0
 
     if checkpoint:
       start_epoch= checkpoint['epoch']
       model.load_state_dict(checkpoint['state_dict'])
       #optimizer.load_state_dict(checkpoint['optimizer'])
-      if args.loss_type.lower()=='center':
+      if args.loss_type.lower() == 'center':
         criterion.load_state_dict(checkpoint['centers'])
 
-    e= Engine(model,criterion,optimizer, verbose= True, print_freq= args.print_freq)
+    e= Engine(model, criterion, optimizer, verbose = True, print_freq = args.print_freq)
     for epoch in range(start_epoch, args.epochs):
         # train for one epoch
-        adjust_lr(optimizer, epoch)
-        e.train_one_epoch(train_loader, epoch, True if args.loss_type.lower()=='center' else False)
+        #adjust_lr(optimizer,epoch)
+        e.train_one_epoch(train_loader, epoch, True if args.loss_type.lower() == 'center' or args.loss_type.lower() == 'softmax' else False)
+        #if epoch % 1 == 0 and epoch > 0:
+        #    a, b, c = e.predict(train_embd_loader, load_info = True, dim = args.feat_dim)
+        #    plot_embedding(reduce_dimensionality(a), b, c, {})
         # evaluate on validation set
         if args.val_data is not None:
-            e.validate(val_loader,True if args.loss_type.lower()=='center' else False)
+            e.validate(val_loader, True if args.loss_type.lower() == 'center' else False)
         save_checkpoint({
             'epoch': epoch + 1,
             'arch': args.arch,
@@ -170,9 +195,10 @@ def main():
             'best_acc1': best_acc1,
             'optimizer' : optimizer.state_dict(),
             'loss_type' : args.loss_type,
+            'num_classes' : args.num_classes,
             'feat_dim' : args.feat_dim,
-            'centers': criterion.state_dict() if args.loss_type.lower()=='center' else None
-        }, False, "%s%s_%s_%04d.tar"%(args.checkpoint_prefix, args.loss_type, args.arch,epoch))
+            'centers': criterion.state_dict() if args.loss_type.lower() == 'center' else None
+        }, False, "%s%s_%s_%04d.tar"%(args.checkpoint_prefix, args.loss_type, args.arch, epoch))
 
 
 if __name__ == '__main__':
