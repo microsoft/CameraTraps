@@ -1,27 +1,26 @@
-#
-# UI.py
-#
-# Main entry point for the GUI-based view of the active learning project.
-#
-
-#%% Constants and imports
-
 import sys
-from PyQt5.QtWidgets import QTabWidget, QMainWindow, QApplication, QSizePolicy, QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QListView, QProgressBar, QInputDialog
-from UIComponents.GridWidget import GridWidget
-from DL.sqlite_data_loader import SQLDataLoader
-from DL.Engine import Engine
-
-from sklearn.cluster import DBSCAN
-from sklearn.metrics import pairwise_distances_argmin_min
-
+#from PyQt5 import QtCore, QtWidgets,QtGui
+from PyQt5.QtWidgets import QTabWidget, QMainWindow, QApplication, QSizePolicy, QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QTableWidget, QTableWidgetItem, QProgressBar, QInputDialog
+from PyQt5.QtCore import Qt,QPoint, pyqtSignal, QRect, QSize, QStringListModel
+from PyQt5.QtGui import QColor, QCursor, QPainterPath, QBrush, QPen
+from enum import Enum
+#from collections import deque
+#from peewee import *
 from UIComponents.DBObjects import *
 from DL.utils import *
 from DL.networks import *
+#from UIComponents.Tag import Tag
+from UIComponents.GridWidget import GridWidget
+from UIComponents.SpeciesWidget import SpeciesWidget
+from DL.sqlite_data_loader import SQLDataLoader
+from DL.Engine import Engine
+import os
+from multiprocessing import Process
 
-# from multiprocessing import Process
+from sklearn.cluster import DBSCAN, MiniBatchKMeans
+from sklearn.externals.joblib import parallel_backend
+from sklearn.metrics import pairwise_distances_argmin_min
 
-#%% Core UI
 
 class UI(QTabWidget):
 
@@ -49,11 +48,11 @@ class UI(QTabWidget):
         speciesList.append("Add New")
         species.setStringList(speciesList)
 
-        prefered_image_width=(0.485*app.primaryScreen().size().width())/4
+        prefered_image_width=(0.7*app.primaryScreen().size().width())/4
         self.tab1 = GridWidget(DetectionKind.ActiveDetection, prefered_image_width, num_cols=3, labeler=True)
         self.tab2 = GridWidget(DetectionKind.UserDetection, prefered_image_width)
         self.tab3 = GridWidget(DetectionKind.ModelDetection, prefered_image_width)
-        self.tab4 = QWidget()
+        self.tab4 = SpeciesWidget()
         self.setWindowTitle( 'Labeler' )
         self.addTab(self.tab1,"Unlabeled")# ("+str(len(self.unlabeled))+")")
         self.addTab(self.tab2,"User Labeled")# ("+str(len(self.labeled))+")")
@@ -65,44 +64,11 @@ class UI(QTabWidget):
         self.tab1.horizontalLayout.addWidget(self.tab1.confirm)
         self.tab1.horizontalLayout.addWidget(self.tab1.start)
 
-        self.tab4.verticalLayout= QVBoxLayout(self.tab4)
-        self.tab4.speciesList= QListView()
-        self.tab4.speciesList.setModel(species)
-        self.tab4.speciesList.setRowHidden(len(species.stringList())-1, True)
-        self.tab4.add = QPushButton('Add' )
-        self.tab4.update= QPushButton('Update')
-        self.tab4.horizontalLayout= QHBoxLayout()
-        self.tab4.horizontalLayout.addWidget(self.tab4.add) 
-        self.tab4.horizontalLayout.addWidget(self.tab4.update) 
-        self.tab4.verticalLayout.addWidget(self.tab4.speciesList)
-        self.tab4.verticalLayout.addLayout(self.tab4.horizontalLayout)
         self.setWindowTitle( 'Labeler' )
         self.tab1.confirm.clicked.connect(self.confirm)
         self.tab1.start.clicked.connect(self.active)
-        self.tab4.add.clicked.connect(self.addSpecies)
-        self.tab4.update.clicked.connect(self.updateSpecies)
-
-    def addSpecies(self, event):
-      text, ok = QInputDialog.getText(self, 'Enter Name', 'Enter the name of species:')
-      rows= self.tab4.speciesList.model().rowCount()
-      self.tab4.speciesList.model().insertRows(rows-1, 1);
-      self.tab4.speciesList.model().setData(self.tab4.speciesList.model().index(rows-1), text, Qt.EditRole)
-      self.syncSpecies()
-
-    def syncSpecies(self):
-      global species
-      for s in species.stringList():
-        x= Category.select().where(Category.name==s)
-        if not x.exists() and s!='Add New':
-          cat=Category()
-          cat.name=s
-          cat.save()   
-
-    def updateSpecies(self,event):
-      index= self.tab4.speciesList.currentIndex()
-      text, ok = QInputDialog.getText(self, 'Enter Name', 'Enter the name of species:', text= self.tab4.speciesList.model().data(index, Qt.DisplayRole))
-      self.tab4.speciesList.model().setData(index, text, Qt.EditRole)
-      self.syncSpecies()
+        #self.tab4.add.clicked.connect(self.addSpecies)
+        #self.tab4.update.clicked.connect(self.updateSpecies)
 
     def confirm(self,event):
       for i in range(self.tab1.num_rows):
@@ -117,27 +83,32 @@ class UI(QTabWidget):
       self.tab1.page=1
       self.tab1.showCurrentPage()
 
+
     def active(self,event):
         self.parentWidget().statusBar().showMessage("Start Learning")
-        checkpoint= load_checkpoint('../merge/triplet_model_0054.tar')
+        #checkpoint= load_checkpoint('../merge/triplet_model_0054.tar')
         run_dataset = SQLDataLoader(DetectionKind.ModelDetection, "/home/pangolin/all_crops/SS_full_crops", False, num_workers= 8, batch_size= 2048)
         #run_dataset.setup(Detection.select(Detection.id,Category.id).join(Category).where(Detection.kind==DetectionKind.ModelDetection.value).limit(250000))
         num_classes= len(run_dataset.getClassesInfo())
         print("Num Classes= "+str(num_classes))
         run_loader = run_dataset.getSingleLoader()
-        embedding_net = EmbeddingNet(checkpoint['arch'], checkpoint['feat_dim'])
-        if checkpoint['loss_type'].lower()=='center':
-            model = torch.nn.DataParallel(ClassificationNet(embedding_net, n_classes=14)).cuda()
-        else:
-            model= torch.nn.DataParallel(embedding_net).cuda()
-        model.load_state_dict(checkpoint['state_dict'])
-        self.parentWidget().progressBar.setMaximum(len(run_dataset)//2048)
-        e=Engine(model,None,None, verbose=True,progressBar= self.parentWidget().progressBar)
+        run_dataset.setDatatype('embedding')
+        #embedding_net = EmbeddingNet(checkpoint['arch'], checkpoint['feat_dim'])
+        #if checkpoint['loss_type'].lower()=='center':
+        #    model = torch.nn.DataParallel(ClassificationNet(embedding_net, n_classes=14)).cuda()
+        #else:
+        #    model= torch.nn.DataParallel(embedding_net).cuda()
+        #model.load_state_dict(checkpoint['state_dict'])
+        #self.parentWidget().progressBar.setMaximum(len(run_dataset)//2048)
+        #e=Engine(model,None,None, verbose=True,progressBar= self.parentWidget().progressBar)
         self.parentWidget().statusBar().showMessage("Extract Embeddings")
-        embd, label, paths = e.predict(run_loader, load_info=True)
+        embd = np.asarray([ np.fromstring(x[2], dtype='<f4') for x in run_dataset.samples])
+        #label = [ x[1] for x in run_dataset.samples]
+        paths = [x[0] for x in run_dataset.samples]#e.predict(run_loader, load_info=True)
         self.parentWidget().statusBar().showMessage("Clustring Images")
         self.parentWidget().progressBar.setMaximum(0)
         new_selected= self.selectSamples(embd,paths,300)
+
         self.tab1.update()
         self.tab1.showCurrentPage(force=True)
         self.parentWidget().statusBar().showMessage("Clustring Finished")
@@ -173,7 +144,6 @@ class UI(QTabWidget):
       #for x in self.tab1.grid.tags:
       #  x.delete_instance()
 
-
 class App(QMainWindow):
  
     def __init__(self):
@@ -182,7 +152,7 @@ class App(QMainWindow):
         screen = app.primaryScreen()
         size = screen.size()
         self.setWindowTitle(self.title)
-        self.setGeometry(0, 0, size.width()/2, size.height()-80)
+        self.setGeometry(0, 0, size.width(), size.height()-150)
         db = SqliteDatabase('SS.db')
         proxy.initialize(db)
         db.connect()
@@ -197,9 +167,6 @@ class App(QMainWindow):
         self.progressBar.setGeometry(30, 40, 200, 25)
         self.show()
 
-
-#%% Driver
-        
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     ex = App()
