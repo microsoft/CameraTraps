@@ -99,37 +99,37 @@ The script will print a complete overview of the generated data, which looks lik
     index created!
     Statistics of the training split:
     Locations used:
-    ['B04', 'B05', 'B06', ...
-    In total  49  classes and  1730648  images.
+    ['B03', 'B04', 'B05', ...
+    In total  49  classes and  1610503  images.
     Classes with one or more images:  47
 	Images per class:
 	ID    Name            Image count
         0 empty                     0
         1 human                     0
-        2 gazelleGrants          7968
-        3 reedbuck               2332
+        2 gazelleGrants         28957
+        3 reedbuck               3784
     ...
     
     Statistics of the testing split:
     Locations used:
-	['C05', 'C08', ...
-    In total  49  classes and  439292  images.
+	['C01', 'C09', ...
+    In total  49  classes and  559437  images.
 	Classes with one or more images:  46
 	Images per class:
 	ID    Name            Image count
 	    0 empty                     0
 	    1 human                     0
-	    2 gazelleGrants          1379
-	    3 reedbuck                830
+	    2 gazelleGrants         12710
+	    3 reedbuck               1060
 	...
 	
-This tells us that there are in total 49 classes. The training split has 1730648 images and the testing split 439292. 
+This tells us that there are in total 49 classes. The training split has 1610503 images and the testing split 559437. 
 
 The output also contains the class distribution for each split, which allows for generating nice figures using a spreadsheet program of your choice. Copy all the lines
 
-		0 empty                     0
+            0 empty                     0
 	    1 human                     0
-	    2 gazelleGrants          1379
+	    2 gazelleGrants         28957
 	    ....
  
 with image counts to a text file, replace all consecutive spaces by a single comma using regular expressions, and open the file as CSV in a spreadsheet program. The program should detect the class names and image counts as separate columns. You can now create a plot such as:
@@ -160,7 +160,7 @@ Now, we continue with the code modifications. Each dataset requires a separate d
 
 Open the file and adjust lines 20 and 22 to match the our dataset numbers:
 
-    SPLITS_TO_SIZES = {'train': 1730648, 'test': 439292}
+    SPLITS_TO_SIZES = {'train': 1610503, 'test': 559437}
     _NUM_CLASSES = 49
 
 Close and save the file. This description now gets connected to the rest of the code by the file `dataset_factory.py`. Open it with
