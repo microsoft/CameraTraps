@@ -1,12 +1,4 @@
-#
-# Tag.py
-#
-# Class representing an adjustable image annotation, typically overlaid on
-# an ImageView object within a GridWidget.
-#
-
-#%% Constants and imports
-
+import sys
 from PyQt5 import QtCore, QtGui
 from PyQt5.QtWidgets import QWidget, QMenu, QCheckBox, QLabel, QApplication
 from PyQt5.QtCore import Qt,QPoint, pyqtSignal, QRect, QSize
@@ -25,11 +17,8 @@ class Mode(Enum):
     RESIZEBL = 8,
     RESIZEL = 9
 
-
-#%% UI classes
-
 class Tag(QWidget):
-    
+    """ allow to move and resize by user"""
     menu = None
     mode = Mode.NONE
     position = None
@@ -49,16 +38,16 @@ class Tag(QWidget):
         self.m_isEditing = editable
         self.installEventFilter(parent)
         self.bbox= bbox
-        self.detection_id = detection_id
+        self.detection_id= detection_id
         
         x= round(bbox[1]*self.parentWidget().pixmap().width())
         y= round(bbox[0]*self.parentWidget().pixmap().height())
         w= round(bbox[3]*self.parentWidget().pixmap().width()-x)
         h= round(bbox[2]*self.parentWidget().pixmap().height()- y)
         self.setGeometry(x,y,w,h)
-        self.tik = QCheckBox(self)
+        self.tik= QCheckBox(self)
         self.tik.move(0,0)
-        self.title = QLabel(self)
+        self.title= QLabel(self)
         self.title.move(15,0)
         self.title.setStyleSheet("QLabel {  color : white; font-weight: bold; }")
         if not editable:
@@ -77,16 +66,13 @@ class Tag(QWidget):
         self.setFocusPolicy(QtCore.Qt.ClickFocus)
         self.setFocus()
 
-    """
-    def resizeEvent(self, event):
+    """def resizeEvent(self, event):
         print("resize invalidate",event.oldSize())
         self.valid= False
 
     def moveEvent(self, event):
         print("move invalidate", event.oldPos())
-        self.valid= False
-    """
-    
+        self.valid= False"""
     def updateLabel(self, label):
         self.label= label
         self.title.setText(self.label.name)
@@ -94,43 +80,38 @@ class Tag(QWidget):
           self.title.setText(self.label.name[0:2])
           if self.m_isEditing:
             self.title.move(0,15)
-        if self.label.id == -1:
-          self.color = Qt.red
+        if self.label.id==-1:
+          self.color=Qt.red
         else:
-          self.color = Qt.green
+          self.color=Qt.green
         if hasattr(self,'pen'):
           self.pen.setBrush(self.color)
         self.tik.setCheckState(False)
         #self.addWidget(self.child)
         self.update()
        
-        
     def getFinal(self):
-        y = self.x()/self.parentWidget().pixmap().width()
-        x = self.y()/self.parentWidget().pixmap().height()
-        h = (self.x()+self.width())/self.parentWidget().pixmap().width()
-        w = (self.y()+self.height())/self.parentWidget().pixmap().height()
+        y= self.x()/self.parentWidget().pixmap().width()
+        x= self.y()/self.parentWidget().pixmap().height()
+        h= (self.x()+self.width())/self.parentWidget().pixmap().width()
+        w= (self.y()+self.height())/self.parentWidget().pixmap().height()
         if abs(x-self.bbox[0])<0.01 and abs(x-self.bbox[0])<0.01 and abs(x-self.bbox[0])<0.01 and abs(x-self.bbox[0])<0.01:
           return self.detection_id, (self.bbox[0],self.bbox[1],self.bbox[2],self.bbox[3])
         else:
           return self.detection_id, (x,y,w,h)
- 
-    
+
     def speciesChanged(self, text):
-        if text == 'Add New':
+        if text=='Add New':
           self.parentWidget().parentWidget().parentWidget().parentWidget().setCurrentIndex(2)
         else:
-          self.label = text
+          self.label= text
 
-    """
-    def setChildWidget(self, cWidget):
+    """def setChildWidget(self, cWidget):
         if cWidget:
             self.childWidget = cWidget
             self.childWidget.setParent(self)
             self.childWidget.setMinimumSize(70,20)
-            self.childWidget.move(0,0)
-    """
-
+            self.childWidget.move(0,0)"""
 
     def popupShow(self, pt: QPoint):
         if self.menu.isEmpty:
@@ -140,8 +121,8 @@ class Tag(QWidget):
         self.menu.exec(global_)
         self.m_showMenu = False
 
-
-    def contextMenuEvent(self, event):       
+    def contextMenuEvent(self, event):
+       
       menu = QMenu(self)
       quitAction = menu.addAction("Delete Tag")
       action = menu.exec_(self.mapToGlobal(event.pos()))
@@ -149,14 +130,12 @@ class Tag(QWidget):
         self.parentWidget().tags.remove(self)
         self.setParent(None)
 
-
     def focusInEvent(self, a0: QtGui.QFocusEvent):
         self.m_infocus = True
         p = self.parentWidget()
         p.installEventFilter(self)
         p.repaint()
         self.inFocus.emit(True)
-
 
     def focusOutEvent(self, a0: QtGui.QFocusEvent):
         if not self.m_isEditing:
@@ -167,14 +146,12 @@ class Tag(QWidget):
         self.outFocus.emit(False)
         self.m_infocus = False
 
-
     def paintEvent(self, e: QtGui.QPaintEvent):
         painter = QtGui.QPainter(self)
         rect = e.rect()
         rect.adjust(0,0,-1,-1)
         painter.setPen(self.pen)
         painter.drawRect(rect)
-
 
     def mousePressEvent(self, e: QtGui.QMouseEvent):
         self.position = QPoint(e.globalX() - self.geometry().x(), e.globalY() - self.geometry().y())
@@ -188,7 +165,6 @@ class Tag(QWidget):
         if e.button() == QtCore.Qt.RightButton:
             self.popupShow(e.pos())
             e.accept()
-
 
     def keyPressEvent(self, e: QtGui.QKeyEvent):
         if not self.m_isEditing: return
@@ -280,7 +256,6 @@ class Tag(QWidget):
 
     def mouseReleaseEvent(self, e: QtGui.QMouseEvent):
         QWidget.mouseReleaseEvent(self, e)
-
 
     def mouseMoveEvent(self, e: QtGui.QMouseEvent):
         QWidget.mouseMoveEvent(self, e)

@@ -5,7 +5,6 @@ from torch.utils.data.sampler import BatchSampler
 
 import numpy as np
 import os
-import sys
 import random
 from PIL import Image as PILImage
 from PIL import ImageStat
@@ -15,30 +14,19 @@ from .Engine import Engine
 
 class SQLDataLoader(Dataset):
 
-  def __init__(self, img_base, query = None, is_training= False, embedding_mode = False, kind = DetectionKind.ModelDetection.value, model = None, num_workers=8, raw_size=[256,256], processed_size=[224,224], limit = 5000000):
+  def __init__(self, query, img_base, is_training= False, embedding_mode = False, model = None, num_workers=8, raw_size=[256,256], processed_size=[224,224]):
       self.is_training= is_training
       self.embedding= embedding_mode
       self.num_workers = num_workers
-      self.img_base = img_base
-      if query is None:
-          self.query = Detection.select(Detection.id,Oracle.label,Detection.kind).join(Oracle).order_by(fn.random()).limit(limit)
-              #([0, 1, 4, 7,90, 1, 3, 5, 6, 8, 14, 20, 23, 27, 30, 33, 35, 36, 37, 39, 41, 43, 44, 47])).order_by(fn.random()).limit(30000)
-      else:
-          self.query = query
-      self.set_indices = [[],[],[]]
+      self.img_base= img_base
+      self.query= query
       self.refresh(self.query)
-      self.kind = kind
-      for i, s in enumerate(self.samples):
-          self.set_indices[s[2]].append(i)
-      print([len(x) for x in self.set_indices])
-      self.current_set = self.set_indices[kind]
+      if model is not None:
+          self.updateEmbedding(model)
       mean, std= self.get_mean_std()
       self.train_transform = transforms.Compose([Resize(raw_size), RandomCrop(processed_size), RandomHorizontalFlip(), ColorJitter(), RandomRotation(20), ToTensor(), Normalize(mean, std)])
       #self.train_transform = transforms.Compose([Resize(raw_size), CenterCrop((processed_size)), ToTensor(), Normalize(mean, std)])
       self.eval_transform = transforms.Compose([Resize(raw_size), CenterCrop((processed_size)), ToTensor(), Normalize(mean, std)])
-      if model is not None:
-          self.updateEmbedding(model)
-
 
   def train(self):
       self.is_training = True
@@ -52,26 +40,19 @@ class SQLDataLoader(Dataset):
   def image_mode(self):
       self.embedding = False
 
-  def setKind(self, kind):
-      self.current_set = self.set_indices[kind]
-
   def refresh(self,query):
       print('Reading database')
       self.samples= list(query.tuples())
-
+  
   def updateEmbedding(self, model):
       print('Extracting embedding from the provided model ...')
       self.model = model
       e = Engine(model, None, None, verbose = True, print_freq = 10)
       temp = self.is_training
-      self.current_set= list(range(len(self.samples)))#[item for sublist in self.set_indices for item in sublist]
-      print( len(self.current_set))
       self.eval()
       self.em = e.embedding(self.getSingleLoader(batch_size = 1024))
       self.is_training = temp
-      self.setKind(self.kind)
       print('Embedding extraction is done.')
-      print(len(self.current_set))
 
   def get_mean_std(self):
       info= Info.get()
@@ -100,20 +81,18 @@ class SQLDataLoader(Dataset):
       return means, stds
 
   def __len__(self):
-      return len(self.current_set)
+      return len(self.samples)
 
   def loader(self,path):
       return PILImage.open(os.path.join(self.img_base,path+".JPG")).convert('RGB')
-      #return PILImage.open(os.path.join(self.img_base,path)).convert('RGB')
 
-  def __getitem__(self, idx):
+  def __getitem__(self, index):
     """
       Args:
         index (int): Index
       Returns:
         tuple: (sample, target) where target is class_index of the target class.
     """
-    index = self.current_set[idx]
     path = self.samples[index][0]
     target = self.samples[index][1]
     if not self.embedding:
@@ -127,24 +106,13 @@ class SQLDataLoader(Dataset):
         return self.em[index], target, path
   
   def getpaths(self):
-      return [os.path.join(self.img_base,self.samples[i][0]+".JPG") for i in self.current_set]
+      return [os.path.join(self.img_base,s[0]+".JPG") for s in self.samples]
 
   def getIDs(self):
-      return [self.samples[i][0] for i in self.current_set]
-  
-  def getallIDs(self):
-      return [self.samples[i][0] for i in range(len(self.samples))]
+      return [s[0] for s in self.samples]
 
   def getlabels(self):
-      return [self.samples[i][1] for i in self.current_set]
-
-  def getalllabels(self):
-      return [self.samples[i][1] for i in range(len(self.samples))]
-
-  def writeback(self):
-      for i, l in enumerate(self.set_indices):
-          query= Detection.update(kind = i).where(Detection.id.in_(rList))  
-          query.execute()
+      return [s[1] for s in self.samples]
 
   def getClassesInfo(self):
     return list(Category.select())
@@ -166,7 +134,7 @@ class BalancedBatchSampler(BatchSampler):
     """
 
     def __init__(self, underlying_dataset, n_classes, n_samples):
-        self.labels = [underlying_dataset.samples[i][1] for i in underlying_dataset.current_set]
+        self.labels = [s[1] for s in underlying_dataset.samples]
         self.labels_set = set(self.labels)
         self.label_to_indices = {label: np.where(np.array(self.labels) == label)[0]
                                  for label in self.labels_set}
@@ -181,7 +149,7 @@ class BalancedBatchSampler(BatchSampler):
 
     def __iter__(self):
         self.count = 0
-        while self.count + self.batch_size < (len(self.dataset) * 4):
+        while self.count + self.batch_size < len(self.dataset):
             #print(self.labels_set, self.n_classes)
             classes = np.random.choice(list(self.labels_set), self.n_classes, replace=False)
             indices = []
@@ -197,4 +165,4 @@ class BalancedBatchSampler(BatchSampler):
             self.count += self.n_classes * self.n_samples
 
     def __len__(self):
-        return (len(self.dataset) // (self.n_samples*self.n_classes)) * 4
+        return len(self.dataset) // (self.n_samples*self.n_classes)
