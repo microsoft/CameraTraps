@@ -1,3 +1,6 @@
 [submodule "demo/CameraTrapAssets"]
 	path = demo/CameraTrapAssets
 	url = https://ai4evisionexternal.visualstudio.com/gramener/_git/camera-trap-app-assets
+[submodule "research/active_learning/detector_AL_pipeline"]
+	path = research/active_learning/detector_AL_pipeline
+	url = https://github.com/olgaliak/active-learning-detect.git
