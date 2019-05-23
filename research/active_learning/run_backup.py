@@ -2,6 +2,7 @@ import argparse
 import os
 import random
 import time
+import sys
 import warnings
 
 import torch
@@ -24,11 +25,11 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.utils.extmath import softmax
 
 from DL.sqlite_data_loader import SQLDataLoader
-from DL.data_loader import BaseDataLoader
 from DL.losses import *
 from DL.utils import *
 from DL.networks import *
 from DL.Engine import Engine
+from UIComponents.DBObjects import *
 
 from sklearn.neural_network import MLPClassifier
 from sklearn.neighbors import KNeighborsClassifier
@@ -41,6 +42,9 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
 from sklearn.semi_supervised import label_propagation
 from sklearn.metrics import silhouette_samples, confusion_matrix
+from sklearn.cluster import DBSCAN, MiniBatchKMeans
+from sklearn.externals.joblib import parallel_backend
+from sklearn.metrics import pairwise_distances_argmin_min
 
 from torch.utils.data import TensorDataset, DataLoader
 import torch.nn as nn
@@ -98,10 +102,10 @@ def apply_different_methods(X_train, y_train, X_test, y_test):
     testloader = DataLoader(testset, batch_size=32, shuffle = False)
 
     criterion = nn.CrossEntropyLoss()
-    net= ClassificationNet(256,16)
+    net= ClassificationNet(256,48)
     optimizer = optim.Adam(net.parameters()) 
     net.train()
-    conf= ConfusionMatrix(24)
+    #conf= ConfusionMatrix(24)
     for epoch in range(50):  # loop over the dataset multiple times
 
       running_loss = 0.0
@@ -226,14 +230,71 @@ print('Finished Training')
       y_train=y[list(base_ind)]
       #conf.reset()"""
 
-def completeLoop(X,y):
+def completeLoop(X,y,base_ind):
+    embedding_net = EmbeddingNet('densenet161', 256, True)
+    center_loss= None
+    model= torch.nn.DataParallel(embedding_net).cuda()
+    criterion= OnlineTripletLoss(1.0, SemihardNegativeTripletSelector(1.0))
+    params = model.parameters()
+
+    # define loss function (criterion) and optimizer
+    optimizer = torch.optim.Adam(params, lr=0.0001)
+    start_epoch= 0
+    checkpoint= load_checkpoint('triplet_model_0086.tar')
+    if checkpoint:
+      model.load_state_dict(checkpoint['state_dict'])
+
+    e= Engine(model,criterion,optimizer, verbose= True, print_freq= 10)
+    trainset_query= Detection.select(Detection.id,Oracle.label,Detection.embedding).join(Oracle).where(Oracle.status==0, Detection.kind==DetectionKind.UserDetection.value) 
+    embedding_dataset = SQLDataLoader(trainset_query, "all_crops/SS_full_crops", True, num_workers= 4, batch_size= 64)
+    print(len(embedding_dataset))
+    num_classes= 48#len(run_dataset.getClassesInfo()[0])
+    print("Num Classes= "+str(num_classes))
+    embedding_loader = embedding_dataset.getBalancedLoader(16,4)
+    for i in range(200):
+        e.train_one_epoch(embedding_loader,i,False)
+    embedding_dataset2 = SQLDataLoader(trainset_query, "all_crops/SS_full_crops", False, num_workers= 4, batch_size= 512)
+    em= e.embedding(embedding_dataset2.getSingleLoader())
+    lb = np.asarray([ x[1] for x in embedding_dataset2.samples])
+    pt = [x[0] for x in embedding_dataset2.samples]#e.predict(run_loader, load_info=True)
+
+    co=0
+    for r,s,t in zip(em,lb,pt):
+        co+=1
+        smp= Detection.get(id=t)
+        smp.embedding= r
+        smp.save()
+        if co%100==0:
+            print(co)
     print("Loop Started")
-    base_ind = set(np.random.choice(np.arange(len(y)), 200, replace=False))
-    X_train= X[list(base_ind)]
+    train_dataset = SQLDataLoader(trainset_query, "all_crops/SS_full_crops", False, datatype='embedding', num_workers= 4, batch_size= 64)
+    print(len(train_dataset))
+    num_classes= 48#len(run_dataset.getClassesInfo()[0])
+    print("Num Classes= "+str(num_classes))
+    run_loader = train_dataset.getSingleLoader()
+    clf_model = ClassificationNet(256,48).cuda()
+    clf_criterion= nn.CrossEntropyLoss()
+    clf_optimizer = torch.optim.Adam(clf_model.parameters(), lr=0.001, weight_decay=0.0005)
+    clf_e= Engine(clf_model,clf_criterion,clf_optimizer, verbose= True, print_freq= 10)
+    for i in range(250):
+      clf_e.train_one_epoch(run_loader,i, True)
+    testset_query= Detection.select(Detection.id,Oracle.label,Detection.embedding).join(Oracle).where(Oracle.status==0, Detection.kind==DetectionKind.ModelDetection.value)
+    test_dataset = SQLDataLoader(testset_query, "all_crops/SS_full_crops", False, datatype='image', num_workers= 4, batch_size= 512)
+    print(len(test_dataset))
+    num_classes= 48#len(run_dataset.getClassesInfo()[0])
+    print("Num Classes= "+str(num_classes))
+    test_loader = test_dataset.getSingleLoader()
+    test_em= e.embedding(test_loader)
+    test_lb = np.asarray([ x[1] for x in test_dataset.samples])
+    print(test_lb.shape,test_em.shape)
+    testset = TensorDataset(torch.from_numpy(test_em), torch.from_numpy(test_lb))
+    clf_e.validate(DataLoader(testset, batch_size= 512, shuffle= False), True)
+
+    """X_train= X[list(base_ind)]
     y_train= y[list(base_ind)]
     clf= MLPClassifier(hidden_layer_sizes=(200,100), max_iter=300)
     #conf= NPConfusionMatrix(10)
-    for it in range(9):
+    for it in range(39):
       clf.fit(X_train, y_train)
       #all_indices= set(range(len(y)))
       #diff= all_indices.difference(base_ind)
@@ -246,13 +307,13 @@ def completeLoop(X,y):
       srt = np.argsort(uncertainty)
       co=0
       i=0
-      while co<200:
+      while co<100:
         if srt[i] not in base_ind:
           base_ind.add(srt[i])
           co+=1
         i+=1
       X_train=X[list(base_ind)]
-      y_train=y[list(base_ind)]
+      y_train=y[list(base_ind)]"""
       #conf.reset()
 
 def active_learning(X,y, base_ind):
@@ -309,13 +370,47 @@ def active_learning_entropy(X,y, base_ind):
     uncertainty_index = np.argsort(pred_entropies)[::-1]
     uncertainty_index = uncertainty_index[np.in1d(uncertainty_index, mask)][:100]
     return uncertainty_index"""
+def selectSamples(embd, paths, n):
+        selected_set= set()
+        while len(selected_set)<n:
+            print(len(selected_set))
+            sys.stdout.flush()
+            rand_ind= np.random.choice(np.arange(embd.shape[0]),3000, replace=False)
+            db = DBSCAN(eps=1, min_samples=5,n_jobs=-1).fit(embd[rand_ind])
+            indices=set()
+            for i,x in enumerate(db.labels_):
+              if x==-1 and getDistance(embd,indices,rand_ind[i])>=0.3 and getDistance(embd,selected_set,rand_ind[i])>=0.3:
+                indices.add(rand_ind[i])
+            moveRecords(DetectionKind.ModelDetection, DetectionKind.ActiveDetection, [paths[i] for i in indices.difference(selected_set)])
+            selected_set= selected_set.union(indices)
+            #print(indices,selected_set)
+        return selected_set
+
+def getDistance(embd,archive,sample):
+      if len(archive)==0:
+          return 100
+      else:
+          return pairwise_distances_argmin_min(embd[sample].reshape(1, -1),embd[np.asarray(list(archive),dtype=np.int32)])[1]
+
+def moveRecords(srcKind,destKind,rList):
+      query= Detection.update(kind=destKind.value).where(Detection.id.in_(rList), Detection.kind==srcKind.value)
+      #print(query.sql())
+      query.execute()
 
 def main():
     args = parser.parse_args()
+    print("DB Connect")
+    db = SqliteDatabase('SS.db')
+    proxy.initialize(db)
+    db.connect()
+
     # remember best acc@1 and save checkpoint
-    checkpoint= load_checkpoint(args.resume)
-    run_dataset = BaseDataLoader(args.run_data, False, num_workers= args.workers, batch_size= args.batch_size)
-    num_classes= len(run_dataset.getClassesInfo()[0])
+    """checkpoint= load_checkpoint("triplet_model_0054.tar")
+    runset_query= Detection.select(Detection.id,Oracle.label,Detection.embedding).join(Oracle).where(Oracle.status==0)
+    print("Create Query")
+    run_dataset = SQLDataLoader(runset_query, "all_crops/SS_full_crops", False, datatype='image', num_workers= args.workers*2, batch_size= 512)
+    print(len(run_dataset))
+    num_classes= 48#len(run_dataset.getClassesInfo()[0])
     print("Num Classes= "+str(num_classes))
     run_loader = run_dataset.getSingleLoader()
     embedding_net = EmbeddingNet(checkpoint['arch'], checkpoint['feat_dim'])
@@ -324,8 +419,16 @@ def main():
     else:
       model= torch.nn.DataParallel(embedding_net).cuda()
     model.load_state_dict(checkpoint['state_dict'])
+    e= Engine(model,None,None, verbose= True, print_freq= 10)
+    embd = e.embedding(run_loader)
+    print("inje")
+    sys.stdout.flush()
+    label = np.asarray([ x[1] for x in run_dataset.samples])
+    paths = [x[0] for x in run_dataset.samples]#e.predict(run_loader, load_info=True)
+    print("embedding done")
+    sys.stdout.flush()"""
     #completeClassificationLoop(run_dataset, model,num_classes)
-    embd, label, paths = extract_embeddings(run_loader, model)
+    #embd, label, paths = extract_embeddings(run_loader, model)
     #db = DBSCAN(eps=0.1, min_samples=5).fit(embd)
     #db = MiniBatchKMeans(n_clusters=args.num_clusters).fit(embd)
     #labels = db.labels_
@@ -347,9 +450,11 @@ def main():
     #  idx= active_learning_entropy(embd, label, idx)
 
     #apply_different_methods(embd[idx], label[idx], embd, label)
+    #new_selected= selectSamples(embd,paths,3000)
+
 
     print("CompleteLoop")
-    completeLoop(embd,label)
+    completeLoop(None,None,None)#new_selected)
 
     #print(idx,idx.shape)
     #for i in idx:
@@ -359,9 +464,9 @@ def main():
     #idx= active_learning2(embd, 1000, args.num_clusters)
     #print(idx.shape)
     #apply_different_methods(embd[idx], label[idx], embd, label)
-    print("Random")
-    idx = np.random.choice(np.arange(len(paths)), 1000, replace=False)
-    apply_different_methods(embd[idx], label[idx], embd, label)
+    #print("Random")
+    #idx = np.random.choice(np.arange(len(paths)), 1000, replace=False)
+    #apply_different_methods(embd[idx], label[idx], embd, label)
 
     #apply_different_methods(embd[idx], label[idx], embd, label)
     #embd= reduce_dimensionality(embd)#[0:10000])
@@ -375,26 +480,6 @@ def main():
     #np.save(args.name_prefix+"_labels.npy",label)
     #np.savetxt(args.name_prefix+"_paths.txt",paths, fmt="%s")
 
-
-
-def extract_embeddings(dataloader, model):
-    with torch.no_grad():
-        model.eval()
-        embeddings = np.zeros((len(dataloader.dataset),256))# 3*218*218))
-        labels = np.zeros(len(dataloader.dataset))
-        paths=[None]*len(dataloader.dataset)
-        k = 0
-        for images, target, path in dataloader:
-            
-            images = images.cuda()
-            embedding = model(images)
-            embeddings[k:k+len(images)] = embedding.data.cpu().numpy().reshape((len(images),-1))
-            labels[k:k+len(images)] = target.numpy()
-            paths[k:k+len(path)]=path
-            k += len(images)
-            del embedding
-            #del output
-    return embeddings, labels, paths
-
 if __name__ == '__main__':
+    print("start")
     main()
