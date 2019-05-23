@@ -1,10 +1,5 @@
-#
-# utils.py
-#
-
-#%% Constants and imports
-
 import numpy as np
+import sys
 import matplotlib.pyplot as plt
 from PIL import Image as PILImage
 from matplotlib.offsetbox import OffsetImage, AnnotationBbox
@@ -12,13 +7,14 @@ import torch
 import matplotlib.patches as mpatches
 import shutil
 from itertools import combinations
-# from sklearn.manifold import TSNE
+from MulticoreTSNE import MulticoreTSNE as TSNE
+#from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA
 
 indexcolors =["#000000", "#FFFF00", "#1CE6FF", "#FF34FF", "#FF4A46", "#008941", "#006FA6", "#A30059",
 
         "#FFDBE5", "#7A4900", "#0000A6", "#63FFAC", "#B79762", "#004D43", "#8FB0FF", "#997D87",
-        "#5A0007", "#809693", "#FEFFE6", "#1B4400", "#4FC601", "#3B5DFF", "#4A3B53", "#FF2F80",
+        "#5A0007", "#809693", "#E704C4", "#1B4400", "#4FC601", "#3B5DFF", "#4A3B53", "#FF2F80",
         "#61615A", "#BA0900", "#6B7900", "#00C2A0", "#FFAA92", "#FF90C9", "#B903AA", "#D16100",
         "#DDEFFF", "#000035", "#7B4F4B", "#A1C299", "#300018", "#0AA6D8", "#013349", "#00846F",
         "#372101", "#FFB500", "#C2FFED", "#A079BF", "#CC0744", "#C0B9B2", "#C2FF99", "#001E09",
@@ -37,7 +33,7 @@ indexcolors =["#000000", "#FFFF00", "#1CE6FF", "#FF34FF", "#FF4A46", "#008941", 
         "#7A7BFF", "#D68E01", "#353339", "#78AFA1", "#FEB2C6", "#75797C", "#837393", "#943A4D",
         "#B5F4FF", "#D2DCD5", "#9556BD", "#6A714A", "#001325", "#02525F", "#0AA3F7", "#E98176",
         "#DBD5DD", "#5EBCD1", "#3D4F44", "#7E6405", "#02684E", "#962B75", "#8D8546", "#9695C5",
-        "#E773CE", "#D86A78", "#3E89BE", "#CA834E", "#518A87", "#5B113C", "#55813B", "#E704C4",
+        "#E773CE", "#D86A78", "#3E89BE", "#CA834E", "#518A87", "#5B113C", "#55813B", "#FEFFE6",
         "#00005F", "#A97399", "#4B8160", "#59738A", "#FF5DA7", "#F7C9BF", "#643127", "#513A01",
         "#6B94AA", "#51A058", "#A45B02", "#1D1702", "#E20027", "#E7AB63", "#4C6001", "#9C6966",
         "#64547B", "#97979E", "#006A66", "#391406", "#F4D749", "#0045D2", "#006C31", "#DDB6D0",
@@ -55,29 +51,86 @@ indexcolors =["#000000", "#FFFF00", "#1CE6FF", "#FF34FF", "#FF4A46", "#008941", 
         "#2F5D9B", "#6C5E46", "#D25B88", "#5B656C", "#00B57F", "#545C46", "#866097", "#365D25",
         "#252F99", "#00CCFF", "#674E60", "#FC009C", "#92896B"]
 
-
-#%% Utility functions
-        
 def reduce_dimensionality(X):
   print("Calculating TSNE")
   #embedding= TSNE(n_components=2).fit_transform(X)
-  embedding = PCA(n_components=2).fit_transform(X)
+  embedding= TSNE(n_jobs=20, n_components=2).fit_transform(X)
+  #embedding= PCA(n_components=2).fit_transform(X)
   return embedding
- 
-    
-def plot_embedding(embedding, labels, paths, info):
-  fig = plt.figure(figsize=(15,10))
-  ax = plt.gca()
-  colors = [indexcolors[int(i)] for i in labels.squeeze()]
-  sc = ax.scatter(embedding[:,0],embedding[:,1], s=1, c= colors )
-  legend_texts = [ x[0] for x in sorted(info.items(), key=lambda kv: kv[1])]
-  patches = []
+  #return X
+
+def plot_together(embedd, labels, preds, ind, paths, info):
+  embedding= reduce_dimensionality(embedd)
+  fig, axs = plt.subplots(nrows=2, ncols=2, constrained_layout=True)
+  colors= [indexcolors[int(i) % len(indexcolors)] for i in labels.squeeze()]
+  axs[0,0].sc=axs[0, 0].scatter(embedding[:,0],embedding[:,1], s=1, c= colors )
+  colors= [indexcolors[int(i) % len(indexcolors)] for i in preds.squeeze()]
+  axs[0,1].sc=axs[0, 1].scatter(embedding[:,0],embedding[:,1], s=1, c= colors )
+  colors= [indexcolors[int(i) % len(indexcolors)] for i in np.equal(labels, preds).astype(np.int32).squeeze()]
+  axs[1,0].sc=axs[1, 0].scatter(embedding[:,0],embedding[:,1], s=1, c= colors )
+  selected = np.zeros_like(labels)
+  for i in ind:
+    selected[i]= 1
+  colors= [indexcolors[int(i) % len(indexcolors)] for i in selected.squeeze()]
+  axs[1,1].sc=axs[1, 1].scatter(embedding[:,0],embedding[:,1], s=1, c= colors )
+
+  legend_texts= [ x[0] for x in sorted(info.items(), key=lambda kv: kv[1])]
+  patches=[]
   for i,label in enumerate(legend_texts):
     patches.append(mpatches.Patch(color=indexcolors[i], label=label))
   plt.legend(handles=patches)
   plt.xlabel('Dim 1', fontsize=12)
   plt.ylabel('Dim 2', fontsize=12)
   plt.grid(True)
+  t_list=[]
+
+  def onpick3(event):
+    if event.button==1:
+      #print(dir(event), type(sc))
+      ax = event.inaxes
+      sys.stdout.flush()
+      cont, ind = ax.sc.contains(event)
+      for thumb in ind['ind']:
+        print(paths[thumb])
+        img = PILImage.open(paths[thumb])
+        img.thumbnail((128, 96), PILImage.ANTIALIAS)
+        img = OffsetImage(img, zoom=1)
+        ab = AnnotationBbox(img, (embedding[thumb,0]+0.2, embedding[thumb,1]+0.2), xycoords='data', frameon=False)
+        ax.add_artist(ab)
+        ab.set_visible(True)
+        t_list.append(ab)
+    else:
+      for annot in t_list:
+        annot.set_visible(False)
+    event.canvas.draw()
+
+  fig.canvas.mpl_connect('button_press_event', onpick3)
+  plt.show()
+
+def plot_embedding(embedd, labels, paths, info):
+  fig= plt.figure(figsize=(10,10))
+  embedding= reduce_dimensionality(embedd)
+  ax= plt.gca()
+  colors= [indexcolors[int(i) % len(indexcolors)] for i in labels.squeeze()]
+  sc=ax.scatter(embedding[:,0],embedding[:,1], s=1, c= colors )
+  legend_texts= [ x[1] for x in sorted(info.items(), key=lambda kv: kv[1])]
+  plt.xticks([])
+  plt.yticks([])
+  patches=[]
+  for i,label in enumerate(legend_texts):
+      if np.count_nonzero(np.equal(labels, i))>0 :
+          bgcolor= indexcolors[i][1:]
+          #print(label,bgcolor)
+          (r, g, b) = (bgcolor[:2], bgcolor[2:4], bgcolor[4:])
+          color = 'black' if 1 - (int(r, 16) * 0.299 + int(g, 16) * 0.587 + int(b, 16) * 0.114) / 255 < 0.5 else 'white'
+          plt.annotate(label, np.median(embedding[labels == i], axis=0), horizontalalignment='center', verticalalignment='center',                                                                                    size=8, weight='bold', color=color, backgroundcolor= indexcolors[i]) 
+  #  patches.append(mpatches.Patch(color=indexcolors[i], label=label))
+  #plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
+  #                     ncol=12, mode="expand", borderaxespad=0., handles=patches)
+  #plt.legend(handles=patches)
+  #plt.xlabel('Dim 1', fontsize=12)
+  #plt.ylabel('Dim 2', fontsize=12)
+  #plt.grid(True)
   t_list=[]
 
   def onpick3(event):
@@ -97,16 +150,42 @@ def plot_embedding(embedding, labels, paths, info):
         annot.set_visible(False)
     event.canvas.draw()
 
-  fig.canvas.mpl_connect('button_press_event', onpick3)
-  #plt.show()
 
+  fig.canvas.mpl_connect('button_press_event', onpick3)
+  plt.show()
+
+def plot_embedding_images(embedd, labels, paths, info):
+  fig= plt.figure(figsize=(15,10))
+  embedding= reduce_dimensionality(embedd)
+  ax= plt.gca()
+  colors= [indexcolors[int(i) % len(indexcolors)] for i in labels.squeeze()]
+  sc=ax.scatter(embedding[:,0],embedding[:,1], s=1, c= colors )
+  legend_texts= [ x[0] for x in sorted(info.items(), key=lambda kv: kv[1])]
+  patches=[]
+  for i,label in enumerate(legend_texts):
+    patches.append(mpatches.Patch(color=indexcolors[i], label=label))
+  plt.legend(handles=patches)
+  #plt.xlabel('Dim 1', fontsize=12)
+  #plt.ylabel('Dim 2', fontsize=12)
+  #plt.grid(True)
+
+  for i,thumb in enumerate(paths):
+        #print(thumb)
+        img = PILImage.open(thumb)
+        img.thumbnail((16, 12), PILImage.ANTIALIAS)
+        img = OffsetImage(img, zoom=1)
+        ab = AnnotationBbox(img, (embedding[i,0]+0.2, embedding[i,1]+0.2), xycoords='data', frameon=False)
+        ax.add_artist(ab)
+        ab.set_visible(True)
+
+  plt.show()
 
 def save_embedding_plot(name, embedding, labels, info):
   fig = plt.figure(figsize=(10,10))
-  colors = [indexcolors[int(i)] for i in labels.squeeze()]
+  colors= [indexcolors[int(i)] for i in labels.squeeze()]
   plt.scatter(embedding[:,0],embedding[:,1], s=1, c= colors)
-  legend_texts = [ x[0] for x in sorted(info.items(), key=lambda kv: kv[1])]
-  patches = []
+  legend_texts= [ x[0] for x in sorted(info.items(), key=lambda kv: kv[1])]
+  patches=[]
   for i,label in enumerate(legend_texts):
     patches.append(mpatches.Patch(color=indexcolors[i], label=label))
   plt.legend(handles=patches)
@@ -116,16 +195,13 @@ def save_embedding_plot(name, embedding, labels, info):
   plt.savefig(name)
   plt.close(fig)
 
-
 def save_checkpoint(state, is_best, filename='checkpoint.pth.tar'):
     torch.save(state, filename)
     if is_best:
         shutil.copyfile(filename, 'model_best.pth.tar')
 
-
 def load_checkpoint(filename='model_best.pth.tar'):
     return torch.load(filename)
-
 
 class AverageMeter(object):
     """Computes and stores the average and current value"""
@@ -143,7 +219,6 @@ class AverageMeter(object):
         self.sum += val * n
         self.count += n
         self.avg = self.sum / self.count
-
 
 def adjust_learning_rate(optimizer, epoch):
     """Sets the learning rate to the initial LR decayed by 10 every 30 epochs"""
@@ -168,7 +243,6 @@ def accuracy(output, target, topk=(1,)):
             res.append(correct_k.mul_(100.0 / batch_size))
         return res
 
-
 def pdist(vectors):
     distance_matrix = -2 * vectors.mm(torch.t(vectors)) + vectors.pow(2).sum(dim=1).view(1, -1) + vectors.pow(2).sum(
         dim=1).view(-1, 1)
@@ -177,9 +251,8 @@ def pdist(vectors):
 
 class PairSelector:
     """
-    Implementation should return indices of positive pairs and negative pairs that will be 
-    passed to compute contrastive Loss
-    
+    Implementation should return indices of positive pairs and negative pairs that will be passed to compute
+    Contrastive Loss
     return positive_pairs, negative_pairs
     """
 
@@ -193,10 +266,8 @@ class PairSelector:
 class AllPositivePairSelector(PairSelector):
     """
     Discards embeddings and generates all possible pairs given labels.
-    If balance is True, negative pairs are a random sample to match the number of positive 
-    samples
+    If balance is True, negative pairs are a random sample to match the number of positive samples
     """
-    
     def __init__(self, balance=True):
         super(AllPositivePairSelector, self).__init__()
         self.balance = balance
@@ -233,7 +304,6 @@ class HardNegativePairSelector(PairSelector):
         all_pairs = torch.LongTensor(all_pairs)
         positive_pairs = all_pairs[(labels[all_pairs[:, 0]] == labels[all_pairs[:, 1]]).nonzero()]
         negative_pairs = all_pairs[(labels[all_pairs[:, 0]] != labels[all_pairs[:, 1]]).nonzero()]
-
         negative_distances = distance_matrix[negative_pairs[:, 0], negative_pairs[:, 1]]
         negative_distances = negative_distances.cpu().data.numpy()
         top_negatives = np.argpartition(negative_distances, len(positive_pairs))[:len(positive_pairs)]
