@@ -173,7 +173,9 @@ def sanityCheckJsonDb(jsonFile, options=None):
             assert 'height' in image, 'Image with width but no height: {}'.format(image['id'])
 
         if 'location' in image:
-            assert isinstance(image['location'], str) or isinstance(image['location'], int), 'Illegal image location type'
+            # We previously supported ints here; this should be strings now
+            # assert isinstance(image['location'], str) or isinstance(image['location'], int), 'Illegal image location type'
+            assert isinstance(image['location'], str)
             imageLocationSet.add(image['location'])
     
         if 'seq_id' in image:
