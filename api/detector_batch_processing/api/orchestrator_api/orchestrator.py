@@ -1,9 +1,11 @@
 import copy
 import io
 import os
+import pickle
 from collections import defaultdict
 from datetime import datetime, timedelta
 
+import azureml.core
 import pandas as pd
 from azure.storage.blob import BlockBlobService, BlobPermissions
 from azureml.core import Workspace, Experiment
@@ -19,11 +21,14 @@ from azureml.pipeline.steps import PythonScriptStep
 import api_config
 from sas_blob_utils import SasBlob
 
+print('Version of AML: {}'.format(azureml.core.__version__))
+
+
 # Service principle authentication for AML
 svc_pr_password = os.environ.get('AZUREML_PASSWORD')
 svc_pr = ServicePrincipalAuthentication(
-    'my-tenant-id',  # 'my-tenant-id'
-    'my-application-id',  # 'my-application-id'
+    api_config.AML_CONFIG['tenant-id'],  # 'my-tenant-id'
+    api_config.AML_CONFIG['application-id'],  # 'my-application-id'
     svc_pr_password)
 
 
@@ -97,6 +102,7 @@ class AMLCompute:
 
             batch_score_step = PythonScriptStep(aml_config['script_name'],
                                                 source_directory=aml_config['source_dir'],
+                                                hash_paths= ['.'],  # include all contents of source_directory
                                                 name='batch_scoring',
                                                 arguments=['--job_id', param_job_id,
                                                            '--model_name', aml_config['model_name'],
@@ -272,7 +278,7 @@ class AMLMonitor:
                 sas = self.internal_storage_service.generate_blob_shared_access_signature(
                     self.internal_container, blob_path, permission=BlobPermissions.READ, expiry=expiry
                 )
-                url = self.internal_storage_service.make_blob_url('async-api-v2', blob_path, sas_token=sas)
+                url = self.internal_storage_service.make_blob_url(self.internal_container, blob_path, sas_token=sas)
                 urls[output] = url
             return urls
         except Exception as e:
