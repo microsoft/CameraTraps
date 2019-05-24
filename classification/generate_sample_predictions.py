@@ -18,7 +18,7 @@ parser.add_argument('--test_json', type=str, help='Path to test.json generated b
 # Optional parameters
 parser.add_argument('--output_dir', type=str, help='Path to output directory. We will copy sample images to this location ' + \
                                   ' and also save the output as text file here. Default: "./sample_output"', default='./sample_output')
-parser.add_argument('--num_samples', type=int, help='Number of samples to selected. Default: 5', default=5)
+parser.add_argument('--num_samples', type=int, help='Number of samples to selected. Default: 5', default=10)
 args = parser.parse_args()
 
 # Validate parameters
