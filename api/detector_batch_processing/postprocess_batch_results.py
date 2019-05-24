@@ -22,10 +22,10 @@
 #
 ########
 
+
 #%% Constants and imports
 
 import inspect
-import json
 import os
 import sys
 import argparse
@@ -34,6 +34,7 @@ import pandas as pd
 from enum import IntEnum
 from tqdm import tqdm
 from sklearn.metrics import precision_recall_curve, confusion_matrix, average_precision_score
+from detection.detection_eval.load_api_results import load_api_results
 
 # Assumes the cameratraps repo root is on the path
 from data_management.cct_json_utils import CameraTrapJsonUtils
@@ -48,6 +49,9 @@ from write_html_image_list import write_html_image_list
 
 #%% Options
 
+DEFAULT_NEGATIVE_CLASSES = ['empty']
+DEFAULT_UNKNOWN_CLASSES = ['unknown','unlabeled']
+
 class PostProcessingOptions:
 
     ### Required inputs
@@ -59,7 +63,9 @@ class PostProcessingOptions:
 
     ### Options    
     
-    negative_classes = ['empty']
+    negative_classes = DEFAULT_NEGATIVE_CLASSES
+    unlabeled_classes = DEFAULT_UNKNOWN_CLASSES
+    
     confidence_threshold = 0.85
 
     # Used for summary statistics only
@@ -72,7 +78,13 @@ class PostProcessingOptions:
     
     sort_html_by_filename = True
     
-
+    # Optionally replace one or more strings in filenames with other strings;
+    # this is useful for taking a set of results generated for one folder structure
+    # and applying them to a slightly different folder structure.
+    detector_output_filename_replacements = {}
+    ground_truth_filename_replacements = {}
+    
+    
 #%% Helper classes and functions
 
 # Flags used to mark images as positive or negative for P/R analysis (according
@@ -91,11 +103,15 @@ class DetectionStatus(IntEnum):
     # This image has annotations suggesting both negative and positive
     DS_AMBIGUOUS = 2
     
-    # This image is not annotated
+    # This image is not annotated or is annotated with 'unknown', 'unlabeled', ETC.
     DS_UNKNOWN = 3
+    
+    # This image has not yet been assigned a state
+    DS_UNASSIGNED = 4
 
 
-def mark_detection_status(indexed_db,negative_classes=['empty']):
+def mark_detection_status(indexed_db, negative_classes=DEFAULT_NEGATIVE_CLASSES,
+                          unknown_classes=DEFAULT_UNKNOWN_CLASSES):
     """
     For each image in indexed_db.db['images'], add a '_detection_status' field
     to indicate whether to treat this image as positive, negative, ambiguous,
@@ -118,7 +134,7 @@ def mark_detection_status(indexed_db,negative_classes=['empty']):
         annotations = indexed_db.image_id_to_annotations[image_id]
         image_categories = [ann['category_id'] for ann in annotations]
         
-        image_status = DetectionStatus.DS_UNKNOWN
+        image_status = DetectionStatus.DS_UNASSIGNED
         
         if len(image_categories) == 0:
             
@@ -131,14 +147,24 @@ def mark_detection_status(indexed_db,negative_classes=['empty']):
                 cat_name = indexed_db.cat_id_to_name[cat_id]            
                 
                 if cat_name in negative_classes:                    
-                    if image_status == DetectionStatus.DS_UNKNOWN:                        
+                    
+                    if image_status == DetectionStatus.DS_UNASSIGNED:
                         image_status = DetectionStatus.DS_NEGATIVE
-                    elif image_status == DetectionStatus.DS_POSITIVE:
-                        image_status = DetectionStatus.DS_AMBIGUOUS                    
+                    elif image_status != DetectionStatus.DS_NEGATIVE:
+                        image_status = DetectionStatus.DS_AMBIGUOUS
+                
+                elif cat_name in unknown_classes:
+                    
+                    if image_status == DetectionStatus.DS_UNASSIGNED:
+                        image_status = DetectionStatus.DS_UNKNOWN
+                    elif image_status != DetectionStatus.DS_UNKNOWN:
+                        image_status = DetectionStatus.DS_AMBIGUOUS
+                
                 else:                    
-                    if image_status == DetectionStatus.DS_UNKNOWN:                        
+                    
+                    if image_status == DetectionStatus.DS_UNASSIGNED:
                         image_status = DetectionStatus.DS_POSITIVE
-                    elif image_status == DetectionStatus.DS_NEGATIVE:
+                    elif image_status != DetectionStatus.DS_POSITIVE:
                         image_status = DetectionStatus.DS_AMBIGUOUS
         
         if image_status == DetectionStatus.DS_NEGATIVE:
@@ -259,18 +285,10 @@ def process_batch_results(options):
     
     ##%% Load detection results
     
-    detection_results = pd.read_csv(options.detector_output_file)
-    
-    # Sanity-check that this is really a detector output file
-    for s in ['image_path','max_confidence','detections']:
-        assert s in detection_results.columns
-    
-    # Normalize paths to simplify comparisons later
-    detection_results['image_path'] = detection_results['image_path'].apply(os.path.normpath)
+    detection_results = load_api_results(options.detector_output_file,normalize_paths=True,
+                                         filename_replacements=options.detector_output_filename_replacements)
     
     # Add a column (pred_detection_label) to indicate predicted detection status
-    # detection_results['pred_detection_label'] = DetectionStatus.DS_UNKNOWN
-    
     import numpy as np
     detection_results['pred_detection_label'] = \
         np.where(detection_results['max_confidence'] >= options.confidence_threshold,
@@ -284,6 +302,28 @@ def process_batch_results(options):
     ##%% Find suspicious detections
     
         
+    ##%% If we have ground truth, remove images we can't match to ground truth
+    
+    if ground_truth_indexed_db is not None:
+    
+        b_match = [False] * len(detection_results)
+        
+        detector_files = detection_results['image_path'].to_list()
+            
+        for iFn,fn in enumerate(detector_files):
+            
+            # assert fn in ground_truth_indexed_db.filename_to_id, 'Could not find ground truth for row {} ({})'.format(iFn,fn)
+            if fn in fn in ground_truth_indexed_db.filename_to_id:
+                b_match[iFn] = True
+                        
+        print('Confirmed filename matches to ground truth for {} of {} files'.format(sum(b_match),len(detector_files)))
+        
+        detection_results = detection_results[b_match]
+        detector_files = detection_results['image_path'].to_list()
+        
+        print('Trimmed detection results to {} files'.format(len(detector_files)))
+        
+
     ##%% Sample images for visualization
     
     images_to_visualize = detection_results
@@ -300,18 +340,6 @@ def process_batch_results(options):
     # Otherwise we'll just visualize detections/non-detections.
         
     if ground_truth_indexed_db is not None:
-    
-        ##%% Make sure we can match ground truth to detection results
-    
-        detector_files = detection_results['image_path'].to_list()
-            
-        # For now, error on any matching failures, at some point we can decide 
-        # how to handle "partial" ground truth.  All or none for now.
-        for fn in detector_files:
-            assert fn in ground_truth_indexed_db.filename_to_id    
-        
-        print('Confirmed filename matches to ground truth for {} files'.format(len(detector_files)))
-        
     
         ##%% Compute precision/recall
         
@@ -443,7 +471,7 @@ def process_batch_results(options):
             gt_status = image_info['_detection_status']
             
             if gt_status > DetectionStatus.DS_MAX_DEFINITIVE_VALUE:
-                print('Skipping image {}, does not have a definitive ground truth status'.format(gt_status))
+                print('Skipping image {}, does not have a definitive ground truth status'.format(i_row,gt_status))
                 continue
             
             gt_presence = bool(gt_status)
@@ -452,7 +480,7 @@ def process_batch_results(options):
                     annotations,ground_truth_indexed_db.cat_id_to_name)
             
             max_conf = row['max_confidence']
-            boxes_and_scores = json.loads(row['detections'])  
+            boxes_and_scores = row['detections']
         
             detected = True if max_conf > confidence_threshold else False
             
@@ -471,8 +499,11 @@ def process_batch_results(options):
                 gt_class_name,
                 image_relative_path)
     
-            rendered_image_html_info = render_bounding_boxes(options.image_base_dir,image_relative_path,
-                                                            display_name,boxes_and_scores,res,options)        
+            rendered_image_html_info = render_bounding_boxes(options.image_base_dir,
+                                                             image_relative_path,
+                                                             display_name,
+                                                             boxes_and_scores,res,options)        
+            
             if len(rendered_image_html_info) > 0:
                 images_html[res].append(rendered_image_html_info)
                 
@@ -531,7 +562,7 @@ def process_batch_results(options):
             
             # This should already have been normalized to either '/' or '\'
             max_conf = row['max_confidence']
-            boxes_and_scores = json.loads(row['detections'])      
+            boxes_and_scores = row['detections']
             detected = True if max_conf > confidence_threshold else False
             
             if detected:
@@ -578,12 +609,44 @@ def process_batch_results(options):
 # ...process_batch_results
 
     
+#%% Interactive driver(s)
+
+if False:
+    
+    #%%
+    
+    baseDir = r'e:\wildlife_data\rspb_gola_data'
+    options = PostProcessingOptions()
+    options.image_base_dir = os.path.join(baseDir,'gola_camtrapr_data')
+    options.detector_output_filename_replacements = {'gola\\gola_camtrapr_data\\':''}
+    # options.detector_output_file = os.path.join(baseDir,'RSPB_2123_detections.csv')
+    options.detector_output_file = os.path.join(baseDir,'RSPB_2123_detections.filtered.csv')
+        
+    # Using original, semi-coherent ground truth from metadata
+    if False:
+        options.ground_truth_json_file = os.path.join(baseDir,'rspb_20190409.json')
+        options.output_dir = os.path.join(baseDir,'postprocessing_output')
+
+    # Using iMerit labels as ground truth (all)
+    if True:
+        options.ground_truth_json_file = os.path.join(baseDir,'rspb_20190409_presence.json')
+        # options.output_dir = os.path.join(baseDir,'postprocessing_output_mdv3_presence_verified_filtered')
+        options.output_dir = os.path.join(baseDir,'postprocessing_output_merge_test')
+    
+    # Using iMerit labels as ground truth (val)
+    if False:
+        options.ground_truth_json_file = os.path.join(baseDir,'rspb_20190409_presence_val.json')
+        options.output_dir = os.path.join(baseDir,'postprocessing_output_mdv3_presence_verified_val_filtered')
+    
+    process_batch_results(options)        
+
+
 #%% Command-line driver
     
 # Copy all fields from a Namespace (i.e., the output from parse_args) to an object.  
 #
 # Skips fields starting with _.  Does not check existence in the target object.
-def argsToObject(args, obj):
+def args_to_object(args, obj):
     
     for n, v in inspect.getmembers(args):
         if not n.startswith('_'):
@@ -613,7 +676,7 @@ def main():
     args.sort_html_by_filename = not args.random_output_sort
     
     options = PostProcessingOptions()
-    argsToObject(args,options)
+    args_to_object(args,options)
     
     process_batch_results(options)
 
@@ -623,17 +686,3 @@ if __name__ == '__main__':
     main()
 
 
-#%% Interactive driver(s)
-
-if False:
-    
-    #%%
-    
-    options = PostProcessingOptions()
-    options.detector_output_file = r'd:\temp\8471_detections.csv'
-    options.image_base_dir = r'd:\wildlife_data\mcgill_test'
-    options.ground_truth_json_file = r'd:\wildlife_data\mcgill_test\mcgill_test.json'
-    options.output_dir = r'd:\temp\postprocessing_tmp'    
-    process_batch_results(options)        
-    
-      

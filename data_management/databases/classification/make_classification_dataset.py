@@ -267,14 +267,6 @@ with graph.as_default():
       cur_json_cat_id = cat_id_to_new_id[cur_cat_id]
       # Whether it belongs to a training or testing location
       is_train = cur_image[SPLIT_BY] in training_locations
-      # The file path as it will appear in the annotation json
-      new_file_name = os.path.join(cur_cat_name, cur_file_name)
-      if COCO_OUTPUT_DIR:
-        # The absolute file path where we will store the image
-        # Only used if an coco-style dataset is created
-        out_file = os.path.join(COCO_OUTPUT_DIR, new_file_name)
-        # Create the category directories if necessary
-        os.makedirs(os.path.dirname(out_file), exist_ok=True)
 
       # Skip excluded categories
       if cur_cat_name in EXCLUDED_CATEGORIES:
@@ -333,13 +325,15 @@ with graph.as_default():
         # bbox is the detected box, crop_box the padded / enlarged box
         bbox, crop_box = selected_boxes[box_id], crop_boxes[box_id]
         if COCO_OUTPUT_DIR:
-          # The absolute file path where we will store the image
-          # Only used if an COCO style dataset is created
-          out_file = os.path.join(COCO_OUTPUT_DIR, new_file_name)
+          # The file path as it will appear in the annotation json
+          new_file_name = os.path.join(cur_cat_name, cur_file_name)
           # Add numbering to the original file name if there are multiple boxes
           if selected_boxes.shape[0] > 1:
-            out_base, out_ext = os.path.splitext(out_file)
-            out_file = '{}_{}{}'.format(out_base, box_id, out_ext)
+            new_file_base, new_file_ext = os.path.splitext(new_file_name)
+            new_file_name = '{}_{}{}'.format(new_file_base, box_id, new_file_ext)
+          # The absolute file path where we will store the image
+          # Only used if an coco-style dataset is created
+          out_file = os.path.join(COCO_OUTPUT_DIR, new_file_name)
           # Create the category directories if necessary
           os.makedirs(os.path.dirname(out_file), exist_ok=True)
           if not os.path.exists(out_file):
