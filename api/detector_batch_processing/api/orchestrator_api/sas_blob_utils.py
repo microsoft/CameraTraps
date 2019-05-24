@@ -181,7 +181,7 @@ class SasBlob:
             sas_uri: Azure blob storage SAS token
             datastore: dict with fields account_name (of the Blob storage account), account_key and container_name
             blob_prefix: Optional, a string as the prefix to blob names/paths to filter the results to those
-                        with this prefix
+                        with this prefix. Case-sensitive!
             blob_suffix: Optional, an all lower case string or a tuple of strings, to filter the results to
                         those with this/these suffix(s).
                         The blob names will be lowercased first before comparing with the suffix(es).

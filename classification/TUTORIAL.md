@@ -2,6 +2,8 @@
 
 
 
+
+
 # Tutorial for training a classifier
 This tutorial walks through all steps required to train an animal species classifier from an camera trap dataset. Instead of whole-image classification, we will focus on classification of the detected animals with unknown species.
 
@@ -305,21 +307,132 @@ This folder contains the script `predict_image.py`, which takes the frozen graph
 
 	python predict_image.py \
 	--frozen_graph ${CHECKPOINT_DIR}/frozen_inference_graph.pb \
-	--class_list $COCO_STYLE_OUTPUT/classlist.txt \
-	--image_path $COCO_STYLE_OUTPUT/gazelleThomsons/S1/R10/R10_R1/S1_R10_R1_PICT1199_1.JPG
+	--classlist $COCO_STYLE_OUTPUT/classlist.txt \
+	--image_path $COCO_STYLE_OUTPUT/gazelleThomsons/S2/L12/L12_R1/S2_L12_R1_PICT2280.JPG
 
-This command will analyze the test image `$COCO_STYLE_OUTPUT/gazelleThomsons/S1/R10/R10_R1/S1_R10_R1_PICT1199_1.JPG`, which looks like
+This command will analyze the testing image `$COCO_STYLE_OUTPUT/gazelleThomsons/S2/L12/L12_R1/S2_L12_R1_PICT2280.JPG`, which looks like
 
-![Gazelle](tutorial_images/S1_R10_R1_PICT1199_1.JPG?raw=true "Gazelle")
+<img src="./tutorial_images/gazelleThomsons___S2___L12___L12_R1___S2_L12_R1_PICT2280.JPG" width="300">
 
 and print the following output:
 
 	...
 	Prediction finished. Most likely classes:
-	    "gazelleThomsons" with confidence 90.73%
-	    "gazelleGrants" with confidence 3.97%
-	    "zebra" with confidence 1.96%
-	    "warthog" with confidence 0.41%
-	    "otherBird" with confidence 0.38%
+	    "gazelleThomsons" with confidence 86.55%
+	    "gazelleGrants" with confidence 12.51%
+	    "dikDik" with confidence 0.29%
+	    "vervetMonkey" with confidence 0.11%
+	    "otherBird" with confidence 0.11%
 
+## Sampling testing images
+For visualization and debugging purposes, we also provide a script to randomly sample testing images and run the prediction on each of those. The script is located in the `classification` subfolder, so first change there by executing
 
+    cd $CAMERATRAPS_DIR/classification/
+
+Now execute the script `` as follows
+
+    python generate_sample_predictions.py \
+	--frozen_graph ${CHECKPOINT_DIR}/frozen_inference_graph.pb \
+	--test_json     $COCO_STYLE_OUTPUT/test.json
+
+By default, the output will be placed in a subfolder called `./sample_output` and ten images are selected. The images are sampled equally from all classes. 
+
+Running the script as shown results in ten images and ten corresponding text files, whose name is derived from the original path and file name:
+
+    ./sample_output/aardwolf___S2___T12___T12_R2___S2_T12_R2_PICT0590.JPG
+    ./sample_output/aardwolf___S2___T12___T12_R2___S2_T12_R2_PICT0590.txt
+    ./sample_output/caracal___S1___P10___P10_R1___S1_P10_R1_PICT0120.JPG
+    ./sample_output/caracal___S1___P10___P10_R1___S1_P10_R1_PICT0120.txt
+    ...
+
+The text files contain the names of the predicted classes along with the prediction confidence. We show the first few examples below.
+
+<img src="./sample_output/aardwolf___S2___T12___T12_R2___S2_T12_R2_PICT0590.JPG" width="300">
+
+	Predicting aardwolf/S2/T12/T12_R2/S2_T12_R2_PICT0590.JPG
+	Most likely classes:
+		"aardwolf" with confidence 71.48%
+		"hyenaStriped" with confidence 28.11%
+		"batEaredFox" with confidence 0.31%
+		"hyenaSpotted" with confidence 0.07%
+		"civet" with confidence 0.02%
+
+<img src="./sample_output/civet___S1___H06___H06_R3___S1_H06_R3_PICT0736_1.JPG" width="300">
+
+	Predicting civet/S1/H06/H06_R3/S1_H06_R3_PICT0736_1.JPG
+	Most likely classes:
+		"rodents" with confidence 28.20%
+		"batEaredFox" with confidence 23.55%
+		"jackal" with confidence 21.78%
+		"wildcat" with confidence 5.08%
+		"honeyBadger" with confidence 4.39%
+
+<img src="./sample_output/leopard___S1___H06___H06_R4___S1_H06_R4_PICT1296_0.JPG" width="300">
+
+	Predicting leopard/S1/H06/H06_R4/S1_H06_R4_PICT1296_0.JPG
+	Most likely classes:
+		"leopard" with confidence 68.30%
+		"porcupine" with confidence 9.40%
+		"serval" with confidence 7.13%
+		"cheetah" with confidence 4.95%
+		"wildcat" with confidence 3.02%
+
+<img src="./sample_output/mongoose___S1___R11___R11_R1___S1_R11_R1_PICT0101_1.JPG" width="300">
+
+	Predicting mongoose/S1/R11/R11_R1/S1_R11_R1_PICT0101_1.JPG
+	Most likely classes:
+		"mongoose" with confidence 100.00%
+		"reptiles" with confidence 0.00%
+		"batEaredFox" with confidence 0.00%
+		"aardvark" with confidence 0.00%
+		"honeyBadger" with confidence 0.00%
+
+<img src="./sample_output/ostrich___S6___P05___P05_R1___S6_P05_R1_IMAG0118.JPG" width="300">
+
+	Predicting ostrich/S6/P05/P05_R1/S6_P05_R1_IMAG0118.JPG
+	Most likely classes:
+		"ostrich" with confidence 99.72%
+		"otherBird" with confidence 0.23%
+		"koriBustard" with confidence 0.04%
+		"giraffe" with confidence 0.01%
+		"wildebeest" with confidence 0.00%
+
+<img src="./sample_output/porcupine___S1___H06___H06_R4___S1_H06_R4_PICT1178_1.JPG" width="300">
+
+	Predicting porcupine/S1/H06/H06_R4/S1_H06_R4_PICT1178_1.JPG
+	Most likely classes:
+		"elephant" with confidence 30.68%
+		"porcupine" with confidence 22.94%
+		"hippopotamus" with confidence 6.46%
+		"buffalo" with confidence 6.43%
+		"hyenaSpotted" with confidence 5.84%
+
+<img src="./sample_output/topi___S5___T10___T10_R3___S5_T10_R3_IMAG0176_1.JPG" width="300">
+
+	Predicting topi/S5/T10/T10_R3/S5_T10_R3_IMAG0176_1.JPG
+	Most likely classes:
+		"wildebeest" with confidence 81.82%
+		"buffalo" with confidence 11.10%
+		"topi" with confidence 3.79%
+		"eland" with confidence 2.59%
+		"hartebeest" with confidence 0.53%
+
+<img src="./sample_output/wildcat___S2___D03___D03_R4___S2_D03_R4_PICT0414.JPG" width="300">
+
+	Predicting wildcat/S2/D03/D03_R4/S2_D03_R4_PICT0414.JPG
+	Most likely classes:
+		"batEaredFox" with confidence 77.14%
+		"honeyBadger" with confidence 13.73%
+		"zorilla" with confidence 3.02%
+		"mongoose" with confidence 2.76%
+		"civet" with confidence 1.93%
+
+<img src="./sample_output/zorilla___S2___K13___K13_R1___S2_K13_R1_PICT0664.JPG" width="300">
+
+	Predicting zorilla/S2/K13/K13_R1/S2_K13_R1_PICT0664.JPG
+	Most likely classes:
+		"wildebeest" with confidence 78.91%
+		"ostrich" with confidence 7.30%
+		"topi" with confidence 5.06%
+		"buffalo" with confidence 1.13%
+		"hartebeest" with confidence 0.83%
