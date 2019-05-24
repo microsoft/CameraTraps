@@ -5,6 +5,7 @@ from PIL import Image
 import numpy as np
 from pycocotools.coco import COCO
 import tqdm
+import random
 
 
 
@@ -43,7 +44,10 @@ with model_graph.as_default():
 
         total = 0
         correct = 0
-        for image_id in tqdm.tqdm(coco.imgs.keys()):
+        all_img_keys = list(coco.imgs.keys())
+        random.seed(0)
+        random.shuffle(all_img_keys)
+        for image_id in tqdm.tqdm(all_img_keys):
             # Read image
             image_path = os.path.join(args.coco_style_output, coco.imgs[image_id]['file_name'])
             if not os.path.exists(image_path):
