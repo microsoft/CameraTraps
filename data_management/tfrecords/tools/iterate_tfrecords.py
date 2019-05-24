@@ -1,14 +1,12 @@
 #
 # iterate_tf_records.py
 #
-# Inherited from Visipedia tfrecords repo; not currently used in this repo.
+# Inherited from Visipedia tfrecords repo.
 #
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import tensorflow as tf
+
 
 def decode_serialized_example(serialized_example, features_to_fetch, decode_image=True):
     """

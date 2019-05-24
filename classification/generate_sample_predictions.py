@@ -6,6 +6,7 @@ import os
 from PIL import Image
 import random
 import collections
+import shutil
 
 
 parser = argparse.ArgumentParser('Tools for sampling images from the testing split of a dataset and ' + \
@@ -17,7 +18,7 @@ parser.add_argument('--test_json', type=str, help='Path to test.json generated b
 # Optional parameters
 parser.add_argument('--output_dir', type=str, help='Path to output directory. We will copy sample images to this location ' + \
                                   ' and also save the output as text file here. Default: "./sample_output"', default='./sample_output')
-parser.add_argument('--num_samples', type=int, help='Number of samples to selected. Default: 5', default=5)
+parser.add_argument('--num_samples', type=int, help='Number of samples to selected. Default: 5', default=10)
 args = parser.parse_args()
 
 # Validate parameters
@@ -86,7 +87,8 @@ with model_graph.as_default():
 
         for image_path in selected_images:
             # Read image
-            with open(os.path.join(IMAGE_DIR, image_path), 'rb') as fi:
+            full_image_path = os.path.join(IMAGE_DIR, image_path)
+            with open(full_image_path, 'rb') as fi:
                 image = sess.run(tf.image.decode_jpeg(fi.read(), channels=3))
                 image = image / 255.
 
@@ -102,4 +104,5 @@ with model_graph.as_default():
                 print('Most likely classes:', file=log)
                 for class_id in np.argsort(-predictions)[:5]:
                     print('\t"{}" with confidence {:.2f}%'.format(classlist[class_id], predictions[class_id]*100), file=log)
+                shutil.copy2(full_image_path, out_image)
             print('Wrote output to', out_txt)
