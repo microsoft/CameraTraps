@@ -20,6 +20,7 @@ import humanfriendly
 import PIL
 
 from data_management.databases import sanity_check_json_db
+from visualization import visualize_db
 
 # [location] is an obfuscation
 baseDir = r'e:\wildlife_data\rspb_gola_data'
@@ -97,6 +98,8 @@ print('Finished uniqueness checking')
 
 
 #%% Update metadata filenames to include site and camera folders, check existence
+#
+# Takes ~1min
 
 filenamesToRows = {}
 
@@ -170,39 +173,32 @@ elapsed = time.time() - startTime
 # Re-assemble into an updated table
 metadataTable = pd.DataFrame(newRows)
 
-print('Finished checking file existence, extracting metadata in {}, found {} match failures'.format(
+print('Finished checking file existence, extracting metadata in {}, couldn''t find {} images'.format(
       humanfriendly.format_timespan(elapsed),len(matchFailures)))
        
     
-#%% 
+#%% Check for images that aren't included in the metadata file
 
-# Check for images that aren't included in the metadata file, which we will
-# include as unlabeled.
-
-unattachedImages = []
+imagesNotInMetadata = []
 
 # Enumerate all images
 for iImage,imagePath in enumerate(imageFullPaths):
     
     fn = ntpath.basename(imagePath)
     if(fn not in filenamesToRows):
-        unattachedImages.append(imagePath)
+        imagesNotInMetadata.append(imagePath)
 
 print('Finished matching {} images, failed to match {}'.format(
-        len(imageFullPaths),len(unattachedImages)))
+        len(imageFullPaths),len(imagesNotInMetadata)))
 
 # Write to a text file
 with open(unmatchedImagesFile, 'w') as f:
-    for fn in unattachedImages:
+    for fn in imagesNotInMetadata:
         f.write('{}\n'.format(fn))
         
         
 #%% Create CCT dictionaries
 
-# Format:
-#
-# https://beerys.github.io/CaltechCameraTraps/
-        
 # Also gets image sizes, so this takes ~6 minutes
 #
 # Implicitly checks images for overt corruptness, i.e. by not crashing.
@@ -314,13 +310,13 @@ json_data['images'] = images
 json_data['annotations'] = annotations
 json_data['categories'] = categories
 json_data['info'] = info
-json.dump(json_data,open(outputFile,'w'))
+json.dump(json_data,open(outputFile,'w'),indent=4)
 
 print('Finished writing .json file with {} images, {} annotations, and {} categories'.format(
         len(images),len(annotations),len(categories)))
 
 
-#%% Sanity-check
+#%% Check database integrity
 
 options = sanity_check_json_db.SanityCheckOptions()
 options.baseDir = imageBaseDir
@@ -329,7 +325,17 @@ options.bFindUnusedImages = False
 sanity_check_json_db.sanityCheckJsonDb(outputFile, options)
 
 
-#%% One-time processing step: copy images to a flat directory
+#%% Preview a few images to make sure labels were passed along sensibly
+
+db_path = outputFile
+output_dir = os.path.join(baseDir,'label_preview')
+image_base_dir = imageBaseDir
+options = visualize_db.DbVizOptions()
+options.num_to_visualize = 100
+htmlOutputFile = visualize_db.processImages(db_path,output_dir,image_base_dir,options)
+    
+
+#%% One-time processing step: copy images to a flat directory for annotation
 
 if False:
     
