@@ -6,11 +6,14 @@
 # render bounding boxes on images, and write out the resulting
 # images (with bounding boxes).
 #
+# This script is not a good way to process lots and lots of images; it loads all
+# the images first, then runs the model, which makes for more accurate timing
+# and more robust testing, but is not ideal for processing lots of images.
+#
 # See the "test driver" cell for example invocation.
 #
-# It's clearly icky that if you give it blah.jpg, it writes the results to 
-# blah.detections.jpg, but I'm defending this with the "just a demo script"
-# argument.
+# If no output directory is specified, writes detections for c:\foo\bar.jpg to
+# c:\foo\bar_detections.jpg .
 #
 ######
 
@@ -31,11 +34,20 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import matplotlib.ticker as ticker
 import os
+from tqdm import tqdm
 
 DEFAULT_CONFIDENCE_THRESHOLD = 0.85
 
 # Stick this into filenames before the extension for the rendered result
 DETECTION_FILENAME_INSERT = '_detections'
+
+BOX_COLORS = ['b','g','r']
+DEFAULT_LINE_WIDTH = 10
+SHOW_CONFIDENCE_VALUES = False
+
+# Suppress excessive tensorflow output
+tf.logging.set_verbosity(tf.logging.ERROR)
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 
 #%% Core detection functions
@@ -45,7 +57,6 @@ def load_model(checkpoint):
     Load a detection model (i.e., create a graph) from a .pb file
     """
 
-    print('Creating Graph...')
     detection_graph = tf.Graph()
     with detection_graph.as_default():
         od_graph_def = tf.GraphDef()
@@ -53,8 +64,7 @@ def load_model(checkpoint):
             serialized_graph = fid.read()
             od_graph_def.ParseFromString(serialized_graph)
             tf.import_graph_def(od_graph_def, name='')
-    print('...done')
-
+    
     return detection_graph
 
 
@@ -83,12 +93,14 @@ def generate_detections(detection_graph,images):
     else:
         images = images.copy()
 
+    print('Loading images...')
+    startTime = time.time()
+    
     # Load images if they're not already numpy arrays
     # iImage = 0; image = images[iImage]
-    for iImage,image in enumerate(images):
+    for iImage,image in enumerate(tqdm(images)):
         if isinstance(image,str):
-            print('Loading image {}'.format(image))
-
+            
             # Load the image as an nparray of size h,w,nChannels
             
             # There was a time when I was loading with PIL and switched to mpimg,
@@ -110,19 +122,26 @@ def generate_detections(detection_graph,images):
         else:
             assert isinstance(image,np.ndarray)
 
+    elapsed = time.time() - startTime
+    print("Finished loading {} file(s) in {}".format(len(images),
+          humanfriendly.format_timespan(elapsed)))    
+    
     boxes = []
     scores = []
     classes = []
     
     nImages = len(images)
 
+    print('Running detector...')    
+    startTime = time.time()
+    firstImageCompleteTime = None
+    
     with detection_graph.as_default():
         
         with tf.Session(graph=detection_graph) as sess:
             
-            for iImage,imageNP in enumerate(images):                
+            for iImage,imageNP in tqdm(enumerate(images)): 
                 
-                print('Processing image {} of {}'.format(iImage,nImages))
                 imageNP_expanded = np.expand_dims(imageNP, axis=0)
                 image_tensor = detection_graph.get_tensor_by_name('image_tensor:0')
                 box = detection_graph.get_tensor_by_name('detection_boxes:0')
@@ -139,7 +158,27 @@ def generate_detections(detection_graph,images):
                 scores.append(score)
                 classes.append(clss)
             
+                if iImage == 0:
+                    firstImageCompleteTime = time.time()
+                    
             # ...for each image                
+    
+        # ...with tf.Session
+
+    # ...with detection_graph.as_default()
+    
+    elapsed = time.time() - startTime
+    if nImages == 1:
+        print("Finished running detector in {}".format(humanfriendly.format_timespan(elapsed)))
+    else:
+        firstImageElapsed = firstImageCompleteTime - startTime
+        remainingImagesElapsed = elapsed - firstImageElapsed
+        remainingImagesTimePerImage = remainingImagesElapsed/(nImages-1)
+        
+        print("Finished running detector on {} images in {} ({} for the first image, {} for each subsequent image)".format(len(images),
+              humanfriendly.format_timespan(elapsed),
+              humanfriendly.format_timespan(firstImageElapsed),
+              humanfriendly.format_timespan(remainingImagesTimePerImage)))
     
     nBoxes = len(boxes)
     
@@ -197,7 +236,7 @@ def generate_detections(detection_graph,images):
 #%% Rendering functions
 
 def render_bounding_box(box, score, classLabel, inputFileName, outputFileName=None,
-                          confidenceThreshold=DEFAULT_CONFIDENCE_THRESHOLD,linewidth=2):
+                          confidenceThreshold=DEFAULT_CONFIDENCE_THRESHOLD,linewidth=DEFAULT_LINE_WIDTH):
     """
     Convenience wrapper to apply render_bounding_boxes to a single image
     """
@@ -209,8 +248,9 @@ def render_bounding_box(box, score, classLabel, inputFileName, outputFileName=No
     render_bounding_boxes(boxes,scores,[classLabel],[inputFileName],outputFileNames,
                           confidenceThreshold,linewidth)
 
+
 def render_bounding_boxes(boxes, scores, classes, inputFileNames, outputFileNames=[],
-                          confidenceThreshold=DEFAULT_CONFIDENCE_THRESHOLD,linewidth=2):
+                          confidenceThreshold=DEFAULT_CONFIDENCE_THRESHOLD, linewidth=DEFAULT_LINE_WIDTH):
     """
     Render bounding boxes on the image files specified in [inputFileNames].  
     
@@ -276,12 +316,20 @@ def render_bounding_boxes(boxes, scores, classes, inputFileNames, outputFileName
             # Origin is the upper-left
             iLeft = x
             iBottom = y
-            rect = patches.Rectangle((iLeft,iBottom),w,h,linewidth=linewidth,edgecolor='r',
+            iClass = int(classes[iImage][iBox])
+            
+            boxColor = BOX_COLORS[iClass % len(BOX_COLORS)]
+            rect = patches.Rectangle((iLeft,iBottom),w,h,linewidth=linewidth,edgecolor=boxColor,
                                      facecolor='none')
             
             # Add the patch to the Axes
             ax.add_patch(rect)        
-
+            
+            if SHOW_CONFIDENCE_VALUES:
+                pLabel = 'Class {} ({:.2f})'.format(iClass,score)
+                ax.text(iLeft+5,iBottom+5,pLabel,color=boxColor,fontsize=12,
+                        verticalalignment='top',bbox=dict(facecolor='black'))
+            
         # ...for each box
 
         # This is magic goop that removes whitespace around image plots (sort of)        
@@ -304,7 +352,7 @@ def render_bounding_boxes(boxes, scores, classes, inputFileNames, outputFileName
 # ...def render_bounding_boxes
 
 
-def load_and_run_detector(modelFile, imageFileNames, 
+def load_and_run_detector(modelFile, imageFileNames, outputDir=None,
                           confidenceThreshold=DEFAULT_CONFIDENCE_THRESHOLD, detection_graph=None):
     
     if len(imageFileNames) == 0:        
@@ -312,25 +360,56 @@ def load_and_run_detector(modelFile, imageFileNames,
         return
         
     # Load and run detector on target images
+    print('Loading model...')
+    startTime = time.time()
     if detection_graph is None:
         detection_graph = load_model(modelFile)
-    
-    startTime = time.time()
-    boxes,scores,classes,images = generate_detections(detection_graph,imageFileNames)
     elapsed = time.time() - startTime
-    print("Done running detector on {} files in {}".format(len(images),
-          humanfriendly.format_timespan(elapsed)))
+    print("Loaded model in {}".format(humanfriendly.format_timespan(elapsed)))
+    
+    boxes,scores,classes,images = generate_detections(detection_graph,imageFileNames)
     
     assert len(boxes) == len(imageFileNames)
     
-    outputFileNames = []
+    print('Rendering output...')
+    startTime = time.time()
+    
+    outputFullPaths = []
+    outputFileNames = {}
+    
+    if outputDir is not None:
+            
+        os.makedirs(outputDir,exist_ok=True)
+        
+        for iFn,fullInputPath in enumerate(tqdm(imageFileNames)):
+            
+            fn = os.path.basename(fullInputPath).lower()            
+            name, ext = os.path.splitext(fn)
+            fn = "{}{}{}".format(name,DETECTION_FILENAME_INSERT,ext)
+            
+            # Since we'll be writing a bunch of files to the same folder, rename
+            # as necessary to avoid collisions
+            if fn in outputFileNames:
+                nCollisions = outputFileNames[fn]
+                fn = str(nCollisions) + '_' + fn
+                outputFileNames[fn] = nCollisions + 1
+            else:
+                outputFileNames[fn] = 0
+            outputFullPaths.append(os.path.join(outputDir,fn))
+    
+        # ...for each file
+        
+    # ...if we're writing files to a directory other than the input directory
     
     plt.ioff()
     
     render_bounding_boxes(boxes=boxes, scores=scores, classes=classes, 
-                          inputFileNames=imageFileNames, outputFileNames=outputFileNames,
+                          inputFileNames=imageFileNames, outputFileNames=outputFullPaths,
                           confidenceThreshold=confidenceThreshold)
-
+    
+    elapsed = time.time() - startTime
+    print("Rendered output in {}".format(humanfriendly.format_timespan(elapsed)))
+    
     return detection_graph
 
 
@@ -353,7 +432,8 @@ if False:
     imageFileNames = [r"D:\temp\test\1\NE2881-9_RCNX0195_xparent.png"]
     
     detection_graph = load_and_run_detector(modelFile,imageFileNames,
-                                            DEFAULT_CONFIDENCE_THRESHOLD,detection_graph)
+                                            confidenceThreshold=DEFAULT_CONFIDENCE_THRESHOLD,
+                                            detection_graph=detection_graph)
     
 
 #%% File helper functions
@@ -403,13 +483,23 @@ def main():
     
     # python run_tf_detector.py "D:\temp\models\object_detection\megadetector\megadetector_v2.pb" --imageFile "D:\temp\demo_images\test\S1_J08_R1_PICT0120.JPG"
     # python run_tf_detector.py "D:\temp\models\object_detection\megadetector\megadetector_v2.pb" --imageDir "d:\temp\demo_images\test"
+    # python run_tf_detector.py "d:\temp\models\object_detection\megadetector\megadetector_v3.pb" --imageDir "d:\temp\test\in" --outputDir "d:\temp\test\out"
     
     parser = argparse.ArgumentParser()
     parser.add_argument('detectorFile', type=str)
-    parser.add_argument('--imageDir', action='store', type=str, default='', help='Directory to search for images, with optional recursion')
-    parser.add_argument('--imageFile', action='store', type=str, default='', help='Single file to process, mutually exclusive with imageDir')
-    parser.add_argument('--threshold', action='store', type=float, default=DEFAULT_CONFIDENCE_THRESHOLD, help='Confidence threshold, don''t render boxes below this confidence')
-    parser.add_argument('--recursive', action='store_true', help='Recurse into directories, only meaningful if using --imageDir')
+    parser.add_argument('--imageDir', action='store', type=str, default='', 
+                        help='Directory to search for images, with optional recursion')
+    parser.add_argument('--imageFile', action='store', type=str, default='', 
+                        help='Single file to process, mutually exclusive with imageDir')
+    parser.add_argument('--threshold', action='store', type=float, 
+                        default=DEFAULT_CONFIDENCE_THRESHOLD, 
+                        help='Confidence threshold, don''t render boxes below this confidence')
+    parser.add_argument('--recursive', action='store_true', 
+                        help='Recurse into directories, only meaningful if using --imageDir')
+    parser.add_argument('--forceCpu', action='store_true', 
+                        help='Force CPU detection, even if a GPU is available')
+    parser.add_argument('--outputDir', type=str, default=None, 
+                       help='Directory for output images (defaults to same as input)')
     
     if len(sys.argv[1:])==0:
         parser.print_help()
@@ -426,14 +516,18 @@ def main():
         imageFileNames = [args.imageFile]
     else:
         imageFileNames = findImages(args.imageDir,args.recursive)
-    
+
+    if args.forceCpu:
+        os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+        os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+
     # Hack to avoid running on already-detected images
     imageFileNames = [x for x in imageFileNames if DETECTION_FILENAME_INSERT not in x]
                 
     print('Running detector on {} images'.format(len(imageFileNames)))    
     
     load_and_run_detector(modelFile=args.detectorFile, imageFileNames=imageFileNames, 
-                          confidenceThreshold=args.threshold)
+                          confidenceThreshold=args.threshold, outputDir=args.outputDir)
     
 
 if __name__ == '__main__':
