@@ -4,7 +4,7 @@ This folder contains scripts and configuration files for training and evaluating
 
 We use the TensorFlow Object Detection API ([TFODAPI](https://github.com/tensorflow/models/tree/master/research/object_detection)) for model training. 
 
- For all detections downstream of our TF detector, bounding boxes are represented in normalized coordinates, as `[ymin, xmin, ymax, xmax]`, with the origin in the upper-left of the image. This is consistent with the output of the batch processing API developed in [api/detector_batch_processing](api/detector_batch_processing), but is different from the COCO Camera Trap format of our json databases, which uses absolute coordinates in `[x, y, width_of_box, height_of_box]` (see [data_management](api/detector_batch_processing/README.md)).
+ For all detections downstream of our TF detector, bounding boxes are represented in normalized coordinates, as `[ymin, xmin, ymax, xmax]`, with the origin in the upper-left of the image. This is consistent with the output of the batch processing API developed in [api/detector_batch_processing](https://github.com/microsoft/CameraTraps/tree/master/api/detector_batch_processing), but is different from the COCO Camera Trap format of our json databases, which uses absolute coordinates in `[x, y, width_of_box, height_of_box]` (see [data_management](api/detector_batch_processing/README.md)).
 
 
 - `model_main.py`: a modified copy of the entry point script for training the detector, taken from [TFODAPI](https://github.com/tensorflow/models/blob/master/research/object_detection/model_main.py).

@@ -14,40 +14,43 @@
 # Upcoming improvements:
 #
 # * Elimination of "suspicious detections", i.e. detections repeated numerous times with
-#   unrealistically limited movement
+#   unrealistically limited movement... this is implemented, but currently as a step that
+#   runs *before* this script.  See find_problematic_detections.py.
 # 
 # * Support for accessing blob storage directly (currently images are accessed by
 #   file paths, so images in Azure blobs should be accessed by mounting the 
-#   containers)
+#   containers).
 #
 ########
 
 
 #%% Constants and imports
 
+import argparse
 import inspect
 import os
 import sys
-import argparse
+from enum import IntEnum
+
+import matplotlib
+matplotlib.use('agg')
 import matplotlib.pyplot as plt
 import pandas as pd
-from enum import IntEnum
-from tqdm import tqdm
 from sklearn.metrics import precision_recall_curve, confusion_matrix, average_precision_score
-from detection.detection_eval.load_api_results import load_api_results
-
-# Assumes the cameratraps repo root is on the path
-from data_management.cct_json_utils import CameraTrapJsonUtils
-from data_management.cct_json_utils import IndexedJsonDb
-import visualization.visualization_utils as vis_utils
+from tqdm import tqdm
 
 # Assumes ai4eutils is on the python path
-#
 # https://github.com/Microsoft/ai4eutils
 from write_html_image_list import write_html_image_list
 
+# Assumes the cameratraps repo root is on the path
+import visualization.visualization_utils as vis_utils
+from data_management.cct_json_utils import CameraTrapJsonUtils
+from data_management.cct_json_utils import IndexedJsonDb
+from detection.detection_eval.load_api_results import load_api_results
 
-#%% Options
+
+##%% Options
 
 DEFAULT_NEGATIVE_CLASSES = ['empty']
 DEFAULT_UNKNOWN_CLASSES = ['unknown','unlabeled']
@@ -74,6 +77,9 @@ class PostProcessingOptions:
     # Number of images to sample, -1 for "all images"
     num_images_to_sample = 500 # -1
     
+    # Random seed for sampling, or None
+    sample_seed = 0 # None
+    
     viz_target_width = 800
     
     sort_html_by_filename = True
@@ -85,7 +91,7 @@ class PostProcessingOptions:
     ground_truth_filename_replacements = {}
     
     
-#%% Helper classes and functions
+##%% Helper classes and functions
 
 # Flags used to mark images as positive or negative for P/R analysis (according
 # to ground truth and/or detector output)
@@ -224,7 +230,12 @@ def render_bounding_boxes(image_base_dir,image_relative_path,
     
     
 def prepare_html_subpages(images_html,output_dir,options=None):
+    """
+    Write out a series of html image lists, e.g. the fp/tp/fn/tn pages.
     
+    image_html is a dictionary mapping an html page name (e.g. "fp") to a list
+    of image structs friendly to write_html_image_list
+    """
     if options is None:
             options = PostProcessingOptions()
             
@@ -272,13 +283,14 @@ def process_batch_results(options):
     
     ground_truth_indexed_db = None
     
-    if len(options.ground_truth_json_file) > 0:
+    if options.ground_truth_json_file and len(options.ground_truth_json_file) > 0:
             
-        ground_truth_indexed_db = IndexedJsonDb(options.ground_truth_json_file,True)
+        ground_truth_indexed_db = IndexedJsonDb(options.ground_truth_json_file,b_normalize_paths=True,
+                                                filename_replacements=options.ground_truth_filename_replacements)
         
         # Mark images in the ground truth as positive or negative
         (nNegative,nPositive,nUnknown,nAmbiguous) = mark_detection_status(ground_truth_indexed_db,
-            options.negative_classes)
+            negative_classes=options.negative_classes,unknown_classes=options.unlabeled_classes)
         print('Finished loading and indexing ground truth: {} negative, {} positive, {} unknown, {} ambiguous'.format(
                 nNegative,nPositive,nUnknown,nAmbiguous))
     
@@ -299,16 +311,14 @@ def process_batch_results(options):
             len(detection_results),nPositives))
     
     
-    ##%% Find suspicious detections
-    
-        
     ##%% If we have ground truth, remove images we can't match to ground truth
     
+    # ground_truth_indexed_db.db['images'][0]
     if ground_truth_indexed_db is not None:
     
         b_match = [False] * len(detection_results)
         
-        detector_files = detection_results['image_path'].to_list()
+        detector_files = detection_results['image_path'].tolist()
             
         for iFn,fn in enumerate(detector_files):
             
@@ -319,7 +329,7 @@ def process_batch_results(options):
         print('Confirmed filename matches to ground truth for {} of {} files'.format(sum(b_match),len(detector_files)))
         
         detection_results = detection_results[b_match]
-        detector_files = detection_results['image_path'].to_list()
+        detector_files = detection_results['image_path'].tolist()
         
         print('Trimmed detection results to {} files'.format(len(detector_files)))
         
@@ -330,7 +340,7 @@ def process_batch_results(options):
         
     if options.num_images_to_sample > 0 and options.num_images_to_sample < len(detection_results):
         
-        images_to_visualize = images_to_visualize.sample(options.num_images_to_sample)
+        images_to_visualize = images_to_visualize.sample(options.num_images_to_sample, random_state=options.sample_seed)
     
         
     ##%% Fork here depending on whether or not ground truth is available
@@ -402,12 +412,13 @@ def process_batch_results(options):
         # Flatten the confusion matrix
         tn, fp, fn, tp = cm.ravel()
     
-        precision = tp / (tp + fp)
-        recall = tp / (tp + fn)
-        f1 = 2.0 * (precision * recall) / (precision + recall)
+        precision_at_confidence_threshold = tp / (tp + fp)
+        recall_at_confidence_threshold = tp / (tp + fn)
+        f1 = 2.0 * (precision_at_confidence_threshold * recall_at_confidence_threshold) / \
+            (precision_at_confidence_threshold + recall_at_confidence_threshold)
         
         print('At a confidence threshold of {:.2f}, precision={:.2f}, recall={:.2f}, f1={:.2f}'.format(
-                confidence_threshold,precision, recall, f1))
+                confidence_threshold, precision_at_confidence_threshold, recall_at_confidence_threshold, f1))
             
         
         ##%% Render output
@@ -418,6 +429,7 @@ def process_batch_results(options):
     
         # Write precision/recall plot to .png file in output directory
         step_kwargs = ({'step': 'post'})
+        fig = plt.figure()
         plt.step(recalls, precisions, color='b', alpha=0.2,
                  where='post')
         plt.fill_between(recalls, precisions, alpha=0.2, color='b', **step_kwargs)
@@ -432,7 +444,8 @@ def process_batch_results(options):
         pr_figure_relative_filename = 'prec_recall.png'
         pr_figure_filename = os.path.join(output_dir, pr_figure_relative_filename)
         plt.savefig(pr_figure_filename)
-        # plt.show()
+        # plt.show(block=False)
+        plt.close(fig)
             
             
         ##%% Sample true/false positives/negatives and render to html
@@ -493,11 +506,9 @@ def process_batch_results(options):
             else:
                 res = 'tn'
             
-            display_name = '<b>Result type</b>: {}, <b>Presence</b>: {}, <b>Class</b>: {}, <b>Image</b>: {}'.format(
-                res.upper(),
-                str(gt_presence),
-                gt_class_name,
-                image_relative_path)
+            display_name = '<b>Result type</b>: {}, <b>Presence</b>: {}, <b>Class</b>: {}, <b>Max conf</b>: {:0.2f}%, <b>Image</b>: {}'.format(
+                res.upper(), str(gt_presence), gt_class_name,
+                max_conf * 100, image_relative_path)
     
             rendered_image_html_info = render_bounding_boxes(options.image_base_dir,
                                                              image_relative_path,
@@ -524,10 +535,12 @@ def process_batch_results(options):
         <a href="tn.html">True negatives (tn)</a> ({})<br/>
         <a href="fp.html">False positives (fp)</a> ({})<br/>
         <a href="fn.html">False negatives (fn)</a> ({})<br/>
-        <br/><p><strong>Precision/recall summary for all {} images</strong></p><img src="{}"><br/>
+        <p>At a confidence threshold of {:0.1f}%, precision={:0.2f}, recall={:0.2f}</p>
+        <p><strong>Precision/recall summary for all {} images</strong></p><img src="{}"><br/>
         </body></html>""".format(
             count, confidence_threshold * 100,
             image_counts['tp'], image_counts['tn'], image_counts['fp'], image_counts['fn'],
+            confidence_threshold * 100, precision_at_confidence_threshold, recall_at_confidence_threshold,
             len(detection_results),pr_figure_relative_filename
         )
         output_html_file = os.path.join(output_dir, 'index.html')
@@ -615,29 +628,17 @@ if False:
     
     #%%
     
-    baseDir = r'e:\wildlife_data\rspb_gola_data'
+    baseDir = r'D:\wildlife_data\bh'
     options = PostProcessingOptions()
-    options.image_base_dir = os.path.join(baseDir,'gola_camtrapr_data')
-    options.detector_output_filename_replacements = {'gola\\gola_camtrapr_data\\':''}
-    # options.detector_output_file = os.path.join(baseDir,'RSPB_2123_detections.csv')
-    options.detector_output_file = os.path.join(baseDir,'RSPB_2123_detections.filtered.csv')
+    options.image_base_dir = baseDir
+    options.output_dir = os.path.join(baseDir,'postprocessing_filtered')
+    options.detector_output_filename_replacements = {} # {'20190430cameratraps\\':''} 
+    options.ground_truth_filename_replacements = {'\\data\\blob\\':''}
+    # options.detector_output_file = os.path.join(baseDir,'bh_5570_detections.csv')
+    options.detector_output_file = os.path.join(baseDir,'bh_5570_detections.filtered.csv')
+    options.ground_truth_json_file = os.path.join(baseDir,'bh.json')
+    options.unlabeled_classes = ['human']
         
-    # Using original, semi-coherent ground truth from metadata
-    if False:
-        options.ground_truth_json_file = os.path.join(baseDir,'rspb_20190409.json')
-        options.output_dir = os.path.join(baseDir,'postprocessing_output')
-
-    # Using iMerit labels as ground truth (all)
-    if True:
-        options.ground_truth_json_file = os.path.join(baseDir,'rspb_20190409_presence.json')
-        # options.output_dir = os.path.join(baseDir,'postprocessing_output_mdv3_presence_verified_filtered')
-        options.output_dir = os.path.join(baseDir,'postprocessing_output_merge_test')
-    
-    # Using iMerit labels as ground truth (val)
-    if False:
-        options.ground_truth_json_file = os.path.join(baseDir,'rspb_20190409_presence_val.json')
-        options.output_dir = os.path.join(baseDir,'postprocessing_output_mdv3_presence_verified_val_filtered')
-    
     process_batch_results(options)        
 
 

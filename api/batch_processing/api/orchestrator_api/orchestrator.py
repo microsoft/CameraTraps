@@ -1,12 +1,11 @@
 import copy
 import io
 import os
-import pickle
 from collections import defaultdict
 from datetime import datetime, timedelta
+import json
 
 import azureml.core
-import pandas as pd
 from azure.storage.blob import BlockBlobService, BlobPermissions
 from azureml.core import Workspace, Experiment
 from azureml.core.authentication import ServicePrincipalAuthentication
@@ -23,7 +22,6 @@ from sas_blob_utils import SasBlob
 
 print('Version of AML: {}'.format(azureml.core.__version__))
 
-
 # Service principle authentication for AML
 svc_pr_password = os.environ.get('AZUREML_PASSWORD')
 svc_pr = ServicePrincipalAuthentication(
@@ -32,13 +30,31 @@ svc_pr = ServicePrincipalAuthentication(
     svc_pr_password)
 
 
-#%% Utility functions
+# %% Utility functions
+
+def get_utc_time():
+    # return the current UTC time in string format '2019-05-19 08:57:43'
+    return datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+
+
+def get_utc_timestamp():
+    # return current UTC time in succinct format as a string, e.g. '20190519085759'
+    return datetime.utcnow().strftime("%Y%m%d%H%M%S")
+
+
+def get_task_status(request_status, message):
+    return {
+        'request_status': request_status,
+        'time': get_utc_time(),
+        'message': message
+    }
 
 def check_data_container_sas(sas_uri):
     permissions = SasBlob.get_permissions_from_uri(sas_uri)
     if 'read' not in permissions or 'list' not in permissions:
         return (400, 'input_container_sas provided does not have both read and list permissions.')
     return None
+
 
 def spot_check_blob_paths_exist(paths, container_sas):
     ''' Check that the first blob in paths exists in the container specified in container_sas.
@@ -59,10 +75,10 @@ def spot_check_blob_paths_exist(paths, container_sas):
     return path
 
 
-#%% AML Compute
+# %% AML Compute
 
 class AMLCompute:
-    def __init__(self, request_id, input_container_sas, internal_datastore):
+    def __init__(self, request_id, input_container_sas, internal_datastore, model_name):
         try:
             aml_config = api_config.AML_CONFIG
 
@@ -102,10 +118,10 @@ class AMLCompute:
 
             batch_score_step = PythonScriptStep(aml_config['script_name'],
                                                 source_directory=aml_config['source_dir'],
-                                                hash_paths= ['.'],  # include all contents of source_directory
+                                                hash_paths=['.'],  # include all contents of source_directory
                                                 name='batch_scoring',
                                                 arguments=['--job_id', param_job_id,
-                                                           '--model_name', aml_config['model_name'],
+                                                           '--model_name', model_name,
                                                            '--input_container_sas', input_container_sas,
                                                            '--internal_dir', internal_dir,
                                                            '--begin_index', param_begin_index,  # inclusive
@@ -125,7 +141,6 @@ class AMLCompute:
         except Exception as e:
             raise RuntimeError('Error in setting up AML Compute resource: {}.'.format(str(e)))
 
-
     def _get_data_references(self, request_id, internal_datastore):
         print('AMLCompute, _get_data_references() called. Request ID: {}'.format(request_id))
         try:
@@ -138,9 +153,9 @@ class AMLCompute:
             internal_account_key = internal_datastore['account_key']
             internal_container_name = internal_datastore['container_name']
             internal_datastore = Datastore.register_azure_blob_container(self.ws, internal_datastore_name,
-                                                                             internal_container_name,
-                                                                             internal_account_name,
-                                                                             account_key=internal_account_key)
+                                                                         internal_container_name,
+                                                                         internal_account_name,
+                                                                         account_key=internal_account_key)
             print('internal_datastore done')
 
             # output_datastore stores the output from score.py in each job, which is another container
@@ -148,9 +163,9 @@ class AMLCompute:
             output_datastore_name = 'output_datastore_{}'.format(request_id)
             output_container_name = api_config.AML_CONTAINER
             output_datastore = Datastore.register_azure_blob_container(self.ws, output_datastore_name,
-                                                                         output_container_name,
-                                                                         internal_account_name,
-                                                                         account_key=internal_account_key)
+                                                                       output_container_name,
+                                                                       internal_account_name,
+                                                                       account_key=internal_account_key)
             print('output_datastore done')
 
         except Exception as e:
@@ -158,8 +173,8 @@ class AMLCompute:
 
         try:
             internal_dir = DataReference(datastore=internal_datastore,
-                                              data_reference_name='internal_dir',
-                                              mode='mount')
+                                         data_reference_name='internal_dir',
+                                         mode='mount')
 
             output_dir = PipelineData('output_{}'.format(request_id),
                                       datastore=output_datastore,
@@ -169,7 +184,6 @@ class AMLCompute:
             raise RuntimeError('Error in creating data references for AML Compute: {}.'.format(str(e)))
 
         return internal_dir, output_dir
-
 
     def submit_jobs(self, request_id, list_jobs, api_task_manager, num_images):
         try:
@@ -202,26 +216,30 @@ class AMLCompute:
                 #     child_run_id = c.id
                 # print('=' * 20)
 
-                #list_jobs_active[job_id]['step_run_id']  = child_run_id  # this is the ID we can identify the output folder with
+                # list_jobs_active[job_id]['step_run_id']  = child_run_id  # this is the ID we can identify the output folder with
 
                 print('Submitted job {}.'.format(job_id))
 
                 if i % api_config.JOB_SUBMISSION_UPDATE_INTERVAL == 0:
-                    api_task_manager.UpdateTaskStatus(request_id,
-                                                      'running - {} images out of total {} submitted for processing.'.format(
-                                                          i * api_config.NUM_IMAGES_PER_JOB, num_images))
+                    api_task_manager.UpdateTaskStatus(request_id, get_task_status('running',
+                                                                                  '{} images out of total {} submitted for processing.'.format(
+                                                                                      i * api_config.NUM_IMAGES_PER_JOB,
+                                                                                      num_images)))
             print('AMLCompute, submit_jobs() finished.')
             return list_jobs_active
         except Exception as e:
             raise RuntimeError('Error in submitting jobs to AML Compute cluster: {}.'.format(str(e)))
 
 
-#%% AML Monitor
+# %% AML Monitor
 
 class AMLMonitor:
-    def __init__(self, request_id, list_jobs_submitted):
+    def __init__(self, request_id, list_jobs_submitted, request_name, request_submission_timestamp, model_version):
         self.request_id = request_id
         self.jobs_submitted = list_jobs_submitted
+        self.request_name = request_name  # None if not provided by the user
+        self.request_submission_timestamp = request_submission_timestamp  # str
+        self.model_version = model_version  # str
 
         storage_account_name = os.getenv('STORAGE_ACCOUNT_NAME')
         storage_account_key = os.getenv('STORAGE_ACCOUNT_KEY')
@@ -255,19 +273,23 @@ class AMLMonitor:
 
         return all_jobs_finished, status_tally
 
-    def _download_read_csv(self, blob_path, result_type):
+    def _download_read_json(self, blob_path):
         blob = self.internal_storage_service.get_blob_to_text(self.aml_output_container, blob_path)
         stream = io.StringIO(blob.content)
-        result = pd.read_csv(stream) if result_type == 'detections' else stream.readlines()
+        result = json.load(stream)
         return result
 
     def _generate_urls_for_outputs(self):
         try:
             request_id = self.request_id
+            request_name, request_submission_timestamp = self.request_name, self.request_submission_timestamp
 
             blob_paths = {
-                'detections': '{}/{}_detections.csv'.format(request_id, request_id),
-                'failed_images': '{}/{}_failed_images.csv'.format(request_id, request_id),
+                'detections': '{}/{}_detections_{}_{}.json'.format(request_id, request_id,
+                                                                   request_name, request_submission_timestamp),
+                'failed_images': '{}/{}_failed_images_{}_{}.json'.format(request_id, request_id,
+                                                                         request_name, request_submission_timestamp),
+                # list of images do not have request_name and timestamp in the file name so score.py can locate it easily
                 'images': '{}/{}_images.json'.format(request_id, request_id)
             }
 
@@ -298,41 +320,49 @@ class AMLMonitor:
         datastore_aml_container['container_name'] = self.aml_output_container
         list_blobs = SasBlob.list_blobs_in_container(api_config.MAX_BLOBS_IN_OUTPUT_CONTAINER,
                                                      datastore=datastore_aml_container,
-                                                     blob_suffix='.csv')
-        detection_results = []
+                                                     blob_suffix='.json')
+        all_detections = []
         failures = []
+        num_aggregated = 0
         for blob_path in list_blobs:
-            if blob_path.endswith('.csv'):
-                # blob_path is azureml/run_id/output_requestID/out_file_name.csv
-                out_file_name = blob_path.split('/')
-                out_file_name = out_file_name[-1]
+            if blob_path.endswith('.json'):
+                # blob_path is azureml/run_id/output_requestID/out_file_name.json
+                out_file_name = blob_path.split('/')[-1]
+                # "request" is part of the AML job_id
                 if out_file_name.startswith('detections_request{}_'.format(self.request_id)):
-                    detection_results.append(self._download_read_csv(blob_path, 'detections'))
+                    all_detections.extend(self._download_read_json(blob_path))
+                    num_aggregated += 1
+                    print('Number of results aggregated: ', num_aggregated)
                 elif out_file_name.startswith('failures_request{}_'.format(self.request_id)):
-                    failures.extend(self._download_read_csv(blob_path, 'failures'))
+                    failures.extend(self._download_read_json(blob_path))
 
-        if len(detection_results) < 1:
-            raise RuntimeError(('aggregate_results(), at least part of your request has been processed but monitoring '
-                                'thread failed to retrieve the results.'))
+        print('aggregate_results(), length of all_detections: {}'.format(len(all_detections)))
 
-        all_detections = pd.concat(detection_results)  # will error if detection_results is an empty list
-        print('aggregate_results(), shape of all_detections: {}'.format(all_detections.shape))
-        all_detections_string = all_detections.to_csv(index=False)  # a string is returned since no file/buffer provided
+        detection_output_content = {
+            'info': {
+                'detector': 'megadetector_v{}'.format(self.model_version),
+                'detection_completion_time': get_utc_time()
+            },
+            'detection_categories': api_config.DETECTION_CATEGORIES,
+            'images': all_detections
+        }
+        detection_output_str = json.dumps(detection_output_content, indent=1)
 
-        print('aggregate_results(), number of failed images: {}'.format(len(failures)))
-        failures_text = os.linesep.join(failures)
-
-        print('aggregate_results(), starts to upload')
         # upload aggregated results to output_store
         self.internal_storage_service.create_blob_from_text(self.internal_container,
-                                                            '{}/{}_detections.csv'.format(
-                                                                self.request_id, self.request_id),
-                                                            all_detections_string, max_connections=4)
+                                                            '{}/{}_detections_{}_{}.json'.format(
+                                                                self.request_id, self.request_id,
+                                                                self.request_name, self.request_submission_timestamp),
+                                                            detection_output_str, max_connections=4)
         print('aggregate_results(), detections uploaded')
+
+        print('aggregate_results(), number of failed images: {}'.format(len(failures)))
+        failures_str = json.dumps(failures, indent=1)
         self.internal_storage_service.create_blob_from_text(self.internal_container,
-                                                            '{}/{}_failed_images.csv'.format(
-                                                                self.request_id, self.request_id),
-                                                            failures_text)
+                                                            '{}/{}_failed_images_{}_{}.json'.format(
+                                                                self.request_id, self.request_id,
+                                                                self.request_name, self.request_submission_timestamp),
+                                                            failures_str)
         print('aggregate_results(), failures uploaded')
 
         output_file_urls = self._generate_urls_for_outputs()
