@@ -3,6 +3,7 @@
 
 
 
+
 # Tutorial for training a classifier
 This tutorial walks through all steps required to train an animal species classifier from an camera trap dataset. Instead of whole-image classification, we will focus on classification of the detected animals with unknown species.
 
@@ -306,22 +307,22 @@ This folder contains the script `predict_image.py`, which takes the frozen graph
 
 	python predict_image.py \
 	--frozen_graph ${CHECKPOINT_DIR}/frozen_inference_graph.pb \
-	--class_list $COCO_STYLE_OUTPUT/classlist.txt \
-	--image_path $COCO_STYLE_OUTPUT/gazelleThomsons/S1/R10/R10_R1/S1_R10_R1_PICT1199_1.JPG
+	--classlist $COCO_STYLE_OUTPUT/classlist.txt \
+	--image_path $COCO_STYLE_OUTPUT/gazelleThomsons/S2/L12/L12_R1/S2_L12_R1_PICT2280.JPG
 
-This command will analyze the test image `$COCO_STYLE_OUTPUT/gazelleThomsons/S1/R10/R10_R1/S1_R10_R1_PICT1199_1.JPG`, which looks like
+This command will analyze the testing image `$COCO_STYLE_OUTPUT/gazelleThomsons/S2/L12/L12_R1/S2_L12_R1_PICT2280.JPG`, which looks like
 
-![Gazelle](tutorial_images/S1_R10_R1_PICT1199_1.JPG?raw=true "Gazelle")
+![gazelleThomsons](tutorial_images/gazelleThomsons___S2___L12___L12_R1___S2_L12_R1_PICT2280.JPG?raw=true "gazelleThomsons")
 
 and print the following output:
 
 	...
 	Prediction finished. Most likely classes:
-	    "gazelleThomsons" with confidence 90.73%
-	    "gazelleGrants" with confidence 3.97%
-	    "zebra" with confidence 1.96%
-	    "warthog" with confidence 0.41%
-	    "otherBird" with confidence 0.38%
+	    "gazelleThomsons" with confidence 86.55%
+	    "gazelleGrants" with confidence 12.51%
+	    "dikDik" with confidence 0.29%
+	    "vervetMonkey" with confidence 0.11%
+	    "otherBird" with confidence 0.11%
 
 ## Sampling testing images
 For visualization and debugging purposes, we also provide a script to randomly sample testing images and run the prediction on each of those. The script is located in the `classification` subfolder, so first change there by executing
@@ -346,7 +347,7 @@ Running the script as shown results in ten images and ten corresponding text fil
 
 The text files contain the names of the predicted classes along with the prediction confidence. We show the first few examples below.
 
-![aardwolf](sample_output/aardwolf___S2___T12___T12_R2___S2_T12_R2_PICT0590.JPG?raw=true "Aardwolf")
+![aardwolf](sample_output/aardwolf___S2___T12___T12_R2___S2_T12_R2_PICT0590.JPG?raw=true "Aardwolf" | width=300)
 
 	Predicting aardwolf/S2/T12/T12_R2/S2_T12_R2_PICT0590.JPG
 	Most likely classes:
@@ -356,20 +357,7 @@ The text files contain the names of the predicted classes along with the predict
 		"hyenaSpotted" with confidence 0.07%
 		"civet" with confidence 0.02%
 
-
-![caracal](sample_output/caracal___S1___P10___P10_R1___S1_P10_R1_PICT0120.JPG?raw=true "caracal")
-
-	Predicting caracal/S1/P10/P10_R1/S1_P10_R1_PICT0120.JPG
-	Most likely classes:
-		"caracal" with confidence 94.82%
-		"reedbuck" with confidence 2.07%
-		"dikDik" with confidence 1.62%
-		"wildcat" with confidence 1.21%
-		"batEaredFox" with confidence 0.15%
-
-
-
-![civet](sample_output/civet___S1___H06___H06_R3___S1_H06_R3_PICT0736_1.JPG?raw=true "civet")
+![civet](sample_output/civet___S1___H06___H06_R3___S1_H06_R3_PICT0736_1.JPG?raw=true "civet" | width=300)
 
 	Predicting civet/S1/H06/H06_R3/S1_H06_R3_PICT0736_1.JPG
 	Most likely classes:
@@ -379,9 +367,7 @@ The text files contain the names of the predicted classes along with the predict
 		"wildcat" with confidence 5.08%
 		"honeyBadger" with confidence 4.39%
 
-
-
-![leopard](sample_output/leopard___S1___H06___H06_R4___S1_H06_R4_PICT1296_0.JPG?raw=true "leopard")
+![leopard](sample_output/leopard___S1___H06___H06_R4___S1_H06_R4_PICT1296_0.JPG?raw=true "leopard" | width=300)
 
 	Predicting leopard/S1/H06/H06_R4/S1_H06_R4_PICT1296_0.JPG
 	Most likely classes:
@@ -391,9 +377,7 @@ The text files contain the names of the predicted classes along with the predict
 		"cheetah" with confidence 4.95%
 		"wildcat" with confidence 3.02%
 
-
-
-![mongoose](sample_output/mongoose___S1___R11___R11_R1___S1_R11_R1_PICT0101_1.JPG?raw=true "mongoose")
+![mongoose](sample_output/mongoose___S1___R11___R11_R1___S1_R11_R1_PICT0101_1.JPG?raw=true "mongoose" | width=300)
 
 	Predicting mongoose/S1/R11/R11_R1/S1_R11_R1_PICT0101_1.JPG
 	Most likely classes:
@@ -403,9 +387,7 @@ The text files contain the names of the predicted classes along with the predict
 		"aardvark" with confidence 0.00%
 		"honeyBadger" with confidence 0.00%
 
-
-
-![ostrich](sample_output/ostrich___S6___P05___P05_R1___S6_P05_R1_IMAG0118.JPG?raw=true "ostrich")
+![ostrich](sample_output/ostrich___S6___P05___P05_R1___S6_P05_R1_IMAG0118.JPG?raw=true "ostrich" | width=300)
 
 	Predicting ostrich/S6/P05/P05_R1/S6_P05_R1_IMAG0118.JPG
 	Most likely classes:
@@ -415,9 +397,7 @@ The text files contain the names of the predicted classes along with the predict
 		"giraffe" with confidence 0.01%
 		"wildebeest" with confidence 0.00%
 
-
-
-![porcupine](sample_output/porcupine___S1___H06___H06_R4___S1_H06_R4_PICT1178_1.JPG?raw=true "porcupine")
+![porcupine](sample_output/porcupine___S1___H06___H06_R4___S1_H06_R4_PICT1178_1.JPG?raw=true "porcupine" | width=300)
 
 	Predicting porcupine/S1/H06/H06_R4/S1_H06_R4_PICT1178_1.JPG
 	Most likely classes:
@@ -427,10 +407,7 @@ The text files contain the names of the predicted classes along with the predict
 		"buffalo" with confidence 6.43%
 		"hyenaSpotted" with confidence 5.84%
 
-
-
-
-![topi](sample_output/topi___S5___T10___T10_R3___S5_T10_R3_IMAG0176_1.JPG?raw=true "topi")
+![topi](sample_output/topi___S5___T10___T10_R3___S5_T10_R3_IMAG0176_1.JPG?raw=true "topi" | width=300)
 
 	Predicting topi/S5/T10/T10_R3/S5_T10_R3_IMAG0176_1.JPG
 	Most likely classes:
@@ -440,10 +417,7 @@ The text files contain the names of the predicted classes along with the predict
 		"eland" with confidence 2.59%
 		"hartebeest" with confidence 0.53%
 
-
-
-
-![wildcat](sample_output/wildcat___S2___D03___D03_R4___S2_D03_R4_PICT0414.JPG?raw=true "wildcat")
+![wildcat](sample_output/wildcat___S2___D03___D03_R4___S2_D03_R4_PICT0414.JPG?raw=true "wildcat" | width=300)
 
 	Predicting wildcat/S2/D03/D03_R4/S2_D03_R4_PICT0414.JPG
 	Most likely classes:
@@ -453,8 +427,7 @@ The text files contain the names of the predicted classes along with the predict
 		"mongoose" with confidence 2.76%
 		"civet" with confidence 1.93%
 
-
-![zorilla](sample_output/zorilla___S2___K13___K13_R1___S2_K13_R1_PICT0664.JPG?raw=true "zorilla")
+![zorilla](sample_output/zorilla___S2___K13___K13_R1___S2_K13_R1_PICT0664.JPG?raw=true "zorilla" | width=300)
 
 	Predicting zorilla/S2/K13/K13_R1/S2_K13_R1_PICT0664.JPG
 	Most likely classes:
@@ -463,8 +436,3 @@ The text files contain the names of the predicted classes along with the predict
 		"topi" with confidence 5.06%
 		"buffalo" with confidence 1.13%
 		"hartebeest" with confidence 0.83%
-
-
-
-
-
