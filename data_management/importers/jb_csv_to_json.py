@@ -132,7 +132,7 @@ json_data['images'] = images
 json_data['annotations'] = annotations
 json_data['categories'] = categories
 json_data['info'] = info
-json.dump(json_data,open(output_file,'w'),indent=4)
+json.dump(json_data, open(output_file,'w'), indent=4)
 
 print('Finished writing .json file with {} images, {} annotations, and {} categories'.format(
         len(images),len(annotations),len(categories)))
@@ -144,19 +144,5 @@ from data_management.databases import sanity_check_json_db
 
 options = sanity_check_json_db.SanityCheckOptions()
 sortedCategories,data = sanity_check_json_db.sanityCheckJsonDb(output_file, options)
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
 
 

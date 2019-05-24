@@ -1,9 +1,3 @@
-
-
-
-
-
-
 # Tutorial for training a classifier
 This tutorial walks through all steps required to train an animal species classifier from an camera trap dataset. Instead of whole-image classification, we will focus on classification of the detected animals with unknown species.
 
