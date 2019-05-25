@@ -102,6 +102,9 @@ class SuspiciousDetectionOptions:
     # has changed relative to the structure the detector saw
     filenameReplacements = {}
     
+    # How many folders up from the leaf nodes should we be going to aggregate images?
+    nDirLevelsFromLeaf = 0
+    
     
 class SuspiciousDetectionResults:
     '''
@@ -631,6 +634,13 @@ def find_suspicious_detections(inputCsvFilename,outputCsvFilename,options=None):
         
         relativePath = row['image_path']
         dirName = os.path.dirname(relativePath)
+        
+        if options.nDirLevelsFromLeaf > 0:
+            iLevel = 0
+            while(iLevel < options.nDirLevelsFromLeaf):
+                iLevel += 1
+                dirName = os.path.dirname(dirName)                
+        assert len(dirName) > 0
         
         if not dirName in rowsByDirectory:
             # Create a new DataFrame with just this row
