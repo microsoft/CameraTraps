@@ -911,7 +911,7 @@ if False:
     outputCsvFilename = matlab_porting_tools.insert_before_extension(inputCsvFilename,
                                                                     'filtered')
     
-    RepeatDetectionResults = find_repeat_detections(inputCsvFilename,
+    results = find_repeat_detections(inputCsvFilename,
                                                           outputCsvFilename,options)
     
     
@@ -975,7 +975,7 @@ def main():
     options = RepeatDetectionOptions()
     args_to_object(args,options)
     
-    find_suspicious_detections(args.inputFile,args.outputFile,options)
+    find_repeat_detections(args.inputFile,args.outputFile,options)
 
 if __name__ == '__main__':
     
