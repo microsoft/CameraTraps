@@ -368,7 +368,6 @@ def draw_bounding_box_on_image(image,
         text_width, text_height = font.getsize(display_str)
         margin = np.ceil(0.05 * text_height)
 
-
         draw.rectangle(
             [(left, text_bottom - text_height - 2 * margin), (left + text_width,
                                                               text_bottom)],
