@@ -20,14 +20,15 @@
 
 #%% Constants and environment
 
+import argparse
 import json
 import os
 import sys
-import argparse
-from tqdm import tqdm
-from operator import itemgetter
 from multiprocessing.pool import ThreadPool
+from operator import itemgetter
+
 from PIL import Image
+from tqdm import tqdm
 
 nThreads = 10
 
