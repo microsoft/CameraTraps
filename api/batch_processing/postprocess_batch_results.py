@@ -207,7 +207,7 @@ def render_bounding_boxes(image_base_dir,image_relative_path,
             return ''
                         
         image = vis_utils.open_image(image_full_path)
-        vis_utils.render_detection_bounding_boxes(boxes_and_scores, image, 
+        vis_utils.render_detection_bounding_boxes_old(boxes_and_scores, image, 
                                                   confidence_threshold=options.confidence_threshold,
                                                   thickness=6)
         
