@@ -1,9 +1,9 @@
 ########
 #
-# find_problematic_detections.py
+# find_repeat_detections.py
 #
 # Looks through a sequence of detections in .csv+.json format, and finds candidates
-# that might be "problematic false positives", i.e. that random branch that it
+# that might be "repeated false positives", i.e. that random branch that it
 # really thinks is an animal.
 #
 # Writes out a new .csv file where "suspicious" detections have had their
@@ -26,12 +26,13 @@ from itertools import compress
 
 import jsonpickle
 import pandas as pd
-from PIL import Image, ImageDraw  # pillow >= 5.3.0
+from PIL import Image, ImageDraw
 from joblib import Parallel, delayed
-from tqdm import tqdm  # version 4.19.5
+from tqdm import tqdm
 
 # from ai4eutils; this is assumed to be on the path, as per repo convention
 import write_html_image_list
+import matlab_porting_tools as mpt
 
 from detection.detection_eval.load_api_results import load_api_results, write_api_results
 
@@ -50,7 +51,7 @@ warnings.filterwarnings('ignore', 'Metadata warning', UserWarning)
 
 ##%% Classes
 
-class SuspiciousDetectionOptions:
+class RepeatDetectionOptions:
     
     # inputCsvFilename = r'D:\temp\tigers_20190308_all_output.csv'
     
@@ -82,7 +83,12 @@ class SuspiciousDetectionOptions:
     nWorkers = 10 # joblib.cpu_count()
     
     # Load detections from a filter file rather than finding them from the detector output
+    
+    # .json file containing detections
     filterFileToLoad = ''
+    
+    # (optional) list of filenames remaining after delettion
+    filteredFileListToLoad = ''
     
     bRenderHtml = False
     
@@ -103,10 +109,13 @@ class SuspiciousDetectionOptions:
     # has changed relative to the structure the detector saw
     filenameReplacements = {}
     
+    # How many folders up from the leaf nodes should we be going to aggregate images?
+    nDirLevelsFromLeaf = 0
     
-class SuspiciousDetectionResults:
+    
+class RepeatDetectionResults:
     '''
-    The results of an entire suspicious detection analysis
+    The results of an entire repeat detection analysis
     '''
     
     # The data table, as loaded from the input .csv file 
@@ -421,7 +430,7 @@ def render_images_for_directory(iDir,directoryHtmlFiles,suspiciousDetections,opt
         # iInstance = 0; instance = detection.instances[iInstance]
         for iInstance,instance in enumerate(detection.instances):
             
-            if options.debugMaxRenderInstance > 0 and iInstance > options.debugMaxRenderInstance:
+            if options.debugMaxRenderInstance >= 0 and iInstance >= options.debugMaxRenderInstance:
                 break
             
             imageRelativeFilename = 'image{:0>4d}.jpg'.format(iInstance)
@@ -482,13 +491,13 @@ def render_images_for_directory(iDir,directoryHtmlFiles,suspiciousDetections,opt
 
 ##%% Update the detection table based on suspicious results, write .csv output
     
-def update_detection_table(suspiciousDetectionResults,options,outputCsvFilename=None):   
+def update_detection_table(RepeatDetectionResults,options,outputCsvFilename=None):   
     
-    detectionResults = suspiciousDetectionResults.detectionResults
+    detectionResults = RepeatDetectionResults.detectionResults
     
     # An array of length nDirs, where each element is a list of DetectionLocation 
     # objects for that directory that have been flagged as suspicious
-    suspiciousDetectionsByDirectory = suspiciousDetectionResults.suspiciousDetections
+    suspiciousDetectionsByDirectory = RepeatDetectionResults.suspiciousDetections
     
     nBboxChanges = 0
     
@@ -509,8 +518,8 @@ def update_detection_table(suspiciousDetectionResults,options,outputCsvFilename=
                 iou = get_iou(instanceBbox,locationBbox)
                 assert iou > options.iouThreshold                
                 
-                assert instance.filename in suspiciousDetectionResults.filenameToRow
-                iRow = suspiciousDetectionResults.filenameToRow[instance.filename]
+                assert instance.filename in RepeatDetectionResults.filenameToRow
+                iRow = RepeatDetectionResults.filenameToRow[instance.filename]
                 row = detectionResults.iloc[iRow]
                 rowDetections = row['detections']
                 detectionToModify = rowDetections[instance.iDetection]
@@ -592,20 +601,20 @@ def update_detection_table(suspiciousDetectionResults,options,outputCsvFilename=
     
     return detectionResults
 
-# ...def update_detection_table(suspiciousDetectionResults,options)
+# ...def update_detection_table(RepeatDetectionResults,options)
         
 
 ##%% Main function
     
-def find_suspicious_detections(inputCsvFilename,outputCsvFilename,options=None):
+def find_repeat_detections(inputCsvFilename,outputCsvFilename,options=None):
 
     ##%% Input handling
 
     if options is None:
 
-        options = SuspiciousDetectionOptions()
+        options = RepeatDetectionOptions()
 
-    toReturn = SuspiciousDetectionResults()
+    toReturn = RepeatDetectionResults()
 
 
     ##%% Load file
@@ -625,6 +634,9 @@ def find_suspicious_detections(inputCsvFilename,outputCsvFilename,options=None):
     # This is a mapping back into the rows of the original table
     filenameToRow = {}
 
+    # TODO: in the case where we're loading an existing set of FPs after manual filtering,
+    # we should load these data frames too, rather than re-building them from the input.
+    
     print('Separating files into directories...')
 
     # iRow = 0; row = detection_results.iloc[0]
@@ -632,6 +644,13 @@ def find_suspicious_detections(inputCsvFilename,outputCsvFilename,options=None):
 
         relativePath = row['image_path']
         dirName = os.path.dirname(relativePath)
+        
+        if options.nDirLevelsFromLeaf > 0:
+            iLevel = 0
+            while(iLevel < options.nDirLevelsFromLeaf):
+                iLevel += 1
+                dirName = os.path.dirname(dirName)                
+        assert len(dirName) > 0
 
         if not dirName in rowsByDirectory:
             # Create a new DataFrame with just this row
@@ -643,9 +662,7 @@ def find_suspicious_detections(inputCsvFilename,outputCsvFilename,options=None):
         assert relativePath not in filenameToRow
         filenameToRow[relativePath] = iRow
 
-    print('Finished separating {} files into {} directories'.format(len(detection_results),
-          len(rowsByDirectory)))
-
+    
     # Convert lists of rows to proper DataFrames
     dirs = list(rowsByDirectory.keys())
     for d in dirs:
@@ -654,20 +671,24 @@ def find_suspicious_detections(inputCsvFilename,outputCsvFilename,options=None):
     toReturn.rowsByDirectory = rowsByDirectory
     toReturn.filenameToRow = filenameToRow
 
+    print('Finished separating {} files into {} directories'.format(len(detection_results),
+          len(rowsByDirectory)))
 
-    # Look for matches
 
-    print('Finding similar detections...')
+    ##% Look for matches (or load them from file)
 
-    # For each directory
-
+        
     dirsToSearch = list(rowsByDirectory.keys())[0:options.debugMaxDir]
 
     # length-nDirs list of lists of DetectionLocation objects
     suspiciousDetections = [None] * len(dirsToSearch)
                 
+    # Are we actually looking for matches, or just loading from a file?
     if len(options.filterFileToLoad) == 0:
         
+        # We're actually looking for matches...
+        print('Finding similar detections...')
+            
         allCandidateDetections = [None] * len(dirsToSearch)
         
         if not options.bParallelizeComparisons:
@@ -687,7 +708,7 @@ def find_suspicious_detections(inputCsvFilename,outputCsvFilename,options=None):
         
         ##%% Find suspicious locations based on match results
     
-        print('Filtering out suspicious detections...')    
+        print('Filtering out repeat detections...')    
         
         nImagesWithSuspiciousDetections = 0
         nSuspiciousDetections = 0
@@ -719,7 +740,7 @@ def find_suspicious_detections(inputCsvFilename,outputCsvFilename,options=None):
             
             suspiciousDetections[iDir] = suspiciousDetectionsThisDir
     
-        print('Finished searching for problematic detections\nFound {} unique detections on {} images that are suspicious'.format(
+        print('Finished searching for repeat detections\nFound {} unique detections on {} images that are suspicious'.format(
           nSuspiciousDetections,nImagesWithSuspiciousDetections))    
 
     else:
@@ -736,24 +757,44 @@ def find_suspicious_detections(inputCsvFilename,outputCsvFilename,options=None):
         nDetectionsRemoved = 0
         nDetectionsLoaded = 0
         
+        # We're skipping detection-finding, but to see which images are actually legit false
+        # positives, we may be looking for physical files or loading from a text file.        
+        fileList = None
+        if options.filteredFileListToLoad is not None:
+            with open(options.filteredFileListToLoad) as f:
+                fileList = f.readlines()
+                fileList = [x.strip() for x in fileList] 
+            nSuspiciousDetections = sum([len(x) for x in suspiciousDetections])        
+            print('Loaded false positive list from file, will remove {} of {} suspicious detections'.format(
+                    len(fileList),nSuspiciousDetections))
+            
         # For each directory
-        # iDir = 0; detections = suspiciousDetectionsBeforeFiltering[0]
+        # iDir = 0; detections = suspiciousDetections[0]
         for iDir,detections in enumerate(suspiciousDetections):
             
             bValidDetection = [True] * len(detections)
             nDetectionsLoaded += len(detections)
             
             # For each detection that was present before filtering
+            # iDetection = 0; detection = detections[iDetection]
             for iDetection,detection in enumerate(detections):
-                
-                # Is the image still there?
-                imageFullPath = os.path.join(filteringBaseDir,detection.sampleImageRelativeFileName)
 
-                # If not, remove this from the list of suspicious detections
-                if not os.path.isfile(imageFullPath):
-                    nDetectionsRemoved += 1
-                    bValidDetection[iDetection] = False
-               
+                # Are we checking the directory to see whether detections were actually false positives,
+                # or reading from a list?
+                if fileList is None:                                
+                    # Is the image still there?                
+                    imageFullPath = os.path.join(filteringBaseDir,detection.sampleImageRelativeFileName)
+                
+                    # If not, remove this from the list of suspicious detections
+                    if not os.path.isfile(imageFullPath):
+                        nDetectionsRemoved += 1
+                        bValidDetection[iDetection] = False
+                        
+                else:
+                   if detection.sampleImageRelativeFileName not in fileList:
+                       nDetectionsRemoved += 1
+                       bValidDetection[iDetection] = False
+                        
             nRemovedThisDir = len(bValidDetection) - sum(bValidDetection)
             if nRemovedThisDir > 0:
                 print('Removed {} of {} detections from directory {}'.format(nRemovedThisDir,
@@ -812,13 +853,22 @@ def find_suspicious_detections(inputCsvFilename,outputCsvFilename,options=None):
         with open(masterHtmlFile,'w') as fHtml:
             
             fHtml.write('<html><body>\n')
-            fHtml.write('<h2><b>Suspicious detections by directory</b></h2></br>\n')
+            fHtml.write('<h2><b>Repeat detections by directory</b></h2></br>\n')
+            
             for iDir,dirHtmlFile in enumerate(directoryHtmlFiles):
+                
                 if dirHtmlFile is None:
                     continue
+                
                 relPath = os.path.relpath(dirHtmlFile,options.outputBase)
                 dirName = dirsToSearch[iDir]
+                
+                # Remove unicode characters before formatting
+                relPath = relPath.encode('ascii','ignore').decode('ascii')
+                dirName = dirName.encode('ascii','ignore').decode('ascii')
+                
                 fHtml.write('<a href={}>{}</a><br/>\n'.format(relPath,dirName))
+                
             fHtml.write('</body></html>\n')
 
     # ...if we're rendering html
@@ -833,7 +883,7 @@ def find_suspicious_detections(inputCsvFilename,outputCsvFilename,options=None):
     os.makedirs(filteringDir,exist_ok=True)
     
     # iDir = 0; suspiciousDetectionsThisDir = suspiciousDetections[iDir]
-    for iDir,suspiciousDetectionsThisDir in tqdm(enumerate(suspiciousDetections)):
+    for iDir,suspiciousDetectionsThisDir in enumerate(tqdm(suspiciousDetections)):
         
         # suspiciousDetectionsThisDir is a list of DetectionLocation objects
         for iDetection,detection in enumerate(suspiciousDetectionsThisDir):
@@ -854,12 +904,13 @@ def find_suspicious_detections(inputCsvFilename,outputCsvFilename,options=None):
     s = jsonpickle.encode(suspiciousDetections)
     with open(detectionIndexFileName, 'w') as f:
         f.write(s)
-            
     toReturn.filterFile = detectionIndexFileName
-    
+            
+    print('Done')
+        
     return toReturn
 
-# ...find_suspicious_detections()
+# ...find_repeat_detections()
 
 
 #%% Interactive driver
@@ -870,10 +921,10 @@ if False:
     
     baseDir = 'd:\blah\base'
     
-    options = SuspiciousDetectionOptions()
+    options = RepeatDetectionOptions()
     options.bRenderHtml = True
     options.imageBase = baseDir
-    options.outputBase = os.path.join(baseDir,'suspicious_detections')
+    options.outputBase = os.path.join(baseDir,'repeat_detections')
     options.filenameReplacements = {'20190430cameratraps\\':''}    
     
     options.confidenceMin = 0.85
@@ -882,7 +933,7 @@ if False:
     options.occurrenceThreshold = 8 # 10
     options.maxSuspiciousDetectionSize = 0.2
     
-    options.filterFileToLoad = os.path.join(baseDir,r'suspiciousDetections\filtering_2019.05.16.18.43.01\detectionIndex.json')
+    options.filterFileToLoad = os.path.join(baseDir,r'repeatDetections\filtering_2019.05.16.18.43.01\detectionIndex.json')
     
     options.debugMaxDir = -1
     options.debugMaxRenderDir = -1
@@ -890,11 +941,10 @@ if False:
     options.debugMaxRenderInstance = -1
     
     inputCsvFilename = os.path.join(baseDir,'blah_5570_detections.csv')
-    outputCsvFilename = matlab_porting_tools.insert_before_extension(inputCsvFilename,
+    outputCsvFilename = mpt.insert_before_extension(inputCsvFilename,
                                                                     'filtered')
     
-    suspiciousDetectionResults = find_suspicious_detections(inputCsvFilename,
-                                                          outputCsvFilename,options)
+    results = find_repeat_detections(inputCsvFilename,outputCsvFilename,options)
     
     
 #%%
@@ -913,13 +963,13 @@ def args_to_object(args, obj):
 def main():
     
     # With HTML (debug)
-    # python find_problematic_detections.py "D:\temp\tigers_20190308_all_output.csv" "D:\temp\tigers_20190308_all_output.filtered.csv" --renderHtml --debugMaxDir 100 --imageBase "d:\wildlife_data\tigerblobs" --outputBase "d:\temp\suspiciousDetections"
+    # python find_repeat_detections.py "D:\temp\tigers_20190308_all_output.csv" "D:\temp\tigers_20190308_all_output.filtered.csv" --renderHtml --debugMaxDir 100 --imageBase "d:\wildlife_data\tigerblobs" --outputBase "d:\temp\repeatDetections"
     
     # Without HTML (debug)
-    # python find_problematic_detections.py "D:\temp\tigers_20190308_all_output.csv" "D:\temp\tigers_20190308_all_output.filtered.csv" --debugMaxDir 100 --imageBase "d:\wildlife_data\tigerblobs" --outputBase "d:\temp\suspiciousDetections"
+    # python find_repeat_detections.py "D:\temp\tigers_20190308_all_output.csv" "D:\temp\tigers_20190308_all_output.filtered.csv" --debugMaxDir 100 --imageBase "d:\wildlife_data\tigerblobs" --outputBase "d:\temp\repeatDetections"
     
     # With HTML (for real)
-    # python find_problematic_detections.py "D:\temp\tigers_20190308_all_output.csv" "D:\temp\tigers_20190308_all_output.filtered.csv" --renderHtml --imageBase "d:\wildlife_data\tigerblobs" --outputBase "d:\temp\suspiciousDetections"
+    # python find_repeat_detections.py "D:\temp\tigers_20190308_all_output.csv" "D:\temp\tigers_20190308_all_output.filtered.csv" --renderHtml --imageBase "d:\wildlife_data\tigerblobs" --outputBase "d:\temp\repeatDetections"
     
     parser = argparse.ArgumentParser()
     parser.add_argument('inputFile')
@@ -954,10 +1004,10 @@ def main():
     args = parser.parse_args()    
     
     # Convert to an options object
-    options = SuspiciousDetectionOptions()
+    options = RepeatDetectionOptions()
     args_to_object(args,options)
     
-    find_suspicious_detections(args.inputFile,args.outputFile,options)
+    find_repeat_detections(args.inputFile,args.outputFile,options)
 
 if __name__ == '__main__':
     
