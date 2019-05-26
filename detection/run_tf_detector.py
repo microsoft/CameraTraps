@@ -6,9 +6,19 @@
 # render bounding boxes on images, and write out the resulting
 # images (with bounding boxes).
 #
+# This script depends on nothign else in our repo, just standard pip
+# installs.  It's a good way to test our detector on a handful of images and
+# get super-satisfying, graphical results.  It's also a good way to see how
+# fast a detector model will run on a particular machine.
+#
 # This script is not a good way to process lots and lots of images; it loads all
-# the images first, then runs the model, which makes for more accurate timing
-# and more robust testing, but is not ideal for processing lots of images.
+# the images first, then runs the model.  If you want to run a detector (e.g. ours)
+# on lots of images, you should check out:
+#
+# 1) run_tf_detector_batch.py (for local execution)
+# 
+# 2) https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing
+#    (for running large jobs on Azure ML)
 #
 # See the "test driver" cell for example invocation.
 #
@@ -36,7 +46,6 @@ import matplotlib.ticker as ticker
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
-
 
 DEFAULT_CONFIDENCE_THRESHOLD = 0.85
 
@@ -115,7 +124,7 @@ def generate_detections(detection_graph,images):
             image = PIL.Image.open(image).convert("RGB"); image = np.array(image)
             # image = mpimg.imread(image)
             
-            # This shouldn't be necessarily when loading with PIL and converting to RGB
+            # This shouldn't be necessary when loading with PIL and converting to RGB
             nChannels = image.shape[2]
             if nChannels > 3:
                 print('Warning: trimming channels from image')
@@ -443,18 +452,18 @@ if False:
 imageExtensions = ['.jpg','.jpeg','.gif','.png']
     
 def isImageFile(s):
-    '''
+    """
     Check a file's extension against a hard-coded set of image file extensions    '
-    '''
+    """
     ext = os.path.splitext(s)[1]
     return ext.lower() in imageExtensions
     
     
 def findImageStrings(strings):
-    '''
+    """
     Given a list of strings that are potentially image file names, look for strings
     that actually look like image file names (based on extension).
-    '''
+    """
     imageStrings = []
     bIsImage = [False] * len(strings)
     for iString,f in enumerate(strings):
@@ -466,9 +475,9 @@ def findImageStrings(strings):
 
     
 def findImages(dirName,bRecursive=False):
-    '''
+    """
     Find all files in a directory that look like image file names
-    '''
+    """
     if bRecursive:
         strings = glob.glob(os.path.join(dirName,'**','*.*'), recursive=True)
     else:
