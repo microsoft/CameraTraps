@@ -7,9 +7,7 @@
 
 import json
 import os
-from PIL import Image
 from tqdm import tqdm
-import glob
 import numpy as np
 import argparse
 import sys

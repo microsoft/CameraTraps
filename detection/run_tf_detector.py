@@ -19,22 +19,24 @@
 
 #%% Constants, imports, environment
 
-import tensorflow as tf
-import numpy as np
-import humanfriendly
-import time
-import glob
-import sys
 import argparse
-import matplotlib
+import glob
+import os
+import sys
+import time
+
 import PIL
+import humanfriendly
+import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.image as mpimg
-import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
-import os
+import numpy as np
+import tensorflow as tf
 from tqdm import tqdm
+
 
 DEFAULT_CONFIDENCE_THRESHOLD = 0.85
 
