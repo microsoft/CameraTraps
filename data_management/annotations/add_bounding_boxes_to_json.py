@@ -13,9 +13,10 @@
 import json
 import re
 from datetime import datetime, date
-from data_management.annotations import annotation_constants
+
 from tqdm import tqdm
 
+from data_management.annotations import annotation_constants
 
 #%% Configurations and paths
 
