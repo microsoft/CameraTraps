@@ -81,7 +81,12 @@ class RepeatDetectionOptions:
     nWorkers = 10 # joblib.cpu_count()
     
     # Load detections from a filter file rather than finding them from the detector output
+    
+    # .json file containing detections
     filterFileToLoad = ''
+    
+    # (optional) list of filenames remaining after delettion
+    filteredFileListToLoad = ''
     
     bRenderHtml = False
     
@@ -423,7 +428,7 @@ def render_images_for_directory(iDir,directoryHtmlFiles,suspiciousDetections,opt
         # iInstance = 0; instance = detection.instances[iInstance]
         for iInstance,instance in enumerate(detection.instances):
             
-            if options.debugMaxRenderInstance > 0 and iInstance > options.debugMaxRenderInstance:
+            if options.debugMaxRenderInstance >= 0 and iInstance >= options.debugMaxRenderInstance:
                 break
             
             imageRelativeFilename = 'image{:0>4d}.jpg'.format(iInstance)
@@ -627,6 +632,9 @@ def find_repeat_detections(inputCsvFilename,outputCsvFilename,options=None):
     # This is a mapping back into the rows of the original table
     filenameToRow = {}
     
+    # TODO: in the case where we're loading an existing set of FPs after manual filtering,
+    # we should load these data frames too, rather than re-building them from the input.
+    
     print('Separating files into directories...')
     
     # iRow = 0; row = detection_results.iloc[0]
@@ -652,9 +660,6 @@ def find_repeat_detections(inputCsvFilename,outputCsvFilename,options=None):
         assert relativePath not in filenameToRow
         filenameToRow[relativePath] = iRow
         
-    print('Finished separating {} files into {} directories'.format(len(detection_results),
-          len(rowsByDirectory)))
-    
     # Convert lists of rows to proper DataFrames
     dirs = list(rowsByDirectory.keys())
     for d in dirs:
@@ -663,20 +668,23 @@ def find_repeat_detections(inputCsvFilename,outputCsvFilename,options=None):
     toReturn.rowsByDirectory = rowsByDirectory
     toReturn.filenameToRow = filenameToRow    
     
+    print('Finished separating {} files into {} directories'.format(len(detection_results),
+          len(rowsByDirectory)))
     
-    # Look for matches
     
-    print('Finding similar detections...')
+    ##% Look for matches (or load them from file)
     
-    # For each directory
-        
     dirsToSearch = list(rowsByDirectory.keys())[0:options.debugMaxDir]
     
     # length-nDirs list of lists of DetectionLocation objects
     suspiciousDetections = [None] * len(dirsToSearch)
                 
+    # Are we actually looking for matches, or just loading from a file?
     if len(options.filterFileToLoad) == 0:
         
+        # We're actually looking for matches...
+        print('Finding similar detections...')
+            
         allCandidateDetections = [None] * len(dirsToSearch)
         
         if not options.bParallelizeComparisons:
@@ -745,24 +753,44 @@ def find_repeat_detections(inputCsvFilename,outputCsvFilename,options=None):
         nDetectionsRemoved = 0
         nDetectionsLoaded = 0
         
+        # We're skipping detection-finding, but to see which images are actually legit false
+        # positives, we may be looking for physical files or loading from a text file.        
+        fileList = None
+        if options.filteredFileListToLoad is not None:
+            with open(options.filteredFileListToLoad) as f:
+                fileList = f.readlines()
+                fileList = [x.strip() for x in fileList] 
+            nSuspiciousDetections = sum([len(x) for x in suspiciousDetections])        
+            print('Loaded false positive list from file, will remove {} of {} suspicious detections'.format(
+                    len(fileList),nSuspiciousDetections))
+            
         # For each directory
-        # iDir = 0; detections = suspiciousDetectionsBeforeFiltering[0]
+        # iDir = 0; detections = suspiciousDetections[0]
         for iDir,detections in enumerate(suspiciousDetections):
             
             bValidDetection = [True] * len(detections)
             nDetectionsLoaded += len(detections)
             
             # For each detection that was present before filtering
+            # iDetection = 0; detection = detections[iDetection]
             for iDetection,detection in enumerate(detections):
-                
-                # Is the image still there?
-                imageFullPath = os.path.join(filteringBaseDir,detection.sampleImageRelativeFileName)
-                
-                # If not, remove this from the list of suspicious detections
-                if not os.path.isfile(imageFullPath):
-                    nDetectionsRemoved += 1
-                    bValidDetection[iDetection] = False
-               
+
+                # Are we checking the directory to see whether detections were actually false positives,
+                # or reading from a list?
+                if fileList is None:                                
+                    # Is the image still there?                
+                    imageFullPath = os.path.join(filteringBaseDir,detection.sampleImageRelativeFileName)
+                    
+                    # If not, remove this from the list of suspicious detections
+                    if not os.path.isfile(imageFullPath):
+                        nDetectionsRemoved += 1
+                        bValidDetection[iDetection] = False
+                        
+                else:
+                   if detection.sampleImageRelativeFileName not in fileList:
+                       nDetectionsRemoved += 1
+                       bValidDetection[iDetection] = False
+                        
             nRemovedThisDir = len(bValidDetection) - sum(bValidDetection)
             if nRemovedThisDir > 0:
                 print('Removed {} of {} detections from directory {}'.format(nRemovedThisDir,
@@ -851,7 +879,7 @@ def find_repeat_detections(inputCsvFilename,outputCsvFilename,options=None):
     os.makedirs(filteringDir,exist_ok=True)
     
     # iDir = 0; suspiciousDetectionsThisDir = suspiciousDetections[iDir]
-    for iDir,suspiciousDetectionsThisDir in enumerate(suspiciousDetections):
+    for iDir,suspiciousDetectionsThisDir in enumerate(tqdm(suspiciousDetections)):
         
         # suspiciousDetectionsThisDir is a list of DetectionLocation objects
         for iDetection,detection in enumerate(suspiciousDetectionsThisDir):
@@ -872,9 +900,10 @@ def find_repeat_detections(inputCsvFilename,outputCsvFilename,options=None):
     s = jsonpickle.encode(suspiciousDetections)
     with open(detectionIndexFileName, 'w') as f:
         f.write(s)
-            
     toReturn.filterFile = detectionIndexFileName
-    
+            
+    print('Done')
+        
     return toReturn
 
 # ...find_repeat_detections()
@@ -911,8 +940,7 @@ if False:
     outputCsvFilename = matlab_porting_tools.insert_before_extension(inputCsvFilename,
                                                                     'filtered')
     
-    results = find_repeat_detections(inputCsvFilename,
-                                                          outputCsvFilename,options)
+    results = find_repeat_detections(inputCsvFilename,outputCsvFilename,options)
     
     
 #%%
