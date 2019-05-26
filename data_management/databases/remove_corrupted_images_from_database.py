@@ -29,8 +29,7 @@ IMAGE_PRINT_FREQUENCY = 10
 
 #%% Function definitions
 
-def check_images(images, image_file_root):
-    
+def check_images(images, image_file_root):    
     ''' 
     Checks all the images in [images] for corruption using TF.
     
@@ -91,7 +90,6 @@ def check_images(images, image_file_root):
 
 
 def remove_corrupted_images_from_database(data, image_file_root):
-
     '''
     Given the COCO database [data], checks all images for corruption using
     TF, and returns a subset of [data] containing only non-corrupted images.
