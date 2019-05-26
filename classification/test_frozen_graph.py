@@ -1,12 +1,22 @@
-import argparse
-import tensorflow as tf
+#
+# test_frozen_graph.py
+#
+# Runs a frozen graph against a set of images with known ground truth classifications, 
+# printing accuracy results to the console
+#
+
+#%% Imports
+
 import os
-from PIL import Image
+import argparse
+
+import tensorflow as tf
 import numpy as np
-from pycocotools.coco import COCO
 import tqdm
+from pycocotools.coco import COCO
 
 
+#%% Command-line handling
 
 parser = argparse.ArgumentParser('This script evaluates the accuracy of an exported frozen inference graph on the test data of ' + \
                                 'a classification dataset generated with the make_classification_dataset.py script. ')
@@ -18,10 +28,13 @@ args = parser.parse_args()
 
 TEST_JSON = os.path.join(args.coco_style_output, 'test.json')
 
-# Check that all files exists for easier debugging
+# Check that all files exist for easier debugging
 assert os.path.exists(args.frozen_graph)
 assert os.path.exists(args.coco_style_output)
 assert os.path.exists(TEST_JSON), 'Could not find ' + TEST_JSON
+
+
+#%% Inference and eval
 
 # Load frozen graph
 model_graph = tf.Graph()
@@ -35,7 +48,9 @@ graph = model_graph
 coco = COCO(TEST_JSON)
 
 with model_graph.as_default():
+    
     with tf.Session() as sess:
+        
         # Collect tensors for input and output
         image_tensor = tf.get_default_graph().get_tensor_by_name('input:0')
         predictions_tensor = tf.get_default_graph().get_tensor_by_name('output:0')
