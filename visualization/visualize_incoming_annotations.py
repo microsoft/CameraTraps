@@ -42,9 +42,12 @@ images_dir = '/datadrive/IDFG/IDFG_20190104_images_to_annotate'
 
 # functions for translating from image_id in the annotation files to path to images in images_dir
 def default_image_id_to_path(image_id, images_dir):
+    
     return os.path.join(images_dir, image_id)
 
+
 def emammal_image_id_to_path(image_id, images_dir):
+    
     # the dash between seq and frame is different among the batches
     pattern = re.compile('^datasetemammal\.project(.+?)\.deployment(.+?)\.seq(.+?)[-_]frame(.+?)\.img(.+?)\.')
     match = pattern.match(image_id)
@@ -54,11 +57,15 @@ def emammal_image_id_to_path(image_id, images_dir):
     img_path = img_path1 if os.path.exists(img_path1) else img_path2
     return img_path
 
+
 def rspb_image_id_to_path(image_id, images_dir):
+    
     parts = image_id.split('__')
     return os.path.join(images_dir, parts[0], parts[1], image_id)
 
+
 def ss_batch5_image_id_to_path(image_id, images_dir):
+    
     return os.path.join(images_dir, image_id.replace('-frame', '.frame'))
 
 # specify which of the above functions to use for your dataset
