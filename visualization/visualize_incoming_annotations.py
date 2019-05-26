@@ -12,14 +12,14 @@
 import json
 import os
 import re
+
 import pandas as pd
 from tqdm import tqdm
-
-import visualization_utils as vis_utils
 
 # Assumes ai4eutils is on the path (github.com/Microsoft/ai4eutils)
 from write_html_image_list import write_html_image_list
 
+import visualization_utils as vis_utils
 
 #%% Settings - change everything in this section to match your task
 
