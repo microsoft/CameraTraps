@@ -3,6 +3,7 @@
 #
 # Converts a .json file in COCO Camera Traps format to a .json-formatted list of
 # relative file names.
+#
 
 #%% Constants and environment
 
