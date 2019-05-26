@@ -22,8 +22,12 @@ import sys
 import argparse
 import PIL
 import os
+import json
 from tqdm import tqdm
 import inspect
+from itertools import compress
+import pandas as pd
+from detection.detection_eval.load_api_results import write_api_results
 
 DEFAULT_CONFIDENCE_THRESHOLD = 0.5
 
@@ -41,6 +45,7 @@ class BatchDetectionOptions:
     # Can be a singe image file, a text file containing a list of images, or a 
     # directory
     imageFile = None
+    outputFile = None
     threshold = DEFAULT_CONFIDENCE_THRESHOLD
     recursive = False
     forceCpu = False
@@ -66,7 +71,7 @@ def load_model(checkpoint):
 
 def generate_detections(detection_graph,images):
     """
-    boxes,scores,classes,= generate_detections(detection_graph,images)
+    boxes,scores,classes,images = generate_detections(detection_graph,images)
 
     Run an already-loaded detector network on a set of images.
 
@@ -83,12 +88,13 @@ def generate_detections(detection_graph,images):
     if not isinstance(images,list):
         images = [images]
         
+    nImages = len(images)
+
     boxes = []
     scores = []
     classes = []
+    bValidImage = [True] * nImages
     
-    nImages = len(images)
-
     print('Running detector...')    
     startTime = time.time()
     firstImageCompleteTime = None
@@ -103,17 +109,18 @@ def generate_detections(detection_graph,images):
                 
                 if not os.path.isfile(image):
                     print('Warning: can''t find file {}, skipping'.format(image))
+                    bValidImage[iImage] = False
                     continue
                 
                 # Load the image as an nparray of size h,w,nChannels            
-                image = PIL.Image.open(image).convert("RGB"); image = np.array(image)
+                imageNP = PIL.Image.open(image).convert("RGB"); imageNP = np.array(imageNP)
                 # image = mpimg.imread(image)
                 
                 # This shouldn't be necessary when loading with PIL and converting to RGB
-                nChannels = image.shape[2]
+                nChannels = imageNP.shape[2]
                 if nChannels > 3:
                     print('Warning: trimming channels from image')
-                    imageNP = image[:,:,0:3]
+                    imageNP = imageNP[:,:,0:3]
                 
                 imageNP_expanded = np.expand_dims(imageNP, axis=0)
                 image_tensor = detection_graph.get_tensor_by_name('image_tensor:0')
@@ -140,6 +147,9 @@ def generate_detections(detection_graph,images):
 
     # ...with detection_graph.as_default()
     
+    images = list(compress(images, bValidImage))
+    nImages = len(images)
+    
     elapsed = time.time() - startTime
     if nImages == 1:
         print("Finished running detector in {}".format(humanfriendly.format_timespan(elapsed)))
@@ -153,9 +163,6 @@ def generate_detections(detection_graph,images):
               humanfriendly.format_timespan(firstImageElapsed),
               humanfriendly.format_timespan(remainingImagesTimePerImage)))
     
-    nBoxes = len(boxes)
-    
-    # Currently "boxes" is a list of length nImages, where each element is shaped as
     #
     # 1,nDetections,4
     #
@@ -163,6 +170,7 @@ def generate_detections(detection_graph,images):
     # to make sure this doesn't silently break in the future.
     nDetections = -1
     # iBox = 0; box = boxes[iBox]
+    assert(len(boxes)==nImages)
     for iBox,box in enumerate(boxes):
         nDetectionsThisBox = box.shape[1]
         assert (nDetections == -1 or nDetectionsThisBox == nDetections), 'Detection count mismatch'
@@ -171,15 +179,15 @@ def generate_detections(detection_graph,images):
     
     # "scores" is a length-nImages list of elements with size 1,nDetections
     assert(len(scores) == nImages)
-    for(iScore,score) in enumerate(scores):
+    for iScore,score in enumerate(scores):
         assert score.shape[0] == 1
         assert score.shape[1] == nDetections
         
     # "classes" is a length-nImages list of elements with size 1,nDetections
     #
     # Still as floats, but really representing ints
-    assert(len(classes) == nBoxes)
-    for(iClass,c) in enumerate(classes):
+    assert(len(classes) == nImages)
+    for iClass,c in enumerate(classes):
         assert c.shape[0] == 1
         assert c.shape[1] == nDetections
             
@@ -203,7 +211,7 @@ def generate_detections(detection_graph,images):
     assert(classes.shape[0] == nImages)
     assert(classes.shape[1] == nDetections)
     
-    return boxes,scores,classes
+    return boxes,scores,classes,images
 
 
 #%% File helper functions
@@ -256,6 +264,7 @@ def optionsToImages(options):
     if os.path.isdir(options.imageFile):
         
         imageFileNames = findImages(options.imageFile,options.recursive)
+        imageFileNames.append('asdfasdfasd')
         
     else:
         
@@ -274,10 +283,53 @@ def optionsToImages(options):
 def detectorOutputToApiOutput(imageFileNames,options,boxes,scores,classes):
     '''
     Converts the output of the TFODAPI detector to the format used by our batch
-    API, as a pandas table.
-    '''
-    pass
+    API, as a pandas table.    
+    '''    
+    nRows = len(imageFileNames)
     
+    boxesOut = [[]] * nRows
+    confidences = [0] * nRows
+    # iRow = 0
+    for iRow in range(0,nRows):
+        
+        imageBoxes = boxes[iRow]
+        imageScores = scores[iRow]
+        imageClasses = classes[iRow]
+        
+        bScoreAboveThreshold = imageScores > options.threshold
+        
+        if not any(bScoreAboveThreshold):
+            continue
+        
+        imageScores = list(compress(imageScores, bScoreAboveThreshold))
+        imageBoxes = list(compress(imageBoxes, bScoreAboveThreshold))
+        imageClasses = list(compress(imageClasses, bScoreAboveThreshold))
+        
+        confidences[iRow] = max(imageScores)
+        
+        nImageBoxes = len(imageScores)
+        imageBoxesOut = []
+        
+        # Convert detections into 5-element lists, where the fifth element is a class    
+        #
+        # iBox = 0
+        for iBox in range(0,nImageBoxes):
+            box = list(imageBoxes[iBox])
+            
+            # convert from float32 to float
+            box = [float(x) for x in box]
+            box.append(int(imageClasses[iBox]))
+            imageBoxesOut.append(box)
+        
+        boxesOut[iRow] = imageBoxesOut
+
+    boxStrings = [json.dumps(x) for x in boxesOut]
+    
+    # Build the output table
+    df = pd.DataFrame(np.column_stack([imageFileNames,confidences,boxStrings]),
+                      columns=['image_path','max_confidence','detections'])
+    return df
+
 
 #%% Main function
 
@@ -303,38 +355,46 @@ def load_and_run_detector(options,detection_graph=None):
     elapsed = time.time() - startTime
     print("Loaded model in {}".format(humanfriendly.format_timespan(elapsed)))
     
-    boxes,scores,classes = generate_detections(detection_graph,imageFileNames)
+    boxes,scores,classes,imageFileNames = generate_detections(detection_graph,imageFileNames)
     
     assert len(boxes) == len(imageFileNames)
     
     print('Writing output...')
     
-    # Todo
+    df = detectorOutputToApiOutput(imageFileNames,options,boxes,scores,classes)
+    write_api_results(df,options.outputFile)
     
-    return detection_graph
+    return boxes,scores,classes,imageFileNames
 
 
 #%% Interactive driver
 
 if False:
+             
+    #%%
+    
+    options = BatchDetectionOptions
+    options.detectorFile = r'D:\temp\models\object_detection\megadetector\megadetector_v2.pb'
+    options.imageFile = r'D:\temp\demo_images\uw_kachel'    
+    options.outputFile = r'd:\temp\detector_out.csv'
+    options.recursive = True
+    
+    detection_graph = load_model(options.detectorFile)
+    
+    boxes,scores,classes,imageFileNames = load_and_run_detector(options,detection_graph)
     
     #%%
     
-    detection_graph = None
-    
-    #%%
-    
-    modelFile = r'D:\temp\models\object_detection\megadetector\megadetector_v2.pb'
-    imageDir = r'D:\temp\demo_images\b2'    
-    imageFileNames = [fn for fn in glob.glob(os.path.join(imageDir,'*.jpg'))
-         if (not 'detections' in fn)]
-    imageFileNames = [r"D:\temp\test\1\NE2881-9_RCNX0195_xparent.png"]
-    
-    detection_graph = load_and_run_detector(modelFile,imageFileNames,
-                                            confidenceThreshold=DEFAULT_CONFIDENCE_THRESHOLD,
-                                            detection_graph=detection_graph)
-    
+    from api.batch_processing.postprocess_batch_results import PostProcessingOptions
+    from api.batch_processing.postprocess_batch_results import process_batch_results
 
+    ppoptions = PostProcessingOptions()
+    ppoptions.image_base_dir = options.imageFile
+    ppoptions.detector_output_file = options.outputFile
+    ppoptions.output_dir = os.path.join(ppoptions.image_base_dir,'postprocessing')
+    process_batch_results(ppoptions)
+
+    
 #%% Command-line driver
    
 # Copy all fields from a Namespace (i.e., the output from parse_args) to an object.  
@@ -349,18 +409,12 @@ def args_to_object(args, obj):
     
 def main():
     
-    # python run_tf_detector.py "D:\temp\models\object_detection\megadetector\megadetector_v2.pb" --imageFile "D:\temp\demo_images\test\S1_J08_R1_PICT0120.JPG"
-    # python run_tf_detector.py "D:\temp\models\object_detection\megadetector\megadetector_v2.pb" --imageDir "d:\temp\demo_images\test"
-    # python run_tf_detector.py "d:\temp\models\object_detection\megadetector\megadetector_v3.pb" --imageDir "d:\temp\test\in" --outputDir "d:\temp\test\out"
-    
     parser = argparse.ArgumentParser()
     parser.add_argument('detectorFile', type=str)
     parser.add_argument('imageFile', action='store', type=str, 
                         help='Can be a singe image file, a text file containing a list of images, or a directory')
     parser.add_argument('outputFile', type=str, 
                        help='Output results file')
-    parser.add_argument('--imageDir', action='store', type=str, default='', 
-                        help='Directory to search for images, with optional recursion')
     parser.add_argument('--threshold', action='store', type=float, 
                         default=DEFAULT_CONFIDENCE_THRESHOLD, 
                         help='Confidence threshold, don''t render boxes below this confidence')
