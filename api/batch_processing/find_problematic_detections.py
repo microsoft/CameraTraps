@@ -16,23 +16,24 @@
 
 #%% Imports and environment
 
-import os
-import sys
-import jsonpickle
-import warnings
 import argparse
 import inspect
-import pandas as pd
-from detection.detection_eval.load_api_results import load_api_results,write_api_results
-from tqdm import tqdm
-from joblib import Parallel, delayed
+import os
+import sys
+import warnings
 from datetime import datetime
-from PIL import Image, ImageDraw
 from itertools import compress
+
+import jsonpickle
+import pandas as pd
+from PIL import Image, ImageDraw  # pillow >= 5.3.0
+from joblib import Parallel, delayed
+from tqdm import tqdm  # version 4.19.5
 
 # from ai4eutils; this is assumed to be on the path, as per repo convention
 import write_html_image_list
-import matlab_porting_tools
+
+from detection.detection_eval.load_api_results import load_api_results, write_api_results
 
 # Imports I'm not using but use when I tinker with parallelization
 #
@@ -42,9 +43,9 @@ import matlab_porting_tools
 # import joblib
 
 # ignoring all "PIL cannot read EXIF metainfo for the images" warnings
-warnings.filterwarnings("ignore", "(Possibly )?corrupt EXIF data", UserWarning)
+warnings.filterwarnings('ignore', '(Possibly )?corrupt EXIF data', UserWarning)
 # Metadata Warning, tag 256 had too many entries: 42, expected 1
-warnings.filterwarnings("ignore", "Metadata warning", UserWarning)
+warnings.filterwarnings('ignore', 'Metadata warning', UserWarning)
 
 
 ##%% Classes
@@ -175,7 +176,7 @@ class DetectionLocation:
 def render_bounding_box(bbox,inputFileName,imageOutputFilename,linewidth):  
     
     im = Image.open(inputFileName)
-    imW = im.width; imH = im.height
+    imW, imH = im.width, im.height
     
     # [top, left, bottom, right] in normalized units, where the origin is the upper-left.
     draw = ImageDraw.Draw(im)
@@ -205,7 +206,7 @@ imageExtensions = ['.jpg','.jpeg','.gif','.png']
     
 def is_image_file(s):
     '''
-    Check a file's extension against a hard-coded set of image file extensions    '
+    Check a file's extension against a hard-coded set of image file extensions
     '''
     ext = os.path.splitext(s)[1]
     return ext.lower() in imageExtensions
@@ -298,6 +299,13 @@ def find_matches_in_directory(dirName,options,rowsByDirectory):
         for iDetection,detection in enumerate(detections):
             
             assert len(detection) == 5 or len(detection) == 6
+
+            confidence = detection[4]
+            assert confidence >= 0.0 and confidence <= 1.0
+            if confidence < options.confidenceMin:
+                continue
+            if confidence >= options.confidenceMax:
+                continue
             
             # Is this detection too big to be suspicious?
             h = detection[2] - detection[0]
@@ -316,13 +324,6 @@ def find_matches_in_directory(dirName,options,rowsByDirectory):
                 iClass = detection[5]
                 if iClass in options.excludeClasses:
                     continue
-                
-            confidence = detection[4]
-            assert confidence >= 0.0 and confidence <= 1.0
-            if confidence < options.confidenceMin:
-                continue
-            if confidence >= options.confidenceMax:
-                continue
             
             instance = IndexedDetection(iDetection,
                                         row['image_path'],detection)
@@ -597,71 +598,71 @@ def update_detection_table(suspiciousDetectionResults,options,outputCsvFilename=
 ##%% Main function
     
 def find_suspicious_detections(inputCsvFilename,outputCsvFilename,options=None):
-    
+
     ##%% Input handling
-    
+
     if options is None:
-        
+
         options = SuspiciousDetectionOptions()
 
     toReturn = SuspiciousDetectionResults()
-            
-    
+
+
     ##%% Load file
 
     detection_results = load_api_results(inputCsvFilename,normalize_paths=True,
                                  filename_replacements=options.filenameReplacements)
     toReturn.detectionResults = detection_results
-    
+
     # [ymin, xmin, ymax, xmax, confidence], where (xmin, ymin) is the upper-left
 
-    
+
     ##%% Separate files into directories
-    
+
     # This will be a map from a directory name to smaller data frames
-    rowsByDirectory = {}    
-    
+    rowsByDirectory = {}
+
     # This is a mapping back into the rows of the original table
     filenameToRow = {}
-    
+
     print('Separating files into directories...')
-    
+
     # iRow = 0; row = detection_results.iloc[0]
     for iRow,row in detection_results.iterrows():
-        
+
         relativePath = row['image_path']
         dirName = os.path.dirname(relativePath)
-        
+
         if not dirName in rowsByDirectory:
             # Create a new DataFrame with just this row
             # rowsByDirectory[dirName] = pd.DataFrame(row)
             rowsByDirectory[dirName] = []
-        
+
         rowsByDirectory[dirName].append(row)
-            
+
         assert relativePath not in filenameToRow
         filenameToRow[relativePath] = iRow
-        
+
     print('Finished separating {} files into {} directories'.format(len(detection_results),
           len(rowsByDirectory)))
-    
+
     # Convert lists of rows to proper DataFrames
     dirs = list(rowsByDirectory.keys())
     for d in dirs:
         rowsByDirectory[d] = pd.DataFrame(rowsByDirectory[d])
-        
+
     toReturn.rowsByDirectory = rowsByDirectory
-    toReturn.filenameToRow = filenameToRow    
-    
-    
+    toReturn.filenameToRow = filenameToRow
+
+
     # Look for matches
-    
+
     print('Finding similar detections...')
-    
+
     # For each directory
-        
+
     dirsToSearch = list(rowsByDirectory.keys())[0:options.debugMaxDir]
-    
+
     # length-nDirs list of lists of DetectionLocation objects
     suspiciousDetections = [None] * len(dirsToSearch)
                 
@@ -747,7 +748,7 @@ def find_suspicious_detections(inputCsvFilename,outputCsvFilename,options=None):
                 
                 # Is the image still there?
                 imageFullPath = os.path.join(filteringBaseDir,detection.sampleImageRelativeFileName)
-                
+
                 # If not, remove this from the list of suspicious detections
                 if not os.path.isfile(imageFullPath):
                     nDetectionsRemoved += 1
@@ -832,7 +833,7 @@ def find_suspicious_detections(inputCsvFilename,outputCsvFilename,options=None):
     os.makedirs(filteringDir,exist_ok=True)
     
     # iDir = 0; suspiciousDetectionsThisDir = suspiciousDetections[iDir]
-    for iDir,suspiciousDetectionsThisDir in enumerate(suspiciousDetections):
+    for iDir,suspiciousDetectionsThisDir in tqdm(enumerate(suspiciousDetections)):
         
         # suspiciousDetectionsThisDir is a list of DetectionLocation objects
         for iDetection,detection in enumerate(suspiciousDetectionsThisDir):
@@ -927,7 +928,7 @@ def main():
                         help='Image base dir, only relevant if renderHtml is True')
     parser.add_argument('--outputBase', action='store', type=str, 
                         help='Html output dir, only relevant if renderHtml is True')
-    parser.add_argument('--confidenceMin',action="store", type=float, default=0.85, 
+    parser.add_argument('--confidenceMin',action='store', type=float, default=0.85,
                         help='Detection confidence threshold; don\'t process anything below this')
     parser.add_argument('--occurrenceThreshold',action="store", type=int, default=10, 
                         help='More than this many near-identical detections in a group (e.g. a folder) is considered suspicious')
