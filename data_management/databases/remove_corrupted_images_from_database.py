@@ -7,16 +7,17 @@
 
 #%% Imports and constants
 
-import json
-import tensorflow as tf
 import argparse
-import numpy as np
-import time
-import humanfriendly
-import os
-from multiprocessing.pool import ThreadPool
 # import multiprocessing
 import gc
+import json
+import os
+import time
+from multiprocessing.pool import ThreadPool
+
+import humanfriendly
+import numpy as np
+import tensorflow as tf
 
 N_THREADS = 16 # 1 # multiprocessing.cpu_count()
 DEBUG_MAX_IMAGES = -1
