@@ -15,10 +15,10 @@ from datetime import datetime
 #%% Support functions
 
 def clean_species_name(common_name):
-    '''
+    """
     Converts various forms of "human" to the token "human", and various forms
     of "empty" to the token "empty"
-    '''
+    """
     
     _people_tags = {
         'Bicycle',
@@ -163,8 +163,7 @@ def plot_histogram(l, title='', max_val=None, bins='auto'):
     plt.show()
 
 
-def draw_bboxes(image, bboxes, classes, thickness=4, show_label=False):
-    
+def draw_bboxes(image, bboxes, classes, thickness=4, show_label=False):    
     """
     Draw bounding boxes on top of an image
     Args:
@@ -201,9 +200,10 @@ def draw_bboxes(image, bboxes, classes, thickness=4, show_label=False):
 
 
 def is_daytime(date_time):
-    
-    """ Returns True if daytime as determined by the input timestamp, a rough 
-    decision based on two seasons"""
+    """ 
+    Returns True if daytime as determined by the input timestamp, a rough 
+    decision based on two seasons
+    """
     
     # summer day hours: 6am - 7pm
     # others day hours: 7am - 6pm
@@ -221,8 +221,7 @@ def is_daytime(date_time):
             return False
 
 
-def parse_timestamp(time_str):
-    
+def parse_timestamp(time_str):    
     """
     There are three datetime string formats in eMammal, and some have an empty field.
     Args:
@@ -237,11 +236,11 @@ def parse_timestamp(time_str):
     try:
         res = datetime.strptime(time_str, '%Y-%m-%dT%H:%M:%S')
         return res, None
-    except Exception as e:
+    except Exception:
         try:
             res = datetime.strptime(time_str, '%Y-%m-%d %H:%M:%S')
             return res, None
-        except Exception as e:
+        except Exception:
             try:
                 res = datetime.strptime(time_str, '%m/%d/%Y %H:%M')
                 return res, None

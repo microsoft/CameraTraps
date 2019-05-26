@@ -4,6 +4,8 @@
 # Adapted from analyze_detection.py which is now archived.
 #
 
+#%% Imports and constants
+
 import argparse
 import math
 import pickle
@@ -18,11 +20,13 @@ from object_detection.utils import per_image_evaluation, metrics
 
 import detection_eval_utils as utils
 
-
 PLOT_WIDTH = 5  # in inches
 
 
+#%% Functions
+
 def _compute_precision_recall(per_image_detections, per_image_gts, num_gt_classes):
+    
     per_image_eval = per_image_evaluation.PerImageEvaluation(
         num_groundtruth_classes=num_gt_classes,
         matching_iou_threshold=0.5,
@@ -42,7 +46,7 @@ def _compute_precision_recall(per_image_detections, per_image_gts, num_gt_classe
         detected_scores = np.array(dets['scores'], dtype=np.float32)
         # labels input to compute_object_detection_metrics() needs to start at 0, not 1
         detected_labels = np.array(dets['labels'], dtype=np.int) - 1  # start at 0
-        num_detections = len(dets['boxes'])
+        # num_detections = len(dets['boxes'])
 
         gts = per_image_gts[image_id]
         gt_boxes = np.array(gts['gt_boxes'], dtype=np.float32)
@@ -126,6 +130,8 @@ def _compute_precision_recall(per_image_detections, per_image_gts, num_gt_classe
 
     return per_cat_metrics
 
+# ..._compute_precision_recall
+    
 
 def compute_precision_recall(results, exclude_person_images):
     num_images = len(results['gt_labels'])
@@ -155,17 +161,21 @@ def compute_precision_recall(results, exclude_person_images):
 
     per_cat_metrics = sorted(per_cat_metrics.items(), key=lambda x: abs(hash(x[0])))  #  cast 'one_class' as int
 
-    for i, (cat, metrics) in enumerate(per_cat_metrics):
+    for i, (cat, cat_metrics) in enumerate(per_cat_metrics):
         ax = fig.add_subplot(num_gt_classes + 1, 1, i + 1)  # nrows, ncols, and index
         ax.set_aspect('equal')
-        utils.plot_precision_recall(ax, cat, metrics['precision'], metrics['recall'], metrics['average_precision'])
+        utils.plot_precision_recall(ax, cat, cat_metrics['precision'], 
+                                    cat_metrics['recall'], cat_metrics['average_precision'])
 
     fig.tight_layout()
 
     return per_cat_metrics, fig
 
 
+#%% Command-line driver
+    
 def main():
+    
     parser = argparse.ArgumentParser()
     parser.add_argument('detection_file', action='store', type=str,
                         help='.p file containing detection results')
