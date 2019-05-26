@@ -1,10 +1,11 @@
 #
 # detection_eval_utils.py
 #
-# Adapted from detection/eval/utils.py which is now archived.
+# Utility functions used in evaluate_detections.py
 #
 
 def get_non_person_images(results):
+    
     num_boxes_excluded = 0
     use_im = {im: True for im in results['images']}
     for image_id, gt_labels in zip(results['images'], results['gt_labels']):
@@ -17,7 +18,9 @@ def get_non_person_images(results):
     print('Number of bbox of person excluded: {}, images excluded: {}'.format(num_boxes_excluded, num_images_excluded))
     return use_im
 
+
 def group_detections_by_image(results, use_im=None):
+    
     if use_im == None:
         use_im = {im: True for im in results['images']}
 
@@ -35,6 +38,7 @@ def group_detections_by_image(results, use_im=None):
 
 
 def plot_precision_recall(ax, cat, precision, recall, average_precision):
+    
     if precision is None or recall is None:
         return
 
@@ -57,6 +61,7 @@ def find_precision_at_recall(precision, recall, recall_level=0.9):
     Returns:
         precision at the specified recall_level
     """
+    
     if precision is None or recall is None:
         print('Returning 0')
         return 0.0
