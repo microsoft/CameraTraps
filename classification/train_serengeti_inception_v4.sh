@@ -2,7 +2,7 @@
 DATASET_NAME=serengeti
 DATASET_DIR=/data/lila/serengeti/serengeti_cropped_tfrecords
 TRAIN_DIR=./log/$(date +"%Y-%m-%d_%H.%M.%S")_serengeti_incv4
-#TRAIN_DIR=./log/2019-04-22_13.21.02_serengeti_incv4
+#TRAIN_DIR=./log/init_test/
 CHECKPOINT_PATH=/home/meerkat/git/tf-classification/pre-trained/inception_v4/inception_v4.ckpt
 
 
@@ -48,11 +48,11 @@ python train_image_classifier.py \
     --model_name=${MODEL_NAME} \
     --checkpoint_path=${TRAIN_DIR}/init \
     --preprocessing_name="inception_v2" \
-    --max_number_of_steps=1500000 \
+    --max_number_of_steps=2000000 \
     --batch_size=32 \
     --learning_rate=0.0045 \
     --learning_rate_decay_factor=0.94 \
-    --num_epochs_per_decay=4 \
+    --num_epochs_per_decay=1 \
     --save_interval_secs=600 \
     --save_summaries_secs=600 \
     --log_every_n_steps=10 \
