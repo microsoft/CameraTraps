@@ -88,6 +88,25 @@ Random things that don't fit in any other directory.  Currently contains a singl
 
 Image credit USDA, from the [NACTI](http://lila.science/datasets/nacti) data set.
 
+
+# Installation
+
+The required Python packages for running utility scripts in this repo are listed in [requirements.txt](requirements.txt). Here're some instructions for setting up a conda virtual environment with the required packages.
+
+Python >= 3.5 should work. Create a virtual environment via conda called `cameratraps`, activates it, upgrade the Python package manager `pip`, and install the required packages:
+```
+conda create -n cameratraps python=3.5
+
+source activate cameratraps
+
+pip install --upgrade pip
+
+pip install -r requirements.txt
+```
+
+In some scripts, we also assume that you have the [AI for Earth utilities repo](https://github.com/Microsoft/ai4eutils) cloned and its path appended to $PYTHONPATH.
+
+
 # Contributing
 
 This project welcomes contributions and suggestions.  Most contributions require you to agree to a
