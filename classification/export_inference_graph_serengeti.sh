@@ -1,7 +1,6 @@
 DATASET_NAME=serengeti
-DATASET_DIR=/data/lila/serengeti/serengeti_cropped_tfrecords
-#CHECKPOINT_DIR=./$(echo log/20* | sort | tail -n 1)/all
-CHECKPOINT_DIR=/home/loris/git/tf-detection/CameraTraps/classification/log/serengeti_cropped_resnext_86.3/all
+# IMPORTANT: Please specify the path without trailing /
+CHECKPOINT_DIR=./log/init_test/init
 MODEL_NAME=inception_v4
 NUM_GPUS=1
 
