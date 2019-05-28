@@ -220,6 +220,8 @@ and start the training with
 
 The training will take several days to complete. It is a two-step training, in which we first train only the last layer of the network. Afterward, all parameters are trained jointly. 
 
+NOTE: It appears that there is a bug in the tf-slim code, which manifests in a significantly lower accuracy, e.g., 10% lower than expected. If you experiences issues with low accuracy values, try the following fix. After the training is finished, locate the created log directory, change the variable `TRAIN_DIR` in `../train_serengeti_inception_v4.sh` to this folder. Now re-run `bash ../train_serengeti_inception_v4.sh`. The tensorflow training will recognize the existing checkpoints, read the model, and write out a new bug-free model. 
+
 ## Evaluating the classifier
 The sample training scripts will run an evaluation run on the test data after the training finished. This evaluation run can be repeated later as well. We will adapt an existing evaluation script for this purpose. First, switch to the directory containing the sample scripts by executing
 
