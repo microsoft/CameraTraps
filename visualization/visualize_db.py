@@ -9,21 +9,22 @@
 
 #%% Imports
 
-import json
-import os
-import inspect
-import pandas as pd
-import math
-from tqdm import tqdm
-from itertools import compress
-import sys
 import argparse
+import inspect
+import json
+import math
+import os
+import sys
+from itertools import compress
 
-# Assumes the cameratraps repo root is on the path
-import visualization.visualization_utils as vis_utils
+import pandas as pd
+from tqdm import tqdm
 
 # Assumes ai4eutils is on the path (github.com/Microsoft/ai4eutils)
 from write_html_image_list import write_html_image_list
+
+# Assumes the cameratraps repo root is on the path
+import visualization.visualization_utils as vis_utils
 
 
 #%% Settings
