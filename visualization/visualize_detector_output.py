@@ -21,6 +21,7 @@ from tqdm import tqdm
 
 import visualization_utils as vis_utils
 
+
 #%% Settings and user-supplied arguments
 
 parser = argparse.ArgumentParser(description=('Annotate the bounding boxes predicted by a detector '
@@ -95,7 +96,8 @@ DEFAULT_DETECTOR_LABEL_MAP = {
 }
 
 def get_sas_key_from_uri(sas_uri):
-    """Get the query part of the SAS token that contains permissions, access times and
+    """
+    Get the query part of the SAS token that contains permissions, access times and
     signature.
 
     Args:
@@ -103,20 +105,27 @@ def get_sas_key_from_uri(sas_uri):
 
     Returns: Query part of the SAS token.
     """
+    
     url_parts = parse.urlsplit(sas_uri)
     return url_parts.query
 
+
 def get_service_from_uri(sas_uri):
+    
     return BlockBlobService(
         account_name=get_account_from_uri(sas_uri),
         sas_token=get_sas_key_from_uri(sas_uri))
 
+
 def get_account_from_uri(sas_uri):
+    
     url_parts = parse.urlsplit(sas_uri)
     loc = url_parts.netloc
     return loc.split('.')[0]
 
+
 def get_container_from_uri(sas_uri):
+    
     url_parts = parse.urlsplit(sas_uri)
 
     raw_path = url_parts.path[1:]
@@ -126,6 +135,7 @@ def get_container_from_uri(sas_uri):
 
 
 #%% Load detector output
+
 detector_output = json.load(open(args.detector_output_path))
 
 assert 'images' in detector_output, 'Detector output file should be a json with an "images" field.'
