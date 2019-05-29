@@ -10,6 +10,12 @@
 # This enables the results to be used in our post-processing pipeline; see
 # postprocess_batch_results.py .
 #
+# This script has *somewhat* tested functionality to save results to checkpoints
+# intermittently, in case disaster strikes.  To enable this, set options.checkpointFrequency
+# to something > 0.  Checkpoints will be written to a temporary directory (not currently
+# ever cleaned up, but also not large), and if you want to resume from one, use 
+# options.resumeFromCheckpoint.
+#
 # See the "test driver" cell for example invocation.
 #
 ######
@@ -463,7 +469,8 @@ if False:
     
     boxes,scores,classes,imageFileNames = load_and_run_detector(options,detection_graph)
     
-    #%%
+    #%% Post-processing with process_batch_results... this can also be run from the
+    #   command line.
     
     from api.batch_processing.postprocess_batch_results import PostProcessingOptions
     from api.batch_processing.postprocess_batch_results import process_batch_results
@@ -474,6 +481,7 @@ if False:
     ppoptions.output_dir = os.path.join(ppoptions.image_base_dir,'postprocessing')
     ppresults = process_batch_results(ppoptions)
     os.startfile(ppresults.output_html_file)
+    
     
 #%% Command-line driver
    
