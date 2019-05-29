@@ -90,6 +90,12 @@ class PostProcessingOptions:
     # and applying them to a slightly different folder structure.
     detector_output_filename_replacements = {}
     ground_truth_filename_replacements = {}
+
+
+# Largely a placeholder for future additional return information    
+class PostProcessingResults:
+
+    output_html_file = ''
     
     
 ##%% Helper classes and functions
@@ -345,7 +351,9 @@ def process_batch_results(options):
     
         
     ##%% Fork here depending on whether or not ground truth is available
-        
+    
+    output_html_file = ''
+    
     # If we have ground truth, we'll compute precision/recall and sample tp/fp/tn/fn.
     #
     # Otherwise we'll just visualize detections/non-detections.
@@ -620,6 +628,10 @@ def process_batch_results(options):
     
     # ...if we do/don't have ground truth
 
+    ppresults = PostProcessingResults()
+    ppresults.output_html_file = output_html_file
+    return ppresults
+
 # ...process_batch_results
 
     
@@ -640,7 +652,8 @@ if False:
     options.ground_truth_json_file = os.path.join(baseDir,'bh.json')
     options.unlabeled_classes = ['human']
         
-    process_batch_results(options)        
+    ppresults = process_batch_results(options)        
+    # os.start(ppresults.output_html_file)
 
 
 #%% Command-line driver
