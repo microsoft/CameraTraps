@@ -233,6 +233,8 @@ The provided script trains first only the last layer, executes one evaluation ru
 network, and then runs evaluation again. If everything goes well, the final top-1 and top-5 accuracy should be reported
 at the end. 
 
+NOTE: It appears that there is a bug in the tf-slim code, which manifests in a significantly lower accuracy, e.g., 10% lower than expected. If you experiences issues with low accuracy values, try the following fix. After the training is finished, locate the created log directory, change the variable `TRAIN_DIR` in `train_serengeti_inception_v4.sh` to this folder. Now re-run `bash ../train_serengeti_inception_v4.sh`. The tensorflow training will recognize the existing checkpoints, read the model, and write out a new bug-free model.
+
 ## Remarks and advanced adjustments of training parameters
 The parameter `NUM_GPUS` in the training script is currently not used. The batch size and learning rates are optimized
 for the Inception V4 architecture and should give good results without any change. However, you might need to adjust the
