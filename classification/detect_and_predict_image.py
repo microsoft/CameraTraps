@@ -8,7 +8,7 @@
 #
 # See the "test driver" cell for example invocation.
 #
-# It's clearly icky that if you give it blah.jpg, it writes the results to 
+# It's clearly icky that if you give it blah.jpg, it writes the results to
 # blah.detections.jpg, but I'm defending this with the "just a demo script"
 # argument.
 #
@@ -25,7 +25,7 @@ import sys
 import argparse
 import matplotlib
 import PIL
-matplotlib.use('TkAgg')
+matplotlib.use('Agg')
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
@@ -67,15 +67,15 @@ def generate_detections(detection_graph,images):
     [images] can be a list of numpy arrays or a list of filenames.  Non-list inputs will be
     wrapped into a list.
 
-    Boxes are returned in relative coordinates as (top, left, bottom, right); 
+    Boxes are returned in relative coordinates as (top, left, bottom, right);
     x,y origin is the upper-left.
-    
+
     [boxes] will be returned as a numpy array of size nImages x nDetections x 4.
-    
+
     [scores] and [classes] will each be returned as a numpy array of size nImages x nDetections.
-    
+
     [images] is a set of numpy arrays corresponding to the input parameter [images], which may have
-    have been either arrays or filenames.    
+    have been either arrays or filenames.
     """
 
     if not isinstance(images,list):
@@ -90,17 +90,17 @@ def generate_detections(detection_graph,images):
             print('Loading image {}'.format(image))
 
             # Load the image as an nparray of size h,w,nChannels
-            
+
             # There was a time when I was loading with PIL and switched to mpimg,
             # but I can't remember why, and converting to RGB is a very good reason
-            # to load with PIL, since mpimg doesn't give any indication of color 
+            # to load with PIL, since mpimg doesn't give any indication of color
             # order, which basically breaks all .png files.
             #
             # So if you find a bug related to using PIL, update this comment
             # to indicate what it was, but also disable .png support.
             image = PIL.Image.open(image).convert("RGB"); image = np.array(image)
             # image = mpimg.imread(image)
-            
+
             # This shouldn't be necessarily when loading with PIL and converting to RGB
             nChannels = image.shape[2]
             if nChannels > 3:
@@ -113,15 +113,15 @@ def generate_detections(detection_graph,images):
     boxes = []
     scores = []
     classes = []
-    
+
     nImages = len(images)
 
     with detection_graph.as_default():
-        
+
         with tf.Session(graph=detection_graph) as sess:
-            
-            for iImage,imageNP in enumerate(images):                
-                
+
+            for iImage,imageNP in enumerate(images):
+
                 print('Processing image {} of {}'.format(iImage,nImages))
                 imageNP_expanded = np.expand_dims(imageNP, axis=0)
                 image_tensor = detection_graph.get_tensor_by_name('image_tensor:0')
@@ -129,7 +129,7 @@ def generate_detections(detection_graph,images):
                 score = detection_graph.get_tensor_by_name('detection_scores:0')
                 clss = detection_graph.get_tensor_by_name('detection_classes:0')
                 num_detections = detection_graph.get_tensor_by_name('num_detections:0')
-                
+
                 # Actual detection
                 (box, score, clss, num_detections) = sess.run(
                         [box, score, clss, num_detections],
@@ -138,11 +138,11 @@ def generate_detections(detection_graph,images):
                 boxes.append(box)
                 scores.append(score)
                 classes.append(clss)
-            
-            # ...for each image                
-    
+
+            # ...for each image
+
     nBoxes = len(boxes)
-    
+
     # Currently "boxes" is a list of length nImages, where each element is shaped as
     #
     # 1,nDetections,4
@@ -156,13 +156,13 @@ def generate_detections(detection_graph,images):
         assert (nDetections == -1 or nDetectionsThisBox == nDetections), 'Detection count mismatch'
         nDetections = nDetectionsThisBox
         assert(box.shape[0] == 1)
-    
+
     # "scores" is a length-nImages list of elements with size 1,nDetections
     assert(len(scores) == nImages)
     for(iScore,score) in enumerate(scores):
         assert score.shape[0] == 1
         assert score.shape[1] == nDetections
-        
+
     # "classes" is a length-nImages list of elements with size 1,nDetections
     #
     # Still as floats, but really representing ints
@@ -170,27 +170,27 @@ def generate_detections(detection_graph,images):
     for(iClass,c) in enumerate(classes):
         assert c.shape[0] == 1
         assert c.shape[1] == nDetections
-            
+
     # Squeeze out the empty axis
     boxes = np.squeeze(np.array(boxes),axis=1)
     scores = np.squeeze(np.array(scores),axis=1)
     classes = np.squeeze(np.array(classes),axis=1).astype(int)
-    
+
     # boxes is nImages x nDetections x 4
     assert(len(boxes.shape) == 3)
     assert(boxes.shape[0] == nImages)
     assert(boxes.shape[1] == nDetections)
     assert(boxes.shape[2] == 4)
-    
+
     # scores and classes are both nImages x nDetections
     assert(len(scores.shape) == 2)
     assert(scores.shape[0] == nImages)
     assert(scores.shape[1] == nDetections)
-    
+
     assert(len(classes.shape) == 2)
     assert(classes.shape[0] == nImages)
     assert(classes.shape[1] == nDetections)
-    
+
     return boxes,scores,classes,images
 
 
@@ -212,12 +212,12 @@ def render_bounding_box(box, score, classLabel, inputFileName, outputFileName=No
 def render_bounding_boxes(boxes, scores, classes, inputFileNames, outputFileNames=[],
                           confidenceThreshold=DEFAULT_CONFIDENCE_THRESHOLD,linewidth=2):
     """
-    Render bounding boxes on the image files specified in [inputFileNames].  
-    
-    [boxes] and [scores] should be in the format returned by generate_detections, 
+    Render bounding boxes on the image files specified in [inputFileNames].
+
+    [boxes] and [scores] should be in the format returned by generate_detections,
     specifically [top, left, bottom, right] in normalized units, where the
-    origin is the upper-left.    
-    
+    origin is the upper-left.
+
     "classes" is currently unused, it's a placeholder for adding text annotations
     later.
     """
@@ -246,11 +246,11 @@ def render_bounding_boxes(boxes, scores, classes, inputFileNames, outputFileName
 
         plt.figure(figsize=figsize)
         ax = plt.axes([0,0,1,1])
-        
+
         # Display the image
         ax.imshow(image)
         ax.set_axis_off()
-    
+
         # plt.show()
         for iBox,box in enumerate(boxes[iImage]):
 
@@ -258,19 +258,19 @@ def render_bounding_boxes(boxes, scores, classes, inputFileNames, outputFileName
             if score < confidenceThreshold:
                 continue
 
-            # top, left, bottom, right 
+            # top, left, bottom, right
             #
             # x,y origin is the upper-left
             topRel = box[0]
             leftRel = box[1]
             bottomRel = box[2]
             rightRel = box[3]
-            
+
             x = leftRel * imageWidth
             y = topRel * imageHeight
             w = (rightRel-leftRel) * imageWidth
             h = (bottomRel-topRel) * imageHeight
-            
+
             # Location is the bottom-left of the rect
             #
             # Origin is the upper-left
@@ -278,21 +278,21 @@ def render_bounding_boxes(boxes, scores, classes, inputFileNames, outputFileName
             iBottom = y
             rect = patches.Rectangle((iLeft,iBottom),w,h,linewidth=linewidth,edgecolor='r',
                                      facecolor='none')
-            
+
             # Add the patch to the Axes
-            ax.add_patch(rect)        
+            ax.add_patch(rect)
 
         # ...for each box
 
-        # This is magic goop that removes whitespace around image plots (sort of)        
-        plt.subplots_adjust(top = 1, bottom = 0, right = 1, left = 0, hspace = 0, 
+        # This is magic goop that removes whitespace around image plots (sort of)
+        plt.subplots_adjust(top = 1, bottom = 0, right = 1, left = 0, hspace = 0,
                             wspace = 0)
         plt.margins(0,0)
         ax.xaxis.set_major_locator(ticker.NullLocator())
         ax.yaxis.set_major_locator(ticker.NullLocator())
         ax.axis('tight')
         ax.set(xlim=[0,imageWidth],ylim=[imageHeight,0],aspect=1)
-        plt.axis('off')                
+        plt.axis('off')
 
         # plt.savefig(outputFileName, bbox_inches='tight', pad_inches=0.0, dpi=dpi, transparent=True)
         plt.savefig(outputFileName, dpi=dpi, transparent=True)
@@ -304,70 +304,76 @@ def render_bounding_boxes(boxes, scores, classes, inputFileNames, outputFileName
 # ...def render_bounding_boxes
 
 
-def load_and_run_detector(modelFile, imageFileNames, 
-                          confidenceThreshold=DEFAULT_CONFIDENCE_THRESHOLD, detection_graph=None):
-    
-    if len(imageFileNames) == 0:        
+def load_and_run_detector(detectionFile, classificationFile, imageFileNames,
+                          confidenceThreshold=DEFAULT_CONFIDENCE_THRESHOLD,
+                          detection_graph=None, classification_graph=None):
+
+    if len(imageFileNames) == 0:
         print('Warning: no files available')
         return
-        
+
     # Load and run detector on target images
     if detection_graph is None:
-        detection_graph = load_model(modelFile)
-    
+        detection_graph = load_model(detectionFile)
+
+    if classification_graph is None:
+        classification_graph = load_model(classificationFile)
+
     startTime = time.time()
     boxes,scores,classes,images = generate_detections(detection_graph,imageFileNames)
     elapsed = time.time() - startTime
-    print("Done running detector on {} files in {}".format(len(images),
+    print("Done running detector and classifier on {} files in {}".format(len(images),
           humanfriendly.format_timespan(elapsed)))
-    
+    import ipdb; ipdb.set_trace()
+
     assert len(boxes) == len(imageFileNames)
-    
+
     outputFileNames = []
-    
+
     plt.ioff()
-    
-    render_bounding_boxes(boxes=boxes, scores=scores, classes=classes, 
+
+    render_bounding_boxes(boxes=boxes, scores=scores, classes=classes,
                           inputFileNames=imageFileNames, outputFileNames=outputFileNames,
                           confidenceThreshold=confidenceThreshold)
 
-    return detection_graph
+    return detection_graph, classification_graph
 
 
 #%% Interactive driver
 
-if False:
-    
+if True:
+
     #%%
-    
+
     detection_graph = None
-    
+    classification_graph = None
+
     #%%
-    
-    modelFile = r'D:\temp\models\object_detection\megadetector\megadetector_v2.pb'
-    imageDir = r'D:\temp\demo_images\b2'    
-    imageFileNames = [fn for fn in glob.glob(os.path.join(imageDir,'*.jpg'))
+
+    detectionFile = r'/ai4edevfs/models/object_detection/faster_rcnn_inception_resnet_v2_atrous/megadetector/frozen_inference_graph.pb'
+    classificationFile = r'/ai4edevfs/models/serengeti_cropped/serengeti_cropped_latest_inceptionv4_89.5/all/frozen_inference_graph.pb'
+    imageDir = r'./sample_output'
+    imageFileNames = [fn for fn in glob.glob(os.path.join(imageDir,'*.JPG'))
          if (not 'detections' in fn)]
-    # imageFileNames = [r"D:\temp\test\1\NE2881-9_RCNX0195.png"]
-    # imageFileNames = [r"D:\temp\test\1\NE2881-9_RCNX0195.jpeg"]
-    imageFileNames = [r"D:\temp\test\1\NE2881-9_RCNX0195_xparent.png"]
-    
-    detection_graph = load_and_run_detector(modelFile,imageFileNames,
-                                            DEFAULT_CONFIDENCE_THRESHOLD,detection_graph)
-    
+    imageFileNames = [r'./sample_output/mongoose___S1___R11___R11_R1___S1_R11_R1_PICT0101_1.JPG']
+
+    detection_graph, classification_graph = load_and_run_detector(detectionFile, classificationFile, imageFileNames,
+                                            DEFAULT_CONFIDENCE_THRESHOLD,detection_graph, classification_graph)
+
 
 #%% File helper functions
 
 imageExtensions = ['.jpg','.jpeg','.gif','.png']
-    
+imageExtensions = imageExtensions + [ext.upper() for ext in imageExtensions]
+
 def isImageFile(s):
     '''
     Check a file's extension against a hard-coded set of image file extensions    '
     '''
     ext = os.path.splitext(s)[1]
     return ext.lower() in imageExtensions
-    
-    
+
+
 def findImageStrings(strings):
     '''
     Given a list of strings that are potentially image file names, look for strings
@@ -376,13 +382,13 @@ def findImageStrings(strings):
     imageStrings = []
     bIsImage = [False] * len(strings)
     for iString,f in enumerate(strings):
-        bIsImage[iString] = isImageFile(f) 
+        bIsImage[iString] = isImageFile(f)
         if bIsImage[iString]:
             imageStrings.append(f)
-        
+
     return imageStrings
 
-    
+
 def findImages(dirName,bRecursive=False):
     '''
     Find all files in a directory that look like image file names
@@ -391,51 +397,52 @@ def findImages(dirName,bRecursive=False):
         strings = glob.glob(os.path.join(dirName,'**','*.*'), recursive=True)
     else:
         strings = glob.glob(os.path.join(dirName,'*.*'))
-        
+
     imageStrings = findImageStrings(strings)
-    
+
     return imageStrings
 
-    
+
 #%% Command-line driver
-    
+
 def main():
-    
+
     # python run_tf_detector.py "D:\temp\models\object_detection\megadetector\megadetector_v2.pb" --imageFile "D:\temp\demo_images\test\S1_J08_R1_PICT0120.JPG"
     # python run_tf_detector.py "D:\temp\models\object_detection\megadetector\megadetector_v2.pb" --imageDir "d:\temp\demo_images\test"
-    
+
     parser = argparse.ArgumentParser()
     parser.add_argument('detectorFile', type=str)
+    parser.add_argument('classificationFile', type=str)
     parser.add_argument('--imageDir', action='store', type=str, default='', help='Directory to search for images, with optional recursion')
     parser.add_argument('--imageFile', action='store', type=str, default='', help='Single file to process, mutually exclusive with imageDir')
     parser.add_argument('--threshold', action='store', type=float, default=DEFAULT_CONFIDENCE_THRESHOLD, help='Confidence threshold, don''t render boxes below this confidence')
     parser.add_argument('--recursive', action='store_true', help='Recurse into directories, only meaningful if using --imageDir')
-    
+
     if len(sys.argv[1:])==0:
         parser.print_help()
         parser.exit()
-    
-    args = parser.parse_args()    
-    
+
+    args = parser.parse_args()
+
     if len(args.imageFile) > 0 and len(args.imageDir) > 0:
         raise Exception('Cannot specify both image file and image dir')
     elif len(args.imageFile) == 0 and len(args.imageDir) == 0:
         raise Exception('Must specify either an image file or an image directory')
-        
+
     if len(args.imageFile) > 0:
         imageFileNames = [args.imageFile]
     else:
         imageFileNames = findImages(args.imageDir,args.recursive)
-    
+
     # Hack to avoid running on already-detected images
     imageFileNames = [x for x in imageFileNames if DETECTION_FILENAME_INSERT not in x]
-                
-    print('Running detector on {} images'.format(len(imageFileNames)))    
-    
-    load_and_run_detector(modelFile=args.detectorFile, imageFileNames=imageFileNames, 
+
+    print('Running detector on {} images'.format(len(imageFileNames)))
+
+    load_and_run_detector(detectorFile=args.detectorFile, classificationFile=args.classificationFile, imageFileNames=imageFileNames,
                           confidenceThreshold=args.threshold)
-    
+
 
 if __name__ == '__main__':
-    
+
     main()
