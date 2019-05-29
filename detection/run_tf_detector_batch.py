@@ -2,10 +2,13 @@
 #
 # run_tf_detector_batch.py
 #
-# Runs a TensorFlow detection model on images, writing the results to a .csv file
+# Runs a TensorFlow detection model on images, writing the results to a file
 # in the same format produced by our batch API:
 #
 # https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing
+#
+# This enables the results to be used in our post-processing pipeline; see
+# postprocess_batch_results.py .
 #
 # See the "test driver" cell for example invocation.
 #
@@ -19,7 +22,10 @@ import sys
 import argparse
 import os
 import json
+import pickle
 import inspect
+import tempfile
+import warnings
 from itertools import compress
 
 import tensorflow as tf
@@ -37,6 +43,17 @@ DEFAULT_CONFIDENCE_THRESHOLD = 0.5
 tf.logging.set_verbosity(tf.logging.ERROR)
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
+# Write results to a temporary file every N images, in case something crashes;
+# set to <= 0 to disable this feature.
+DEFAULT_CHECKPOINT_N_IMAGES = -1
+
+CHECKPOINT_SUBDIR = 'detector_batch'
+
+# ignoring all "PIL cannot read EXIF metainfo for the images" warnings
+warnings.filterwarnings('ignore', '(Possibly )?corrupt EXIF data', UserWarning)
+# Metadata Warning, tag 256 had too many entries: 42, expected 1
+warnings.filterwarnings('ignore', 'Metadata warning', UserWarning)
+
 
 #%% Classes
 
@@ -51,8 +68,26 @@ class BatchDetectionOptions:
     threshold = DEFAULT_CONFIDENCE_THRESHOLD
     recursive = False
     forceCpu = False
+    checkpointFrequency = DEFAULT_CHECKPOINT_N_IMAGES
+    resumeFromCheckpoint = None
     
+
+class CheckPointState:
     
+    iImage = 0
+    boxes = []
+    scores = []
+    classes = []
+    bValidImage = None
+    
+    def __init__(self,nImages):
+                
+        self.bValidImage = [True] * nImages
+        self.classes = [None] * nImages
+        self.scores = [None] * nImages
+        self.boxes = [None] * nImages
+        
+        
 #%% Core detection functions
 
 def load_model(checkpoint):
@@ -71,7 +106,7 @@ def load_model(checkpoint):
     return detection_graph
 
 
-def generate_detections(detection_graph,images):
+def generate_detections(detection_graph,images,options):
     """
     boxes,scores,classes,images = generate_detections(detection_graph,images)
 
@@ -85,21 +120,31 @@ def generate_detections(detection_graph,images):
     [boxes] will be returned as a numpy array of size nImages x nDetections x 4.
     
     [scores] and [classes] will each be returned as a numpy array of size nImages x nDetections.    
+    
+    [images] will be returned as a list of files that were actually processed, possibly a subset
+    of the input parameter [images].
     """
 
     if not isinstance(images,list):
         images = [images]
         
     nImages = len(images)
-
-    boxes = []
-    scores = []
-    classes = []
-    bValidImage = [True] * nImages
+    firstImage = 0
     
+    if options.resumeFromCheckpoint is not None:
+        print('Loading state from checkpoint {}'.format(options.resumeFromCheckpoint))
+        cpState = pickle.load(open(options.resumeFromCheckpoint,'rb'))
+        
+        # "Wind back the clock" by one image, just to avoid edge effects like crashing during
+        # serialization.
+        firstImage = max(cpState.iImage - 1,0)
+        print('Resuming from image {}'.format(firstImage))
+    else:
+        cpState = CheckPointState(nImages)
+        
     print('Running detector...')    
     startTime = time.time()
-    firstImageCompleteTime = None
+    firstImageCompleteTime = startTime
     
     with detection_graph.as_default():
         
@@ -107,11 +152,15 @@ def generate_detections(detection_graph,images):
             
             for iImage,image in tqdm(enumerate(images)): 
                 
+                # Skip images we've loaded from a checkpoint or otherwise preprocessed
+                if iImage < firstImage:
+                    continue
+                
                 assert isinstance(image,str)
                 
                 if not os.path.isfile(image):
                     print('Warning: can''t find file {}, skipping'.format(image))
-                    bValidImage[iImage] = False
+                    cpState.bValidImage[iImage] = False
                     continue
                 
                 # Load the image as an nparray of size h,w,nChannels            
@@ -131,25 +180,45 @@ def generate_detections(detection_graph,images):
                 clss = detection_graph.get_tensor_by_name('detection_classes:0')
                 num_detections = detection_graph.get_tensor_by_name('num_detections:0')
                 
-                # Actual detection
+                # Run inference on this image
                 (box, score, clss, num_detections) = sess.run(
                         [box, score, clss, num_detections],
                         feed_dict={image_tensor: imageNP_expanded})
 
-                boxes.append(box)
-                scores.append(score)
-                classes.append(clss)
+                cpState.boxes[iImage] = box
+                cpState.scores[iImage] = score
+                cpState.classes[iImage] = clss
             
                 if iImage == 0:
                     firstImageCompleteTime = time.time()
+                
+                if options.checkpointFrequency > 0:
                     
+                    if (iImage % options.checkpointFrequency) == 0:
+                    
+                        tempDir = os.path.join(tempfile.gettempdir(),CHECKPOINT_SUBDIR)
+                        os.makedirs(tempDir,exist_ok=True)
+                        
+                        # jsonpickle.set_encoder_options('json', sort_keys=False, indent=0)
+                        # s = jsonpickle.encode(cp)
+                        f = tempfile.NamedTemporaryFile(dir=tempDir,delete=False)
+                        print('Checkpointing {} images to {}...'.format(iImage+1,f.name),end='')
+                        cpState.iImage = iImage
+                        pickle.dump(cpState,f)
+                        f.close()
+                        print('...done')
+                                            
             # ...for each image                
     
         # ...with tf.Session
 
     # ...with detection_graph.as_default()
     
-    images = list(compress(images, bValidImage))
+    images = list(compress(images, cpState.bValidImage))
+    boxes = list(compress(cpState.boxes, cpState.bValidImage))
+    scores = list(compress(cpState.scores, cpState.bValidImage))
+    classes = list(compress(cpState.classes, cpState.bValidImage))
+    
     nImages = len(images)
     
     elapsed = time.time() - startTime
@@ -165,14 +234,17 @@ def generate_detections(detection_graph,images):
               humanfriendly.format_timespan(firstImageElapsed),
               humanfriendly.format_timespan(remainingImagesTimePerImage)))
     
+    nDetections = -1
+    
+    # "boxes" has shape:
     #
     # 1,nDetections,4
     #
-    # This implicitly banks on TF giving us back a fixed number of boxes, let's assert on this
-    # to make sure this doesn't silently break in the future.
-    nDetections = -1
+    # This implicitly banks on TF giving us back a fixed number of boxes, we'll assert on this
+    # later to make sure this doesn't silently break in the future.
+    
+    assert(len(boxes)==nImages)    
     # iBox = 0; box = boxes[iBox]
-    assert(len(boxes)==nImages)
     for iBox,box in enumerate(boxes):
         nDetectionsThisBox = box.shape[1]
         assert (nDetections == -1 or nDetectionsThisBox == nDetections), 'Detection count mismatch'
@@ -350,7 +422,7 @@ def load_and_run_detector(options,detection_graph=None):
     if len(imageFileNames) == 0:        
         print('Warning: no files available')
         return
-        
+    
     # Load and run detector on target images
     print('Loading model...')
     startTime = time.time()
@@ -359,7 +431,7 @@ def load_and_run_detector(options,detection_graph=None):
     elapsed = time.time() - startTime
     print("Loaded model in {}".format(humanfriendly.format_timespan(elapsed)))
     
-    boxes,scores,classes,imageFileNames = generate_detections(detection_graph,imageFileNames)
+    boxes,scores,classes,imageFileNames = generate_detections(detection_graph,imageFileNames,options)
     
     assert len(boxes) == len(imageFileNames)
     
@@ -377,13 +449,17 @@ if False:
              
     #%%
     
-    options = BatchDetectionOptions
+    options = BatchDetectionOptions()
     options.detectorFile = r'D:\temp\models\object_detection\megadetector\megadetector_v2.pb'
     options.imageFile = r'D:\temp\demo_images\uw_kachel'    
     options.outputFile = r'd:\temp\detector_out.csv'
     options.recursive = True
+    options.checkpointFrequency = 1
+    options.resumeFromCheckpoint = r'C:\Users\dan\AppData\Local\Temp\detector_batch\tmp77xdq9dp'
     
+    print('Loading model...',end='')
     detection_graph = load_model(options.detectorFile)
+    print('...done')
     
     boxes,scores,classes,imageFileNames = load_and_run_detector(options,detection_graph)
     
@@ -396,8 +472,8 @@ if False:
     ppoptions.image_base_dir = options.imageFile
     ppoptions.detector_output_file = options.outputFile
     ppoptions.output_dir = os.path.join(ppoptions.image_base_dir,'postprocessing')
-    process_batch_results(ppoptions)
-
+    ppresults = process_batch_results(ppoptions)
+    os.startfile(ppresults.output_html_file)
     
 #%% Command-line driver
    
@@ -426,6 +502,10 @@ def main():
                         help='Recurse into directories, only meaningful if using --imageDir')
     parser.add_argument('--forceCpu', action='store_true', 
                         help='Force CPU detection, even if a GPU is available')
+    parser.add_argument('--checkpointFrequency', type=int, default=DEFAULT_CHECKPOINT_N_IMAGES,
+                        'Checkpoint results to allow restoration from crash points later')
+    parser.add_argument('--resumeFromCheckpoint', type=str, default=None,
+                        'Initiate inference from the specified checkpoint')
     
     if len(sys.argv[1:])==0:
         parser.print_help()
