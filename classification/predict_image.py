@@ -6,7 +6,7 @@ import numpy as np
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--frozen_graph', type=str,
-                    help='Frozen graph of detection network as create by export_inference_graph.py of TFODAPI.')
+                    help='Frozen graph of detection network as created by the freeze_graph.py script in the same directory.')
 parser.add_argument('--classlist', type=str,
                     help='Path to text file containing the names of all possible categories.')
 parser.add_argument('--image_path', type=str,
