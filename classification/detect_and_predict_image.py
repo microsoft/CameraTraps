@@ -194,6 +194,51 @@ def generate_detections(detection_graph,images):
     return boxes,scores,classes,images
 
 
+def classifier_scores, classify_boxes(boxes, scores, detection_classes, images, confidenceThreshold):
+
+    nImages = len(inputFileNames)
+    iImage = 0
+
+    for iImage in range(0,nImages):
+
+        inputFileName = inputFileNames[iImage]
+
+        image = mpimg.imread(inputFileName)
+        iBox = 0; box = boxes[iImage][iBox]
+        s = image.shape; imageHeight = s[0]; imageWidth = s[1]
+
+        # plt.show()
+        for iBox,box in enumerate(boxes[iImage]):
+
+            score = scores[iImage][iBox]
+            if score < confidenceThreshold:
+                continue
+
+            # top, left, bottom, right
+            # x,y origin is the upper-left
+            topRel = box[0]
+            leftRel = box[1]
+            bottomRel = box[2]
+            rightRel = box[3]
+
+	    imsize = cur_image['width'], cur_image['height']
+	    # Select detections with a confidence larger 0.5
+	    selection = output_dict['detection_scores'] > 0.5
+	    # Get these boxes and convert normalized coordinates to pixel coordinates
+	    selected_boxes = (output_dict['detection_boxes'][selection] * np.tile([imsize[1],imsize[0]], (1,2)))
+	    # Pad the detected animal to a square box and additionally by PADDING_FACTOR, the result will be in crop_boxes
+	    # However, we need to make sure that it box coordinates are still within the image
+	    bbox_sizes = np.vstack([selected_boxes[:,2] - selected_boxes[:,0], selected_boxes[:,3] - selected_boxes[:,1]]).T
+	    offsets = (PADDING_FACTOR * np.max(bbox_sizes, axis=1, keepdims=True) - bbox_sizes) / 2
+	    crop_boxes = selected_boxes + np.hstack([-offsets,offsets])
+	    crop_boxes = np.maximum(0,crop_boxes).astype(int)
+
+        # ...for each box
+
+    # ...for each image
+
+
+
 #%% Rendering functions
 
 def render_bounding_box(box, score, classLabel, inputFileName, outputFileName=None,
@@ -320,7 +365,8 @@ def load_and_run_detector(detectionFile, classificationFile, imageFileNames,
         classification_graph = load_model(classificationFile)
 
     startTime = time.time()
-    boxes,scores,classes,images = generate_detections(detection_graph,imageFileNames)
+    boxes, scores, detection_classes, images = generate_detections(detection_graph,imageFileNames)
+    classifier_scores, classify_boxes(boxes, scores, detection_classes, images)
     elapsed = time.time() - startTime
     print("Done running detector and classifier on {} files in {}".format(len(images),
           humanfriendly.format_timespan(elapsed)))
