@@ -1,10 +1,10 @@
 ######
 #
-# run_tf_detector.py
+# detect_and_predict_image.py
 #
-# Functions to load a TensorFlow detection model, run inference,
+# Functions to load a TensorFlow detection and a classification model, run inference,
 # render bounding boxes on images, and write out the resulting
-# images (with bounding boxes).
+# images (with bounding boxes and classes).
 #
 # See the "test driver" cell for example invocation.
 #
