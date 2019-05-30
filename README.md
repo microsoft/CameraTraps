@@ -26,7 +26,7 @@ This repo does not extensively host models, though we will release models when t
 
 ## MegaDetector
 
-Speaking of models that might be useful to other people, we have trained a one-class animal detector trained on several hundred thousand bounding boxes from a variety of ecosystems.  The model is based on Faster-RCNN with an InceptionResNetv2 base network, and was trained with the TensorFlow Object Detection API.  It can be downloaded [here](https://lilablobssc.blob.core.windows.net/models/camera_traps/megadetector/megadetector_v2.pb) (.pb).  We use this as our first stage for classifier training and inference.  An example script for invoking this detector on new images can be found [here](https://github.com/Microsoft/CameraTraps/blob/master/detection/run_tf_detector.py).  Let us know how it works on your images!
+Speaking of models that might be useful to other people, we have trained a one-class animal detector trained on several hundred thousand bounding boxes from a variety of ecosystems.  Lots more information - including download links - on the [MegaDetector page](megadetector.md).
 
 Here's a "teaser" image of what detector output looks like:
 
