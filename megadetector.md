@@ -49,11 +49,6 @@ Image credit University of Washington.
 
 ## Mesmerizing video
 
-Here&rsquo;s a neat video of our detector (v2) running in a variety of ecosystems, on locations unseen during training:
+Here&rsquo;s a neat <a href="http://dolphinvm.westus2.cloudapp.azure.com/video/detector_video.html">video</a> of our v2 detector running in a variety of ecosystems, on locations unseen during training.
 
-<video width="720" height="540" controls>
-  <source src="http://dolphinvm.westus2.cloudapp.azure.com/video/detector_demo_video_h264.mp4" type="video/mp4">  
-Your browser does not support the video tag.
-</video>
 
-Images credit <a href="https://emammal.si.edu">eMammal</a>.
