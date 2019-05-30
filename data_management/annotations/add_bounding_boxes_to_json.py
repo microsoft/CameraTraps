@@ -147,7 +147,7 @@ def idfg_add_image_entry(file_name):
     all_images[file_name] = {
         'id': file_name,
         'file_name': file_name,
-        'location': location
+        'location': location  # TODO bug - location should be region_name + camera_location
     }
 
 original_rspb_db = json.load(open('/Users/siyuyang/Source/temp_data/CameraTrap/databases_2018/rspb/rspb_gola.json'))
