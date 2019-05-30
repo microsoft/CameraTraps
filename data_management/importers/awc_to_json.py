@@ -185,15 +185,3 @@ options.sort_by_filename = False
 
 htmlOutputFile = visualize_bbox_db.processImages(bbox_db_path,output_dir,image_base,options)
 
-
-
-
-
-
-
-
-
-
-
-
-
