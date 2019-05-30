@@ -63,14 +63,14 @@ class RepeatDetectionOptions:
     confidenceMin = 0.85
     
     # Don't consider detections with confidence higher than this as suspicious
-    confidenceMax = 0.95
+    confidenceMax = 1.0
     
     # What's the IOU threshold for considering two boxes the same?
     iouThreshold = 0.95
     
     # How many occurrences of a single location (as defined by the IOU threshold)
     # are required before we declare it suspicious?
-    occurrenceThreshold = 15
+    occurrenceThreshold = 12
     
     # Ignore "suspicious" detections larger than some size; these are often animals
     # taking up the whole image.  This is expressed as a fraction of the image size.
@@ -87,7 +87,7 @@ class RepeatDetectionOptions:
     # .json file containing detections
     filterFileToLoad = ''
     
-    # (optional) list of filenames remaining after delettion
+    # (optional) list of filenames remaining after deletion
     filteredFileListToLoad = ''
     
     # Turn on/off optional outputs
@@ -315,7 +315,7 @@ def find_matches_in_directory(dirName,options,rowsByDirectory):
             assert confidence >= 0.0 and confidence <= 1.0
             if confidence < options.confidenceMin:
                 continue
-            if confidence >= options.confidenceMax:
+            if confidence > options.confidenceMax:
                 continue
             
             # Is this detection too big to be suspicious?
@@ -975,6 +975,8 @@ def main():
     # With HTML (for real)
     # python find_repeat_detections.py "D:\temp\tigers_20190308_all_output.csv" "D:\temp\tigers_20190308_all_output.filtered.csv" --renderHtml --imageBase "d:\wildlife_data\tigerblobs" --outputBase "d:\temp\repeatDetections"
     
+    defaultOptions = RepeatDetectionOptions()
+    
     parser = argparse.ArgumentParser()
     parser.add_argument('inputFile')
     parser.add_argument('outputFile')
@@ -982,24 +984,41 @@ def main():
                         help='Image base dir, only relevant if renderHtml is True')
     parser.add_argument('--outputBase', action='store', type=str, 
                         help='Html output dir, only relevant if renderHtml is True')
-    parser.add_argument('--confidenceMin',action='store', type=float, default=0.85,
+    parser.add_argument('--confidenceMax', action='store', type=float, 
+                        default=defaultOptions.confidenceMax,
+                        help='Detection confidence threshold; don\'t process anything above this')
+    parser.add_argument('--confidenceMin', action='store', type=float, 
+                        default=defaultOptions.confidenceMin,
                         help='Detection confidence threshold; don\'t process anything below this')
-    parser.add_argument('--occurrenceThreshold',action="store", type=int, default=10, 
+    parser.add_argument('--iouThreshold', action='store', type=float, 
+                        default=defaultOptions.iouThreshold,
+                        help='Detections with IOUs greater than this are considered "the same detection"')
+    parser.add_argument('--occurrenceThreshold', action='store', type=int, 
+                        default=defaultOptions.occurrenceThreshold, 
                         help='More than this many near-identical detections in a group (e.g. a folder) is considered suspicious')
-    parser.add_argument('--nWorkers',action="store", type=int, default=10, 
+    parser.add_argument('--nWorkers', action='store', type=int, 
+                        default=defaultOptions.nWorkers, 
                         help='Level of parallelism for rendering and IOU computation')
-    parser.add_argument('--maxSuspiciousDetectionSize',action="store", type=float, 
-                        default=0.35, help='Detections larger than this fraction of image area are not considered suspicious')
+    parser.add_argument('--maxSuspiciousDetectionSize',action='store', type=float, 
+                        default=defaultOptions.maxSuspiciousDetectionSize, 
+                        help='Detections larger than this fraction of image area are not considered suspicious')
     parser.add_argument('--renderHtml', action='store_true', 
                         dest='bRenderHtml', help='Should we render HTML output?')
+    parser.add_argument('--omitFilteringFolder', action='store_false',
+                       dest='bWriteFilteringFolder', help='Should we create a folder of rendered detections for post-filtering?')
+    parser.add_argument('--excludeClasses', action='store', nargs='+', type=int, 
+                        default=defaultOptions.excludeClasses, 
+                        help='List of classes (ints) to exclude from analysis, separated by spaces')
     
     parser.add_argument('--debugMaxDir', action='store', type=int, default=-1)                        
     parser.add_argument('--debugMaxRenderDir', action='store', type=int, default=-1)
     parser.add_argument('--debugMaxRenderDetection', action='store', type=int, default=-1)
     parser.add_argument('--debugMaxRenderInstance', action='store', type=int, default=-1)
     
-    parser.add_argument('--bParallelizeComparisons', action='store', type=bool, default=True)
-    parser.add_argument('--bParallelizeRendering', action='store', type=bool, default=True)
+    parser.add_argument('--forceSerialComparisons', action='store_false', 
+                        dest='bParallelizeComparisons')
+    parser.add_argument('--forceSerialRendering', action='store_false', 
+                        dest='bParallelizeRendering')
     
     if len(sys.argv[1:])==0:
         parser.print_help()
@@ -1009,6 +1028,7 @@ def main():
     
     # Convert to an options object
     options = RepeatDetectionOptions()
+    
     args_to_object(args,options)
     
     find_repeat_detections(args.inputFile,args.outputFile,options)
