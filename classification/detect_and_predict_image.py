@@ -46,8 +46,8 @@ def load_model(checkpoint):
     """
 
     print('Creating Graph...')
-    detection_graph = tf.Graph()
-    with detection_graph.as_default():
+    graph = tf.Graph()
+    with graph.as_default():
         od_graph_def = tf.GraphDef()
         with tf.gfile.GFile(checkpoint, 'rb') as fid:
             serialized_graph = fid.read()
@@ -55,7 +55,7 @@ def load_model(checkpoint):
             tf.import_graph_def(od_graph_def, name='')
     print('...done')
 
-    return detection_graph
+    return graph
 
 
 def generate_detections(detection_graph,images):
@@ -194,49 +194,89 @@ def generate_detections(detection_graph,images):
     return boxes,scores,classes,images
 
 
-def classifier_scores, classify_boxes(boxes, scores, detection_classes, images, confidenceThreshold):
+def classify_boxes(classification_graph, boxes, scores, classes, images, confidence_threshold, padding_factor=1.6):
+    '''
+    Takes a classification model and applies it to all detected boxes with a detection confidence
+    larger than confidence_threshold.
 
-    nImages = len(inputFileNames)
+    Args:
+        classification_graph: frozen graph model that includes the TF-slim preprocessing. i.e. it will be given a cropped
+                              images with values in [0,1]
+        boxes, scores, classes, images: The return values of generate_detections(detection_graph,images)
+
+    Returns species_scores with shape len(images) x len(boxes) x num_species. However, num_species is 0 if the
+    corresponding box is below the confidence_threshold.
+    '''
+
+    nImages = len(images)
     iImage = 0
 
-    for iImage in range(0,nImages):
+    species_scores = []
 
-        inputFileName = inputFileNames[iImage]
+    with classification_graph.as_default():
 
-        image = mpimg.imread(inputFileName)
-        iBox = 0; box = boxes[iImage][iBox]
-        s = image.shape; imageHeight = s[0]; imageWidth = s[1]
+        with tf.Session(graph=classification_graph) as sess:
 
-        # plt.show()
-        for iBox,box in enumerate(boxes[iImage]):
+            # Get input and output tensors of classification model
+            image_tensor = classification_graph.get_tensor_by_name('input:0')
+            predictions_tensor = classification_graph.get_tensor_by_name('output:0')
+            predictions_tensor = tf.squeeze(predictions_tensor, [0])
 
-            score = scores[iImage][iBox]
-            if score < confidenceThreshold:
-                continue
+            for iImage in range(0,nImages):
 
-            # top, left, bottom, right
-            # x,y origin is the upper-left
-            topRel = box[0]
-            leftRel = box[1]
-            bottomRel = box[2]
-            rightRel = box[3]
+                species_scores.append([])
+                image = images[iImage]
+                assert len(image.shape) == 3
+                image_height, image_width, _ = image.shape
 
-	    imsize = cur_image['width'], cur_image['height']
-	    # Select detections with a confidence larger 0.5
-	    selection = output_dict['detection_scores'] > 0.5
-	    # Get these boxes and convert normalized coordinates to pixel coordinates
-	    selected_boxes = (output_dict['detection_boxes'][selection] * np.tile([imsize[1],imsize[0]], (1,2)))
-	    # Pad the detected animal to a square box and additionally by PADDING_FACTOR, the result will be in crop_boxes
-	    # However, we need to make sure that it box coordinates are still within the image
-	    bbox_sizes = np.vstack([selected_boxes[:,2] - selected_boxes[:,0], selected_boxes[:,3] - selected_boxes[:,1]]).T
-	    offsets = (PADDING_FACTOR * np.max(bbox_sizes, axis=1, keepdims=True) - bbox_sizes) / 2
-	    crop_boxes = selected_boxes + np.hstack([-offsets,offsets])
-	    crop_boxes = np.maximum(0,crop_boxes).astype(int)
+                #imsize = cur_image['width'], cur_image['height']
+                # Select detections with a confidence larger 0.5
+                selection = scores[iImage] > confidence_threshold
+                # Get these boxes and convert normalized coordinates to pixel coordinates
+                selected_boxes = (boxes[iImage][selection] * np.tile([image_height, image_width], (1,2)))
+                # Pad the detected animal to a square box and additionally by PADDING_FACTOR, the result will be in crop_boxes
+                # However, we need to make sure that it box coordinates are still within the image
+                bbox_sizes = np.vstack([selected_boxes[:,2] - selected_boxes[:,0], selected_boxes[:,3] - selected_boxes[:,1]]).T
+                offsets = (padding_factor * np.max(bbox_sizes, axis=1, keepdims=True) - bbox_sizes) / 2
+                crop_boxes = selected_boxes + np.hstack([-offsets,offsets])
+                crop_boxes = np.maximum(0,crop_boxes).astype(int)
+                # For convenience:
+                # Create an array with contains the index of the corresponding crop_box for each selected box
+                # i.e. [False False 0 False 1 2 3 False False]
+                selection_box_idx = np.copy(selection).astype(int)
+                selection_box_idx[selection] = range(sum(selection))
 
-        # ...for each box
+                # For each box
+                for iBox in range(len(boxes[iImage])):
 
-    # ...for each image
+                    # If this box should be classified
+                    if selection[iBox]:
+                        crop_box = crop_boxes[selection_box_idx[iBox]]
+                        cropped_img = image[crop_box[0]:crop_box[2], crop_box[1]:crop_box[3]]
+                        input_image = cropped_img.astype(float) / 255
+                        # Run inference
+                        predictions = sess.run(predictions_tensor, feed_dict={image_tensor: input_image})
+                        species_scores[iImage].append(predictions)
 
+                    # if box should not be classified
+                    else:
+                        species_scores[iImage].append([])
+
+                # ...for each box
+
+                # species_scores should have shape len(images) x len(boxes) x num_species
+                assert len(species_scores[iImage]) == len(boxes[iImage])
+
+            # ...for each image
+
+        # ...with tf.Session
+
+    # with classification_graph
+
+    # species_scores should have shape len(images) x len(boxes) x num_species
+    assert len(species_scores) == len(images)
+
+    return species_scores
 
 
 #%% Rendering functions
@@ -366,7 +406,7 @@ def load_and_run_detector(detectionFile, classificationFile, imageFileNames,
 
     startTime = time.time()
     boxes, scores, detection_classes, images = generate_detections(detection_graph,imageFileNames)
-    classifier_scores, classify_boxes(boxes, scores, detection_classes, images)
+    species_scores = classify_boxes(classification_graph, boxes, scores, images, confidenceThreshold)
     elapsed = time.time() - startTime
     print("Done running detector and classifier on {} files in {}".format(len(images),
           humanfriendly.format_timespan(elapsed)))
@@ -397,7 +437,7 @@ if True:
     #%%
 
     detectionFile = r'/ai4edevfs/models/object_detection/faster_rcnn_inception_resnet_v2_atrous/megadetector/frozen_inference_graph.pb'
-    classificationFile = r'/ai4edevfs/models/serengeti_cropped/serengeti_cropped_latest_inceptionv4_89.5/all/frozen_inference_graph.pb'
+    classificationFile = r'/ai4edevfs/models/serengeti_cropped/serengeti_cropped_latest_inceptionv4_89.5/all/frozen_inference_graph_w_preprocessing.pb'
     imageDir = r'./sample_output'
     imageFileNames = [fn for fn in glob.glob(os.path.join(imageDir,'*.JPG'))
          if (not 'detections' in fn)]
