@@ -201,7 +201,7 @@ The output of the detector is saved in `requestID_detections_requestName_timesta
     "images": [
         {
             "file": "/path/from/base/dir/image.jpg",
-            "max_detection_conf": 0.996,
+            "max_detection_conf": 0.926,
             "detections": [
                 {
                     "category": "1",

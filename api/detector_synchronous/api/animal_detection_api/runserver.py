@@ -7,16 +7,14 @@ from datetime import datetime
 from io import BytesIO
 
 from ai4e_app_insights_wrapper import AI4EAppInsights
-from ai4e_service import AI4EService
+from ai4e_service import APIService
 from flask import Flask, Response, jsonify, abort
 from requests_toolbelt.multipart.encoder import MultipartEncoder
 
 import api_config
 from tf_detector import TFDetector
 
-
 print('Creating Application')
-
 app = Flask(__name__)
 
 # Use the AI4EAppInsights library to send log messages. NOT REQURIED
@@ -25,24 +23,22 @@ log = AI4EAppInsights()
 # Use the AI4EService to execute your functions within a logging trace, which supports long-running/async
 # functions, handles SIGTERM signals from AKS, etc., and handles concurrent requests.
 with app.app_context():
-    ai4e_service = AI4EService(app, log)
-
+    ai4e_service = APIService(app, log)
 
 detector = TFDetector(api_config.MODEL_PATH)
-
 
 # function for processing the request data to the /detect endpoint. It loads data or files into a
 # dictionary for access in the API function. It is passed as a parameter to the API setup.
 def _detect_process_request_data(request):
     files = request.files
     params = request.args
-
+    
     # check that the content uploaded is not too big
     # request.content_length is the length of the total payload
     content_length = request.content_length if request.content_length \
         else api_config.MAX_CONTENT_LENGTH_IN_MB * 1024 * 1024 + 1
     if content_length > api_config.MAX_CONTENT_LENGTH_IN_MB * 1024 * 1024:
-        return abort(413, ('Payload size {:.2f} MB exceeds the maximum allowed of {} MB, or payload content length'
+        abort(413, ('Payload size {:.2f} MB exceeds the maximum allowed of {} MB, or payload content length'
                             ' cannot be determined. Please upload fewer or more compressed images.').format(
             content_length / (1024 * 1024), api_config.MAX_CONTENT_LENGTH_IN_MB))
 
@@ -53,7 +49,7 @@ def _detect_process_request_data(request):
         detection_confidence = float(params['confidence'])
         print('runserver, post_detect_sync, detection confidence: ', detection_confidence)
         if detection_confidence < 0.0 or detection_confidence > 1.0:
-            return abort(400, 'Detection confidence {} is invalid. Needs to be between 0.0 and 1.0.'.format(
+            abort(400, 'Detection confidence {} is invalid. Needs to be between 0.0 and 1.0.'.format(
                 detection_confidence))
     else:
         detection_confidence = api_config.DEFAULT_DETECTION_CONFIDENCE
@@ -62,11 +58,11 @@ def _detect_process_request_data(request):
     num_images = sum([1 if file.content_type in api_config.IMAGE_CONTENT_TYPES else 0 for file in files.values()])
     print('runserver, post_detect_sync, number of images received: ', num_images)
     if num_images > api_config.MAX_IMAGES_ACCEPTED:
-        return abort(413,
+        abort(413,
                       'Too many images. Maximum number of images that can be processed in one call is {}.'.format(str(
                         api_config.MAX_IMAGES_ACCEPTED)))
     elif num_images == 0:
-        return abort(400, 'No image(s) of accepted types (image/jpeg, image/png, application/octet-stream) received.')
+        abort(400, 'No image(s) of accepted types (image/jpeg, image/png, application/octet-stream) received.')
 
     # read input images and parameters
     try:
@@ -79,7 +75,7 @@ def _detect_process_request_data(request):
                 image_names.append(k)
     except Exception as e:
         log.log_exception('Error reading the images: ' + str(e))
-        return abort(500, 'Error reading the images: ' + str(e))
+        abort(500, 'Error reading the images: ' + str(e))
 
     return {
         'render_boxes': render_boxes,
@@ -121,7 +117,7 @@ def detect_sync(*args, **kwargs):
     except Exception as e:
         print('Error performing detection on the images: ' + str(e))
         log.log_exception('Error performing detection on the images: ' + str(e))
-        return abort(500, 'Error performing detection on the images: ' + str(e))
+        abort(500, 'Error performing detection on the images: ' + str(e))
 
     # filter the detections by the confidence threshold
     try:
@@ -138,7 +134,7 @@ def detect_sync(*args, **kwargs):
     except Exception as e:
         print('Error consolidating the detection boxes: ' + str(e))
         log.log_exception('Error consolidating the detection boxes: ' + str(e))
-        return abort(500, 'Error consolidating the detection boxes: ' + str(e))
+        abort(500, 'Error consolidating the detection boxes: ' + str(e))
 
     # return results; optionally render the detections on the images and send the annotated images back
     try:
@@ -171,7 +167,7 @@ def detect_sync(*args, **kwargs):
     except Exception as e:
         print('Error returning result or rendering the detection boxes: ' + str(e))
         log.log_exception('Error returning result or rendering the detection boxes: ' + str(e))
-        return abort(500, 'Error returning result or rendering the detection boxes: ' + str(e))
+        abort(500, 'Error returning result or rendering the detection boxes: ' + str(e))
 
 
 @ai4e_service.api_sync_func(api_path='/model_version',
