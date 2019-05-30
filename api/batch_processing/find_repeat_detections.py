@@ -90,7 +90,9 @@ class RepeatDetectionOptions:
     # (optional) list of filenames remaining after delettion
     filteredFileListToLoad = ''
     
+    # Turn on/off optional outputs
     bRenderHtml = False
+    bWriteFilteringFolder = True
     
     debugMaxDir = -1
     debugMaxRenderDir = -1
@@ -876,37 +878,41 @@ def find_repeat_detections(inputCsvFilename,outputCsvFilename,options=None):
     toReturn.allRowsFiltered = update_detection_table(toReturn,options,outputCsvFilename)
     
     # Create filtering directory
-    print('Creating filtering folder...')
-    
-    dateString = datetime.now().strftime('%Y.%m.%d.%H.%M.%S')
-    filteringDir = os.path.join(options.outputBase,'filtering_' + dateString)
-    os.makedirs(filteringDir,exist_ok=True)
-    
-    # iDir = 0; suspiciousDetectionsThisDir = suspiciousDetections[iDir]
-    for iDir,suspiciousDetectionsThisDir in enumerate(tqdm(suspiciousDetections)):
+    if options.bWriteFilteringFolder:
         
-        # suspiciousDetectionsThisDir is a list of DetectionLocation objects
-        for iDetection,detection in enumerate(suspiciousDetectionsThisDir):
+        print('Creating filtering folder...')
         
-            bbox = detection.bbox
-            instance = detection.instances[0]
-            relativePath = instance.filename
-            inputFullPath = os.path.join(options.imageBase,relativePath)
-            assert(os.path.isfile(inputFullPath))
-            outputRelativePath = 'dir{:0>4d}_det{:0>4d}.jpg'.format(iDir,iDetection)
-            outputFullPath = os.path.join(filteringDir,outputRelativePath)
-            render_bounding_box(bbox,inputFullPath,outputFullPath,15)            
-            detection.sampleImageRelativeFileName = outputRelativePath
+        dateString = datetime.now().strftime('%Y.%m.%d.%H.%M.%S')
+        filteringDir = os.path.join(options.outputBase,'filtering_' + dateString)
+        os.makedirs(filteringDir,exist_ok=True)
+        
+        # iDir = 0; suspiciousDetectionsThisDir = suspiciousDetections[iDir]
+        for iDir,suspiciousDetectionsThisDir in enumerate(tqdm(suspiciousDetections)):
             
-    # Write out the detection index
-    detectionIndexFileName = os.path.join(filteringDir,'detectionIndex.json')
-    jsonpickle.set_encoder_options('json', sort_keys=True, indent=4)
-    s = jsonpickle.encode(suspiciousDetections)
-    with open(detectionIndexFileName, 'w') as f:
-        f.write(s)
-    toReturn.filterFile = detectionIndexFileName
+            # suspiciousDetectionsThisDir is a list of DetectionLocation objects
+            for iDetection,detection in enumerate(suspiciousDetectionsThisDir):
             
-    print('Done')
+                bbox = detection.bbox
+                instance = detection.instances[0]
+                relativePath = instance.filename
+                inputFullPath = os.path.join(options.imageBase,relativePath)
+                assert(os.path.isfile(inputFullPath))
+                outputRelativePath = 'dir{:0>4d}_det{:0>4d}.jpg'.format(iDir,iDetection)
+                outputFullPath = os.path.join(filteringDir,outputRelativePath)
+                render_bounding_box(bbox,inputFullPath,outputFullPath,15)            
+                detection.sampleImageRelativeFileName = outputRelativePath
+                
+        # Write out the detection index
+        detectionIndexFileName = os.path.join(filteringDir,'detectionIndex.json')
+        jsonpickle.set_encoder_options('json', sort_keys=True, indent=4)
+        s = jsonpickle.encode(suspiciousDetections)
+        with open(detectionIndexFileName, 'w') as f:
+            f.write(s)
+        toReturn.filterFile = detectionIndexFileName
+                
+        print('Done')
+
+    # ...if we're writing filtering info
         
     return toReturn
 
@@ -981,7 +987,7 @@ def main():
     parser.add_argument('--occurrenceThreshold',action="store", type=int, default=10, 
                         help='More than this many near-identical detections in a group (e.g. a folder) is considered suspicious')
     parser.add_argument('--nWorkers',action="store", type=int, default=10, 
-                        help='Level of parallelism for rendering or IOU computation')
+                        help='Level of parallelism for rendering and IOU computation')
     parser.add_argument('--maxSuspiciousDetectionSize',action="store", type=float, 
                         default=0.35, help='Detections larger than this fraction of image area are not considered suspicious')
     parser.add_argument('--renderHtml', action='store_true', 
