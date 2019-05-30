@@ -947,9 +947,7 @@ if False:
     results = find_repeat_detections(inputCsvFilename,outputCsvFilename,options)
     
     
-#%%
-    
-##%% Command-line driver
+#%% Command-line driver
 
 # Copy all fields from a Namespace (i.e., the output from parse_args) to an object.  
 #
