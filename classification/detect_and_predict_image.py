@@ -32,10 +32,14 @@ import matplotlib.patches as patches
 import matplotlib.ticker as ticker
 import os
 
+# Minimum detection confidence for showing a bounding box on the output image
 DEFAULT_CONFIDENCE_THRESHOLD = 0.85
 
 # Stick this into filenames before the extension for the rendered result
 DETECTION_FILENAME_INSERT = '_detections'
+
+# Number of top-scoring classes to show at each bounding box
+NUM_ANNOTATED_CLASSES = 3
 
 
 #%% Core detection functions
@@ -202,7 +206,9 @@ def classify_boxes(classification_graph, boxes, scores, classes, images, confide
     Args:
         classification_graph: frozen graph model that includes the TF-slim preprocessing. i.e. it will be given a cropped
                               images with values in [0,1]
-        boxes, scores, classes, images: The return values of generate_detections(detection_graph,images)
+        boxes, scores, classes, images: The return values of generate_detections(detection_graph,images) where
+                              classes corresponds to the detection class and not the species return by the classification model,
+                              and is unused at the moment.
 
     Returns species_scores with shape len(images) x len(boxes) x num_species. However, num_species is 0 if the
     corresponding box is below the confidence_threshold.
@@ -294,40 +300,40 @@ def render_bounding_box(box, score, classLabel, inputFileName, outputFileName=No
     render_bounding_boxes(boxes,scores,[classLabel],[inputFileName],outputFileNames,
                           confidenceThreshold,linewidth)
 
-def render_bounding_boxes(boxes, scores, classes, inputFileNames, outputFileNames=[],
-                          confidenceThreshold=DEFAULT_CONFIDENCE_THRESHOLD,linewidth=2):
+def render_bounding_boxes(boxes, scores, species_scores, class_names, input_file_names, output_file_names=[],
+                          confidence_threshold=DEFAULT_CONFIDENCE_THRESHOLD, num_annotated_classes=NUM_ANNOTATED_CLASSES,
+                          linewidth=2):
     """
-    Render bounding boxes on the image files specified in [inputFileNames].
+    Render bounding boxes on the image files specified in [input_file_names].
 
     [boxes] and [scores] should be in the format returned by generate_detections,
     specifically [top, left, bottom, right] in normalized units, where the
     origin is the upper-left.
 
-    "classes" is currently unused, it's a placeholder for adding text annotations
-    later.
+    [species_scores] should be in the format returned by classify_boxes
     """
 
-    nImages = len(inputFileNames)
+    nImages = len(input_file_names)
     iImage = 0
 
     for iImage in range(0,nImages):
 
-        inputFileName = inputFileNames[iImage]
+        input_file_name = input_file_names[iImage]
 
-        if iImage >= len(outputFileNames):
-            outputFileName = ''
+        if iImage >= len(output_file_names):
+            output_file_name = ''
         else:
-            outputFileName = outputFileNames[iImage]
+            output_file_name = output_file_names[iImage]
 
-        if len(outputFileName) == 0:
-            name, ext = os.path.splitext(inputFileName)
-            outputFileName = "{}{}{}".format(name,DETECTION_FILENAME_INSERT,ext)
+        if len(output_file_name) == 0:
+            name, ext = os.path.splitext(input_file_name)
+            output_file_name = "{}{}{}".format(name,DETECTION_FILENAME_INSERT,ext)
 
-        image = mpimg.imread(inputFileName)
+        image = mpimg.imread(input_file_name)
         iBox = 0; box = boxes[iImage][iBox]
         dpi = 100
-        s = image.shape; imageHeight = s[0]; imageWidth = s[1]
-        figsize = imageWidth / float(dpi), imageHeight / float(dpi)
+        s = image.shape; image_height = s[0]; image_width = s[1]
+        figsize = image_width / float(dpi), image_height / float(dpi)
 
         plt.figure(figsize=figsize)
         ax = plt.axes([0,0,1,1])
@@ -340,7 +346,7 @@ def render_bounding_boxes(boxes, scores, classes, inputFileNames, outputFileName
         for iBox,box in enumerate(boxes[iImage]):
 
             score = scores[iImage][iBox]
-            if score < confidenceThreshold:
+            if score < confidence_threshold:
                 continue
 
             # top, left, bottom, right
@@ -351,21 +357,33 @@ def render_bounding_boxes(boxes, scores, classes, inputFileNames, outputFileName
             bottomRel = box[2]
             rightRel = box[3]
 
-            x = leftRel * imageWidth
-            y = topRel * imageHeight
-            w = (rightRel-leftRel) * imageWidth
-            h = (bottomRel-topRel) * imageHeight
+            x = leftRel * image_width
+            y = topRel * image_height
+            w = (rightRel-leftRel) * image_width
+            h = (bottomRel-topRel) * image_height
+
+            # Generate bounding box text
+            box_species_scores = species_scores[iImage][iBox]
+            box_text = []
+            for species_id in (-box_species_scores).argsort()[:num_annotated_classes]:
+                box_text.append('{} {:.1%}'.format(class_names[species_id], box_species_scores[species_id]))
+            box_text = '\n'.join(box_text)
+            # Choose color based on class
+            edge_color = plt.get_cmap('rainbow')(box_species_scores.argmax()/box_species_scores.size)
 
             # Location is the bottom-left of the rect
             #
             # Origin is the upper-left
             iLeft = x
             iBottom = y
-            rect = patches.Rectangle((iLeft,iBottom),w,h,linewidth=linewidth,edgecolor='r',
+            rect = patches.Rectangle((iLeft,iBottom),w,h,linewidth=linewidth,edgecolor=edge_color,
                                      facecolor='none')
 
             # Add the patch to the Axes
             ax.add_patch(rect)
+            # Add class description
+
+            ax.text(iLeft, iBottom, box_text, backgroundcolor=edge_color, color='black')
 
         # ...for each box
 
@@ -376,11 +394,11 @@ def render_bounding_boxes(boxes, scores, classes, inputFileNames, outputFileName
         ax.xaxis.set_major_locator(ticker.NullLocator())
         ax.yaxis.set_major_locator(ticker.NullLocator())
         ax.axis('tight')
-        ax.set(xlim=[0,imageWidth],ylim=[imageHeight,0],aspect=1)
+        ax.set(xlim=[0,image_width],ylim=[image_height,0],aspect=1)
         plt.axis('off')
 
         # plt.savefig(outputFileName, bbox_inches='tight', pad_inches=0.0, dpi=dpi, transparent=True)
-        plt.savefig(outputFileName, dpi=dpi, transparent=True)
+        plt.savefig(output_file_name, dpi=dpi, transparent=True)
         plt.close()
         # os.startfile(outputFileName)
 
@@ -389,38 +407,43 @@ def render_bounding_boxes(boxes, scores, classes, inputFileNames, outputFileName
 # ...def render_bounding_boxes
 
 
-def load_and_run_detector(detectionFile, classificationFile, imageFileNames,
-                          confidenceThreshold=DEFAULT_CONFIDENCE_THRESHOLD,
+def load_and_run_detector(detection_file, classification_file, classes_file, image_file_names,
+                          confidence_threshold=DEFAULT_CONFIDENCE_THRESHOLD, num_annotated_classes=NUM_ANNOTATED_CLASSES,
                           detection_graph=None, classification_graph=None):
 
-    if len(imageFileNames) == 0:
+    if len(image_file_names) == 0:
         print('Warning: no files available')
         return
 
     # Load and run detector on target images
     if detection_graph is None:
-        detection_graph = load_model(detectionFile)
+        detection_graph = load_model(detection_file)
 
     if classification_graph is None:
-        classification_graph = load_model(classificationFile)
+        classification_graph = load_model(classification_file)
 
     startTime = time.time()
-    boxes, scores, detection_classes, images = generate_detections(detection_graph,imageFileNames)
-    species_scores = classify_boxes(classification_graph, boxes, scores, images, confidenceThreshold)
+    boxes, scores, detection_classes, images = generate_detections(detection_graph,image_file_names)
+    species_scores = classify_boxes(classification_graph, boxes, scores, detection_classes, images, confidence_threshold)
     elapsed = time.time() - startTime
     print("Done running detector and classifier on {} files in {}".format(len(images),
           humanfriendly.format_timespan(elapsed)))
-    import ipdb; ipdb.set_trace()
 
-    assert len(boxes) == len(imageFileNames)
+    # Read the name of all classes
+    with open(classes_file, 'rt') as fi:
+        class_names = fi.read().splitlines()
+        # remove empty lines
+        class_names = [cn for cn in class_names if cn.strip()]
 
-    outputFileNames = []
+    assert len(boxes) == len(image_file_names)
+
+    output_file_names = []
 
     plt.ioff()
 
-    render_bounding_boxes(boxes=boxes, scores=scores, classes=classes,
-                          inputFileNames=imageFileNames, outputFileNames=outputFileNames,
-                          confidenceThreshold=confidenceThreshold)
+    render_bounding_boxes(boxes=boxes, scores=scores, species_scores=species_scores, class_names=class_names,
+                          input_file_names=image_file_names, output_file_names=output_file_names,
+                          confidence_threshold=confidence_threshold, num_annotated_classes=num_annotated_classes)
 
     return detection_graph, classification_graph
 
@@ -436,15 +459,16 @@ if True:
 
     #%%
 
-    detectionFile = r'/ai4edevfs/models/object_detection/faster_rcnn_inception_resnet_v2_atrous/megadetector/frozen_inference_graph.pb'
-    classificationFile = r'/ai4edevfs/models/serengeti_cropped/serengeti_cropped_latest_inceptionv4_89.5/all/frozen_inference_graph_w_preprocessing.pb'
-    imageDir = r'./sample_output'
-    imageFileNames = [fn for fn in glob.glob(os.path.join(imageDir,'*.JPG'))
+    detection_file = r'/ai4edevfs/models/object_detection/faster_rcnn_inception_resnet_v2_atrous/megadetector/frozen_inference_graph.pb'
+    classification_file = r'/ai4edevfs/models/serengeti_cropped/serengeti_cropped_latest_inceptionv4_89.5/all/frozen_inference_graph_w_preprocessing.pb'
+    classes_file = r'/ai4edevfs/models/serengeti_cropped/serengeti_cropped_latest_inceptionv4_89.5/classlist.txt'
+    image_dir = r'./sample_output'
+    image_file_names = [fn for fn in glob.glob(os.path.join(image_dir,'*.JPG'))
          if (not 'detections' in fn)]
-    imageFileNames = [r'./sample_output/mongoose___S1___R11___R11_R1___S1_R11_R1_PICT0101_1.JPG']
+    image_file_names = [r'./sample_output/mongoose___S1___R11___R11_R1___S1_R11_R1_PICT0101_1.JPG']
 
-    detection_graph, classification_graph = load_and_run_detector(detectionFile, classificationFile, imageFileNames,
-                                            DEFAULT_CONFIDENCE_THRESHOLD,detection_graph, classification_graph)
+    detection_graph, classification_graph = load_and_run_detector(detection_file, classification_file, classes_file, image_file_names,
+                                            DEFAULT_CONFIDENCE_THRESHOLD, NUM_ANNOTATED_CLASSES, detection_graph, classification_graph)
 
 
 #%% File helper functions
