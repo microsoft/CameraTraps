@@ -1,9 +1,9 @@
 # name of the container in the internal storage account to store user facing files:
 # image list, detection results and failed images list.
-INTERNAL_CONTAINER = 'async-api-v3-2'
+INTERNAL_CONTAINER = 'async-api-zooniverse'
 
 # name of the container in the internal storage account to store outputs of each AML job
-AML_CONTAINER = 'aml-out-2'
+AML_CONTAINER = 'aml-out-zooniverse'
 
 # how often does the checking thread wake up to check if all jobs are done
 MONITOR_PERIOD_MINUTES = 15
@@ -29,9 +29,9 @@ JOB_SUBMISSION_UPDATE_INTERVAL = 2
 # AML Compute
 AML_CONFIG = {
     'subscription_id': '74d91980-e5b4-4fd9-adb6-263b8f90ec5b',
-    'workspace_region': 'southcentralus',
+    'workspace_region': 'eastus',
     'resource_group': 'camera_trap_api_rg',
-    'workspace_name': 'camera_trap_aml_ws_sc',
+    'workspace_name': 'camera_trap_aml_ws_zooniverse',
     'aml_compute_name': 'camera-trap-com',
 
     'default_model_version': '3',
@@ -49,8 +49,8 @@ AML_CONFIG = {
     'completed_status': ['Finished', 'Failed', 'Completed'],
 
     # service principle for authenticating to AML
-    'tenant-id': 'my-tenant-id',  # place holders
-    'application-id': 'my-application-id'
+    'tenant-id': '',  # place holders
+    'application-id': ''
 }
 
 # version of the detector model in use
