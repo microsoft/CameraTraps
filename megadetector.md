@@ -51,4 +51,6 @@ Image credit University of Washington.
 
 Here&rsquo;s a neat <a href="http://dolphinvm.westus2.cloudapp.azure.com/video/detector_video.html">video</a> of our v2 detector running in a variety of ecosystems, on locations unseen during training.
 
-<a href="http://dolphinvm.westus2.cloudapp.azure.com/video/detector_video.html"><img width=600 src="http://dolphinvm.westus2.cloudapp.azure.com/video/mvideo.jpg"></a>
+<a href="http://dolphinvm.westus2.cloudapp.azure.com/video/detector_video.html"><img width=600 src="http://dolphinvm.westus2.cloudapp.azure.com/video/mvideo.jpg"></a><br/>
+
+Image credit <a href="https://emammal.si.edu/">eMammal</a>.
