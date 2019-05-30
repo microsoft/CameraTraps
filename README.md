@@ -3,7 +3,7 @@
 This repo contains the tools for training, running, and evaluating detectors and classifiers for images collected from motion-triggered camera traps.  The core functionality provided is:
 
 - Data parsing from frequently-used camera trap metadata formats into a common format
-- Training and evaluation of detectors, particularly our "MegaDetector", which does a pretty good job finding terrestrial animals in a variety of ecosystems
+- Training and evaluation of detectors, particularly our &ldquo;MegaDetector&rdquo;, which does a pretty good job finding terrestrial animals in a variety of ecosystems
 - Training and evaluation of species-level classifiers for specific data sets
 - A Web-based demo that runs our models via a REST API that hosts them on a Web endpoint
 - Miscellaneous useful tools for manipulating camera trap data
@@ -26,9 +26,9 @@ This repo does not extensively host models, though we will release models when t
 
 ## MegaDetector
 
-Speaking of models that might be useful to other people, we have trained a one-class animal detector trained on several hundred thousand bounding boxes from a variety of ecosystems.  Lots more information - including download links - on the [MegaDetector page](megadetector.md).
+Speaking of models that might be useful to other people, we have trained a one-class animal detector trained on several hundred thousand bounding boxes from a variety of ecosystems.  Lots more information &ndash; including download links &ndash; on the [MegaDetector page](megadetector.md).
 
-Here's a "teaser" image of what detector output looks like:
+Here's a &ldquo;teaser&rdquo; image of what detector output looks like:
 
 ![alt text](images/detector_example.jpg "Red bounding box on fox")
 
