@@ -1,7 +1,7 @@
 #
 # make_eMammal_json.py
 #
-# Produces the COCO formatted json database for an eMammal dataset, i.e. a 
+# Produces the COCO-formatted json database for an eMammal dataset, i.e. a 
 # collection of folders, each of which contains a deployment_manifest.xml file.
 #
 # In this process, each image needs to be loaded to size it.
@@ -29,26 +29,26 @@ from tqdm import tqdm
 # ignoring all "PIL cannot read EXIF metainfo for the images" warnings
 # warnings.filterwarnings('ignore')
 
-# configurations and paths
-
 # Should we run the image size retrieval in parallel?
 run_parallel = False
-output_dir_path = r'd:\wildlife_data'
-deployments_path = r'd:\wildlife_data\apr_unzip'
+
+output_dir_path = r'd:\path'
+deployments_path = r'd:\other_path'
 db_filename = 'apr.json'
 corrupt_images_db_filename = 'apr_corrupt.json'
 
-description = 'American Prairie Reserve (via eMammal)'
-version = '0.0.1'
-contributor = 'American Prairie Reserve'
-curator = '.json created by Dan Morris'
+description = 'description'
+version = '1.0'
+contributor = 'contributor'
+curator = '.json created by curator'
 
 
 #%% Support functions
 
-def _add_image(entry, full_img_path):
-    
-    """ Open the image to get size information and add height and width to the image entry. """
+def _add_image(entry, full_img_path):    
+    """ 
+    Open the image to get size information and add height and width to the image entry. 
+    """
     
     img_width, img_height = helpers.get_img_size(full_img_path)
     if img_width == -1 or img_height == -1:
