@@ -11,20 +11,16 @@
 
 #%% Constants, imports, environment
 
-import tensorflow as tf
-import numpy as np
-import humanfriendly
-import time
-import matplotlib
-matplotlib.use('TkAgg')
-
-import matplotlib.image as mpimg
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
-import matplotlib.ticker as ticker
-import os
 import urllib.request as urlopen
 from io import BytesIO
+
+import matplotlib
+matplotlib.use('TkAgg')
+import matplotlib.patches as patches
+import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
+import numpy as np
+import tensorflow as tf
 from PIL import Image
 
 
