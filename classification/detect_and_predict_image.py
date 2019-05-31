@@ -450,7 +450,7 @@ def load_and_run_detector(detector_file, classifier_file, classes_file, image_fi
 
 #%% Interactive driver
 
-if True:
+if False:
 
     #%%
 
