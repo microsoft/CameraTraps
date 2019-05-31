@@ -407,7 +407,7 @@ def render_bounding_boxes(boxes, scores, species_scores, class_names, input_file
 # ...def render_bounding_boxes
 
 
-def load_and_run_detector(detection_file, classification_file, classes_file, image_file_names,
+def load_and_run_detector(detector_file, classifier_file, classes_file, image_file_names,
                           confidence_threshold=DEFAULT_CONFIDENCE_THRESHOLD, num_annotated_classes=NUM_ANNOTATED_CLASSES,
                           detection_graph=None, classification_graph=None):
 
@@ -417,10 +417,10 @@ def load_and_run_detector(detection_file, classification_file, classes_file, ima
 
     # Load and run detector on target images
     if detection_graph is None:
-        detection_graph = load_model(detection_file)
+        detection_graph = load_model(detector_file)
 
     if classification_graph is None:
-        classification_graph = load_model(classification_file)
+        classification_graph = load_model(classifier_file)
 
     startTime = time.time()
     boxes, scores, detection_classes, images = generate_detections(detection_graph,image_file_names)
@@ -521,11 +521,16 @@ def main():
     # python run_tf_detector.py "D:\temp\models\object_detection\megadetector\megadetector_v2.pb" --imageDir "d:\temp\demo_images\test"
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('detectorFile', type=str)
-    parser.add_argument('classificationFile', type=str)
-    parser.add_argument('--imageDir', action='store', type=str, default='', help='Directory to search for images, with optional recursion')
-    parser.add_argument('--imageFile', action='store', type=str, default='', help='Single file to process, mutually exclusive with imageDir')
-    parser.add_argument('--threshold', action='store', type=float, default=DEFAULT_CONFIDENCE_THRESHOLD, help='Confidence threshold, don''t render boxes below this confidence')
+    parser.add_argument('detector_file', type=str)
+    parser.add_argument('classifier_file', type=str)
+    parser.add_argument('--classes_file', action='store', type=str, help='File with the class names. Each line should contain ' + \
+                        ' one name and the first line should correspond to the first output, the second line to the second model output, etc.')
+    parser.add_argument('--image_dir', action='store', type=str, default='', help='Directory to search for images, with optional recursion')
+    parser.add_argument('--image_file', action='store', type=str, default='', help='Single file to process, mutually exclusive with imageDir')
+    parser.add_argument('--threshold', action='store', type=float, default=DEFAULT_CONFIDENCE_THRESHOLD,
+                        help='Confidence threshold, don''t render boxes below this confidence. Default: %.2f'%DEFAULT_CONFIDENCE_THRESHOLD)
+    parser.add_argument('--num_annotated_classes', action='store', type=int, default=NUM_ANNOTATED_CLASSES,
+                        help='Number of classes to annotated for each bounding box, default: %d'%NUM_ANNOTATED_CLASSES)
     parser.add_argument('--recursive', action='store_true', help='Recurse into directories, only meaningful if using --imageDir')
 
     if len(sys.argv[1:])==0:
@@ -534,23 +539,23 @@ def main():
 
     args = parser.parse_args()
 
-    if len(args.imageFile) > 0 and len(args.imageDir) > 0:
+    if len(args.image_file) > 0 and len(args.image_dir) > 0:
         raise Exception('Cannot specify both image file and image dir')
-    elif len(args.imageFile) == 0 and len(args.imageDir) == 0:
+    elif len(args.image_file) == 0 and len(args.image_dir) == 0:
         raise Exception('Must specify either an image file or an image directory')
 
-    if len(args.imageFile) > 0:
-        imageFileNames = [args.imageFile]
+    if len(args.image_file) > 0:
+        image_file_names = [args.imageFile]
     else:
-        imageFileNames = findImages(args.imageDir,args.recursive)
+        image_file_names = findImages(args.image_dir,args.recursive)
 
     # Hack to avoid running on already-detected images
-    imageFileNames = [x for x in imageFileNames if DETECTION_FILENAME_INSERT not in x]
+    image_file_names = [x for x in image_file_names if DETECTION_FILENAME_INSERT not in x]
 
-    print('Running detector on {} images'.format(len(imageFileNames)))
+    print('Running detector on {} images'.format(len(image_file_names)))
 
-    load_and_run_detector(detectorFile=args.detectorFile, classificationFile=args.classificationFile, imageFileNames=imageFileNames,
-                          confidenceThreshold=args.threshold)
+    load_and_run_detector(detector_file=args.detector_file, classifier_file=args.classifier_file, classes_file=args.classes_file,
+                          image_file_names=image_file_names, confidence_threshold=args.threshold, num_annotated_classes=args.num_annotated_classes)
 
 
 if __name__ == '__main__':
