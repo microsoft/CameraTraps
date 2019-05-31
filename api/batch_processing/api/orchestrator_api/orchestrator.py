@@ -99,7 +99,7 @@ class AMLCompute:
                                                                   'numpy',
                                                                   'azure',
                                                                   'azure-storage-blob',
-                                                                  'azureml-defaults'])
+                                                                  'azureml-defaults==1.0.41'])
 
             amlcompute_run_config = RunConfiguration(conda_dependencies=dependencies)
             amlcompute_run_config.environment.docker.enabled = True

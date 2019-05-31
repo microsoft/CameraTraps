@@ -92,4 +92,6 @@ class IndexedJsonDb:
         for ann in self.db['annotations']:
             self.image_id_to_annotations[ann['image_id']].append(ann)
             
+    # ...__init__
             
+# ...class IndexedJsonDb    

@@ -58,7 +58,7 @@ relevant paths to your PYTHONPATH variable using:
 
 ## Animal detection and cropping
 
-The detection, cropping, and dataset generation is done in `database_tools/make_classification_dataset.py`. You can run 
+The detection, cropping, and dataset generation is done in `data_management/databases/classification/make_classification_dataset.py`. You can run 
 `python make_classification_dataset.py -h` for a description of all required parameters.
 
     usage: make_classification_dataset.py [-h]
@@ -114,6 +114,8 @@ The detection, cropping, and dataset generation is done in `database_tools/make_
 
                             
 A typical command will look like:
+
+~~~
     python make_classification_dataset.py \
             /path/to/dataset.json \
             /path/to/image/root/ \
@@ -122,6 +124,7 @@ A typical command will look like:
             --tfrecords_output /path/to/tfrecords/output/ \
             --location_key location \
             --exclude_categories human empty
+~~~
 
 It is generally advisable to generate both the COCO-style and TFRecords output, as the former allows to check the
 detection results while the latter is used for classification training. The COCO-style output folder will also contain a 
@@ -172,11 +175,14 @@ The usage of the script is as follows:
                             which was used for splitting the dataset.
 
 This prints all statistics to stdout. You can save the output by redirecting it to a file:
+
+~~~
     python cropped_camera_trap_dataset_statistics.py \
         /path/to/dataset.json \
         /path/to/cocostyle/output/train.json \
         /path/to/cocostyle/output/test.json \
         > stats.txt
+~~~
 
 It is also useful to save the list of classes, which allows for associating the output of the classification CNN later with
 the classes. You can generate this class list by using the `--classlist_output` parameter.
