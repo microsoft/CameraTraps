@@ -7,9 +7,9 @@ IMAGE_CONTENT_TYPES = ['image/png', 'application/octet-stream', 'image/jpeg']
 
 GPU_BATCH_SIZE = 8
 
-MODEL_PATH = '/app/animal_detection_api/model/frozen_inference_graph.pb'
+MODEL_PATH = '/app/animal_detection_api/model/megadetector_v3_tf19.pb'
 
-MODEL_VERSION = 'models/object_detection/faster_rcnn_inception_resnet_v2_atrous/megadetector'
+MODEL_VERSION = 'megadetector_v3'
 
 # Camera trap images are usually 4:3 width to height
 # The config of the model in use (model/pipeline.config) has min_dimension

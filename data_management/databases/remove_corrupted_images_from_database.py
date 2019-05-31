@@ -7,16 +7,17 @@
 
 #%% Imports and constants
 
-import json
-import tensorflow as tf
 import argparse
-import numpy as np
-import time
-import humanfriendly
-import os
-from multiprocessing.pool import ThreadPool
 # import multiprocessing
 import gc
+import json
+import os
+import time
+from multiprocessing.pool import ThreadPool
+
+import humanfriendly
+import numpy as np
+import tensorflow as tf
 
 N_THREADS = 16 # 1 # multiprocessing.cpu_count()
 DEBUG_MAX_IMAGES = -1
@@ -28,8 +29,7 @@ IMAGE_PRINT_FREQUENCY = 10
 
 #%% Function definitions
 
-def check_images(images, image_file_root):
-    
+def check_images(images, image_file_root):    
     ''' 
     Checks all the images in [images] for corruption using TF.
     
@@ -90,7 +90,6 @@ def check_images(images, image_file_root):
 
 
 def remove_corrupted_images_from_database(data, image_file_root):
-
     '''
     Given the COCO database [data], checks all images for corruption using
     TF, and returns a subset of [data] containing only non-corrupted images.
