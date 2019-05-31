@@ -375,15 +375,33 @@ def render_bounding_boxes(boxes, scores, species_scores, class_names, input_file
             #
             # Origin is the upper-left
             iLeft = x
+            iRight = x + w
             iBottom = y
+            iTop = y + h
             rect = patches.Rectangle((iLeft,iBottom),w,h,linewidth=linewidth,edgecolor=edge_color,
                                      facecolor='none')
-
             # Add the patch to the Axes
             ax.add_patch(rect)
-            # Add class description
 
-            ax.text(iLeft, iBottom, box_text, backgroundcolor=edge_color, color='black')
+            # Add class description
+            # First determine best location by finding the corner that is closest to the image center
+            # relative corner coordinates
+            corners = np.array([[leftRel, bottomRel], [leftRel, topRel], [rightRel, bottomRel], [rightRel, topRel]])
+            # relative coordinates of image center
+            center = np.array([[0.5, 0.5]])
+            # Compute pair-wise squared distance and get the index of the one with minimal distance
+            best_corner_idx = ((center - corners)**2).sum(axis=1).argmin()
+            # Get the corresponding coordinates ...
+            best_corner = corners[best_corner_idx] * np.array([image_width, image_height])
+            # ... and alignment for the text box 
+            alignment_styles = [dict(horizontalalignment='left', verticalalignment='top'),
+                              dict(horizontalalignment='left', verticalalignment='bottom'),
+                              dict(horizontalalignment='right', verticalalignment='top'),
+                              dict(horizontalalignment='right', verticalalignment='bottom')]
+            best_alignment = alignment_styles[best_corner_idx]
+
+            # Plot the text box with background
+            ax.annotate(box_text, xy=best_corner, bbox=dict(boxstyle="round", color=edge_color, ec="0.5", alpha=1), **best_alignment)
 
         # ...for each box
 
