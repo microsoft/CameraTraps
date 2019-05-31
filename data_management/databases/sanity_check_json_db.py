@@ -20,14 +20,15 @@
 
 #%% Constants and environment
 
+import argparse
 import json
 import os
 import sys
-import argparse
-from tqdm import tqdm
-from operator import itemgetter
 from multiprocessing.pool import ThreadPool
+from operator import itemgetter
+
 from PIL import Image
+from tqdm import tqdm
 
 nThreads = 10
 
@@ -328,10 +329,14 @@ def main():
     
     parser = argparse.ArgumentParser()
     parser.add_argument('jsonFile')
-    parser.add_argument('--bCheckImageSizes', action='store_true', help='Validate image size and existence, requires baseDir to be specified')
-    parser.add_argument('--bFindUnusedImages', action='store_true', help='Check for images in baseDir that aren''t in the database, requires baseDir to be specified')
-    parser.add_argument('--baseDir', action='store', type=str, default='', help='Base directory for images')
-    parser.add_argument('--iMaxNumImages', action='store', type=int, default=-1, help='Cap on total number of images to check, mostly for debugging')
+    parser.add_argument('--bCheckImageSizes', action='store_true', 
+                        help='Validate image size and existence, requires baseDir to be specified')
+    parser.add_argument('--bFindUnusedImages', action='store_true', 
+                        help='Check for images in baseDir that aren''t in the database, requires baseDir to be specified')
+    parser.add_argument('--baseDir', action='store', type=str, default='', 
+                        help='Base directory for images')
+    parser.add_argument('--iMaxNumImages', action='store', type=int, default=-1, 
+                        help='Cap on total number of images to check, mostly for debugging')
     
     if len(sys.argv[1:])==0:
         parser.print_help()
