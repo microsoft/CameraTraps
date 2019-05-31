@@ -1,8 +1,19 @@
+#
+# predict_image.py
+#
+# Given a pointer to a frozen detection graph, runs inference on a single image,
+# printing the top classes to the console
+#
+
+#%% Imports
+
 import argparse
 import tensorflow as tf
 import os
-from PIL import Image
 import numpy as np
+
+
+#%% Command-line processing
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--frozen_graph', type=str,
@@ -13,10 +24,13 @@ parser.add_argument('--image_path', type=str,
                     help='Path to image file.')
 args = parser.parse_args()
 
-# Check that all files exists for easier debugging
+# Check that all files exist for easier debugging
 assert os.path.exists(args.frozen_graph)
 assert os.path.exists(args.classlist)
 assert os.path.exists(args.image_path)
+
+
+#%% Inference
 
 # Load frozen graph
 model_graph = tf.Graph()
@@ -29,17 +43,20 @@ graph = model_graph
 
 # Load class list
 classlist = open(args.classlist, 'rt').read().splitlines()
+
 # Remove empty lines
 classlist = [li for li in classlist if len(li)>0]
 
 with model_graph.as_default():
+    
     with tf.Session() as sess:
+        
         # Collect tensors for input and output
         image_tensor = tf.get_default_graph().get_tensor_by_name('input:0')
         predictions_tensor = tf.get_default_graph().get_tensor_by_name('output:0')
         predictions_tensor = tf.squeeze(predictions_tensor, [0])
 
-        # Read imag
+        # Read image
         with open(args.image_path, 'rb') as fi:
             image = sess.run(tf.image.decode_jpeg(fi.read(), channels=3))
             image = image / 255.
