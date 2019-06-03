@@ -55,7 +55,7 @@ Code for training species classifiers on new data sets, generally trained on cro
 
 Oh, and here&rsquo;s another &ldquo;teaser image&rdquo; of what you get at the end of training a classifier:
 
-<img src="images/warthog_classifications.jpg" style="width:500px;">
+<img src="images/warthog_classifications.jpg" width="500">
 
 ## data_management
 
