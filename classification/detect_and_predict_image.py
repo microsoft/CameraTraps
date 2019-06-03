@@ -1,16 +1,8 @@
 ######
 #
-# run_tf_detector.py
+# detect_and_predict_image.py
 #
-# Functions to load a TensorFlow detection model, run inference,
-# render bounding boxes on images, and write out the resulting
-# images (with bounding boxes).
-#
-# See the "test driver" cell for example invocation.
-#
-# It's clearly icky that if you give it blah.jpg, it writes the results to
-# blah.detections.jpg, but I'm defending this with the "just a demo script"
-# argument.
+# Runs both a detector and a classifier on a given image.
 #
 ######
 
@@ -375,9 +367,9 @@ def render_bounding_boxes(boxes, scores, species_scores, class_names, input_file
             #
             # Origin is the upper-left
             iLeft = x
-            iRight = x + w
+            # iRight = x + w
             iBottom = y
-            iTop = y + h
+            # iTop = y + h
             rect = patches.Rectangle((iLeft,iBottom),w,h,linewidth=linewidth,edgecolor=edge_color,
                                      facecolor='none')
             # Add the patch to the Axes
@@ -535,9 +527,6 @@ def findImages(dirName,bRecursive=False):
 
 def main():
 
-    # python run_tf_detector.py "D:\temp\models\object_detection\megadetector\megadetector_v2.pb" --imageFile "D:\temp\demo_images\test\S1_J08_R1_PICT0120.JPG"
-    # python run_tf_detector.py "D:\temp\models\object_detection\megadetector\megadetector_v2.pb" --imageDir "d:\temp\demo_images\test"
-
     parser = argparse.ArgumentParser()
     parser.add_argument('detector_file', type=str)
     parser.add_argument('classifier_file', type=str)
@@ -546,7 +535,7 @@ def main():
     parser.add_argument('--image_dir', action='store', type=str, default='', help='Directory to search for images, with optional recursion')
     parser.add_argument('--image_file', action='store', type=str, default='', help='Single file to process, mutually exclusive with imageDir')
     parser.add_argument('--threshold', action='store', type=float, default=DEFAULT_CONFIDENCE_THRESHOLD,
-                        help='Confidence threshold, don''t render boxes below this confidence. Default: %.2f'%DEFAULT_CONFIDENCE_THRESHOLD)
+                        help="Confidence threshold, don't render boxes below this confidence. Default: %.2f"%DEFAULT_CONFIDENCE_THRESHOLD)
     parser.add_argument('--num_annotated_classes', action='store', type=int, default=NUM_ANNOTATED_CLASSES,
                         help='Number of classes to annotated for each bounding box, default: %d'%NUM_ANNOTATED_CLASSES)
     parser.add_argument('--recursive', action='store_true', help='Recurse into directories, only meaningful if using --imageDir')
@@ -563,7 +552,7 @@ def main():
         raise Exception('Must specify either an image file or an image directory')
 
     if len(args.image_file) > 0:
-        image_file_names = [args.imageFile]
+        image_file_names = [args.image_file]
     else:
         image_file_names = findImages(args.image_dir,args.recursive)
 
