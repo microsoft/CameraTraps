@@ -29,6 +29,7 @@ def open_image(input):
     Returns:
         an PIL image object in RGB mode
     """
+    
     image = Image.open(input)
     if image.mode not in ('RGBA', 'RGB'):
         raise AttributeError('Input image not in RGBA or RGB mode and cannot be processed.')
@@ -82,6 +83,7 @@ def render_iMerit_boxes(boxes, classes, image,
     Returns:
         image will be altered in place
     """
+    
     display_boxes = []
     display_strs = []  # list of list, one list of strings for each bounding box (to accommodate multiple labels)
     for box, clss in zip(boxes, classes):
@@ -107,6 +109,7 @@ def render_db_bounding_boxes(boxes, classes, image, original_size=None,
     draw_bounding_boxes_on_image, allowing the caller to operate on a resized image
     by providing the original size of the image; bboxes will be scaled accordingly.
     """
+    
     display_boxes = []
     display_strs = []
     
@@ -165,8 +168,9 @@ def render_detection_bounding_boxes(detections, image,
         thickness: optional, rendering line thickness.
         color_map: optional, mapping the numerical label to bbox color.
 
-    image is modified in place!
+    image is modified in place.
     """
+    
     display_boxes = []
     display_strs = []  # list of lists, one list of strings for each bounding box (to accommodate multiple labels)
     classes = []
@@ -207,8 +211,9 @@ def render_detection_bounding_boxes_old(boxes_scores_classes, image,
         thickness: optional, rendering line thickness.
         color_map: optional, mapping the numerical label to bbox color.
 
-    image is modified in place!
+    image is modified in place.
     """
+    
     display_boxes = []
     display_strs = []  # list of lists, one list of strings for each bounding box (to accommodate multiple labels)
     classes = []
@@ -285,6 +290,7 @@ def draw_bounding_boxes_on_image(image,
                              bounding box is that it might contain
                              multiple labels.
     """
+    
     boxes_shape = boxes.shape
     if not boxes_shape:
         return
@@ -334,6 +340,7 @@ def draw_bounding_box_on_image(image,
         ymin, xmin, ymax, xmax as relative to the image.  Otherwise treat
         coordinates as absolute.
     """
+    
     color = COLORS[int(clss) % len(COLORS)]
 
     draw = ImageDraw.Draw(image)
@@ -367,7 +374,6 @@ def draw_bounding_box_on_image(image,
     for display_str in display_str_list[::-1]:
         text_width, text_height = font.getsize(display_str)
         margin = np.ceil(0.05 * text_height)
-
 
         draw.rectangle(
             [(left, text_bottom - text_height - 2 * margin), (left + text_width,
