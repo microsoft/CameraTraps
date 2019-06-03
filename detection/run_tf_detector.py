@@ -504,7 +504,7 @@ def main():
                         help='Single file to process, mutually exclusive with imageDir')
     parser.add_argument('--threshold', action='store', type=float, 
                         default=DEFAULT_CONFIDENCE_THRESHOLD, 
-                        help='Confidence threshold, don''t render boxes below this confidence')
+                        help="Confidence threshold, don't render boxes below this confidence")
     parser.add_argument('--recursive', action='store_true', 
                         help='Recurse into directories, only meaningful if using --imageDir')
     parser.add_argument('--forceCpu', action='store_true', 
