@@ -21,13 +21,12 @@ RUN ./ai4e_api_tools/requirements/install-appinsights.sh
 
 
 ### Package installation
-
 RUN echo "source activate ai4e_py_api" >> ~/.bashrc \
     && conda install -c conda-forge -n ai4e_py_api numpy pandas
 
 RUN /usr/local/envs/ai4e_py_api/bin/pip install --upgrade pip
 RUN /usr/local/envs/ai4e_py_api/bin/pip install tensorflow-gpu==1.9 pillow requests_toolbelt
-
+RUN /usr/local/envs/ai4e_py_api/bin/pip install gunicorn
 
 ### Copy the necessary files for running the API
 
@@ -42,14 +41,12 @@ COPY ./LocalForwarder.config /lf/
 
 # Copy your API code
 COPY ./animal_detection_api /app/animal_detection_api/
-COPY ./uwsgi.ini /uwsgi.ini
 
 # Add this API directory to PYTHONPATH
 ENV PYTHONPATH="${PYTHONPATH}:/app/"
 
 
 ### Environment variables, App Insights and health check
-
 # Application Insights keys and trace configuration
 ENV APPINSIGHTS_INSTRUMENTATIONKEY= \
     APPINSIGHTS_LIVEMETRICSSTREAMAUTHENTICATIONAPIKEY= \
@@ -66,9 +63,13 @@ ENV SERVICE_OWNER="AI4E_camera_trap" \
 
 ENV API_PREFIX=/v1/camera-trap/detection-sync
 
-
 # Expose the port that is to be used when calling your API
 EXPOSE 8024
 HEALTHCHECK --interval=1m --timeout=3s --start-period=20s \
   CMD curl -f http://localhost/ || exit 1
+
 ENTRYPOINT [ "/startup.sh" ]
+
+# Enable for guicorn testing via stdout
+#ENV PYTHONUNBUFFERED=TRUE
+#CMD ["gunicorn", "-b", "0.0.0.0:8024", "runserver:app"]

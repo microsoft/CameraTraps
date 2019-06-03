@@ -1,7 +1,3 @@
-import time
-import os
-import shutil
-
 #
 # copy_checkpoints.py
 #
@@ -9,6 +5,9 @@ import shutil
 # of every checkpoint (checkpoints are kept once an hour by default and is difficult to adjust)
 #
 
+import time
+import os
+import shutil
 
 check_every_n_minutes = 10
 
@@ -21,6 +20,7 @@ os.makedirs(target_dir, exist_ok=True)
 num_checks = 0
 
 while True:
+    
     num_checks += 1
     print('Checking round {}.'.format(num_checks))
 
