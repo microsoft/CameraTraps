@@ -4,12 +4,11 @@
 # In[1]:
 
 
-import PIL
-import numpy as np
-import tensorflow as tf
 import glob
-import tqdm
-import joblib
+
+import PIL
+import tensorflow as tf
+
 coord = None
 
 
@@ -70,7 +69,7 @@ def analyze_record(TFRECORDS_PATH):
         coord.join(threads)
     tf.reset_default_graph()
 from multiprocessing import Pool
-from joblib import Parallel, delayed
+
 p = Pool(maxtasksperchild=1)
 #tasks = list(glob.glob('/data/lila/nacti/cropped_tfrecords/t*'))
 #for _ in tqdm.tqdm(p.imap(analyze_record, tasks, chunksize=10), total=len(tasks)):

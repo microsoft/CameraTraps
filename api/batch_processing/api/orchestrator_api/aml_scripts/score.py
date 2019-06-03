@@ -140,8 +140,8 @@ if __name__ == '__main__':
     os.makedirs(args.output_dir, exist_ok=True)
     print('score.py, output_dir', args.output_dir)
 
-    # get model from model registry; always use version 1 - we don't use AML to manage model versions.
-    model_path = Model.get_model_path(args.model_name, version=1)
+    # get model from model registry
+    model_path = Model.get_model_path(args.model_name)
 
     print('score.py, model_path', model_path)
 

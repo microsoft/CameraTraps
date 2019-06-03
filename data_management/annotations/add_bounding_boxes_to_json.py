@@ -13,8 +13,10 @@
 import json
 import re
 from datetime import datetime, date
-from data_management.annotations import annotation_constants
+
 from tqdm import tqdm
+
+from data_management.annotations import annotation_constants
 
 
 #%% Configurations and paths
@@ -108,7 +110,10 @@ if len(description) > 0:
 db_info['date_created'] = str(date.today())
 
 
-#%% Find the height and width of images from the annotation files if they are not available in the images DB
+#%% Find the height and width of images from the annotation files
+#
+# ...if they are not available in the images DB
+
 if not image_db_has_dims:
     height_width_from_anno = {}
     for i_batch, annotation_path in enumerate(annotation_paths):
@@ -142,7 +147,7 @@ def idfg_add_image_entry(file_name):
     all_images[file_name] = {
         'id': file_name,
         'file_name': file_name,
-        'location': location
+        'location': location  # TODO bug - location should be region_name + camera_location
     }
 
 original_rspb_db = json.load(open('/Users/siyuyang/Source/temp_data/CameraTrap/databases_2018/rspb/rspb_gola.json'))

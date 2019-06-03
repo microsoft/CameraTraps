@@ -3,7 +3,7 @@
 This repo contains the tools for training, running, and evaluating detectors and classifiers for images collected from motion-triggered camera traps.  The core functionality provided is:
 
 - Data parsing from frequently-used camera trap metadata formats into a common format
-- Training and evaluation of detectors, particularly our "MegaDetector", which does a pretty good job finding terrestrial animals in a variety of ecosystems
+- Training and evaluation of detectors, particularly our &ldquo;MegaDetector&rdquo;, which does a pretty good job finding terrestrial animals in a variety of ecosystems
 - Training and evaluation of species-level classifiers for specific data sets
 - A Web-based demo that runs our models via a REST API that hosts them on a Web endpoint
 - Miscellaneous useful tools for manipulating camera trap data
@@ -26,9 +26,9 @@ This repo does not extensively host models, though we will release models when t
 
 ## MegaDetector
 
-Speaking of models that might be useful to other people, we have trained a one-class animal detector trained on several hundred thousand bounding boxes from a variety of ecosystems.  The model is based on Faster-RCNN with an InceptionResNetv2 base network, and was trained with the TensorFlow Object Detection API.  It can be downloaded [here](https://lilablobssc.blob.core.windows.net/models/camera_traps/megadetector/megadetector_v2.pb) (.pb).  We use this as our first stage for classifier training and inference.  An example script for invoking this detector on new images can be found [here](https://github.com/Microsoft/CameraTraps/blob/master/detection/run_tf_detector.py).  Let us know how it works on your images!
+Speaking of models that might be useful to other people, we have trained a one-class animal detector trained on several hundred thousand bounding boxes from a variety of ecosystems.  Lots more information &ndash; including download links &ndash; on the [MegaDetector page](megadetector.md).
 
-Here's a "teaser" image of what detector output looks like:
+Here's a &ldquo;teaser&rdquo; image of what detector output looks like:
 
 ![alt text](images/detector_example.jpg "Red bounding box on fox")
 
@@ -87,6 +87,25 @@ Random things that don't fit in any other directory.  Currently contains a singl
 ![alt text](images/nacti.jpg "Bird flying above water")
 
 Image credit USDA, from the [NACTI](http://lila.science/datasets/nacti) data set.
+
+
+# Installation
+
+The required Python packages for running utility scripts in this repo are listed in [requirements.txt](requirements.txt). Here're some instructions for setting up a conda virtual environment with the required packages.
+
+Python >= 3.5 should work. Create a virtual environment via conda called `cameratraps`, activates it, upgrade the Python package manager `pip`, and install the required packages:
+```
+conda create -n cameratraps python=3.5
+
+source activate cameratraps
+
+pip install --upgrade pip
+
+pip install -r requirements.txt
+```
+
+In some scripts, we also assume that you have the [AI for Earth utilities repo](https://github.com/Microsoft/ai4eutils) cloned and its path appended to $PYTHONPATH.
+
 
 # Contributing
 
