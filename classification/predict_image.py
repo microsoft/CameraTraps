@@ -15,9 +15,11 @@ import numpy as np
 
 #%% Command-line processing
 
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser('Given a pointer to a frozen detection graph, runs inference on a single image and prints resutls')
 parser.add_argument('--frozen_graph', type=str,
-                    help='Frozen graph of detection network as created by the freeze_graph.py script in the same directory.')
+                    help='Frozen graph of detection network as created by the freeze_graph.py script in the same directory. ' + \
+                    'The script assumes that the model already includes all necessary pre-processing.',
+                   metavar='PATH_TO_CLASSIFIER_W_PREPROCESSING')
 parser.add_argument('--classlist', type=str,
                     help='Path to text file containing the names of all possible categories.')
 parser.add_argument('--image_path', type=str,
