@@ -528,12 +528,12 @@ def findImages(dirName,bRecursive=False):
 def main():
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('detector_file', type=str, help='Generic detector for animals.'
-                       metavar='megadetector_v2.pb')
+    parser.add_argument('detector_file', type=str, help='Generic detector for animals.',
+                       metavar='PATH_TO_DETECTOR')
     parser.add_argument('classifier_file', type=str, help='Frozen graph for classification including pre-processing. The graphs ' + \
                         ' will receive an image with values in [0,1], so double check that you use the correct model. The script ' + \
                         ' `export_inference_graph_serengeti.sh` shows how to create such a model',
-                       metavar='frozen_inference_graph_w_preprocessing.pb')
+                       metavar='PATH_TO_CLASSIFIER_W_PREPROCESSING')
     parser.add_argument('--classes_file', action='store', type=str, help='File with the class names. Each line should contain ' + \
                         ' one name and the first line should correspond to the first output, the second line to the second model output, etc.')
     parser.add_argument('--image_dir', action='store', type=str, default='', help='Directory to search for images, with optional recursion')
