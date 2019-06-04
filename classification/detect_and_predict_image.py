@@ -527,7 +527,7 @@ def findImages(dirName,bRecursive=False):
 
 def main():
 
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description='Runs both a detector and a classifier on a given image.')
     parser.add_argument('detector_file', type=str, help='Generic detector for animals.',
                        metavar='PATH_TO_DETECTOR')
     parser.add_argument('classifier_file', type=str, help='Frozen graph for classification including pre-processing. The graphs ' + \
