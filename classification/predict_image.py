@@ -15,10 +15,10 @@ import numpy as np
 
 #%% Command-line processing
 
-parser = argparse.ArgumentParser('Given a pointer to a frozen detection graph, runs inference on a single image and prints resutls')
+parser = argparse.ArgumentParser(description='Given a pointer to a frozen detection graph, runs inference on a single image and prints results.')
 parser.add_argument('--frozen_graph', type=str,
-                    help='Frozen graph of detection network as created by the freeze_graph.py script in the same directory. ' + \
-                    'The script assumes that the model already includes all necessary pre-processing.',
+                    help='Frozen graph of detection network as created by the export_inference_graph_definition.py ' + \
+                    ' freeze_graph.py script. The script assumes that the model already includes all necessary pre-processing.',
                    metavar='PATH_TO_CLASSIFIER_W_PREPROCESSING')
 parser.add_argument('--classlist', type=str,
                     help='Path to text file containing the names of all possible categories.')
