@@ -1,3 +1,4 @@
+
 # Species classification training
 
 This directory contains a set of scripts for:
@@ -240,6 +241,44 @@ network, and then runs evaluation again. If everything goes well, the final top-
 at the end. 
 
 NOTE: It appears that there is a bug in the tf-slim code, which manifests in a significantly lower accuracy, e.g., 10% lower than expected. If you experiences issues with low accuracy values, try the following fix. After the training is finished, locate the created log directory, change the variable `TRAIN_DIR` in `train_serengeti_inception_v4.sh` to this folder. Now re-run `bash ../train_serengeti_inception_v4.sh`. The tensorflow training will recognize the existing checkpoints, read the model, and write out a new bug-free model.
+
+## Model export
+Trained models can be exported into a frozen graph, which includes all pre-processing steps and dependencies. This graph takes any image with values in the range `[0,1]` and computes the class scores. Please note that the training code generates a frozen graph as well. However, this graph does not include pre-processing and hence the correct input to this model depends on the architecture. 
+
+The export is a two-step process of exporting the architecture as a graph definition file using `export_inference_graph_definition.py` and then fusing this architecture with the learned parameters into a frozen graph using `freeze_graph.py`. Both scripts are in the folder `CameraTraps/classification` and were adapted from the similarly named scripts provided by Tensorflow. 
+
+The scripts should be executed using `CameraTraps/classification/tf-slim` as the current working directory. The syntax of `export_inference_graph_definition.py`  is as follows:
+
+	python ../export_inference_graph_definition.py \
+	    --model_name=ARCHITECTURE_NAME
+	    --output_file=PATH_TO_OUTPUT_PBTXT 
+	    --dataset_name=DATASET_NAME
+	    --write_text_graphdef=True
+	
+	Arguments:
+	ARCHITECTURE_NAME     Name of architecture as used in the training script.
+	PATH_TO_OUTPUT_PBTXT  Desired output path of the generated pbtxt file.
+	DATASET_NAME          Name of the datset as used in the training script.
+
+Once the pbtxt file is generated, the frozen graph can be generated with `freeze_graph.py`. The syntax is
+
+	python ../freeze_graph.py \
+	  --input_graph=PATH_TO_OUTPUT_PBTXT 
+	  --input_checkpoint=PATH_TO_MODEL_CKPT \
+	  --output_graph=PATH_TO_OUTPUT_GRAPH \
+	  --input_node_names=input \
+	  --output_node_names=output \
+	  --clear_devices=True
+
+	Arguments:
+	PATH_TO_OUTPUT_PBTXT    Path to exported graph definition.
+	PATH_TO_MODEL_CKPT      Path to checkpoint, which contains the learned parameters of the classifier.
+	PATH_TO_OUTPUT_GRAPH    Desired output file to write the frozen graph to. For example, `./frozen_inference_graph_w_preprocessing.pb`
+
+
+
+An example of the usage can be also found in the tutorial as well as in `CameraTraps/classification/export_inference_graph_serengeti.sh`.
+
 
 ## Remarks and advanced adjustments of training parameters
 The parameter `NUM_GPUS` in the training script is currently not used. The batch size and learning rates are optimized
