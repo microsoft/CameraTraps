@@ -9,7 +9,7 @@ import collections
 import shutil
 
 
-parser = argparse.ArgumentParser('Tools for sampling images from the testing split of a dataset and ' + \
+parser = argparse.ArgumentParser(description='Tools for sampling images from the testing split of a dataset and ' + \
                                  'predicting results with it.')
 # Mandatory parameters
 parser.add_argument('--frozen_graph', type=str,
