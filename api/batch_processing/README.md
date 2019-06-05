@@ -81,15 +81,42 @@ Not yet supported. If you have accidentally submitted a request, please contact 
 
 | Parameter                | Is required | Type | Explanation                 |
 |--------------------------|-------------|-------|----------------------------|
-| input_container_sas      | Yes         | string | SAS URL with list and read permissions to the Blob Storage container where the images are stored. |
-| images_requested_json_sas | No          | string | SAS URL with list and read permissions to a json file in Blob Storage. The json contains a list, where each item (a string) in the list is the full path to an image from the root of the container. An example of the content of this file: `["Season1/Location1/Camera1/image1.jpg", "Season1/Location1/Camera1/image2.jpg"]`.  Only images whose paths are listed here will be processed. |
+| input_container_sas      | Yes<sup>1</sup>         | string | SAS URL with list and read permissions to the Blob Storage container where the images are stored. |
+| images_requested_json_sas | No<sup>1</sup>        | string | SAS URL with list and read permissions to a json file in Blob Storage. See below for explanation of the content of the json to provide. |
 | image_path_prefix        | No          | string | Only process images whose full path starts with `image_path_prefix` (case-_sensitive_). Note that any image paths specified in `images_requested_json_sas` will need to be the full path from the root of the container, regardless whether `image_path_prefix` is provided. |
 | first_n                  | No          | int | Only process the first `first_n` images. Order of images is not guaranteed, but is likely to be alphabetical. Set this to a small number to avoid taking time to fully list all images in the blob (about 15 minutes for 1 million images) if you just want to try this API. |
-| sample_n                | No          |int | Randomly select `sample_n` images to process. |
-| model_version           | No          |string | Version of the MegaDetector model to use. Default is the most updated stable version (check using the `/default_model_version` endpoint). Supported versions are available at the `/supported_model_versions` endpoint.|
-| request_name            | No          |string | A string (letters, digits, `_`, `-` allowed, max length 32 characters) that will be appended to the output file names to help you identify the resulting files. A timestamp in UTC (`%Y%m%d%H%M%S`) of the time of submission will be appended to the resulting files automatically. |
+| sample_n                | No          | int | Randomly select `sample_n` images to process. |
+| model_version           | No          | string | Version of the MegaDetector model to use. Default is the most updated stable version (check using the `/default_model_version` endpoint). Supported versions are available at the `/supported_model_versions` endpoint.|
+| request_name            | No          | string | A string (letters, digits, `_`, `-` allowed, max length 32 characters) that will be appended to the output file names to help you identify the resulting files. A timestamp in UTC (`%Y%m%d%H%M%S`) of the time of submission will be appended to the resulting files automatically. |
+| use_url                  | No         | bool | True if the image URLs are used. |
+| caller                  | Yes         | string | An identifier that we use to whitelist users for now. |
 
-- We assume that all images you would like to process in this batch are uploaded to a container in Azure Blob Storage. 
+<sup>1</sup> There are two ways of giving the API access to your images. 
+
+1 - If you have all your images in a container in Azure Blob Storage, provide the parameter `input_container_sas` as described above. This means that your images do not have to be at publicly accessible URLs. In this case, the json pointed to by `images_requested_json_sas` should look like:
+```json
+[
+  "Season1/Location1/Camera1/image1.jpg", 
+  "Season1/Location1/Camera1/image2.jpg"
+]
+```
+Only images whose paths are listed here will be processed.
+
+2 - If your images are stored elsewhere and you can provide a publicly accessible URL to each of them, you do not need to specify `input_container_sas`. Instead, list the URLs to all the images (instead of their paths) you'd like to process in the json at `images_requested_json_sas`.
+
+
+#### Storing metadata
+We can store a (short) string of metadata with each image path or URL. The json at `images_requested_json_sas` should then look like:
+```json
+[
+  ["Season1/Location1/Camera1/image1.jpg", "metadata_string1"], 
+  ["Season1/Location1/Camera1/image2.jpg", "metadata_string2"]
+]
+``` 
+
+
+#### Other notes and example  
+
 - Only images with file name ending in '.jpg' or '.jpeg' (case insensitive) will be processed, so please make sure the file names are compliant before you upload them to the container (you cannot rename a blob without copying it entirely once it is in Blob Storage). 
 
 - By default we process all such images in the specified container. You can choose to only process a subset of them by specifying the other input parameters, and the images will be filtered out accordingly in this order:
@@ -108,7 +135,8 @@ Example body of the POST request:
   "image_path_prefix": "2019/Alberta_location1",
   "first_n": 100000,
   "request_name": "Alberta_l1",
-  "model_version": "3"
+  "model_version": "3",
+  "caller": "whitelisted_user_x"
 }
 ```
 

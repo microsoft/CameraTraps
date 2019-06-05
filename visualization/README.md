@@ -48,7 +48,7 @@ Example invocation of the script, images stored locally:
 python visualization/visualize_detector_output.py path_to/requestID_detections.json rendered_images_dir --confidence 0.9 --images_dir path_to_root_dir_of_original_images 
 ```
 
-Another example, for images stored in Azure blob storage and drawing a sample of 20 images:
+Another example, for images stored in Azure Blob Storage and drawing a sample of 20 images:
 ```
 python visualize_detector_output.py path_to/requestID_detections.json rendered_images_dir --confidence 0.9 --sas_url "https://storageaccountname.blob.core.windows.net/container-name?se=2019-04-06T23%3A38%3A00Z&sp=rl&sv=2018-03-28&sr=c&sig=A_LONG_STRING" --sample 20
 ```
