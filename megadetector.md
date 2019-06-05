@@ -54,3 +54,13 @@ Here&rsquo;s a neat <a href="http://dolphinvm.westus2.cloudapp.azure.com/video/d
 <a href="http://dolphinvm.westus2.cloudapp.azure.com/video/detector_video.html"><img width=600 src="http://dolphinvm.westus2.cloudapp.azure.com/video/mvideo.jpg"></a><br/>
 
 Image credit <a href="https://emammal.si.edu/">eMammal</a>.
+
+
+## Can you share the training data?
+
+This model is trained on bounding boxes from a variety of ecosystems, and many of the images we use in training are not publicly-shareable for license reasons.  We do train in part on bounding boxes from two public data sets:
+
+- [Caltech Camera Traps](http://lila.science/datasets/caltech-camera-traps)
+- [Snapshot Serengeti](http://lila.science/datasets/snapshot-serengeti)
+
+...so if our detector performs really well on those data sets, that&rsquo;s great, but it&rsquo;s a little bit cheating, because we haven&rsquo;t published the set of locations from those data sets that we use during training.
