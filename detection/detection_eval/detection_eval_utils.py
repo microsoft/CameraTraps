@@ -37,12 +37,10 @@ def group_detections_by_image(results, use_im=None):
     return per_image_detections, per_image_gts
 
 
-def plot_precision_recall(ax, cat, precision, recall, average_precision):
-    
+def plot_precision_recall(ax, precision, recall):
     if precision is None or recall is None:
         return
 
-    ax.set_title('Category {}, AP {:.4f}'.format(cat, average_precision))
     ax.plot(recall, precision)
     ax.set_xlim([0, 1])
     ax.set_ylim([0, 1])
