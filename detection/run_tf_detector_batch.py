@@ -511,9 +511,9 @@ def main():
     parser.add_argument('--forceCpu', action='store_true', 
                         help='Force CPU detection, even if a GPU is available')
     parser.add_argument('--checkpointFrequency', type=int, default=DEFAULT_CHECKPOINT_N_IMAGES,
-                        'Checkpoint results to allow restoration from crash points later')
+                        help='Checkpoint results to allow restoration from crash points later')
     parser.add_argument('--resumeFromCheckpoint', type=str, default=None,
-                        'Initiate inference from the specified checkpoint')
+                        help='Initiate inference from the specified checkpoint')
     
     if len(sys.argv[1:])==0:
         parser.print_help()
