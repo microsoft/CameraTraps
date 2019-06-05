@@ -15,6 +15,8 @@ COORD_DIGITS = 4
 
 class TFDetector:
 
+    detection_graph = None
+    
     def __init__(self, model_path):
         self.detection_graph = self.load_model(model_path)
 
