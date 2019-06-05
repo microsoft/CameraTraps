@@ -41,7 +41,7 @@ import PIL
 from tqdm import tqdm
 import pandas as pd
 
-from detection.detection_eval.load_api_results import write_api_results
+from api.batch_processing.load_api_results import write_api_results
 
 DEFAULT_CONFIDENCE_THRESHOLD = 0.5
 
