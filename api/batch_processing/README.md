@@ -201,12 +201,13 @@ The output of the detector is saved in `requestID_detections_requestName_timesta
     "images": [
         {
             "file": "/path/from/base/dir/image.jpg",
+            "meta": "a string of metadata if it was available in the list at images_requested_json_sas",
             "max_detection_conf": 0.926,
             "detections": [
                 {
                     "category": "1",
                     "conf": 0.926,
-                    "bbox": [0.0, 0.2762, 0.9539, 0.9825], 
+                    "bbox": [0.0, 0.2762, 0.1539, 0.2825], 
                     "classifications": [
                         ["3", 0.901],
                         ["1", 0.071],
@@ -216,7 +217,7 @@ The output of the detector is saved in `requestID_detections_requestName_timesta
                 {
                     "category": "1",
                     "conf": 0.061,
-                    "bbox": [0.0451, 0.1849, 0.9642, 0.4636]
+                    "bbox": [0.0451, 0.1849, 0.3642, 0.4636]
                 }
             ]
         }
@@ -229,10 +230,10 @@ The output of the detector is saved in `requestID_detections_requestName_timesta
 The bounding box in the `bbox` field is represented as
 
 ```
-[ymin, xmin, ymax, xmax]
+[x, y, width_of_box, height_of_box]
 ```
 
-where `(xmin, ymin)` is the upper-left corner of the detection bounding box. The coordinates are relative to the width and height of the image. 
+where `(x, y)` is the upper-left corner of the detection bounding box. The coordinates and box width and height are relative to the width and height of the image. 
 
 The detection category `category` can be interpreted using the `detection_categories` dictionary. 
 

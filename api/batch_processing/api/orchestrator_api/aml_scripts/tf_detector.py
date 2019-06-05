@@ -40,17 +40,17 @@ class TFDetector:
         return detection_graph
 
     @staticmethod
-    def open_image(input):
+    def open_image(input_file):
         """Opens an image in binary format using PIL.Image and convert to RGB mode.
 
         Args:
-            input: an image in binary format read from the POST request's body or
+            input_file: an image in binary format read from the POST request's body or
                 path to an image file (anything that PIL can open)
 
         Returns:
             an PIL image object in RGB mode
         """
-        image = Image.open(input)
+        image = Image.open(input_file)
         if image.mode not in ('RGBA', 'RGB'):
             raise AttributeError('Input image not in RGBA or RGB mode and cannot be processed.')
         if image.mode == 'RGBA':
@@ -65,10 +65,29 @@ class TFDetector:
         return image.resize((width, height))  # PIL is lazy, so image only loaded here, not in open_image()
 
     @staticmethod
-    def convert_numpy_floats_coords(np_array):
-        new = []
-        for i in np_array:
-            new.append(round(float(i), COORD_DIGITS))
+    def round_and_make_float(d):
+        return round(float(d), COORD_DIGITS)
+
+    @staticmethod
+    def convert_coords(np_array):
+        """ Two functionalities: convert the numpy floats to Python floats, and also change the coordinates from
+        [y1, x1, y2, x2] to [x1, y1, width_box, height_box] (in relative coordinates still).
+
+        Args:
+            np_array: array of predicted bounding box coordinates from the TF detector
+
+        Returns: array of predicted bounding box coordinates as Python floats and in [x1, y1, width_box, height_box]
+
+        """
+        # change from [y1, x1, y2, x2] to [x1, y1, width_box, height_box]
+        width_box = np_array[3] - np_array[1]
+        height_box = np_array[2] - np_array[0]
+
+        new = [np_array[1], np_array[0], width_box, height_box]  # cannot be a numpy array; needs to be a list
+
+        # convert numpy floats to Python floats
+        for i, d in enumerate(new):
+            new[i] = TFDetector.round_and_make_float(d)
         return new
 
     def _generate_detections_batch(self, images, sess, image_tensor, box_tensor, score_tensor, class_tensor):
@@ -97,7 +116,8 @@ class TFDetector:
             detections: list of detection entries with fields
                 'category': str, numerical class label
                 'conf': float rounded to CONF_DIGITS decimal places, score/confidence of the detection
-                'bbox': list of floats rounded to COORD_DIGITS decimal places, relative coordinates [y1, x1, y2, x2]
+                'bbox': list of floats rounded to COORD_DIGITS decimal places, relative coordinates
+                        [x, y, width_box, height_box]
             image_ids_completed: list of image_ids that were successfully processed
             failed_images_during_detection: list of image_ids that failed to process
         """
@@ -122,9 +142,9 @@ class TFDetector:
             score_tensor = self.detection_graph.get_tensor_by_name('detection_scores:0')
             class_tensor = self.detection_graph.get_tensor_by_name('detection_classes:0')
 
-            for b, (image_batch, image_id_batch) in enumerate(zip(image_batches, image_id_batches)):
+            for i_batch, (image_batch, image_id_batch) in enumerate(zip(image_batches, image_id_batches)):
                 try:
-                    print('tf_detector.py, processing batch {} out of {}.'.format(b + 1, len(image_batches)))
+                    print('tf_detector.py, processing batch {} out of {}.'.format(i_batch + 1, len(image_batches)))
 
                     b_box, b_score, b_class = self._generate_detections_batch(image_batch,
                                                                               sess, image_tensor,
@@ -139,7 +159,7 @@ class TFDetector:
                                 detection_entry = {
                                     'category': str(int(c)),  # use string type for the numerical class label, not int
                                     'conf': round(float(s), CONF_DIGITS),  # cast to float for json serialization
-                                    'bbox': TFDetector.convert_numpy_floats_coords(b)
+                                    'bbox': TFDetector.convert_coords(b)
                                 }
                                 detections_cur_image.append(detection_entry)
                                 if s > max_detection_conf:
@@ -152,10 +172,8 @@ class TFDetector:
                         })
                         image_ids_completed.append(image_id)
                 except Exception as e:
-                    failed_images_during_detection.extent(image_id_batch)
+                    failed_images_during_detection.extend(image_id_batch)
                     print('tf_detector.py, one batch of images failed, exception: {}'.format(str(e)))
                     continue
 
         return detections, image_ids_completed, failed_images_during_detection
-
-
