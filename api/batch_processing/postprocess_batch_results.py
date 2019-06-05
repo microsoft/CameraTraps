@@ -48,7 +48,7 @@ from write_html_image_list import write_html_image_list
 import visualization.visualization_utils as vis_utils
 from data_management.cct_json_utils import CameraTrapJsonUtils
 from data_management.cct_json_utils import IndexedJsonDb
-from detection.detection_eval.load_api_results import load_api_results
+from api.batch_processing.load_api_results import load_api_results
 
 
 ##%% Options
