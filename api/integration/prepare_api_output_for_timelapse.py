@@ -12,6 +12,31 @@
 # * Replaces backslashes with forward slashes
 # * Renames "detections" to "predicted_boxes"
 #
+# Note that "relative" paths as interpreted by Timelapse aren't strictly relative as
+# of 6/5/2019.  If your project is in:
+#
+# c:\myproject
+#
+# ...and your .tdb file is:
+#
+# c:\myproject\blah.tdb
+#
+# ...and you have an image at:
+#
+# c:\myproject\imagefolder1\img.jpg
+#
+# The .csv that Timelapse sees should refer to this as:
+#
+# myproject/imagefolder1/img.jpg
+# 
+# ...*not* as:
+#
+# imagefolder1/img.jpg
+#
+# Hence all the search/replace functionality in this script.  It's very straightforward
+# once you get this and doesn't take time, but it's easy to forget to do this.  This will
+# be fixed in an upcoming release.
+#
 
 #%% Constants and imports
 
@@ -29,12 +54,18 @@ import matlab_porting_tools as mpt
 
 #%% Helper classes
 
-class SubsetDetectorOutputOptions:
+class TimelapsePrepOptions:
     
+    # Only process rows matching this query (if not None); this is processed
+    # after applying os.normpath to filenames.
+    query = None
+    
+    # If not none, replace the query token with this
     replacement = None
-    prepend = ''
-    replacement = ''
-    query = ''
+    
+    # If not none, prepend matching filenames with this
+    prepend = None
+    
     removeClassLabel = False
     nRows = None
     temporaryMatchColumn = '_bMatch'
@@ -51,10 +82,10 @@ def process_row(row,options):
             detections[iDetection] = detection[0:5]
             
     # If there's no query, we're just pre-pending
-    if len(options.query) == 0:
+    if options.query is None:
         
         row[options.temporaryMatchColumn] = True
-        if len(options.prepend) > 0:
+        if options.prepend is not None:
             row['image_path'] = options.prepend + row['image_path']
         
     else:
@@ -64,7 +95,7 @@ def process_row(row,options):
             
             row[options.temporaryMatchColumn] = True
             
-            if len(options.prepend) > 0:
+            if options.prepend is not None:
                 row['image_path'] = options.prepend + row['image_path']
             
             if options.replacement is not None:
@@ -76,12 +107,13 @@ def process_row(row,options):
 
 #%% Main function
                 
-def subset_detector_output(inputFilename,outputFilename,options):
+def prepare_api_output_for_timelapse(inputFilename,outputFilename,options):
 
     if options is None:    
-        options = SubsetDetectorOutputOptions()
-            
-    options.query = os.path.normpath(options.query)
+        options = TimelapsePrepOptions()
+    
+    if options.query is not None:
+        options.query = os.path.normpath(options.query)
     
     detectionResults = load_api_results(inputFilename,nrows=options.nRows)
     nRowsLoaded = len(detectionResults)
@@ -118,21 +150,21 @@ if False:
 
     #%%   
     
-    inputFilename = r"D:\wildlife_data\idfg\idfg_7517_detections.refiltered_2019.05.17.15.31.28.csv"
-    outputFilename = mpt.insert_before_extension(inputFilename,'for_timelapse_clearcreek')
+    inputFilename = r"D:\temp\demo_images\snapshot_serengeti\detections.csv"
+    outputFilename = mpt.insert_before_extension(inputFilename,'for_timelapse')
     
-    options = SubsetDetectorOutputOptions()
+    options = TimelapsePrepOptions()
     options.prepend = ''
-    options.replacement = None 
-    options.query = 'ClearCreek_mustelids'
+    options.replacement = 'snapshot_serengeti'
+    options.query = r'd:\temp\demo_images\snapshot_serengeti'
     options.nRows = None 
     options.removeClassLabel = True
         
-    detectionResults = subset_detector_output(inputFilename,outputFilename,options)
+    detectionResults = prepare_api_output_for_timelapse(inputFilename,outputFilename,options)
     print('Done, found {} matches'.format(len(detectionResults)))
 
     
-#%% Command-line driver (outdated)
+#%% Command-line driver (** outdated **)
 
 import argparse
 import inspect
@@ -151,17 +183,17 @@ def main():
     
     parser = argparse.ArgumentParser()
     parser.add_argument('inputFile')
-    parser.add_argument('outputFile')
-    parser.add_argument('query')
-    
+    parser.add_argument('outputFile')    
+    parser.add_argument('--query', action='store', type=str, default=None)
+    parser.add_argument('--prepend', action='store', type=str, default=None)
     parser.add_argument('--replacement', action='store', type=str, default=None)
     args = parser.parse_args()    
     
     # Convert to an options object
-    options = SubsetDetectorOutputOptions
+    options = TimelapsePrepOptions()
     argsToObject(args,options)
     
-    subset_detector_output(args.inputFile,args.outputFile,args.query,options)
+    prepare_api_output_for_timelapse(args.inputFile,args.outputFile,args.query,options)
 
 if __name__ == '__main__':
     
