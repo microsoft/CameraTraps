@@ -42,6 +42,7 @@ from tqdm import tqdm
 import pandas as pd
 
 from api.batch_processing.load_api_results import write_api_results
+from api.batch_processing.api.orchestrator_api.aml_scripts.tf_detector import TFDetector
 
 DEFAULT_CONFIDENCE_THRESHOLD = 0.5
 
@@ -96,23 +97,7 @@ class CheckPointState:
         
 #%% Core detection functions
 
-def load_model(checkpoint):
-    """
-    Load a detection model (i.e., create a graph) from a .pb file
-    """
-
-    detection_graph = tf.Graph()
-    with detection_graph.as_default():
-        od_graph_def = tf.GraphDef()
-        with tf.gfile.GFile(checkpoint, 'rb') as fid:
-            serialized_graph = fid.read()
-            od_graph_def.ParseFromString(serialized_graph)
-            tf.import_graph_def(od_graph_def, name='')
-    
-    return detection_graph
-
-
-def generate_detections(detection_graph,images,options):
+def generate_detections(detector,images,options):
     """
     boxes,scores,classes,images = generate_detections(detection_graph,images)
 
@@ -151,6 +136,8 @@ def generate_detections(detection_graph,images,options):
     print('Running detector...')    
     startTime = time.time()
     firstImageCompleteTime = startTime
+    
+    detection_graph = detector.detection_graph
     
     with detection_graph.as_default():
         
@@ -298,7 +285,7 @@ def generate_detections(detection_graph,images,options):
 
 imageExtensions = ['.jpg','.jpeg','.gif','.png']
     
-def isImageFile(s):
+def is_image_file(s):
     """
     Check a file's extension against a hard-coded set of image file extensions    '
     """
@@ -307,7 +294,7 @@ def isImageFile(s):
     return ext.lower() in imageExtensions
     
     
-def findImageStrings(strings):
+def find_image_strings(strings):
     """
     Given a list of strings that are potentially image file names, look for strings
     that actually look like image file names (based on extension).
@@ -316,14 +303,14 @@ def findImageStrings(strings):
     imageStrings = []
     bIsImage = [False] * len(strings)
     for iString,f in enumerate(strings):
-        bIsImage[iString] = isImageFile(f) 
+        bIsImage[iString] = is_image_file(f) 
         if bIsImage[iString]:
             imageStrings.append(f)
         
     return imageStrings
 
     
-def findImages(dirName,bRecursive=False):
+def find_images(dirName,bRecursive=False):
     """
     Find all files in a directory that look like image file names
     """
@@ -332,12 +319,12 @@ def findImages(dirName,bRecursive=False):
     else:
         strings = glob.glob(os.path.join(dirName,'*.*'))
         
-    imageStrings = findImageStrings(strings)
+    imageStrings = find_image_strings(strings)
     
     return imageStrings
 
 
-def optionsToImages(options):
+def options_to_images(options):
     """
     Figure out what images the caller wants to process
     """
@@ -345,14 +332,14 @@ def optionsToImages(options):
     # Can be a singe image file, a text file containing a list of images, or a directory
     if os.path.isdir(options.imageFile):
         
-        imageFileNames = findImages(options.imageFile,options.recursive)
+        imageFileNames = find_images(options.imageFile,options.recursive)
         imageFileNames.append('asdfasdfasd')
         
     else:
         
         assert os.path.isfile(options.imageFile)
         
-        if isImageFile(options.imagefile):
+        if is_image_file(options.imagefile):
             imageFileNames = [options.imageFile]
         else:
             with open(options.imageFile) as f:
@@ -362,7 +349,7 @@ def optionsToImages(options):
     return imageFileNames
 
 
-def detectorOutputToApiOutput(imageFileNames,options,boxes,scores,classes):
+def detector_output_to_api_output(imageFileNames,options,boxes,scores,classes):
     """
     Converts the output of the TFODAPI detector to the format used by our batch
     API, as a pandas table.    
@@ -415,9 +402,9 @@ def detectorOutputToApiOutput(imageFileNames,options,boxes,scores,classes):
 
 #%% Main function
 
-def load_and_run_detector(options,detection_graph=None):
+def load_and_run_detector(options,detector=None):
     
-    imageFileNames = optionsToImages(options)
+    imageFileNames = options_to_images(options)
     
     if options.forceCpu:
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -429,21 +416,22 @@ def load_and_run_detector(options,detection_graph=None):
         print('Warning: no files available')
         return
     
-    # Load and run detector on target images
-    print('Loading model...')
-    startTime = time.time()
-    if detection_graph is None:
-        detection_graph = load_model(options.detectorFile)
-    elapsed = time.time() - startTime
-    print("Loaded model in {}".format(humanfriendly.format_timespan(elapsed)))
+    # Load detector if necessary
+    if detector is None:
+        startTime = time.time()
+        print('Loading model...')
+        detector = TFDetector(options.detectorFile)
+        elapsed = time.time() - startTime
+        print("Loaded model in {}".format(humanfriendly.format_timespan(elapsed)))
     
-    boxes,scores,classes,imageFileNames = generate_detections(detection_graph,imageFileNames,options)
+    # Run detector on target images
+    boxes,scores,classes,imageFileNames = generate_detections(detector,imageFileNames,options)
     
     assert len(boxes) == len(imageFileNames)
     
     print('Writing output...')
     
-    df = detectorOutputToApiOutput(imageFileNames,options,boxes,scores,classes)
+    df = detector_output_to_api_output(imageFileNames,options,boxes,scores,classes)
     write_api_results(df,options.outputFile)
     
     return boxes,scores,classes,imageFileNames
@@ -456,18 +444,19 @@ if False:
     #%%
     
     options = BatchDetectionOptions()
-    options.detectorFile = r'D:\temp\models\object_detection\megadetector\megadetector_v2.pb'
-    options.imageFile = r'D:\temp\demo_images\uw_kachel'    
-    options.outputFile = r'd:\temp\detector_out.csv'
+    options.detectorFile = r'D:\temp\models\megadetector_v3\step_686872_tf19\megadetector_v3.pb'
+    options.imageFile = r'D:\temp\demo_images\ssmini'    
+    options.outputFile = r'D:\temp\demo_images\ssmini\detector_out.json'
     options.recursive = True
     options.checkpointFrequency = 1
-    options.resumeFromCheckpoint = r'C:\Users\dan\AppData\Local\Temp\detector_batch\tmp77xdq9dp'
+    options.forceCpu = True
+    options.resumeFromCheckpoint = None # r'C:\Users\dan\AppData\Local\Temp\detector_batch\tmp77xdq9dp'
     
     print('Loading model...',end='')
-    detection_graph = load_model(options.detectorFile)
+    detector = TFDetector(options.detectorFile)
     print('...done')
     
-    boxes,scores,classes,imageFileNames = load_and_run_detector(options,detection_graph)
+    boxes,scores,classes,imageFileNames = load_and_run_detector(options,detector)
     
     #%% Post-processing with process_batch_results... this can also be run from the
     #   command line.
