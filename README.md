@@ -85,13 +85,6 @@ Ongoing research projects that use this repository in one way or another; as of 
 Random things that don&rsquo;t fit in any other directory.  Currently contains a single file, a not-super-useful but super-duper-satisfying and mostly-successful attempt to use OCR to pull metadata out of image pixels in a fairly generic way, to handle those pesky cases when image metadata is lost.
 
 
-# Gratuitous pretty camera trap picture
-
-![alt text](images/nacti.jpg "Bird flying above water")
-
-Image credit USDA, from the [NACTI](http://lila.science/datasets/nacti) data set.
-
-
 # Installation
 
 The required Python packages for running utility scripts in this repo are listed in [requirements.txt](requirements.txt). Here are some instructions for setting up a conda virtual environment with the required packages.
@@ -108,6 +101,13 @@ pip install -r requirements.txt
 ```
 
 In some scripts, we also assume that you have the [AI for Earth utilities repo](https://github.com/Microsoft/ai4eutils) cloned and its path appended to $PYTHONPATH.
+
+
+# Gratuitous pretty camera trap picture
+
+![alt text](images/nacti.jpg "Bird flying above water")
+
+Image credit USDA, from the [NACTI](http://lila.science/datasets/nacti) data set.
 
 
 # Contributing
