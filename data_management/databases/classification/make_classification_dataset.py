@@ -158,11 +158,12 @@ for old_cat_id in cat_id_to_names.keys():
                                          supercategory='entity'))
 test_json['categories'] = training_json['categories']
 
+
 # Split the dataset by locations
 random.seed(0)
 print('Example of the annotation of a single image:')
 print(list(coco.imgs.items())[0])
-print('The corresponding category annoation:')
+print('The corresponding category annotation:')
 print(coco.imgToAnns[list(coco.imgs.items())[0][0]])
 locations = set([ann[SPLIT_BY] for ann in coco.imgs.values()])
 test_locations = sorted(random.sample(sorted(locations), max(1, int(TEST_FRACTION * len(locations)))))
@@ -242,7 +243,7 @@ with graph.as_default():
       detection_masks_reframed = utils_ops.reframe_box_masks_to_image_masks(
           detection_masks, detection_boxes, image.shape[0], image.shape[1])
       detection_masks_reframed = tf.cast(
-          tf.greater(detection_masks_reframed, 0.5), tf.uint8)
+          tf.greater(detection_masks_reframed, 0.8), tf.uint8)
       # Follow the convention by adding back the batch dimension
       tensor_dict['detection_masks'] = tf.expand_dims(
           detection_masks_reframed, 0)
@@ -254,6 +255,7 @@ with graph.as_default():
     for cur_image_id in tqdm.tqdm(list(sorted([vv['id'] for vv in coco.imgs.values()]))):
       cur_image = coco.loadImgs([cur_image_id])[0]
       cur_file_name = cur_image['file_name']
+      cur_file_name = cur_file_name.replace('\\', '/') # if OS pathname separator is '\', change it to '/'
       # Path to the input image
       in_file = os.path.join(IMAGE_DIR, cur_file_name)
       # Skip the image if it is annotated with more than one category
@@ -309,8 +311,8 @@ with graph.as_default():
         detections[cur_image_id] = output_dict
 
       imsize = cur_image['width'], cur_image['height']
-      # Select detections with a confidence larger 0.5
-      selection = output_dict['detection_scores'] > 0.5
+      # Select detections with a confidence larger 0.8
+      selection = output_dict['detection_scores'] > 0.8
       # Get these boxes and convert normalized coordinates to pixel coordinates
       selected_boxes = (output_dict['detection_boxes'][selection] * np.tile([imsize[1],imsize[0]], (1,2)))
       # Pad the detected animal to a square box and additionally by PADDING_FACTOR, the result will be in crop_boxes
