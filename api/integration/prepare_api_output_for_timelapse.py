@@ -23,7 +23,7 @@ import os
 from tqdm import tqdm
 
 # AI4E repos, expected to be available on the path
-from detection.detection_eval.load_api_results import load_api_results
+from api.batch_processing.load_api_results import load_api_results
 import matlab_porting_tools as mpt
 
 
