@@ -129,8 +129,6 @@ def _compute_precision_recall(per_image_detections, per_image_gts, num_gt_classe
     }
 
     return per_cat_metrics
-
-# ..._compute_precision_recall
     
 
 def compute_precision_recall(results, exclude_person_images):
@@ -164,8 +162,8 @@ def compute_precision_recall(results, exclude_person_images):
     for i, (cat, cat_metrics) in enumerate(per_cat_metrics):
         ax = fig.add_subplot(num_gt_classes + 1, 1, i + 1)  # nrows, ncols, and index
         ax.set_aspect('equal')
-        utils.plot_precision_recall(ax, cat, cat_metrics['precision'], 
-                                    cat_metrics['recall'], cat_metrics['average_precision'])
+        ax.set_title('Category {}, AP {:.4f}'.format(cat, cat_metrics['average_precision']))
+        utils.plot_precision_recall(ax, cat_metrics['precision'], cat_metrics['recall'])
 
     fig.tight_layout()
 
