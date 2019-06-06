@@ -4,7 +4,7 @@ import json
 import os
 import sys
 from datetime import datetime
-from urllib import parse
+from urllib import parse, request
 
 import azureml.core
 from azure.storage.blob import BlockBlobService
@@ -14,6 +14,7 @@ from azureml.core.run import Run
 from tf_detector import TFDetector
 
 print('score.py, beginning, using AML version {}'.format(azureml.core.__version__))
+
 
 class BatchScorer:
 
@@ -32,11 +33,17 @@ class BatchScorer:
         self.batch_size = kwargs.get('batch_size')
 
         self.image_ids_to_score = kwargs.get('image_ids_to_score')
+        self.use_url = kwargs.get('use_url')
         self.images = []
+
+        # determine if there is metadata attached to each image_id
+        self.metadata_available = True if isinstance(self.image_ids_to_score[0], list) else False
 
         self.detections = []
         self.image_ids = []  # all the IDs of the images that PIL successfully opened
-        self.failed_images = []  # list of image_ids that failed to open
+        self.image_metas = []  # if metadata came with the list of image_ids, keep them here
+        self.failed_images = []  # list of image_ids that failed to open or be processed
+        self.failed_metas = []  # their corresponding metadata
 
     @staticmethod
     def get_account_from_uri(sas_uri):
@@ -67,34 +74,56 @@ class BatchScorer:
         return container
 
     def download_images(self):
-        print('BatchScorer, download_images()')
 
-        blob_service = BlockBlobService(
-            account_name=BatchScorer.get_account_from_uri(self.input_container_sas),
-            sas_token=BatchScorer.get_sas_key_from_uri(self.input_container_sas))
-        container_name = BatchScorer.get_container_from_uri(self.input_container_sas)
+        print('BatchScorer, download_images(), use_url is {}, metadata_available is {}'.format(
+            self.use_url, self.metadata_available))
+        print('Type of self.use_url is {}'.format(type(self.use_url)))
 
-        for image_id in self.image_ids_to_score:
+        if not self.use_url:
+            print('blob_service created')
+            blob_service = BlockBlobService(
+                account_name=BatchScorer.get_account_from_uri(self.input_container_sas),
+                sas_token=BatchScorer.get_sas_key_from_uri(self.input_container_sas))
+            container_name = BatchScorer.get_container_from_uri(self.input_container_sas)
+
+        for i in self.image_ids_to_score:
+            if self.metadata_available:
+                image_id = i[0]
+                image_meta = i[1]
+            else:
+                image_id = i
+                image_meta = None
+
             try:
-                stream = io.BytesIO()
-                _ = blob_service.get_blob_to_stream(container_name, image_id, stream)
-                image = TFDetector.open_image(stream)
-                image = TFDetector.resize_image(image)  # image loaded here
+                if self.use_url:
+                    # local_filename will be a tempfile with a generated name
+                    local_filename, headers = request.urlretrieve(image_id)  # TODO do not save to disk
+                    image = TFDetector.open_image(local_filename)
+                    image = TFDetector.resize_image(image)
+                else:
+                    stream = io.BytesIO()
+                    _ = blob_service.get_blob_to_stream(container_name, image_id, stream)
+                    image = TFDetector.open_image(stream)
+                    image = TFDetector.resize_image(image)  # image loaded here
+
                 self.images.append(image)
                 self.image_ids.append(image_id)
+                self.image_metas.append(image_meta)
             except Exception as e:
-                print('score.py, failed to download or open image {}, exception: {}'.format(image_id, str(e)))
+                print('score.py, failed to download or open image {}: {}'.format(image_id, str(e)))
                 self.failed_images.append(image_id)
+                self.failed_metas.append(image_meta)
                 continue
+
 
     def score(self):
         print('BatchScorer, score()')
         # self.image_ids does not include any failed images; self.image_ids is overwritten here
-        self.detections, self.image_ids, failed_images_during_detection = \
-            self.detector.generate_detections_batch(
-                self.images, self.image_ids, self.batch_size, self.detection_threshold)
+        self.detections, failed_images, failed_metas = self.detector.generate_detections_batch(
+            self.images, self.image_ids, self.image_metas, self.batch_size, self.detection_threshold)
 
-        self.failed_images.extend(failed_images_during_detection)
+        self.failed_images.extend(failed_images)
+        self.failed_metas.extend(failed_metas)
 
     def write_output(self):
         """Uploads a json containing all the detections (a subset of the "images" field of the final
@@ -108,8 +137,14 @@ class BatchScorer:
             json.dump(self.detections, f, indent=1)
 
         failed_path = os.path.join(self.output_dir, 'failures_{}.json'.format(self.job_id))
+
+        if self.metadata_available:
+            failed_items = [[image_id, meta] for (image_id, meta) in zip(self.failed_images, self.failed_metas)]
+        else:
+            failed_items = self.failed_images
+
         with open(failed_path, 'w') as f:
-            json.dump(self.failed_images, f, indent=1)
+            json.dump(failed_items, f, indent=1)
 
 
 if __name__ == '__main__':
@@ -121,7 +156,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Batch score images using an object detection model.')
     parser.add_argument('--job_id', required=True)
     parser.add_argument('--model_name', required=True)
-    parser.add_argument('--input_container_sas', required=True)
+    parser.add_argument('--input_container_sas')
+    parser.add_argument('--use_url')  # use public URLs to download images, instead of from Azure blobs
     # API's internal container where the list of image paths is stored
     parser.add_argument('--internal_dir', required=True)
 
@@ -135,6 +171,13 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', type=int, default=8)
 
     args = parser.parse_args()
+
+    # bool argument parsing is tricky - bool(any string) is True
+    if args.use_url and str(args.use_url).lower() in ['true', 't', 'yes', 'y', '1']:
+        args.use_url = True
+    else:
+        args.use_url = False
+
     print('score.py, args to the scripts are', str(args))
 
     os.makedirs(args.output_dir, exist_ok=True)
@@ -158,6 +201,7 @@ if __name__ == '__main__':
     print('score.py, len(list_images)', len(list_images))
 
     if len(list_images) == 0:
+        print('Zero images in specified overall list, exiting.')
         sys.exit(0)
 
     # exclude the end_index; default is to process all images in this request
@@ -172,7 +216,13 @@ if __name__ == '__main__':
         raise ValueError('Indices {} and {} are not allowed for the image list of length {}'.format(
             args.begin_index, args.end_index, len(list_images)
         ))
+
+    # items in this array can be strings or [image_id, metadata]
     image_ids_to_score = list_images[begin_index:end_index]
+    if len(image_ids_to_score) == 0:
+        print('Zero images in the shard, exiting')
+        sys.exit(0)
+
     print('score.py, processing from index {} to {}. Length of images_shard is {}.'.format(
         begin_index, end_index, len(image_ids_to_score)))
 
@@ -180,6 +230,7 @@ if __name__ == '__main__':
                          input_container_sas=args.input_container_sas,
                          job_id=args.job_id,
                          image_ids_to_score=image_ids_to_score,
+                         use_url=args.use_url,
                          output_dir=args.output_dir,
                          detection_threshold=args.detection_threshold,
                          batch_size=args.batch_size)

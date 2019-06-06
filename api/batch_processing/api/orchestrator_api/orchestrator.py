@@ -75,11 +75,41 @@ def spot_check_blob_paths_exist(paths, container_sas):
     return path
 
 
+def validate_provided_image_paths(image_paths):
+    if len(image_paths) == 0:
+        return None
+    first_item = image_paths[0]
+    if isinstance(first_item, str):
+        for i in image_paths:
+            if not isinstance(i, str):
+                return 'Not all items in image_paths supplied is of type string.'
+        return None
+    elif isinstance(first_item, list):
+        for i in image_paths:
+            if len(i) != 2:  # i should be [image_id, metadata_string]
+                return 'Items in image_paths are lists, but not all lists are of length 2 [image locator, metadata].'
+        return None
+    else:
+        return 'image_paths contain items that are not strings nor lists.'
+
+
+def sort_image_paths(image_paths):
+    if len(image_paths) == 0:
+        return image_paths
+    first_item = image_paths[0]
+    if isinstance(first_item, str):
+        return sorted(image_paths)
+    else:
+        return sorted(image_paths, key=lambda x: x[0])
+
+
 # %% AML Compute
 
 class AMLCompute:
-    def __init__(self, request_id, input_container_sas, internal_datastore, model_name):
+    def __init__(self, request_id, use_url, input_container_sas, internal_datastore, model_name):
         try:
+            self.request_id = request_id
+
             aml_config = api_config.AML_CONFIG
 
             self.ws = Workspace(
@@ -115,14 +145,14 @@ class AMLCompute:
 
             param_detection_threshold = PipelineParameter(name='param_detection_threshold', default_value=0.05)
             param_batch_size = PipelineParameter(name='param_batch_size', default_value=8)
-
             batch_score_step = PythonScriptStep(aml_config['script_name'],
                                                 source_directory=aml_config['source_dir'],
                                                 hash_paths=['.'],  # include all contents of source_directory
                                                 name='batch_scoring',
                                                 arguments=['--job_id', param_job_id,
                                                            '--model_name', model_name,
-                                                           '--input_container_sas', input_container_sas,
+                                                           '--input_container_sas', input_container_sas,  # can be None
+                                                           '--use_url', use_url,
                                                            '--internal_dir', internal_dir,
                                                            '--begin_index', param_begin_index,  # inclusive
                                                            '--end_index', param_end_index,  # exclusive
@@ -185,7 +215,7 @@ class AMLCompute:
 
         return internal_dir, output_dir
 
-    def submit_jobs(self, request_id, list_jobs, api_task_manager, num_images):
+    def submit_jobs(self, list_jobs, api_task_manager, num_images):
         try:
             print('AMLCompute, submit_jobs() called.')
             list_jobs_active = copy.deepcopy(list_jobs)
@@ -221,7 +251,7 @@ class AMLCompute:
                 print('Submitted job {}.'.format(job_id))
 
                 if i % api_config.JOB_SUBMISSION_UPDATE_INTERVAL == 0:
-                    api_task_manager.UpdateTaskStatus(request_id, get_task_status('running',
+                    api_task_manager.UpdateTaskStatus(self.request_id, get_task_status('running',
                                                                                   '{} images out of total {} submitted for processing.'.format(
                                                                                       i * api_config.NUM_IMAGES_PER_JOB,
                                                                                       num_images)))

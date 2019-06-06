@@ -104,11 +104,12 @@ class TFDetector:
         print('box_tensor shape: ', box_tensor.shape)
         return box_tensor, score_tensor, class_tensor
 
-    def generate_detections_batch(self, images, image_ids, batch_size, detection_threshold):
+    def generate_detections_batch(self, images, image_ids, image_metas, batch_size, detection_threshold):
         """
         Args:
             images: resized images to be processed by the detector
-            image_ids: IDs for the images
+            image_ids: list of strings, IDs for the images
+            image_metas: list of strings, same length as image_ids
             batch_size: mini-bath size to use during inference
             detection_threshold: detection confidence above which to record the detection result
 
@@ -119,7 +120,8 @@ class TFDetector:
                 'bbox': list of floats rounded to COORD_DIGITS decimal places, relative coordinates
                         [x, y, width_box, height_box]
             image_ids_completed: list of image_ids that were successfully processed
-            failed_images_during_detection: list of image_ids that failed to process
+            failed_images: list of image_ids for images that failed to process
+            failed_metas: list of image_metas for images that failed to process
         """
 
         # number of images should be small - all are loaded at once and a copy of resized version exists at one point
@@ -129,10 +131,11 @@ class TFDetector:
         # group the images into batches; image_batches is a list of lists
         image_batches = [images[i:i + batch_size] for i in range(0, len(images), batch_size)]
         image_id_batches = [image_ids[i:i + batch_size] for i in range(0, len(images), batch_size)]
+        image_meta_batches = [image_metas[i:i + batch_size] for i in range(0, len(images), batch_size)]
 
         detections = []
-        image_ids_completed = []  # image_ids minus ones that failed to process in this function
-        failed_images_during_detection = []
+        failed_images = []
+        failed_metas = []
 
         # start the TF session to process all images
         with tf.Session(graph=self.detection_graph) as sess:
@@ -142,14 +145,15 @@ class TFDetector:
             score_tensor = self.detection_graph.get_tensor_by_name('detection_scores:0')
             class_tensor = self.detection_graph.get_tensor_by_name('detection_classes:0')
 
-            for i_batch, (image_batch, image_id_batch) in enumerate(zip(image_batches, image_id_batches)):
+            for i_batch, (image_batch, image_id_batch, image_meta_batch) in enumerate(zip(
+                    image_batches, image_id_batches, image_meta_batches)):
                 try:
                     print('tf_detector.py, processing batch {} out of {}.'.format(i_batch + 1, len(image_batches)))
 
                     b_box, b_score, b_class = self._generate_detections_batch(image_batch,
                                                                               sess, image_tensor,
                                                                               box_tensor, score_tensor, class_tensor)
-                    for i, image_id in enumerate(image_id_batch):
+                    for i, (image_id, image_meta) in enumerate(zip(image_id_batch, image_meta_batch)):
                         # apply the confidence threshold
                         boxes, scores, classes = b_box[i], b_score[i], b_class[i]
                         detections_cur_image = []  # will be empty for an image with no confident detections
@@ -167,13 +171,15 @@ class TFDetector:
 
                         detections.append({
                             'file': image_id,
+                            'meta': image_meta,
                             'max_detection_conf': round(float(max_detection_conf), CONF_DIGITS),
                             'detections': detections_cur_image
                         })
-                        image_ids_completed.append(image_id)
+
                 except Exception as e:
-                    failed_images_during_detection.extend(image_id_batch)
+                    failed_images.extend(image_id_batch)
+                    failed_metas.extend(image_meta_batch)
                     print('tf_detector.py, one batch of images failed, exception: {}'.format(str(e)))
                     continue
 
-        return detections, image_ids_completed, failed_images_during_detection
+        return detections, failed_images, failed_metas
