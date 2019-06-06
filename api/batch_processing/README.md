@@ -232,7 +232,7 @@ The bounding box in the `bbox` field is represented as
 [ymin, xmin, ymax, xmax]
 ```
 
-where `(xmin, ymin)` is the upper-left corner of the detection bounding box. The coordinates are relative to the width and height of the image. 
+...where `(xmin, ymin)` is the upper-left corner of the detection bounding box, with the origin in the upper-left corner of the image. The coordinates are relative to the width and height of the image. 
 
 The detection category `category` can be interpreted using the `detection_categories` dictionary. 
 
