@@ -266,10 +266,10 @@ The output of the detector is saved in `requestID_detections_requestName_timesta
 The bounding box in the `bbox` field is represented as
 
 ```
-[x, y, width_of_box, height_of_box]
+[x_min, y_min, width_of_box, height_of_box]
 ```
 
-where `(x, y)` is the upper-left corner of the detection bounding box. The coordinates and box width and height are *relative* to the width and height of the image. Note that this is different from the coordinate format used in the [COCO Camera Traps](data_management/README.md) databases, which are in absolute coordinates. 
+where `(x_min, y_min)` is the upper-left corner of the detection bounding box, with the origin in the upper-left corner of the image. The coordinates and box width and height are *relative* to the width and height of the image. Note that this is different from the coordinate format used in the [COCO Camera Traps](data_management/README.md) databases, which are in absolute coordinates. 
 
 The detection category `category` can be interpreted using the `detection_categories` dictionary. 
 

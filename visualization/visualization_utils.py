@@ -204,9 +204,11 @@ def render_detection_bounding_boxes_old(boxes_scores_classes, image,
     Args:
         boxes_and_scores:  outputs of generate_detections, in one of the following formats
         
-            [x_rel, y_rel, w_rel, h_rel, p]
-            [x_rel, y_rel, w_rel, h_rel, p, class]
+            [x_min, y_min, x_max, x_max, p]
+            [x_min, y_min, x_max, x_max, p, class]
             
+        ...all in normalized coordinates, with the origin at the upper-left.
+        
         image: PIL.Image object, output of generate_detections.
         label_map: optional, mapping the numerical label to a string name.
         confidence_threshold: optional, threshold above which the bounding box is rendered.
