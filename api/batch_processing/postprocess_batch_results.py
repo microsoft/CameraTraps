@@ -592,9 +592,8 @@ def process_batch_results(options):
             else:
                 res = 'non_detections'
             
-            display_name = '<b>Result type</b>: {}, <b>Image</b>: {}'.format(
-                res.upper(),
-                image_relative_path)
+            display_name = '<b>Result type</b>: {}, <b>Image</b>: {}, <b>Max conf</b>: {}'.format(
+                res, image_relative_path, max_conf)
     
             rendered_image_html_info = render_bounding_boxes(options.image_base_dir,image_relative_path,
                                                             display_name,boxes_and_scores,res,options)        
