@@ -21,7 +21,7 @@ from task_management.api_task import ApiTaskManager
 import api_config
 import orchestrator
 from orchestrator import get_task_status
-from sas_blob_utils import SasBlob
+from sas_blob_utils import SasBlob  # file in this directory, not the ai4eutil repo one
 
 
 print('Creating application')
@@ -56,6 +56,7 @@ internal_datastore = {
 }
 print('Internal storage container {} in account {} is set up.'.format(internal_container, storage_account_name))
 
+
 @app.route('/', methods=['GET'])
 def health_check():
     return 'Health check OK'
@@ -75,14 +76,29 @@ def request_detections():
     except Exception as e:
         return _abort(415, 'Error occurred while reading the POST request body: {}.'.format(str(e)))
 
-    # required param
-    input_container_sas = post_body.get('input_container_sas', None)
-    if not input_container_sas:
-        return _abort(400, 'input_container_sas with read and list access is a required field.')
+    # required params
+    caller_id = post_body.get('caller', None)
+    if caller_id is None or caller_id not in api_config.WHITELIST:
+        return _abort(401, ('Parameter caller is not supplied or is not on our whitelist. '
+        'Please email cameratraps@microsoft.com to request access.'))
 
-    result = orchestrator.check_data_container_sas(input_container_sas)
-    if result is not None:
-        return _abort(result[0], result[1])
+    use_url = post_body.get('use_url', False)
+
+    input_container_sas = post_body.get('input_container_sas', None)
+    if not input_container_sas and not use_url:
+        return _abort(400, ('input_container_sas with read and list access is a required field when '
+                            'not using image URLs.'))
+
+    if input_container_sas is not None:
+        result = orchestrator.check_data_container_sas(input_container_sas)
+        if result is not None:
+            return _abort(result[0], result[1])
+
+    # if use_url, then images_requested_json_sas is required
+    if use_url:
+        images_requested_json_sas = post_body.get('images_requested_json_sas', None)
+        if images_requested_json_sas is None:
+            return _abort(400, 'Since use_url is true, images_requested_json_sas is required.')
 
     # check model_version and request_name params are valid
     model_version = post_body.get('model_version', '')
@@ -118,7 +134,9 @@ def _request_detections(**kwargs):
     try:
         body = kwargs.get('post_body')
 
-        input_container_sas = body['input_container_sas']
+        input_container_sas = body.get('input_container_sas', None)
+
+        use_url = body.get('use_url', False)
 
         images_requested_json_sas = body.get('images_requested_json_sas', None)
 
@@ -144,7 +162,12 @@ def _request_detections(**kwargs):
         print(('runserver.py, request_id {}, model_version {}, model_name {}, request_name {}, submission timestamp '
                'is {}').format(request_id, model_version, model_name, request_name, request_submission_timestamp))
 
+        # image_paths can be a list of strings (paths on Azure blobs or public URLs), or a list of lists,
+        # each of length 2 and is the [image_id, metadata] pair
+
+        # case 1 - listing all images in the container
         if images_requested_json_sas is None:
+            metadata_available = False  # not possible to have attached metadata if listing images in a blob
             api_task_manager.UpdateTaskStatus(request_id, get_task_status('running', 'Listing all images to process.'))
             print('runserver.py, running - listing all images to process.')
 
@@ -153,27 +176,48 @@ def _request_detections(**kwargs):
             image_paths = SasBlob.list_blobs_in_container(api_config.MAX_NUMBER_IMAGES_ACCEPTED,
                                                           sas_uri=input_container_sas,
                                                           blob_prefix=blob_prefix, blob_suffix='.jpg')
+        # case 2 - user supplied a list of images to process; can include metadata
         else:
             print('runserver.py, running - using provided list of images.')
             image_paths_text = SasBlob.download_blob_to_text(images_requested_json_sas)
             image_paths = json.loads(image_paths_text)
             print('runserver.py, length of image_paths provided by the user: {}'.format(len(image_paths)))
+            if len(image_paths) == 0:
+                api_task_manager.UpdateTaskStatus(request_id,
+                                                  get_task_status('completed',
+                                                                  'Zero images found in provided list of images.'))
+                return
 
-            image_paths = [i for i in image_paths if str(i).lower().endswith(api_config.ACCEPTED_IMAGE_FILE_ENDINGS)]
+            error, metadata_available = orchestrator.validate_provided_image_paths(image_paths)
+            if error is not None:
+                raise ValueError('image paths provided in the json are not valid: {}'.format(error))
+
+            valid_image_paths = []
+            for p in image_paths:
+                locator = p[0] if metadata_available else p
+                if locator.lower().endswith(api_config.ACCEPTED_IMAGE_FILE_ENDINGS):
+                    valid_image_paths.append(p)
+            image_paths = valid_image_paths
             print('runserver.py, length of image_paths provided by the user, after filtering to jpg: {}'.format(
                 len(image_paths)))
 
+            valid_image_paths = []
             if image_path_prefix is not None:
-                image_paths = [i for i in image_paths if str(i).startswith(image_path_prefix)]
+                for p in image_paths:
+                    locator = p[0] if metadata_available else p
+                    if locator.startswith(image_path_prefix):
+                        valid_image_paths.append(p)
+                image_paths = valid_image_paths
                 print(
                     'runserver.py, length of image_paths provided by the user, after filtering for image_path_prefix: {}'.format(
                         len(image_paths)))
 
-            res = orchestrator.spot_check_blob_paths_exist(image_paths, input_container_sas)
-            if res is not None:
-                raise LookupError(
-                    'path {} provided in list of images to process does not exist in the container pointed to by data_container_sas.'.format(
-                        res))
+            if not use_url:
+                res = orchestrator.spot_check_blob_paths_exist(image_paths, input_container_sas, metadata_available)
+                if res is not None:
+                    raise LookupError(
+                        'path {} provided in list of images to process does not exist in the container pointed to by data_container_sas.'.format(
+                            res))
 
         # apply the first_n and sample_n filters
         if first_n is not None:
@@ -186,12 +230,12 @@ def _request_detections(**kwargs):
                 raise ValueError(
                     'parameter sample_n specifies more images than available (after filtering by other provided params).')
 
-            # we sample by just shuffling the image paths and take the first sample_n images
+            # we sample by shuffling the image paths and take the first sample_n images
             print('First path before shuffling:', image_paths[0])
             shuffle(image_paths)
             print('First path after shuffling:', image_paths[0])
             image_paths = image_paths[:sample_n]
-            image_paths = sorted(image_paths)
+            image_paths = orchestrator.sort_image_paths(image_paths, metadata_available)
 
         num_images = len(image_paths)
         print('runserver.py, num_images after applying all filters: {}'.format(num_images))
@@ -207,6 +251,7 @@ def _request_detections(**kwargs):
                                                                   num_images, api_config.MAX_NUMBER_IMAGES_ACCEPTED)))
             return
 
+        # finalized image_paths is uploaded to internal_container; all sharding and scoring use the uploaded list
         image_paths_string = json.dumps(image_paths, indent=1)
         internal_storage_service.create_blob_from_text(internal_container,
                                                        '{}/{}_images.json'.format(request_id, request_id),
@@ -220,7 +265,8 @@ def _request_detections(**kwargs):
 
         # set up connection to AML Compute and data stores
         # do this for each request since pipeline step is associated with the data stores
-        aml_compute = orchestrator.AMLCompute(request_id=request_id, input_container_sas=input_container_sas,
+        aml_compute = orchestrator.AMLCompute(request_id=request_id, use_url=use_url,
+                                              input_container_sas=input_container_sas,
                                               internal_datastore=internal_datastore, model_name=model_name)
         print('AMLCompute resource connected successfully.')
 
@@ -233,7 +279,7 @@ def _request_detections(**kwargs):
             job_id = 'request{}_jobindex{}_total{}'.format(request_id, job_index, num_jobs)
             list_jobs[job_id] = {'begin': begin, 'end': end}
 
-        list_jobs_submitted = aml_compute.submit_jobs(request_id, list_jobs, api_task_manager, num_images)
+        list_jobs_submitted = aml_compute.submit_jobs(list_jobs, api_task_manager, num_images)
         api_task_manager.UpdateTaskStatus(request_id,
                                           get_task_status('running',
                                                           'All {} images submitted to cluster for processing.'.format(
@@ -337,10 +383,11 @@ def _monitor_detections_request(**kwargs):
                         raise e
 
                 # output_file_urls_str = json.dumps(output_file_urls)
-                api_task_manager.UpdateTaskStatus(request_id, get_task_status('completed',
-                                                                              'Completed at {}. Number of failed shards: {}. URLs to output files: {}'.format(
-                                                                                  orchestrator.get_utc_time(),
-                                                                                  num_failed, output_file_urls)))
+                message = {
+                    'num_failed_shards': num_failed,
+                    'output_file_urls': output_file_urls
+                }
+                api_task_manager.UpdateTaskStatus(request_id, get_task_status('completed', message))
                 break
 
             # not all jobs are finished, update the status with number of shards finished
