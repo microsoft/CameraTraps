@@ -452,6 +452,10 @@ if False:
     options.forceCpu = True
     options.resumeFromCheckpoint = None # r'C:\Users\dan\AppData\Local\Temp\detector_batch\tmp77xdq9dp'
     
+    if options.forceCpu:
+        os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+        os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+
     print('Loading model...',end='')
     detector = TFDetector(options.detectorFile)
     print('...done')
