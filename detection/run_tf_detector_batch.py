@@ -78,6 +78,9 @@ class BatchDetectionOptions:
     checkpointFrequency = DEFAULT_CHECKPOINT_N_IMAGES
     resumeFromCheckpoint = None
     
+    # List of query/replacement pairs to apply to output filenames
+    outputPathReplacements = {}
+    
 
 class CheckPointState:
     
@@ -387,6 +390,8 @@ def detector_output_to_api_output(imageFileNames,options,boxes,scores,classes):
             
             # convert from float32 to float
             box = [float(x) for x in box]
+            # x/y/w/h/p/class
+            box.append(float(imageScores[iBox]))
             box.append(int(imageClasses[iBox]))
             imageBoxesOut.append(box)
         
@@ -432,6 +437,14 @@ def load_and_run_detector(options,detector=None):
     print('Writing output...')
     
     df = detector_output_to_api_output(imageFileNames,options,boxes,scores,classes)
+    
+    # PERF: iterrows is the wrong way to do this for large files
+    if options.outputPathReplacements is not None:
+        for iRow,row in df.iterrows():
+            for query in options.outputPathReplacements:
+                replacement = options.outputPathReplacements[query]
+                row['image_path'] = row['image_path'].replace(query,replacement)
+                
     write_api_results(df,options.outputFile)
     
     return boxes,scores,classes,imageFileNames
@@ -444,11 +457,12 @@ if False:
     #%%
     
     options = BatchDetectionOptions()
-    options.detectorFile = r'D:\temp\models\megadetector_v3\step_686872_tf19\megadetector_v3.pb'
+    options.detectorFile = r'D:\temp\models\megadetector_v3.pb'
     options.imageFile = r'D:\temp\demo_images\ssmini'    
-    options.outputFile = r'D:\temp\demo_images\ssmini\detector_out.json'
-    options.recursive = True
-    options.checkpointFrequency = 1
+    options.outputFile = r'D:\temp\demo_images\ssmini\detector_out.csv'
+    options.outputPathReplacements = {'D:\\temp\\demo_images\\ssmini\\':''}
+    options.recursive = False
+    # options.checkpointFrequency = -1
     options.forceCpu = True
     options.resumeFromCheckpoint = None # r'C:\Users\dan\AppData\Local\Temp\detector_batch\tmp77xdq9dp'
     
@@ -461,6 +475,13 @@ if False:
     print('...done')
     
     boxes,scores,classes,imageFileNames = load_and_run_detector(options,detector)
+    
+    #%% Convert to .json
+    
+    from api.batch_processing.api_support import convert_output_format
+    input_path = options.outputFile
+    output_path = options.outputFile.replace('.csv','.json')
+    convert_output_format.convert_csv_to_json(input_path,output_path)
     
     #%% Post-processing with process_batch_results... this can also be run from the
     #   command line.
