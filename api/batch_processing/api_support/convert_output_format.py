@@ -23,9 +23,6 @@ from data_management.annotations import annotation_constants
 
 def convert_json_to_csv(input_path,output_path):
     
-    assert input_path.endswith('.json')
-    assert output_path.endswith('.csv')
-    
     print('Loading json results...')
     json_output = json.load(open(input_path))
 
@@ -56,9 +53,6 @@ def convert_csv_to_json(input_path,output_path):
     #
     # https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing
     
-    assert input_path.endswith('.csv')
-    assert output_path.endswith('.json')
-    
     print('Loading csv results...')
     df = load_api_results(input_path)
 
@@ -84,7 +78,13 @@ def convert_csv_to_json(input_path,output_path):
         out_detections = []
         
         for iDetection,detection in enumerate(src_detections):
+            
+            # Our .csv format was xmin/ymin/xmax/ymax
+            #
+            # Our .json format is xmin/ymin/w/h
             bbox = detection[0:4]
+            bbox[2] = bbox[2] - bbox[0]
+            bbox[3] = bbox[3] - bbox[1]
             conf = detection[4]
             iClass = detection[5]
             out_detection = {}
@@ -105,7 +105,7 @@ def convert_csv_to_json(input_path,output_path):
     json_out['classification_categories'] = classification_categories
     json_out['images'] = images
     
-    json.dump(json_out,open(output_path,'w'),indent=4)
+    json.dump(json_out,open(output_path,'w'),indent=1)
 
 
 #%% Command-line driver
