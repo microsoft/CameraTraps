@@ -213,7 +213,8 @@ The output of the detector is saved in `requestID_detections_requestName_timesta
         "detector": "megadetector_v3",
         "detection_completion_time": "2019-05-22 02:12:19",
         "classifier": "ecosystem1_v2",
-        "classification_completion_time": "2019-05-26 01:52:08"
+        "classification_completion_time": "2019-05-26 01:52:08",
+        "format_version": "1.0"
     },
     "detection_categories": {
         "1": "animal",
