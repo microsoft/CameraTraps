@@ -56,51 +56,61 @@ def check_data_container_sas(sas_uri):
     return None
 
 
-def spot_check_blob_paths_exist(paths, container_sas):
+def spot_check_blob_paths_exist(paths, container_sas, metadata_available):
     ''' Check that the first blob in paths exists in the container specified in container_sas.
 
     Args:
         paths: A list of blob paths in the container
         container_sas: Azure blob storage SAS token to a container where the paths are supposed to be in
-
+        metadata_available: paths will contain items that are [image_id, metadata] instead of just image_id
     Returns:
         None if no problem found. Return the image_path if it does not exist in the container specified
     '''
-    if len(paths) == 0:
+    if len(paths) == 0:  # redundant check...
         return None
 
-    path = paths[0]
+    path = paths[0][0] if metadata_available else paths[0]
     if SasBlob.check_blob_exists_in_container(path, container_sas_uri=container_sas):
         return None
     return path
 
 
 def validate_provided_image_paths(image_paths):
-    if len(image_paths) == 0:
-        return None
+    ''' Given a list of image_paths (list length at least 1), validate them and determine if metadata is available.
+
+    Args:
+        image_paths: a list of string (image_id) or a list of 2-item lists ([image_id, image_metadata])
+
+    Returns:
+        error: None if checks passed; a string message indicating the problem otherwise
+        metadata_available: bool, True if available
+    '''
+    # image_paths will have length at least 1, otherwise would have ended before this step
     first_item = image_paths[0]
+    metadata_available = False
     if isinstance(first_item, str):
         for i in image_paths:
             if not isinstance(i, str):
-                return 'Not all items in image_paths supplied is of type string.'
-        return None
+                return 'Not all items in image_paths supplied is of type string.', metadata_available
+        return None, metadata_available
     elif isinstance(first_item, list):
+        metadata_available = True
         for i in image_paths:
             if len(i) != 2:  # i should be [image_id, metadata_string]
-                return 'Items in image_paths are lists, but not all lists are of length 2 [image locator, metadata].'
-        return None
+                return 'Items in image_paths are lists, but not all lists are of length 2 [image locator, metadata].', metadata_available
+        return None, metadata_available
     else:
-        return 'image_paths contain items that are not strings nor lists.'
+        return 'image_paths contain items that are not strings nor lists.', metadata_available
 
 
-def sort_image_paths(image_paths):
-    if len(image_paths) == 0:
+def sort_image_paths(image_paths, metadata_available):
+    if len(image_paths) == 0:  # redundant check...
         return image_paths
-    first_item = image_paths[0]
-    if isinstance(first_item, str):
-        return sorted(image_paths)
-    else:
+
+    if metadata_available:
         return sorted(image_paths, key=lambda x: x[0])
+    else:
+        return sorted(image_paths)
 
 
 # %% AML Compute
@@ -145,6 +155,7 @@ class AMLCompute:
 
             param_detection_threshold = PipelineParameter(name='param_detection_threshold', default_value=0.05)
             param_batch_size = PipelineParameter(name='param_batch_size', default_value=8)
+
             batch_score_step = PythonScriptStep(aml_config['script_name'],
                                                 source_directory=aml_config['source_dir'],
                                                 hash_paths=['.'],  # include all contents of source_directory
@@ -164,7 +175,6 @@ class AMLCompute:
                                                 outputs=[output_dir],
                                                 runconfig=amlcompute_run_config
                                                 )
-
             self.pipeline = Pipeline(workspace=self.ws, steps=[batch_score_step])
             self.aml_config = aml_config
             print('AMLCompute constructor all good.')
@@ -371,7 +381,8 @@ class AMLMonitor:
         detection_output_content = {
             'info': {
                 'detector': 'megadetector_v{}'.format(self.model_version),
-                'detection_completion_time': get_utc_time()
+                'detection_completion_time': get_utc_time(),
+                'format_version': api_config.OUTPUT_FORMAT_VERSION
             },
             'detection_categories': api_config.DETECTION_CATEGORIES,
             'images': all_detections

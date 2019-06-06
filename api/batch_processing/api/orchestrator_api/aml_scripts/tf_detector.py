@@ -104,14 +104,16 @@ class TFDetector:
         print('box_tensor shape: ', box_tensor.shape)
         return box_tensor, score_tensor, class_tensor
 
-    def generate_detections_batch(self, images, image_ids, image_metas, batch_size, detection_threshold):
+    def generate_detections_batch(self, images, image_ids, batch_size, detection_threshold,
+                                  image_metas=None, metadata_available=False):
         """
         Args:
             images: resized images to be processed by the detector
             image_ids: list of strings, IDs for the images
-            image_metas: list of strings, same length as image_ids
             batch_size: mini-bath size to use during inference
             detection_threshold: detection confidence above which to record the detection result
+            image_metas: list of strings, same length as image_ids
+            metadata_available: is image_metas actually available (if not, image_metas can be a list of None)
 
         Returns:
             detections: list of detection entries with fields
@@ -130,7 +132,11 @@ class TFDetector:
 
         # group the images into batches; image_batches is a list of lists
         image_batches = [images[i:i + batch_size] for i in range(0, len(images), batch_size)]
+
+        # we keep track of the image_ids (and image_metas when available) to be able to output the list of failed images
         image_id_batches = [image_ids[i:i + batch_size] for i in range(0, len(images), batch_size)]
+        if image_metas is None:
+            image_metas = [None] * len(images)
         image_meta_batches = [image_metas[i:i + batch_size] for i in range(0, len(images), batch_size)]
 
         detections = []
@@ -169,12 +175,14 @@ class TFDetector:
                                 if s > max_detection_conf:
                                     max_detection_conf = s
 
-                        detections.append({
+                        detection = {
                             'file': image_id,
-                            'meta': image_meta,
                             'max_detection_conf': round(float(max_detection_conf), CONF_DIGITS),
                             'detections': detections_cur_image
-                        })
+                        }
+                        if metadata_available:
+                            detection['meta'] = image_meta
+                        detections.append(detection)
 
                 except Exception as e:
                     failed_images.extend(image_id_batch)

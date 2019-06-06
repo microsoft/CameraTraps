@@ -77,7 +77,6 @@ class BatchScorer:
 
         print('BatchScorer, download_images(), use_url is {}, metadata_available is {}'.format(
             self.use_url, self.metadata_available))
-        print('Type of self.use_url is {}'.format(type(self.use_url)))
 
         if not self.use_url:
             print('blob_service created')
@@ -120,7 +119,9 @@ class BatchScorer:
         print('BatchScorer, score()')
         # self.image_ids does not include any failed images; self.image_ids is overwritten here
         self.detections, failed_images, failed_metas = self.detector.generate_detections_batch(
-            self.images, self.image_ids, self.image_metas, self.batch_size, self.detection_threshold)
+            images=self.images, image_ids=self.image_ids,
+            batch_size=self.batch_size, detection_threshold=self.detection_threshold,
+            image_metas=self.image_metas, metadata_available=self.metadata_available)
 
         self.failed_images.extend(failed_images)
         self.failed_metas.extend(failed_metas)

@@ -137,7 +137,6 @@ def _request_detections(**kwargs):
         input_container_sas = body.get('input_container_sas', None)
 
         use_url = body.get('use_url', False)
-        print('========== use_url is {}'.format(use_url))
 
         images_requested_json_sas = body.get('images_requested_json_sas', None)
 
@@ -164,10 +163,11 @@ def _request_detections(**kwargs):
                'is {}').format(request_id, model_version, model_name, request_name, request_submission_timestamp))
 
         # image_paths can be a list of strings (paths on Azure blobs or public URLs), or a list of lists,
-        # each of length 2 and represents [image_id, metadta]
+        # each of length 2 and is the [image_id, metadata] pair
 
         # case 1 - listing all images in the container
         if images_requested_json_sas is None:
+            metadata_available = False  # not possible to have attached metadata if listing images in a blob
             api_task_manager.UpdateTaskStatus(request_id, get_task_status('running', 'Listing all images to process.'))
             print('runserver.py, running - listing all images to process.')
 
@@ -182,16 +182,21 @@ def _request_detections(**kwargs):
             image_paths_text = SasBlob.download_blob_to_text(images_requested_json_sas)
             image_paths = json.loads(image_paths_text)
             print('runserver.py, length of image_paths provided by the user: {}'.format(len(image_paths)))
+            if len(image_paths) == 0:
+                api_task_manager.UpdateTaskStatus(request_id,
+                                                  get_task_status('completed',
+                                                                  'Zero images found in provided list of images.'))
+                return
 
-            result = orchestrator.validate_provided_image_paths(image_paths)
-            if result is not None:
-                raise ValueError('image paths provided in the json are not valid: {}'.format(result))
+            error, metadata_available = orchestrator.validate_provided_image_paths(image_paths)
+            if error is not None:
+                raise ValueError('image paths provided in the json are not valid: {}'.format(error))
 
             valid_image_paths = []
             for p in image_paths:
-                locator = p if isinstance(p, str) else p[0] # [image_id, metadata_string]
+                locator = p[0] if metadata_available else p
                 if locator.lower().endswith(api_config.ACCEPTED_IMAGE_FILE_ENDINGS):
-                    valid_image_paths.append(p)  # append the image_id or the [image_id, metadata] 2-item list
+                    valid_image_paths.append(p)
             image_paths = valid_image_paths
             print('runserver.py, length of image_paths provided by the user, after filtering to jpg: {}'.format(
                 len(image_paths)))
@@ -199,7 +204,7 @@ def _request_detections(**kwargs):
             valid_image_paths = []
             if image_path_prefix is not None:
                 for p in image_paths:
-                    locator = p if isinstance(p, str) else p[0]
+                    locator = p[0] if metadata_available else p
                     if locator.startswith(image_path_prefix):
                         valid_image_paths.append(p)
                 image_paths = valid_image_paths
@@ -208,7 +213,7 @@ def _request_detections(**kwargs):
                         len(image_paths)))
 
             if not use_url:
-                res = orchestrator.spot_check_blob_paths_exist(image_paths, input_container_sas)
+                res = orchestrator.spot_check_blob_paths_exist(image_paths, input_container_sas, metadata_available)
                 if res is not None:
                     raise LookupError(
                         'path {} provided in list of images to process does not exist in the container pointed to by data_container_sas.'.format(
@@ -230,7 +235,7 @@ def _request_detections(**kwargs):
             shuffle(image_paths)
             print('First path after shuffling:', image_paths[0])
             image_paths = image_paths[:sample_n]
-            image_paths = orchestrator.sort_image_paths(image_paths)
+            image_paths = orchestrator.sort_image_paths(image_paths, metadata_available)
 
         num_images = len(image_paths)
         print('runserver.py, num_images after applying all filters: {}'.format(num_images))
@@ -378,10 +383,11 @@ def _monitor_detections_request(**kwargs):
                         raise e
 
                 # output_file_urls_str = json.dumps(output_file_urls)
-                api_task_manager.UpdateTaskStatus(request_id, get_task_status('completed',
-                                                                              'Completed at {}. Number of failed shards: {}. URLs to output files: {}'.format(
-                                                                                  orchestrator.get_utc_time(),
-                                                                                  num_failed, output_file_urls)))
+                message = {
+                    'num_failed_shards': num_failed,
+                    'output_file_urls': output_file_urls
+                }
+                api_task_manager.UpdateTaskStatus(request_id, get_task_status('completed', message))
                 break
 
             # not all jobs are finished, update the status with number of shards finished

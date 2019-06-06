@@ -168,32 +168,39 @@ When all shards have finished processing, the `status` returned by the `/task` e
 
 ```json
 {
-    "uuid": 3821,
+    "uuid": 6319,
     "status": {
         "request_status": "completed",
-        "time": "2019-05-22 00:31:51",
-        "message": "Completed at 2019-05-22 00:31:51. Number of failed shards: 0. URLs to output files: {'detections': 'https://cameratrap.blob.core.windows.net/async-api-v3-2/3821/3821_detections_Alberta_l1_20190522002119.json?se=2019-06-05T00%3A31%3A51Z&sp=r&sv=2018-03-28&sr=b&sig=hYWcHrnMbZ8EjQ1t4Rmtx0Ay/DZDa%2BsQehBP4/nySko%3D', 'failed_images': 'https://cameratrap.blob.core.windows.net/async-api-v3-2/3821/3821_failed_images_Alberta_l1_20190522002119.json?se=2019-06-05T00%3A31%3A51Z&sp=r&sv=2018-03-28&sr=b&sig=xwoi9tFD9pKhAKdoEwx%2BsnS5gRpEE5x3hR1IY4Jll2Y%3D', 'images': 'https://cameratrap.blob.core.windows.net/async-api-v3-2/3821/3821_images.json?se=2019-06-05T00%3A31%3A51Z&sp=r&sv=2018-03-28&sr=b&sig=llDBCWK%2B%2BQHae5rK7U8RchjPN/DZYb96XHB0r/yX8LU%3D'}"
+        "time": "2019-06-06 18:56:32",
+        "message": {
+            "num_failed_shards": 0,
+            "output_file_urls": {
+                "detections": "https://cameratrap.blob.core.windows.net/async-api/6319/6319_detections_test_20190606185113.json?se=2019-09-04T18%3A56%3A32Z&sp=r&sv=2018-03-28&sr=b&sig=KEY",
+                "failed_images": "https://cameratrap.blob.core.windows.net/async-api/6319/6319_failed_images_url_test_20190606185113.json?se=2019-09-04T18%3A56%3A32Z&sp=r&sv=2018-03-28&sr=b&sig=KEY",
+                "images": "https://cameratrap.blob.core.windows.net/async-api/6319/6319_images.json?se=2019-09-04T18%3A56%3A32Z&sp=r&sv=2018-03-28&sr=b&sig=KEY"
+            }
+        }
     },
-    "timestamp": "2019-05-22 00:21:19",
+    "timestamp": "2019-06-06 18:51:13",
     "endpoint": "uri"
 }
 ```
  
  You can parse it to obtain the URLs:
 ```python
-import json
-
 task_status = body['status']
 assert task_status['request_status'] == 'completed'
-output_files_str = task_status['message'].split('URLs to output files: ')[1]
-output_files = json.loads(output_files_str)
+message = task_status['message']
+assert message['num_failed_shards'] == 0
+
+output_files = message['output_file_urls']
 url_to_result = output_files['detections']
 url_to_failed_images = output_files['failed_images']
 url_to_all_images_processed = output_files['images']
 
 ```
 
-These URLs are valid for 30 days from the time the request has finished. If you neglected to retrieve them before the links expired, contact us with the RequestID and we can send the results to you. Here are the 3 files to expect:
+These URLs are valid for 90 days from the time the request has finished. If you neglected to retrieve them before the links expired, contact us with the RequestID and we can send the results to you. Here are the 3 files to expect:
 
 
 | File name                | Description | 
