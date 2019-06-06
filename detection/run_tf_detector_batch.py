@@ -32,6 +32,7 @@ import pickle
 import inspect
 import tempfile
 import warnings
+import tempfile
 from itertools import compress
 
 import tensorflow as tf
@@ -41,6 +42,7 @@ import PIL
 from tqdm import tqdm
 import pandas as pd
 
+from api.batch_processing.api_support import convert_output_format
 from api.batch_processing.load_api_results import write_api_results
 from api.batch_processing.api.orchestrator_api.aml_scripts.tf_detector import TFDetector
 
@@ -444,9 +446,17 @@ def load_and_run_detector(options,detector=None):
             for query in options.outputPathReplacements:
                 replacement = options.outputPathReplacements[query]
                 row['image_path'] = row['image_path'].replace(query,replacement)
-                
-    write_api_results(df,options.outputFile)
     
+    # While we're in transition between formats, write out the old format and 
+    # convert to the new format
+    if options.outputFile.endswith('.csv'):
+        write_api_results(df,options.outputFile)
+    else:
+        tempfilename = next(tempfile._get_candidate_names()) + '.csv'
+        write_api_results(df,tempfilename)
+        convert_output_format.convert_csv_to_json(tempfilename,options.outputFile)
+        os.remove(tempfilename)
+
     return boxes,scores,classes,imageFileNames
 
 
@@ -459,7 +469,7 @@ if False:
     options = BatchDetectionOptions()
     options.detectorFile = r'D:\temp\models\megadetector_v3.pb'
     options.imageFile = r'D:\temp\demo_images\ssmini'    
-    options.outputFile = r'D:\temp\demo_images\ssmini\detector_out.csv'
+    options.outputFile = r'D:\temp\demo_images\ssmini\detector_out.json'
     options.outputPathReplacements = {'D:\\temp\\demo_images\\ssmini\\':''}
     options.recursive = False
     # options.checkpointFrequency = -1
@@ -478,7 +488,6 @@ if False:
     
     #%% Convert to .json
     
-    from api.batch_processing.api_support import convert_output_format
     input_path = options.outputFile
     output_path = options.outputFile.replace('.csv','.json')
     convert_output_format.convert_csv_to_json(input_path,output_path)
