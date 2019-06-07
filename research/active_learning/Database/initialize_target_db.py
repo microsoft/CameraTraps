@@ -136,9 +136,6 @@ else:
     imgs_in_dir = glob.glob(os.path.join(args.source, '**/*.JPG'), recursive=True) # All images in directory
     for img in imgs_in_dir:
         img_id = uuid.uuid4()
-# if coco_json:
-#     print(coco_json['images'][0])
-    # prin(coco_json)
 
 # img_paths = glob.glob(os.path.join(args.source, '**/*.JPG'), recursive=True)
 # coco_json = json.load(open(COCO_JSON, 'r'))
