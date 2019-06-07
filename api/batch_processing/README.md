@@ -81,15 +81,42 @@ Not yet supported. If you have accidentally submitted a request, please contact 
 
 | Parameter                | Is required | Type | Explanation                 |
 |--------------------------|-------------|-------|----------------------------|
-| input_container_sas      | Yes         | string | SAS URL with list and read permissions to the Blob Storage container where the images are stored. |
-| images_requested_json_sas | No          | string | SAS URL with list and read permissions to a json file in Blob Storage. The json contains a list, where each item (a string) in the list is the full path to an image from the root of the container. An example of the content of this file: `["Season1/Location1/Camera1/image1.jpg", "Season1/Location1/Camera1/image2.jpg"]`.  Only images whose paths are listed here will be processed. |
+| input_container_sas      | Yes<sup>1</sup>         | string | SAS URL with list and read permissions to the Blob Storage container where the images are stored. |
+| images_requested_json_sas | No<sup>1</sup>        | string | SAS URL with list and read permissions to a json file in Blob Storage. See below for explanation of the content of the json to provide. |
 | image_path_prefix        | No          | string | Only process images whose full path starts with `image_path_prefix` (case-_sensitive_). Note that any image paths specified in `images_requested_json_sas` will need to be the full path from the root of the container, regardless whether `image_path_prefix` is provided. |
 | first_n                  | No          | int | Only process the first `first_n` images. Order of images is not guaranteed, but is likely to be alphabetical. Set this to a small number to avoid taking time to fully list all images in the blob (about 15 minutes for 1 million images) if you just want to try this API. |
-| sample_n                | No          |int | Randomly select `sample_n` images to process. |
-| model_version           | No          |string | Version of the MegaDetector model to use. Default is the most updated stable version (check using the `/default_model_version` endpoint). Supported versions are available at the `/supported_model_versions` endpoint.|
-| request_name            | No          |string | A string (letters, digits, `_`, `-` allowed, max length 32 characters) that will be appended to the output file names to help you identify the resulting files. A timestamp in UTC (`%Y%m%d%H%M%S`) of the time of submission will be appended to the resulting files automatically. |
+| sample_n                | No          | int | Randomly select `sample_n` images to process. |
+| model_version           | No          | string | Version of the MegaDetector model to use. Default is the most updated stable version (check using the `/default_model_version` endpoint). Supported versions are available at the `/supported_model_versions` endpoint.|
+| request_name            | No          | string | A string (letters, digits, `_`, `-` allowed, max length 32 characters) that will be appended to the output file names to help you identify the resulting files. A timestamp in UTC (`%Y%m%d%H%M%S`) of the time of submission will be appended to the resulting files automatically. |
+| use_url                  | No         | bool | True if the image URLs are used. |
+| caller                  | Yes         | string | An identifier that we use to whitelist users for now. |
 
-- We assume that all images you would like to process in this batch are uploaded to a container in Azure Blob Storage. 
+<sup>1</sup> There are two ways of giving the API access to your images. 
+
+1 - If you have all your images in a container in Azure Blob Storage, provide the parameter `input_container_sas` as described above. This means that your images do not have to be at publicly accessible URLs. In this case, the json pointed to by `images_requested_json_sas` should look like:
+```json
+[
+  "Season1/Location1/Camera1/image1.jpg", 
+  "Season1/Location1/Camera1/image2.jpg"
+]
+```
+Only images whose paths are listed here will be processed.
+
+2 - If your images are stored elsewhere and you can provide a publicly accessible URL to each of them, you do not need to specify `input_container_sas`. Instead, list the URLs to all the images (instead of their paths) you'd like to process in the json at `images_requested_json_sas`.
+
+
+#### Storing metadata
+We can store a (short) string of metadata with each image path or URL. The json at `images_requested_json_sas` should then look like:
+```json
+[
+  ["Season1/Location1/Camera1/image1.jpg", "metadata_string1"], 
+  ["Season1/Location1/Camera1/image2.jpg", "metadata_string2"]
+]
+``` 
+
+
+#### Other notes and example  
+
 - Only images with file name ending in '.jpg' or '.jpeg' (case insensitive) will be processed, so please make sure the file names are compliant before you upload them to the container (you cannot rename a blob without copying it entirely once it is in Blob Storage). 
 
 - By default we process all such images in the specified container. You can choose to only process a subset of them by specifying the other input parameters, and the images will be filtered out accordingly in this order:
@@ -108,7 +135,8 @@ Example body of the POST request:
   "image_path_prefix": "2019/Alberta_location1",
   "first_n": 100000,
   "request_name": "Alberta_l1",
-  "model_version": "3"
+  "model_version": "3",
+  "caller": "whitelisted_user_x"
 }
 ```
 
@@ -140,32 +168,39 @@ When all shards have finished processing, the `status` returned by the `/task` e
 
 ```json
 {
-    "uuid": 3821,
+    "uuid": 6319,
     "status": {
         "request_status": "completed",
-        "time": "2019-05-22 00:31:51",
-        "message": "Completed at 2019-05-22 00:31:51. Number of failed shards: 0. URLs to output files: {'detections': 'https://cameratrap.blob.core.windows.net/async-api-v3-2/3821/3821_detections_Alberta_l1_20190522002119.json?se=2019-06-05T00%3A31%3A51Z&sp=r&sv=2018-03-28&sr=b&sig=hYWcHrnMbZ8EjQ1t4Rmtx0Ay/DZDa%2BsQehBP4/nySko%3D', 'failed_images': 'https://cameratrap.blob.core.windows.net/async-api-v3-2/3821/3821_failed_images_Alberta_l1_20190522002119.json?se=2019-06-05T00%3A31%3A51Z&sp=r&sv=2018-03-28&sr=b&sig=xwoi9tFD9pKhAKdoEwx%2BsnS5gRpEE5x3hR1IY4Jll2Y%3D', 'images': 'https://cameratrap.blob.core.windows.net/async-api-v3-2/3821/3821_images.json?se=2019-06-05T00%3A31%3A51Z&sp=r&sv=2018-03-28&sr=b&sig=llDBCWK%2B%2BQHae5rK7U8RchjPN/DZYb96XHB0r/yX8LU%3D'}"
+        "time": "2019-06-06 18:56:32",
+        "message": {
+            "num_failed_shards": 0,
+            "output_file_urls": {
+                "detections": "https://cameratrap.blob.core.windows.net/async-api/6319/6319_detections_test_20190606185113.json?se=2019-09-04T18%3A56%3A32Z&sp=r&sv=2018-03-28&sr=b&sig=KEY",
+                "failed_images": "https://cameratrap.blob.core.windows.net/async-api/6319/6319_failed_images_url_test_20190606185113.json?se=2019-09-04T18%3A56%3A32Z&sp=r&sv=2018-03-28&sr=b&sig=KEY",
+                "images": "https://cameratrap.blob.core.windows.net/async-api/6319/6319_images.json?se=2019-09-04T18%3A56%3A32Z&sp=r&sv=2018-03-28&sr=b&sig=KEY"
+            }
+        }
     },
-    "timestamp": "2019-05-22 00:21:19",
+    "timestamp": "2019-06-06 18:51:13",
     "endpoint": "uri"
 }
 ```
  
  You can parse it to obtain the URLs:
 ```python
-import json
-
 task_status = body['status']
 assert task_status['request_status'] == 'completed'
-output_files_str = task_status['message'].split('URLs to output files: ')[1]
-output_files = json.loads(output_files_str)
+message = task_status['message']
+assert message['num_failed_shards'] == 0
+
+output_files = message['output_file_urls']
 url_to_result = output_files['detections']
 url_to_failed_images = output_files['failed_images']
 url_to_all_images_processed = output_files['images']
 
 ```
 
-These URLs are valid for 30 days from the time the request has finished. If you neglected to retrieve them before the links expired, contact us with the RequestID and we can send the results to you. Here are the 3 files to expect:
+These URLs are valid for 90 days from the time the request has finished. If you neglected to retrieve them before the links expired, contact us with the RequestID and we can send the results to you. Here are the 3 files to expect:
 
 
 | File name                | Description | 
@@ -185,7 +220,8 @@ The output of the detector is saved in `requestID_detections_requestName_timesta
         "detector": "megadetector_v3",
         "detection_completion_time": "2019-05-22 02:12:19",
         "classifier": "ecosystem1_v2",
-        "classification_completion_time": "2019-05-26 01:52:08"
+        "classification_completion_time": "2019-05-26 01:52:08",
+        "format_version": "1.0"
     },
     "detection_categories": {
         "1": "animal",
@@ -200,13 +236,14 @@ The output of the detector is saved in `requestID_detections_requestName_timesta
     },
     "images": [
         {
-            "file": "/path/from/base/dir/image.jpg",
+            "file": "/path/from/base/dir/image1.jpg",
+            "meta": "a string of metadata if it was available in the list at images_requested_json_sas",
             "max_detection_conf": 0.926,
             "detections": [
                 {
                     "category": "1",
                     "conf": 0.926,
-                    "bbox": [0.0, 0.2762, 0.9539, 0.9825], 
+                    "bbox": [0.0, 0.2762, 0.1539, 0.2825], 
                     "classifications": [
                         ["3", 0.901],
                         ["1", 0.071],
@@ -216,9 +253,15 @@ The output of the detector is saved in `requestID_detections_requestName_timesta
                 {
                     "category": "1",
                     "conf": 0.061,
-                    "bbox": [0.0451, 0.1849, 0.9642, 0.4636]
+                    "bbox": [0.0451, 0.1849, 0.3642, 0.4636]
                 }
             ]
+        },
+        {
+            "file": "/path/from/base/dir/image2.jpg",
+            "meta": "",
+            "max_detection_conf": 0,
+            "detections": []
         }
     ]
 }
@@ -229,10 +272,10 @@ The output of the detector is saved in `requestID_detections_requestName_timesta
 The bounding box in the `bbox` field is represented as
 
 ```
-[ymin, xmin, ymax, xmax]
+[x_min, y_min, width_of_box, height_of_box]
 ```
 
-where `(xmin, ymin)` is the upper-left corner of the detection bounding box. The coordinates are relative to the width and height of the image. 
+where `(x_min, y_min)` is the upper-left corner of the detection bounding box, with the origin in the upper-left corner of the image. The coordinates and box width and height are *relative* to the width and height of the image. Note that this is different from the coordinate format used in the [COCO Camera Traps](data_management/README.md) databases, which are in absolute coordinates. 
 
 The detection category `category` can be interpreted using the `detection_categories` dictionary. 
 

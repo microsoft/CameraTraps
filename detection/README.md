@@ -4,16 +4,19 @@ This folder contains scripts and configuration files for training and evaluating
 
 We use the TensorFlow Object Detection API ([TFODAPI](https://github.com/tensorflow/models/tree/master/research/object_detection)) for model training. 
 
- For all detections downstream of our TF detector, bounding boxes are represented in normalized coordinates, as `[ymin, xmin, ymax, xmax]`, with the origin in the upper-left of the image. This is consistent with the output of the batch processing API developed in [api/detector_batch_processing](https://github.com/microsoft/CameraTraps/tree/master/api/detector_batch_processing), but is different from the COCO Camera Trap format of our json databases, which uses absolute coordinates in `[x, y, width_of_box, height_of_box]` (see [data_management](api/detector_batch_processing/README.md)).
+Bounding boxes predicted by the detector are represented in normalized coordinates, as `[ymin, xmin, ymax, xmax]`, with the origin in the upper-left of the image. This is different from the COCO Camera Trap format of our json databases, which uses absolute coordinates in `[x, y, width_of_box, height_of_box]` (see [data_management](api/detector_batch_processing/README.md)), and the batch processing API also converts them to relative coordinates in `[x, y, width_of_box, height_of_box]`.
 
 
-- `model_main.py`: a modified copy of the entry point script for training the detector, taken from [TFODAPI](https://github.com/tensorflow/models/blob/master/research/object_detection/model_main.py).
+- `detection_training/model_main.py`: a modified copy of the entry point script for training the detector, taken from [TFODAPI](https://github.com/tensorflow/models/blob/master/research/object_detection/model_main.py).
+
+- `detection_training/experiments/`: a folder for storing the model configuration files defining the architecture and (loosely, since learning rate is often adjusted manually) the training scheme. Each new detector project or update is in a subfolder, which could contain a number of folders for various experiments done for that project/update. Not every run's configuration file needs to be recorded here (e.g. adjusting learning rate, new starting checkpoint), since TFODAPI copies `pipeline.config` to the model output folder at the beginning of the run; the configuration files here capture high-level info such as model architecture. 
+
+- `detection_eval/`: scripts for evaluating various aspects of the detector's performance. To evaluate such a detector, first run TFODAPI's `inference/infer_detections.py` using a frozen inference graph based on the checkpoint to evaluate, on tfrecords of the (validation) set. This produces a tfrecord containing all the detection results of the (validation) examples. Then use [data_management/tfrecords/tools/read_from_tfrecords.py](data_management/tfrecords/tools/read_from_tfrecords.py) to extract the info from this tfrecord into a pickled json (`.p` file), which would be the input to all scripts in the `detection_eval` folder. 
+    - In the future, we will adapt these scripts to work on output format of the batch processing API as well to easily evaluate against images not in tfrecords.
 
 - `run_tf_detector.py`: the simplest demonstration of how to invoke a TFODAPI-trained detector.
 
-- `detection_eval`: scripts for evaluating various aspects of the detector's performance. To evaluate such a detector, first run TFODAPI's `inference/infer_detections.py` using a frozen inference graph based on the checkpoint to evaluate, on tfrecords of the (validation) set. This produces a tfrecord containing all the detection results of the (validation) examples. Then use [data_management/tfrecords/tools/read_from_tfrecords.py](data_management/tfrecords/tools/read_from_tfrecords.py) to extract the info from this tfrecord into a pickled json (`.p` file), which would be the input to all scripts in the `detection_eval` folder.
-
-- `experiments`: a folder for storing the model configuration files defining the architecture and (loosely, since learning rate is often adjusted manually) the training scheme. Each new detector project or update is in a subfolder, which could contain a number of folders for various experiments done for that project/update. Not every run's configuration file needs to be recorded here (e.g. adjusting learning rate, new starting checkpoint), since TFODAPI copies `pipeline.config` to the model output folder at the beginning of the run; the configuration files here capture high-level info such as model architecture. 
+- `run_tf_detector_batch.py`: runs the detector on a collection images; output is the same as that produced by the batch processing API.
 
 
 # Steps in a detection project
@@ -43,7 +46,7 @@ Use code in `data_management/tfrecords` to create tfrecord files for your data.
 
 
 ## Set up an experiment
-- Create a directory in the `experiments` folder of this section to keep a record of the model configuration used.
+- Create a directory in the `detection_training/experiments` folder of this section to keep a record of the model configuration used.
 
 - Decide on architecture
     - Our example uses Faster R-CNN with Inception ResNet V2 backbone and Atrous Convolutions. 
