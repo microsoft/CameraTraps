@@ -1,0 +1,7 @@
+Predicting topi/S5/T10/T10_R3/S5_T10_R3_IMAG0176_1.JPG
+Most likely classes:
+	"wildebeest" with confidence 81.82%
+	"buffalo" with confidence 11.10%
+	"topi" with confidence 3.79%
+	"eland" with confidence 2.59%
+	"hartebeest" with confidence 0.53%
