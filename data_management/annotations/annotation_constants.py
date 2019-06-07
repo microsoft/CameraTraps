@@ -21,3 +21,4 @@ for cat in bbox_categories:
     bbox_category_name_to_id[cat['name']] = cat['id']
     
 bbox_color_map = {1:'red',2:'green',3:'blue',4:'white'}
+
