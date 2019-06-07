@@ -5,7 +5,7 @@ We package useful components developed in the Camera Traps project into APIs and
 
 ## Detector
 
-Our animal detection model ([MegaDetector](https://github.com/Microsoft/CameraTraps#megadetector)) trained on camera trap images from a variety of ecosystems is exposed through two APIs, one for real-time applications or small batches of test images (synchronous API), and one for processing large collections of images (batch processing API). These APIs can be adapted to deploy any algorithms or models - see our tutorial in the [AI for Earth API Framework](https://github.com/Microsoft/AIforEarth-API-Development) repo.
+Our animal detection model ([MegaDetector](https://github.com/Microsoft/CameraTraps#megadetector)) trained on camera trap images from a variety of ecosystems is exposed through two APIs, one for real-time applications or small batches of test images (synchronous API), and one for processing large collections of images (batch processing API). These APIs can be adapted to deploy any algorithms or models &ndash; see our tutorial in the [AI for Earth API Framework](https://github.com/Microsoft/AIforEarth-API-Development) repo.
 
 
 ### Synchronous API
@@ -17,8 +17,13 @@ To build the API, first download the model file from the [MegaDetector](https://
 
 ### Batch processing API
 
-This API runs the detector on up to 2 million images in one request using [Azure Machine Learning Service](https://azure.microsoft.com/en-us/services/machine-learning-service/)'s _Managed Compute_ functionality, formerly known as Batch AI. To use this API the input images need to be copied to Azure [Blob Storage](https://azure.microsoft.com/en-us/services/storage/blobs/). Please see the [user guide](./detector_batch_processing/README.md) and get in touch with us if you're interested in processing camera trap images this way. 
+This API runs the detector on up to 2 million images in one request using [Azure Machine Learning Service](https://azure.microsoft.com/en-us/services/machine-learning-service/)'s _Managed Compute_ functionality, formerly known as Batch AI. To use this API the input images need to be copied to Azure [Blob Storage](https://azure.microsoft.com/en-us/services/storage/blobs/). Please see the [user guide](./batch_processing/README.md) and get in touch with us if you're interested in processing camera trap images this way. 
 
 Upcoming improvements:
 - [ ] Adapt `runserver.py` to use the newest version of the AI4E API Framework
 - [ ] More checks on the input container and image list SAS keys
+
+
+## Integration with other tools
+
+The &ldquo;integration&rdquo; folder contains guidelines and postprocessing scripts for using the output of our API in other applications.
