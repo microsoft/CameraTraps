@@ -88,7 +88,7 @@ def convert_csv_to_json(input_path,output_path):
             conf = detection[4]
             iClass = detection[5]
             out_detection = {}
-            out_detection['category'] = iClass
+            out_detection['category'] = str(iClass)
             out_detection['conf'] = conf
             out_detection['bbox'] = bbox            
             out_detections.append(out_detection)
