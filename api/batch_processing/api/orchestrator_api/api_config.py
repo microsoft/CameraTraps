@@ -6,7 +6,7 @@ INTERNAL_CONTAINER = 'async-api-zooniverse'
 AML_CONTAINER = 'aml-out-zooniverse'
 
 # how often does the checking thread wake up to check if all jobs are done
-MONITOR_PERIOD_MINUTES = 15
+MONITOR_PERIOD_MINUTES = 5
 
 # if this number of times the thread wakes up to check is exceeded, stop the monitoring thread
 MAX_MONITOR_CYCLES = 4 * 7 * int((60 * 24) / MONITOR_PERIOD_MINUTES)  # 4 weeks
@@ -49,9 +49,11 @@ AML_CONFIG = {
     'completed_status': ['Finished', 'Failed', 'Completed'],
 
     # service principle for authenticating to AML
-    'tenant-id': '',  # place holders
+    'tenant-id': '',  # fill these out before building the container
     'application-id': ''
 }
+
+WHITELIST = []
 
 # version of the detector model in use
 SUPPORTED_MODEL_VERSIONS = sorted([k for k in AML_CONFIG['models']])
@@ -60,9 +62,11 @@ SUPPORTED_MODEL_VERSIONS = sorted([k for k in AML_CONFIG['models']])
 MAX_BLOBS_IN_OUTPUT_CONTAINER = 1000 * 1000
 
 # URLs to the 3 output files expires after this many days
-EXPIRATION_DAYS = 30
+EXPIRATION_DAYS = 90
 
 DETECTION_CATEGORIES = {
     '1': 'animal',
     '2': 'person'
 }
+
+OUTPUT_FORMAT_VERSION = '1.0'
