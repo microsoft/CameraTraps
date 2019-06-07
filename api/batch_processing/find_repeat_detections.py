@@ -32,9 +32,8 @@ from tqdm import tqdm
 
 # from ai4eutils; this is assumed to be on the path, as per repo convention
 import write_html_image_list
-import matlab_porting_tools as mpt
 
-from detection.detection_eval.load_api_results import load_api_results, write_api_results
+from api.batch_processing.load_api_results import load_api_results, write_api_results
 
 # Imports I'm not using but use when I tinker with parallelization
 #
@@ -60,17 +59,17 @@ class RepeatDetectionOptions:
     outputBase = ''
     
     # Don't consider detections with confidence lower than this as suspicious
-    confidenceMin = 0.85
+    confidenceMin = 0.849
     
     # Don't consider detections with confidence higher than this as suspicious
     confidenceMax = 1.0
-    
+
     # What's the IOU threshold for considering two boxes the same?
-    iouThreshold = 0.95
+    iouThreshold = 0.9
     
     # How many occurrences of a single location (as defined by the IOU threshold)
     # are required before we declare it suspicious?
-    occurrenceThreshold = 12
+    occurrenceThreshold = 15
     
     # Ignore "suspicious" detections larger than some size; these are often animals
     # taking up the whole image.  This is expressed as a fraction of the image size.
@@ -88,7 +87,7 @@ class RepeatDetectionOptions:
     filterFileToLoad = ''
     
     # (optional) list of filenames remaining after deletion
-    filteredFileListToLoad = ''
+    filteredFileListToLoad = None
     
     # Turn on/off optional outputs
     bRenderHtml = False
