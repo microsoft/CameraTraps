@@ -1,0 +1,7 @@
+Predicting zorilla/S2/K13/K13_R1/S2_K13_R1_PICT0664.JPG
+Most likely classes:
+	"wildebeest" with confidence 78.91%
+	"ostrich" with confidence 7.30%
+	"topi" with confidence 5.06%
+	"buffalo" with confidence 1.13%
+	"hartebeest" with confidence 0.83%
