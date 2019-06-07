@@ -236,7 +236,7 @@ The output of the detector is saved in `requestID_detections_requestName_timesta
     },
     "images": [
         {
-            "file": "/path/from/base/dir/image.jpg",
+            "file": "/path/from/base/dir/image1.jpg",
             "meta": "a string of metadata if it was available in the list at images_requested_json_sas",
             "max_detection_conf": 0.926,
             "detections": [
@@ -256,6 +256,12 @@ The output of the detector is saved in `requestID_detections_requestName_timesta
                     "bbox": [0.0451, 0.1849, 0.3642, 0.4636]
                 }
             ]
+        },
+        {
+            "file": "/path/from/base/dir/image2.jpg",
+            "meta": "",
+            "max_detection_conf": 0,
+            "detections": []
         }
     ]
 }
