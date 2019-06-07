@@ -1,11 +1,13 @@
 '''
 initialize_target_db.py
 
-Creates a PostgreSQL database of camera trap images for use in active learning for classification.
+Creates a PostgreSQL database of camera trap images for use in active learning for classification. The DB contains tables:
+    - info: information about the dataset
+    - image: images present in the dataset
 
 '''
 
-import argparse, glob, json, os, psycopg2
+import argparse, glob, json, os, psycopg2, uuid
 from datetime import datetime
 from peewee import *
 from DB_models import *
@@ -38,7 +40,7 @@ coco_json = None
 
 
 # DATABASE INITIALIZATION CODE
-# Connect to postgres database owned by superuser postgres
+# Connect to postgres database owned by suClass defining tperuser postgres
 conn = psycopg2.connect(dbname='postgres', user='postgres', password='postgres', host='localhost')
 conn.autocommit = True # this is needed to create database if it does not exist
 cursor = conn.cursor()
@@ -75,22 +77,68 @@ conn.close()
 # Try to connect as USER to database DB_NAME through peewee
 db = PostgresqlDatabase(DB_NAME, user=USER, password=PASSWORD, host='localhost')
 db_proxy.initialize(db)
-db.create_tables([Info])
+db.create_tables([Info, Image])
 
 if COCO_CAMERA_TRAPS_JSON:
+    # Use the metadata stored in COCO Camera Traps JSON formatted file
     coco_json = json.load(open(COCO_CAMERA_TRAPS_JSON, 'r'))
+
+    # Info Table
     coco_json_info = coco_json['info']
     v = eval(coco_json_info['version'])
     y = coco_json_info['year']
     d = datetime.strptime(coco_json_info['date_created'], '%Y-%m-%d').date()
-    info = Info.create(name=DB_NAME, description=coco_json_info['description'], contributor= coco_json_info['contributor'], 
-                    version=v, year=y, date_created=d)
+
+    # check if the info has already been entered (match by name, description and date created)
+    info_entries = Info.select().where((Info.name==DB_NAME) & (Info.description == coco_json_info['description']) & (Info.date_created == d))
+    try:
+        info_entry = info_entries.get()
+    except:
+        info_entry = Info.create(name=DB_NAME, description=coco_json_info['description'], contributor= coco_json_info['contributor'], 
+                        version=v, year=y, date_created=d)
+        info_entry.save()
+
+
+    # Image Table
+    coco_json_images = coco_json['images'] # Data on all images in dataset
+    imgs_in_dir = glob.glob(os.path.join(args.source, '**/*.JPG'), recursive=True) # All images in directory (may be a subset of the dataset)
+    # image_entries = []
+    for imgjson in sorted(coco_json_images, key = lambda i: i['file_name']):
+        img_fn = imgjson['file_name'].replace('\\', '/')
+        img_path = args.source + img_fn
+        if img_path in imgs_in_dir:
+            img_id = imgjson['id']
+            w = imgjson['width']
+            h = imgjson['height']
+            seq_id = imgjson['seq_id']
+            seq_nf = imgjson['seq_num_frames']
+            frame_num = imgjson['frame_num']
+
+            # check if the image has already been entered into the table (match by id and file name)
+            image_entries = Image.select().where((Image.id == img_id) & (Image.file_name == img_fn))
+            try:
+                image_entry = image_entries.get()
+            except:
+                image_entry = Image.create(id=img_id, file_name=img_fn, width=w, height=h, 
+                                            seq_id=seq_id, seq_num_frames=seq_nf, frame_num=frame_num)
+                image_entry.save()
+    
+            break # don't add all the images now while testing
+    
 else:
+    raise NotImplementedError('TODO: creating DB tables without using a COCO Camera Traps JSON file')
+    # Info Table
     info = Info.create(name=DB_NAME, description='', contributor=USER, 
                     version=0.0, year=2019, date_created=datetime.today().date())
-info.save()
+    info.save()
 
-
+    # Image Table
+    imgs_in_dir = glob.glob(os.path.join(args.source, '**/*.JPG'), recursive=True) # All images in directory
+    for img in imgs_in_dir:
+        img_id = uuid.uuid4()
+# if coco_json:
+#     print(coco_json['images'][0])
+    # prin(coco_json)
 
 # img_paths = glob.glob(os.path.join(args.source, '**/*.JPG'), recursive=True)
 # coco_json = json.load(open(COCO_JSON, 'r'))
