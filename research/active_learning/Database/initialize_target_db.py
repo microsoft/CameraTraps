@@ -1,9 +1,11 @@
 '''
 initialize_target_db.py
 
-Creates a PostgreSQL database of camera trap images for use in active learning for classification. The DB contains tables:
+Creates a PostgreSQL database of camera trap images for use in active learning for classification. Assumes that crops have already
+been generated for the images using make_active_learning_classification_dataset.py. The created DB contains tables:
     - info: information about the dataset
     - image: images present in the dataset
+    - detections: crops of images with detections with confidence greater than a specified threshold
 
 '''
 
