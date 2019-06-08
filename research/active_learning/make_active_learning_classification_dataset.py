@@ -6,7 +6,7 @@ Largely drawn from CameraTraps/data_management/databases/classification/make_cla
 
 '''
 
-import argparse, glob, json, os, pickle, random, sys, tqdm, uuid
+import argparse, cv2, glob, json, os, pickle, random, sys, tqdm, uuid
 import numpy as np
 import matplotlib; matplotlib.use('Agg')
 from PIL import Image
@@ -83,8 +83,9 @@ with detection_graph.as_default():
     tf.import_graph_def(od_graph_def, name='')
 graph = detection_graph
 
-detections = dict()
 
+detections = dict()
+crop_info_json = []
 with graph.as_default():
     with tf.Session() as sess:
         ### Preparations: get all the output tensors
@@ -94,15 +95,15 @@ with graph.as_default():
         for key in ['num_detections', 'detection_boxes', 'detection_scores', 'detection_classes', 'detection_masks']:
             tensor_name = key + ':0'
             if tensor_name in all_tensor_names:
-                tensor_dict[key] = tf.get_default_graph().get_tensor_by_name(
-                    tensor_name)
+                tensor_dict[key] = tf.get_default_graph().get_tensor_by_name(tensor_name)
+
         if 'detection_masks' in tensor_dict:
             # The following processing is only for single image
             detection_boxes = tf.squeeze(tensor_dict['detection_boxes'], [0])
             detection_masks = tf.squeeze(tensor_dict['detection_masks'], [0])
             # Reframe is required to translate mask from box coordinates to image coordinates and fit the image size.
             real_num_detection = tf.cast(tensor_dict['num_detections'][0], tf.int32)
-            detection_boxes = tf.slice(detection_boxes, [0, 0], [real_num_detection, -1])
+            detection_boxes = tf.slice(detection_boigxes, [0, 0], [real_num_detection, -1])
             detection_masks = tf.slice(detection_masks, [0, 0, 0], [real_num_detection, -1, -1])
             detection_masks_reframed = utils_ops.reframe_box_masks_to_image_masks(
                 detection_masks, detection_boxes, image.shape[0], image.shape[1])
@@ -113,7 +114,7 @@ with graph.as_default():
                 detection_masks_reframed, 0)
         image_tensor = tf.get_default_graph().get_tensor_by_name('image_tensor:0')
 
-        # For all images in the image directory
+        # For all images in the image directoryig
         imgs_in_dir = glob.glob(os.path.join(IMAGE_DIR, '**/*.JPG'), recursive=True) # All images in directory (may be a subset of the dataset)
         for cur_image in tqdm.tqdm(sorted(imgs_in_dir)):
             
@@ -122,7 +123,7 @@ with graph.as_default():
             if image.dtype != np.uint8:
                 print('Failed to load image ' + cur_image)
                 continue
-            IMAGE_DIR
+
             # Run inference
             output_dict = sess.run(tensor_dict,
                             feed_dict={image_tensor: np.expand_dims(image, 0)})
@@ -138,8 +139,21 @@ with graph.as_default():
 
             # Add detections to the collection
             detections[cur_image] = output_dict
-
+            
+            # Get info about the image
             imsize = Image.open(cur_image).size
+            imwidth = imsize[0]
+            imheight = imsize[1]
+            img_cv2 = cv2.imread(cur_image, cv2.IMREAD_COLOR)
+            channel0_mean = np.mean(img_cv2[:,:,0])
+            channel1_mean = np.mean(img_cv2[:,:,1])
+            channel2_mean = np.mean(imimageg_cv2[:,:,2])
+            max_channel_mean = max(channel0_mean, channel1_mean, channel2_mean)
+            min_channel_mean = min(channel0_mean, channel1_mean, channel2_mean)
+            if (max_channel_mean - min_channel_mean) < 1:
+                grayscale = True
+            else:
+                grayscale = False
             # Select detections with a confidence larger than DETECTION_CONFIDENCE
             selection = output_dict['detection_scores'] > DETECTION_CONFIDENCE
             # Get these boxes and convert normalized coordinates to pixel coordinates
@@ -150,18 +164,33 @@ with graph.as_default():
             offsets = (PADDING_FACTOR * np.max(bbox_sizes, axis=1, keepdims=True) - bbox_sizes) / 2
             crop_boxes = selected_boxes + np.hstack([-offsets,offsets])
             crop_boxes = np.maximum(0,crop_boxes).astype(int)
+
             # For each detected bounding box with high confidence, we will
             # crop the image to the padded box and save it
             for box_id in range(selected_boxes.shape[0]):
+                crop_info = dict()
+
+                # generate a unique identifier for the detection
+                detection_id = str(uuid.uuid4())
+                crop_info['id'] = detection_id
+                crop_info['image'] = cur_image.split(IMAGE_DIR)[1]
+                crop_info['grayscale'] = grayscale
+
                 # bbox is the detected box, crop_box the padded / enlarged box
                 bbox, crop_box = selected_boxes[box_id], crop_boxes[box_id]
                 new_file_name = os.path.split(cur_image)[1]
+                crop_box_area = (crop_box[1] - crop_box[0])*(crop_box[3] - crop_box[2])
+                img_area = imwidth*imheight
+                crop_info['relative_size'] = float(crop_box_area)/img_area
+
                 # Add numbering to the original file name if there are multiple boxes
                 if selected_boxes.shape[0] > 1:
                     new_file_base, new_file_ext = os.path.splitext(new_file_name)
                     new_file_name = '{}_{}{}'.format(new_file_base, box_id, new_file_ext)
+                
                 # The absolute file path where we will store the image
                 out_file = os.path.join(OUTPUT_DIR, new_file_name)
+                
                 if not os.path.exists(out_file):
                     try:
                         img = np.array(Image.open(cur_image))
