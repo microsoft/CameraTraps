@@ -49,3 +49,30 @@ class Image(Model):
     
     class Meta:
         database = db_proxy
+
+
+class Category(Model):
+    '''
+    Table containing information about classes (species) in the target dataset.
+    '''
+    id = IntegerField(primary_key=True)
+    name = CharField()
+
+    class Meta:
+        database= db_proxy
+
+
+class Detection(Model):
+    '''
+    Table containing information about each crop in the target dataset.
+    '''
+    id = CharField(primary_key=True)
+    image = ForeignKeyField(Image) # path specifying which image the crop was generated from
+    kind = IntegerField(Category) # numeric code representing ???
+    category = ForeignKeyField(null = True) # image dimensions in pixels
+    category_confidence = FloatField(null= True)
+    grayscale = BooleanField(null = True)
+    relative_size = FloatField(null = True) # crop area relative to original image area
+    
+    class Meta:
+        database = db_proxy
