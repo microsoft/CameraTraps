@@ -1,4 +1,5 @@
 #
+# Creates a graph description, which is required to create a frozen graph.
 # Adapted from from ./tf-slim/export_inference_graph.py
 # Added preprocessing to the definition for easier handling
 #
