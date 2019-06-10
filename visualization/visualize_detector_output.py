@@ -3,7 +3,7 @@
 # visualize_detector_output.py
 #
 # Render images with bounding boxes annotated on them to a folder, based on a detector output result
-# file (CSV). The original images can be local or in Azure Blob Storage.
+# file (json). The original images can be local or in Azure Blob Storage.
 #
 #####
 
@@ -32,7 +32,7 @@ parser.add_argument('detector_output_path', type=str,
 
 parser.add_argument('out_dir', type=str,
                     help=('path to a directory where the annotated images will be saved. '
-                          'The directory will be created if does not exit'))
+                          'The directory will be created if it does not exist'))
 
 parser.add_argument('-c', '--confidence', type=float,
                     help=('a value between 0 and 1, indicating the confidence threshold above which to visualize '

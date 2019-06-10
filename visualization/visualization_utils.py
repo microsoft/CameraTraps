@@ -151,16 +151,17 @@ def render_detection_bounding_boxes(detections, image,
 
     Args:
         detections: detections on the image, example content:
-        {
-            "category": "2",
-            "conf": 0.996,
-            "bbox": [
-                0.0,
-                0.2762,
-                0.9539,
-                0.9825
-            ]
-        }
+            {
+                "category": "2",
+                "conf": 0.996,
+                "bbox": [
+                    0.0,
+                    0.2762,
+                    0.1234,
+                    0.2458
+                ]
+            }
+            where the bbox coordinates are [x, y, width_box, height_box], (x, y) is upper left
         image: PIL.Image object, output of generate_detections.
         label_map: optional, mapping the numerical label to a string name. The type of the numerical label
             (default string) needs to be consistent with the keys in label_map; no casting is carried out.
@@ -179,7 +180,8 @@ def render_detection_bounding_boxes(detections, image,
 
         score = detection['conf']
         if score > confidence_threshold:
-            display_boxes.append(detection['bbox'])
+            x1, y1, w_box, h_box = detection['bbox']
+            display_boxes.append([y1, x1, y1 + h_box, x1 + w_box])
             clss = detection['category']
             label = label_map[clss] if clss in label_map else clss
             displayed_label = '{}: {}%'.format(label, round(100 * score))
@@ -202,9 +204,11 @@ def render_detection_bounding_boxes_old(boxes_scores_classes, image,
     Args:
         boxes_and_scores:  outputs of generate_detections, in one of the following formats
         
-            [x_rel, y_rel, w_rel, h_rel, p]
-            [x_rel, y_rel, w_rel, h_rel, p, class]
+            [x_min, y_min, x_max, x_max, p]
+            [x_min, y_min, x_max, x_max, p, class]
             
+        ...all in normalized coordinates, with the origin at the upper-left.
+        
         image: PIL.Image object, output of generate_detections.
         label_map: optional, mapping the numerical label to a string name.
         confidence_threshold: optional, threshold above which the bounding box is rendered.
