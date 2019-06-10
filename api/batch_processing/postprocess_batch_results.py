@@ -48,7 +48,7 @@ from write_html_image_list import write_html_image_list
 import visualization.visualization_utils as vis_utils
 from data_management.cct_json_utils import CameraTrapJsonUtils
 from data_management.cct_json_utils import IndexedJsonDb
-from detection.detection_eval.load_api_results import load_api_results
+from api.batch_processing.load_api_results import load_api_results
 
 
 ##%% Options
@@ -90,6 +90,12 @@ class PostProcessingOptions:
     # and applying them to a slightly different folder structure.
     detector_output_filename_replacements = {}
     ground_truth_filename_replacements = {}
+
+
+# Largely a placeholder for future additional return information    
+class PostProcessingResults:
+
+    output_html_file = ''
     
     
 ##%% Helper classes and functions
@@ -345,7 +351,9 @@ def process_batch_results(options):
     
         
     ##%% Fork here depending on whether or not ground truth is available
-        
+    
+    output_html_file = ''
+    
     # If we have ground truth, we'll compute precision/recall and sample tp/fp/tn/fn.
     #
     # Otherwise we'll just visualize detections/non-detections.
@@ -584,9 +592,8 @@ def process_batch_results(options):
             else:
                 res = 'non_detections'
             
-            display_name = '<b>Result type</b>: {}, <b>Image</b>: {}'.format(
-                res.upper(),
-                image_relative_path)
+            display_name = '<b>Result type</b>: {}, <b>Image</b>: {}, <b>Max conf</b>: {}'.format(
+                res, image_relative_path, max_conf)
     
             rendered_image_html_info = render_bounding_boxes(options.image_base_dir,image_relative_path,
                                                             display_name,boxes_and_scores,res,options)        
@@ -620,6 +627,10 @@ def process_batch_results(options):
     
     # ...if we do/don't have ground truth
 
+    ppresults = PostProcessingResults()
+    ppresults.output_html_file = output_html_file
+    return ppresults
+
 # ...process_batch_results
 
     
@@ -635,12 +646,12 @@ if False:
     options.output_dir = os.path.join(baseDir,'postprocessing_filtered')
     options.detector_output_filename_replacements = {} # {'20190430cameratraps\\':''} 
     options.ground_truth_filename_replacements = {'\\data\\blob\\':''}
-    # options.detector_output_file = os.path.join(baseDir,'bh_5570_detections.csv')
     options.detector_output_file = os.path.join(baseDir,'bh_5570_detections.filtered.csv')
     options.ground_truth_json_file = os.path.join(baseDir,'bh.json')
     options.unlabeled_classes = ['human']
         
-    process_batch_results(options)        
+    ppresults = process_batch_results(options)        
+    # os.start(ppresults.output_html_file)
 
 
 #%% Command-line driver
@@ -657,17 +668,26 @@ def args_to_object(args, obj):
 
 def main():
     
-    # python postprocess_batch_results.py "d:\temp\8471_detections.csv" "d:\temp\postprocessing_tmp" --image_base_dir "d:\wildlife_data\mcgill_test" --ground_truth_json_file "d:\wildlife_data\mcgill_test\mcgill_test.json" --num_images_to_sample 100
-    parser = argparse.ArgumentParser()
-    parser.add_argument('detector_output_file', action='store', type=str, help='.csv file produced by the batch inference API (required)')
-    parser.add_argument('output_dir', action='store', type=str, help='Base directory for output (required)')
-    parser.add_argument('--image_base_dir', action='store', type=str, help='Base directory for images (optional, can compute statistics without images)')
-    parser.add_argument('--ground_truth_json_file', action='store', type=str, help='Ground truth labels (optional, can render detections without ground truth)')
+    defaultOptions = PostProcessingOptions()
     
-    parser.add_argument('--confidence_threshold', action='store', type=float, default=0.85, help='Confidence threshold for statistics and visualization')
-    parser.add_argument('--target_recall', action='store', type=float, default=0.9, help='Target recall (for statistics only)')
-    parser.add_argument('--num_images_to_sample', action='store', type=int, default=500, help='Number of images to visualize (defaults to 500) (-1 to include all images)')
-    parser.add_argument('--viz_target_width', action='store', type=int, default=800, help='Output image width')
+    parser = argparse.ArgumentParser()
+    parser.add_argument('detector_output_file', action='store', type=str, 
+                        help='.csv file produced by the batch inference API (required)')
+    parser.add_argument('output_dir', action='store', type=str, 
+                        help='Base directory for output (required)')
+    parser.add_argument('--image_base_dir', action='store', type=str, 
+                        help='Base directory for images (optional, can compute statistics without images)')
+    parser.add_argument('--ground_truth_json_file', action='store', type=str
+                        , help='Ground truth labels (optional, can render detections without ground truth)')
+    
+    parser.add_argument('--confidence_threshold', action='store', type=float, default=defaultOptions.confidence_threshold,
+                        help='Confidence threshold for statistics and visualization')
+    parser.add_argument('--target_recall', action='store', type=float, default=defaultOptions.target_recall,
+                        help='Target recall (for statistics only)')
+    parser.add_argument('--num_images_to_sample', action='store', type=int, default=defaultOptions.num_images_to_sample,
+                        help='Number of images to visualize (defaults to 500) (-1 to include all images)')
+    parser.add_argument('--viz_target_width', action='store', type=int, default=defaultOptions.viz_target_width,
+                        help='Output image width')
     parser.add_argument('--random_output_sort', action='store_true', help='Sort output randomly (defaults to sorting by filename)')
     
     if len(sys.argv[1:])==0:

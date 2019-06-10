@@ -32,9 +32,8 @@ from tqdm import tqdm
 
 # from ai4eutils; this is assumed to be on the path, as per repo convention
 import write_html_image_list
-import matlab_porting_tools as mpt
 
-from detection.detection_eval.load_api_results import load_api_results, write_api_results
+from api.batch_processing.load_api_results import load_api_results, write_api_results
 
 # Imports I'm not using but use when I tinker with parallelization
 #
@@ -60,13 +59,13 @@ class RepeatDetectionOptions:
     outputBase = ''
     
     # Don't consider detections with confidence lower than this as suspicious
-    confidenceMin = 0.85
+    confidenceMin = 0.849
     
     # Don't consider detections with confidence higher than this as suspicious
-    confidenceMax = 0.95
-    
+    confidenceMax = 1.0
+
     # What's the IOU threshold for considering two boxes the same?
-    iouThreshold = 0.95
+    iouThreshold = 0.9
     
     # How many occurrences of a single location (as defined by the IOU threshold)
     # are required before we declare it suspicious?
@@ -87,10 +86,12 @@ class RepeatDetectionOptions:
     # .json file containing detections
     filterFileToLoad = ''
     
-    # (optional) list of filenames remaining after delettion
-    filteredFileListToLoad = ''
+    # (optional) list of filenames remaining after deletion
+    filteredFileListToLoad = None
     
+    # Turn on/off optional outputs
     bRenderHtml = False
+    bWriteFilteringFolder = True
     
     debugMaxDir = -1
     debugMaxRenderDir = -1
@@ -313,7 +314,7 @@ def find_matches_in_directory(dirName,options,rowsByDirectory):
             assert confidence >= 0.0 and confidence <= 1.0
             if confidence < options.confidenceMin:
                 continue
-            if confidence >= options.confidenceMax:
+            if confidence > options.confidenceMax:
                 continue
             
             # Is this detection too big to be suspicious?
@@ -876,37 +877,41 @@ def find_repeat_detections(inputCsvFilename,outputCsvFilename,options=None):
     toReturn.allRowsFiltered = update_detection_table(toReturn,options,outputCsvFilename)
     
     # Create filtering directory
-    print('Creating filtering folder...')
-    
-    dateString = datetime.now().strftime('%Y.%m.%d.%H.%M.%S')
-    filteringDir = os.path.join(options.outputBase,'filtering_' + dateString)
-    os.makedirs(filteringDir,exist_ok=True)
-    
-    # iDir = 0; suspiciousDetectionsThisDir = suspiciousDetections[iDir]
-    for iDir,suspiciousDetectionsThisDir in enumerate(tqdm(suspiciousDetections)):
+    if options.bWriteFilteringFolder:
         
-        # suspiciousDetectionsThisDir is a list of DetectionLocation objects
-        for iDetection,detection in enumerate(suspiciousDetectionsThisDir):
+        print('Creating filtering folder...')
         
-            bbox = detection.bbox
-            instance = detection.instances[0]
-            relativePath = instance.filename
-            inputFullPath = os.path.join(options.imageBase,relativePath)
-            assert(os.path.isfile(inputFullPath))
-            outputRelativePath = 'dir{:0>4d}_det{:0>4d}.jpg'.format(iDir,iDetection)
-            outputFullPath = os.path.join(filteringDir,outputRelativePath)
-            render_bounding_box(bbox,inputFullPath,outputFullPath,15)            
-            detection.sampleImageRelativeFileName = outputRelativePath
+        dateString = datetime.now().strftime('%Y.%m.%d.%H.%M.%S')
+        filteringDir = os.path.join(options.outputBase,'filtering_' + dateString)
+        os.makedirs(filteringDir,exist_ok=True)
+        
+        # iDir = 0; suspiciousDetectionsThisDir = suspiciousDetections[iDir]
+        for iDir,suspiciousDetectionsThisDir in enumerate(tqdm(suspiciousDetections)):
             
-    # Write out the detection index
-    detectionIndexFileName = os.path.join(filteringDir,'detectionIndex.json')
-    jsonpickle.set_encoder_options('json', sort_keys=True, indent=4)
-    s = jsonpickle.encode(suspiciousDetections)
-    with open(detectionIndexFileName, 'w') as f:
-        f.write(s)
-    toReturn.filterFile = detectionIndexFileName
+            # suspiciousDetectionsThisDir is a list of DetectionLocation objects
+            for iDetection,detection in enumerate(suspiciousDetectionsThisDir):
             
-    print('Done')
+                bbox = detection.bbox
+                instance = detection.instances[0]
+                relativePath = instance.filename
+                inputFullPath = os.path.join(options.imageBase,relativePath)
+                assert(os.path.isfile(inputFullPath))
+                outputRelativePath = 'dir{:0>4d}_det{:0>4d}.jpg'.format(iDir,iDetection)
+                outputFullPath = os.path.join(filteringDir,outputRelativePath)
+                render_bounding_box(bbox,inputFullPath,outputFullPath,15)            
+                detection.sampleImageRelativeFileName = outputRelativePath
+                
+        # Write out the detection index
+        detectionIndexFileName = os.path.join(filteringDir,'detectionIndex.json')
+        jsonpickle.set_encoder_options('json', sort_keys=True, indent=4)
+        s = jsonpickle.encode(suspiciousDetections)
+        with open(detectionIndexFileName, 'w') as f:
+            f.write(s)
+        toReturn.filterFile = detectionIndexFileName
+                
+        print('Done')
+
+    # ...if we're writing filtering info
         
     return toReturn
 
@@ -947,9 +952,7 @@ if False:
     results = find_repeat_detections(inputCsvFilename,outputCsvFilename,options)
     
     
-#%%
-    
-##%% Command-line driver
+#%% Command-line driver
 
 # Copy all fields from a Namespace (i.e., the output from parse_args) to an object.  
 #
@@ -971,6 +974,8 @@ def main():
     # With HTML (for real)
     # python find_repeat_detections.py "D:\temp\tigers_20190308_all_output.csv" "D:\temp\tigers_20190308_all_output.filtered.csv" --renderHtml --imageBase "d:\wildlife_data\tigerblobs" --outputBase "d:\temp\repeatDetections"
     
+    defaultOptions = RepeatDetectionOptions()
+    
     parser = argparse.ArgumentParser()
     parser.add_argument('inputFile')
     parser.add_argument('outputFile')
@@ -978,24 +983,41 @@ def main():
                         help='Image base dir, only relevant if renderHtml is True')
     parser.add_argument('--outputBase', action='store', type=str, 
                         help='Html output dir, only relevant if renderHtml is True')
-    parser.add_argument('--confidenceMin',action='store', type=float, default=0.85,
+    parser.add_argument('--confidenceMax', action='store', type=float, 
+                        default=defaultOptions.confidenceMax,
+                        help='Detection confidence threshold; don\'t process anything above this')
+    parser.add_argument('--confidenceMin', action='store', type=float, 
+                        default=defaultOptions.confidenceMin,
                         help='Detection confidence threshold; don\'t process anything below this')
-    parser.add_argument('--occurrenceThreshold',action="store", type=int, default=10, 
+    parser.add_argument('--iouThreshold', action='store', type=float, 
+                        default=defaultOptions.iouThreshold,
+                        help='Detections with IOUs greater than this are considered "the same detection"')
+    parser.add_argument('--occurrenceThreshold', action='store', type=int, 
+                        default=defaultOptions.occurrenceThreshold, 
                         help='More than this many near-identical detections in a group (e.g. a folder) is considered suspicious')
-    parser.add_argument('--nWorkers',action="store", type=int, default=10, 
-                        help='Level of parallelism for rendering or IOU computation')
-    parser.add_argument('--maxSuspiciousDetectionSize',action="store", type=float, 
-                        default=0.35, help='Detections larger than this fraction of image area are not considered suspicious')
+    parser.add_argument('--nWorkers', action='store', type=int, 
+                        default=defaultOptions.nWorkers, 
+                        help='Level of parallelism for rendering and IOU computation')
+    parser.add_argument('--maxSuspiciousDetectionSize',action='store', type=float, 
+                        default=defaultOptions.maxSuspiciousDetectionSize, 
+                        help='Detections larger than this fraction of image area are not considered suspicious')
     parser.add_argument('--renderHtml', action='store_true', 
                         dest='bRenderHtml', help='Should we render HTML output?')
+    parser.add_argument('--omitFilteringFolder', action='store_false',
+                       dest='bWriteFilteringFolder', help='Should we create a folder of rendered detections for post-filtering?')
+    parser.add_argument('--excludeClasses', action='store', nargs='+', type=int, 
+                        default=defaultOptions.excludeClasses, 
+                        help='List of classes (ints) to exclude from analysis, separated by spaces')
     
     parser.add_argument('--debugMaxDir', action='store', type=int, default=-1)                        
     parser.add_argument('--debugMaxRenderDir', action='store', type=int, default=-1)
     parser.add_argument('--debugMaxRenderDetection', action='store', type=int, default=-1)
     parser.add_argument('--debugMaxRenderInstance', action='store', type=int, default=-1)
     
-    parser.add_argument('--bParallelizeComparisons', action='store', type=bool, default=True)
-    parser.add_argument('--bParallelizeRendering', action='store', type=bool, default=True)
+    parser.add_argument('--forceSerialComparisons', action='store_false', 
+                        dest='bParallelizeComparisons')
+    parser.add_argument('--forceSerialRendering', action='store_false', 
+                        dest='bParallelizeRendering')
     
     if len(sys.argv[1:])==0:
         parser.print_help()
@@ -1005,6 +1027,7 @@ def main():
     
     # Convert to an options object
     options = RepeatDetectionOptions()
+    
     args_to_object(args,options)
     
     find_repeat_detections(args.inputFile,args.outputFile,options)
