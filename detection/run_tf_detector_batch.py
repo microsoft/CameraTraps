@@ -486,11 +486,6 @@ if False:
     
     boxes,scores,classes,imageFileNames = load_and_run_detector(options,detector)
     
-    #%% Convert to .json
-    
-    input_path = options.outputFile
-    output_path = options.outputFile.replace('.csv','.json')
-    convert_output_format.convert_csv_to_json(input_path,output_path)
     
     #%% Post-processing with process_batch_results... this can also be run from the
     #   command line.
