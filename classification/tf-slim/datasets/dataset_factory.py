@@ -25,6 +25,7 @@ from datasets import mnist
 from datasets import cct
 from datasets import wellington
 from datasets import rspb
+from datasets import idfg
 from datasets import serengeti
 from datasets import nacti
 
@@ -36,6 +37,7 @@ datasets_map = {
     'cct': cct,
     'wellington': wellington,
     'rspb': rspb,
+    'idfg': idfg,
     'serengeti': serengeti,
     'nacti': nacti
 }
