@@ -2,7 +2,12 @@
 #
 # detect_and_predict_image.py
 #
-# Runs both a detector and a classifier on a given image.
+# Functions to load a TensorFlow detection and a classification model, run inference,
+# render bounding boxes on images, and write out the resulting
+# images (with bounding boxes and classes).
+#
+# See the "test driver" cell for example invocation.
+#
 #
 ######
 
