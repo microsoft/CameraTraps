@@ -24,8 +24,8 @@ from multiprocessing.dummy import Pool as ThreadPool  # this functions like thre
 from shutil import copy, copyfile
 
 # configurations and paths
-log_folder = '/home/yasiyu/yasiyu_log'
-dest_folder = '/datadrive/emammal'  # data disk attached where data is stored
+log_folder = '/home/lynx/logs'
+dest_folder = '/datadrive/emammal/0BillMcShea'  # data disk attached where data is stored
 origin = 'cloud'  # 'cloud' or 'mounted'
 
 
@@ -142,7 +142,7 @@ def download_from_container(dest_folder, blob_service, container='emammal', desi
 if __name__ == '__main__':
     if origin == 'cloud':
         container = 'emammal'
-        desired_blob_prefix = '0Robert Long/'
+        desired_blob_prefix = '0Bill McShea/'
 
     print('Start timing...')
     start_time = datetime.now()
