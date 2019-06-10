@@ -1,12 +1,12 @@
 # name of the container in the internal storage account to store user facing files:
 # image list, detection results and failed images list.
-INTERNAL_CONTAINER = 'async-api-v3-2'
+INTERNAL_CONTAINER = 'async-api-zooniverse'
 
 # name of the container in the internal storage account to store outputs of each AML job
-AML_CONTAINER = 'aml-out-2'
+AML_CONTAINER = 'aml-out-zooniverse'
 
 # how often does the checking thread wake up to check if all jobs are done
-MONITOR_PERIOD_MINUTES = 15
+MONITOR_PERIOD_MINUTES = 5
 
 # if this number of times the thread wakes up to check is exceeded, stop the monitoring thread
 MAX_MONITOR_CYCLES = 4 * 7 * int((60 * 24) / MONITOR_PERIOD_MINUTES)  # 4 weeks
@@ -29,9 +29,9 @@ JOB_SUBMISSION_UPDATE_INTERVAL = 2
 # AML Compute
 AML_CONFIG = {
     'subscription_id': '74d91980-e5b4-4fd9-adb6-263b8f90ec5b',
-    'workspace_region': 'southcentralus',
+    'workspace_region': 'eastus',
     'resource_group': 'camera_trap_api_rg',
-    'workspace_name': 'camera_trap_aml_ws_sc',
+    'workspace_name': 'camera_trap_aml_ws_zooniverse',
     'aml_compute_name': 'camera-trap-com',
 
     'default_model_version': '3',
@@ -49,9 +49,11 @@ AML_CONFIG = {
     'completed_status': ['Finished', 'Failed', 'Completed'],
 
     # service principle for authenticating to AML
-    'tenant-id': 'my-tenant-id',  # place holders
-    'application-id': 'my-application-id'
+    'tenant-id': '',  # fill these out before building the container
+    'application-id': ''
 }
+
+WHITELIST = []
 
 # version of the detector model in use
 SUPPORTED_MODEL_VERSIONS = sorted([k for k in AML_CONFIG['models']])
@@ -60,9 +62,11 @@ SUPPORTED_MODEL_VERSIONS = sorted([k for k in AML_CONFIG['models']])
 MAX_BLOBS_IN_OUTPUT_CONTAINER = 1000 * 1000
 
 # URLs to the 3 output files expires after this many days
-EXPIRATION_DAYS = 30
+EXPIRATION_DAYS = 90
 
 DETECTION_CATEGORIES = {
     '1': 'animal',
     '2': 'person'
 }
+
+OUTPUT_FORMAT_VERSION = '1.0'
