@@ -25,7 +25,7 @@ from shutil import copy, copyfile
 
 # configurations and paths
 log_folder = '/home/lynx/logs'
-dest_folder = '/datadrive/emammal/0BillMcShea'  # data disk attached where data is stored
+dest_folder = '/datadrive/emammal'  # data disk attached where data is stored
 origin = 'cloud'  # 'cloud' or 'mounted'
 
 
