@@ -1,64 +1,67 @@
 #
 # combine_two_json_files.py
 #
-# Merges two coco-camera-traps .json files.
+# Merges two coco-camera-traps .json files. In particular, categories are combined and re-numbered.
 #
 
-import json
+import datetime, json
 
-file_1 = '/datadrive/iwildcam/annotations/eccv_18_annotation_files/train_annotations.json'
+file_1 = '/ai4edevfs/databases/emammal/emammal_kays_20190409.json'
 with open(file_1,'r') as f:
     data_1 = json.load(f)
 
-file_2 = '/datadrive/iwildcam/imerit/updated_imerit_iwildcam_annotations_2.json'
+file_2 = '/ai4edevfs/databases/emammal/emammal_mcshea_20190409.json'
 with open(file_2,'r') as f:
     data_2 = json.load(f)
 
-output_file = '/datadrive/iwildcam/annotations/combined_annotations/eccv_train_and_imerit_2.json'
-version = 'ECCV train file and imerit annotations set 2'
+# Combined Info
+info_1 = data_1['info']
+info_2 = data_2['info']
+info_new = dict.fromkeys(info_1.keys())
+info_new['contributor'] = info_1['contributor']+', '+info_2['contributor']
+desc_2 = ' '.join([info_2['description'].split()[0].lower()] + info_2['description'].split()[1:])
+info_new['description'] = info_1['description'][:-1]+', combined with '+desc_2
+info_new['year'] = max(info_1['year'], info_2['year'])
+info_new['date_created'] = datetime.date.today().strftime('%Y-%m-%d')
+info_new['version'] = info_1['version']
 
-new_images = data_1['images']
-new_images.extend(data_2['images'])
+# Combined Images
+images_1 = data_1['images']
+images_2 = data_2['images']
+images_new = images_1 + images_2
 
-print(len([im['id'] for im in new_images]),len(list(set([im['id'] for im in new_images]))))
-for im in new_images:
-    im['file_name'] = im['id'] + '.jpg'
-new_anns = data_1['annotations']
-new_anns.extend(data_2['annotations'])
+# Combined Categories
+categories_1 = data_1['categories']
+categories_2 = data_2['categories']
+new_category_names = ['empty'] + sorted(list(set([c['name'] for c in categories_1] + [c['name'] for c in categories_2]) - {'empty'}))
+categories_new = []
+for i, cname in enumerate(new_category_names):
+    categories_new.append({'id':i, 'name':cname})
+new_cat_id_lookup = {v['name']:v['id'] for v in categories_new}
+cat_1_name_lookup = {v['id']:v['name'] for v in categories_1}
+cat_2_name_lookup = {v['id']:v['name'] for v in categories_2}
 
-for ann in new_anns:
-    ann['category_id'] = int(ann['category_id'])
+# Combined Annotations
+annotations_1 = data_1['annotations']
+for ann in annotations_1:
+    a1_cid = ann['category_id']
+    a1_cname = cat_1_name_lookup[a1_cid]
+    ann['category_id'] = new_cat_id_lookup[a1_cname]
 
-print(len(new_anns))
+annotations_2 = data_2['annotations']
+for ann in annotations_2:
+    a2_cid = ann['category_id']
+    a2_cname = cat_2_name_lookup[a2_cid]
+    ann['category_id'] = new_cat_id_lookup[a2_cname]
 
-for cat in data_1['categories']:
-    cat['id'] = int(cat['id'])
+annotations_new = annotations_1 + annotations_2
 
-for cat in data_2['categories']:
-    cat['id'] = int(cat['id'])
-
-
-new_cats = data_1['categories']
-print(len(new_cats))
-cat_names = [cat['name'] for cat in new_cats]
-cat_ids = [cat['id'] for cat in new_cats]
-new_cats.extend([cat for cat in data_2['categories'] if cat['id'] not in cat_ids])
-print(len(new_cats))
-
-ann_cats = []
-for ann in new_anns:
-    if ann['category_id'] not in ann_cats:
-        ann_cats.append(ann['category_id'])
-
-new_cats = [cat for cat in new_cats if cat['id'] in ann_cats]
-print(len(new_cats),len(ann_cats))
 
 new_data = {}
-new_data['categories'] = new_cats
-new_data['annotations'] = new_anns
-new_data['images'] = new_images
-new_data['info'] = data_1['info']
-new_data['info']['version'] = version
-
+new_data['info'] = info_new
+new_data['images'] = images_new
+new_data['categories'] = categories_new
+new_data['annotations'] = annotations_new
+output_file = '/datadrive/emammal/emammal_mcshea_kays_20190409.json'
 json.dump(new_data, open(output_file,'w'))
 
