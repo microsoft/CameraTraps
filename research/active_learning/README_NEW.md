@@ -3,6 +3,13 @@
 This directory constitutes an ongoing project to employ active learning for semi-automated camera trap (and possibly aerial/drone) image labeling.
 
 ## Species Classification
+We suppose we have a large species classification dataset with labeled images. We run these images through a detector to get crops of the detections (we call this the *pre-training set*), and then learn an _embedding model_ on the labeled crops. We use this embedding model as a feature extractor to build a classifier on a new target dataset.
+
+### Preparing the Pretraining Set
+1. Use `CameraTraps/data_management/importers/eMammal/copy_and_unzip_emammal.py` to download and unzip data from Azure storage account to, e.g. a mounted `/datadrive`. This creates a bunch of folders each containing `.JPG` files and a `deployment_manifest.xml` file.
+
+
+
 Suppose we have a large dataset of labeled images (e.g. eMammal dataset), and have run these images through a detector to get crops of the detections using `CameraTraps/data_management/databases/classification/make_classification_dataset.py`. We first learn an _embedding model_ on the labeled dataset, which we will use as a feature extractor to build a classifier for our target dataset. This can be done by calling `main.py`.
 
 We also prepare crops for images from our target dataset (e.g. Snapshot Serengeti). We pass each crop through the embedding to obtain a feature vector, ask the oracle (e.g. human expert) to label ~1000 images, and then train a _classification model_ using these labeled samples.
