@@ -243,7 +243,7 @@ with graph.as_default():
       detection_masks_reframed = utils_ops.reframe_box_masks_to_image_masks(
           detection_masks, detection_boxes, image.shape[0], image.shape[1])
       detection_masks_reframed = tf.cast(
-          tf.greater(detection_masks_reframed, 0.8), tf.uint8)
+          tf.greater(detection_masks_reframed, 0.9), tf.uint8)
       # Follow the convention by adding back the batch dimension
       tensor_dict['detection_masks'] = tf.expand_dims(
           detection_masks_reframed, 0)
@@ -311,8 +311,8 @@ with graph.as_default():
         detections[cur_image_id] = output_dict
 
       imsize = cur_image['width'], cur_image['height']
-      # Select detections with a confidence larger 0.8
-      selection = output_dict['detection_scores'] > 0.8
+      # Select detections with a confidence larger 0.9
+      selection = output_dict['detection_scores'] > 0.9
       # Get these boxes and convert normalized coordinates to pixel coordinates
       selected_boxes = (output_dict['detection_boxes'][selection] * np.tile([imsize[1],imsize[0]], (1,2)))
       # Pad the detected animal to a square box and additionally by PADDING_FACTOR, the result will be in crop_boxes
