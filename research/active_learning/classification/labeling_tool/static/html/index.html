@@ -85,8 +85,8 @@
                 <!-- Image Display -->
                 <div class="col-xl-10 col-lg-6">
                     <div class="gallery selectable-1">
-                        <!-- <figure class="gallery__item gallery__item--1 ui-widget-content"><img src="SEQ84581_IMG_0002.JPG" class="gallery__img" alt="Image 1"></figure>
-                        <figure class="gallery__item gallery__item--2 ui-widget-content"><img src="SEQ83460_IMG_0005.JPG" class="gallery__img" alt="Image 2"></figure>
+                        <!-- <figure class="gallery__item gallery__item--1 ui-widget-content"><img src="SEQ84581_IMG_0002.JPG" class="gallery__img" alt="Image 1" id="img1"></figure>Consider encoding images in base64 for faster loading -->
+                        <!-- <figure class="gallery__item gallery__item--2 ui-widget-content"><img src="SEQ83460_IMG_0005.JPG" class="gallery__img" alt="Image 2"></figure>
                         <figure class="gallery__item gallery__item--3 ui-widget-content"><img src="SEQ81952_IMG_0015.JPG" class="gallery__img" alt="Image 3"></figure>
                         <figure class="gallery__item gallery__item--4 ui-widget-content"><img src="SEQ76215_IMG_0005.JPG" class="gallery__img" alt="Image 4"></figure>
                         <figure class="gallery__item gallery__item--5 ui-widget-content"><img src="SEQ76061_IMG_0003.JPG" class="gallery__img" alt="Image 5"></figure>
@@ -138,19 +138,37 @@
 
     <!-- JavaScript -->
     <script type="text/javascript">
-        $(function() {
-            $(".selectable-1").selectable();
-            // $(".selectable").selectable({
-            //     selected: function() {
-            //         var selectedItemList = $("#selected-item-list").empty();
-            //         $(".selectable img").each(function(index) {
-            //             if ($(this).hasClass("ui-selected")) {
-            //                 selectedItemList.append((index + 1) + ", ");
-            //             }
-            //         });
-            //     }
-            // });
+
+        var loadImages = function(){
+            // Do something if asked to load images
+            $.ajax({
+                type: "POST",
+                url: "localhost:8080/loadImages",
+                data: {}, //what data do we need to send to the ? server with this request? maybe number of images to load?
+                success: function(result, status, xhr){
+                    // Do something if successful AJAX request
+                    return(result[0]["id"])
+                }
+            });
+        };
+        
+        $(document).ready(function(){
+            loadImages();
         });
+
+        // $(function() {
+        //     $(".selectable-1").selectable();
+        //     // $(".selectable").selectable({
+        //     //     selected: function() {
+        //     //         var selectedItemList = $("#selected-item-list").empty();
+        //     //         $(".selectable img").each(function(index) {
+        //     //             if ($(this).hasClass("ui-selected")) {
+        //     //                 selectedItemList.append((index + 1) + ", ");
+        //     //             }
+        //     //         });
+        //     //     }
+        //     // });
+        // });
         // $(document).ready(function () {
         //     $("#selectImage").imagepicker({
         //         hide_select: true
