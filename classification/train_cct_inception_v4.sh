@@ -40,7 +40,6 @@ python train_image_classifier.py \
     --dataset_split_name=train \
     --model_name=${MODEL_NAME} \
     --checkpoint_path=${TRAIN_DIR}/init \
-    --preprocessing_name="inception_v2" \
     --max_number_of_steps=770000 \
     --batch_size=32 \
     --learning_rate=0.0045 \
