@@ -7,21 +7,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
     <link type="text/css" href="css/bootstrap.css" rel="stylesheet">
+    <script src="js/jquery-3.3.1.min.js"></script>
+    <script src="js/bootstrap.bundle.min.js"></script>
+
     <!-- <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script> -->
-    <!-- <script src="https://code.jquery.com/ui/1.12.0/jquery-ui.min.js" integrity="sha256-eGE6blurk5sHj+rmkfsGYeKyZx3M4bG+ZlFyA7Kns7E=" crossorigin="anonymous"></script> -->
-    
-    <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+    <!-- <script src="https://code.jquery.com/ui/1.12.0/jquery-ui.min.js" integrity="sha256-eGE6blurk5sHj+rmkfsGYeKyZx3M4bG+ZlFyA7Kns7E=" crossorigin="anonymous"></script> -->    
+    <!-- <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script> -->
     
     <style type="text/css">
         .gallery {
             display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            grid-template-rows: repeat(5, 5vw);
-            grid-gap: 15px;
+            grid-template-columns: repeat(5, minmax(250px, 1fr));
+            grid-template-rows: repeat(5, 8vw);
+            grid-gap: 5px;
             padding: 20px 50px 10px 50px;
         }
-        .gallery__img{
-            width: 100%;
+        .gallery__img{1
+            max-width: 100%;
             height: 100%;
             object-fit: cover;
         }
@@ -83,42 +85,41 @@
         <div class="container-fluid">
             <div class="row center">
                 <!-- Image Display -->
-                <div class="col-xl-10 col-lg-6">
+                <div class="col-xl-9 col-lg-6">
                     <div class="gallery selectable-1">
-                        <!-- <figure class="gallery__item gallery__item--1 ui-widget-content"><img src="SEQ84581_IMG_0002.JPG" class="gallery__img" alt="Image 1" id="img1"></figure>Consider encoding images in base64 for faster loading -->
-                        <!-- <figure class="gallery__item gallery__item--2 ui-widget-content"><img src="SEQ83460_IMG_0005.JPG" class="gallery__img" alt="Image 2"></figure>
-                        <figure class="gallery__item gallery__item--3 ui-widget-content"><img src="SEQ81952_IMG_0015.JPG" class="gallery__img" alt="Image 3"></figure>
-                        <figure class="gallery__item gallery__item--4 ui-widget-content"><img src="SEQ76215_IMG_0005.JPG" class="gallery__img" alt="Image 4"></figure>
-                        <figure class="gallery__item gallery__item--5 ui-widget-content"><img src="SEQ76061_IMG_0003.JPG" class="gallery__img" alt="Image 5"></figure>
-                        
-                        <figure class="gallery__item gallery__item--6 ui-widget-content"><img src="SEQ75631_IMG_0002.JPG" class="gallery__img" alt="Image 6"></figure>
-                        <figure class="gallery__item gallery__item--7 ui-widget-content"><img src="SEQ75583_IMG_0001.JPG" class="gallery__img" alt="Image 7"></figure>
-                        <figure class="gallery__item gallery__item--8 ui-widget-content"><img src="SEQ75458_IMG_0001.JPG" class="gallery__img" alt="Image 8"></figure>
-                        <figure class="gallery__item gallery__item--9 ui-widget-content"><img src="SEQ75294_IMG_0003.JPG" class="gallery__img" alt="Image 9"></figure>
-                        <figure class="gallery__item gallery__item--10 ui-widget-content"><img src="SEQ75115_IMG_0008.JPG" class="gallery__img" alt="Image 10"></figure>
+                        <figure class="gallery__item gallery__item--1 ui-widget-content"><img src="home/amrita/repos/CameraTraps/research/active_learning/classification/labeling_tool/static/img/placeholder.JPG" class="gallery__img" alt="Image 1" id="img1"></figure><!--Consider encoding images in base64 for faster loading-->
+                        <figure class="gallery__item gallery__item--2 ui-widget-content"><img src="home/amrita/repos/CameraTraps/research/active_learning/classification/labeling_tool/static/img/placeholder.JPG" class="gallery__img" alt="Image 2" id="img2"></figure>
+                        <figure class="gallery__item gallery__item--3 ui-widget-content"><img src="home/amrita/repos/CameraTraps/research/active_learning/classification/labeling_tool/static/img/placeholder.JPG" class="gallery__img" alt="Image 3" id="img3"></figure>
+                        <figure class="gallery__item gallery__item--4 ui-widget-content"><img src="home/amrita/repos/CameraTraps/research/active_learning/classification/labeling_tool/static/img/placeholder.JPG" class="gallery__img" alt="Image 4" id="img4"></figure>
+                        <figure class="gallery__item gallery__item--5 ui-widget-content"><img src="home/amrita/repos/CameraTraps/research/active_learning/classification/labeling_tool/static/img/placeholder.JPG" class="gallery__img" alt="Image 5" id="img5"></figure>
 
-                        <figure class="gallery__item gallery__item--11 ui-widget-content"><img src="SEQ75111_IMG_0001.JPG" class="gallery__img" alt="Image 11"></figure>
-                        <figure class="gallery__item gallery__item--12 ui-widget-content"><img src="SEQ75057_IMG_0001.JPG" class="gallery__img" alt="Image 12"></figure>
-                        <figure class="gallery__item gallery__item--13 ui-widget-content"><img src="SEQ75023_IMG_0001.JPG" class="gallery__img" alt="Image 13"></figure>
-                        <figure class="gallery__item gallery__item--14 ui-widget-content"><img src="SEQ75016_IMG_0001.JPG" class="gallery__img" alt="Image 14"></figure>
-                        <figure class="gallery__item gallery__item--15 ui-widget-content"><img src="SEQ75713_IMG_0003.JPG" class="gallery__img" alt="Image 15"></figure>
+                        <figure class="gallery__item gallery__item--6 ui-widget-content"><img src="home/amrita/repos/CameraTraps/research/active_learning/classification/labeling_tool/static/img/placeholder.JPG" class="gallery__img" alt="Image 6" id="img6"></figure>
+                        <figure class="gallery__item gallery__item--7 ui-widget-content"><img src="home/amrita/repos/CameraTraps/research/active_learning/classification/labeling_tool/static/img/placeholder.JPG" class="gallery__img" alt="Image 7" id="img7"></figure>
+                        <figure class="gallery__item gallery__item--8 ui-wid17get-content"><img src="home/amrita/repos/CameraTraps/research/active_learning/classification/labeling_tool/static/img/placeholder.JPG" class="gallery__img" alt="Image 8" id="img8"></figure>
+                        <figure class="gallery__item gallery__item--9 ui-widget-content"><img src="home/amrita/repos/CameraTraps/research/active_learning/classification/labeling_tool/static/img/placeholder.JPG" class="gallery__img" alt="Image 9" id="img9"></figure>
+                        <figure class="gallery__item gallery__item--10 ui-widget-content"><img src="home/amrita/repos/CameraTraps/research/active_learning/classification/labeling_tool/static/img/placeholder.JPG" class="gallery__img" alt="Image 10" id="img10"></figure>
 
-                        <figure class="gallery__item gallery__item--11 ui-widget-content"><img src="SEQ75179_IMG_0001.JPG" class="gallery__img" alt="Image 11"></figure>
-                        <figure class="gallery__item gallery__item--11 ui-widget-content"><img src="SEQ75140_IMG_0001.JPG" class="gallery__img" alt="Image 11"></figure>
-                        <figure class="gallery__item gallery__item--11 ui-widget-content"><img src="SEQ77501_IMG_0010.JPG" class="gallery__img" alt="Image 11"></figure>
-                        <figure class="gallery__item gallery__item--11 ui-widget-content"><img src="SEQ79668_IMG_0005.JPG" class="gallery__img" alt="Image 11"></figure>
-                        <figure class="gallery__item gallery__item--11 ui-widget-content"><img src="SEQ76222_IMG_0005.JPG" class="gallery__img" alt="Image 11"></figure>
+                        <figure class="gallery__item gallery__item--11 ui-widget-content"><img src="home/amrita/repos/CameraTraps/research/active_learning/classification/labeling_tool/static/img/placeholder.JPG" class="gallery__img" alt="Image 11" id="img11"></figure>
+                        <figure class="gallery__item gallery__item--12 ui-widget-content"><img src="home/amrita/repos/CameraTraps/research/active_learning/classification/labeling_tool/static/img/placeholder.JPG" class="gallery__img" alt="Image 12" id="img12"></figure>
+                        <figure class="gallery__item gallery__item--13 ui-widget-content"><img src="home/amrita/repos/CameraTraps/research/active_learning/classification/labeling_tool/static/img/placeholder.JPG" class="gallery__img" alt="Image 13" id="img13"></figure>
+                        <figure class="gallery__item gallery__item--14 ui-widget-content"><img src="home/amrita/repos/CameraTraps/research/active_learning/classification/labeling_tool/static/img/placeholder.JPG" class="gallery__img" alt="Image 14" id="img14"></figure>
+                        <figure class="gallery__item gallery__item--15 ui-widget-content"><img src="home/amrita/repos/CameraTraps/research/active_learning/classification/labeling_tool/static/img/placeholder.JPG" class="gallery__img" alt="Image 15" id="img15"></figure>
 
-                        <figure class="gallery__item gallery__item--11 ui-widget-content"><img src="SEQ85142_IMG_0001.JPG" class="gallery__img" alt="Image 11"></figure>
-                        <figure class="gallery__item gallery__item--11 ui-widget-content"><img src="SEQ88168_IMG_0008.JPG" class="gallery__img" alt="Image 11"></figure>
-                        <figure class="gallery__item gallery__item--11 ui-widget-content"><img src="SEQ83487_IMG_0002.JPG" class="gallery__img" alt="Image 11"></figure>
-                        <figure class="gallery__item gallery__item--11 ui-widget-content"><img src="SEQ80177_IMG_0001.JPG" class="gallery__img" alt="Image 11"></figure>
-                        <figure class="gallery__item gallery__item--11 ui-widget-content"><img src="SEQ82637_IMG_0003.JPG" class="gallery__img" alt="Image 11"></figure> -->
+                        <figure class="gallery__item gallery__item--16 ui-widget-content"><img src="home/amrita/repos/CameraTraps/research/active_learning/classification/labeling_tool/static/img/placeholder.JPG" class="gallery__img" alt="Image 16" id="img16"></figure>
+                        <figure class="gallery__item gallery__item--13 ui-widget-content"><img src="home/amrita/repos/CameraTraps/research/active_learning/classification/labeling_tool/static/img/placeholder.JPG" class="gallery__img" alt="Image 17" id="img17"></figure>
+                        <figure class="gallery__item gallery__item--14 ui-widget-content"><img src="home/amrita/repos/CameraTraps/research/active_learning/classification/labeling_tool/static/img/placeholder.JPG" class="gallery__img" alt="Image 18" id="img18"></figure>
+                        <figure class="gallery__item gallery__item--15 ui-widget-content"><img src="home/amrita/repos/CameraTraps/research/active_learning/classification/labeling_tool/static/img/placeholder.JPG" class="gallery__img" alt="Image 19" id="img19"></figure>
+                        <figure class="gallery__item gallery__item--16 ui-widget-content"><img src="home/amrita/repos/CameraTraps/research/active_learning/classification/labeling_tool/static/img/placeholder.JPG" class="gallery__img" alt="Image 20" id="img20"></figure>
+
+                        <figure class="gallery__item gallery__item--16 ui-widget-content"><img src="home/amrita/repos/CameraTraps/research/active_learning/classification/labeling_tool/static/img/placeholder.JPG" class="gallery__img" alt="Image 21" id="img21"></figure>
+                        <figure class="gallery__item gallery__item--13 ui-widget-content"><img src="home/amrita/repos/CameraTraps/research/active_learning/classification/labeling_tool/static/img/placeholder.JPG" class="gallery__img" alt="Image 22" id="img22"></figure>
+                        <figure class="gallery__item gallery__item--14 ui-widget-content"><img src="home/amrita/repos/CameraTraps/research/active_learning/classification/labeling_tool/static/img/placeholder.JPG" class="gallery__img" alt="Image 23" id="img23"></figure>
+                        <figure class="gallery__item gallery__item--15 ui-widget-content"><img src="home/amrita/repos/CameraTraps/research/active_learning/classification/labeling_tool/static/img/placeholder.JPG" class="gallery__img" alt="Image 24" id="img24"></figure>
+                        <figure class="gallery__item gallery__item--16 ui-widget-content"><img src="home/amrita/repos/CameraTraps/research/active_learning/classification/labeling_tool/static/img/placeholder.JPG" class="gallery__img" alt="Image 25" id="img25"></figure>
                     </div>
                 </div>
-                
                 <!-- Widgets -->
-                <div class="col-xl-2">
+                <div class="col-xl-3">
                     <div class="card">
                         <div class="card-header">
                             Actions
@@ -139,16 +140,28 @@
     <!-- JavaScript -->
     <script type="text/javascript">
 
+        var notifyFail = function(jqXHR, textStatus, errorThrown){
+            console.debug(jqXHR.responseText)
+            //var response = $.parseJSON(jqXHR.responseText);
+            //console.log("Error in processing request: "+response.error);
+        }
+
         var loadImages = function(){
             // Do something if asked to load images
             $.ajax({
                 type: "POST",
-                url: "localhost:8080/loadImages",
-                data: {}, //what data do we need to send to the ? server with this request? maybe number of images to load?
-                success: function(result, status, xhr){
+                url: "http://localhost:8080/loadImages",
+                contentType: "application/json",
+                data: JSON.stringify({"num_images": 25}), //what data do we need to send to the ? server with this request? maybe number of images to load?
+                success: function(data){
                     // Do something if successful AJAX request
-                    return(result[0]["id"])
-                }
+                    console.debug(data)
+                    var img = data['file_name'];
+                    for (i=1; i<26; i++){
+                        $("#img"+i).attr("src", img)
+                    }
+                },
+                error: notifyFail
             });
         };
         
