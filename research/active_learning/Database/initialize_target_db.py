@@ -22,7 +22,7 @@ parser.add_argument('--db_user', default='new_user', type=str,
                     help='Name of the user accessing the Postgres DB.')
 parser.add_argument('--db_password', default='new_user_password', type=str,
                     help='Password of the user accessing the Postgres DB.')
-parser.add_argument('--source', metavar='DIR',
+parser.add_argument('--image_dir', metavar='DIR',
                     help='Path to dataset directory containing all images')
 parser.add_argument('--coco_json', metavar='DIR',
                     help='Path to COCO Camera Traps json file if available', default=None)
@@ -40,39 +40,39 @@ PASSWORD = args.db_password
 COCO_CAMERA_TRAPS_JSON = args.coco_json # if image data is available in Coco Camera Traps JSON format
 coco_json = None
 
+# TODO: MAKE THIS SMOOTHER/MORE SECURE
+# # DATABASE INITIALIZATION CODE
+# # Connect to postgres database owned by suClass defining tperuser postgres
+# conn = psycopg2.connect(dbname='postgres', user='postgres', password='postgres', host='localhost')
+# conn.autocommit = True # this is needed to create database if it does not exist
+# cursor = conn.cursor()
 
-# DATABASE INITIALIZATION CODE
-# Connect to postgres database owned by suClass defining tperuser postgres
-conn = psycopg2.connect(dbname='postgres', user='postgres', password='postgres', host='localhost')
-conn.autocommit = True # this is needed to create database if it does not exist
-cursor = conn.cursor()
-
-# Check if the user USER with password PASSWORD exists
-query = "SELECT 1 FROM pg_roles WHERE rolname='%s'"%(USER)
-cursor.execute(query)
-qresult = cursor.fetchone()
-if qresult is None: # if not then create this user
-    query = "CREATE USER %s PASSWORD '%s';"%(USER, PASSWORD)
-    cursor.execute(query)
-else:
-    query = "ALTER USER %s WITH PASSWORD '%s'"%(USER, PASSWORD) # update the password in case it doesn't match, need to fix this later
-    cursor.execute(query)
+# # Check if the user USER with password PASSWORD exists
+# query = "SELECT 1 FROM pg_roles WHERE rolname='%s'"%(USER)
+# cursor.execute(query)
+# qresult = cursor.fetchone()
+# if qresult is None: # if not then create this user
+#     query = "CREATE USER %s PASSWORD '%s';"%(USER, PASSWORD)
+#     cursor.execute(query)
+# else:
+#     query = "ALTER USER %s WITH PASSWORD '%s'"%(USER, PASSWORD) # update the password in case it doesn't match, need to fix this later
+#     cursor.execute(query)
 
 
-# Check if the database DB_NAME already exists
-query = "SELECT 1 FROM pg_catalog.pg_database WHERE datname = '%s'"%(DB_NAME)
-cursor.execute(query)
-qresult = cursor.fetchone()
-if qresult is None: # if not then create the database
-    query = "CREATE DATABASE %s"%(DB_NAME)
-    cursor.execute(query)
+# # Check if the database DB_NAME already exists
+# query = "SELECT 1 FROM pg_catalog.pg_database WHERE datname = '%s'"%(DB_NAME)
+# cursor.execute(query)
+# qresult = cursor.fetchone()
+# if qresult is None: # if not then create the database
+#     query = "CREATE DATABASE %s"%(DB_NAME)
+#     cursor.execute(query)
     
-# Grant USER access to DB_NAME
-query = "GRANT ALL PRIVILEGES ON DATABASE %s TO %s;"%(DB_NAME, USER)
-cursor.execute(query)
+# # Grant USER access to DB_NAME
+# query = "GRANT ALL PRIVILEGES ON DATABASE %s TO %s;"%(DB_NAME, USER)
+# cursor.execute(query)
 
-# Close connection
-conn.close()
+# # Close connection
+# conn.close()
 
 
 # SET UP TABLES
@@ -103,11 +103,10 @@ if COCO_CAMERA_TRAPS_JSON:
 
     # Image Table
     coco_json_images = coco_json['images'] # Data on all images in dataset
-    imgs_in_dir = glob.glob(os.path.join(args.source, '**/*.JPG'), recursive=True) # All images in directory (may be a subset of the dataset)
-    # image_entries = []
+    imgs_in_dir = glob.glob(os.path.join(args.image_dir, '**/*.JPG'), recursive=True) # All images in directory (may be a subset of the dataset)
     for imgjson in sorted(coco_json_images, key = lambda i: i['file_name']):
         img_fn = imgjson['file_name'].replace('\\', '/')
-        img_path = args.source + img_fn
+        img_path = args.image_dir + img_fn
         if img_path in imgs_in_dir:
             img_id = imgjson['id']
             w = imgjson['width']
@@ -127,6 +126,12 @@ if COCO_CAMERA_TRAPS_JSON:
     
             break # don't add all the images now while testing
     
+
+    # Detections Table
+    coco_json_anns = coco_json['annotations'] # Data on all annotations for all images in dataset
+    print(coco_json_anns[0])
+
+    
 else:
     raise NotImplementedError('TODO: creating DB tables without using a COCO Camera Traps JSON file')
     # Info Table
@@ -139,10 +144,10 @@ else:
     for img in imgs_in_dir:
         img_id = uuid.uuid4()
 
-# img_paths = glob.glob(os.path.join(args.source, '**/*.JPG'), recursive=True)
-# coco_json = json.load(open(COCO_JSON, 'r'))
-# print(coco_json.keys())
-# print(coco_json['info'])
+# # img_paths = glob.glob(os.path.join(args.source, '**/*.JPG'), recursive=True)
+# # coco_json = json.load(open(COCO_JSON, 'r'))
+# # print(coco_json.keys())
+# # print(coco_json['info'])
 
 
 
