@@ -1,5 +1,6 @@
 #
 # Mostly unmodified script for freezing a model 
+# Added for convenience and for possible future optimizations
 #
 
 
