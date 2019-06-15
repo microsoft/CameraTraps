@@ -168,9 +168,15 @@ def classify_boxes(classification_graph, json_with_classes, image_dir, confidenc
                     if 'classifications' in cur_detection.keys() and len(cur_detection['classifications']) > 0:
                         continue
 
-                    # Get current box in relative coordinates and format [ymin, xmin, ymax, xmax]
-                    # Store it as 1x4 numpy array so we can re-use the generic multi-box padding code
-                    box_coords = np.array([cur_detection['bbox']])
+                    # Get current box in relative coordinates and format [x_min, y_min, width_of_box, height_of_box]
+                    box_orig = cur_detection['bbox']
+                    # Convert to [ymin, xmin, ymax, xmax] and
+                    # store it as 1x4 numpy array so we can re-use the generic multi-box padding code
+                    box_coords = np.array([[box_orig[1],
+                                            box_orig[0],
+                                            box_orig[1]+box_orig[3],
+                                            box_orig[0]+box_orig[2]
+                                          ]])
                     # Convert normalized coordinates to pixel coordinates
                     box_coords_abs = (box_coords * np.tile([image_height, image_width], (1,2)))
                     # Pad the detected animal to a square box and additionally by PADDING_FACTOR, the result will be in crop_boxes
