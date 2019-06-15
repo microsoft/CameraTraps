@@ -1,23 +1,22 @@
-
 # Detector batch processing API user guide
 
 We offer a service for processing a large quantity of camera trap images using our [MegaDetector](https://github.com/Microsoft/CameraTraps#megadetector) by calling an API, documented here. The output is most helpful for separating empty from non-empty images based on some detector confidence threshold that you select, and putting bounding boxes around animals so that manual review can proceed faster.
 
-You can process a batch of up to 2 million images in one request to the API. If in addition you have some images that are labeled, we can evaluate the performance of the MegaDetector on your labeled images (see [3. Post processing tools](#3-post-processing-tools)).
+You can process a batch of up to two million images in one request to the API. If in addition you have some images that are labeled, we can evaluate the performance of the MegaDetector on your labeled images (see [Post-processing tools](#post-processing-tools)).
 
 If you would like to try automating species identification as well, we can train a project-specific classifier based on the output of this detector API and the labels you provide. The species classification predictions will be added to the detector API output json file.
 
-All references to "container" in this document refer to [Azure Blob Storage](https://azure.microsoft.com/en-us/services/storage/blobs/) containers. 
+All references to &ldquo;container&rdquo; in this document refer to [Azure Blob Storage](https://azure.microsoft.com/en-us/services/storage/blobs/) containers. 
 
 
-## 1. Processing time
+## Processing time
 
-It takes about 0.8 seconds per image per machine, and we have at most 16 machines that can process them in parallel. So if no one else is using the service and you'd like to process 1 million images, it will take 1,000,000 * 0.8 / (16 * 60 * 60) = 14 hours. 
+It takes about 0.8 seconds per image per machine, and we have at most 16 machines that can process them in parallel. So if no one else is using the service and you&rsquo;d like to process 1 million images, it will take 1,000,000 * 0.8 / (16 * 60 * 60) = 14 hours. 
 
 
-## 2. API
+## API
 
-### 2.1 Endpoints
+### API endpoints
 
 The endpoints of this API are available at
 
@@ -54,7 +53,7 @@ This returns a json with the fields `status`, `uuid`, and a few others. The `sta
 - `request_status`: one of `running`, `failed`, `problem`, and `completed`. 
 
     - The status `failed` indicates that the images have not been submitted to the cluster for processing, and so you can go ahead and call the endpoint again, correcting your inputs according to the message shown. 
-    - The status `problem` indicates that the images have already been submitted for processing but the API encountered an error while monitoring progress; in this case, *please do not retry*; contact us to retrieve your results so that no unnecessary processing would occupy the cluster (`message` field will mention "please contact us").
+    - The status `problem` indicates that the images have already been submitted for processing but the API encountered an error while monitoring progress; in this case, *please do not retry*; contact us to retrieve your results so that no unnecessary processing would occupy the cluster (`message` field will mention &ldquo;please contact us&rdquo;).
 
 - `message`: a longer string describing the `request_status` and any errors; when the request is completed, the URLs to the output files will also be here (see [Outputs](#23-outputs) section below).
 
@@ -77,7 +76,7 @@ Check which versions of the MegaDetector is used by default by making a GET call
 Not yet supported. If you have accidentally submitted a request, please contact us to cancel it.
 
 
-### 2.2 Inputs
+### API inputs
 
 | Parameter                | Is required | Type | Explanation                 |
 |--------------------------|-------------|-------|----------------------------|
@@ -102,10 +101,11 @@ Not yet supported. If you have accidentally submitted a request, please contact 
 ```
 Only images whose paths are listed here will be processed.
 
-2 - If your images are stored elsewhere and you can provide a publicly accessible URL to each of them, you do not need to specify `input_container_sas`. Instead, list the URLs to all the images (instead of their paths) you'd like to process in the json at `images_requested_json_sas`.
+2 - If your images are stored elsewhere and you can provide a publicly accessible URL to each of them, you do not need to specify `input_container_sas`. Instead, list the URLs to all the images (instead of their paths) you&rsquo;d like to process in the json at `images_requested_json_sas`.
 
 
 #### Storing metadata
+
 We can store a (short) string of metadata with each image path or URL. The json at `images_requested_json_sas` should then look like:
 ```json
 [
@@ -117,7 +117,7 @@ We can store a (short) string of metadata with each image path or URL. The json 
 
 #### Other notes and example  
 
-- Only images with file name ending in '.jpg' or '.jpeg' (case insensitive) will be processed, so please make sure the file names are compliant before you upload them to the container (you cannot rename a blob without copying it entirely once it is in Blob Storage). 
+- Only images with file name ending in &lsquo;.jpg&rsquo; or &lsquo;.jpeg&rsquo; (case insensitive) will be processed, so please make sure the file names are compliant before you upload them to the container (you cannot rename a blob without copying it entirely once it is in Blob Storage). 
 
 - By default we process all such images in the specified container. You can choose to only process a subset of them by specifying the other input parameters, and the images will be filtered out accordingly in this order:
     - `images_requested_json_sas`
@@ -142,7 +142,7 @@ Example body of the POST request:
 
 You can manually call the API using applications such as Postman:
 
-![Screenshot of Azure Storage Explorer used for generating SAS tokens with read and list permissions](./documentation/Postman_screenshot.png)
+![Screenshot of Azure Storage Explorer used for generating SAS tokens with read and list permissions](./images/Postman_screenshot.png)
 
 
 #### How to obtain a SAS token
@@ -150,17 +150,17 @@ You can manually call the API using applications such as Postman:
 You can easily generate a [SAS token](https://docs.microsoft.com/en-us/azure/storage/common/storage-dotnet-shared-access-signature-part-1) to a container or a particular blob (a file in blob storage) using the desktop app [Azure Storage Explorer](https://azure.microsoft.com/en-us/features/storage-explorer/) (available on Windows, macOS and Linux). You can also issue SAS tokens programmatically by using the [Azure Storage SDK for Python](https://azure-storage.readthedocs.io/ref/azure.storage.blob.baseblobservice.html#azure.storage.blob.baseblobservice.BaseBlobService.generate_blob_shared_access_signature).
 
 
-Using Storage Explorer, right click on the container or blob you'd like to grant access for, and choose "Get Shared Access Signature...". On the dialogue window that appears, 
-- cross out the "Start time" field if you will be using the SAS token right away
-- set the "Expiry time" to a date in the future, about a month ahead is reasonable. The SAS token needs to be valid for the duration of the batch processing request. 
-- make sure "Read" and "List" are checked under "Permissions" (see screenshot) 
+Using Storage Explorer, right click on the container or blob you&rsquo;d like to grant access for, and choose &ldquo;Get Shared Access Signature...&rdquo;. On the dialog window that appears, 
+- cross out the &ldquo;Start time&rdquo; field if you will be using the SAS token right away
+- set the &ldquo;Expiry time&rdquo; to a date in the future, about a month ahead is reasonable. The SAS token needs to be valid for the duration of the batch processing request. 
+- make sure &ldquo;Read&rdquo; and &ldquo;List&rdquo; are checked under &ldquo;Permissions&rdquo; (see screenshot) 
 
-Click "Create", and the "URL" field on the next screen is the value required for `input_container_sas` or `images_requested_json_sas`. 
+Click &ldquo;Create&rdquo;, and the &ldquo;URL&rdquo; field on the next screen is the value required for `input_container_sas` or `images_requested_json_sas`. 
 
-![Screenshot of Azure Storage Explorer used for generating SAS tokens with read and list permissions](./documentation/SAS_screenshot.png)
+![Screenshot of Azure Storage Explorer used for generating SAS tokens with read and list permissions](./images/SAS_screenshot.png)
 
 
-### 2.3 Outputs
+### API outputs
 
 Once your request is submitted and parameters validated, the API divides all images into shards of about 2000 images each, and send them to an Azure Machine Learning Service compute cluster for processing. Another process will monitor how many shards have been evaluated, checking every 15 minutes, and update the status of the request, which you can check via the `/task` endpoint. 
 
@@ -280,7 +280,7 @@ where `(x_min, y_min)` is the upper-left corner of the detection bounding box, w
 The detection category `category` can be interpreted using the `detection_categories` dictionary. 
 
 
-Note that the `vehicle` detection class (available in Mega Detector version 4 or later) is "4". Class number "3" (group) is not included in training and should be ignored (and so should any other class labels not listed here) if it shows up in the result.
+Note that the `vehicle` detection class (available in Mega Detector version 4 or later) is &ldquo;4&rdquo;. Class number &ldquo;3&rdquo; (group) is not included in training and should be ignored (and so should any other class labels not listed here) if it shows up in the result.
 
 When the detector model detects no animal (or person or vehicle), the confidence `conf` is shown as 0.0 (not confident that there is an object of interest) and the `detections` field is an empty list.
 
@@ -293,7 +293,11 @@ All detections above confidence threshold 0.05 or 0.1 (depending on the version 
 After a classifier is applied, each tuple in a `classifications` list represents `[species, confidence]`. They are listed in order of confidence. The species categories should be interpreted using the `classification_categories` dictionary.
 
 
-## 3. Post-processing tools
+## Post-processing tools
 
-[postprocess_batch_results.py](postprocess_batch_results.py) provides visualization and accuracy assessment tools for the output of the batch processing API.
+The [postprocessing](postprocessing) folder contains tools for working with the output of our detector API.  In particular, [postprocess_batch_results.py](postprocessing/postprocess_batch_results.py) provides visualization and accuracy assessment tools for the output of the batch processing API.
 
+
+## Integration with other tools
+
+The &ldquo;integration&rdquo; folder contains guidelines and postprocessing scripts for using the output of our API in other applications.
