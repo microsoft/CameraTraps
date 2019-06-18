@@ -13,6 +13,7 @@ import os
 import time
 import argparse
 import json
+import math
 
 import tensorflow as tf
 import numpy as np
@@ -34,6 +35,9 @@ PADDING_FACTOR = 1.6
 # Please use strings here
 DETECTION_CATEGORY_WHITELIST = ['1']
 assert all([isinstance(x, str) for x in DETECTION_CATEGORY_WHITELIST])
+
+# Number of significant float digits in JSON output
+NUM_SIGNIFICANT_DIGITS = 3
 
 
 #%% Core detection functions
@@ -197,7 +201,14 @@ def classify_boxes(classification_graph, json_with_classes, image_dir, confidenc
                     cur_detection['classifications'] = list()
                     # Add the *num_annotated_classes* top scoring classes
                     for class_idx in np.argsort(-predictions)[:num_annotated_classes]:
-                        cur_detection['classifications'].append(['%i'%class_idx, predictions[class_idx].item()])
+                        class_conf = predictions[class_idx].item()
+                        # Determine the factor 10^N, which shifts the decimal point of class_conf
+                        # just behind the last significant digit
+                        class_conf_e = math.pow(10,NUM_SIGNIFICANT_DIGITS - 1 - math.floor(math.log10(class_conf)))
+                        # Shift decimal point by multiplicatipon with class_conf_e, flooring, and 
+                        # division by class_conf_e
+                        class_conf_floored = math.floor(class_conf * class_conf_e)/class_conf_e
+                        cur_detection['classifications'].append(['%i'%class_idx, class_conf_floored])
 
                 # ...for each box
 
@@ -235,7 +246,7 @@ def load_and_run_classifier(classifier_file, classes_file, image_dir, detector_j
 
     # Write output json
     with open(output_json_file, 'wt') as fi:
-        json.dump(updated_json, fi, indent=4)
+        json.dump(updated_json, fi, indent=1)
 
     return detection_graph, classification_graph
 
