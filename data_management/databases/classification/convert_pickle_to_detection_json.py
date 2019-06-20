@@ -46,7 +46,7 @@ js['images'] = list()
 for im_key in tqdm.tqdm(list(detections.keys())):
 
     im_dict = dict()
-    im_dict['file'] = detections[im_key]['image_annotation']['file_name']
+    im_dict['file'] = coco.imgs[im_key]['file_name']
     # for each detection 
     det_list = list()
     det_boxes_old_format = detections[im_key]['detection_boxes']
