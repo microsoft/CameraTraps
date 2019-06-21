@@ -40,6 +40,7 @@ class SanityCheckOptions:
     
     baseDir = ''
     bCheckImageSizes = False
+    bCheckImageExistence = False
     bFindUnusedImages = False
     iMaxNumImages = -1
     
@@ -52,7 +53,9 @@ def checkImageExistenceAndSize(image,options=None):
     if options is None:
         
         options = defaultOptions
-        
+    
+    assert options.bCheckImageExistence
+    
     filePath = os.path.join(options.baseDir,image['file_name'])
     if not os.path.isfile(filePath):
         print('Image path {} does not exist'.format(filePath))
@@ -78,6 +81,10 @@ def sanityCheckJsonDb(jsonFile, options=None):
         
         options = SanityCheckOptions()
     
+    if options.bCheckImageSizes:
+        
+        options.bCheckImageExistence = True
+        
     print(options.__dict__)
     
     assert os.path.isfile(jsonFile), '.json file {} does not exist'.format(jsonFile)
@@ -210,17 +217,18 @@ def sanityCheckJsonDb(jsonFile, options=None):
                 unusedFiles.append(p)
                 
     # Are we checking file existence and/or image size?
-    if options.bCheckImageSizes:
+    if options.bCheckImageSizes or options.bCheckImageExistence:
         
         if len(baseDir) == 0:
             print('Warning: checking image sizes without a base directory, assuming "."')
             
-        print('Checking image existence and image sizes...')
+        print('Checking image existence and/or image sizes...')
         
         pool = ThreadPool(nThreads)
         # results = pool.imap_unordered(lambda x: fetch_url(x,nImages), indexedUrlList)
         defaultOptions.baseDir = options.baseDir
         defaultOptions.bCheckImageSizes = options.bCheckImageSizes
+        defaultOptions.bCheckImageExistence = options.bCheckImageExistence
         results = tqdm(pool.imap(checkImageExistenceAndSize, images), total=len(images))
         
         for iImage,r in enumerate(results):
@@ -330,7 +338,9 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('jsonFile')
     parser.add_argument('--bCheckImageSizes', action='store_true', 
-                        help='Validate image size and existence, requires baseDir to be specified')
+                        help='Validate image size, requires baseDir to be specified.  Implies existence checking.')
+    parser.add_argument('--bCheckImageExistence', action='store_true', 
+                        help='Validate image existence, requires baseDir to be specified')
     parser.add_argument('--bFindUnusedImages', action='store_true', 
                         help='Check for images in baseDir that aren''t in the database, requires baseDir to be specified')
     parser.add_argument('--baseDir', action='store', type=str, default='', 
