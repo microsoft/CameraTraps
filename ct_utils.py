@@ -7,7 +7,14 @@ import math
 import numpy as np
 
 def truncate_float_array(xs, precision=3):
-    ''' Vectorized version of truncate_float(...) '''
+    ''' 
+    Vectorized version of truncate_float(...) 
+
+    Args: 
+    x         (list of float) List of floats to truncate
+    precision (int)           The number of significant digits to preserver, should be 
+                              greater or equal 1
+    '''
     vectorized_fun = np.vectorize(lambda x: truncate_float(x, precision))
     return vectorized_fun(xs).tolist()
 
