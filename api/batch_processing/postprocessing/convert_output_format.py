@@ -35,6 +35,16 @@ def convert_json_to_csv(input_path,output_path):
         detections = []
         for d in i['detections']:
             detection = d['bbox']
+            
+            # Our .json format is xmin/ymin/w/h
+            #
+            # Our .csv format was ymin/xmin/ymax/xmax
+            xmin = detection[0]
+            ymin = detection[1]
+            xmax = detection[0] + detection[2]
+            ymax = detection[1] + detection[3]
+            detection = [ymin, xmin, ymax, xmax]
+                
             detection.append(d['conf'])
             detection.append(int(d['category']))
             detections.append(detection)
