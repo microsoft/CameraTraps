@@ -15,6 +15,9 @@ import argparse
 import json
 import math
 
+# Assumes that the root of the CameraTrap repo is in the PYTHONPATH
+import ct_utils
+
 import tensorflow as tf
 import numpy as np
 import PIL
@@ -201,14 +204,8 @@ def classify_boxes(classification_graph, json_with_classes, image_dir, confidenc
                     cur_detection['classifications'] = list()
                     # Add the *num_annotated_classes* top scoring classes
                     for class_idx in np.argsort(-predictions)[:num_annotated_classes]:
-                        class_conf = predictions[class_idx].item()
-                        # Determine the factor 10^N, which shifts the decimal point of class_conf
-                        # just behind the last significant digit
-                        class_conf_e = math.pow(10,NUM_SIGNIFICANT_DIGITS - 1 - math.floor(math.log10(class_conf)))
-                        # Shift decimal point by multiplicatipon with class_conf_e, flooring, and 
-                        # division by class_conf_e
-                        class_conf_floored = math.floor(class_conf * class_conf_e)/class_conf_e
-                        cur_detection['classifications'].append(['%i'%class_idx, class_conf_floored])
+                        class_conf = ct_utils.truncate_float(predictions[class_idx].item())
+                        cur_detection['classifications'].append(['%i'%class_idx, class_conf])
 
                 # ...for each box
 
