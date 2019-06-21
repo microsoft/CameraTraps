@@ -10,6 +10,9 @@ import numpy as np
 import tqdm
 from pycocotools.coco import COCO
 
+# Assumes that the root of the CameraTrap repo is in the PYTHONPATH
+import ct_utils
+
 # Minimum threshold to put a detection into the output JSON file
 DETECTION_CONF_THRESHOLD = 0.1
 
@@ -62,11 +65,11 @@ for im_key in tqdm.tqdm(list(detections.keys())):
 
         if det_conf[det_id] > DETECTION_CONF_THRESHOLD:
             det_list.append(dict(category=str(det_classes[det_id]),
-                                conf=det_conf[det_id].item(),
-                                bbox=det_boxes[det_id].tolist()))
+                                conf=ct_utils.truncate_float(det_conf[det_id].item()),
+                                bbox=ct_utils.truncate_float_array(det_boxes[det_id].tolist())))
     im_dict['detections'] = det_list
     if len(im_dict['detections']) > 0:
-        im_dict['max_detection_conf'] = max(det_conf).item()
+        im_dict['max_detection_conf'] = ct_utils.truncate_float(max(det_conf).item())
     else:
         im_dict['max_detection_conf'] = 0.
 
