@@ -6,17 +6,19 @@
 import math
 import numpy as np
 
+
 def truncate_float_array(xs, precision=3):
     ''' 
     Vectorized version of truncate_float(...) 
 
     Args: 
     x         (list of float) List of floats to truncate
-    precision (int)           The number of significant digits to preserver, should be 
+    precision (int)           The number of significant digits to preserve, should be 
                               greater or equal 1
     '''
-    vectorized_fun = np.vectorize(lambda x: truncate_float(x, precision))
-    return vectorized_fun(xs).tolist()
+
+    return [truncate_float(x) for x in xs]
+
 
 def truncate_float(x, precision=3):
     ''' 
@@ -27,11 +29,11 @@ def truncate_float(x, precision=3):
 
     Args: 
     x         (float) Scalar to truncate
-    precision (int)   The number of significant digits to preserver, should be 
+    precision (int)   The number of significant digits to preserve, should be 
                       greater or equal 1
     '''
     assert precision > 0
-    
+
     if np.isclose(x, 0):
         return 0
     else:
