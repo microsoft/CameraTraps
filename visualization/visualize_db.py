@@ -39,7 +39,8 @@ class DbVizOptions:
     htmlOptions = write_html_image_list()
     sort_by_filename = True
     trim_to_images_with_bboxes = False
-    random_seed = 0; # None
+    random_seed = 0 # None
+    add_search_links = False
 
     # We sometimes flatten image directories by replacing a path separator with 
     # another character.  Leave blank for the typical case where this isn't necessary.
@@ -166,6 +167,9 @@ def processImages(db_path,output_dir,image_base_dir,options=None):
                     
             categoryID = anno['category_id']
             categoryName = label_map[categoryID]
+            if options.add_search_links:
+                categoryName = categoryName.replace('"','')
+                categoryName = '<a href="https://www.bing.com/images/search?q={}">{}</a>'.format(categoryName,categoryName)
             imageCategories.add(categoryName)
             
             if 'bbox' in anno:
