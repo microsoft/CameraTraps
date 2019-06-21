@@ -15,7 +15,7 @@ import argparse
 import csv
 import json
 
-from api.batch_processing.load_api_results import load_api_results
+from api.batch_processing.postprocessing.load_api_results import load_api_results
 from data_management.annotations import annotation_constants
 
 
