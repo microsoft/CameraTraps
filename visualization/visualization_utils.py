@@ -204,8 +204,8 @@ def render_detection_bounding_boxes_old(boxes_scores_classes, image,
     Args:
         boxes_and_scores:  outputs of generate_detections, in one of the following formats
         
-            [x_min, y_min, x_max, x_max, p]
-            [x_min, y_min, x_max, x_max, p, class]
+            [x_min, y_min, x_max, y_max, p]
+            [x_min, y_min, x_max, y_max, p, class]
             
         ...all in normalized coordinates, with the origin at the upper-left.
         
