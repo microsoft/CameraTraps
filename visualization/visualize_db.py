@@ -60,12 +60,12 @@ def imageFilenameToPath(image_file_name, image_base_dir, pathsep_replacement='')
 
 #%% Core functions
 
-def processImages(db_path,output_dir,image_base_dir,options=None):
+def processImages(db_path,output_dir,image_base_dir,options=None,bbox_db=None):
     """
     Writes images and html to output_dir to visualize the annotations in the json file
     db_path.
     
-    Returns the html filename.
+    Returns the html filename and the bbox database.
     """    
     
     if options is None:
@@ -77,10 +77,11 @@ def processImages(db_path,output_dir,image_base_dir,options=None):
     assert(os.path.isfile(db_path))
     assert(os.path.isdir(image_base_dir))
     
-    print('Loading the database...')
-    bbox_db = json.load(open(db_path))
-    print('...done')
-    
+    if bbox_db is None:
+        print('Loading the database...')
+        bbox_db = json.load(open(db_path))
+        print('...done')
+        
     annotations = bbox_db['annotations']
     images = bbox_db['images']
     categories = bbox_db['categories']
@@ -215,7 +216,7 @@ def processImages(db_path,output_dir,image_base_dir,options=None):
 
     print('Visualized {} images, wrote results to {}'.format(len(images_html),htmlOutputFile))
     
-    return htmlOutputFile
+    return htmlOutputFile,bbox_db
 
 # def processImages(...)
     
