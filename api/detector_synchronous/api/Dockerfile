@@ -1,7 +1,7 @@
 ### Docker container setup
 
 # Pull in the AI for Earth Base Image, so we can extract necessary libraries.
-FROM mcr.microsoft.com/aiforearth/base-py:latest as ai4e_base
+FROM mcr.microsoft.com/aiforearth/base-py:1.6 as ai4e_base
 
 # Use any compatible Ubuntu-based image as your selected base image.
 FROM nvidia/cuda:9.0-cudnn7-runtime-ubuntu16.04
