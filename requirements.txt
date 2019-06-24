@@ -1,4 +1,5 @@
 azure-storage-blob>=1.5.0
+azure-cosmos>=3.1.0
 humanfriendly>=4.17
 joblib>=0.12.0
 jsonpickle>=1.2
