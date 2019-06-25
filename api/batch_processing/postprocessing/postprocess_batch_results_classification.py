@@ -516,7 +516,7 @@ def process_batch_results(options):
         # Prepare confusion matrix output
         # Get CM matrix as string
         sio = io.StringIO()
-        np.savetxt(sio, classifier_cm_array, fmt='%4.1f')
+        np.savetxt(sio, classifier_cm_array * 100, fmt='%4.1f%%')
         cm_str = sio.getvalue()
         # Get fixed-size classname for each idx
         idx_to_classname = {v:k for k,v in classname_to_idx.items()}
