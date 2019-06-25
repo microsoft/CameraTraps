@@ -560,23 +560,9 @@ def process_batch_results(options):
         ##%% Sample true/false positives/negatives with correct/incorrect top-1
         # classification and render to html
 
-        os.makedirs(os.path.join(output_dir, 'tp'), exist_ok=True)
-        os.makedirs(os.path.join(output_dir, 'tpc'), exist_ok=True) # tp with all correct top-1 classificaiton
-        os.makedirs(os.path.join(output_dir, 'tpi'), exist_ok=True) # tp with >0 false top-1 classification
-        os.makedirs(os.path.join(output_dir, 'fp'), exist_ok=True)
-        os.makedirs(os.path.join(output_dir, 'tn'), exist_ok=True)
-        os.makedirs(os.path.join(output_dir, 'fn'), exist_ok=True)
-
         # Accumulate html image structs (in the format expected by write_html_image_lists)
-        # for each category
-        images_html = {
-            'tp': [],
-            'tpc': [],
-            'tpi': [],
-            'fp': [],
-            'tn': [],
-            'fn': []
-        }
+        # for each category, e.g. 'tp', 'fp', ..., 'class_bird', ...
+        images_html = collections.defaultdict(lambda: [])
 
         count = 0
 
@@ -603,8 +589,9 @@ def process_batch_results(options):
 
             gt_presence = bool(gt_status)
 
-            gt_class_name = CameraTrapJsonUtils.annotationsToString(
+            gt_classes = CameraTrapJsonUtils.annotationsToClassnames(
                     annotations,ground_truth_indexed_db.cat_id_to_name)
+            gt_class_summary = ','.join(gt_classes)
 
             max_conf = row['max_confidence']
             boxes_and_scores = row['detections']
@@ -626,7 +613,7 @@ def process_batch_results(options):
                 res = 'tn'
 
             display_name = '<b>Result type</b>: {}, <b>Presence</b>: {}, <b>Class</b>: {}, <b>Max conf</b>: {:0.2f}%, <b>Image</b>: {}'.format(
-                res.upper(), str(gt_presence), gt_class_name,
+                res.upper(), str(gt_presence), gt_class_summary,
                 max_conf * 100, image_relative_path)
 
             rendered_image_html_info = render_bounding_boxes(options.image_base_dir,
@@ -636,6 +623,8 @@ def process_batch_results(options):
 
             if len(rendered_image_html_info) > 0:
                 images_html[res].append(rendered_image_html_info)
+                for gt_class in gt_classes:
+                    images_html['class_{}'.format(gt_class)].append(rendered_image_html_info)
 
             count += 1
 
@@ -644,31 +633,54 @@ def process_batch_results(options):
         print('{} images rendered'.format(count))
 
         # Prepare the individual html image files
+        for k in images_html.keys():
+            os.makedirs(os.path.join(output_dir, k), exist_ok=True)
         image_counts = prepare_html_subpages(images_html,output_dir)
 
         # Write index.HTML
         index_page = """<html><body>
         <p><strong>A sample of {} images, annotated with detections above {:.1f}% confidence.</strong></p>
 
-        <a href="tp.html">True positives (tp)</a> ({})<br/>
-        <a href="tp.html">True positives with correct top-1 predictions (tpc)</a> ({})<br/>
-        <a href="tp.html">True positives with incorrect top-1 predictions (tpi)</a> ({})<br/>
+        True positives (tp) ({})<br/>
+        -- <a href="tpc.html">with positives with correct top-1 predictions (tpc)</a> ({})<br/>
+        -- <a href="tpi.html">with incorrect top-1 predictions (tpi)</a> ({})<br/>
+        -- <a href="tp.html">without classification</a> ({})<br/>
         <a href="tn.html">True negatives (tn)</a> ({})<br/>
         <a href="fp.html">False positives (fp)</a> ({})<br/>
-        <a href="fn.html">False negatives (fn)</a> ({})<br/>
-        <p>At a confidence threshold of {:0.1f}%, precision={:0.2f}, recall={:0.2f}</p>
-        <p><strong>Precision/recall summary for all {} images</strong></p><img src="{}"><br/>
-        </body></html>""".format(
+        <a href="fn.html">False negatives (fn)</a> ({})<br/>""".format(
             count, confidence_threshold * 100,
-            image_counts['tp'],
+            image_counts['tp'] + image_counts['tpc'] + image_counts['tpi'],
             image_counts['tpc'],
             image_counts['tpi'],
+            image_counts['tp'],
             image_counts['tn'],
             image_counts['fp'],
-            image_counts['fn'],
-            confidence_threshold * 100, precision_at_confidence_threshold, recall_at_confidence_threshold,
-            len(detection_results),pr_figure_relative_filename
+            image_counts['fn']
         )
+        index_page += """
+            <h5>Detection results</h5>
+            <p>At a confidence threshold of {:0.1f}%, precision={:0.2f}, recall={:0.2f}</p>
+            <p><strong>Precision/recall summary for all {} images</strong></p><img src="{}"><br/>
+            """.format(
+                confidence_threshold * 100, precision_at_confidence_threshold, recall_at_confidence_threshold,
+                len(detection_results),pr_figure_relative_filename
+           )
+        index_page += """
+            <h5>Classification results</h5>
+            <p>Average accuracy: {:.2%}</p>
+            <p>Confusion matrix:</p>
+            <div style='font-family:monospace;'>{}</div>
+            """.format(
+                np.mean(classifier_accuracies),
+                "<br>".join(cm_str_lines)
+            )
+        # If we have classification annotations, show links to each class
+        if ground_truth_indexed_db:
+            index_page += "<p>Images of specific classes:</p>"
+            # Add links to all available classes
+            for cname in sorted(classname_to_idx.keys()):
+                index_html += "<a href='class_{0}.html'>{0}</a> ".format(cname)
+        index_page += "</body></html>"
         output_html_file = os.path.join(output_dir, 'index.html')
         with open(output_html_file, 'w') as f:
             f.write(index_page)
