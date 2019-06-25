@@ -30,16 +30,17 @@ class CameraTrapJsonUtils:
         Given a list of annotations and a mapping from class IDs to names, produces
         a concatenated class list, always sorting alphabetically.
         """
-        class_names = set()
-        for ann in annotations:
-            category_id = ann['category_id']
-            category_name = cat_id_to_name[category_id]
-            class_names.add(category_name)
-        class_names = list(class_names)
-        class_names.sort()
+        class_names = CameraTrapJsonUtils.annotationsToClassnames(annotations, cat_id_to_name)
         return ','.join(class_names)
-            
-        
+
+    def annotationsToClassnames(annotations, cat_id_to_name):
+        # Collect all names
+        class_names = [cat_id_to_name[ann['category_id']] for ann in annotations]
+        # Make names unique and sort
+        class_names = sorted(list(set(class_names)))
+        return class_names
+
+
 class IndexedJsonDb:
     """
     Wrapper for a COCO Camera Traps database.
