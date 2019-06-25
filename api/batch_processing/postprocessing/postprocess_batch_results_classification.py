@@ -337,7 +337,7 @@ def process_batch_results(options):
     # ASSUMPTION, TODO:
     # detection_results has a new field predicted_top1_classes, which is a set
     # of the top-1 prediction of all classified boxes
-    # e.g. detection_results['predicted_top1_classes'] = ["human", "panda"]
+    # e.g. detection_results[0]['predicted_top1_classes'] = ["human", "panda"]
 
     # Add a column (pred_detection_label) to indicate predicted detection status
     detection_results['pred_detection_label'] = \
@@ -472,15 +472,18 @@ def process_batch_results(options):
         for iDetection,fn in enumerate(detector_files):
             image_id = ground_truth_indexed_db.filename_to_id[fn]
             image = ground_truth_indexed_db.image_id_to_image[image_id]
-            detection_status = image['_detection_status']
 
-            if detection_status == DetectionStatus.DS_POSITIVE:
+            # If this image has classification predictions, and an unambiguous class
+            # annotated, and is a positive image
+            if 'predicted_top1_classes' in detection_results[iDetection].keys()
+                    and '_unambiguous_category' in image.keys()
+                    and image['_detection_status'] == DetectionStatus.DS_POSITIVE:
                 # The unambiguous category, we make this a set for easier handling afterward
                 # TODO: actually we can replace the unambiguous category by all annotated
                 # categories. However, then the confusion matrix doesn't make sense anymore
                 # TODO: make sure we are using the class names as strings in both, not IDs
                 gt_categories = set([image['_unambiguous_category']])
-                pred_categories = set(detection_results[iDetection])
+                pred_categories = set(detection_results[iDetection]['predicted_top1_classes'])
                 # Compute the accuracy as intersection of union,
                 # i.e. (# of categories in both prediciton and GT)
                 #      divided by (# of categories in either prediction or GT
@@ -493,6 +496,7 @@ def process_batch_results(options):
                     len(gt_categories & pred_categories)
                     / len(gt_categories | pred_categories)
                 )
+                image['_all_correct_top1_classification'] = np.isclose(1, classifier_accuracies[-1])
                 # Distribute this accuracy across all predicted categories in the
                 # confusion matrix
                 assert len(gt_categories) == 1
@@ -553,9 +557,12 @@ def process_batch_results(options):
         plt.close(fig)
 
 
-        ##%% Sample true/false positives/negatives and render to html
+        ##%% Sample true/false positives/negatives with correct/incorrect top-1
+        # classification and render to html
 
         os.makedirs(os.path.join(output_dir, 'tp'), exist_ok=True)
+        os.makedirs(os.path.join(output_dir, 'tpc'), exist_ok=True) # tp with all correct top-1 classificaiton
+        os.makedirs(os.path.join(output_dir, 'tpi'), exist_ok=True) # tp with >0 false top-1 classification
         os.makedirs(os.path.join(output_dir, 'fp'), exist_ok=True)
         os.makedirs(os.path.join(output_dir, 'tn'), exist_ok=True)
         os.makedirs(os.path.join(output_dir, 'fn'), exist_ok=True)
@@ -564,6 +571,8 @@ def process_batch_results(options):
         # for each category
         images_html = {
             'tp': [],
+            'tpc': [],
+            'tpi': [],
             'fp': [],
             'tn': [],
             'fn': []
@@ -600,10 +609,15 @@ def process_batch_results(options):
             max_conf = row['max_confidence']
             boxes_and_scores = row['detections']
 
-            detected = True if max_conf > confidence_threshold else False
+            detected = max_conf > confidence_threshold
 
             if gt_presence and detected:
-                res = 'tp'
+                if '_all_correct_top1_classification' not in row.keys():
+                    res = 'tp'
+                elif image['_all_correct_top1_classification']:
+                    res = 'tpc'
+                else:
+                    res = 'tpi'
             elif not gt_presence and detected:
                 res = 'fp'
             elif gt_presence and not detected:
@@ -637,6 +651,8 @@ def process_batch_results(options):
         <p><strong>A sample of {} images, annotated with detections above {:.1f}% confidence.</strong></p>
 
         <a href="tp.html">True positives (tp)</a> ({})<br/>
+        <a href="tp.html">True positives with correct top-1 predictions (tpc)</a> ({})<br/>
+        <a href="tp.html">True positives with incorrect top-1 predictions (tpi)</a> ({})<br/>
         <a href="tn.html">True negatives (tn)</a> ({})<br/>
         <a href="fp.html">False positives (fp)</a> ({})<br/>
         <a href="fn.html">False negatives (fn)</a> ({})<br/>
@@ -644,7 +660,12 @@ def process_batch_results(options):
         <p><strong>Precision/recall summary for all {} images</strong></p><img src="{}"><br/>
         </body></html>""".format(
             count, confidence_threshold * 100,
-            image_counts['tp'], image_counts['tn'], image_counts['fp'], image_counts['fn'],
+            image_counts['tp'],
+            image_counts['tpc'],
+            image_counts['tpi'],
+            image_counts['tn'],
+            image_counts['fp'],
+            image_counts['fn'],
             confidence_threshold * 100, precision_at_confidence_threshold, recall_at_confidence_threshold,
             len(detection_results),pr_figure_relative_filename
         )
