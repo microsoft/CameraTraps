@@ -31,11 +31,14 @@ import inspect
 import os
 import sys
 from enum import IntEnum
+import collections
+import io
 
 import matplotlib
 matplotlib.use('agg')
 import matplotlib.pyplot as plt
 import pandas as pd
+import numpy as np
 from sklearn.metrics import precision_recall_curve, confusion_matrix, average_precision_score
 from tqdm import tqdm
 
@@ -102,43 +105,35 @@ class PostProcessingOptions:
     ground_truth_filename_replacements = {}
 
 
-# Largely a placeholder for future additional return information    
+# Largely a placeholder for future additional return information
 class PostProcessingResults:
 
     output_html_file = ''
-    
-    
+
+
 ##%% Helper classes and functions
 
 # Flags used to mark images as positive or negative for P/R analysis (according
 # to ground truth and/or detector output)
 class DetectionStatus(IntEnum):
-    
+
     # This image is a negative
     DS_NEGATIVE = 0
-    
+
     # This image is a positive
     DS_POSITIVE = 1
-    
-    # If we have detections: 
-    # this image is a correct detection with correct top-1 class prediction
-    DS_POSITIVE_TPC = 2
-    # this image is a correct detection with false top-1 class prediction
-    DS_POSITIVE_TPI = 3
-    # this image is a correct detection with multiple class labels
-    DS_POSITIVE_AMBIGUOUS = 4
-    
+
     # Anything greater than this isn't clearly positive or negative
     DS_MAX_DEFINITIVE_VALUE = DS_POSITIVE_TPI
-    
+
     # This image has annotations suggesting both negative and positive
-    DS_AMBIGUOUS = 5
-    
+    DS_AMBIGUOUS = 2
+
     # This image is not annotated or is annotated with 'unknown', 'unlabeled', ETC.
-    DS_UNKNOWN = 6
-    
+    DS_UNKNOWN = 3
+
     # This image has not yet been assigned a state
-    DS_UNASSIGNED = 7
+    DS_UNASSIGNED = 4
 
 
 def mark_detection_status(indexed_db, negative_classes=DEFAULT_NEGATIVE_CLASSES,
@@ -159,14 +154,11 @@ def mark_detection_status(indexed_db, negative_classes=DEFAULT_NEGATIVE_CLASSES,
     nUnknown = 0
     nAmbiguous = 0
     nPositive = 0
-    nPositiveTPC = 0
-    nPositiveTPI = 0
-    nPositiveAmbiguous = 0
     nNegative = 0
- 
+
     db = indexed_db.db
     for im in db['images']:
-        
+
         image_id = im['id']
         annotations = indexed_db.image_id_to_annotations[image_id]
         image_categories = [ann['category_id'] for ann in annotations]
@@ -178,9 +170,13 @@ def mark_detection_status(indexed_db, negative_classes=DEFAULT_NEGATIVE_CLASSES,
         image_has_negative_labels = has_overlap(image_category_names, negative_classes):
         # Check if image has positive labels
         # i.e. if we remove negative and unknown labels from image_category_names, then
-        # there are still labels left 
+        # there are still labels left
         image_has_positive_labels = 0 < len(image_category_names - unknown_classes - negative_classes)
-        
+
+        # Initilize the field for the unambiguous category
+        # Will be assigned only if there is only one single category annotated
+        im['_unambiguous_category'] = image_category_names[0]
+
         # If there are no image annotations, the result is unknonw
         if len(image_categories) == 0:
 
@@ -205,7 +201,7 @@ def mark_detection_status(indexed_db, negative_classes=DEFAULT_NEGATIVE_CLASSES,
             im['_detection_status'] = DetectionStatus.DS_UNKNOWN
 
         # If the image has only negative labels
-        if image_has_negative_labels:
+        elif image_has_negative_labels:
 
             nNegative += 1
             im['_detection_status'] = DetectionStatus.DS_NEGATIVE
@@ -216,30 +212,14 @@ def mark_detection_status(indexed_db, negative_classes=DEFAULT_NEGATIVE_CLASSES,
             nPositive += 1
             im['_detection_status'] = DetectionStatus.DS_POSITIVE
 
-            # Check the classification result
-            # All image_category_names are positive, so if there is more than 1, it's ambiguous positive
-            if len(image_category_names) > 1:
-
-                nPositiveAmbiguous += 1
-                im['_detection_status'] = DetectionStatus.DS_POSITIVE_AMBIGUOUS
-
-            # If correct top-1 prediction, it's TPC
-            # TODO: what exactly is a correct prediction
-            elif predicted_class == image_categories[0]:
-
-                nPositiveTPC += 1
-                im['_detection_status'] = DetectionStatus.DS_POSITIVE_TPC
-
-            # If incorrect top-1 prediction, it's TPI
-            else:
-
-                nPositiveTPI += 1
-                im['_detection_status'] = DetectionStatus.DS_POSITIVE_TPI
+            # Annotate the category, if it is unambiguous
+            if len(image_category_names) == 1:
+                im['_unambiguous_category'] = image_category_names[0]
 
         else:
             raise Exception('Invalid state, please check the code for bugs')]
-        
-    return (nNegative,nPositive,nPositiveTPC,nPositiveTPI,nPositiveAmbiguous,nUnknown,nAmbiguous)
+
+    return (nNegative,nPositive,nUnknown,nAmbiguous)
 
 
 def render_bounding_boxes(image_base_dir,image_relative_path,
@@ -351,12 +331,15 @@ def process_batch_results(options):
     
     
     ##%% Load detection results
-    
-    detection_results = load_api_results(options.detector_output_file,normalize_paths=True,
+    # TODO: replace by the correct loader once Dan updated it
+    detection_results =  = load_api_results(options.detector_output_file,normalize_paths=True,
                                          filename_replacements=options.detector_output_filename_replacements)
-    
+    # ASSUMPTION, TODO:
+    # detection_results has a new field predicted_top1_classes, which is a set
+    # of the top-1 prediction of all classified boxes
+    # e.g. detection_results['predicted_top1_classes'] = ["human", "panda"]
+
     # Add a column (pred_detection_label) to indicate predicted detection status
-    import numpy as np
     detection_results['pred_detection_label'] = \
         np.where(detection_results['max_confidence'] >= options.confidence_threshold,
                  DetectionStatus.DS_POSITIVE, DetectionStatus.DS_NEGATIVE)
@@ -407,14 +390,14 @@ def process_batch_results(options):
     # Otherwise we'll just visualize detections/non-detections.
         
     if ground_truth_indexed_db is not None:
-    
-        ##%% Compute precision/recall
-        
+
+        ##%% DETECTION EVALUATION: Compute precision/recall
+
         # numpy array of detection probabilities
         p_detection = detection_results['max_confidence'].values
         n_detections = len(p_detection)
-        
-        # numpy array of bools (0.0/1.0)
+
+        # numpy array of bools (0.0/1.0), and -1 as null value
         gt_detections = np.zeros(n_detections,dtype=float)
         
         for iDetection,fn in enumerate(detector_files):
@@ -476,8 +459,73 @@ def process_batch_results(options):
         
         print('At a confidence threshold of {:.2f}, precision={:.2f}, recall={:.2f}, f1={:.2f}'.format(
                 confidence_threshold, precision_at_confidence_threshold, recall_at_confidence_threshold, f1))
-            
-        
+
+        ##%% CLASSIFICATION evaluation
+        classifier_accuracies = []
+        # Mapping of classnames to idx for the confusion matrix.
+        # The lambda is actually kind of a nasty hack, because we use assume that
+        # the following code does not reassign classname_to_idx
+        classname_to_idx = collections.defaultdict(lambda: len(classname_to_idx))
+        # Confusion matrix as defaultdict of defaultdict
+        # Rows / first index is ground truth, columns / second index is predicted category
+        classifier_cm = collections.defaultdict(lambda: collections.defaultdict(lambda: 0))
+        for iDetection,fn in enumerate(detector_files):
+            image_id = ground_truth_indexed_db.filename_to_id[fn]
+            image = ground_truth_indexed_db.image_id_to_image[image_id]
+            detection_status = image['_detection_status']
+
+            if detection_status == DetectionStatus.DS_POSITIVE:
+                # The unambiguous category, we make this a set for easier handling afterward
+                # TODO: actually we can replace the unambiguous category by all annotated
+                # categories. However, then the confusion matrix doesn't make sense anymore
+                # TODO: make sure we are using the class names as strings in both, not IDs
+                gt_categories = set([image['_unambiguous_category']])
+                pred_categories = set(detection_results[iDetection])
+                # Compute the accuracy as intersection of union,
+                # i.e. (# of categories in both prediciton and GT)
+                #      divided by (# of categories in either prediction or GT
+                # In case of only one GT category, the result will be 1.0, if
+                # prediction is one category and this category matches GT
+                # It is 1.0/(# of predicted top-1 categories), if the GT is
+                # one of the predicted top-1 categories.
+                # It is 0.0, if none of the predicted categories is correct
+                classifier_accuracies.append(
+                    len(gt_categories & pred_categories)
+                    / len(gt_categories | pred_categories)
+                )
+                # Distribute this accuracy across all predicted categories in the
+                # confusion matrix
+                assert len(gt_categories) == 1
+                gt_class_idx = classname_to_idx[list(gt_categories)[0]]
+                for pred_category in pred_categories:
+                    pred_class_idx = classname_to_idx[pred_category]
+                    classifier_cm[gt_class_idx][pred_class_idx] += 1
+
+        # Build confusion matrix as array from classifier_cm
+        all_class_ids = sorted(classname_to_idx.values())
+        classifier_cm_array = np.array(
+            [[classifier_cm[r_idx][c_idx] for c_idx in all_class_ids] for r_idx in all_class_ids])
+
+        # Print some statistics
+        print("Finished computation of {} classification results".format(len(classifier_accuracies)))
+        print("Mean accuracy: {}".format(np.mean(classifier_accuracies)))
+        # Prepare confusion matrix output
+        # Get CM matrix as string
+        sio = io.StringIO()
+        np.savetxt(sio, classifier_cm_array, fmt='%4.1f')
+        cm_str = sio.getvalue()
+        # Get fixed-size classname for each idx
+        idx_to_classname = {v:k for k,v in classname_to_idx.items()}
+        classname_headers = ['{:<5}'.format(idx_to_classname[idx][:5])
+                                for idx in sorted(classname_to_idx.values())]
+        # Prepend class name on each line and add to the top
+        cm_str_lines = [' '.join(classname_headers)]
+        cm_str_lines += [cn + ' ' + cm_line
+                            for cn, cm_line in zip(classname_headers, cm_str.splitlines()]
+        # print formatted confusion matrix
+        print("Confusion matrix: ")
+        print(*cm_str_lines, sep='\n')
+
         ##%% Render output
         
         # Write p/r table to .csv file in output directory
