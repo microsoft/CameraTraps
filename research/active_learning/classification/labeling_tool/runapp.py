@@ -3,8 +3,11 @@ runapp.py
 
 Starts running a web application for labeling samples.
 '''
-import argparse, json, sys
+import argparse, json, psycopg2, sys
 import bottle
+from peewee import *
+sys.path.append('../../Database')
+from DB_models import *
 
 # webUIapp = bottle.Bottle()
 
@@ -69,19 +72,37 @@ if __name__ == '__main__':
     def send_css(filename):
         return bottle.static_file(filename, root='static')
     
-    @webUIapp.route('/<filename:re:.*\.JPG>')
-    def send_image(filename):
-        print('trying to load image', filename)
-        return bottle.static_file(filename, root='/')
+    @webUIapp.route('/<filename:re:img\/placeholder.JPG>')
+    def send_placeholder_image(filename):
+        # print('trying to load image', filename)
+        return bottle.static_file(filename, root='static')
     
-    ## dynamic routes
+    @webUIapp.route('/<filename:re:.*.JPG>')
+    def send_image(filename):
+        # print('trying to load camtrap image', filename)
+        return bottle.static_file(filename, root='../../../../../../../../../.')
+    
+    # dynamic routes
     @webUIapp.route('/loadImages', method='POST')
     def load_images():
         data = bottle.request.json
         
-        # TODO: return file names of crops to show from "totag" csv or database
-        data['file_name'] = 'home/amrita/data/missouricameratraps/Set1/1.10-Ocelot/SEQ83427/SEQ83427_IMG_0001.JPG'
-        data['label'] = None
+        # # TODO: return file names of crops to show from "totag" csv or database
+        DB_NAME = args.db_name
+        USER = args.db_user
+        PASSWORD = args.db_password
+        #HOST = 'localhost'
+        #PORT = 5432
+
+        ## Try to connect as USER to database DB_NAME through peewee
+        pretrain_db = PostgresqlDatabase(DB_NAME, user=USER, password=PASSWORD, host='localhost')
+        db_proxy.initialize(pretrain_db)
+        existing_image_entries = Image.select().where(Image.grayscale == False).order_by(fn.Random()).limit(data['num_images'])
+
+        # for image_entry in existing_image_entries:
+        #     print(image_entry.file_name)
+        data['file_names'] = [ie.file_name[1:] for ie in existing_image_entries]
+        # data['label'] = None
 
         bottle.response.content_type = 'application/json'
         bottle.response.status = 200
