@@ -39,7 +39,7 @@ def open_image(input):
     return image
 
 
-def resize_image(image, targetWidth, targetHeight=-1):
+def resize_image(image, target_width, target_height=-1):
     """
     Resizes a PIL image object to the specified width and height; does not resize
     in place.  If either width or height are -1, resizes with aspect ratio preservation.  
@@ -47,27 +47,27 @@ def resize_image(image, targetWidth, targetHeight=-1):
     """
     
     # Null operation
-    if targetWidth == -1 and targetHeight == -1:
+    if target_width == -1 and target_height == -1:
         
         return image    
     
-    elif targetWidth == -1 or targetHeight == -1:
+    elif target_width == -1 or target_height == -1:
     
         # Aspect ratio as width over height
-        aspectRatio = image.size[0] / image.size[1]
+        aspect_ratio = image.size[0] / image.size[1]
         
-        if targetWidth != -1:
+        if target_width != -1:
             # ar = w / h        
             # h = w / ar
-            targetHeight = int(targetWidth / aspectRatio)
+            target_height = int(target_width / aspect_ratio)
             
         else:
             # ar = w / h
             # w = ar * h
-            targetWidth = int(aspectRatio * targetHeight)
+            target_width = int(aspect_ratio * target_height)
             
-    resizedImage = image.resize((targetWidth, targetHeight), Image.ANTIALIAS)
-    return resizedImage
+    resized_image = image.resize((target_width, target_height), Image.ANTIALIAS)
+    return resized_image
 
 
 def render_iMerit_boxes(boxes, classes, image, 
@@ -167,7 +167,6 @@ def render_detection_bounding_boxes(detections, image,
             (default string) needs to be consistent with the keys in label_map; no casting is carried out.
         confidence_threshold: optional, threshold above which the bounding box is rendered.
         thickness: optional, rendering line thickness.
-        color_map: optional, mapping the numerical label to bbox color.
 
     image is modified in place.
     """
@@ -184,56 +183,6 @@ def render_detection_bounding_boxes(detections, image,
             display_boxes.append([y1, x1, y1 + h_box, x1 + w_box])
             clss = detection['category']
             label = label_map[clss] if clss in label_map else clss
-            displayed_label = '{}: {}%'.format(label, round(100 * score))
-            display_strs.append([displayed_label])
-            classes.append(clss)
-
-    display_boxes = np.array(display_boxes)
-
-    draw_bounding_boxes_on_image(image, display_boxes, classes,
-                                 display_strs=display_strs, thickness=thickness)
-
-
-def render_detection_bounding_boxes_old(boxes_scores_classes, image,
-                                        label_map=annotation_constants.bbox_category_id_to_name,
-                                        confidence_threshold=0.8, thickness=4):
-    """
-    Renders bounding boxes, label and confidence on an image if confidence is above the threshold.
-    This is works with the output of the detector batch processing API (version 1.0).
-
-    Args:
-        boxes_and_scores:  outputs of generate_detections, in one of the following formats
-        
-            [x_min, y_min, x_max, y_max, p]
-            [x_min, y_min, x_max, y_max, p, class]
-            
-        ...all in normalized coordinates, with the origin at the upper-left.
-        
-        image: PIL.Image object, output of generate_detections.
-        label_map: optional, mapping the numerical label to a string name.
-        confidence_threshold: optional, threshold above which the bounding box is rendered.
-        thickness: optional, rendering line thickness.
-        color_map: optional, mapping the numerical label to bbox color.
-
-    image is modified in place.
-    """
-    
-    display_boxes = []
-    display_strs = []  # list of lists, one list of strings for each bounding box (to accommodate multiple labels)
-    classes = []
-    
-    for detection in boxes_scores_classes:
-        
-        score = detection[4]
-        if score > confidence_threshold:
-            display_boxes.append(detection[:4])
-
-            if len(detection) < 6:
-                clss = 1  # megadetector_v2 did not output a class label
-            else:
-                clss = int(detection[5])
-
-            label = label_map[clss] if clss in label_map else str(clss)
             displayed_label = '{}: {}%'.format(label, round(100 * score))
             display_strs.append([displayed_label])
             classes.append(clss)
@@ -278,7 +227,7 @@ COLORS = [
 def draw_bounding_boxes_on_image(image,
                                  boxes,
                                  classes,
-                                 thickness=1,
+                                 thickness=4,
                                  display_strs=()):
     """
     Draws bounding boxes on image.
@@ -287,6 +236,8 @@ def draw_bounding_boxes_on_image(image,
       image: a PIL.Image object.
       boxes: a 2 dimensional numpy array of [N, 4]: (ymin, xmin, ymax, xmax).
              The coordinates are in normalized format between [0, 1].
+      classes: a list of ints or strings (which can be cast to ints) corresponding to the class labels of the boxes.
+             This is only used for selecting the color to render the bounding box in.
       thickness: line thickness. Default value is 4.
       display_strs: list of list of strings.
                              a list of strings for each bounding box.
@@ -336,7 +287,7 @@ def draw_bounding_box_on_image(image,
       xmin: xmin of bounding box.
       ymax: ymax of bounding box.
       xmax: xmax of bounding box.
-      clss: int, the class of the object in this bounding box.
+      clss: the class of the object in this bounding box - will be cast to an int.
       thickness: line thickness. Default value is 4.
       display_str_list: list of strings to display in box
                         (each to be shown on its own line).
