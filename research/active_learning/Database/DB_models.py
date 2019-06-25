@@ -46,14 +46,15 @@ class Image(Model):
     width = IntegerField(null = True)   # cropped image dimensions in pixels
     height = IntegerField(null= True)
     grayscale = BooleanField(null = True)   # whether the cropped image is grayscale
-    relative_size = FloatField(null = True) # cropped image size relative to original image size   
-
-    source_file_name = CharField()      # full image file name from which cropped image was generated
-    seq_id = CharField(null= True)      # sequence identifier for the full image
+    
+    ## data related to original image
+    relative_size = FloatField(null = True)     # cropped image size relative to original image size   
+    source_file_name = CharField(null = True)   # original image file name from which cropped image was generated
+    seq_id = CharField(null= True)              # sequence identifier for the original image
     seq_num_frames = IntegerField(null = True)  # number of frames in sequence
     frame_num = IntegerField(null = True)       # which frame number in sequence
-    location = CharField(null = True)   # location of camera trap
-    datetime = DateTimeField(null = True)
+    location = CharField(null = True)           # location of camera trap
+    datetime = DateTimeField(null = True)       # datetime of image
     
     class Meta:
         database = db_proxy
@@ -74,11 +75,18 @@ class Detection(Model):
     '''
     Table containing information about detections (annotations) in the dataset.
     '''
-    id = CharField(primary_key=True)    # detection unique identifier
+    id = CharField(primary_key = True)    # detection unique identifier
     image = ForeignKeyField(Image)      # pointer to cropped image the detection corresponds to
     kind = IntegerField()               # numeric code representing what kind of detection this is
     category = ForeignKeyField(Category)    # label assigned to the detection
-    category_confidence = FloatField(null= True)    # confidence associated with the detection
+    category_confidence = FloatField(null = True)    # confidence associated with the detection
+    
+    ## bounding box info; would be available if ???
+    # bbox_confidence = FloatField(null = True)
+    # bbox_X1= FloatField(null = True)
+    # bbox_Y1= FloatField(null = True)
+    # bbox_X2= FloatField(null = True)
+    # bbox_Y2= FloatField(null = True)
 
     class Meta:
         database = db_proxy
