@@ -28,6 +28,8 @@ RUN /usr/local/envs/ai4e_py_api/bin/pip install --upgrade pip
 RUN /usr/local/envs/ai4e_py_api/bin/pip install tensorflow-gpu==1.9 pillow requests_toolbelt
 RUN /usr/local/envs/ai4e_py_api/bin/pip install gunicorn
 
+RUN /usr/local/envs/ai4e_py_api/bin/pip install opencensus==0.6.0 opencensus-ext-requests
+
 ### Copy the necessary files for running the API
 
 # Note: supervisor.conf reflects the location and name of your api code.
@@ -36,8 +38,6 @@ COPY ./supervisord.conf /etc/supervisord.conf
 # startup.sh is a helper script
 COPY ./startup.sh /
 RUN chmod +x /startup.sh
-
-COPY ./LocalForwarder.config /lf/
 
 # Copy your API code
 COPY ./animal_detection_api /app/animal_detection_api/
@@ -49,9 +49,7 @@ ENV PYTHONPATH="${PYTHONPATH}:/app/"
 ### Environment variables, App Insights and health check
 # Application Insights keys and trace configuration
 ENV APPINSIGHTS_INSTRUMENTATIONKEY= \
-    APPINSIGHTS_LIVEMETRICSSTREAMAUTHENTICATIONAPIKEY= \
-    LOCALAPPDATA=/app_insights_data \
-    OCAGENT_TRACE_EXPORTER_ENDPOINT=localhost:55678
+    TRACE_SAMPLING_RATE=1.0
 
 # The following variables will allow you to filter logs in AppInsights
 ENV SERVICE_OWNER="AI4E_camera_trap" \
