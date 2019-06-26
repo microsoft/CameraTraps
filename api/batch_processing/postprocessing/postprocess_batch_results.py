@@ -27,7 +27,6 @@
 #%% Constants and imports
 
 import argparse
-import inspect
 import os
 import sys
 from enum import IntEnum
@@ -48,7 +47,7 @@ from write_html_image_list import write_html_image_list
 import visualization.visualization_utils as vis_utils
 from data_management.cct_json_utils import CameraTrapJsonUtils, IndexedJsonDb
 from api.batch_processing.postprocessing.load_api_results import load_api_results
-
+from ct_utils import args_to_object
 
 #%% Options
 
@@ -305,10 +304,10 @@ def process_batch_results(options):
     
     ##%% Load detection results
     
-    detection_results, detection_categories_map = load_api_results(options.detector_output_file,
+    detection_results, other_fields = load_api_results(options.detector_output_file,
                                              normalize_paths=True,
                                              filename_replacements=options.detector_output_filename_replacements)
-    
+    detection_categories_map = other_fields['detection_categories']
     # Add a column (pred_detection_label) to indicate predicted detection status, not separating out the classes
 
     detection_results['pred_detection_label'] = \
@@ -658,15 +657,6 @@ if False:
 
 
 #%% Command-line driver
-    
-# Copy all fields from a Namespace (i.e., the output from parse_args) to an object.
-# Skips fields starting with _.  Does not check existence in the target object.
-def args_to_object(args, obj):
-    
-    for n, v in inspect.getmembers(args):
-        if not n.startswith('_'):
-            setattr(obj, n, v)
-
 
 def main():
     
@@ -700,7 +690,7 @@ def main():
         parser.print_help()
         parser.exit()
         
-    args = parser.parse_args()    
+    args = parser.parse_args()
     args.sort_html_by_filename = not args.random_output_sort
     
     options = PostProcessingOptions()
