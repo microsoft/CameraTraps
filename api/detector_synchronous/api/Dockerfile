@@ -28,10 +28,7 @@ RUN /usr/local/envs/ai4e_py_api/bin/pip install --upgrade pip
 RUN /usr/local/envs/ai4e_py_api/bin/pip install tensorflow-gpu==1.9 pillow requests_toolbelt
 RUN /usr/local/envs/ai4e_py_api/bin/pip install gunicorn
 
-RUN /usr/local/envs/ai4e_py_api/bin/pip install opencensus==0.6.0 opencensus-ext-requests
-
 ### Copy the necessary files for running the API
-
 # Note: supervisor.conf reflects the location and name of your api code.
 COPY ./supervisord.conf /etc/supervisord.conf
 
