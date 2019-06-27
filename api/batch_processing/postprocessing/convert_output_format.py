@@ -16,6 +16,7 @@ import csv
 import json
 
 from api.batch_processing.postprocessing.load_api_results import load_api_results
+from api.batch_processing.postprocessing.load_api_results import load_api_results_csv
 from data_management.annotations import annotation_constants
 
 
@@ -64,7 +65,7 @@ def convert_csv_to_json(input_path,output_path):
     # https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing
     
     print('Loading csv results...')
-    df = load_api_results(input_path)
+    df = load_api_results_csv(input_path)
 
     info = {
         "detector": "unknown",

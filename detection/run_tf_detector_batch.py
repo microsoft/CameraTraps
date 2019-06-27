@@ -32,7 +32,6 @@ import pickle
 import inspect
 import tempfile
 import warnings
-import tempfile
 from itertools import compress
 
 import tensorflow as tf
@@ -42,9 +41,9 @@ import PIL
 from tqdm import tqdm
 import pandas as pd
 
-from api.batch_processing.api_support import convert_output_format
-from api.batch_processing.load_api_results import write_api_results
-from api.batch_processing.api.orchestrator_api.aml_scripts.tf_detector import TFDetector
+from api.batch_processing.postprocessing import convert_output_format
+from api.batch_processing.postprocessing.load_api_results import write_api_results
+from api.batch_processing.api_core.orchestrator_api.aml_scripts.tf_detector import TFDetector
 
 DEFAULT_CONFIDENCE_THRESHOLD = 0.5
 
@@ -79,6 +78,9 @@ class BatchDetectionOptions:
     forceCpu = False
     checkpointFrequency = DEFAULT_CHECKPOINT_N_IMAGES
     resumeFromCheckpoint = None
+    
+    # Only meaningful if "imageFile" is a directory
+    outputRelativeFilenames = False
     
     # List of query/replacement pairs to apply to output filenames
     outputPathReplacements = {}
@@ -447,6 +449,10 @@ def load_and_run_detector(options,detector=None):
                 replacement = options.outputPathReplacements[query]
                 row['image_path'] = row['image_path'].replace(query,replacement)
     
+    if options.outputRelativeFilenames and os.path.isdir(options.imageFile):
+        for iRow,row in df.iterrows():
+            row['image_path'] = os.path.relpath(row['image_path'],options.imageFile)
+            
     # While we're in transition between formats, write out the old format and 
     # convert to the new format
     if options.outputFile.endswith('.csv'):
@@ -525,13 +531,15 @@ def main():
                         default=DEFAULT_CONFIDENCE_THRESHOLD, 
                         help='Confidence threshold, don''t render boxes below this confidence')
     parser.add_argument('--recursive', action='store_true', 
-                        help='Recurse into directories, only meaningful if using --imageDir')
+                        help='Recurse into directories, only meaningful if --imageFile points to a directory')
     parser.add_argument('--forceCpu', action='store_true', 
                         help='Force CPU detection, even if a GPU is available')
     parser.add_argument('--checkpointFrequency', type=int, default=DEFAULT_CHECKPOINT_N_IMAGES,
                         help='Checkpoint results to allow restoration from crash points later')
     parser.add_argument('--resumeFromCheckpoint', type=str, default=None,
                         help='Initiate inference from the specified checkpoint')
+    parser.add_argument('--outputRelativeFilenames', type=bool, action='store_true',
+                        help='Output relative file names, only meaningful if --imageFile points to a directory')
     
     if len(sys.argv[1:])==0:
         parser.print_help()
