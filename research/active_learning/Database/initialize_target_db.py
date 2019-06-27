@@ -22,57 +22,31 @@ parser.add_argument('--db_user', default='new_user', type=str,
                     help='Name of the user accessing the Postgres DB.')
 parser.add_argument('--db_password', default='new_user_password', type=str,
                     help='Password of the user accessing the Postgres DB.')
+parser.add_argument('--crop_dir', metavar='DIR',
+                    help='Path to dataset directory containing all cropped images')
 parser.add_argument('--image_dir', metavar='DIR',
-                    help='Path to dataset directory containing all images')
+                    help='Path to dataset directory containing all original images')
 parser.add_argument('--coco_json', metavar='DIR',
                     help='Path to COCO Camera Traps json file if available', default=None)
-
 args = parser.parse_args()
 
-# Database connection credentials
+# Initialize Database
+## database connection credentials
 DB_NAME = args.db_name
 USER = args.db_user
 PASSWORD = args.db_password
 #HOST = 'localhost'
 #PORT = 5432
 
-# Options for getting dataset image data
-COCO_CAMERA_TRAPS_JSON = args.coco_json # if image data is available in Coco Camera Traps JSON format
-coco_json = None
+## first, make sure the (user, password) has been created
+## sudo -u postgres psql -c "CREATE USER <db_user> WITH PASSWORD <db_password>;"
+## sudo -u postgres psql -c "CREATE DATABASE <db_name> WITH OWNER <db_user> CONNECTION LIMIT -1;"
+## sudo -u postgres psql -c "GRANT CONNECT ON DATABASE <db_name> TO <db_user>;"
+## sudo -u postgres psql -d <db_name> -c "CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";"
 
-# TODO: MAKE THIS SMOOTHER/MORE SECURE
-# # DATABASE INITIALIZATION CODE
-# # Connect to postgres database owned by suClass defining tperuser postgres
-# conn = psycopg2.connect(dbname='postgres', user='postgres', password='postgres', host='localhost')
-# conn.autocommit = True # this is needed to create database if it does not exist
-# cursor = conn.cursor()
-
-# # Check if the user USER with password PASSWORD exists
-# query = "SELECT 1 FROM pg_roles WHERE rolname='%s'"%(USER)
-# cursor.execute(query)
-# qresult = cursor.fetchone()
-# if qresult is None: # if not then create this user
-#     query = "CREATE USER %s PASSWORD '%s';"%(USER, PASSWORD)
-#     cursor.execute(query)
-# else:
-#     query = "ALTER USER %s WITH PASSWORD '%s'"%(USER, PASSWORD) # update the password in case it doesn't match, need to fix this later
-#     cursor.execute(query)
-
-
-# # Check if the database DB_NAME already exists
-# query = "SELECT 1 FROM pg_catalog.pg_database WHERE datname = '%s'"%(DB_NAME)
-# cursor.execute(query)
-# qresult = cursor.fetchone()
-# if qresult is None: # if not then create the database
-#     query = "CREATE DATABASE %s"%(DB_NAME)
-#     cursor.execute(query)
-    
-# # Grant USER access to DB_NAME
-# query = "GRANT ALL PRIVILEGES ON DATABASE %s TO %s;"%(DB_NAME, USER)
-# cursor.execute(query)
-
-# # Close connection
-# conn.close()
+# # Options for getting dataset image data
+# COCO_CAMERA_TRAPS_JSON = args.coco_json # if image data is available in Coco Camera Traps JSON format
+# coco_json = None
 
 
 # SET UP TABLES
