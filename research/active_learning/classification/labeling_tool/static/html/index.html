@@ -29,7 +29,12 @@
             object-fit: cover;
         }
         .selectable .ui-selected{
-            border: 2px solid #ff0000;
+            border: 4px solid #ff0000;
+        }
+        .selectable .classified{
+            /* border: 3px solid darkslategray; */
+            -webkit-filter: blur(15px); /* Safari 6.0 - 9.0 */
+            filter: blur(15px);
         }
         /* .selectable img { */
             /* margin: 9px; */
@@ -131,6 +136,7 @@
                             <!-- <p class="card-text">Instructions</p> -->
                             <a href="#" class="btn btn-primary" style="border:none; width:100%; margin-bottom:100px;" onclick="loadImages()">Load More Images</a>
                             
+                            <p>Ctrl-click to select multiple images at once, or to deselect images.</p>
                             <form>
                                 <select name="dropdown" style="width:100%; margin-bottom:10px;">
                                     <option disabled>Species...</option>
@@ -141,7 +147,7 @@
                                     <option>American Hog-Nosed Skunk</option>
                                 </select>
                            </form>
-                           <a href="#" class="btn btn-primary" style="border:none; background-color:green; width:100%; margin-bottom:50px;" onclick="classifySelected()">Classify</a>
+                           <a href="#" class="btn btn-primary" style="border:none; background-color:green; width:100%; margin-bottom:100px;" onclick="classifySelectedImages()">Classify</a>
 
                            <form>
                             <select name="dropdown" style="width:100%; margin-bottom:10px;">
@@ -153,7 +159,7 @@
                             </select>
                        </form>
                        <a href="#" class="btn btn-primary" style="border:none; background-color:peru; width:100%; margin-bottom:10px;">Show Me</a>
-                       <a href="#" class="btn btn-primary" style="border:none; background-color:tomato; width:100%; margin-bottom:50px;">Retrain</a>
+                       <a href="#" class="btn btn-primary" style="border:none; background-color:tomato; width:100%; margin-bottom:10px;">Retrain</a>
 
                         </div>
                     </div>
@@ -166,7 +172,10 @@
 
     <!-- JavaScript -->
     <script type="text/javascript">
-        var selectedItems = [];
+        // Global variables
+        var selectedImages = []; // items that are currently selected
+        var classifiedImages = [];
+        var disabledImages = []; //should be same as classified items
 
         var notifyFail = function(jqXHR, textStatus, errorThrown){
             console.debug(jqXHR.responseText)
@@ -182,12 +191,23 @@
                 contentType: "application/json",
                 data: JSON.stringify({"num_images": 25}), //what data do we need to send to the ? server with this request? maybe number of images to load?
                 success: function(data){
-                    // Do something if successful AJAX request
-                    console.debug(data)
+                    // If successful AJAX request, load images
                     var img = data['file_names'];
                     for (i=1; i<26; i++){
                         $("#img"+i).attr("src", img[i-1])
                     }
+
+                    // Remove all "ui-selected" classes
+                    var selectedImageObjects = document.querySelectorAll(".ui-selected");
+                    [].forEach.call(selectedImageObjects, function(el){
+                        el.classList.remove("ui-selected");
+                    })
+
+                    // Remove all "classified" classes
+                    var prevClassifiedImageObjects = document.querySelectorAll(".classified");
+                    [].forEach.call(prevClassifiedImageObjects, function(el){
+                        el.classList.remove("classified");
+                    })
                 },
                 error: notifyFail
             });
@@ -195,23 +215,49 @@
 
         var selectImages = function(){
             $(".selectable").selectable({
-                selected: function(){
-                    selectedItems = [];
-                    $(".ui-selected", this).each(function(index){
-                        selectedItems.push( $(this).attr("src"));
+                // at the end of any select operation, re-create the list of selected images
+                stop: function(){
+                    selectedImages = [];
+                    $(".ui-selected", this).each(function(){
+                        console.debug($(this).hasClass("classified"));
+                        selectedImages.push($(this).attr("src"));
                     });
                 }
+                // // whenever an item is selected or unselected, re-creates the list of selected images
+                // selected: function(){
+                //     selectedImages = [];
+                //     $(".ui-selected", this).each(function(index){
+                //         selectedImages.push( $(this).attr("src"));
+                //     });
+                // },
+                // unselected: function(){
+                //     selectedImages = [];
+                //     $(".ui-selected", this).each(function(index){
+                //         selectedImages.push( $(this).attr("src"));
+                //     });
+                // }
             });
+            
         };
 
-        var classifySelected = function(){
-            selectedItems = [];
-            $(".ui-selected", this).each(function(index){
-                selectedItems.push( $(this).attr("src"));
-            });
-            alert(selectedItems);
-            selectedItems = [];
-            selectImages();
+        var classifySelectedImages = function(){
+            // add currently selected images to list of classified images
+            for (i=0; i<selectedImages.length;i++){
+                if (!classifiedImages.includes(selectedImages[i])){
+                    classifiedImages.push(selectedImages[i])
+                }
+            }
+
+            // mark currently selected images as not-selectable or something, and clear ui-selected property
+            var selectedImageObjects = document.querySelectorAll(".ui-selected");
+            console.log(selectedImageObjects);
+            [].forEach.call(selectedImageObjects, function(el){
+                el.classList.remove("ui-selected");
+                el.classList.add("classified");
+            })
+
+            // clear selectedImages list
+            selectedImages = [];
         };
         
         $(document).ready(function(){
