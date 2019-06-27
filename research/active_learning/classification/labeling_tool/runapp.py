@@ -56,6 +56,7 @@ if __name__ == '__main__':
     webUIapp = bottle.Bottle()
     webUIapp.add_hook("after_request", enable_cors)
     webUIapp_server_kwargs = {
+        "server": "tornado",
         "host": args.host,
         "port": args.port
     }
