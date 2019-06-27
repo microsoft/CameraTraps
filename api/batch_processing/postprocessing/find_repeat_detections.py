@@ -84,7 +84,7 @@ class RepeatDetectionOptions:
 
     # Load detections from a filter file rather than finding them from the detector output
 
-    # .json file containing detections
+    # .json file containing detections, should be called detectionIndex.json in the filtering_* folder produced in the first pass
     filterFileToLoad = ''
 
     # (optional) list of filenames remaining after deletion of identified repeated detections that are actually animals
@@ -804,7 +804,7 @@ def find_repeat_detections(inputFilename, outputFilename, options=None):
                 instance = detection.instances[0]
                 relativePath = instance.filename
                 inputFullPath = os.path.join(options.imageBase, relativePath)
-                assert (os.path.isfile(inputFullPath))
+                assert (os.path.isfile(inputFullPath)), 'Not a file: {}'.format(inputFullPath)
                 outputRelativePath = 'dir{:0>4d}_det{:0>4d}.jpg'.format(iDir, iDetection)
                 outputFullPath = os.path.join(filteringDir, outputRelativePath)
                 render_bounding_box(bbox, inputFullPath, outputFullPath, 15)
@@ -830,7 +830,7 @@ def find_repeat_detections(inputFilename, outputFilename, options=None):
 
 #%% Interactive driver
 
-if True:
+if False:
     #%%
 
     baseDir = '/Users/siyuyang/Source/temp_data/CameraTrap/test_repeat_detection'
@@ -887,9 +887,12 @@ def main():
     parser.add_argument('inputFile')
     parser.add_argument('outputFile')
     parser.add_argument('--imageBase', action='store', type=str,
-                        help='Image base dir, only relevant if renderHtml is True')
+                        help='Image base dir, relevant if renderHtml is True or if omitFilteringFolder is not set')
     parser.add_argument('--outputBase', action='store', type=str,
                         help='Html output dir, only relevant if renderHtml is True')
+    parser.add_argument('--filterFileToLoad', action='store', type=str, default='',  # checks for string length so default needs to be the empty string
+                        help='Path to detectionIndex.json, which should be inside a folder of images that are manually verified to _not_ contain valid animals')
+
     parser.add_argument('--confidenceMax', action='store', type=float,
                         default=defaultOptions.confidenceMax,
                         help='Detection confidence threshold; don\'t process anything above this')
@@ -908,6 +911,7 @@ def main():
     parser.add_argument('--maxSuspiciousDetectionSize', action='store', type=float,
                         default=defaultOptions.maxSuspiciousDetectionSize,
                         help='Detections larger than this fraction of image area are not considered suspicious')
+
     parser.add_argument('--renderHtml', action='store_true',
                         dest='bRenderHtml', help='Should we render HTML output?')
     parser.add_argument('--omitFilteringFolder', action='store_false',
