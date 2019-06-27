@@ -1,4 +1,3 @@
-
 # Species classification training
 
 This directory contains a set of scripts for:
@@ -19,7 +18,7 @@ You can check out [http://lila.science](lila.science) for example data sets. In 
 by locations, i.e. into training and testing locations. Hence it is advisable to have a field in your image annotation specifying the location 
 as string or integer. This could look like:
 
-    image{
+    image {
       "id" : int, 
       "width" : int, 
       "height" : int, 
@@ -29,7 +28,7 @@ as string or integer. This could look like:
     
 The corresponding category annotation should contain at least
 
-    annotation{
+    annotation {
       "id" : int, 
       "image_id" : int, 
       "category_id" : int
@@ -40,7 +39,7 @@ The corresponding category annotation should contain at least
 
 The scripts use the following libraries:
 - TensorFlow
-- TensorFlow object detection API
+- TensorFlow Object Detection API (TFODAPI)
 - pycocotools
 
 All these dependencies should be satisfied if you follow the installation instructions for the [TFODAPI](https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/installation.md). You can also use conda for TensorFlow and pycocotools:
@@ -145,7 +144,9 @@ The default padding factor is fairly large and optimized for images with only on
 You might need to adjust it according to the type of data, but keep in mind that the script currently ignores all images 
 with two or more detections. 
 
+
 ## Dataset statistics
+
 The file `database_tools/cropped_camera_trap_dataset_statistics.py` can be used to get some statistics about the generated
 datasets, in particular the number of images and classes. This information will be required later on. The input is 
 the original json file of the camera-trap dataset as well as the `train.json` and `test.json` files, which are located
@@ -242,7 +243,9 @@ at the end.
 
 NOTE: It appears that there is a bug in the tf-slim code, which manifests in a significantly lower accuracy, e.g., 10% lower than expected. If you experiences issues with low accuracy values, try the following fix. After the training is finished, locate the created log directory, change the variable `TRAIN_DIR` in `train_serengeti_inception_v4.sh` to this folder. Now re-run `bash ../train_serengeti_inception_v4.sh`. The tensorflow training will recognize the existing checkpoints, read the model, and write out a new bug-free model.
 
+
 ## Model export
+
 Trained models can be exported into a frozen graph, which includes all pre-processing steps and dependencies. This graph takes any image with values in the range `[0,1]` and computes the class scores. Please note that the training code generates a frozen graph as well. However, this graph does not include pre-processing and hence the correct input to this model depends on the architecture. 
 
 The export is a two-step process of exporting the architecture as a graph definition file using `export_inference_graph_definition.py` and then fusing this architecture with the learned parameters into a frozen graph using `freeze_graph.py`. Both scripts are in the folder `CameraTraps/classification` and were adapted from the similarly named scripts provided by Tensorflow. 
@@ -279,7 +282,9 @@ Once the pbtxt file is generated, the frozen graph can be generated with `freeze
 
 An example of the usage can be also found in the tutorial as well as in `CameraTraps/classification/export_inference_graph_serengeti.sh`.
 
+
 ## Inference
+
 Inference on new images can be done with one of the following scripts:
 
 - `predict_image.py` performs whole-image classification, i.e. it is suitable for classifying a cropped image containing a single animal
@@ -386,6 +391,7 @@ The third and last script `generate_sample_predictions.py` has the following syn
 	                        Number of samples to selected. Default: 5
 
 ## Remarks and advanced adjustments of training parameters
+
 The parameter `NUM_GPUS` in the training script is currently not used. The batch size and learning rates are optimized
 for the Inception V4 architecture and should give good results without any change. However, you might need to adjust the
 number of steps, i.e. `--max_number_of_steps=`. One step processed one batch of images, i.e. by default 32 images. 
