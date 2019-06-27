@@ -32,7 +32,6 @@ import pickle
 import inspect
 import tempfile
 import warnings
-import tempfile
 from itertools import compress
 
 import tensorflow as tf
@@ -42,9 +41,9 @@ import PIL
 from tqdm import tqdm
 import pandas as pd
 
-from api.batch_processing.api_support import convert_output_format
-from api.batch_processing.load_api_results import write_api_results
-from api.batch_processing.api.orchestrator_api.aml_scripts.tf_detector import TFDetector
+from api.batch_processing.postprocessing import convert_output_format
+from api.batch_processing.postprocessing.load_api_results import write_api_results
+from api.batch_processing.api_core.orchestrator_api.aml_scripts.tf_detector import TFDetector
 
 DEFAULT_CONFIDENCE_THRESHOLD = 0.5
 

@@ -13,7 +13,6 @@ import os
 import time
 import argparse
 import json
-import math
 
 # Assumes that the root of the CameraTrap repo is in the PYTHONPATH
 import ct_utils
