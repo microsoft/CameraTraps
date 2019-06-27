@@ -13,7 +13,6 @@ import os
 import time
 import argparse
 import json
-import math
 
 # Assumes that the root of the CameraTrap repo is in the PYTHONPATH
 import ct_utils
@@ -80,7 +79,7 @@ def add_classification_categories(json_object, classes_file):
     already exists, then this function is a no-op.
     '''
 
-    if 'classification_categories' not in json_object.keys():
+    if ('classification_categories' not in json_object.keys()) or (len(json_object['classification_categories']) == 0):
 
         # Read the name of all classes
         with open(classes_file, 'rt') as fi:
