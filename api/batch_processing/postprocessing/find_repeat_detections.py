@@ -33,7 +33,7 @@ from tqdm import tqdm
 # from ai4eutils; this is assumed to be on the path, as per repo convention
 import write_html_image_list
 
-from api.batch_processing.load_api_results import load_api_results, write_api_results
+from api.batch_processing.postprocessing.load_api_results import load_api_results, write_api_results
 
 # Imports I'm not using but use when I tinker with parallelization
 #
