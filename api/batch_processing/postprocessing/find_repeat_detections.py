@@ -433,7 +433,8 @@ def update_detection_table(RepeatDetectionResults, options, outputFilename=None)
 
                 # This should match the bbox for the detection event
                 iou = ct_utils.get_iou(instanceBbox, locationBbox)
-                assert iou > options.iouThreshold
+                # There are instances where iou is very close to the threshold so cannot use >
+                assert iou >= options.iouThreshold
 
                 assert instance.filename in RepeatDetectionResults.filenameToRow
                 iRow = RepeatDetectionResults.filenameToRow[instance.filename]
