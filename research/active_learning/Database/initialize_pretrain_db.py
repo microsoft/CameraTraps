@@ -87,6 +87,10 @@ class_to_idx = {classes[i]: i for i in range(len(classes))}
 
 ## iterate through images in each class folder
 for cat in sorted(class_to_idx.keys()):
+    # killing this process after over 38 hours adding over 500k white-tailed deer crops from emammal
+    # resuming for remaining classes
+    if cat not in ['wild turkey']:
+        continue
     if args.verbose:
         print("Start processing "+cat)
         timer = time.time()
