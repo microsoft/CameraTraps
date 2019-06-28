@@ -102,6 +102,7 @@ def write_api_results(detection_results_table, other_fields, out_path):
 
 def load_api_results_old(filename, normalize_paths=True, filename_replacements={}, nrows=None):
     """
+    DEPRECATED
     Loads .csv-formatted results from the batch processing API to a pandas table
     """
     print('Loading API results from {}'.format(filename))
