@@ -56,22 +56,26 @@ from api.batch_processing.postprocessing.load_api_results import load_api_result
 
 DEFAULT_NEGATIVE_CLASSES = ['empty']
 DEFAULT_UNKNOWN_CLASSES = ['unknown', 'unlabeled']
-# Make sur there is no overlap between the two sets, because this will cause
-# issues in the code
-assert has_overlap(DEFAULT_NEGATIVE_CLASSES, DEFAULT_UNKNOWN_CLASSES),
-        'Default negative and unknown classes cannot overlap.'
 
 
 def has_overlap(set1, set2):
+
     ''' Helper function, which checks if two sets have an overlap '''
-    return len(set(DEFAULT_NEGATIVE_CLASSES) & set(DEFAULT_UNKNOWN_CLASSES)) > 0
+    return len(set(set1) & set(set2)) > 0
+
+
+# Make sure there is no overlap between the two sets, because this will cause
+# issues in the code
+assert not has_overlap(DEFAULT_NEGATIVE_CLASSES, DEFAULT_UNKNOWN_CLASSES), \
+        'Default negative and unknown classes cannot overlap.'
+
 
 
 class PostProcessingOptions:
 
     ### Required inputs
 
-    detector_output_file = ''
+    api_output_file = ''
     image_base_dir = ''
     ground_truth_json_file = ''
     output_dir = ''
@@ -101,7 +105,7 @@ class PostProcessingOptions:
     # Optionally replace one or more strings in filenames with other strings;
     # this is useful for taking a set of results generated for one folder structure
     # and applying them to a slightly different folder structure.
-    detector_output_filename_replacements = {}
+    api_output_filename_replacements = {}
     ground_truth_filename_replacements = {}
 
 
@@ -165,17 +169,13 @@ def mark_detection_status(indexed_db, negative_classes=DEFAULT_NEGATIVE_CLASSES,
         image_category_names = set([indexed_db.cat_id_to_name[cat] for cat in image_categories])
 
         # Check if image has unassigned-type labels
-        image_has_unknown_labels = has_overlap(image_category_names, unknown_classes):
+        image_has_unknown_labels = has_overlap(image_category_names, unknown_classes)
         # Check if image has negative-type labels
-        image_has_negative_labels = has_overlap(image_category_names, negative_classes):
+        image_has_negative_labels = has_overlap(image_category_names, negative_classes)
         # Check if image has positive labels
         # i.e. if we remove negative and unknown labels from image_category_names, then
         # there are still labels left
         image_has_positive_labels = 0 < len(image_category_names - unknown_classes - negative_classes)
-
-        # Initilize the field for the unambiguous category
-        # Will be assigned only if there is only one single category annotated
-        im['_unambiguous_category'] = image_category_names[0]
 
         # If there are no image annotations, the result is unknonw
         if len(image_categories) == 0:
@@ -214,10 +214,10 @@ def mark_detection_status(indexed_db, negative_classes=DEFAULT_NEGATIVE_CLASSES,
 
             # Annotate the category, if it is unambiguous
             if len(image_category_names) == 1:
-                im['_unambiguous_category'] = image_category_names[0]
+                im['_unambiguous_category'] = list(image_category_names)[0]
 
         else:
-            raise Exception('Invalid state, please check the code for bugs')]
+            raise Exception('Invalid state, please check the code for bugs')
 
     return n_negative, n_positive, n_unknown, n_ambiguous
 
@@ -333,9 +333,9 @@ def process_batch_results(options):
 
     ##%% Load detection results
     # TODO: replace by the correct loader once Dan updated it
-    detection_results, detection_categories_map = load_api_results(options.detector_output_file,
+    detection_results, detection_categories_map = load_api_results(options.api_output_file,
                                              normalize_paths=True,
-                                             filename_replacements=options.detector_output_filename_replacements)
+                                             filename_replacements=options.api_output_filename_replacements)
     # ASSUMPTION, TODO:
     # detection_results has a new field predicted_top1_classes, which is a set
     # of the top-1 prediction of all classified boxes
@@ -477,8 +477,8 @@ def process_batch_results(options):
 
             # If this image has classification predictions, and an unambiguous class
             # annotated, and is a positive image
-            if 'predicted_top1_classes' in detection_results[iDetection].keys()
-                    and '_unambiguous_category' in image.keys()
+            if 'predicted_top1_classes' in detection_results[iDetection].keys() \
+                    and '_unambiguous_category' in image.keys() \
                     and image['_detection_status'] == DetectionStatus.DS_POSITIVE:
                 # The unambiguous category, we make this a set for easier handling afterward
                 # TODO: actually we can replace the unambiguous category by all annotated
@@ -526,8 +526,7 @@ def process_batch_results(options):
                                 for idx in sorted(classname_to_idx.values())]
         # Prepend class name on each line and add to the top
         cm_str_lines = [' '.join(classname_headers)]
-        cm_str_lines += [cn + ' ' + cm_line
-                            for cn, cm_line in zip(classname_headers, cm_str.splitlines()]
+        cm_str_lines += [cn + ' ' + cm_line for cn, cm_line in zip(classname_headers, cm_str.splitlines())]
         # print formatted confusion matrix
         print("Confusion matrix: ")
         print(*cm_str_lines, sep='\n')
@@ -769,7 +768,7 @@ def process_batch_results(options):
 
 #%% Interactive driver(s)
 
-if True:
+if False:
 
     #%%
 
@@ -777,9 +776,9 @@ if True:
     options = PostProcessingOptions()
     options.image_base_dir = base_dir
     options.output_dir = os.path.join(base_dir, 'postprocessing_filtered')
-    options.detector_output_filename_replacements = {} # {'20190430cameratraps\\':''}
+    options.api_output_filename_replacements = {} # {'20190430cameratraps\\':''}
     options.ground_truth_filename_replacements = {'\\data\\blob\\':''}
-    options.detector_output_file = os.path.join(base_dir, 'bh_5570_detections.filtered.csv')
+    options.api_output_file = os.path.join(base_dir, 'bh_5570_detections.filtered.csv')
     options.ground_truth_json_file = os.path.join(base_dir, 'bh.json')
     options.unlabeled_classes = ['human']
 
@@ -801,7 +800,7 @@ def args_to_object(args, obj):
 
 def main():
 
-    defaultOptions = PostProcessingOptions()
+    default_options = PostProcessingOptions()
 
     parser = argparse.ArgumentParser()
     parser.add_argument('api_output_file', action='store', type=str,
