@@ -138,7 +138,7 @@
                             
                             <p>Ctrl-click to select multiple images at once, or to deselect images.</p>
                             <form>
-                                <select name="dropdown" style="width:100%; margin-bottom:10px;">
+                                <select id="classification-dropdown" style="width:100%; margin-bottom:10px;">
                                     <option disabled>Species...</option>
                                     <option>Empty</option>
                                     <option>American Beaver</option>
@@ -228,7 +228,7 @@
                 //     selectedImages = [];
                 //     $(".ui-selected", this).each(function(index){
                 //         selectedImages.push( $(this).attr("src"));
-                //     });
+                //     });5866
                 // },
                 // unselected: function(){
                 //     selectedImages = [];
@@ -241,6 +241,9 @@
         };
 
         var classifySelectedImages = function(){
+            // get the label from the classification dropdown
+            alert($("#classification-dropdown option:selected").text())
+
             // add currently selected images to list of classified images
             for (i=0; i<selectedImages.length;i++){
                 if (!classifiedImages.includes(selectedImages[i])){
