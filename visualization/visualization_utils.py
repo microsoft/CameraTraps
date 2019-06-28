@@ -29,7 +29,7 @@ def open_image(input):
     Returns:
         an PIL image object in RGB mode
     """
-    
+
     image = Image.open(input)
     if image.mode not in ('RGBA', 'RGB'):
         raise AttributeError('Input image not in RGBA or RGB mode and cannot be processed.')
@@ -42,10 +42,10 @@ def open_image(input):
 def resize_image(image, target_width, target_height=-1):
     """
     Resizes a PIL image object to the specified width and height; does not resize
-    in place.  If either width or height are -1, resizes with aspect ratio preservation.  
+    in place.  If either width or height are -1, resizes with aspect ratio preservation.
     If both are -1, returns the original image (does not copy in this case).
     """
-    
+
     # Null operation
     if target_width == -1 and target_height == -1:
         
@@ -70,7 +70,7 @@ def resize_image(image, target_width, target_height=-1):
     return resized_image
 
 
-def render_iMerit_boxes(boxes, classes, image, 
+def render_iMerit_boxes(boxes, classes, image,
                         label_map=annotation_constants.bbox_category_id_to_name):
     """
     Renders bounding boxes and their category labels on a PIL image.
@@ -83,7 +83,7 @@ def render_iMerit_boxes(boxes, classes, image,
     Returns:
         image will be altered in place
     """
-    
+
     display_boxes = []
     display_strs = []  # list of list, one list of strings for each bounding box (to accommodate multiple labels)
     for box, clss in zip(boxes, classes):
@@ -102,26 +102,26 @@ def render_iMerit_boxes(boxes, classes, image,
     draw_bounding_boxes_on_image(image, display_boxes, classes, display_strs=display_strs)
 
 
-def render_db_bounding_boxes(boxes, classes, image, original_size=None, 
+def render_db_bounding_boxes(boxes, classes, image, original_size=None,
                              label_map=None, thickness=4):
     """
     Render bounding boxes (with class labels) on [image].  This is a wrapper for
     draw_bounding_boxes_on_image, allowing the caller to operate on a resized image
     by providing the original size of the image; bboxes will be scaled accordingly.
     """
-    
+
     display_boxes = []
     display_strs = []
-    
+
     if original_size is not None:
         image_size = original_size
     else:
         image_size = image.size
-        
+
     img_width, img_height = image_size
-    
+
     for box, clss in zip(boxes, classes):
-        
+
         x_min_abs, y_min_abs, width_abs, height_abs = box
 
         ymin = y_min_abs / img_height
@@ -137,40 +137,67 @@ def render_db_bounding_boxes(boxes, classes, image, original_size=None,
         display_strs.append([clss])
 
     display_boxes = np.array(display_boxes)
-    
-    draw_bounding_boxes_on_image(image, display_boxes, classes, display_strs=display_strs, 
+
+    draw_bounding_boxes_on_image(image, display_boxes, classes, display_strs=display_strs,
                                  thickness=thickness)
+
 
 
 def render_detection_bounding_boxes(detections, image,
                                     label_map={},
+                                    classification_label_map={},
                                     confidence_threshold=0.8, thickness=4):
     """
     Renders bounding boxes, label and confidence on an image if confidence is above the threshold.
     This is works with the output of the detector batch processing API.
+    Supports classification, if the detection contains classification results according to the detector
+    API output version 1.0. The detection label is ignored then, if the detection category is '1'.
 
     Args:
         detections: detections on the image, example content:
             {
-                "category": "2",
-                "conf": 0.996,
-                "bbox": [
-                    0.0,
-                    0.2762,
-                    0.1234,
-                    0.2458
+                [
+                    "category": "2",
+                    "conf": 0.996,
+                    "bbox": [
+                        0.0,
+                        0.2762,
+                        0.1234,
+                        0.2458
+                    ]
                 ]
             }
-            where the bbox coordinates are [x, y, width_box, height_box], (x, y) is upper left
+            where the bbox coordinates are [x, y, width_box, height_box], (x, y) is upper left.
+            Supports classification results, if *detections* have the format
+            {
+                [
+                    "category": "2",
+                    "conf": 0.996,
+                    "bbox": [
+                        0.0,
+                        0.2762,
+                        0.1234,
+                        0.2458
+                    ]
+                    "classifications": [
+                        ["3", 0.901],
+                        ["1", 0.071],
+                        ["4", 0.025]
+                    ]
+                ]
+            }
         image: PIL.Image object, output of generate_detections.
         label_map: optional, mapping the numerical label to a string name. The type of the numerical label
             (default string) needs to be consistent with the keys in label_map; no casting is carried out.
+        classification_label_map: optional, mapping of the string class labels to the actual class names.
+            The type of the numerical label (default string) needs to be consistent with the keys in
+            label_map; no casting is carried out.
         confidence_threshold: optional, threshold above which the bounding box is rendered.
         thickness: optional, rendering line thickness.
 
     image is modified in place.
     """
-    
+
     display_boxes = []
     display_strs = []  # list of lists, one list of strings for each bounding box (to accommodate multiple labels)
     classes = []
@@ -183,8 +210,20 @@ def render_detection_bounding_boxes(detections, image,
             display_boxes.append([y1, x1, y1 + h_box, x1 + w_box])
             clss = detection['category']
             label = label_map[clss] if clss in label_map else clss
-            displayed_label = '{}: {}%'.format(label, round(100 * score))
-            display_strs.append([displayed_label])
+            displayed_label = ['Detected as {}: {}%'.format(label, round(100 * score))]
+            if clss == '1' and 'classifications' in detection:
+                # To avoid duplicate colors with detection-only visualization offset
+                # the classification class index by the number of detection classes
+                clss = len(annotation_constants.bbox_categories) +
+                            detection['classifications'][0][0]
+                for classification_idx, classification in enumerate(detection['classifications']):
+                    class_key = classification[0]
+                    if class_key in classification_label_map:
+                        class_name = classification_label_map[class_key]
+                    else:
+                        class_name = class_key
+                    displayed_label += ['{} with confidence {:5.1%}'.format(class_name, classification[1])]
+            display_strs.append(displayed_label)
             classes.append(clss)
 
     display_boxes = np.array(display_boxes)
@@ -245,7 +284,7 @@ def draw_bounding_boxes_on_image(image,
                              bounding box is that it might contain
                              multiple labels.
     """
-    
+
     boxes_shape = boxes.shape
     if not boxes_shape:
         return
@@ -295,7 +334,7 @@ def draw_bounding_box_on_image(image,
         ymin, xmin, ymax, xmax as relative to the image.  Otherwise treat
         coordinates as absolute.
     """
-    
+
     color = COLORS[int(clss) % len(COLORS)]
 
     draw = ImageDraw.Draw(image)
@@ -324,7 +363,7 @@ def draw_bounding_box_on_image(image,
         text_bottom = top
     else:
         text_bottom = bottom + total_display_str_height
-        
+
     # Reverse list and print from bottom to top.
     for display_str in display_str_list[::-1]:
         text_width, text_height = font.getsize(display_str)
