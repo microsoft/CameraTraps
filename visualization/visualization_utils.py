@@ -48,24 +48,24 @@ def resize_image(image, target_width, target_height=-1):
 
     # Null operation
     if target_width == -1 and target_height == -1:
-        
-        return image    
-    
+
+        return image
+
     elif target_width == -1 or target_height == -1:
-    
+
         # Aspect ratio as width over height
         aspect_ratio = image.size[0] / image.size[1]
-        
+
         if target_width != -1:
-            # ar = w / h        
+            # ar = w / h
             # h = w / ar
             target_height = int(target_width / aspect_ratio)
-            
+
         else:
             # ar = w / h
             # w = ar * h
             target_width = int(aspect_ratio * target_height)
-            
+
     resized_image = image.resize((target_width, target_height), Image.ANTIALIAS)
     return resized_image
 
@@ -214,8 +214,7 @@ def render_detection_bounding_boxes(detections, image,
             if clss == '1' and 'classifications' in detection:
                 # To avoid duplicate colors with detection-only visualization offset
                 # the classification class index by the number of detection classes
-                clss = len(annotation_constants.bbox_categories) +
-                            detection['classifications'][0][0]
+                clss = len(annotation_constants.bbox_categories) + detection['classifications'][0][0]
                 for classification_idx, classification in enumerate(detection['classifications']):
                     class_key = classification[0]
                     if class_key in classification_label_map:
