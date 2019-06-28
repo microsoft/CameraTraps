@@ -22,6 +22,7 @@ import tensorflow as tf
 import numpy as np
 import PIL
 import humanfriendly
+import tqdm
 
 # Minimum detection confidence for showing a bounding box on the output image
 DEFAULT_CONFIDENCE_THRESHOLD = 0.85
@@ -138,7 +139,7 @@ def classify_boxes(classification_graph, json_with_classes, image_dir, confidenc
 
             # For each image
             nImages = len(json_with_classes['images'])
-            for iImage in range(0,nImages):
+            for iImage in tqdm.tqdm(list(range(0,nImages))):
 
                 image_description = json_with_classes['images'][iImage]
 
