@@ -79,14 +79,12 @@ class Detection(Model):
     image = ForeignKeyField(Image)      # pointer to cropped image the detection corresponds to
     kind = IntegerField()               # numeric code representing what kind of detection this is
     category = ForeignKeyField(Category)    # label assigned to the detection
-    category_confidence = FloatField(null = True)    # confidence associated with the detection
-    
-    ## bounding box info; would be available if ???
-    # bbox_confidence = FloatField(null = True)
-    # bbox_X1= FloatField(null = True)
-    # bbox_Y1= FloatField(null = True)
-    # bbox_X2= FloatField(null = True)
-    # bbox_Y2= FloatField(null = True)
+    category_confidence = FloatField(null = True)    # confidence associated with the detection    
+    bbox_confidence = FloatField(null = True)
+    bbox_X1= FloatField(null = True)
+    bbox_Y1= FloatField(null = True)
+    bbox_X2= FloatField(null = True)
+    bbox_Y2= FloatField(null = True)
 
     class Meta:
         database = db_proxy
