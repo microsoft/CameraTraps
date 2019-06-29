@@ -38,6 +38,8 @@ import tensorflow as tf
 import numpy as np
 import humanfriendly
 import PIL
+from PIL import ImageFile
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 from tqdm import tqdm
 import pandas as pd
 
@@ -151,7 +153,7 @@ def generate_detections(detector,images,options):
         with tf.Session(graph=detection_graph) as sess:
             
             for iImage,image in tqdm(enumerate(images)): 
-                
+
                 # Skip images we've loaded from a checkpoint or otherwise preprocessed
                 if iImage < firstImage:
                     continue
@@ -340,7 +342,7 @@ def options_to_images(options):
     if os.path.isdir(options.imageFile):
         
         imageFileNames = find_images(options.imageFile,options.recursive)
-        imageFileNames.append('asdfasdfasd')
+        # imageFileNames.append('asdfasdfasd')
         
     else:
         
@@ -351,8 +353,9 @@ def options_to_images(options):
         else:
             with open(options.imageFile) as f:
                 imageFileNames = f.readlines()
-                imageFileNames = [x.strip() for x in imageFileNames] 
+                imageFileNames = [x.strip() for x in imageFileNames]
 
+    imageFileNames = sorted(imageFileNames)
     return imageFileNames
 
 
@@ -420,7 +423,7 @@ def load_and_run_detector(options,detector=None):
         os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
     print('Running detector on {} images'.format(len(imageFileNames)))    
-    
+
     if len(imageFileNames) == 0:        
         print('Warning: no files available')
         return
@@ -538,7 +541,7 @@ def main():
                         help='Checkpoint results to allow restoration from crash points later')
     parser.add_argument('--resumeFromCheckpoint', type=str, default=None,
                         help='Initiate inference from the specified checkpoint')
-    parser.add_argument('--outputRelativeFilenames', type=bool, action='store_true',
+    parser.add_argument('--outputRelativeFilenames', action='store_true',
                         help='Output relative file names, only meaningful if --imageFile points to a directory')
     
     if len(sys.argv[1:])==0:
