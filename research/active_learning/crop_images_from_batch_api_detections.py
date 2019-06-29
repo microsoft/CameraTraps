@@ -92,6 +92,10 @@ def main():
                     crop_data['seq_num_frames'] = imgseqnumframes
                     crop_data['frame_num'] = imgframenum
                     crop_data['bbox_confidence'] = detections[box_id][4]
+                    crop_data['bbox_X1'] = detections[box_id][0]
+                    crop_data['bbox_Y1'] = detections[box_id][1]
+                    crop_data['bbox_X2'] = detections[box_id][2]
+                    crop_data['bbox_Y2'] = detections[box_id][3]
                     crops_json[crop_id] = crop_data
                 except ValueError:
                     continue
