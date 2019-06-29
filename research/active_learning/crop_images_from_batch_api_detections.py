@@ -80,23 +80,12 @@ def main():
                 
                 try:
                     Image.fromarray(detection_padded_cropped_img).save(crop_fn)
-                    crop_data = {}
-                    crop_data['id'] = crop_id
-                    crop_data['file_name'] = crop_fn
-                    crop_data['width'] = imgwidth
-                    crop_data['height'] = imgheight
-                    crop_data['grayscale'] = imggrayscale
-                    crop_data['relative_size'] = crop_rel_size
-                    crop_data['source_file_name'] = imgfile
-                    crop_data['seq_id'] = imgseqid
-                    crop_data['seq_num_frames'] = imgseqnumframes
-                    crop_data['frame_num'] = imgframenum
-                    crop_data['bbox_confidence'] = detections[box_id][4]
-                    crop_data['bbox_X1'] = detections[box_id][0]
-                    crop_data['bbox_Y1'] = detections[box_id][1]
-                    crop_data['bbox_X2'] = detections[box_id][2]
-                    crop_data['bbox_Y2'] = detections[box_id][3]
-                    crops_json[crop_id] = crop_data
+                    crops_json[crop_id] = {'id': crop_id, 'file_name': crop_fn,
+                     'width': detection_padded_cropped_img.shape[1], 'height':detection_padded_cropped_img.shape[0],
+                     'grayscale': imggrayscale, 'relative_size': crop_rel_size,
+                     'source_file_name': imgfile, 'seq_id': imgseqid, 'seq_num_frames': imgseqnumframes, 'frame_num': imgframenum,
+                     'bbox_confidence': detections[box_id][4], 'bbox_X1': detections[box_id][0], 'bbox_Y1': detections[box_id][1],
+                     'bbox_X2': detections[box_id][2], 'bbox_Y2': detections[box_id][3]}
                 except ValueError:
                     continue
                 except FileNotFoundError:
