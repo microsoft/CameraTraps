@@ -214,8 +214,8 @@ def render_detection_bounding_boxes(detections, image,
             if clss == '1' and 'classifications' in detection:
                 # To avoid duplicate colors with detection-only visualization offset
                 # the classification class index by the number of detection classes
-                clss = len(annotation_constants.bbox_categories) + detection['classifications'][0][0]
-                for classification_idx, classification in enumerate(detection['classifications']):
+                clss = len(annotation_constants.bbox_categories) + int(detection['classifications'][0][0])
+                for classification in detection['classifications']:
                     class_key = classification[0]
                     if class_key in classification_label_map:
                         class_name = classification_label_map[class_key]

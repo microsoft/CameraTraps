@@ -160,8 +160,9 @@ def mark_detection_status(indexed_db, negative_classes=DEFAULT_NEGATIVE_CLASSES,
     n_positive = 0
     n_negative = 0
 
+    print('Preparing ground-truth annotations')
     db = indexed_db.db
-    for im in db['images']:
+    for im in tqdm(db['images']):
 
         image_id = im['id']
         annotations = indexed_db.image_id_to_annotations[image_id]
@@ -223,7 +224,7 @@ def mark_detection_status(indexed_db, negative_classes=DEFAULT_NEGATIVE_CLASSES,
 
 
 def render_bounding_boxes(image_base_dir, image_relative_path, display_name, detections, res,
-                          detection_categories_map=None, options=None):
+                          detection_categories_map=None, classification_categories_map=None, options=None):
 
         if options is None:
             options = PostProcessingOptions()
@@ -246,6 +247,7 @@ def render_bounding_boxes(image_base_dir, image_relative_path, display_name, det
 
         vis_utils.render_detection_bounding_boxes(detections, image,
                                                   label_map=detection_categories_map,
+                                                  classification_label_map=classification_categories_map,
                                                   confidence_threshold=options.confidence_threshold,
                                                   thickness=4)
 
@@ -332,14 +334,10 @@ def process_batch_results(options):
 
 
     ##%% Load detection results
-    # TODO: replace by the correct loader once Dan updated it
-    detection_results, detection_categories_map = load_api_results(options.api_output_file,
+    detection_results, detection_categories_map, classification_categories_map = load_api_results(
+                                             options.api_output_file,
                                              normalize_paths=True,
                                              filename_replacements=options.api_output_filename_replacements)
-    # ASSUMPTION, TODO:
-    # detection_results has a new field predicted_top1_classes, which is a set
-    # of the top-1 prediction of all classified boxes
-    # e.g. detection_results[0]['predicted_top1_classes'] = ["human", "panda"]
 
     # Add a column (pred_detection_label) to indicate predicted detection status, not separating out the classes
     detection_results['pred_detection_label'] = \
@@ -465,7 +463,7 @@ def process_batch_results(options):
         ##%% CLASSIFICATION evaluation
         classifier_accuracies = []
         # Mapping of classnames to idx for the confusion matrix.
-        # The lambda is actually kind of a nasty hack, because we use assume that
+        # The lambda is actually kind of a hack, because we use assume that
         # the following code does not reassign classname_to_idx
         classname_to_idx = collections.defaultdict(lambda: len(classname_to_idx))
         # Confusion matrix as defaultdict of defaultdict
@@ -474,10 +472,13 @@ def process_batch_results(options):
         for iDetection,fn in enumerate(detector_files):
             image_id = ground_truth_indexed_db.filename_to_id[fn]
             image = ground_truth_indexed_db.image_id_to_image[image_id]
+            pred_class_ids = [det['classifications'][0][0] \
+                for det in detection_results['detections'][iDetection] if 'classifications' in det.keys()]
+            pred_classnames = [classification_categories_map[pd] for pd in pred_class_ids]
 
             # If this image has classification predictions, and an unambiguous class
             # annotated, and is a positive image
-            if 'predicted_top1_classes' in detection_results[iDetection].keys() \
+            if len(pred_classnames) > 0 \
                     and '_unambiguous_category' in image.keys() \
                     and image['_detection_status'] == DetectionStatus.DS_POSITIVE:
                 # The unambiguous category, we make this a set for easier handling afterward
@@ -485,7 +486,7 @@ def process_batch_results(options):
                 # categories. However, then the confusion matrix doesn't make sense anymore
                 # TODO: make sure we are using the class names as strings in both, not IDs
                 gt_categories = set([image['_unambiguous_category']])
-                pred_categories = set(detection_results[iDetection]['predicted_top1_classes'])
+                pred_categories = set(pred_classnames)
                 # Compute the accuracy as intersection of union,
                 # i.e. (# of categories in both prediciton and GT)
                 #      divided by (# of categories in either prediction or GT
@@ -510,7 +511,8 @@ def process_batch_results(options):
         # Build confusion matrix as array from classifier_cm
         all_class_ids = sorted(classname_to_idx.values())
         classifier_cm_array = np.array(
-            [[classifier_cm[r_idx][c_idx] for c_idx in all_class_ids] for r_idx in all_class_ids])
+            [[classifier_cm[r_idx][c_idx] for c_idx in all_class_ids] for r_idx in all_class_ids], dtype=float)
+        classifier_cm_array /= classifier_cm_array.sum(axis=1, keepdims=True) + 1e-7
 
         # Print some statistics
         print("Finished computation of {} classification results".format(len(classifier_accuracies)))
@@ -518,7 +520,7 @@ def process_batch_results(options):
         # Prepare confusion matrix output
         # Get CM matrix as string
         sio = io.StringIO()
-        np.savetxt(sio, classifier_cm_array * 100, fmt='%4.1f%%')
+        np.savetxt(sio, classifier_cm_array * 100, fmt='%4.1f')
         cm_str = sio.getvalue()
         # Get fixed-size classname for each idx
         idx_to_classname = {v:k for k,v in classname_to_idx.items()}
@@ -564,6 +566,10 @@ def process_batch_results(options):
         # Accumulate html image structs (in the format expected by write_html_image_lists)
         # for each category, e.g. 'tp', 'fp', ..., 'class_bird', ...
         images_html = collections.defaultdict(lambda: [])
+        # Add default entries by accessing them for the first time
+        [images_html[res] for res in ['tp', 'tpc', 'tpi', 'fp', 'tn', 'fn']]
+        for res in images_html.keys():
+            os.makedirs(os.path.join(output_dir, res), exist_ok=True)
 
         count = 0
 
@@ -579,10 +585,10 @@ def process_batch_results(options):
                 print('Warning: couldn''t find ground truth for image {}'.format(image_relative_path))
                 continue
 
-            image_info = ground_truth_indexed_db.image_id_to_image[image_id]
+            image = ground_truth_indexed_db.image_id_to_image[image_id]
             annotations = ground_truth_indexed_db.image_id_to_annotations[image_id]
 
-            gt_status = image_info['_detection_status']
+            gt_status = image['_detection_status']
 
             if gt_status > DetectionStatus.DS_MAX_DEFINITIVE_VALUE:
                 print('Skipping image {}, does not have a definitive ground truth status'.format(i_row, gt_status))
@@ -600,7 +606,7 @@ def process_batch_results(options):
             detected = max_conf > confidence_threshold
 
             if gt_presence and detected:
-                if '_all_correct_top1_classification' not in row.keys():
+                if '_all_correct_top1_classification' not in image.keys():
                     res = 'tp'
                 elif image['_all_correct_top1_classification']:
                     res = 'tpc'
@@ -618,10 +624,13 @@ def process_batch_results(options):
                 max_conf * 100, image_relative_path)
 
             rendered_image_html_info = render_bounding_boxes(options.image_base_dir,
-                                                             image_relative_path,
-                                                             display_name,
-                                                             detections, res,
-                                                             detection_categories_map, options)
+                                                                image_relative_path,
+                                                                display_name,
+                                                                detections,
+                                                                res,
+                                                                detection_categories_map,
+                                                                classification_categories_map,
+                                                                options)
 
             if len(rendered_image_html_info) > 0:
                 images_html[res].append(rendered_image_html_info)
@@ -635,8 +644,6 @@ def process_batch_results(options):
         print('{} images rendered'.format(count))
 
         # Prepare the individual html image files
-        for k in images_html.keys():
-            os.makedirs(os.path.join(output_dir, k), exist_ok=True)
         image_counts = prepare_html_subpages(images_html, output_dir)
 
         # Write index.HTML
@@ -681,7 +688,7 @@ def process_batch_results(options):
             index_page += "<p>Images of specific classes:</p>"
             # Add links to all available classes
             for cname in sorted(classname_to_idx.keys()):
-                index_html += "<a href='class_{0}.html'>{0}</a> ".format(cname)
+                index_page += "<a href='class_{0}.html'>{0}</a> ".format(cname)
         index_page += "</body></html>"
         output_html_file = os.path.join(output_dir, 'index.html')
         with open(output_html_file, 'w') as f:
