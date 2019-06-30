@@ -30,16 +30,6 @@ def do_options():
 
 
 
-# #--------dynamic routings for the webUIapp bottle server--------#
-# @webUIapp.post('/loadImages')
-# def load_images():
-#     bottle.response.content_type = 'application/json'
-#     returned_images = bottle.request.json
-#     returned_images = [{"id": "testid", "name": "test name"}]
-#     return json.dumps(returned_images)
-
-# webUIapp.run(host='localhost', port=8080)
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Run a web user interface for labeling camera trap images for classification.')
     parser.add_argument('--host', type=str, default='0.0.0.0', help='Web server host to bind to.')
@@ -98,11 +88,20 @@ if __name__ == '__main__':
         ## Try to connect as USER to database DB_NAME through peewee
         pretrain_db = PostgresqlDatabase(DB_NAME, user=USER, password=PASSWORD, host='localhost')
         db_proxy.initialize(pretrain_db)
-        existing_image_entries = Image.select().where(Image.grayscale == False).order_by(fn.Random()).limit(data['num_images'])
+        existing_image_entries = (Image
+                                .select(Image.file_name, Detection.bbox_confidence, Detection.kind, Detection.category)
+                                .join(Detection, on=(Image.id == Detection.image))
+                                .where((Image.grayscale == False) & (Detection.bbox_confidence >= data['detection_threshold']))
+                                .order_by(fn.Random()).limit(data['num_images']))
 
         # for image_entry in existing_image_entries:
         #     print(image_entry.file_name)
-        data['file_names'] = [ie.file_name[1:] for ie in existing_image_entries]
+        #     print(image_entry.detection.category)
+        data['display_images'] = {}
+        data['display_images']['file_names'] = [ie.file_name for ie in existing_image_entries]
+        data['display_images']['detection_kind'] = [ie.detection.kind for ie in existing_image_entries]
+        data['display_images']['detection_category'] = [str(ie.detection.category) for ie in existing_image_entries]
+        # data['file_names'] = [ie.file_name[1:] for ie in existing_image_entries]
         # data['label'] = None
 
         bottle.response.content_type = 'application/json'
