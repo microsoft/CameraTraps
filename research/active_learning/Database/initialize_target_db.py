@@ -9,7 +9,7 @@ been generated for the images using make_active_learning_classification_dataset.
 
 '''
 
-import argparse, glob, json, os, psycopg2, uuid
+import argparse, glob, json, os, psycopg2, time, uuid
 from datetime import datetime
 from peewee import *
 from DB_models import *
@@ -70,7 +70,12 @@ except:
 ## add info about crops to Image and Detection tables
 with open(args.crop_dir+'crops.json', 'r') as infile:
     crops_json = json.load(infile)
+
+counter = 0
+timer = time.time()
+num_detections = len(crops_json)
 for detectionid in crops_json:
+    counter += 1
     detection_data = crops_json[detectionid]
 
     # Image entry data
@@ -84,26 +89,18 @@ for detectionid in crops_json:
         image_entry.save()
     
     # Detection entry data
-    # id = CharField(primary_key = True)    # detection unique identifier
-    # image = ForeignKeyField(Image)      # pointer to cropped image the detection corresponds to
-    # kind = IntegerField()               # numeric code representing what kind of detection this is
-    # category = ForeignKeyField(Category)    # label assigned to the detection
-    # category_confidence = FloatField(null = True)    # confidence associated with the detection    
-    # bbox_confidence = FloatField(null = True)
-    # bbox_X1= FloatField(null = True)
-    # bbox_Y1= FloatField(null = True)
-    # bbox_X2= FloatField(null = True)
-    # bbox_Y2= FloatField(null = True)
     existing_detection_entries = Detection.select().where((Detection.id == detectionid))
     try:
         existing_detection_entry = existing_detection_entries.get()
     except:
         detection_entry = Detection.create(id=detectionid, image=detectionid, bbox_confidence=detection_data['bbox_confidence'], 
-                                            bbox_X1=detection_data['bbox_X1'], bbox_Y1=detection_data['bbox_Y1'], bbox_X2=detection_data['bbox_X2'], bbox_Y2=detection_data['bbox_Y2'])
+                                            bbox_X1=detection_data['bbox_X1'], bbox_Y1=detection_data['bbox_Y1'], bbox_X2=detection_data['bbox_X2'], bbox_Y2=detection_data['bbox_Y2'],
+                                            kind=DetectionKind.ActiveDetection.value)
         detection_entry.save()
+    
+    if counter%100 == 0:
+        print('Processed crops for %d out of %d images in %0.2f seconds'%(counter, num_detections, time.time() - timer))
 
-    print(detection_data.keys())
-    break
 
 # if COCO_CAMERA_TRAPS_JSON:
 #     # Use the metadata stored in COCO Camera Traps JSON formatted file
