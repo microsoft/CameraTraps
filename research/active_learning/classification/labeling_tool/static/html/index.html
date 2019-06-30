@@ -21,20 +21,26 @@
             grid-template-columns: repeat(5, minmax(250px, 1fr));
             grid-template-rows: repeat(5, 8vw);
             grid-gap: 5px;
+            grid-row-gap: 30px;
             padding: 20px 50px 10px 50px;
         }
-        .gallery__img{
+        /* .gallery__img{
+            max-height: 100%;
+            width: 100%;
+            object-fit: cover;
+        } */
+        .selectable img{
             max-height: 100%;
             width: 100%;
             object-fit: cover;
         }
         .selectable .ui-selected{
-            border: 4px solid #ff0000;
+            border: 4px solid rgb(74, 209, 11);
         }
         .selectable .classified{
-            /* border: 3px solid darkslategray; */
-            -webkit-filter: blur(15px); /* Safari 6.0 - 9.0 */
-            filter: blur(15px);
+            border: 3px solid darkslategray;
+            /* -webkit-filter: blur(15px); Safari 6.0 - 9.0
+            filter: blur(15px); */
         }
         /* .selectable img { */
             /* margin: 9px; */
@@ -94,35 +100,116 @@
                 <!-- Image Display -->
                 <div class="col-xl-9 col-lg-6">
                     <div class="gallery selectable">
-                        <img src="img/placeholder.JPG" class="gallery__img" alt="Image 1" id="img1"><!-- <figure class="gallery__item gallery__item--1 ui-widget-content"></figure>Consider encoding images in base64 for faster loading -->
-                        <img src="img/placeholder.JPG" class="gallery__img" alt="Image 2" id="img2"><!-- <figure class="gallery__item gallery__item--2 ui-widget-content"></figure>-->
-                        <img src="img/placeholder.JPG" class="gallery__img" alt="Image 3" id="img3"><!-- <figure class="gallery__item gallery__item--3 ui-widget-content"></figure> -->
-                        <img src="img/placeholder.JPG" class="gallery__img" alt="Image 4" id="img4"><!-- <figure class="gallery__item gallery__item--4 ui-widget-content"></figure> -->
-                        <img src="img/placeholder.JPG" class="gallery__img" alt="Image 5" id="img5"><!-- <figure class="gallery__item gallery__item--5 ui-widget-content"></figure> -->
+                        <!-- Row 1 -->
+                        <div class="display-image">
+                            <img src="img/placeholder.JPG" alt="Image 1" id="img1"><!-- <figure class="gallery__item gallery__item--1 ui-widget-content"></figure>Consider encoding images in base64 for faster loading -->
+                            <div id="img1-text" style="color:red; position:absolute; display:grid"></div>
+                        </div>
+                        <div class="display-image">
+                            <img src="img/placeholder.JPG" alt="Image 2" id="img2"><!-- <figure class="gallery__item gallery__item--2 ui-widget-content"></figure>-->
+                            <div id="img2-text" style="color:red; position:absolute; display:grid"></div>
+                        </div>
+                        <div class="display-image">
+                            <img src="img/placeholder.JPG" alt="Image 3" id="img3"><!-- <figure class="gallery__item gallery__item--3 ui-widget-content"></figure> -->
+                            <div id="img3-text" style="color:red; position:absolute; display:grid"></div>
+                        </div>
+                        <div class="display-image">
+                            <img src="img/placeholder.JPG" alt="Image 4" id="img4"><!-- <figure class="gallery__item gallery__item--4 ui-widget-content"></figure> -->
+                            <div id="img4-text" style="color:red; position:absolute; display:grid"></div>
+                        </div>
+                        <div class="display-image">
+                            <img src="img/placeholder.JPG" alt="Image 5" id="img5"><!-- <figure class="gallery__item gallery__item--5 ui-widget-content"></figure> -->
+                            <div id="img5-text" style="color:red; position:absolute; display:grid"></div>
+                        </div>
+                        
+                        <!-- Row 2 -->
+                        <div class="display-image">
+                            <img src="img/placeholder.JPG" alt="Image 6" id="img6"><!-- <figure class="gallery__item gallery__item--6 ui-widget-content"></figure> -->
+                            <div id="img6-text" style="color:red; position:absolute; display:grid"></div>
+                        </div>
+                        <div class="display-image">
+                            <img src="img/placeholder.JPG" alt="Image 7" id="img7"><!-- <figure class="gallery__item gallery__item--7 ui-widget-content"></figure> -->  
+                            <div id="img7-text" style="color:red; position:absolute; display:grid"></div>  
+                        </div>
+                        <div class="display-image">
+                            <img src="img/placeholder.JPG" alt="Image 8" id="img8"><!-- <figure class="gallery__item gallery__item--8 ui-widget-content"></figure> -->   
+                            <div id="img8-text" style="color:red; position:absolute; display:grid"></div> 
+                        </div>
+                        <div class="display-image">
+                            <img src="img/placeholder.JPG" alt="Image 9" id="img9"><!-- <figure class="gallery__item gallery__item--9 ui-widget-content"></figure> -->
+                            <div id="img9-text" style="color:red; position:absolute; display:grid"></div>  
+                        </div>
+                        <div class="display-image">
+                            <img src="img/placeholder.JPG" alt="Image 10" id="img10"><!-- <figure class="gallery__item gallery__item--10 ui-widget-content"></figure> -->
+                            <div id="img10-text" style="color:red; position:absolute; display:grid"></div>
+                        </div>
+                        
+                        <!-- Row 3 -->
+                        <div class="display-image">
+                            <img src="img/placeholder.JPG" alt="Image 11" id="img11"><!-- <figure class="gallery__item gallery__item--11 ui-widget-content"></figure> -->
+                            <div id="img11-text" style="color:red; position:absolute; display:grid"></div>
+                        </div>
+                        <div class="display-image">
+                            <img src="img/placeholder.JPG" alt="Image 12" id="img12"><!-- <figure class="gallery__item gallery__item--12 ui-widget-content"></figure> -->
+                            <div id="img12-text" style="color:red; position:absolute; display:grid"></div>  
+                        </div>
+                        <div class="display-image">
+                            <img src="img/placeholder.JPG" alt="Image 13" id="img13"><!-- <figure class="gallery__item gallery__item--13 ui-widget-content"></figure> -->
+                            <div id="img13-text" style="color:red; position:absolute; display:grid"></div>
+                        </div>
+                        <div class="display-image">
+                            <img src="img/placeholder.JPG" alt="Image 14" id="img14"><!-- <figure class="gallery__item gallery__item--14 ui-widget-content"></figure> -->
+                            <div id="img14-text" style="color:red; position:absolute; display:grid"></div>
+                        </div>
+                        <div class="display-image">
+                            <img src="img/placeholder.JPG" alt="Image 15" id="img15"><!-- <figure class="gallery__item gallery__item--15 ui-widget-content"></figure> -->
+                            <div id="img15-text" style="color:red; position:absolute; display:grid"></div>
+                        </div>
+                        
+                        <!-- Row 4 -->
+                        <div class="display-image">
+                            <img src="img/placeholder.JPG" alt="Image 16" id="img16"><!-- <figure class="gallery__item gallery__item--16 ui-widget-content"></figure> -->
+                            <div id="img16-text" style="color:red; position:absolute; display:grid"></div>
+                        </div>
+                        <div class="display-image">
+                            <img src="img/placeholder.JPG" alt="Image 17" id="img17"><!-- <figure class="gallery__item gallery__item--13 ui-widget-content"></figure> -->
+                            <div id="img17-text" style="color:red; position:absolute; display:grid"></div>
+                        </div>
+                        <div class="display-image">
+                            <img src="img/placeholder.JPG" alt="Image 18" id="img18"><!-- <figure class="gallery__item gallery__item--14 ui-widget-content"></figure> -->
+                            <div id="img18-text" style="color:red; position:absolute; display:grid"></div>
+                        </div>
+                        <div class="display-image">
+                            <img src="img/placeholder.JPG" alt="Image 19" id="img19"><!-- <figure class="gallery__item gallery__item--15 ui-widget-content"></figure> -->
+                            <div id="img19-text" style="color:red; position:absolute; display:grid"></div>
+                        </div>
+                        <div class="display-image">
+                            <img src="img/placeholder.JPG" alt="Image 20" id="img20"><!-- <figure class="gallery__item gallery__item--16 ui-widget-content"></figure> -->
+                            <div id="img20-text" style="color:red; position:absolute; display:grid"></div>
+                        </div>
 
-                        <img src="img/placeholder.JPG" class="gallery__img" alt="Image 6" id="img6"><!-- <figure class="gallery__item gallery__item--6 ui-widget-content"></figure> -->
-                        <img src="img/placeholder.JPG" class="gallery__img" alt="Image 7" id="img7"><!-- <figure class="gallery__item gallery__item--7 ui-widget-content"></figure> -->
-                        <img src="img/placeholder.JPG" class="gallery__img" alt="Image 8" id="img8"><!-- <figure class="gallery__item gallery__item--8 ui-widget-content"></figure> -->
-                        <img src="img/placeholder.JPG" class="gallery__img" alt="Image 9" id="img9"><!-- <figure class="gallery__item gallery__item--9 ui-widget-content"></figure> -->
-                        <img src="img/placeholder.JPG" class="gallery__img" alt="Image 10" id="img10"><!-- <figure class="gallery__item gallery__item--10 ui-widget-content"></figure> -->
-
-                        <img src="img/placeholder.JPG" class="gallery__img" alt="Image 11" id="img11"><!-- <figure class="gallery__item gallery__item--11 ui-widget-content"></figure> -->
-                        <img src="img/placeholder.JPG" class="gallery__img" alt="Image 12" id="img12"><!-- <figure class="gallery__item gallery__item--12 ui-widget-content"></figure> -->
-                        <img src="img/placeholder.JPG" class="gallery__img" alt="Image 13" id="img13"><!-- <figure class="gallery__item gallery__item--13 ui-widget-content"></figure> -->
-                        <img src="img/placeholder.JPG" class="gallery__img" alt="Image 14" id="img14"><!-- <figure class="gallery__item gallery__item--14 ui-widget-content"></figure> -->
-                        <img src="img/placeholder.JPG" class="gallery__img" alt="Image 15" id="img15"><!-- <figure class="gallery__item gallery__item--15 ui-widget-content"></figure> -->
-
-                        <img src="img/placeholder.JPG" class="gallery__img" alt="Image 16" id="img16"><!-- <figure class="gallery__item gallery__item--16 ui-widget-content"></figure> -->
-                        <img src="img/placeholder.JPG" class="gallery__img" alt="Image 17" id="img17"><!-- <figure class="gallery__item gallery__item--13 ui-widget-content"></figure> -->
-                        <img src="img/placeholder.JPG" class="gallery__img" alt="Image 18" id="img18"><!-- <figure class="gallery__item gallery__item--14 ui-widget-content"></figure> -->
-                        <img src="img/placeholder.JPG" class="gallery__img" alt="Image 19" id="img19"><!-- <figure class="gallery__item gallery__item--15 ui-widget-content"></figure> -->
-                        <img src="img/placeholder.JPG" class="gallery__img" alt="Image 20" id="img20"><!-- <figure class="gallery__item gallery__item--16 ui-widget-content"></figure> -->
-
-                        <img src="img/placeholder.JPG" class="gallery__img" alt="Image 21" id="img21"><!-- <figure class="gallery__item gallery__item--16 ui-widget-content"></figure> -->
-                        <img src="img/placeholder.JPG" class="gallery__img" alt="Image 22" id="img22"><!-- <figure class="gallery__item gallery__item--13 ui-widget-content"></figure> -->
-                        <img src="img/placeholder.JPG" class="gallery__img" alt="Image 23" id="img23"><!-- <figure class="gallery__item gallery__item--14 ui-widget-content"></figure> -->
-                        <img src="img/placeholder.JPG" class="gallery__img" alt="Image 24" id="img24"><!-- <figure class="gallery__item gallery__item--15 ui-widget-content"></figure> -->
-                        <img src="img/placeholder.JPG" class="gallery__img" alt="Image 25" id="img25"><!-- <figure class="gallery__item gallery__item--16 ui-widget-content"></figure> -->
+                        <!-- Row 5 -->
+                        <div class="display-image">
+                            <img src="img/placeholder.JPG" alt="Image 21" id="img21"><!-- <figure class="gallery__item gallery__item--16 ui-widget-content"></figure> -->
+                            <div id="img21-text" style="color:red; position:absolute; display:grid"></div>
+                        </div>
+                        <div class="display-image">
+                            <img src="img/placeholder.JPG" alt="Image 22" id="img22"><!-- <figure class="gallery__item gallery__item--13 ui-widget-content"></figure> -->
+                            <div id="img22-text" style="color:red; position:absolute; display:grid"></div>
+                        </div>
+                        <div class="display-image">
+                            <img src="img/placeholder.JPG" alt="Image 23" id="img23"><!-- <figure class="gallery__item gallery__item--14 ui-widget-content"></figure> -->
+                            <div id="img23-text" style="color:red; position:absolute; display:grid"></div>
+                        </div>
+                        <div class="display-image">
+                            <img src="img/placeholder.JPG" alt="Image 24" id="img24"><!-- <figure class="gallery__item gallery__item--15 ui-widget-content"></figure> -->
+                            <div id="img24-text" style="color:red; position:absolute; display:grid"></div>
+                        </div>
+                        <div class="display-image">
+                            <img src="img/placeholder.JPG" alt="Image 25" id="img25"><!-- <figure class="gallery__item gallery__item--16 ui-widget-content"></figure> -->
+                            <div id="img25-text" style="color:red; position:absolute; display:grid"></div>
+                        </div>
+                        
                     </div>
                 </div>
                 <!-- Widgets -->
@@ -134,6 +221,13 @@
                         <div class="card-body">
                             <!-- <h5 class="card-title">Stuff You Can Do</h5> -->
                             <!-- <p class="card-text">Instructions</p> -->
+                            <div>
+                                <label for="detection-confidence-threshold">Detection Confidence Threshold: </label>
+                                <input type="range" id="detection-confidence-threshold" class="slider" min="0.50" max="0.99" value="0.85" step="0.01">
+                                <span class="slider_label"></span>
+                                
+                            </div>
+
                             <a href="#" class="btn btn-primary" style="border:none; width:100%; margin-bottom:100px;" onclick="loadImages()">Load More Images</a>
                             
                             <p>Ctrl-click to select multiple images at once, or to deselect images.</p>
@@ -141,21 +235,33 @@
                                 <select id="classification-dropdown" style="width:100%; margin-bottom:10px;">
                                     <option disabled>Species...</option>
                                     <option>Empty</option>
-                                    <option>American Beaver</option>
-                                    <option>American Black Bear</option>
-                                    <option>American Crow</option>
-                                    <option>American Hog-Nosed Skunk</option>
+                                    <option>Agouti</option>
+                                    <option>Collared Peccary</option>
+                                    <option>Common Opossum</option>
+                                    <option>Ocelot</option>
+                                    <option>Paca</option>
+                                    <option>Red Brocket Deer</option>
+                                    <option>Red Squirrel</option>
+                                    <option>Spiny Rat</option>
+                                    <option>White-Nosed Coati</option>
+                                    <option>White Tailed Deer</option>
                                 </select>
                            </form>
-                           <a href="#" class="btn btn-primary" style="border:none; background-color:green; width:100%; margin-bottom:100px;" onclick="classifySelectedImages()">Classify</a>
+                           <a href="#" class="btn btn-primary" style="border:none; background-color:green; width:100%; margin-bottom:100px;" onclick="assignLabelToSelectedImages()">Assign</a>
 
                            <form>
                             <select name="dropdown" style="width:100%; margin-bottom:10px;">
                                 <option disabled>Species...</option>
-                                <option>American Beaver</option>
-                                <option>American Black Bear</option>
-                                <option>American Crow</option>
-                                <option>American Hog-Nosed Skunk</option>
+                                <option>Agouti</option>
+                                <option>Collared Peccary</option>
+                                <option>Common Opossum</option>
+                                <option>Ocelot</option>
+                                <option>Paca</option>
+                                <option>Red Brocket Deer</option>
+                                <option>Red Squirrel</option>
+                                <option>Spiny Rat</option>
+                                <option>White-Nosed Coati</option>
+                                <option>White Tailed Deer</option>
                             </select>
                        </form>
                        <a href="#" class="btn btn-primary" style="border:none; background-color:peru; width:100%; margin-bottom:10px;" onclick="loadImages()">Show Me</a>
@@ -173,9 +279,21 @@
     <!-- JavaScript -->
     <script type="text/javascript">
         // Global variables
+        var detectionThresholdValue = 0.85
         var selectedImages = []; // items that are currently selected
-        var classifiedImages = [];
+        var userLabeledImages = [];
         var disabledImages = []; //should be same as classified items
+        
+        $(function(){
+            $('.slider').on('input change', function(){
+                $(this).next($('.slider_label')).html(this.value);
+                detectionThresholdValue = this.value
+            });
+            $('.slider_label').each(function(){
+                var value = $(this).prev().attr('value');
+                $(this).html(value);
+            });
+        })
 
         var notifyFail = function(jqXHR, textStatus, errorThrown){
             console.debug(jqXHR.responseText)
@@ -189,12 +307,22 @@
                 type: "POST",
                 url: "http://lynxvm.southcentralus.cloudapp.azure.com:8080/loadImages",
                 contentType: "application/json",
-                data: JSON.stringify({"num_images": 25}), //what data do we need to send to the ? server with this request? maybe number of images to load?
+                data: JSON.stringify({"num_images": 25, "detection_threshold": detectionThresholdValue}), //what data do we need to send to the ? server with this request? maybe number of images to load?
                 success: function(data){
                     // If successful AJAX request, load images
-                    var img = data['file_names'];
+                    // var img = data['file_names'];
+                    var img = data['display_images']['file_names']
+                    var detection_kind = data['display_images']['detection_kind']
+                    var detection_cat = data['display_images']['detection_category']
                     for (i=1; i<26; i++){
                         $("#img"+i).attr("src", img[i-1])
+                        document.getElementById("img"+i+"-text").innerHTML = detection_cat[i-1]
+                        if (detection_kind[i-1]==0){
+                            document.getElementById("img"+i+"-text").style.color = "red"
+                        } else if (detection_kind[i-1]==1){
+                            document.getElementById("img"+i+"-text").style.color = "peru"
+                        }
+5
                     }
 
                     // Remove all "ui-selected" classes
@@ -204,10 +332,11 @@
                     })
 
                     // Remove all "classified" classes
-                    var prevClassifiedImageObjects = document.querySelectorAll(".classified");
-                    [].forEach.call(prevClassifiedImageObjects, function(el){
+                    var prevUserLabeledImageObjects = document.querySelectorAll(".classified");
+                    [].forEach.call(prevUserLabeledImageObjects, function(el){
                         el.classList.remove("classified");
                     })
+5
                 },
                 error: notifyFail
             });
@@ -215,11 +344,12 @@
 
         var selectImages = function(){
             $(".selectable").selectable({
+                filter: "img",
                 // at the end of any select operation, re-create the list of selected images
                 stop: function(){
                     selectedImages = [];
                     $(".ui-selected", this).each(function(){
-                        console.debug($(this).hasClass("classified"));
+                        // console.debug($(this).hasClass("classified"));
                         selectedImages.push($(this).attr("src"));
                     });
                 }
@@ -228,8 +358,8 @@
                 //     selectedImages = [];
                 //     $(".ui-selected", this).each(function(index){
                 //         selectedImages.push( $(this).attr("src"));
-                //     });5866
-                // },
+                //     });
+                // },assignLabelToSelectedImages
                 // unselected: function(){
                 //     selectedImages = [];
                 //     $(".ui-selected", this).each(function(index){
@@ -240,23 +370,27 @@
             
         };
 
-        var classifySelectedImages = function(){
+        var assignLabelToSelectedImages = function(){
             // get the label from the classification dropdown
-            alert($("#classification-dropdown option:selected").text())
+            var assignedLabelText = $("#classification-dropdown option:selected").text()
 
-            // add currently selected images to list of classified images
+            // add currently selected images to list of user labeled images
             for (i=0; i<selectedImages.length;i++){
-                if (!classifiedImages.includes(selectedImages[i])){
-                    classifiedImages.push(selectedImages[i])
+                if (!userLabeledImages.includes(selectedImages[i])){
+                    userLabeledImages.push(selectedImages[i])
                 }
             }
 
-            // mark currently selected images as not-selectable or something, and clear ui-selected property
+            // mark currently selected images as classified unless they were already classified, and clear ui-selected property
             var selectedImageObjects = document.querySelectorAll(".ui-selected");
-            console.log(selectedImageObjects);
             [].forEach.call(selectedImageObjects, function(el){
+                console.debug(el)
+                if (!el.classList.contains("classified")){
+                    el.classList.add("classified");
+                    document.getElementById(el.id+"-text").innerHTML = assignedLabelText
+                    document.getElementById(el.id+"-text").style.color = "green"
+                }
                 el.classList.remove("ui-selected");
-                el.classList.add("classified");
             })
 
             // clear selectedImages list
