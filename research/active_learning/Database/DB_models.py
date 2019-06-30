@@ -11,9 +11,10 @@ from enum import Enum
 db_proxy = Proxy() # create a proxy backend for the database
 
 class DetectionKind(Enum):
-    ModelDetection = 0  # "output of the detection model"--i.e. a crop with no label? or a crop with a label guessed by the classifier?
-    ActiveDetection = 1 # "selected for labeling by the oracle"--i.e. a crop currently flagged as needing a label?
-    UserDetection = 2   # label has been assigned by the user
+    ActiveDetection = 0 # a detection being currently shown to the user
+    ModelDetection = 1  # a detection with a label predicted by the classifier
+    ConfirmedDetection = 2 # a detection whose label was predicted by the classifier and confirmed by a user
+    UserDetection = 3   # a detection whose label was assigned by the user
 
 
 class Info(Model):
@@ -64,8 +65,8 @@ class Category(Model):
     '''
     Table containing information about classes (species) in the dataset.
     '''
-    id = IntegerField(primary_key=True)
-    name = CharField()
+    id = IntegerField(primary_key=True, null = True)
+    name = CharField(null = True)
 
     class Meta:
         database= db_proxy
@@ -78,7 +79,7 @@ class Detection(Model):
     id = CharField(primary_key = True)    # detection unique identifier
     image = ForeignKeyField(Image)      # pointer to cropped image the detection corresponds to
     kind = IntegerField()               # numeric code representing what kind of detection this is
-    category = ForeignKeyField(Category)    # label assigned to the detection
+    category = ForeignKeyField(Category, null=True)    # label assigned to the detection
     category_confidence = FloatField(null = True)    # confidence associated with the detection    
     bbox_confidence = FloatField(null = True)
     bbox_X1= FloatField(null = True)
