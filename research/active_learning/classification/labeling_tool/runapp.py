@@ -55,6 +55,10 @@ if __name__ == '__main__':
     def index():
         return bottle.static_file("index.html", root='static/html')
     
+    @webUIapp.route('/favicon.ico')
+    def favicon():
+        return
+    
     @webUIapp.route('/<filename:re:js\/.*>')
     def send_js(filename):
         return bottle.static_file(filename, root='static')
@@ -86,23 +90,54 @@ if __name__ == '__main__':
         #PORT = 5432
 
         ## Try to connect as USER to database DB_NAME through peewee
-        pretrain_db = PostgresqlDatabase(DB_NAME, user=USER, password=PASSWORD, host='localhost')
-        db_proxy.initialize(pretrain_db)
+        target_db = PostgresqlDatabase(DB_NAME, user=USER, password=PASSWORD, host='localhost')
+        db_proxy.initialize(target_db)
         existing_image_entries = (Image
-                                .select(Image.file_name, Detection.bbox_confidence, Detection.kind, Detection.category)
+                                .select(Image.id, Image.file_name, Detection.kind, Detection.category)
                                 .join(Detection, on=(Image.id == Detection.image))
-                                .where((Image.grayscale == False) & (Detection.bbox_confidence >= data['detection_threshold']))
+                                .where((Image.grayscale == data['display_grayscale']) & (Detection.bbox_confidence >= data['detection_threshold']))
                                 .order_by(fn.Random()).limit(data['num_images']))
 
         # for image_entry in existing_image_entries:
-        #     print(image_entry.file_name)
-        #     print(image_entry.detection.category)
         data['display_images'] = {}
-        data['display_images']['file_names'] = [ie.file_name for ie in existing_image_entries]
-        data['display_images']['detection_kind'] = [ie.detection.kind for ie in existing_image_entries]
-        data['display_images']['detection_category'] = [str(ie.detection.category) for ie in existing_image_entries]
-        # data['file_names'] = [ie.file_name[1:] for ie in existing_image_entries]
-        # data['label'] = None
+        data['display_images']['image_ids'] = [ie.id for ie in existing_image_entries]
+        data['display_images']['image_file_names'] = [ie.file_name for ie in existing_image_entries]
+        data['display_images']['detection_kinds'] = [ie.detection.kind for ie in existing_image_entries]
+        data['display_images']['detection_categories'] = [str(ie.detection.category) for ie in existing_image_entries]
+
+        bottle.response.content_type = 'application/json'
+        bottle.response.status = 200
+        return json.dumps(data)
+    
+    @webUIapp.route('/assignLabelDB', method='POST')
+    def assign_label():
+        data = bottle.request.json
+
+        label_to_assign = data['label']
+        label_category_name = label_to_assign.lower().replace(" ", "_")
+
+        DB_NAME = args.db_name
+        USER = args.db_user
+        PASSWORD = args.db_password
+        target_db = PostgresqlDatabase(DB_NAME, user=USER, password=PASSWORD, host='localhost')
+        db_proxy.initialize(target_db)
+        
+        existing_category_entries = {cat.name: cat.id for cat in Category.select()}
+        try:
+            label_category_id = existing_category_entries[label_category_name]
+        except:
+            print('The label was not found in the database Category table')
+            raise NotImplementedError
+
+        images_to_label = [im['id'] for im in data['images']]
+        ## NOTE: detection id (and image_id) are the same as image id in missouricameratraps_test
+        matching_detection_entries = (Detection
+                                .select(Detection.id, Detection.category_id)
+                                .where((Detection.id << images_to_label))) # << means IN        
+        for mde in matching_detection_entries:
+            command = Detection.update(category_id=label_category_id, category_confidence=1, kind=4).where(Detection.id == mde.id)
+            command.execute()
+
 
         bottle.response.content_type = 'application/json'
         bottle.response.status = 200
