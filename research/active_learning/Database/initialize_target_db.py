@@ -24,10 +24,10 @@ parser.add_argument('--db_password', default='new_user_password', type=str,
                     help='Password of the user accessing the Postgres DB.')
 parser.add_argument('--crop_dir', metavar='DIR',
                     help='Path to dataset directory containing all cropped images')
-parser.add_argument('--image_dir', metavar='DIR',
-                    help='Path to dataset directory containing all original images')
-parser.add_argument('--coco_json', metavar='DIR',
-                    help='Path to COCO Camera Traps json file if available', default=None)
+# parser.add_argument('--image_dir', metavar='DIR',
+#                     help='Path to dataset directory containing all original images')
+# parser.add_argument('--coco_json', metavar='DIR',
+#                     help='Path to COCO Camera Traps json file if available', default=None)
 args = parser.parse_args()
 
 # Initialize Database
@@ -67,6 +67,20 @@ except:
     info_entry = Info.create(name=info_name, description=info_desc, contributor=info_contrib, version=info_version, year=info_year, date_created=info_date)
     info_entry.save()
 
+## create Category table
+### for now, we have a predefined list of species we expect to see in the camera trap database (e.g. maybe from a quick look through the images)
+### TODO: allow user to update the class list through the labeling tool UI as they see different species
+missouricameratraps_species = ['empty', 'agouti', 'bird_spec', 'coiban_agouti', 'collared_peccary', 'common_opossum', 'european_hare', 'great_tinamou',
+ 'mouflon', 'ocelot', 'paca', 'red_brocket_deer', 'red_deer', 'red_fox', 'red_squirrel', 'roe_deer',
+ 'spiny_rat', 'white-nosed_coati', 'white_tailed_deer', 'wild_boar', 'wood_mouse']
+for i, cat in enumerate(missouricameratraps_species):
+    existing_cat_entries = Category.select().where(Category.name == cat)
+    try:
+        existing_cat_entry = existing_cat_entries.get()
+    except:
+        cat_entry = Category.create(id=i, name=cat)
+        cat_entry.save()
+
 ## add info about crops to Image and Detection tables
 with open(args.crop_dir+'crops.json', 'r') as infile:
     crops_json = json.load(infile)
@@ -88,11 +102,7 @@ for detectionid in crops_json:
                                     seq_id=detection_data['seq_id'], seq_num_frames=detection_data['seq_num_frames'], frame_num=detection_data['frame_num'])
         image_entry.save()
     
-    # Detection entry data
-    existing_detection_entries = Detection.select().where((Detection.id == detectionid))
-    try:
-        existing_detection_entry = existing_detection_entries.get()
-    except:
+        # Detection entry data
         detection_entry = Detection.create(id=detectionid, image=detectionid, bbox_confidence=detection_data['bbox_confidence'], 
                                             bbox_X1=detection_data['bbox_X1'], bbox_Y1=detection_data['bbox_Y1'], bbox_X2=detection_data['bbox_X2'], bbox_Y2=detection_data['bbox_Y2'],
                                             kind=DetectionKind.ActiveDetection.value)
