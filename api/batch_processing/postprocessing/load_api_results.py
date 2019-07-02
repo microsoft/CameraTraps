@@ -83,7 +83,6 @@ def load_api_results(api_output_filename, normalize_paths=True, filename_replace
 def write_api_results(detection_results_table, other_fields, out_path):
     """
     Writes a Pandas DataFrame back to a json that is compatible with the API output format.
-    Need the original json path so we can extract
     """
     print('Writing detection results to {}'.format(out_path))
 
@@ -100,7 +99,7 @@ def write_api_results(detection_results_table, other_fields, out_path):
     print('Finished writing detection results to {}'.format(out_path))
 
 
-def load_api_results_old(filename, normalize_paths=True, filename_replacements={}, nrows=None):
+def load_api_results_csv(filename, normalize_paths=True, filename_replacements={}, nrows=None):
     """
     DEPRECATED
     Loads .csv-formatted results from the batch processing API to a pandas table
@@ -144,8 +143,9 @@ def load_api_results_old(filename, normalize_paths=True, filename_replacements={
     return detection_results
 
 
-def write_api_results_old(detection_results, filename):
+def write_api_results_csv(detection_results, filename):
     """
+    DEPRECATED
     Writes a pandas table to csv in a way that's compatible with the .csv API output
     format.  Currently just a wrapper around to_csv that just forces output writing
     to go through a common code path.
