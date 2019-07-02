@@ -1,14 +1,19 @@
+'''
+networks.py
+
+Specifies architectures for different embedding networks.
+
+'''
+
+import torch
 import torch.nn as nn
 import torchvision.models as models
-from torchvision.models.resnet import BasicBlock
-import torch.utils.model_zoo as model_zoo
-import torch
 import torch.nn.functional as F
 
 class EmbeddingNet(nn.Module):
     def __init__(self, architecture, feat_dim, use_pretrained=False):
         super(EmbeddingNet, self).__init__()
-        self.feat_dim= feat_dim
+        self.feat_dim = feat_dim
         self.inner_model = models.__dict__[architecture](pretrained=use_pretrained)
         if architecture.startswith('resnet'):
           in_feats= self.inner_model.fc.in_features
@@ -36,6 +41,7 @@ class NormalizedEmbeddingNet(EmbeddingNet):
     def forward(self, x):
         embedding =  F.normalize(self.inner_model.forward(x))*10.0
         return embedding, embedding
+
 
 class SoftmaxNet(nn.Module):
     def __init__(self, architecture, feat_dim, num_classes, use_pretrained = False):
