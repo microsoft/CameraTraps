@@ -229,6 +229,7 @@ The output of the detector is saved in `requestID_detections_requestName_timesta
         "4": "vehicle"
     },
     "classification_categories": {
+        "0": "fox",
         "1": "elk",
         "2": "wolf",
         "3": "bear",
@@ -279,18 +280,16 @@ where `(x_min, y_min)` is the upper-left corner of the detection bounding box, w
 
 The detection category `category` can be interpreted using the `detection_categories` dictionary. 
 
-
-Note that the `vehicle` detection class (available in Mega Detector version 4 or later) is &ldquo;4&rdquo;. Class number &ldquo;3&rdquo; (group) is not included in training and should be ignored (and so should any other class labels not listed here) if it shows up in the result.
+Note that the `vehicle` detection class (available in MegaDetector version 4 or later) is &ldquo;4&rdquo;. Detection categories not listed here (including "0" and "3") are used for intermediate processing and are allowable by this format specification, but should be treated as "no detection".
 
 When the detector model detects no animal (or person or vehicle), the confidence `conf` is shown as 0.0 (not confident that there is an object of interest) and the `detections` field is an empty list.
-
 
 All detections above confidence threshold 0.05 or 0.1 (depending on the version of the API) are recorded in the output file.
 
 
 ##### Classifier outputs
 
-After a classifier is applied, each tuple in a `classifications` list represents `[species, confidence]`. They are listed in order of confidence. The species categories should be interpreted using the `classification_categories` dictionary.
+After a classifier is applied, each tuple in a `classifications` list represents `[species, confidence]`. They are listed in order of confidence. The species categories should be interpreted using the `classification_categories` dictionary.  Keys in `classification_categories` will always be nonnegative integers formatted as strings.
 
 
 ## Post-processing tools
