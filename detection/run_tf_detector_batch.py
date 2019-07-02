@@ -42,7 +42,7 @@ from tqdm import tqdm
 import pandas as pd
 
 from api.batch_processing.postprocessing import convert_output_format
-from api.batch_processing.postprocessing.load_api_results import write_api_results
+from api.batch_processing.postprocessing.load_api_results import write_api_results_csv
 from api.batch_processing.api_core.orchestrator_api.aml_scripts.tf_detector import TFDetector
 
 DEFAULT_CONFIDENCE_THRESHOLD = 0.5
@@ -453,13 +453,13 @@ def load_and_run_detector(options,detector=None):
         for iRow,row in df.iterrows():
             row['image_path'] = os.path.relpath(row['image_path'],options.imageFile)
             
-    # While we're in transition between formats, write out the old format and 
-    # convert to the new format
     if options.outputFile.endswith('.csv'):
-        write_api_results(df,options.outputFile)
+        write_api_results_csv(df,options.outputFile)
     else:
+        # While we're in transition between formats, write out the old format and 
+        # convert to the new format if .json is requested
         tempfilename = next(tempfile._get_candidate_names()) + '.csv'
-        write_api_results(df,tempfilename)
+        write_api_results_csv(df,tempfilename)
         convert_output_format.convert_csv_to_json(tempfilename,options.outputFile)
         os.remove(tempfilename)
 
