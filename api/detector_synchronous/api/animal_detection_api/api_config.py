@@ -9,7 +9,7 @@ GPU_BATCH_SIZE = 8
 
 MODEL_PATH = '/app/animal_detection_api/model/megadetector_v3_tf19.pb'
 
-MODEL_VERSION = 'megadetector_v3'
+MODEL_VERSION = 'megadetector_v3_tf19'
 
 # Camera trap images are usually 4:3 width to height
 # The config of the model in use (model/pipeline.config) has min_dimension
