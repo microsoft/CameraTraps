@@ -173,7 +173,7 @@ def render_detection_bounding_boxes(detections, image,
     
     display_boxes = []
     display_strs = []  # list of lists, one list of strings for each bounding box (to accommodate multiple labels)
-    classes = []
+    classes = []  # for color selection
 
     for detection in detections:
 
