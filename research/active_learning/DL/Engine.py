@@ -19,16 +19,27 @@ def log(total,current,t,l,epoch=-1,top1=None,top5=None):
     sys.stdout.flush()
 
 class Engine():
+    """
+    Class for training and evaluating a model and using it for prediction on new data.
 
-    def __init__(self,model,criterion,optimizer, verbose=False, print_freq=10, progressBar=None):
-        self.model=model
-        self.criterion= criterion
-        self.optimizer= optimizer
-        self.verbose= verbose
-        self.print_freq= print_freq
-        self.progressBar= progressBar
+    Attributes:
+        model: The model to train.
+        criterion: The criterion/loss function to optimize the model with.
+        optimizer: The method by which to optimize the criterion.
+        verbose: Output and log verbosity.
+        print_freq: Frequency of verbose outputs.
+        progressBar:
+    """
 
-    def train_one_batch(self, input,target,iter_num,calcAccuracy):
+    def __init__(self, model, criterion, optimizer, verbose=False, print_freq=10, progressBar=None):
+        self.model = model
+        self.criterion = criterion
+        self.optimizer = optimizer
+        self.verbose = verbose
+        self.print_freq = print_freq
+        self.progressBar = progressBar
+
+    def train_one_batch(self, input, target, iter_num, calcAccuracy):
         start=time.time()
 
         input = input.cuda()#non_blocking=True)
@@ -176,28 +187,32 @@ class Engine():
             return embeddings, labels
 
     def embedding_one_batch(self, input, iter_num):
+        """
+        Use engine model for evaluation to get imbedding features for a batch of input images.
+        """
         with torch.no_grad():
             input = input.cuda(non_blocking=True)
-            # compute output
-            _, output = self.model(input)
+            _, output = self.model(input) # compute output
         if self.progressBar:
            self.progressBar.setValue(iter_num)
 
         return output
 
     def embedding(self, dataloader, dim=256):
+        """
+        Use Engine model for evaluation to get embedding features for input samples from a dataloader.
+        """
 
-        # switch to evaluate mode
-        self.model.eval()
+        self.model.eval() # switch model to evaluate mode
         embeddings = np.zeros((len(dataloader.dataset), dim), dtype=np.float32)
         k = 0
-        for i, batch in enumerate(dataloader):
-            images=batch[0]
-            embedding= self.embedding_one_batch(images,i)
+        for i, batch in enumerate(dataloader): # load 1 batch of images at a time from dataloader and evaluate
+            images = batch[0]
+            embedding = self.embedding_one_batch(images, i)
             embeddings[k:k+len(images)] = embedding.data.cpu().numpy()
             k += len(images)
             if self.verbose and i % self.print_freq == 0:
-              print("Batch %d"%(i))
-              sys.stdout.flush()
+                print("Batch %d"%(i))
+                sys.stdout.flush()
 
         return embeddings
