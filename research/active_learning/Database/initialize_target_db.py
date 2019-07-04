@@ -105,7 +105,7 @@ for detectionid in crops_json:
         # Detection entry data
         detection_entry = Detection.create(id=detectionid, image=detectionid, bbox_confidence=detection_data['bbox_confidence'], 
                                             bbox_X1=detection_data['bbox_X1'], bbox_Y1=detection_data['bbox_Y1'], bbox_X2=detection_data['bbox_X2'], bbox_Y2=detection_data['bbox_Y2'],
-                                            kind=DetectionKind.ActiveDetection.value)
+                                            kind=DetectionKind.ModelDetection.value)
         detection_entry.save()
     
     if counter%100 == 0:
