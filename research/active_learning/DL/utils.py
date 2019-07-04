@@ -1,6 +1,7 @@
 import numpy as np
 import sys
 import matplotlib.pyplot as plt
+plt.switch_backend('agg')
 from PIL import Image as PILImage
 from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 import torch
@@ -152,14 +153,14 @@ def plot_embedding(embedd, labels, paths, info):
 
 
   fig.canvas.mpl_connect('button_press_event', onpick3)
-  plt.show()
+  plt.savefig('embedding_plot.png')
 
 def plot_embedding_images(embedd, labels, paths, info):
-  fig= plt.figure(figsize=(15,10))
-  embedding= reduce_dimensionality(embedd)
+  fig = plt.figure(figsize=(15,10))
+  embedding = reduce_dimensionality(embedd)
   ax= plt.gca()
-  colors= [indexcolors[int(i) % len(indexcolors)] for i in labels.squeeze()]
-  sc=ax.scatter(embedding[:,0],embedding[:,1], s=1, c= colors )
+  colors = [indexcolors[int(i) % len(indexcolors)] for i in labels.squeeze()]
+  sc = ax.scatter(embedding[:,0],embedding[:,1], s=3, c= colors )
   legend_texts= [ x[0] for x in sorted(info.items(), key=lambda kv: kv[1])]
   patches=[]
   for i,label in enumerate(legend_texts):
@@ -172,13 +173,15 @@ def plot_embedding_images(embedd, labels, paths, info):
   for i,thumb in enumerate(paths):
         #print(thumb)
         img = PILImage.open(thumb)
-        img.thumbnail((16, 12), PILImage.ANTIALIAS)
+        # img.thumbnail((16, 12), PILImage.ANTIALIAS)
+        img.thumbnail((32, 24), PILImage.ANTIALIAS)
         img = OffsetImage(img, zoom=1)
         ab = AnnotationBbox(img, (embedding[i,0]+0.2, embedding[i,1]+0.2), xycoords='data', frameon=False)
         ax.add_artist(ab)
         ab.set_visible(True)
 
-  plt.show()
+  # plt.show()
+  plt.savefig('embedding_plot.png')
 
 def save_embedding_plot(name, embedding, labels, info):
   fig = plt.figure(figsize=(10,10))
