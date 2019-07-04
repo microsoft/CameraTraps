@@ -10,6 +10,7 @@
 
 import numpy as np
 from PIL import Image, ImageFile, ImageFont, ImageDraw
+import matplotlib.pyplot as plt
 from data_management.annotations import annotation_constants
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
@@ -378,3 +379,45 @@ def draw_bounding_box_on_image(image,
             fill='black',
             font=font)
         text_bottom -= text_height - 2 * margin
+
+
+def plot_confusion_matrix(matrix, classes,
+                          normalize=False,
+                          title='Confusion matrix',
+                          cmap=plt.cm.Blues,
+                         vmax=None,
+                         use_colorbar=True,
+                         y_label = True):
+
+    """
+    This function plots a confusion matrix.
+    Normalization can be applied by setting `normalize=True`.
+
+
+    """
+
+    if normalize:
+        matrix = matrix.astype('float') / matrix.sum(axis=1)[:, np.newaxis]
+
+    plt.imshow(matrix, interpolation='nearest', cmap=cmap, vmax=vmax)
+    plt.title(title) #,fontsize=22)
+    if use_colorbar:
+        plt.colorbar(ticks=[0.0,0.25,0.5,0.75,1.0]).set_ticklabels(['0%','25%','50%','75%','100%'])
+    tick_marks = np.arange(len(classes))
+    plt.xticks(tick_marks, classes, rotation=90)
+    if y_label:
+        plt.yticks(tick_marks, classes)
+    else:
+        plt.yticks(tick_marks, ['' for cn in classes])
+
+    thresh = 0.5
+    for i, j in np.ndindex(matrix.shape):
+        plt.text(j, i, '{:.0f}%'.format(matrix[i, j]*100),
+                 horizontalalignment="center",
+                 verticalalignment="center",
+                 color="white" if matrix[i, j] > thresh else "black",
+                fontsize='x-small')
+    if y_label:
+        plt.ylabel('Ground-truth class')
+    plt.xlabel('Predicted class')
+    #plt.grid(False)
