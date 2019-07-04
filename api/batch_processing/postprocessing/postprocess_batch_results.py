@@ -499,7 +499,7 @@ def process_batch_results(options):
                     len(gt_categories & pred_categories)
                     / len(gt_categories | pred_categories)
                 )
-                image['_all_correct_top1_classification'] = np.isclose(1, classifier_accuracies[-1])
+                image['_classification_accuracy'] = classifier_accuracies[-1]
                 # Distribute this accuracy across all predicted categories in the
                 # confusion matrix
                 assert len(gt_categories) == 1
@@ -520,18 +520,40 @@ def process_batch_results(options):
         # Prepare confusion matrix output
         # Get CM matrix as string
         sio = io.StringIO()
-        np.savetxt(sio, classifier_cm_array * 100, fmt='%4.1f')
+        np.savetxt(sio, classifier_cm_array * 100, fmt='%5.1f')
         cm_str = sio.getvalue()
         # Get fixed-size classname for each idx
         idx_to_classname = {v:k for k,v in classname_to_idx.items()}
-        classname_headers = ['{:<5}'.format(idx_to_classname[idx][:5])
-                                for idx in sorted(classname_to_idx.values())]
+        classname_list = [idx_to_classname[idx] for idx in sorted(classname_to_idx.values())]
+        classname_headers = ['{:<6}'.format(cname[:5]) for cname in classname_list]
+
         # Prepend class name on each line and add to the top
-        cm_str_lines = [' '.join(classname_headers)]
-        cm_str_lines += [cn + ' ' + cm_line for cn, cm_line in zip(classname_headers, cm_str.splitlines())]
+        cm_str_lines = [' ' * 16 + ' '.join(classname_headers)]
+        cm_str_lines += ['{:>15}'.format(cn[:15]) + ' ' + cm_line for cn, cm_line in zip(classname_list, cm_str.splitlines())]
+
         # print formatted confusion matrix
         print("Confusion matrix: ")
         print(*cm_str_lines, sep='\n')
+
+        # Plot confusion matrix
+        # To manually add more space at bottom: plt.rcParams['figure.subplot.bottom'] = 0.1
+        # Add 0.5 to figsize for every class. For two classes, this will result in
+        # fig = plt.figure(figsize=[4,4])
+        fig = plt.figure(figsize=[3 + 0.5 * len(classname_list)] * 2)
+        vis_utils.plot_confusion_matrix(
+                        classifier_cm_array,
+                        classname_list,
+                        normalize=True,
+                        title='Confusion matrix',
+                        cmap=plt.cm.Blues,
+                        vmax=1.0,
+                        use_colorbar=True,
+                        y_label=True)
+        cm_figure_relative_filename = 'confusion_matrix.png'
+        cm_figure_filename = os.path.join(output_dir, cm_figure_relative_filename)
+        plt.tight_layout()
+        plt.savefig(cm_figure_filename)
+        plt.close(fig)
 
         ##%% Render output
 
@@ -606,9 +628,9 @@ def process_batch_results(options):
             detected = max_conf > confidence_threshold
 
             if gt_presence and detected:
-                if '_all_correct_top1_classification' not in image.keys():
+                if '_classification_accuracy' not in image.keys():
                     res = 'tp'
-                elif image['_all_correct_top1_classification']:
+                elif np.isclose(1, image['_classification_accuracy']):
                     res = 'tpc'
                 else:
                     res = 'tpi'
@@ -651,9 +673,9 @@ def process_batch_results(options):
         <p><strong>A sample of {} images, annotated with detections above {:.1f}% confidence.</strong></p>
 
         True positives (tp) ({})<br/>
-        -- <a href="tpc.html">with positives with correct top-1 predictions (tpc)</a> ({})<br/>
+        -- <a href="tpc.html">with all correct top-1 predictions (tpc)</a> ({})<br/>
         -- <a href="tpi.html">with incorrect top-1 predictions (tpi)</a> ({})<br/>
-        -- <a href="tp.html">without classification</a> ({})<br/>
+        -- <a href="tp.html">with ambiguous annotations</a> ({})<br/>
         <a href="tn.html">True negatives (tn)</a> ({})<br/>
         <a href="fp.html">False positives (fp)</a> ({})<br/>
         <a href="fn.html">False negatives (fn)</a> ({})<br/>""".format(
@@ -678,17 +700,19 @@ def process_batch_results(options):
             <h5>Classification results</h5>
             <p>Average accuracy: {:.2%}</p>
             <p>Confusion matrix:</p>
-            <div style='font-family:monospace;'>{}</div>
+            <p><img src="{}"></p>
+            <div style='font-family:monospace;display:block;'>{}</div>
             """.format(
                 np.mean(classifier_accuracies),
-                "<br>".join(cm_str_lines)
+                cm_figure_relative_filename,
+                "<br>".join(cm_str_lines).replace(' ', '&nbsp;')
             )
         # If we have classification annotations, show links to each class
         if ground_truth_indexed_db:
             index_page += "<p>Images of specific classes:</p>"
             # Add links to all available classes
             for cname in sorted(classname_to_idx.keys()):
-                index_page += "<a href='class_{0}.html'>{0}</a> ".format(cname)
+                index_page += "<p><a href='class_{0}.html'>{0}</a></p>".format(cname)
         index_page += "</body></html>"
         output_html_file = os.path.join(output_dir, 'index.html')
         with open(output_html_file, 'w') as f:
