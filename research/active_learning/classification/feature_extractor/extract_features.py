@@ -85,7 +85,7 @@ def main():
     args = parser.parse_args()
 
     image_dir = args.crop_dir
-    num = 100
+    num = 50
 
     # Try to load the embedding model from the checkpoint
     checkpoint = torch.load(args.base_model)
@@ -97,7 +97,8 @@ def main():
     model.load_state_dict(checkpoint['state_dict'])
 
     # Specify the transformations on the input images before inference
-    test_transforms = transforms.Compose([transforms.Resize([224, 224]), transforms.ToTensor()])
+    # test_transforms = transforms.Compose([transforms.Resize([224, 224]), transforms.ToTensor()])
+    test_transforms = transforms.Compose([transforms.Resize([256, 256]), transforms.RandomCrop([224, 224]), transforms.RandomHorizontalFlip(), transforms.ColorJitter(), transforms.ToTensor(), transforms.Normalize([0.407328, 0.407328, 0.407328], [0.118641, 0.118641, 0.118641])])
 
     to_pil = transforms.ToPILImage()
     images, labels = get_random_images(num, image_dir, test_transforms)
@@ -109,30 +110,31 @@ def main():
 
     
     # TRY NEAREST NEIGHBORS WALK THROUGH EMBEDDING
-    # nbrs = NearestNeighbors(n_neighbors=num).fit(all_features)
-    # distances, indices = nbrs.kneighbors(all_features)
+    nbrs = NearestNeighbors(n_neighbors=num).fit(all_features)
+    distances, indices = nbrs.kneighbors(all_features)
 
-    # idx_w_closest_nbr = np.where(distances[:,1] == min(distances[:,1]))[0][0]
-    # order = [idx_w_closest_nbr]
-    # for ii in range(len(distances)):
-    #     distances[ii, 0] = np.inf
+    idx_w_closest_nbr = np.where(distances[:,1] == min(distances[:,1]))[0][0]
+    order = [idx_w_closest_nbr]
+    for ii in range(len(distances)):
+        distances[ii, 0] = np.inf
 
-    # while len(order)<num:
-    #     curr_idx = order[-1]
-    #     curr_neighbors = indices[curr_idx]
-    #     curr_dists = list(distances[curr_idx])
-    #     next_closest_pos = curr_dists.index(min(curr_dists))
-    #     next_closest = curr_neighbors[next_closest_pos]
-    #     order.append(next_closest)
-    #     # make sure you can't revisit past nodes
-    #     for vi in order:
-    #         vi_pos = list(indices[next_closest]).index(vi)
-    #         distances[next_closest, vi_pos] = np.inf
+    while len(order)<num:
+        curr_idx = order[-1]
+        curr_neighbors = indices[curr_idx]
+        curr_dists = list(distances[curr_idx])
+        print(min(curr_dists))
+        next_closest_pos = curr_dists.index(min(curr_dists))
+        next_closest = curr_neighbors[next_closest_pos]
+        order.append(next_closest)
+        # make sure you can't revisit past nodes
+        for vi in order:
+            vi_pos = list(indices[next_closest]).index(vi)
+            distances[next_closest, vi_pos] = np.inf
 
-    # for ii in range(len(order)):
-    #     imgidx = order[ii]
-    #     image = to_pil(images[imgidx])
-    #     image.save("img"+str(ii)+".png")
+    for ii in range(len(order)):
+        imgidx = order[ii]
+        image = to_pil(images[imgidx])
+        image.save("img"+str(ii)+".png")
 
     # for ii in range(len(images)):
     #     image = to_pil(images[ii])
