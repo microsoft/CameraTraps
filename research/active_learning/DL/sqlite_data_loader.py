@@ -139,7 +139,7 @@ class SQLDataLoader(Dataset):
         """Loads image given path to image file."""
 
         return PILImage.open(os.path.join(self.img_base,path+".JPG")).convert('RGB')
-        #return PILImage.open(os.path.join(self.img_base,path)).convert('RGB')
+        # return PILImage.open(os.path.join(self.img_base,path)).convert('RGB')
 
     def __getitem__(self, idx):
         """
