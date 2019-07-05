@@ -64,20 +64,19 @@ parser.add_argument('--db_password', default='new_user_password', type=str, help
 parser.add_argument('--base_model', default='', type=str, metavar='PATH', help='Path to latest checkpoint for embedding model (default: none).')
 parser.add_argument('--experiment_name', default='', type=str, metavar='PATH', help='Prefix name for output files.')
 parser.add_argument('--crop_dir', default='', type=str, metavar='PATH', help='Path to cropped image files.')
-parser.add_argument('--limit', default=500, type=int, help='Number of records to read.')
+parser.add_argument('--limit', default=50000, type=int, help='Number of records to read.')
 parser.add_argument('--strategy', default='confidence', type=str, help='Active learning query strategy.')
-parser.add_argument('-j', '--workers', default=4, type=int, metavar='N',
-                    help='number of data loading workers (default: 4)')
+parser.add_argument('--num_classes', default=50, type=int, help='Number of species in the dataset.')
+parser.add_argument('-j', '--workers', default=4, type=int,help='Number of subprocesses to use for data loading (default: 4)')
 parser.add_argument('-b', '--batch_size', default=256, type=int,
                     metavar='N', help='mini-batch size (default: 256)')
-parser.add_argument('-N', '--active_batch', default=50, type=int,
-                    help='number of queries per batch')
-parser.add_argument('-A', '--active_budget', default= 1000, type=int,
-                    help='number of queries per batch')
+parser.add_argument('-N', '--active_batch', default=100, type=int,
+                    help='Number of samples to have the user label between training classifier.')
+parser.add_argument('-A', '--active_budget', default=5000, type=int,
+                    help='Maximum number of samples to get the user to label.')
 parser.add_argument('--K', default=5, type=int,
                     help='number of clusters')
-parser.add_argument('--num_classes', default=50, type=int,
-                    help='number of species')
+
 
 
 def moveRecords(dataset, srcKind, destKind, rList):
@@ -86,6 +85,17 @@ def moveRecords(dataset, srcKind, destKind, rList):
         dataset.set_indices[destKind].append(e)
 
 def finetune_embedding(model, loss_type, train_dataset, P, K, epochs):
+    """
+    Fine tune the embedding model.
+
+    Arguments:
+        model: Model to fine tune.
+        loss_type: The loss function to minimize while fine tuning.
+        train_dataset: Dataset object to use to train the embedding.
+        P: Number of classes to sample from the dataset if using a balanced loader.
+        K: Number of samples from each class to sample from the dataset if using a balanced loader.
+        epochs: Number of epochs to train the embedding for.
+    """
     train_dataset.image_mode()
 
     if loss_type.lower() == 'softmax':
@@ -97,9 +107,11 @@ def finetune_embedding(model, loss_type, train_dataset, P, K, epochs):
     else:
         criterion = OnlineTripletLoss(1, RandomNegativeTripletSelector(1))
         train_loader = train_dataset.getBalancedLoader(P = P, K = K)
+
     params = model.parameters()
     optimizer = torch.optim.Adam(params, lr = 0.0001)#, weight_decay = 0.0005)
-    e= Engine(model, criterion, optimizer, verbose = True, print_freq = 10)
+    e = Engine(model, criterion, optimizer, verbose = True, print_freq = 10)
+
     for epoch in range(epochs):
         e.train_one_epoch(train_loader, epoch, False)
 
@@ -116,17 +128,9 @@ def main():
     target_db = PostgresqlDatabase(DB_NAME, user=USER, password=PASSWORD, host='localhost')
     target_db.connect(reuse_if_open=True)
     db_proxy.initialize(target_db)
-    # print(os.path.join(args.run_data, os.path.basename(args.run_data)) + ".db")
-    # db_path = os.path.join(args.run_data, os.path.basename(args.run_data)) + ".db"
-    # print(db_path)
-    # db = SqliteDatabase(db_path)
-    # proxy.initialize(db)
-    # db.connect()
-    target_db.close()
     print("connected")
 
 
-    print("CompleteLoop")
     # Load the saved embedding model
     checkpoint = load_checkpoint(args.base_model)
     if args.experiment_name == '':
@@ -144,11 +148,11 @@ def main():
 
     # dataset_query = Detection.select().limit(5)
     dataset_query = Detection.select(Detection.image_id, Oracle.label, Detection.kind).join(Oracle).order_by(fn.random()).limit(args.limit) ## TODO: should this really be order_by random?
-    dataset = SQLDataLoader(args.crop_dir, query=dataset_query, is_training= False, kind = DetectionKind.ModelDetection.value, num_workers= 8, limit = args.limit)
-    #dataset = SQLDataLoader(os.path.join(args.run_data, "crops"), is_training= False, kind = DetectionKind.ModelDetection.value, num_workers= 8, limit = args.limit)
+    dataset = SQLDataLoader(args.crop_dir, query=dataset_query, is_training=False, kind=DetectionKind.ModelDetection.value, num_workers=8, limit=args.limit)
     dataset.updateEmbedding(model)
     # plot_embedding_images(dataset.em[:], np.asarray(dataset.getlabels()) , dataset.getpaths(), {})
     # plot_embedding_images(dataset.em[:], np.asarray(dataset.getalllabels()) , dataset.getallpaths(), {})
+    
     # Random examples to start
     #random_ids = np.random.choice(dataset.current_set, 1000, replace=False).tolist()
     #random_ids = selectSamples(dataset.em[dataset.current_set], dataset.current_set, 2000)
@@ -169,12 +173,6 @@ def main():
     # #        'loss_type' : loss_type,
     # #        }, False, "%s%s_%s_%04d.tar"%('finetuned', loss_type, model.arch, len(dataset.set_indices[DetectionKind.UserDetection.value])))
 
-    # #unlabeled_dataset.updateEmbedding(model)
-    # #dataset.updateEmbedding(model)
-    # #dataset.set_kind(DetectionKind.UserDetection.value)
-    # #print(dataset.em[dataset.current_set].shape, np.asarray(dataset.getlabels()).shape, len(dataset.getpaths()))
-    # #plot_embedding( dataset.em[dataset.current_set], np.asarray(dataset.getlabels()) , dataset.getpaths(), {})
-    # #plot_embedding( unlabeled_dataset.em, np.asarray(unlabeled_dataset.getlabels()) , unlabeled_dataset.getIDs(), {})
     dataset.embedding_mode()
     dataset.train()
     sampler = get_AL_sampler(args.strategy)(dataset.em, dataset.getalllabels(), 12)
@@ -184,52 +182,55 @@ def main():
     kwargs["already_selected"] = dataset.set_indices[DetectionKind.UserDetection.value]
     kwargs["model"] = MLPClassifier(alpha=0.0001)
 
-    print("start the loop")
+    print("Start the active learning loop")
     sys.stdout.flush()
     numLabeled = len(dataset.set_indices[DetectionKind.UserDetection.value])
     while numLabeled <= args.active_budget:
         print([len(x) for x in dataset.set_indices])
         sys.stdout.flush()
-        # Active Learning
+
+        # Get indices of samples to get user to label
         if numLabeled == 0:
-            indices = np.random.choice(dataset.current_set, min(50, len(dataset.current_set)), replace=False).tolist()
-            print(indices)
+            indices = np.random.choice(dataset.current_set, kwargs["N"], replace=False).tolist()
         else:
             indices = sampler.select_batch(**kwargs)
         numLabeled = len(dataset.set_indices[DetectionKind.UserDetection.value])
-        print('numLabeled', numLabeled)
         #kwargs["already_selected"].extend(indices)
         moveRecords(dataset, DetectionKind.ModelDetection.value, DetectionKind.UserDetection.value, indices)
+        numLabeled = len(dataset.set_indices[DetectionKind.UserDetection.value])
 
+        # Train on samples that have been labeled so far
         dataset.set_kind(DetectionKind.UserDetection.value)
         X_train = dataset.em[dataset.current_set]
         y_train = np.asarray(dataset.getlabels())
         
         kwargs["model"].fit(X_train, y_train)
-        joblib.dump(kwargs["model"], "%s/%s_%04d.skmodel"%(args.experiment_name, 'embedding', numLabeled))
+        joblib.dump(kwargs["model"], "%s/%s_%04d.skmodel"%(args.experiment_name, 'classifier', numLabeled))
+        
+        # Test on the samples that have not been labeled
         dataset.set_kind(DetectionKind.ModelDetection.value)
         dataset.embedding_mode()
         X_test = dataset.em[dataset.current_set]
         y_test = np.asarray(dataset.getlabels())
-        print("Accuracy",kwargs["model"].score(X_test, y_test))
+        print("Accuracy", kwargs["model"].score(X_test, y_test))
         
-    #     sys.stdout.flush()
-    #     if numLabeled % 2000 == 1000:
-    #         dataset.set_kind(DetectionKind.UserDetection.value)
-    #         finetune_embedding(model, checkpoint['loss_type'], dataset, 32, 4, 100 if numLabeled == 1000 else 50)
-    #         save_checkpoint({
-    #         'arch': checkpoint['arch'],
-    #         'state_dict': model.state_dict(),
-    #         #'optimizer' : optimizer.state_dict(),
-    #         'loss_type' : checkpoint['loss_type'],
-    #         'feat_dim' : checkpoint['feat_dim'],
-    #         'num_classes' : args.num_classes
-    #         }, False, "%s/%s%s_%s_%04d.tar"%(args.experiment_name, 'finetuned', checkpoint['loss_type'], checkpoint['arch'], numLabeled))
+        sys.stdout.flush()
+        if numLabeled % 2000 == 1000:
+            dataset.set_kind(DetectionKind.UserDetection.value)
+            finetune_embedding(model, checkpoint['loss_type'], dataset, 10, 4, 100 if numLabeled == 1000 else 50)
+            save_checkpoint({
+            'arch': checkpoint['arch'],
+            'state_dict': model.state_dict(),
+            #'optimizer' : optimizer.state_dict(),
+            'loss_type' : checkpoint['loss_type'],
+            'feat_dim' : checkpoint['feat_dim'],
+            'num_classes' : args.num_classes
+            }, False, "%s/%s%s_%s_%04d.tar"%(args.experiment_name, 'finetuned', checkpoint['loss_type'], checkpoint['arch'], numLabeled))
 
-    #         dataset.set_kind(DetectionKind.ModelDetection.value)
-    #         dataset.updateEmbedding(model)
-    #         dataset.embedding_mode()
+            dataset.set_kind(DetectionKind.ModelDetection.value)
+            dataset.updateEmbedding(model)
+            dataset.embedding_mode()
 
 if __name__ == '__main__':
-    print("start")
+    print("Start active learning loop")
     main()
