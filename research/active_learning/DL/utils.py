@@ -155,13 +155,15 @@ def plot_embedding(embedd, labels, paths, info):
   fig.canvas.mpl_connect('button_press_event', onpick3)
   plt.savefig('embedding_plot.png')
 
-def plot_embedding_images(embedd, labels, paths, info):
+def plot_embedding_images(embedd, labels, paths, info, savefile):
   fig = plt.figure(figsize=(15,10))
   embedding = reduce_dimensionality(embedd)
-  ax= plt.gca()
+  ax = plt.gca()
+  ax.set_xlim(-15, 15)
+  ax.set_ylim(-10, 10)
   colors = [indexcolors[int(i) % len(indexcolors)] for i in labels.squeeze()]
-  sc = ax.scatter(embedding[:,0],embedding[:,1], s=3, c= colors )
-  legend_texts= [ x[0] for x in sorted(info.items(), key=lambda kv: kv[1])]
+  sc = ax.scatter(embedding[:,0],embedding[:,1], s=12, c= colors )
+  legend_texts = [ x[0] for x in sorted(info.items(), key=lambda kv: kv[1])]
   patches=[]
   for i,label in enumerate(legend_texts):
     patches.append(mpatches.Patch(color=indexcolors[i], label=label))
@@ -174,14 +176,14 @@ def plot_embedding_images(embedd, labels, paths, info):
         #print(thumb)
         img = PILImage.open(thumb)
         # img.thumbnail((16, 12), PILImage.ANTIALIAS)
-        img.thumbnail((32, 24), PILImage.ANTIALIAS)
+        img.thumbnail((24, 18), PILImage.ANTIALIAS)
         img = OffsetImage(img, zoom=1)
-        ab = AnnotationBbox(img, (embedding[i,0]+0.2, embedding[i,1]+0.2), xycoords='data', frameon=False)
+        ab = AnnotationBbox(img, (embedding[i,0]+0.3, embedding[i,1]+0.3), xycoords='data', frameon=False)
         ax.add_artist(ab)
         ab.set_visible(True)
 
   # plt.show()
-  plt.savefig('embedding_plot.png')
+  plt.savefig(savefile)
 
 def save_embedding_plot(name, embedding, labels, info):
   fig = plt.figure(figsize=(10,10))
