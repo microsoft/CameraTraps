@@ -194,7 +194,7 @@ class SQLDataLoader(Dataset):
 
     def writeback(self):
         for i, l in enumerate(self.set_indices):
-            query= Detection.update(kind = i).where(Detection.id.in_(rList))  
+            query = Detection.update(kind = i).where(Detection.id.in_(rList))  
             query.execute()
 
     def getClassesInfo(self):
