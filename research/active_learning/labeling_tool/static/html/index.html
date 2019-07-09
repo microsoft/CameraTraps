@@ -221,20 +221,22 @@
                         </div>
                         <div class="card-body">
                             <!-- <h5 class="card-title">Stuff You Can Do</h5> -->
-                            <!-- <p class="card-text">Instructions</p> -->
                             <div>
-                                <label for="detection-confidence-threshold">Detection Confidence Threshold: </label>
-                                <input type="range" id="detection-confidence-threshold" class="slider" min="0.50" max="0.99" value="0.85" step="0.01">
+                                <label for="detection-confidence-threshold" style="font-weight: bold;">Detection Confidence Threshold: </label>
+                                <p class="card-text" style="color:dimgray;">Modify the confidence threshold for animal detections in the displayed images.</p>
+                                <input type="range" id="detection-confidence-threshold" class="slider" min="0.50" max="0.99" value="0.85" step="0.1" style="width:80%;">
                                 <span class="slider_label"></span>
+                                <a href="#" class="btn btn-primary" style="border:none; background-color:darkslategray; width:100%; margin-bottom:100px;">Apply Detection Confidence Threshold</a>
                             </div>
+                            <hr>
 
                             <div>
                                 <input type="checkbox" id="grayscale-checkbox"> Grayscale
                             </div>
-
                             <a href="#" class="btn btn-primary" style="border:none; width:100%; margin-bottom:100px;" onclick="loadImages()">Load More Images</a>
-                            
-                            <p>Ctrl-click to select multiple images at once, or to deselect images.</p>
+                            <hr>
+
+                            <p class="card-text" style="color:dimgray;">Ctrl-click to select multiple images at once, or to deselect images.</p>
                             <form>
                                 <select id="classification-dropdown" style="width:100%; margin-bottom:10px;">
                                     <option disabled>Species...</option>
@@ -251,7 +253,8 @@
                                     <option>White Tailed Deer</option>
                                 </select>
                            </form>
-                           <a href="#" class="btn btn-primary" style="border:none; background-color:green; width:100%; margin-bottom:100px;" onclick="assignLabelToSelectedImages()">Assign</a>
+                           <a href="#" class="btn btn-primary" style="border:none; background-color:green; width:49%; margin-bottom:100px;" onclick="assignLabelToSelectedImages()">Assign Label</a>
+                           <a href="#" class="btn btn-primary" style="border:none; background-color:red; width:49%; margin-bottom:100px;">Undo Assign</a>
                            <form>
                             <select name="dropdown" style="width:100%; margin-bottom:10px;">
                                 <option disabled>Species...</option>
