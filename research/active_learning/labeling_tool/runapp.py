@@ -6,10 +6,24 @@ Starts running a web application for labeling samples.
 import argparse, json, psycopg2, sys
 import bottle
 from peewee import *
-sys.path.append('../../Database')
-from DB_models import *
 
-# webUIapp = bottle.Bottle()
+sys.path.append('../')
+from Database.DB_models import *
+from DL.sqlite_data_loader import SQLDataLoader
+from DL.networks import *
+from DL.losses import *
+from DL.utils import *
+from DL.Engine import Engine
+
+import torch
+import torch.nn as nn
+import torch.nn.parallel
+import torch.backends.cudnn as cudnn
+import torch.distributed as dist
+import torch.optim
+import torch.utils.data
+import torch.utils.data.distributed
+
 
 #--------some stuff needed to get AJAX to work with bottle?--------#
 def enable_cors():
@@ -41,6 +55,29 @@ if __name__ == '__main__':
     args = parser.parse_args(sys.argv[1:])
 
     # Create a queue of images to pre-load
+    
+    ## Try to connect as USER to database DB_NAME through peewee
+    DB_NAME = args.db_name
+    USER = args.db_user
+    PASSWORD = args.db_password
+    target_db = PostgresqlDatabase(DB_NAME, user=USER, password=PASSWORD, host='localhost')
+    target_db.connect(reuse_if_open=True)
+    db_proxy.initialize(target_db)
+
+    args.crop_dir = "/home/lynx/data/missouricameratraps/crops/" ## TODO: hard coding this for now, but should not actually need this since Image table stores paths to crops
+    checkpoint = load_checkpoint("/home/lynx/pretrainedmodels/embedding_triplet_resnet50_1499/triplet_resnet50_1499.tar")
+    if checkpoint['loss_type'].lower() == 'center' or checkpoint['loss_type'].lower() == 'softmax':
+        embedding_net = SoftmaxNet(checkpoint['arch'], checkpoint['feat_dim'], checkpoint['num_classes'], False)
+    else:
+        embedding_net = NormalizedEmbeddingNet(checkpoint['arch'], checkpoint['feat_dim'], False)
+    model = torch.nn.DataParallel(embedding_net).cuda()
+    model.load_state_dict(checkpoint['state_dict'])
+    
+    # dataset_query = Detection.select(Detection.id, Detection.category, Detection.kind, Image.file_name).join(Image, on=(Image.id == Detection.image)).order_by(fn.random()).limit(5000) ## TODO: should this really be order_by random?
+    dataset_query = Detection.select(Detection.id, Oracle.label, Detection.kind).join(Oracle, on=(Oracle.detection == Detection.id)).order_by(fn.random()).limit(5000) ## TODO: should this really be order_by random?
+    dataset = SQLDataLoader(args.crop_dir, query=dataset_query, is_training=False, kind=DetectionKind.ModelDetection.value, num_workers=8, limit=5000)
+    dataset.updateEmbedding(model)
+    
 
     # Create and set up a bottle application for the web UI
     webUIapp = bottle.Bottle()
@@ -83,15 +120,6 @@ if __name__ == '__main__':
         data = bottle.request.json
         
         # # TODO: return file names of crops to show from "totag" csv or database
-        DB_NAME = args.db_name
-        USER = args.db_user
-        PASSWORD = args.db_password
-        #HOST = 'localhost'
-        #PORT = 5432
-
-        ## Try to connect as USER to database DB_NAME through peewee
-        target_db = PostgresqlDatabase(DB_NAME, user=USER, password=PASSWORD, host='localhost')
-        db_proxy.initialize(target_db)
         existing_image_entries = (Image
                                 .select(Image.id, Image.file_name, Detection.kind, Detection.category)
                                 .join(Detection, on=(Image.id == Detection.image))
