@@ -1,1 +1,4 @@
 *.zip
+experiment_triplet_confidence/
+finetunedtriplet_resnet50_5000/
+triplet_resnet50_1499/
