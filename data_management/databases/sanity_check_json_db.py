@@ -48,7 +48,7 @@ class SanityCheckOptions:
 defaultOptions = SanityCheckOptions()
 
 
-def checkImageExistenceAndSize(image,options=None):
+def check_image_existence_and_size(image,options=None):
 
     if options is None:
         
@@ -75,7 +75,12 @@ def checkImageExistenceAndSize(image,options=None):
     return True
 
   
-def sanityCheckJsonDb(jsonFile, options=None):
+def sanity_check_json_db(jsonFile, options=None):
+    '''
+    jsonFile can be a filename or an already-loaded json database
+    
+    returns sortedCategories, data
+    '''
     
     if options is None:   
         
@@ -87,21 +92,29 @@ def sanityCheckJsonDb(jsonFile, options=None):
         
     print(options.__dict__)
     
-    assert os.path.isfile(jsonFile), '.json file {} does not exist'.format(jsonFile)
-    
-    print('\nProcessing .json file {}'.format(jsonFile))
-    
     baseDir = options.baseDir
     
     
-    ##%% Read .json file, sanity-check fields
+    ##%% Read .json file if necessary, sanity-check fields
     
-    print('Reading .json {} with base dir [{}]...'.format(
-            jsonFile,baseDir))
+    if isinstance(jsonFile,dict):
+        
+        data = jsonFile
+        
+    elif isinstance(jsonFile,str):
+        
+        assert os.path.isfile(jsonFile), '.json file {} does not exist'.format(jsonFile)
     
-    with open(jsonFile,'r') as f:
-        data = json.load(f)
-    
+        print('Reading .json {} with base dir [{}]...'.format(
+                jsonFile,baseDir))
+        
+        with open(jsonFile,'r') as f:
+            data = json.load(f) 
+            
+    else:
+        
+        raise ValueError('Illegal value for jsonFile')
+            
     images = data['images']
     annotations = data['annotations']
     categories = data['categories']
@@ -229,7 +242,7 @@ def sanityCheckJsonDb(jsonFile, options=None):
         defaultOptions.baseDir = options.baseDir
         defaultOptions.bCheckImageSizes = options.bCheckImageSizes
         defaultOptions.bCheckImageExistence = options.bCheckImageExistence
-        results = tqdm(pool.imap(checkImageExistenceAndSize, images), total=len(images))
+        results = tqdm(pool.imap(check_image_existence_and_size, images), total=len(images))
         
         for iImage,r in enumerate(results):
             if not r:
@@ -321,7 +334,7 @@ def sanityCheckJsonDb(jsonFile, options=None):
     
     return sortedCategories, data
 
-# ...def sanityCheckJsonDb()
+# ...def sanity_check_json_db()
     
 
 #%% Command-line driver
@@ -353,7 +366,7 @@ def main():
         parser.exit()
         
     args = parser.parse_args()    
-    sanityCheckJsonDb(args.jsonFile,args)
+    sanity_check_json_db(args.jsonFile,args)
 
 
 if __name__ == '__main__':
@@ -384,7 +397,7 @@ if False:
     
     for jsonFile in jsonFiles:
         
-        sortedCategories,data = sanityCheckJsonDb(jsonFile, options)
+        sortedCategories,data = sanity_check_json_db(jsonFile, options)
         
     
       
