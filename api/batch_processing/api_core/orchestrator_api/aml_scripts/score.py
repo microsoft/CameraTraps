@@ -17,6 +17,10 @@ print('score.py, beginning, using AML version {}'.format(azureml.core.__version_
 
 
 class BatchScorer:
+    """
+    Coordinates scoring a batch of images using model at model_path.
+    The images are first downloaded and all loaded before scoring is performed.
+    """
 
     def __init__(self, **kwargs):
         print('BatchScorer, __init__()')
