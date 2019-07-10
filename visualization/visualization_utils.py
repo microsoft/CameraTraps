@@ -397,12 +397,12 @@ def plot_confusion_matrix(matrix, classes,
     """
 
     if normalize:
-        matrix = matrix.astype('float') / matrix.sum(axis=1)[:, np.newaxis]
+        matrix = matrix.astype(np.double) / (matrix.sum(axis=1, keepdims=True) + 1e-7)
 
     plt.imshow(matrix, interpolation='nearest', cmap=cmap, vmax=vmax)
     plt.title(title) #,fontsize=22)
     if use_colorbar:
-        plt.colorbar(ticks=[0.0,0.25,0.5,0.75,1.0]).set_ticklabels(['0%','25%','50%','75%','100%'])
+        plt.colorbar(fraction=0.046, pad=0.04, ticks=[0.0,0.25,0.5,0.75,1.0]).set_ticklabels(['0%','25%','50%','75%','100%'])
     tick_marks = np.arange(len(classes))
     plt.xticks(tick_marks, classes, rotation=90)
     if y_label:
