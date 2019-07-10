@@ -27,7 +27,6 @@
 #%% Constants and imports
 
 import argparse
-import inspect
 import os
 import sys
 from enum import IntEnum
@@ -50,7 +49,7 @@ from write_html_image_list import write_html_image_list
 import visualization.visualization_utils as vis_utils
 from data_management.cct_json_utils import CameraTrapJsonUtils, IndexedJsonDb
 from api.batch_processing.postprocessing.load_api_results import load_api_results
-
+from ct_utils import args_to_object
 
 #%% Options
 
@@ -334,10 +333,15 @@ def process_batch_results(options):
 
 
     ##%% Load detection results
-    detection_results, detection_categories_map, classification_categories_map = load_api_results(
-                                             options.api_output_file,
+
+    detection_results, other_fields = load_api_results(options.api_output_file,
                                              normalize_paths=True,
                                              filename_replacements=options.api_output_filename_replacements)
+    detection_categories_map = other_fields['detection_categories']
+    if 'classification_categories' in other_fields:
+        classification_categories_map = other_fields['classification_categories']
+    else:
+        classification_categories_map = {}
 
     # Add a column (pred_detection_label) to indicate predicted detection status, not separating out the classes
     detection_results['pred_detection_label'] = \
@@ -724,11 +728,13 @@ def process_batch_results(options):
                     "<br>".join(cm_str_lines).replace(' ', '&nbsp;')
                 )
         # If we have classification annotations, show links to each class
-        if ground_truth_indexed_db:
+        if len(classifier_accuracies) > 0:
             index_page += "<h3>Images of specific classes:</h3>"
             # Add links to all available classes
             for cname in sorted(classname_to_idx.keys()):
-                index_page += "<a href='class_{0}.html'>{0}</a><br>".format(cname)
+                index_page += "<a href='class_{0}.html'>{0}</a> ({1})<br>".format(
+                    cname,
+                    len(images_html['class_{}'.format(cname)]))
         index_page += "</body></html>"
         output_html_file = os.path.join(output_dir, 'index.html')
         with open(output_html_file, 'w') as f:
@@ -834,16 +840,6 @@ if False:
 
 
 #%% Command-line driver
-
-# Copy all fields from a Namespace (i.e., the output from parse_args) to an object.
-#
-# Skips fields starting with _.  Does not check existence in the target object.
-def args_to_object(args, obj):
-
-    for n, v in inspect.getmembers(args):
-        if not n.startswith('_'):
-            setattr(obj, n, v);
-
 
 def main():
 
