@@ -727,14 +727,14 @@ def process_batch_results(options):
                     cm_figure_relative_filename,
                     "<br>".join(cm_str_lines).replace(' ', '&nbsp;')
                 )
-        # If we have classification annotations, show links to each class
-        if len(classifier_accuracies) > 0:
-            index_page += "<h3>Images of specific classes:</h3>"
-            # Add links to all available classes
-            for cname in sorted(classname_to_idx.keys()):
-                index_page += "<a href='class_{0}.html'>{0}</a> ({1})<br>".format(
-                    cname,
-                    len(images_html['class_{}'.format(cname)]))
+        # Show links to each GT class
+        index_page += "<h3>Images of specific classes:</h3>"
+        # Add links to all available classes
+        for cname in sorted(classname_to_idx.keys()):
+            index_page += "<a href='class_{0}.html'>{0}</a> ({1})<br>".format(
+                cname,
+                len(images_html['class_{}'.format(cname)]))
+        # Close body and html tag
         index_page += "</body></html>"
         output_html_file = os.path.join(output_dir, 'index.html')
         with open(output_html_file, 'w') as f:
@@ -754,10 +754,11 @@ def process_batch_results(options):
 
         # Accumulate html image structs (in the format expected by write_html_image_lists)
         # for each category
-        images_html = {
-            'detections': [],
-            'non_detections': [],
-        }
+        images_html = collections.defaultdict(lambda: [])
+        # Add default entries by accessing them for the first time
+        [images_html[res] for res in ['detections', 'non_detections']]
+        for res in images_html.keys():
+            os.makedirs(os.path.join(output_dir, res), exist_ok=True)
 
         count = 0
 
@@ -779,11 +780,20 @@ def process_batch_results(options):
             display_name = '<b>Result type</b>: {}, <b>Image</b>: {}, <b>Max conf</b>: {}'.format(
                 res, image_relative_path, max_conf)
 
-            rendered_image_html_info = render_bounding_boxes(options.image_base_dir, image_relative_path,
-                                                             display_name, detections, res,
-                                                             detection_categories_map, options)
+            rendered_image_html_info = render_bounding_boxes(options.image_base_dir,
+                                                                image_relative_path,
+                                                                display_name,
+                                                                detections,
+                                                                res,
+                                                                detection_categories_map,
+                                                                classification_categories_map,
+                                                                options)
             if len(rendered_image_html_info) > 0:
                 images_html[res].append(rendered_image_html_info)
+                for det in detections:
+                    if 'classifications' in det:
+                        top1_class = classification_categories_map[det['classifications'][0][0]]
+                        images_html['class_{}'.format(top1_class)].append(rendered_image_html_info)
 
             count += 1
 
@@ -795,15 +805,28 @@ def process_batch_results(options):
         image_counts = prepare_html_subpages(images_html, output_dir)
 
         # Write index.HTML
+        total_images = image_counts['detections'] + image_counts['non_detections']
         index_page = """<html><body>
-        <p><strong>A sample of {} images, annotated with detections above {:.1f}% confidence.</strong></p>
+        <h2>Visualization of results</h2>
+        <p>A sample of {} images, annotated with detections above {:.1%} confidence.</p>
+        <h3>Sample images</h3>
 
-        <a href="detections.html">Detections</a> ({})<br/>
-        <a href="non_detections.html">Non-detections</a> ({})<br/>
-        </body></html>""".format(
-            count, confidence_threshold * 100,
-            image_counts['detections'], image_counts['non_detections']
+        <a href="detections.html">Detections</a> ({}, {:.1%})<br/>
+        <a href="non_detections.html">Non-detections</a> ({}, {:.1%})<br/>""".format(
+            count, confidence_threshold,
+            image_counts['detections'], image_counts['detections']/total_images,
+            image_counts['non_detections'], image_counts['non_detections']/total_images
         )
+
+        index_page += "<h3>Images of detected classes</h3>"
+        index_page += "<p>The same image might appear under multiple classes if multiple species were detected.</p>"
+        # Add links to all available classes
+        for cname in sorted(classification_categories_map.values()):
+            ccount = len(images_html['class_{}'.format(cname)])
+            if ccount > 0:
+                index_page += "<a href='class_{0}.html'>{0}</a> ({1})<br>".format(cname, ccount)
+
+        index_page += "</body></html>"
         output_html_file = os.path.join(output_dir, 'index.html')
         with open(output_html_file, 'w') as f:
             f.write(index_page)
