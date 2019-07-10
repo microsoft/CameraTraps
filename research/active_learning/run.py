@@ -64,7 +64,7 @@ parser.add_argument('--db_password', default='new_user_password', type=str, help
 parser.add_argument('--base_model', default='', type=str, metavar='PATH', help='Path to latest checkpoint for embedding model (default: none).')
 parser.add_argument('--experiment_name', default='', type=str, metavar='PATH', help='Prefix name for output files.')
 parser.add_argument('--crop_dir', default='', type=str, metavar='PATH', help='Path to cropped image files.')
-parser.add_argument('--limit', default=50000, type=int, help='Number of records to read.')
+parser.add_argument('--db_query_limit', default=50000, type=int, help='Max number of records to read.')
 parser.add_argument('--strategy', default='confidence', type=str, help='Active learning query strategy.')
 parser.add_argument('--num_classes', default=50, type=int, help='Number of species in the dataset.')
 parser.add_argument('-j', '--workers', default=4, type=int,help='Number of subprocesses to use for data loading (default: 4)')
@@ -147,8 +147,8 @@ def main():
     model.load_state_dict(checkpoint['state_dict'])
 
     # dataset_query = Detection.select().limit(5)
-    dataset_query = Detection.select(Detection.image_id, Oracle.label, Detection.kind).join(Oracle).order_by(fn.random()).limit(args.limit) ## TODO: should this really be order_by random?
-    dataset = SQLDataLoader(args.crop_dir, query=dataset_query, is_training=False, kind=DetectionKind.ModelDetection.value, num_workers=8, limit=args.limit)
+    dataset_query = Detection.select(Detection.image_id, Oracle.label, Detection.kind).join(Oracle).order_by(fn.random()).limit(args.db_query_limit) ## TODO: should this really be order_by random?
+    dataset = SQLDataLoader(args.crop_dir, query=dataset_query, is_training=False, kind=DetectionKind.ModelDetection.value, num_workers=8, limit=args.db_query_limit)
     dataset.updateEmbedding(model)
     # plot_embedding_images(dataset.em[:], np.asarray(dataset.getlabels()) , dataset.getpaths(), {})
     # plot_embedding_images(dataset.em[:], np.asarray(dataset.getalllabels()) , dataset.getallpaths(), {})
@@ -194,7 +194,7 @@ def main():
             indices = np.random.choice(dataset.current_set, kwargs["N"], replace=False).tolist()
         else:
             indices = sampler.select_batch(**kwargs)
-        numLabeled = len(dataset.set_indices[DetectionKind.UserDetection.value])
+        # numLabeled = len(dataset.set_indices[DetectionKind.UserDetection.value])
         #kwargs["already_selected"].extend(indices)
         moveRecords(dataset, DetectionKind.ModelDetection.value, DetectionKind.UserDetection.value, indices)
         numLabeled = len(dataset.set_indices[DetectionKind.UserDetection.value])
