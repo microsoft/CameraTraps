@@ -354,7 +354,7 @@ def render_bounding_boxes(boxes, scores, classes, inputFileNames, outputFileName
         plt.axis('off')                
 
         # plt.savefig(outputFileName, bbox_inches='tight', pad_inches=0.0, dpi=dpi, transparent=True)
-        plt.savefig(outputFileName, dpi=dpi, transparent=True)
+        plt.savefig(outputFileName, dpi=dpi, transparent=True, optimize=True, quality=90)
         plt.close()
         # os.startfile(outputFileName)
 
@@ -434,13 +434,11 @@ if False:
     
     #%%
     
-    modelFile = r'D:\temp\models\object_detection\megadetector\megadetector_v2.pb'
-    imageDir = r'D:\temp\demo_images\b2'    
+    modelFile = r'D:\temp\models\megadetector_v3.pb'
+    imageDir = r'D:\temp\demo_images\ssmini'    
     imageFileNames = [fn for fn in glob.glob(os.path.join(imageDir,'*.jpg'))
          if (not 'detections' in fn)]
-    # imageFileNames = [r"D:\temp\test\1\NE2881-9_RCNX0195.png"]
-    # imageFileNames = [r"D:\temp\test\1\NE2881-9_RCNX0195.jpeg"]
-    imageFileNames = [r"D:\temp\test\1\NE2881-9_RCNX0195_xparent.png"]
+    # imageFileNames = [r"D:\temp\test\1\NE2881-9_RCNX0195_xparent.png"]
     
     detection_graph = load_and_run_detector(modelFile,imageFileNames,
                                             confidenceThreshold=DEFAULT_CONFIDENCE_THRESHOLD,
