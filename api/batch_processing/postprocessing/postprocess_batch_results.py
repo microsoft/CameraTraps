@@ -434,7 +434,7 @@ def process_batch_results(options):
 
         # Compute and print summary statistics
         average_precision = average_precision_score(gt_detections_pr, p_detection_pr)
-        print('Average precision: {:.2f}'.format(average_precision))
+        print('Average precision: {:.1%}'.format(average_precision))
 
         # Thresholds go up throughout precisions/recalls/thresholds; find the last
         # value where recall is at or above target.  That's our precision @ target recall.
@@ -445,7 +445,7 @@ def process_batch_results(options):
         else:
             i_target_recall = np.argmax(b_above_target_recall)
             precision_at_target_recall = precisions[i_target_recall]
-        print('Precision at {:.2f} recall: {:.2f}'.format(target_recall, precision_at_target_recall))
+        print('Precision at {:.1%} recall: {:.1%}'.format(target_recall, precision_at_target_recall))
 
         cm = confusion_matrix(gt_detections_pr, np.array(p_detection_pr) > confidence_threshold)
 
@@ -457,7 +457,7 @@ def process_batch_results(options):
         f1 = 2.0 * (precision_at_confidence_threshold * recall_at_confidence_threshold) / \
             (precision_at_confidence_threshold + recall_at_confidence_threshold)
 
-        print('At a confidence threshold of {:.2f}, precision={:.2f}, recall={:.2f}, f1={:.2f}'.format(
+        print('At a confidence threshold of {:.1%}, precision={:.1%}, recall={:.1%}, f1={:.1%}'.format(
                 confidence_threshold, precision_at_confidence_threshold, recall_at_confidence_threshold, f1))
 
         ##%% CLASSIFICATION evaluation
@@ -508,52 +508,55 @@ def process_batch_results(options):
                     pred_class_idx = classname_to_idx[pred_category]
                     classifier_cm[gt_class_idx][pred_class_idx] += 1
 
-        # Build confusion matrix as array from classifier_cm
-        all_class_ids = sorted(classname_to_idx.values())
-        classifier_cm_array = np.array(
-            [[classifier_cm[r_idx][c_idx] for c_idx in all_class_ids] for r_idx in all_class_ids], dtype=float)
-        classifier_cm_array /= classifier_cm_array.sum(axis=1, keepdims=True) + 1e-7
+        # If we have classification results
+        if len(classifier_accuracies) > 0:
+            # Build confusion matrix as array from classifier_cm
+            all_class_ids = sorted(classname_to_idx.values())
+            classifier_cm_array = np.array(
+                [[classifier_cm[r_idx][c_idx] for c_idx in all_class_ids] for r_idx in all_class_ids], dtype=float)
+            classifier_cm_array /= (classifier_cm_array.sum(axis=1, keepdims=True) + 1e-7)
 
-        # Print some statistics
-        print("Finished computation of {} classification results".format(len(classifier_accuracies)))
-        print("Mean accuracy: {}".format(np.mean(classifier_accuracies)))
-        # Prepare confusion matrix output
-        # Get CM matrix as string
-        sio = io.StringIO()
-        np.savetxt(sio, classifier_cm_array * 100, fmt='%5.1f')
-        cm_str = sio.getvalue()
-        # Get fixed-size classname for each idx
-        idx_to_classname = {v:k for k,v in classname_to_idx.items()}
-        classname_list = [idx_to_classname[idx] for idx in sorted(classname_to_idx.values())]
-        classname_headers = ['{:<6}'.format(cname[:5]) for cname in classname_list]
+            # Print some statistics
+            print("Finished computation of {} classification results".format(len(classifier_accuracies)))
+            print("Mean accuracy: {}".format(np.mean(classifier_accuracies)))
 
-        # Prepend class name on each line and add to the top
-        cm_str_lines = [' ' * 16 + ' '.join(classname_headers)]
-        cm_str_lines += ['{:>15}'.format(cn[:15]) + ' ' + cm_line for cn, cm_line in zip(classname_list, cm_str.splitlines())]
+            # Prepare confusion matrix output
+            # Get CM matrix as string
+            sio = io.StringIO()
+            np.savetxt(sio, classifier_cm_array * 100, fmt='%5.1f')
+            cm_str = sio.getvalue()
+            # Get fixed-size classname for each idx
+            idx_to_classname = {v:k for k,v in classname_to_idx.items()}
+            classname_list = [idx_to_classname[idx] for idx in sorted(classname_to_idx.values())]
+            classname_headers = ['{:<5}'.format(cname[:5]) for cname in classname_list]
 
-        # print formatted confusion matrix
-        print("Confusion matrix: ")
-        print(*cm_str_lines, sep='\n')
+            # Prepend class name on each line and add to the top
+            cm_str_lines = [' ' * 16 + ' '.join(classname_headers)]
+            cm_str_lines += ['{:>15}'.format(cn[:15]) + ' ' + cm_line for cn, cm_line in zip(classname_list, cm_str.splitlines())]
 
-        # Plot confusion matrix
-        # To manually add more space at bottom: plt.rcParams['figure.subplot.bottom'] = 0.1
-        # Add 0.5 to figsize for every class. For two classes, this will result in
-        # fig = plt.figure(figsize=[4,4])
-        fig = plt.figure(figsize=[3 + 0.5 * len(classname_list)] * 2)
-        vis_utils.plot_confusion_matrix(
-                        classifier_cm_array,
-                        classname_list,
-                        normalize=True,
-                        title='Confusion matrix',
-                        cmap=plt.cm.Blues,
-                        vmax=1.0,
-                        use_colorbar=True,
-                        y_label=True)
-        cm_figure_relative_filename = 'confusion_matrix.png'
-        cm_figure_filename = os.path.join(output_dir, cm_figure_relative_filename)
-        plt.tight_layout()
-        plt.savefig(cm_figure_filename)
-        plt.close(fig)
+            # print formatted confusion matrix
+            print("Confusion matrix: ")
+            print(*cm_str_lines, sep='\n')
+
+            # Plot confusion matrix
+            # To manually add more space at bottom: plt.rcParams['figure.subplot.bottom'] = 0.1
+            # Add 0.5 to figsize for every class. For two classes, this will result in
+            # fig = plt.figure(figsize=[4,4])
+            fig = plt.figure(figsize=[3 + 0.5 * len(classname_list)] * 2)
+            vis_utils.plot_confusion_matrix(
+                            classifier_cm_array,
+                            classname_list,
+                            normalize=False,
+                            title='Confusion matrix',
+                            cmap=plt.cm.Blues,
+                            vmax=1.0,
+                            use_colorbar=True,
+                            y_label=True)
+            cm_figure_relative_filename = 'confusion_matrix.png'
+            cm_figure_filename = os.path.join(output_dir, cm_figure_relative_filename)
+            plt.tight_layout()
+            plt.savefig(cm_figure_filename)
+            plt.close(fig)
 
         ##%% Render output
 
@@ -572,7 +575,7 @@ def process_batch_results(options):
         plt.ylabel('Precision')
         plt.ylim([0.0, 1.05])
         plt.xlim([0.0, 1.05])
-        t = 'Precision-Recall curve: AP={:0.2f}, P@{:0.2f}={:0.2f}'.format(
+        t = 'Precision-Recall curve: AP={:0.1%}, P@{:0.1%}={:0.1%}'.format(
                 average_precision, target_recall, precision_at_target_recall)
         plt.title(t)
         pr_figure_relative_filename = 'prec_recall.png'
@@ -669,50 +672,63 @@ def process_batch_results(options):
         image_counts = prepare_html_subpages(images_html, output_dir)
 
         # Write index.HTML
+        all_tp_count = image_counts['tp'] + image_counts['tpc'] + image_counts['tpi']
+        total_count = all_tp_count + image_counts['tn'] + image_counts['fp'] + image_counts['fn']
         index_page = """<html><body>
-        <p><strong>A sample of {} images, annotated with detections above {:.1f}% confidence.</strong></p>
+        <h2>Evaluation</h2>
 
-        True positives (tp) ({})<br/>
-        -- <a href="tpc.html">with all correct top-1 predictions (tpc)</a> ({})<br/>
-        -- <a href="tpi.html">with incorrect top-1 predictions (tpi)</a> ({})<br/>
-        -- <a href="tp.html">with ambiguous annotations</a> ({})<br/>
-        <a href="tn.html">True negatives (tn)</a> ({})<br/>
-        <a href="fp.html">False positives (fp)</a> ({})<br/>
-        <a href="fn.html">False negatives (fn)</a> ({})<br/>""".format(
-            count, confidence_threshold * 100,
-            image_counts['tp'] + image_counts['tpc'] + image_counts['tpi'],
+        <h3>Sample images</h3>
+        <p>A sample of {} images, annotated with detections above {:.1%} confidence.</p>
+        True positives (TP) ({}, {:0.1%})<br/>
+        -- <a href="tpc.html">with all correct top-1 predictions (TPC)</a> ({})<br/>
+        -- <a href="tpi.html">with one or more incorrect top-1 prediction (TPI)</a> ({})<br/>
+        -- <a href="tp.html">without classification evaluation</a> (*) ({})<br/>
+        <a href="tn.html">True negatives (TN)</a> ({}, {:0.1%})<br/>
+        <a href="fp.html">False positives (FP)</a> ({}, {:0.1%})<br/>
+        <a href="fn.html">False negatives (FN)</a> ({}, {:0.1%})<br/>
+        <p>(*) We do not evaluate the classification result of images, if the classification
+        information is missing, if the image contains
+        categories like 'empty' or 'human', or if the image has multiple classification
+        labels.</p>""".format(
+            count, confidence_threshold,
+            all_tp_count, all_tp_count/total_count,
             image_counts['tpc'],
             image_counts['tpi'],
             image_counts['tp'],
-            image_counts['tn'],
-            image_counts['fp'],
-            image_counts['fn']
+            image_counts['tn'], image_counts['tn']/total_count,
+            image_counts['fp'], image_counts['fp']/total_count,
+            image_counts['fn'], image_counts['fn']/total_count
         )
         index_page += """
-            <h5>Detection results</h5>
-            <p>At a confidence threshold of {:0.1f}%, precision={:0.2f}, recall={:0.2f}</p>
+            <h3>Detection results</h3>
+            <p>At a confidence threshold of {:0.1%}, precision={:0.1%}, recall={:0.1%}</p>
             <p><strong>Precision/recall summary for all {} images</strong></p><img src="{}"><br/>
             """.format(
-                confidence_threshold * 100, precision_at_confidence_threshold, recall_at_confidence_threshold,
+                confidence_threshold, precision_at_confidence_threshold, recall_at_confidence_threshold,
                 len(detection_results), pr_figure_relative_filename
            )
-        index_page += """
-            <h5>Classification results</h5>
-            <p>Average accuracy: {:.2%}</p>
-            <p>Confusion matrix:</p>
-            <p><img src="{}"></p>
-            <div style='font-family:monospace;display:block;'>{}</div>
-            """.format(
-                np.mean(classifier_accuracies),
-                cm_figure_relative_filename,
-                "<br>".join(cm_str_lines).replace(' ', '&nbsp;')
-            )
+        if len(classifier_accuracies) > 0:
+            index_page += """
+                <h3>Classification results</h3>
+                <p>Classification accuracy: {:.2%}<br>
+                The accuracy is computed only for images with exactly one classification label.
+                The accuracy of an image is computed as 1/(number of unique detected top-1 classes),
+                i.e. if the model detects multiple boxes with different top-1 classes, then the accuracy
+                decreases and the image is put into 'TPI'.</p>
+                <p>Confusion matrix:</p>
+                <p><img src="{}"></p>
+                <div style='font-family:monospace;display:block;'>{}</div>
+                """.format(
+                    np.mean(classifier_accuracies),
+                    cm_figure_relative_filename,
+                    "<br>".join(cm_str_lines).replace(' ', '&nbsp;')
+                )
         # If we have classification annotations, show links to each class
         if ground_truth_indexed_db:
-            index_page += "<p>Images of specific classes:</p>"
+            index_page += "<h3>Images of specific classes:</h3>"
             # Add links to all available classes
             for cname in sorted(classname_to_idx.keys()):
-                index_page += "<p><a href='class_{0}.html'>{0}</a></p>".format(cname)
+                index_page += "<a href='class_{0}.html'>{0}</a><br>".format(cname)
         index_page += "</body></html>"
         output_html_file = os.path.join(output_dir, 'index.html')
         with open(output_html_file, 'w') as f:
