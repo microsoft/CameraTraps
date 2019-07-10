@@ -27,34 +27,32 @@
 #%% Constants and imports
 
 import argparse
-import inspect
 import os
 import sys
 from enum import IntEnum
 
-import matplotlib
-matplotlib.use('agg')
-import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 from sklearn.metrics import precision_recall_curve, confusion_matrix, average_precision_score
 from tqdm import tqdm
+import matplotlib
+matplotlib.use('agg')
+import matplotlib.pyplot as plt
 
 # Assumes ai4eutils is on the python path
-#
 # https://github.com/Microsoft/ai4eutils
 from write_html_image_list import write_html_image_list
 
 # Assumes the cameratraps repo root is on the path
 import visualization.visualization_utils as vis_utils
-from data_management.cct_json_utils import CameraTrapJsonUtils
-from data_management.cct_json_utils import IndexedJsonDb
+from data_management.cct_json_utils import CameraTrapJsonUtils, IndexedJsonDb
 from api.batch_processing.postprocessing.load_api_results import load_api_results
+from ct_utils import args_to_object
 
-
-##%% Options
+#%% Options
 
 DEFAULT_NEGATIVE_CLASSES = ['empty']
-DEFAULT_UNKNOWN_CLASSES = ['unknown','unlabeled']
+DEFAULT_UNKNOWN_CLASSES = ['unknown', 'unlabeled']
 
 class PostProcessingOptions:
 
@@ -62,10 +60,11 @@ class PostProcessingOptions:
 
     detector_output_file = ''
     image_base_dir = ''
-    ground_truth_json_file = ''
     output_dir = ''
 
-    ### Options    
+    ### Options
+
+    ground_truth_json_file = ''
     
     negative_classes = DEFAULT_NEGATIVE_CLASSES
     unlabeled_classes = DEFAULT_UNKNOWN_CLASSES
@@ -76,10 +75,10 @@ class PostProcessingOptions:
     target_recall = 0.9    
 
     # Number of images to sample, -1 for "all images"
-    num_images_to_sample = 500 # -1
+    num_images_to_sample = 500  # -1
     
     # Random seed for sampling, or None
-    sample_seed = 0 # None
+    sample_seed = 0  # None
     
     viz_target_width = 800
     
@@ -132,13 +131,13 @@ def mark_detection_status(indexed_db, negative_classes=DEFAULT_NEGATIVE_CLASSES,
     
     Makes modifications in-place.
     
-    returns (nNegative,nPositive,nUnknown,nAmbiguous)
+    returns (n_negative, n_positive, n_unknown, n_ambiguous)
     """
           
-    nUnknown = 0
-    nAmbiguous = 0
-    nPositive = 0
-    nNegative = 0
+    n_unknown = 0
+    n_ambiguous = 0
+    n_positive = 0
+    n_negative = 0
  
     db = indexed_db.db
     for im in db['images']:
@@ -181,22 +180,22 @@ def mark_detection_status(indexed_db, negative_classes=DEFAULT_NEGATIVE_CLASSES,
                         image_status = DetectionStatus.DS_AMBIGUOUS
         
         if image_status == DetectionStatus.DS_NEGATIVE:
-            nNegative += 1
+            n_negative += 1
         elif image_status == DetectionStatus.DS_POSITIVE:
-            nPositive += 1
+            n_positive += 1
         elif image_status == DetectionStatus.DS_UNKNOWN:
-            nUnknown += 1
+            n_unknown += 1
         elif image_status == DetectionStatus.DS_AMBIGUOUS:
-            nAmbiguous += 1
+            n_ambiguous += 1
 
         im['_detection_status'] = image_status
         
-    return (nNegative,nPositive,nUnknown,nAmbiguous)
+    return n_negative, n_positive, n_unknown, n_ambiguous
 
 
-def render_bounding_boxes(image_base_dir,image_relative_path,
-                          display_name,boxes_and_scores,res,options=None):
-    
+def render_bounding_boxes(image_base_dir, image_relative_path, display_name, detections, res,
+                          detection_categories_map=None, options=None):
+
         if options is None:
             options = PostProcessingOptions()
             
@@ -208,18 +207,19 @@ def render_bounding_boxes(image_base_dir,image_relative_path,
         image = Image.open(stream).resize(viz_size)  # resize is to display them in this notebook or in the HTML more quickly
         """
         
-        image_full_path = os.path.join(image_base_dir,image_relative_path)
+        image_full_path = os.path.join(image_base_dir, image_relative_path)
         if not os.path.isfile(image_full_path):
             print('Warning: could not find image file {}'.format(image_full_path))
             return ''
                         
         image = vis_utils.open_image(image_full_path)
-        vis_utils.render_detection_bounding_boxes_old(boxes_and_scores, image, 
-                                                  confidence_threshold=options.confidence_threshold,
-                                                  thickness=6)
-        
         image = vis_utils.resize_image(image, options.viz_target_width)
-        
+
+        vis_utils.render_detection_bounding_boxes(detections, image,
+                                                  label_map=detection_categories_map,
+                                                  confidence_threshold=options.confidence_threshold,
+                                                  thickness=4)
+
         # Render images to a flat folder... we can use os.sep here because we've
         # already normalized paths
         sample_name = res + '_' + image_relative_path.replace(os.sep, '~')
@@ -236,7 +236,7 @@ def render_bounding_boxes(image_base_dir,image_relative_path,
         }
     
     
-def prepare_html_subpages(images_html,output_dir,options=None):
+def prepare_html_subpages(images_html, output_dir, options=None):
     """
     Write out a series of html image lists, e.g. the fp/tp/fn/tn pages.
     
@@ -276,46 +276,47 @@ def prepare_html_subpages(images_html,output_dir,options=None):
 def process_batch_results(options):
     
     ##%% Expand some options for convenience
-    
+
     output_dir = options.output_dir
     confidence_threshold = options.confidence_threshold
-    
-    
+
+
     ##%% Prepare output dir
-        
-    os.makedirs(output_dir,exist_ok=True)
-    
-    
+
+    os.makedirs(output_dir, exist_ok=True)
+
+
     ##%% Load ground truth if available
     
     ground_truth_indexed_db = None
     
     if options.ground_truth_json_file and len(options.ground_truth_json_file) > 0:
             
-        ground_truth_indexed_db = IndexedJsonDb(options.ground_truth_json_file,b_normalize_paths=True,
+        ground_truth_indexed_db = IndexedJsonDb(options.ground_truth_json_file, b_normalize_paths=True,
                                                 filename_replacements=options.ground_truth_filename_replacements)
         
         # Mark images in the ground truth as positive or negative
-        (nNegative,nPositive,nUnknown,nAmbiguous) = mark_detection_status(ground_truth_indexed_db,
-            negative_classes=options.negative_classes,unknown_classes=options.unlabeled_classes)
+        n_negative, n_positive, n_unknown, n_ambiguous = mark_detection_status(ground_truth_indexed_db,
+            negative_classes=options.negative_classes, unknown_classes=options.unlabeled_classes)
         print('Finished loading and indexing ground truth: {} negative, {} positive, {} unknown, {} ambiguous'.format(
-                nNegative,nPositive,nUnknown,nAmbiguous))
+                n_negative, n_positive, n_unknown, n_ambiguous))
     
     
     ##%% Load detection results
     
-    detection_results = load_api_results(options.detector_output_file,normalize_paths=True,
-                                         filename_replacements=options.detector_output_filename_replacements)
-    
-    # Add a column (pred_detection_label) to indicate predicted detection status
-    import numpy as np
+    detection_results, other_fields = load_api_results(options.detector_output_file,
+                                             normalize_paths=True,
+                                             filename_replacements=options.detector_output_filename_replacements)
+    detection_categories_map = other_fields['detection_categories']
+    # Add a column (pred_detection_label) to indicate predicted detection status, not separating out the classes
+
     detection_results['pred_detection_label'] = \
-        np.where(detection_results['max_confidence'] >= options.confidence_threshold,
+        np.where(detection_results['max_detection_conf'] >= options.confidence_threshold,
                  DetectionStatus.DS_POSITIVE, DetectionStatus.DS_NEGATIVE)
     
-    nPositives = sum(detection_results['pred_detection_label'] == DetectionStatus.DS_POSITIVE)
+    n_positives = sum(detection_results['pred_detection_label'] == DetectionStatus.DS_POSITIVE)
     print('Finished loading and preprocessing {} rows from detector output, predicted {} positives'.format(
-            len(detection_results),nPositives))
+            len(detection_results), n_positives))
     
     
     ##%% If we have ground truth, remove images we can't match to ground truth
@@ -325,18 +326,18 @@ def process_batch_results(options):
     
         b_match = [False] * len(detection_results)
         
-        detector_files = detection_results['image_path'].tolist()
+        detector_files = detection_results['file'].tolist()
             
-        for iFn,fn in enumerate(detector_files):
+        for i_fn, fn in enumerate(detector_files):
             
-            # assert fn in ground_truth_indexed_db.filename_to_id, 'Could not find ground truth for row {} ({})'.format(iFn,fn)
+            # assert fn in ground_truth_indexed_db.filename_to_id, 'Could not find ground truth for row {} ({})'.format(i_fn,fn)
             if fn in fn in ground_truth_indexed_db.filename_to_id:
-                b_match[iFn] = True
+                b_match[i_fn] = True
                         
-        print('Confirmed filename matches to ground truth for {} of {} files'.format(sum(b_match),len(detector_files)))
+        print('Confirmed filename matches to ground truth for {} of {} files'.format(sum(b_match), len(detector_files)))
         
         detection_results = detection_results[b_match]
-        detector_files = detection_results['image_path'].tolist()
+        detector_files = detection_results['file'].tolist()
         
         print('Trimmed detection results to {} files'.format(len(detector_files)))
         
@@ -345,7 +346,7 @@ def process_batch_results(options):
     
     images_to_visualize = detection_results
         
-    if options.num_images_to_sample > 0 and options.num_images_to_sample < len(detection_results):
+    if options.num_images_to_sample > 0 and options.num_images_to_sample <= len(detection_results):
         
         images_to_visualize = images_to_visualize.sample(options.num_images_to_sample, random_state=options.sample_seed)
     
@@ -355,7 +356,6 @@ def process_batch_results(options):
     output_html_file = ''
     
     # If we have ground truth, we'll compute precision/recall and sample tp/fp/tn/fn.
-    #
     # Otherwise we'll just visualize detections/non-detections.
         
     if ground_truth_indexed_db is not None:
@@ -363,23 +363,23 @@ def process_batch_results(options):
         ##%% Compute precision/recall
         
         # numpy array of detection probabilities
-        p_detection = detection_results['max_confidence'].values
+        p_detection = detection_results['max_detection_conf'].values
         n_detections = len(p_detection)
         
         # numpy array of bools (0.0/1.0)
-        gt_detections = np.zeros(n_detections,dtype=float)
+        gt_detections = np.zeros(n_detections, dtype=float)
         
-        for iDetection,fn in enumerate(detector_files):
+        for i_detection, fn in enumerate(detector_files):
             image_id = ground_truth_indexed_db.filename_to_id[fn]
             image = ground_truth_indexed_db.image_id_to_image[image_id]
             detection_status = image['_detection_status']
             
             if detection_status == DetectionStatus.DS_NEGATIVE:
-                gt_detections[iDetection] = 0.0
+                gt_detections[i_detection] = 0.0
             elif detection_status == DetectionStatus.DS_POSITIVE:
-                gt_detections[iDetection] = 1.0
+                gt_detections[i_detection] = 1.0
             else:
-                gt_detections[iDetection] = -1.0
+                gt_detections[i_detection] = -1.0
                 
         # Don't include ambiguous/unknown ground truth in precision/recall analysis
         b_valid_ground_truth = gt_detections >= 0.0
@@ -414,7 +414,7 @@ def process_batch_results(options):
         else:
             i_target_recall = np.argmax(b_above_target_recall)
             precision_at_target_recall = precisions[i_target_recall]
-        print('Precision at {:.2f} recall: {:.2f}'.format(target_recall,precision_at_target_recall))    
+        print('Precision at {:.2f} recall: {:.2f}'.format(target_recall, precision_at_target_recall))
         
         cm = confusion_matrix(gt_detections_pr, np.array(p_detection_pr) > confidence_threshold)
     
@@ -478,13 +478,13 @@ def process_batch_results(options):
         # i_row = 0; row = images_to_visualize.iloc[0]
         for i_row, row in tqdm(images_to_visualize.iterrows(), total=len(images_to_visualize)):
             
-            image_relative_path = row['image_path']
+            image_relative_path = row['file']
             
             # This should already have been normalized to either '/' or '\'
             
-            image_id = ground_truth_indexed_db.filename_to_id.get(image_relative_path,None)
+            image_id = ground_truth_indexed_db.filename_to_id.get(image_relative_path, None)
             if image_id is None:
-                print('Warning: couldn''t find ground truth for image {}'.format(image_relative_path))
+                print("Warning: couldn't find ground truth for image {}".format(image_relative_path))
                 continue
     
             image_info = ground_truth_indexed_db.image_id_to_image[image_id]
@@ -493,16 +493,16 @@ def process_batch_results(options):
             gt_status = image_info['_detection_status']
             
             if gt_status > DetectionStatus.DS_MAX_DEFINITIVE_VALUE:
-                print('Skipping image {}, does not have a definitive ground truth status'.format(i_row,gt_status))
+                print('Skipping image {}, does not have a definitive ground truth status'.format(i_row, gt_status))
                 continue
             
             gt_presence = bool(gt_status)
+
+            gt_class_name = CameraTrapJsonUtils.annotations_to_string(annotations,
+                                                                      ground_truth_indexed_db.cat_id_to_name)
             
-            gt_class_name = CameraTrapJsonUtils.annotationsToString(
-                    annotations,ground_truth_indexed_db.cat_id_to_name)
-            
-            max_conf = row['max_confidence']
-            boxes_and_scores = row['detections']
+            max_conf = row['max_detection_conf']
+            detections = row['detections']
         
             detected = True if max_conf > confidence_threshold else False
             
@@ -522,7 +522,8 @@ def process_batch_results(options):
             rendered_image_html_info = render_bounding_boxes(options.image_base_dir,
                                                              image_relative_path,
                                                              display_name,
-                                                             boxes_and_scores,res,options)        
+                                                             detections, res,
+                                                             detection_categories_map, options)
             
             if len(rendered_image_html_info) > 0:
                 images_html[res].append(rendered_image_html_info)
@@ -534,7 +535,7 @@ def process_batch_results(options):
         print('{} images rendered'.format(count))
             
         # Prepare the individual html image files
-        image_counts = prepare_html_subpages(images_html,output_dir)
+        image_counts = prepare_html_subpages(images_html, output_dir)
                 
         # Write index.HTML    
         index_page = """<html><body>
@@ -550,7 +551,7 @@ def process_batch_results(options):
             count, confidence_threshold * 100,
             image_counts['tp'], image_counts['tn'], image_counts['fp'], image_counts['fn'],
             confidence_threshold * 100, precision_at_confidence_threshold, recall_at_confidence_threshold,
-            len(detection_results),pr_figure_relative_filename
+            len(detection_results), pr_figure_relative_filename
         )
         output_html_file = os.path.join(output_dir, 'index.html')
         with open(output_html_file, 'w') as f:
@@ -580,11 +581,11 @@ def process_batch_results(options):
         # i_row = 0; row = images_to_visualize.iloc[0]
         for i_row, row in tqdm(images_to_visualize.iterrows(), total=len(images_to_visualize)):
             
-            image_relative_path = row['image_path']
+            image_relative_path = row['file']
             
             # This should already have been normalized to either '/' or '\'
-            max_conf = row['max_confidence']
-            boxes_and_scores = row['detections']
+            max_conf = row['max_detection_conf']
+            detections = row['detections']
             detected = True if max_conf > confidence_threshold else False
             
             if detected:
@@ -595,8 +596,9 @@ def process_batch_results(options):
             display_name = '<b>Result type</b>: {}, <b>Image</b>: {}, <b>Max conf</b>: {}'.format(
                 res, image_relative_path, max_conf)
     
-            rendered_image_html_info = render_bounding_boxes(options.image_base_dir,image_relative_path,
-                                                            display_name,boxes_and_scores,res,options)        
+            rendered_image_html_info = render_bounding_boxes(options.image_base_dir, image_relative_path,
+                                                             display_name, detections, res,
+                                                             detection_categories_map, options)
             if len(rendered_image_html_info) > 0:
                 images_html[res].append(rendered_image_html_info)
             
@@ -607,7 +609,7 @@ def process_batch_results(options):
         print('{} images rendered'.format(count))
             
         # Prepare the individual html image files
-        image_counts = prepare_html_subpages(images_html,output_dir)
+        image_counts = prepare_html_subpages(images_html, output_dir)
             
         # Write index.HTML    
         index_page = """<html><body>
@@ -640,14 +642,14 @@ if False:
     
     #%%
     
-    baseDir = r'D:\wildlife_data\bh'
+    base_dir = r'D:\wildlife_data\bh'
     options = PostProcessingOptions()
-    options.image_base_dir = baseDir
-    options.output_dir = os.path.join(baseDir,'postprocessing_filtered')
+    options.image_base_dir = base_dir
+    options.output_dir = os.path.join(base_dir, 'postprocessing_filtered')
     options.detector_output_filename_replacements = {} # {'20190430cameratraps\\':''} 
     options.ground_truth_filename_replacements = {'\\data\\blob\\':''}
-    options.detector_output_file = os.path.join(baseDir,'bh_5570_detections.filtered.csv')
-    options.ground_truth_json_file = os.path.join(baseDir,'bh.json')
+    options.detector_output_file = os.path.join(base_dir, 'bh_5570_detections.filtered.csv')
+    options.ground_truth_json_file = os.path.join(base_dir, 'bh.json')
     options.unlabeled_classes = ['human']
         
     ppresults = process_batch_results(options)        
@@ -655,50 +657,44 @@ if False:
 
 
 #%% Command-line driver
-    
-# Copy all fields from a Namespace (i.e., the output from parse_args) to an object.  
-#
-# Skips fields starting with _.  Does not check existence in the target object.
-def args_to_object(args, obj):
-    
-    for n, v in inspect.getmembers(args):
-        if not n.startswith('_'):
-            setattr(obj, n, v);
-
 
 def main():
     
-    defaultOptions = PostProcessingOptions()
+    default_options = PostProcessingOptions()
     
     parser = argparse.ArgumentParser()
-    parser.add_argument('detector_output_file', action='store', type=str, 
+    parser.add_argument('detector_output_file', action='store', type=str,
                         help='.csv file produced by the batch inference API (required)')
-    parser.add_argument('output_dir', action='store', type=str, 
+    parser.add_argument('output_dir', action='store', type=str,
                         help='Base directory for output (required)')
-    parser.add_argument('--image_base_dir', action='store', type=str, 
+
+    parser.add_argument('--image_base_dir', action='store', type=str,
                         help='Base directory for images (optional, can compute statistics without images)')
-    parser.add_argument('--ground_truth_json_file', action='store', type=str
-                        , help='Ground truth labels (optional, can render detections without ground truth)')
+    parser.add_argument('--ground_truth_json_file', action='store', type=str,
+                        help='Ground truth labels (optional, can render detections without ground truth)')
     
-    parser.add_argument('--confidence_threshold', action='store', type=float, default=defaultOptions.confidence_threshold,
+    parser.add_argument('--confidence_threshold', action='store', type=float,
+                        default=default_options.confidence_threshold,
                         help='Confidence threshold for statistics and visualization')
-    parser.add_argument('--target_recall', action='store', type=float, default=defaultOptions.target_recall,
+    parser.add_argument('--target_recall', action='store', type=float, default=default_options.target_recall,
                         help='Target recall (for statistics only)')
-    parser.add_argument('--num_images_to_sample', action='store', type=int, default=defaultOptions.num_images_to_sample,
+    parser.add_argument('--num_images_to_sample', action='store', type=int,
+                        default=default_options.num_images_to_sample,
                         help='Number of images to visualize (defaults to 500) (-1 to include all images)')
-    parser.add_argument('--viz_target_width', action='store', type=int, default=defaultOptions.viz_target_width,
+    parser.add_argument('--viz_target_width', action='store', type=int, default=default_options.viz_target_width,
                         help='Output image width')
-    parser.add_argument('--random_output_sort', action='store_true', help='Sort output randomly (defaults to sorting by filename)')
+    parser.add_argument('--random_output_sort', action='store_true',
+                        help='Sort output randomly (defaults to sorting by filename)')
     
-    if len(sys.argv[1:])==0:
+    if len(sys.argv[1:]) == 0:
         parser.print_help()
         parser.exit()
         
-    args = parser.parse_args()    
+    args = parser.parse_args()
     args.sort_html_by_filename = not args.random_output_sort
     
     options = PostProcessingOptions()
-    args_to_object(args,options)
+    args_to_object(args, options)
     
     process_batch_results(options)
 
@@ -706,5 +702,3 @@ def main():
 if __name__ == '__main__':
     
     main()
-
-
