@@ -30,7 +30,7 @@
             object-fit: cover;
         }
         .selectable .ui-selected{
-            border: 4px solid rgb(74, 209, 11);
+            border: 4px solid rgb(74, 209, 11) !important;
         }
         .selectable .classified{
             border: 3px solid darkslategray;
@@ -88,6 +88,7 @@
                 </ul>
                 TODO:
                 <ul>
+                    <li>Undo assign label</li>
                     <li>Show me images with machine prediction of specified class</li>
                     <li>Retrain classifier</li>
                     <li>t-SNE embedding visualization</li>
@@ -220,58 +221,75 @@
                             Actions
                         </div>
                         <div class="card-body">
-                            <!-- <h5 class="card-title">Stuff You Can Do</h5> -->
+                            <h5 class="card-title">Specify Images to View</h5>
                             <div>
-                                <label for="detection-confidence-threshold" style="font-weight: bold;">Detection Confidence Threshold: </label>
+                                <!-- <label for="detection-confidence-threshold" style="font-weight: bold;">Detection Confidence Threshold: </label> -->
                                 <p class="card-text" style="color:dimgray;">Modify the confidence threshold for animal detections in the displayed images.</p>
-                                <input type="range" id="detection-confidence-threshold" class="slider" min="0.50" max="0.99" value="0.85" step="0.1" style="width:80%;">
+                                <input type="range" id="detection-confidence-threshold" class="slider" min="0.50" max="0.99" value="0.85" step="0.01" style="width:80%;">
                                 <span class="slider_label"></span>
-                                <a href="#" class="btn btn-primary" style="border:none; background-color:darkslategray; width:100%; margin-bottom:100px;">Apply Detection Confidence Threshold</a>
-                            </div>
-                            <hr>
-
-                            <div>
+                                
+                                <!-- <label for="grayscale-checkbox" style="font-weight:bold; margin-top:20px;">Grayscale: </label> -->
+                                <p class="card-text" style="color:dimgray; margin-top:30px;">Specify whether to display grayscale images.</p>
                                 <input type="checkbox" id="grayscale-checkbox"> Grayscale
+
+                                <p class="card-text" style="color:dimgray; margin-top:30px;">Specify whether to view images with a given predicted class.</p>
+                                <form>
+                                    <select name="dropdown" style="width:100%;">
+                                        <option disabled>Species...</option>
+                                        <option>All Species</option>
+                                        <option>Agouti</option>
+                                        <option>Collared Peccary</option>
+                                        <option>Common Opossum</option>
+                                        <option>Ocelot</option>
+                                        <option>Paca</option>
+                                        <option>Red Brocket Deer</option>
+                                        <option>Red Squirrel</option>
+                                        <option>Spiny Rat</option>
+                                        <option>White-Nosed Coati</option>
+                                        <option>White Tailed Deer</option>
+                                    </select>
+                                </form>
+
+                                <a href="#" class="btn btn-primary" style="border:none; background-color:#737373; width:100%; margin-top:20px; margin-bottom:20px;" onclick="refreshImageDataset()">Apply</a>
                             </div>
-                            <a href="#" class="btn btn-primary" style="border:none; width:100%; margin-bottom:100px;" onclick="loadImages()">Load More Images</a>
                             <hr>
 
-                            <p class="card-text" style="color:dimgray;">Ctrl-click to select multiple images at once, or to deselect images.</p>
+                            <a href="#" class="btn btn-primary" style="border:none; background-color:#00A4EF ; width:100%; margin-top:20px; margin-bottom:20px;" onclick="loadImages()">Load More Images</a>
+                            <hr>
+
+                            <h5 class="card-title">Label Images</h5>
+                            <p class="card-text" style="color:dimgray;">Ctrl-click to select multiple images at once or to deselect images before assigning a label to them. If predicted labels are available, right-click an image to confirm its predicted label.</p>
                             <form>
                                 <select id="classification-dropdown" style="width:100%; margin-bottom:10px;">
                                     <option disabled>Species...</option>
                                     <option>Empty</option>
                                     <option>Agouti</option>
+                                    <option>Bird Spec</option>
+                                    <option>Coiban Agouti</option>
                                     <option>Collared Peccary</option>
                                     <option>Common Opossum</option>
+                                    <option>European Hare</option>
+                                    <option>Great Tinamou</option>
+                                    <option>Mouflon</option>
                                     <option>Ocelot</option>
                                     <option>Paca</option>
                                     <option>Red Brocket Deer</option>
+                                    <option>Red Deer</option>
+                                    <option>Red Fox</option>
                                     <option>Red Squirrel</option>
+                                    <option>Roe Deer</option>
                                     <option>Spiny Rat</option>
                                     <option>White-Nosed Coati</option>
                                     <option>White Tailed Deer</option>
+                                    <option>Wild Boar</option>
+                                    <option>Wood Mouse</option>
                                 </select>
                            </form>
-                           <a href="#" class="btn btn-primary" style="border:none; background-color:green; width:49%; margin-bottom:100px;" onclick="assignLabelToSelectedImages()">Assign Label</a>
-                           <a href="#" class="btn btn-primary" style="border:none; background-color:red; width:49%; margin-bottom:100px;">Undo Assign</a>
-                           <form>
-                            <select name="dropdown" style="width:100%; margin-bottom:10px;">
-                                <option disabled>Species...</option>
-                                <option>Agouti</option>
-                                <option>Collared Peccary</option>
-                                <option>Common Opossum</option>
-                                <option>Ocelot</option>
-                                <option>Paca</option>
-                                <option>Red Brocket Deer</option>
-                                <option>Red Squirrel</option>
-                                <option>Spiny Rat</option>
-                                <option>White-Nosed Coati</option>
-                                <option>White Tailed Deer</option>
-                            </select>
-                       </form>
-                       <a href="#" class="btn btn-primary" style="border:none; background-color:peru; width:100%; margin-bottom:10px;" onclick="loadImages()">Show Me</a>
-                       <a href="#" class="btn btn-primary" style="border:none; background-color:tomato; width:100%; margin-bottom:10px;">Retrain</a>
+                           <a href="#" class="btn btn-primary" style="border:none; background-color:#7FBA00; width:49%; margin-bottom:40px;" onclick="assignLabelToSelectedImages()">Assign Label</a>
+                           <a href="#" class="btn btn-primary" style="border:none; background-color:#F25022; width:49%; margin-bottom:40px;">Undo Assign</a>
+                           
+                       <!-- <a href="#" class="btn btn-primary" style="border:none; background-color:peru; width:100%; margin-bottom:10px;" onclick="loadImages()">Show Me</a> -->
+                       <a href="#" class="btn btn-primary" style="border:none; background-color:#FFB900; width:100%; margin-bottom:10px;" onclick="trainClassifier()">Train Classifier</a>
 
                         </div>
                     </div>
@@ -287,7 +305,7 @@
         // Global variables
         var detectionThresholdValue = 0.85
         var selectedImages = []; // src (filename) of images that are currently selected
-        var userLabeledImages = []; // src of images for which the user has assigned/confirmed a label
+        // var userLabeledImages = []; // src of images for which the user has assigned/confirmed a label
         var currentlyAssigning = []; // src of images to which this label is currently being assigned
         var displayedImagesInfo = {}; // info about displayed images, kevalue is src
         var displayGrayscale = false; // whether to show color or grayscale images
@@ -295,12 +313,14 @@
         document.getElementById("grayscale-checkbox").onclick = function(){
             // console.debug('UPDATING CHECKBOX VALUE')
             displayGrayscale = this.checked;
+            refreshImageDataset();
         }
 
         $(function(){
             $('.slider').on('input change', function(){
                 $(this).next($('.slider_label')).html(this.value);
-                detectionThresholdValue = this.value
+                detectionThresholdValue = this.value;
+                // console.debug(detectionThresholdValue)
             });
             $('.slider_label').each(function(){
                 var value = $(this).prev().attr('value');
@@ -313,6 +333,20 @@
             //var response = $.parseJSON(jqXHR.responseText);
             //console.log("Error in processing request: "+response.error);
         }
+
+        var refreshImageDataset = function(){
+            $.ajax({
+                type: "POST",
+                url: "http://lynxvm.southcentralus.cloudapp.azure.com:8080/refreshImageDataset",
+                contentType: "application/json",
+                data: JSON.stringify({"detection_threshold": detectionThresholdValue, "display_grayscale": displayGrayscale}),
+                success: function(data){
+                    console.debug('Successfully refreshed image dataset--ajax side');
+                    loadImages();
+                },
+                error: notifyFail
+            });
+        };
 
         var loadImages = function(){
             displayedImagesInfo = {}
@@ -386,10 +420,12 @@
             // console.debug('ALREADY LABELED:')
             // console.debug(userLabeledImages)
             for (i=0; i<selectedImages.length;i++){
-                if (!userLabeledImages.includes(selectedImages[i])){ //if selected item is not already labeled
-                    userLabeledImages.push(selectedImages[i])
-                    currentlyAssigning.push(selectedImages[i])
-                }
+                // if (!userLabeledImages.includes(selectedImages[i])){ //if selected item is not already labeled
+                //     userLabeledImages.push(selectedImages[i])
+                //     currentlyAssigning.push(selectedImages[i])
+                // }
+                // userLabeledImages.push(selectedImages[i])
+                currentlyAssigning.push(selectedImages[i])
             }
             // console.debug('CURRENTLY ASSIGNING:')
             // console.debug(currentlyAssigning)
@@ -397,12 +433,14 @@
             // mark currently selected images as classified unless they were already classified, and clear ui-selected property
             var selectedImageObjects = document.querySelectorAll(".ui-selected");
             [].forEach.call(selectedImageObjects, function(el){
-                // console.debug(el)
-                if (!el.classList.contains("classified")){
-                    el.classList.add("classified");
-                    document.getElementById(el.id+"-text").innerHTML = assignedLabelText
-                    document.getElementById(el.id+"-text").style.color = "green"
-                }
+                // if (!el.classList.contains("classified")){
+                //     el.classList.add("classified");
+                //     document.getElementById(el.id+"-text").innerHTML = assignedLabelText
+                //     document.getElementById(el.id+"-text").style.color = "green"
+                // }
+                el.classList.add("classified");
+                document.getElementById(el.id+"-text").innerHTML = assignedLabelText
+                document.getElementById(el.id+"-text").style.color = "green"
                 el.classList.remove("ui-selected");
             })
 
@@ -426,9 +464,75 @@
             // clear selectedImages list
             selectedImages = [];
         };
+
+        ////NOT IMPLEMENTED YET:
+        // var undoAssignLabelToSelectedImages = function(){
+        //     currentlyUndoing = [];
+
+        //     // console.debug('ALREADY LABELED:')
+        //     // console.debug(userLabeledImages)
+        //     for (i=0; i<selectedImages.length;i++){
+        //         // if (!userLabeledImages.includes(selectedImages[i])){ //if selected item is not already labeled
+        //         //     userLabeledImages.push(selectedImages[i])
+        //         //     currentlyAssigning.push(selectedImages[i])
+        //         // }
+        //         userLabeledImages.push(selectedImages[i])
+        //         currentlyUndoing.push(selectedImages[i])
+        //     }
+        //     // console.debug('CURRENTLY ASSIGNING:')
+        //     // console.debug(currentlyAssigning)
+
+        //     // mark currently selected images as classified unless they were already classified, and clear ui-selected property
+        //     var selectedImageObjects = document.querySelectorAll(".ui-selected");
+        //     [].forEach.call(selectedImageObjects, function(el){
+        //         // if (!el.classList.contains("classified")){
+        //         //     el.classList.add("classified");
+        //         //     document.getElementById(el.id+"-text").innerHTML = assignedLabelText
+        //         //     document.getElementById(el.id+"-text").style.color = "green"
+        //         // }
+        //         el.classList.add("classified");
+        //         document.getElementById(el.id+"-text").innerHTML = assignedLabelText
+        //         document.getElementById(el.id+"-text").style.color = "green"
+        //         el.classList.remove("ui-selected");
+        //     })
+
+        //     // make a POST request to update the database entry
+        //     var currentlyAssigningIDs = []
+        //     for (i=0; i<currentlyAssigning.length;i++){
+        //         currentlyAssigningIDs.push(displayedImagesInfo[currentlyAssigning[i]])
+        //     }
+        //     $.ajax({
+        //         type: "POST",
+        //         // url: 'http://lynxvm.southcentralus.cloudapp.azure.com:8080/loadImages',
+        //         url: "http://lynxvm.southcentralus.cloudapp.azure.com:8080/assignLabelDB",
+        //         contentType: "application/json",
+        //         data: JSON.stringify({"images": currentlyAssigningIDs, "label": assignedLabelText}),
+        //         success: function(data){
+        //             console.debug(data)
+        //         },
+        //         error: notifyFail
+        //     });
+
+        //     // clear selectedImages list
+        //     selectedImages = [];
+        // };
+
+        var trainClassifier = function(){
+            $.ajax({
+                type: "POST",
+                url: "http://lynxvm.southcentralus.cloudapp.azure.com:8080/trainClassifier",
+                contentType: "application/json",
+                data: JSON.stringify({"test": "testdata"}),
+                success: function(data){
+                    console.debug(data)
+                },
+                error: notifyFail
+            });
+        };
         
         $(document).ready(function(){
-            loadImages();
+            refreshImageDataset();
+            // loadImages();
             selectImages();
         });
 
