@@ -225,8 +225,8 @@ to
     }
 
 This concludes the code modifications. The training can be now started using the `train_image_classifier.py` file or one
-of the scripts. The easiest way to get started is by copying one of the bash scripts, e.g. `./training_scripts/train_well_inception_v4.sh`,
-and name the copy according to your dataset, e.g. `./training_scripts/train_newdataset_inception_v4.sh`. Now open the script and adjust all
+of the scripts. The easiest way to get started is by copying one of the bash scripts, e.g. `classification/training_scripts/train_well_inception_v4.sh`,
+and name the copy according to your dataset, e.g. `classification/training_scripts/train_newdataset_inception_v4.sh`. Now open the script and adjust all
 the variables at the top. In particular,
 
 - Assign `DATASET_NAME` the name of the dataset as used in `classification/datasets/dataset_factory.py`, we called it
@@ -241,13 +241,13 @@ The provided script trains first only the last layer, executes one evaluation ru
 network, and then runs evaluation again. If everything goes well, the final top-1 and top-5 accuracy should be reported
 at the end.
 
-NOTE: It appears that there is a bug in the tf-slim code, which manifests in a significantly lower accuracy, e.g., 10% lower than expected. If you experiences issues with low accuracy values, try the following fix. After the training is finished, locate the created log directory, change the variable `TRAIN_DIR` in `train_serengeti_inception_v4.sh` to this folder. Now re-run `bash ../training_scripts/train_serengeti_inception_v4.sh`. The tensorflow training will recognize the existing checkpoints, read the model, and write out a new bug-free model.
+NOTE: It appears that there is a bug in the tf-slim code, which manifests in a significantly lower accuracy, e.g., 10% lower than expected. If you experiences issues with low accuracy values, try the following fix. After the training is finished, locate the created log directory, change the variable `TRAIN_DIR` in `train_serengeti_inception_v4.sh` to this folder. Now re-run `bash ../training_scripts/train_serengeti_inception_v4.sh`. The tensorflow training will recognize the existing checkpoints, read the model, and write out a new bug-free model. Tensorflow sometimes starts the training even if `TRAIN_DIR` is incorrect. So double-check if the training continues from the latest step.
 
 
 ## Model export
 Trained models can be exported into a frozen graph, which includes all pre-processing steps and dependencies. This graph takes any image with values in the range `[0,1]` and computes the class scores. Please note that the training code generates a frozen graph as well. However, this graph does not include pre-processing and hence the correct input to this model depends on the architecture.
 
-The export is a two-step process of exporting the architecture as a graph definition file using `export_inference_graph_definition.py` and then fusing this architecture with the learned parameters into a frozen graph using `freeze_graph.py`. Both scripts are in the folder `CameraTraps/classification` and were adapted from the similarly named scripts provided by Tensorflow.
+The export is a two-step process of exporting the architecture as a graph definition file using `classification/export_inference_graph_definition.py` and then fusing this architecture with the learned parameters into a frozen graph using `classification/freeze_graph.py`. Both scripts were adapted from the similarly named scripts provided by Tensorflow.
 
 The scripts should be executed using `CameraTraps/classification/tf-slim` as the current working directory. The syntax of `export_inference_graph_definition.py`  is as follows:
 
@@ -286,15 +286,15 @@ An example of the usage can be also found in the tutorial as well as in `CameraT
 
 Inference on new images can be done with one of the following scripts:
 
-- `predict_image.py` performs whole-image classification, i.e. it is suitable for classifying a cropped image containing a single animal
-- `detect_and_predict_image.py` applies a generic detector to the input image(s) and classifies each detected box separately.
-- `generate_sample_predictions.py` randomly (with constant seed) selects images from the testing set and writes these along with corresponding predictions to a subfolder.
+- `classification/predict_image.py` performs whole-image classification, i.e. it is suitable for classifying a cropped image containing a single animal
+- `classification/detect_and_predict_image.py` applies a generic detector to the input image(s) and classifies each detected box separately.
+- `classification/generate_sample_predictions.py` randomly (with constant seed) selects images from the testing set and writes these along with corresponding predictions to a subfolder.
 
 All scripts use frozen graphs for prediction, so you might want to run the export as shown above first. The export allows for using the model without the training code of the `tf-slim` directory.
 
 NOTE: Please make sure you are using the frozen graph generated by our scripts, not the one that the training process automatically generates. Our scripts also add the pre-processing to the frozen graph.
 
-The single-image prediction with `predict_image.py` has the following syntax:
+The single-image prediction with `classification/predict_image.py` has the following syntax:
 
 	usage: predict_image.py [-h]
 	                        [--frozen_graph PATH_TO_CLASSIFIER_W_PREPROCESSING]
@@ -316,7 +316,7 @@ The single-image prediction with `predict_image.py` has the following syntax:
 	  --image_path IMAGE_PATH
 	                        Path to image file.
 
-The combined detected and classification script `detect_and_predict_image.py` can be used as follows:
+The combined detected and classification script `classification/detect_and_predict_image.py` can be used as follows:
 
 	usage: detect_and_predict_image.py [-h] [--classes_file CLASSES_FILE]
 	                                   [--image_dir IMAGE_DIR]
@@ -362,7 +362,7 @@ The combined detected and classification script `detect_and_predict_image.py` ca
 	                        --imageDir
 
 
-The third and last script `generate_sample_predictions.py` has the following syntax:
+The third and last script `classification/generate_sample_predictions.py` has the following syntax:
 
 	usage: generate_sample_predictions.py [-h]
 	                                      [--frozen_graph PATH_TO_CLASSIFIER_W_PREPROCESSING]
