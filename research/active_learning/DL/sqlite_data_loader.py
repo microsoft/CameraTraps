@@ -152,6 +152,8 @@ class SQLDataLoader(Dataset):
         index = self.current_set[idx]
         path = self.samples[index][0]
         target = self.samples[index][1]
+        if target is None: # to get getSingleLoader to work when using Detection.category (not Oracle) as label, and there are no labels for the current sample set
+            target = -1
         if not self.embedding:
             sample = self.loader(path)
             if self.is_training:
