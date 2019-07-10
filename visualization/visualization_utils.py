@@ -43,7 +43,7 @@ def open_image(input):
 def resize_image(image, target_width, target_height=-1):
     """
     Resizes a PIL image object to the specified width and height; does not resize
-    in place.  If either width or height are -1, resizes with aspect ratio preservation.
+    in place. If either width or height are -1, resizes with aspect ratio preservation.
     If both are -1, returns the original image (does not copy in this case).
     """
 
@@ -201,7 +201,7 @@ def render_detection_bounding_boxes(detections, image,
 
     display_boxes = []
     display_strs = []  # list of lists, one list of strings for each bounding box (to accommodate multiple labels)
-    classes = []
+    classes = []  # for color selection
 
     for detection in detections:
 
@@ -305,7 +305,7 @@ def draw_bounding_box_on_image(image,
                                xmin,
                                ymax,
                                xmax,
-                               clss,
+                               clss=None,
                                thickness=4,
                                display_str_list=(),
                                use_normalized_coordinates=True):
@@ -322,7 +322,7 @@ def draw_bounding_box_on_image(image,
 
     Args:
       image: a PIL.Image object.
-      ymin: ymin of bounding box.
+      ymin: ymin of bounding box - upper left.
       xmin: xmin of bounding box.
       ymax: ymax of bounding box.
       xmax: xmax of bounding box.
@@ -334,8 +334,10 @@ def draw_bounding_box_on_image(image,
         ymin, xmin, ymax, xmax as relative to the image.  Otherwise treat
         coordinates as absolute.
     """
-
-    color = COLORS[int(clss) % len(COLORS)]
+    if clss is None:
+        color = COLORS[1]
+    else:
+        color = COLORS[int(clss) % len(COLORS)]
 
     draw = ImageDraw.Draw(image)
     im_width, im_height = image.size

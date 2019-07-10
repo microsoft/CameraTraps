@@ -51,7 +51,7 @@ class DbVizOptions:
 
 # Translate the file name in an image entry in the json database to a path, possibly doing
 # some manipulation of path separators
-def imageFilenameToPath(image_file_name, image_base_dir, pathsep_replacement=''):
+def image_filename_to_path(image_file_name, image_base_dir, pathsep_replacement=''):
     
     if len(pathsep_replacement) > 0:
         image_file_name = os.path.normpath(image_file_name).replace(os.pathsep,pathsep_replacement)        
@@ -60,12 +60,16 @@ def imageFilenameToPath(image_file_name, image_base_dir, pathsep_replacement='')
 
 #%% Core functions
 
-def processImages(db_path,output_dir,image_base_dir,options=None,bbox_db=None):
+def process_images(db_path,output_dir,image_base_dir,options=None):
     """
     Writes images and html to output_dir to visualize the annotations in the json file
     db_path.
     
-    Returns the html filename and the bbox database.
+    db_path can also be a previously-loaded database.
+    
+    Returns the html filename and the database:
+        
+    return htmlOutputFile,image_db
     """    
     
     if options is None:
@@ -74,17 +78,21 @@ def processImages(db_path,output_dir,image_base_dir,options=None,bbox_db=None):
     print(options.__dict__)
     
     os.makedirs(os.path.join(output_dir, 'rendered_images'), exist_ok=True)
-    assert(os.path.isfile(db_path))
     assert(os.path.isdir(image_base_dir))
     
-    if bbox_db is None:
-        print('Loading the database...')
-        bbox_db = json.load(open(db_path))
+    if isinstance(db_path,str):
+        assert(os.path.isfile(db_path))    
+        print('Loading database from {}...'.format(db_path))
+        image_db = json.load(open(db_path))
         print('...done')
+    elif isinstance(db_path,dict):
+        image_db = db_path
+    else:
+        raise ValueError('Illegal dictionary or filename')
         
-    annotations = bbox_db['annotations']
-    images = bbox_db['images']
-    categories = bbox_db['categories']
+    annotations = image_db['annotations']
+    images = image_db['images']
+    categories = image_db['categories']
     
     # Optionally remove all images without bounding boxes, *before* sampling
     if options.trim_to_images_with_bboxes:
@@ -127,7 +135,7 @@ def processImages(db_path,output_dir,image_base_dir,options=None,bbox_db=None):
         
         img_id = df_img.iloc[iImage]['id']
         img_relative_path = df_img.iloc[iImage]['file_name']
-        img_path = os.path.join(image_base_dir, imageFilenameToPath(img_relative_path, image_base_dir))
+        img_path = os.path.join(image_base_dir, image_filename_to_path(img_relative_path, image_base_dir))
     
         if not os.path.exists(img_path):
             print('Image {} cannot be found'.format(img_path))
@@ -216,9 +224,9 @@ def processImages(db_path,output_dir,image_base_dir,options=None,bbox_db=None):
 
     print('Visualized {} images, wrote results to {}'.format(len(images_html),htmlOutputFile))
     
-    return htmlOutputFile,bbox_db
+    return htmlOutputFile,image_db
 
-# def processImages(...)
+# def process_images(...)
     
     
 #%% Command-line driver
@@ -226,7 +234,7 @@ def processImages(db_path,output_dir,image_base_dir,options=None,bbox_db=None):
 # Copy all fields from a Namespace (i.e., the output from parse_args) to an object.  
 #
 # Skips fields starting with _.  Does not check existence in the target object.
-def argsToObject(args, obj):
+def args_to_object(args, obj):
     
     for n, v in inspect.getmembers(args):
         if not n.startswith('_'):
@@ -262,11 +270,11 @@ def main():
     
     # Convert to an options object
     options = DbVizOptions()
-    argsToObject(args,options)
+    args_to_object(args,options)
     if options.random_sort:
         options.sort_by_filename = False
         
-    processImages(options.db_path,options.output_dir,options.image_base_dir,options) 
+    process_images(options.db_path,options.output_dir,options.image_base_dir,options) 
 
 
 if __name__ == '__main__':
@@ -287,6 +295,6 @@ if False:
     options = DbVizOptions()
     options.num_to_visualize = 100
     
-    htmlOutputFile = processImages(db_path,output_dir,image_base_dir,options)
+    htmlOutputFile = process_images(db_path,output_dir,image_base_dir,options)
     # os.startfile(htmlOutputFile)
 
