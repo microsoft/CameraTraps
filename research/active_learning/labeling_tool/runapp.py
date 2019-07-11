@@ -3,7 +3,7 @@ runapp.py
 
 Starts running a web application for labeling samples.
 '''
-import argparse, bottle, json, psycopg2, sys
+import argparse, bottle, itertools, json, psycopg2, sys
 import numpy as np
 from peewee import *
 from sklearn.neural_network import MLPClassifier
@@ -42,7 +42,7 @@ def enable_cors():
 
 def do_options():
     '''
-    This seems necessary for CORS to work
+    This seems necessary for CORS to work.
     '''
     bottle.response.status = 204
     return
@@ -61,7 +61,7 @@ if __name__ == '__main__':
     parser.add_argument('--db_name', type=str, default='missouricameratraps', help='Name of Postgres DB with target dataset tables.')
     parser.add_argument('--db_user', type=str, default=None, help='Name of user accessing Postgres DB.')
     parser.add_argument('--db_password', type=str, default=None, help='Password of user accessing Postgres DB.')
-    parser.add_argument('--db_query_limit', default=50000, type=int, help='Maximum number of records to read from the Postgres DB.')
+    parser.add_argument('--db_query_limit', default=1000, type=int, help='Maximum number of records to read from the Postgres DB.')
     args = parser.parse_args(sys.argv[1:])
 
     args.crop_dir = "/home/lynx/data/missouricameratraps/crops/" ## TODO: hard coding this for now, but should not actually need this since Image table stores paths to crops
@@ -87,30 +87,32 @@ if __name__ == '__main__':
         embedding_net = NormalizedEmbeddingNet(checkpoint['arch'], checkpoint['feat_dim'], False)
     model = torch.nn.DataParallel(embedding_net).cuda()
     model.load_state_dict(checkpoint['state_dict'])
-    
-    # ##
-    # dataset_query = Detection.select(Detection.id, Detection.category, Detection.kind, Image.file_name).join(Image, on=(Image.id == Detection.image)).order_by(fn.random()).limit(50) ## TODO: should this really be order_by random?
-    # # dataset_query = Detection.select(Detection.id, Oracle.label, Detection.kind).join(Oracle, on=(Oracle.detection == Detection.id)).order_by(fn.random()).limit(50) ## TODO: should this really be order_by random?
-    # dataset = SQLDataLoader(args.crop_dir, query=dataset_query, is_training=False, kind=DetectionKind.ModelDetection.value, num_workers=8)
-    # # print(list(dataset_query.tuples()))
-    # dataset.updateEmbedding(model)
-    # dataset.embedding_mode()
-    # dataset.train()
-    # sampler = get_AL_sampler(args.strategy)(dataset.em, dataset.getalllabels(), 12)
-    # numLabeled = len(dataset.set_indices[DetectionKind.UserDetection.value])
-    # print(numLabeled)
 
-    # kwargs = {}
-    # kwargs["N"] = 10#args.active_batch
-    # kwargs["already_selected"] = dataset.set_indices[DetectionKind.UserDetection.value]
-    # kwargs["model"] = MLPClassifier(alpha=0.0001)
+    # ---------------------------------------------------------------------- #
+    # CREATE QUEUE OF IMAGES TO LABEL
+    # ---------------------------------------------------------------------- #
+    dataset_query = (Detection
+                    .select(Detection.id, Detection.category_id, Detection.kind, Detection.category_confidence, Detection.bbox_confidence, Image.file_name, Image.grayscale)
+                    .join(Image, on=(Image.id == Detection.image))
+                    .order_by(fn.Random())
+                    .limit(args.db_query_limit))
+    dataset = SQLDataLoader(args.crop_dir, query=dataset_query, is_training=False, kind=DetectionKind.ModelDetection.value, num_workers=8)
     
-    # indices = np.random.choice(dataset.current_set, kwargs["N"], replace=False).tolist()
-    # print(indices)
+    grayscale_values = [rec[6] for rec in dataset.samples]
+    grayscale_indices = list(itertools.compress(range(len(grayscale_values)), grayscale_values))    # records with grayscale images
+    color_indices = list(set(range(len(dataset.samples))) - set(grayscale_indices))                 # records with color images
+    detection_conf_values = [rec[4] for rec in dataset.samples]
+    dataset.updateEmbedding(model)
+    dataset.embedding_mode()
+    dataset.train()
+    numLabeled = len(dataset.set_indices[DetectionKind.UserDetection.value])
+    sampler = get_AL_sampler('uniform')(dataset.em, dataset.getalllabels(), 1234)
 
-    # assert 2==3, 'break here'
+    kwargs = {}
+    kwargs["N"] = 25
+    kwargs["already_selected"] = []
+    kwargs["model"] = MLPClassifier(alpha=0.0001)
     
-
     # -------------------------------------------------------------------------------- #
     # CREATE AND SET UP A BOTTLE APPLICATION FOR THE WEB UI
     # -------------------------------------------------------------------------------- #
@@ -142,166 +144,147 @@ if __name__ == '__main__':
     
     @webUIapp.route('/<filename:re:img\/placeholder.JPG>')
     def send_placeholder_image(filename):
-        # print('trying to load image', filename)
         return bottle.static_file(filename, root='static')
     
     @webUIapp.route('/<filename:re:.*.JPG>')
     def send_image(filename):
-        # print('trying to load camtrap image', filename)
         return bottle.static_file(filename, root='../../../../../../../../../.')
     
     ## dynamic routes
-    @webUIapp.route('/refreshImageDataset', method='POST')
-    def refresh_image_dataset():
-        global dataset_query
+    @webUIapp.route('/refreshImagesToDisplay', method='POST')
+    def refresh_images_to_display():
+        '''
+        Updates which images are allowed to be sampled by the dataset sampler when the selectors for 
+        detection confidence threshold, grayscale images, or class prediction are applied in the webUI, 
+        as well as when new images are requested.
+
+        NOTE: This is done by refreshing the list of "already_selected" samples given to the dataset sampler's
+        select_batch_ function.
+        '''
+        global grayscale_indices
+        global color_indices
+        global detection_conf_values
         global dataset
-        global sampler
+        global kwargs
 
         data = bottle.request.json
-
-        # ---------------------------------------------------------------------- #
-        # CREATE QUEUE OF IMAGES TO LABEL
-        # ---------------------------------------------------------------------- #
-        dataset_query = (Detection
-                        .select(Detection.id, Detection.category, Detection.kind, Image.file_name)
-                        .join(Image, on=(Image.id == Detection.image))
-                        .where((Detection.bbox_confidence >= data['detection_threshold']) & (Image.grayscale == data['display_grayscale']))
-                        .order_by(fn.Random())
-                        .limit(args.db_query_limit))
-        # print(list(dataset_query.tuples()))
-        dataset = SQLDataLoader(args.crop_dir, query=dataset_query, is_training=False, kind=DetectionKind.ModelDetection.value, num_workers=8)
-        dataset.updateEmbedding(model)
-        dataset.embedding_mode()
-        dataset.train()
-        # sampler = get_AL_sampler(args.strategy)(dataset.em, dataset.getalllabels(), 12)
-        sampler = get_AL_sampler('uniform')(dataset.em, dataset.getalllabels(), 12)
-        print('SUCCESSFULLY REFRESHED THE IMAGE DATASET')
+        
+        indices_to_exclude = set() # records that should not be shown
+        indices_to_exclude.update(set(dataset.set_indices[DetectionKind.UserDetection.value])) # never show records that have been labeled by the user
+        indices_to_exclude.update(set(dataset.set_indices[DetectionKind.ConfirmedDetection.value])) # never show records that have been confirmed by the user        
+        detection_conf_thresh_indices = [i for i, e in enumerate(detection_conf_values) if e < float(data['detection_threshold'])] # find records below the detection confidence threshold
+        indices_to_exclude.update(set(detection_conf_thresh_indices))
+        if data['display_grayscale']:
+            indices_to_exclude.update(set(color_indices))
+        elif not data['display_grayscale']:
+            indices_to_exclude.update(set(grayscale_indices))
+        
+        kwargs["already_selected"] = indices_to_exclude
 
         bottle.response.content_type = 'application/json'
         bottle.response.status = 200
         return json.dumps(data)
-
 
     @webUIapp.route('/loadImages', method='POST')
     def load_images():
-        global dataset_query
+        '''
+        Returns a batch of images from the dataset sampler to be displayed int the webUI.
+        '''
         global dataset
         global sampler
+        global kwargs
         global indices
 
-        data = bottle.request.json
-        
-        # # TODO: return file names of crops to show from "totag" csv or database
-
-        # # ---------------------------------------------------------------------- #
-        # # CREATE QUEUE OF IMAGES TO LABEL
-        # # ---------------------------------------------------------------------- #
-        # dataset_query = (Detection
-        #                 .select(Detection.id, Detection.category, Detection.kind, Image.file_name)
-        #                 .join(Image, on=(Image.id == Detection.image))
-        #                 .where((Detection.bbox_confidence >= data['detection_threshold']) & (Image.grayscale == data['display_grayscale']))
-        #                 .limit(args.db_query_limit))
-        # dataset = SQLDataLoader(args.crop_dir, query=dataset_query, is_training=False, kind=DetectionKind.ModelDetection.value, num_workers=8)
-        # dataset.updateEmbedding(model)
-        # dataset.embedding_mode()
-        # dataset.train()
-        # sampler = get_AL_sampler(args.strategy)(dataset.em, dataset.getalllabels(), 12)
-
-        numLabeled = len(dataset.set_indices[DetectionKind.UserDetection.value])
-        
-        kwargs = {}
+        data = bottle.request.json        
         kwargs["N"] = data['num_images']
-        kwargs["already_selected"] = dataset.set_indices[DetectionKind.UserDetection.value] # TODO: change this to be those images that have already been shown to the user, rather than those the user has already labeled
-        kwargs["model"] = MLPClassifier(alpha=0.0001)
-        
-        if numLabeled < 100:
-            indices = np.random.choice(dataset.current_set, kwargs["N"], replace=False).tolist()
-        else:
-            indices = sampler.select_batch(**kwargs)
-        # print(indices)
-        # print(list(dataset_query.tuples())[indices])
-        # print([dataset_query[i] for i in indices])
-
-        # existing_image_entries = (Image
-        #                         .select(Image.id, Image.file_name, Detection.kind, Detection.category)
-        #                         .join(Detection, on=(Image.id == Detection.image))
-        #                         .where((Image.grayscale == data['display_grayscale']) & (Detection.bbox_confidence >= data['detection_threshold']))
-        #                         .order_by(fn.Random()).limit(data['num_images']))
+        indices = sampler.select_batch(**kwargs)
 
         data['display_images'] = {}
-        data['display_images']['image_ids'] = [dataset_query[i].id for i in indices]
-        # data['display_images']['image_ids'] = [ie.id for ie in dataset_query]
-        data['display_images']['image_file_names'] = [dataset_query[i].image.file_name for i in indices]
-        # data['display_images']['image_file_names'] = [ie.image.file_name for ie in dataset_query]
-        data['display_images']['detection_kinds'] = [dataset_query[i].kind for i in indices]
-        # data['display_images']['detection_kinds'] = [ie.kind for ie in dataset_query]
-        data['display_images']['detection_categories'] = [str(dataset_query[i].category) for i in indices]
-        # data['display_images']['detection_categories'] = [str(ie.category) for ie in dataset_query]
+        data['display_images']['image_ids'] = [dataset.samples[i][0] for i in indices]
+        data['display_images']['image_file_names'] = [dataset.samples[i][5] for i in indices]
+        data['display_images']['detection_kinds'] = [dataset.samples[i][2] for i in indices]
+
+        data['display_images']['detection_categories'] = []
+        for i in indices:
+            if str(dataset.samples[i][1]) == 'None':
+                data['display_images']['detection_categories'].append('None')
+            else:
+                existing_category_entries = {cat.id: cat.name for cat in Category.select()}
+                cat_name = existing_category_entries[dataset.samples[i][1]].replace("_", " ").title()
+                data['display_images']['detection_categories'].append(cat_name)
+
 
         bottle.response.content_type = 'application/json'
         bottle.response.status = 200
         return json.dumps(data)
     
-    @webUIapp.route('/assignLabelDB', method='POST')
+    @webUIapp.route('/assignLabel', method='POST')
     def assign_label():
-        global dataset_query
+        '''
+        Assigns a label to a set of images, commits this change to the PostgreSQL database,
+        and updates the dataset dataloader accordingly.
+        '''
         global dataset
         global indices
 
         data = bottle.request.json
 
-        # Get the category id for the assigned label
-        label_to_assign = data['label']
-        label_category_name = label_to_assign.lower().replace(" ", "_")
-        existing_category_entries = {cat.name: cat.id for cat in Category.select()}
-        try:
-            label_category_id = existing_category_entries[label_category_name]
-        except:
-            print('The label was not found in the database Category table')
-            raise NotImplementedError
-
         images_to_label = [im['id'] for im in data['images']]
-        
-        # Get the Detection table entries corresponding to the images being labeled 
-        ## NOTE: detection id (and image_id) are the same as image id in missouricameratraps_test
-        matching_detection_entries = (Detection
-                                .select(Detection.id, Detection.category_id)
-                                .where((Detection.id << images_to_label))) # << means IN
+        label_to_assign = data['label']
 
-        # Update the category_id, category_confidence, and kind of each Detection entry        
-        for mde in matching_detection_entries:
-            command = Detection.update(category_id=label_category_id, category_confidence=1, kind=DetectionKind.UserDetection.value).where(Detection.id == mde.id)
-            command.execute()
-        
-        # Get the dataset indices corresponding to the images being labeled
-        labeled_indices = []
-        dataset_query_indices_records = [dataset_query[i].id for i in indices]
+        # Use image ids in images_to_label to get the corresponding dataset indices
+        indices_to_label = []
+        indices_detection_ids = [dataset.samples[i][0] for i in indices]
         for im in images_to_label:
-            pos = dataset_query_indices_records.index(im)
+            pos = indices_detection_ids.index(im)
             ind = indices[pos]
-            labeled_indices.append(ind)
-        
-        # Update records in dataset
-        moveRecords(dataset, DetectionKind.ModelDetection.value, DetectionKind.UserDetection.value, labeled_indices)
-        numLabeled = len(dataset.set_indices[DetectionKind.UserDetection.value])
-        
+            indices_to_label.append(ind)
+
+        label_category_name = label_to_assign.lower().replace(" ", "_")
+        if label_category_name == 'empty':
+            # Update records in dataset dataloader but not in the PostgreSQL database
+            moveRecords(dataset, DetectionKind.ModelDetection.value, DetectionKind.UserDetection.value, indices_to_label)
+            numLabeled = len(dataset.set_indices[DetectionKind.UserDetection.value])
+        else:
+            # Get the category id for the assigned label
+            existing_category_entries = {cat.name: cat.id for cat in Category.select()}
+            try:
+                label_category_id = existing_category_entries[label_category_name]
+            except:
+                print('The label was not found in the database Category table')
+                raise NotImplementedError
+            
+            # Update entries in the PostgreSQL database
+            ## get Detection table entries corresponding to the images being labeled 
+            matching_detection_entries = (Detection
+                        .select(Detection.id, Detection.category_id)
+                        .where((Detection.id << images_to_label))) # << means IN
+            ## update category_id, category_confidence, and kind of each Detection entry in the PostgreSQL database      
+            for mde in matching_detection_entries:
+                command = Detection.update(category_id=label_category_id, category_confidence=1, kind=DetectionKind.UserDetection.value).where(Detection.id == mde.id)
+                command.execute()
+            
+            # Update records in dataset dataloader
+            for il in indices_to_label:
+                sample_data = list(dataset.samples[il])
+                sample_data[1] = label_category_id
+                sample_data[2] = DetectionKind.UserDetection.value
+                sample_data[3] = 1
+                dataset.samples[il] = tuple(sample_data)
+            moveRecords(dataset, DetectionKind.ModelDetection.value, DetectionKind.UserDetection.value, indices_to_label)
+            numLabeled = len(dataset.set_indices[DetectionKind.UserDetection.value])
+            print([len(x) for x in dataset.set_indices])
+
         bottle.response.content_type = 'application/json'
         bottle.response.status = 200
         return json.dumps(data)
+
     
     @webUIapp.route('/trainClassifier', method='POST')
     def train_classifier():
-        global dataset_query
         global dataset
-
-        dataset_query = (Detection
-                        .select(Detection.id, Detection.category, Detection.kind, Image.file_name)
-                        .join(Image, on=(Image.id == Detection.image))
-                        .order_by(fn.Random())
-                        .limit(args.db_query_limit))
-        dataset = SQLDataLoader(args.crop_dir, query=dataset_query, is_training=False, kind=DetectionKind.ModelDetection.value, num_workers=8)
-        dataset.updateEmbedding(model)
-        dataset.embedding_mode()
+        global kwargs
+        print('TRAINING CLASSIFIER')
 
         data = bottle.request.json
 
@@ -310,6 +293,32 @@ if __name__ == '__main__':
         X_train = dataset.em[dataset.current_set]
         y_train = np.asarray(dataset.getlabels())
         print(y_train)
+        kwargs["model"].fit(X_train, y_train)
+        
+        
+        # Predict on the samples that have not been labeled
+        dataset.set_kind(DetectionKind.ModelDetection.value)
+        X_pred = dataset.em[dataset.current_set]
+        y_pred = kwargs["model"].predict(X_pred)
+        print(y_pred)
+
+        # Update model predicted class in PostgreSQL database
+        for pos in range(len(y_pred)):
+            idx = dataset.current_set[pos]
+            det_id = dataset.samples[idx][0]
+            matching_detection_entries = (Detection
+                                        .select(Detection.id, Detection.category_id)
+                                        .where((Detection.id == det_id)))
+            mde = matching_detection_entries.get()
+            command = Detection.update(category_id=y_pred[pos]).where(Detection.id == mde.id)
+            command.execute()
+
+        # Update dataset dataloader
+        for pos in range(len(y_pred)):
+            idx = dataset.current_set[pos]
+            sample_data = list(dataset.samples[idx])
+            sample_data[1] = y_pred[pos]
+            dataset.samples[idx] = tuple(sample_data)
 
         bottle.response.content_type = 'application/json'
         bottle.response.status = 200
