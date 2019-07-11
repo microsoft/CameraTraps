@@ -380,7 +380,7 @@ def draw_bounding_box_on_image(image,
             display_str,
             fill='black',
             font=font)
-        text_bottom -= text_height - 2 * margin
+        text_bottom -= (text_height + 2 * margin)
 
 
 def plot_confusion_matrix(matrix, classes,
