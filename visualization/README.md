@@ -5,23 +5,7 @@ This directory contains some stand-alone Python utility scripts that you can use
 
 ## Environment setup
 
-If you are not very experienced in managing Python environments, we suggest that you start a conda virtual environment and use our visualization scripts within that environment. Conda is a package manager for Python (among other things).
-
-You can install a lightweight distribution of conda (Miniconda) at https://docs.conda.io/en/latest/miniconda.html for your OS. 
-
-At the terminal, issue this command to create a conda virtual environment (called 'cameratrap') with the required version of Python and packages:
-
-```
-conda create -n cameratrap python=3.5 pandas=0.23.4 pillow=5.3.0 azure-storage-blob=1.5.0 tqdm=4.31.1
-```
-
-When prompted, press 'y' to proceed with installing the packages and their dependencies. 
-
-If you run into an error (e.g. 'ValueError... cannot be negative') while creating the environment, make sure to update conda to version 4.5.11 or above. Check the version of conda using `conda --version`; upgrade it using `conda update conda`. 
-
-Once the environment is created, activate it using `conda activate cameratrap`. You can then run scripts such as `visualize_detector_output.py`.
-
-To exit the conda environment, issue `conda deactivate cameratrap`.
+Please see the Installation section in the main [README](README.md) for instructions on setting up the environment to run these scripts in.
 
 
 ## Visualize detector output
