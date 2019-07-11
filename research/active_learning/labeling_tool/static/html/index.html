@@ -85,12 +85,12 @@
                 <ul>
                     <li>Load more images</li>
                     <li>Assign label</li>
+                    <li>Retrain classifier</li>
                 </ul>
                 TODO:
                 <ul>
                     <li>Undo assign label</li>
                     <li>Show me images with machine prediction of specified class</li>
-                    <li>Retrain classifier</li>
                     <li>t-SNE embedding visualization</li>
                 </ul>
             </p>
@@ -250,11 +250,11 @@
                                     </select>
                                 </form>
 
-                                <a href="#" class="btn btn-primary" style="border:none; background-color:#737373; width:100%; margin-top:20px; margin-bottom:20px;" onclick="refreshImageDataset()">Apply</a>
+                                <a href="#" class="btn btn-primary" style="border:none; background-color:#737373; width:100%; margin-top:20px; margin-bottom:20px;" onclick="refreshImagesToDisplay()">Apply</a>
                             </div>
                             <hr>
 
-                            <a href="#" class="btn btn-primary" style="border:none; background-color:#00A4EF ; width:100%; margin-top:20px; margin-bottom:20px;" onclick="loadImages()">Load More Images</a>
+                            <a href="#" class="btn btn-primary" style="border:none; background-color:#00A4EF ; width:100%; margin-top:20px; margin-bottom:20px;" onclick="refreshImagesToDisplay()">Load More Images</a>
                             <hr>
 
                             <h5 class="card-title">Label Images</h5>
@@ -313,7 +313,7 @@
         document.getElementById("grayscale-checkbox").onclick = function(){
             // console.debug('UPDATING CHECKBOX VALUE')
             displayGrayscale = this.checked;
-            refreshImageDataset();
+            // refreshImagesToDisplay();
         }
 
         $(function(){
@@ -334,10 +334,10 @@
             //console.log("Error in processing request: "+response.error);
         }
 
-        var refreshImageDataset = function(){
+        var refreshImagesToDisplay = function(){
             $.ajax({
                 type: "POST",
-                url: "http://lynxvm.southcentralus.cloudapp.azure.com:8080/refreshImageDataset",
+                url: "http://lynxvm.southcentralus.cloudapp.azure.com:8080/refreshImagesToDisplay",
                 contentType: "application/json",
                 data: JSON.stringify({"detection_threshold": detectionThresholdValue, "display_grayscale": displayGrayscale}),
                 success: function(data){
@@ -360,6 +360,7 @@
                     var imgid = data['display_images']['image_ids']                     // to store information about displayed images when labeling
                     var detection_kind = data['display_images']['detection_kinds']      // if ModelDetection, then a detection category and confidence score should be available
                     var detection_cat = data['display_images']['detection_categories']  // to display current detection category
+                    console.log(detection_cat)
                     
                     // map image filenames to ids (also, image ids are currently same as detection id and image due to initialize_target_db.py)
                     for (i=0; i<img.length; i++){
@@ -451,8 +452,7 @@
             }
             $.ajax({
                 type: "POST",
-                // url: 'http://lynxvm.southcentralus.cloudapp.azure.com:8080/loadImages',
-                url: "http://lynxvm.southcentralus.cloudapp.azure.com:8080/assignLabelDB",
+                url: "http://lynxvm.southcentralus.cloudapp.azure.com:8080/assignLabel",
                 contentType: "application/json",
                 data: JSON.stringify({"images": currentlyAssigningIDs, "label": assignedLabelText}),
                 success: function(data){
@@ -465,53 +465,38 @@
             selectedImages = [];
         };
 
-        ////NOT IMPLEMENTED YET:
         // var undoAssignLabelToSelectedImages = function(){
         //     currentlyUndoing = [];
-
-        //     // console.debug('ALREADY LABELED:')
-        //     // console.debug(userLabeledImages)
         //     for (i=0; i<selectedImages.length;i++){
-        //         // if (!userLabeledImages.includes(selectedImages[i])){ //if selected item is not already labeled
-        //         //     userLabeledImages.push(selectedImages[i])
-        //         //     currentlyAssigning.push(selectedImages[i])
-        //         // }
-        //         userLabeledImages.push(selectedImages[i])
         //         currentlyUndoing.push(selectedImages[i])
         //     }
-        //     // console.debug('CURRENTLY ASSIGNING:')
-        //     // console.debug(currentlyAssigning)
-
-        //     // mark currently selected images as classified unless they were already classified, and clear ui-selected property
-        //     var selectedImageObjects = document.querySelectorAll(".ui-selected");
-        //     [].forEach.call(selectedImageObjects, function(el){
-        //         // if (!el.classList.contains("classified")){
-        //         //     el.classList.add("classified");
-        //         //     document.getElementById(el.id+"-text").innerHTML = assignedLabelText
-        //         //     document.getElementById(el.id+"-text").style.color = "green"
-        //         // }
-        //         el.classList.add("classified");
-        //         document.getElementById(el.id+"-text").innerHTML = assignedLabelText
-        //         document.getElementById(el.id+"-text").style.color = "green"
-        //         el.classList.remove("ui-selected");
-        //     })
-
+            
         //     // make a POST request to update the database entry
-        //     var currentlyAssigningIDs = []
+        //     var currentlyUnassigningIDs = []
         //     for (i=0; i<currentlyAssigning.length;i++){
-        //         currentlyAssigningIDs.push(displayedImagesInfo[currentlyAssigning[i]])
+        //         currentlyUnassigningIDs.push(displayedImagesInfo[currentlyUndoing[i]])
         //     }
         //     $.ajax({
         //         type: "POST",
-        //         // url: 'http://lynxvm.southcentralus.cloudapp.azure.com:8080/loadImages',
-        //         url: "http://lynxvm.southcentralus.cloudapp.azure.com:8080/assignLabelDB",
+        //         url: "http://lynxvm.southcentralus.cloudapp.azure.com:8080/unassignLabel",
         //         contentType: "application/json",
-        //         data: JSON.stringify({"images": currentlyAssigningIDs, "label": assignedLabelText}),
+        //         data: JSON.stringify({"images": currentlyUnassigningIDs}),
         //         success: function(data){
         //             console.debug(data)
         //         },
         //         error: notifyFail
         //     });
+
+        //     // mark currently selected images as classified unless they were already classified, and clear ui-selected property
+        //     var selectedImageObjects = document.querySelectorAll(".ui-selected");
+        //     [].forEach.call(selectedImageObjects, function(el){
+        //         el.classList.remove("classified");
+        //         document.getElementById(el.id+"-text").innerHTML = assignedLabelText
+        //         document.getElementById(el.id+"-text").style.color = "green"
+        //         el.classList.remove("ui-selected");
+        //     })
+
+            
 
         //     // clear selectedImages list
         //     selectedImages = [];
@@ -531,7 +516,7 @@
         };
         
         $(document).ready(function(){
-            refreshImageDataset();
+            refreshImagesToDisplay();
             // loadImages();
             selectImages();
         });
