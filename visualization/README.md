@@ -5,7 +5,7 @@ This directory contains some stand-alone Python utility scripts that you can use
 
 ## Environment setup
 
-Please see the Installation section in the main [README](README.md) for instructions on setting up the environment to run these scripts in.
+Please see the Installation section in the main [README](../README.md#installation) for instructions on setting up the environment to run these scripts in.
 
 
 ## Visualize detector output
