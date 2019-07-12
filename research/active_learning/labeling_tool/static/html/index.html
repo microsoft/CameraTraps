@@ -86,6 +86,7 @@
                     <li>Load more images</li>
                     <li>Assign label</li>
                     <li>Retrain classifier</li>
+                    <li>Confirm predicted label on right click</li>
                 </ul>
                 TODO:
                 <ul>
@@ -327,6 +328,31 @@
                 $(this).html(value);
             });
         })
+
+        $(function () {
+            $(".display-image").contextmenu(function(){
+                var imgobj = $(this).find('img')
+                console.debug(imgobj)
+                var imgsrc = $(this).find('img').attr("src");
+                var imgid = displayedImagesInfo[imgsrc]["id"];
+                var imgtxt = $(this).find('div').attr("id");
+                var predictedLabelText = document.getElementById(imgtxt).innerHTML;
+                if (predictedLabelText != "None"){
+                    $.ajax({
+                        type: "POST",
+                        url: "http://lynxvm.southcentralus.cloudapp.azure.com:8080/confirmPredictedLabel",
+                        contentType: "application/json",
+                        data: JSON.stringify({"image": imgid, "label": predictedLabelText}),
+                        success: function(data){
+                            imgobj[0].classList.add("classified")
+                            document.getElementById(imgtxt).style.color = "greenyellow"
+                        },
+                        error: notifyFail
+                    });
+                }
+                return false;
+            });
+        });
 
         var notifyFail = function(jqXHR, textStatus, errorThrown){
             console.debug(jqXHR.responseText)
