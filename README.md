@@ -87,20 +87,30 @@ Random things that don&rsquo;t fit in any other directory.  Currently contains a
 
 # Installation
 
-The required Python packages for running utility scripts in this repo are listed in [requirements.txt](requirements.txt). Here are some instructions for setting up a conda virtual environment with the required packages.
+The required Python packages for running utility scripts in this repo are listed in [requirements.txt](requirements.txt). Scripts in some folders including `api`,`detection` and `classification` may require additional setup.
 
-Python >= 3.5 should work. Create a virtual environment via conda called `cameratraps`, activates it, upgrade the Python package manager `pip`, and install the required packages:
+If you are not experienced in managing Python environments, we suggest that you start a conda virtual environment and use our utility scripts within that environment. Conda is a package manager for Python (among other things). You can install a lightweight distribution of conda (Miniconda) for your OS via the installers at [https://docs.conda.io/en/latest/miniconda.html](https://docs.conda.io/en/latest/miniconda.html). 
+
+At the terminal, issue the following commands to create a virtual environment via conda called `cameratraps`, activate it, upgrade the Python package manager `pip`, and install the required packages:
 ```
 conda create -n cameratraps python=3.5
 
-source activate cameratraps
+conda activate cameratraps
 
 pip install --upgrade pip
 
 pip install -r requirements.txt
 ```
 
-In some scripts, we also assume that you have the [AI for Earth utilities repo](https://github.com/Microsoft/ai4eutils) cloned and its path appended to $PYTHONPATH.
+Python >= 3.5 should work. 
+
+When prompted, press 'y' to proceed with installing the packages and their dependencies. 
+
+If you run into an error (e.g. 'ValueError... cannot be negative') while creating the environment, make sure to update conda to version 4.5.11 or above. Check the version of conda using `conda --version`; upgrade it using `conda update conda`. 
+
+To exit the conda environment, issue `conda deactivate cameratraps`.
+
+In some scripts, we also assume that you have the [AI for Earth utilities repo](https://github.com/Microsoft/ai4eutils) cloned and its path appended to PYTHONPATH.
 
 
 # Gratuitous pretty camera trap picture
