@@ -762,6 +762,7 @@ def process_batch_results(options):
 
         count = 0
 
+        has_classification_info = False
         # i_row = 0; row = images_to_visualize.iloc[0]
         for i_row, row in tqdm(images_to_visualize.iterrows(), total=len(images_to_visualize)):
 
@@ -792,6 +793,7 @@ def process_batch_results(options):
                 images_html[res].append(rendered_image_html_info)
                 for det in detections:
                     if 'classifications' in det:
+                        has_classification_info = True
                         top1_class = classification_categories_map[det['classifications'][0][0]]
                         images_html['class_{}'.format(top1_class)].append(rendered_image_html_info)
 
@@ -818,8 +820,9 @@ def process_batch_results(options):
             image_counts['non_detections'], image_counts['non_detections']/total_images
         )
 
-        index_page += "<h3>Images of detected classes</h3>"
-        index_page += "<p>The same image might appear under multiple classes if multiple species were detected.</p>"
+        if has_classification_info:
+            index_page += "<h3>Images of detected classes</h3>"
+            index_page += "<p>The same image might appear under multiple classes if multiple species were detected.</p>"
         # Add links to all available classes
         for cname in sorted(classification_categories_map.values()):
             ccount = len(images_html['class_{}'.format(cname)])
