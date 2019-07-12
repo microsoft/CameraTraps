@@ -41,9 +41,10 @@ class SQLDataLoader(Dataset):
         else:
             self.query = query
         self.refresh(self.query)
-        self.set_indices = [[],[],[],[]]
+        self.set_indices = [[],[],[],[],[]]# indices with ActiveDetection, ModelDetection, ConfirmedDetection, UserDetection, and all user labeled/confirmed detections (ConfirmedDetection U UserDetection)
         for i, s in enumerate(self.samples):
             self.set_indices[s[2]].append(i)
+        self.set_indices[4] = list(set(self.set_indices[2]).union(self.set_indices[3]))
         print([len(x) for x in self.set_indices])
         self.kind = kind
         self.current_set = self.set_indices[kind]
