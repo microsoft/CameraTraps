@@ -683,13 +683,13 @@ def process_batch_results(options):
 
         <h3>Sample images</h3>
         <p>A sample of {} images, annotated with detections above {:.1%} confidence.</p>
-        True positives (TP) ({}, {:0.1%})<br/>
+        True positives (TP) ({} or {:0.1%})<br/>
         -- <a href="tpc.html">with all correct top-1 predictions (TPC)</a> ({})<br/>
         -- <a href="tpi.html">with one or more incorrect top-1 prediction (TPI)</a> ({})<br/>
         -- <a href="tp.html">without classification evaluation</a> (*) ({})<br/>
-        <a href="tn.html">True negatives (TN)</a> ({}, {:0.1%})<br/>
-        <a href="fp.html">False positives (FP)</a> ({}, {:0.1%})<br/>
-        <a href="fn.html">False negatives (FN)</a> ({}, {:0.1%})<br/>
+        <a href="tn.html">True negatives (TN)</a> ({} or {:0.1%})<br/>
+        <a href="fp.html">False positives (FP)</a> ({} or {:0.1%})<br/>
+        <a href="fn.html">False negatives (FN)</a> ({} or {:0.1%})<br/>
         <p>(*) We do not evaluate the classification result of images, if the classification
         information is missing, if the image contains
         categories like 'empty' or 'human', or if the image has multiple classification
