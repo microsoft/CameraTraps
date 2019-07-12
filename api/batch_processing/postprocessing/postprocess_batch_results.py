@@ -546,8 +546,7 @@ def process_batch_results(options):
             # To manually add more space at bottom: plt.rcParams['figure.subplot.bottom'] = 0.1
             # Add 0.5 to figsize for every class. For two classes, this will result in
             # fig = plt.figure(figsize=[4,4])
-            fig = plt.figure(figsize=[3 + 0.5 * len(classname_list)] * 2)
-            vis_utils.plot_confusion_matrix(
+            fig = vis_utils.plot_confusion_matrix(
                             classifier_cm_array,
                             classname_list,
                             normalize=False,
@@ -558,7 +557,6 @@ def process_batch_results(options):
                             y_label=True)
             cm_figure_relative_filename = 'confusion_matrix.png'
             cm_figure_filename = os.path.join(output_dir, cm_figure_relative_filename)
-            plt.tight_layout()
             plt.savefig(cm_figure_filename)
             plt.close(fig)
 
@@ -569,19 +567,9 @@ def process_batch_results(options):
         precisions_recalls.to_csv(pr_table_filename, index=False)
 
         # Write precision/recall plot to .png file in output directory
-        step_kwargs = ({'step': 'post'})
-        fig = plt.figure()
-        plt.step(recalls, precisions, color='b', alpha=0.2,
-                 where='post')
-        plt.fill_between(recalls, precisions, alpha=0.2, color='b', **step_kwargs)
-
-        plt.xlabel('Recall')
-        plt.ylabel('Precision')
-        plt.ylim([0.0, 1.05])
-        plt.xlim([0.0, 1.05])
         t = 'Precision-Recall curve: AP={:0.1%}, P@{:0.1%}={:0.1%}'.format(
                 average_precision, target_recall, precision_at_target_recall)
-        plt.title(t)
+        fig = vis_utils.plot_precision_recall_curve(precisions, recalls, t)
         pr_figure_relative_filename = 'prec_recall.png'
         pr_figure_filename = os.path.join(output_dir, pr_figure_relative_filename)
         plt.savefig(pr_figure_filename)
