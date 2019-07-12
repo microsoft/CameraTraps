@@ -61,7 +61,7 @@ if __name__ == '__main__':
     parser.add_argument('--db_name', type=str, default='missouricameratraps', help='Name of Postgres DB with target dataset tables.')
     parser.add_argument('--db_user', type=str, default=None, help='Name of user accessing Postgres DB.')
     parser.add_argument('--db_password', type=str, default=None, help='Password of user accessing Postgres DB.')
-    parser.add_argument('--db_query_limit', default=1000, type=int, help='Maximum number of records to read from the Postgres DB.')
+    parser.add_argument('--db_query_limit', default=5000, type=int, help='Maximum number of records to read from the Postgres DB.')
     args = parser.parse_args(sys.argv[1:])
 
     args.crop_dir = "/home/lynx/data/missouricameratraps/crops/" ## TODO: hard coding this for now, but should not actually need this since Image table stores paths to crops
@@ -105,13 +105,14 @@ if __name__ == '__main__':
     dataset.updateEmbedding(model)
     dataset.embedding_mode()
     dataset.train()
-    numLabeled = len(dataset.set_indices[DetectionKind.UserDetection.value])
+    # numLabeled = len(dataset.set_indices[DetectionKind.UserDetection.value])
     sampler = get_AL_sampler('uniform')(dataset.em, dataset.getalllabels(), 1234)
 
     kwargs = {}
     kwargs["N"] = 25
     kwargs["already_selected"] = []
     kwargs["model"] = MLPClassifier(alpha=0.0001)
+    classifier_trained = False
     
     # -------------------------------------------------------------------------------- #
     # CREATE AND SET UP A BOTTLE APPLICATION FOR THE WEB UI
@@ -244,7 +245,7 @@ if __name__ == '__main__':
         if label_category_name == 'empty':
             # Update records in dataset dataloader but not in the PostgreSQL database
             moveRecords(dataset, DetectionKind.ModelDetection.value, DetectionKind.UserDetection.value, indices_to_label)
-            numLabeled = len(dataset.set_indices[DetectionKind.UserDetection.value])
+            # numLabeled = len(dataset.set_indices[DetectionKind.UserDetection.value])
         else:
             # Get the category id for the assigned label
             existing_category_entries = {cat.name: cat.id for cat in Category.select()}
@@ -272,27 +273,86 @@ if __name__ == '__main__':
                 sample_data[3] = 1
                 dataset.samples[il] = tuple(sample_data)
             moveRecords(dataset, DetectionKind.ModelDetection.value, DetectionKind.UserDetection.value, indices_to_label)
-            numLabeled = len(dataset.set_indices[DetectionKind.UserDetection.value])
+            # print(set(dataset.set_indices[4]).update(set(indices_to_label)))
+            dataset.set_indices[4] = list(set(dataset.set_indices[4]).union(set(indices_to_label))) # add the index to the set of labeled/confirmed indices
+            # numLabeled = len(dataset.set_indices[DetectionKind.UserDetection.value])
             print([len(x) for x in dataset.set_indices])
 
         bottle.response.content_type = 'application/json'
         bottle.response.status = 200
         return json.dumps(data)
 
+    @webUIapp.route('/confirmPredictedLabel', method='POST')
+    def confirm_predicted_label():
+        global dataset
+        global indices
+
+        data = bottle.request.json
+
+        image_to_label = data['image']
+        label_to_assign = data['label']
+        
+        # Use image id images_to_label to get the corresponding dataset index
+        indices_detection_ids = [dataset.samples[i][0] for i in indices]
+        pos = indices_detection_ids.index(image_to_label)
+        index_to_label = indices[pos]
+
+        label_category_name = label_to_assign.lower().replace(" ", "_")
+        if label_category_name == 'empty':
+            # Update records in dataset dataloader but not in the PostgreSQL database
+            moveRecords(dataset, DetectionKind.ModelDetection.value, DetectionKind.ConfirmedDetection.value, [index_to_label])
+            # numLabeled = len(dataset.set_indices[DetectionKind.UserDetection.value]) # userdetection + confirmed detection?
+        else:
+            # Get the category id for the assigned label
+            existing_category_entries = {cat.name: cat.id for cat in Category.select()}
+            try:
+                label_category_id = existing_category_entries[label_category_name]
+            except:
+                print('The label was not found in the database Category table')
+                raise NotImplementedError
+            
+            # Update entries in the PostgreSQL database
+            ## get Detection table entries corresponding to the images being labeled 
+            matching_detection_entries = (Detection
+                        .select(Detection.id, Detection.category_id)
+                        .where((Detection.id==image_to_label))) # << means IN
+            ## update category_id, category_confidence, and kind of each Detection entry in the PostgreSQL database      
+            mde = matching_detection_entries.get()
+            command = Detection.update(category_id=label_category_id, category_confidence=1, kind=DetectionKind.ConfirmedDetection.value).where(Detection.id == mde.id)
+            command.execute()
+            
+            # Update records in dataset dataloader
+            sample_data = list(dataset.samples[index_to_label])
+            sample_data[1] = label_category_id
+            sample_data[2] = DetectionKind.ConfirmedDetection.value
+            sample_data[3] = 1
+            dataset.samples[index_to_label] = tuple(sample_data)
+            moveRecords(dataset, DetectionKind.ModelDetection.value, DetectionKind.ConfirmedDetection.value, [index_to_label])
+            dataset.set_indices[4] = list(set(dataset.set_indices[4]).union({index_to_label})) # add the index to the set of labeled/confirmed indices
+            # numLabeled = len(dataset.set_indices[DetectionKind.UserDetection.value])
+            print([len(x) for x in dataset.set_indices])
+        
+        bottle.response.content_type = 'application/json'
+        bottle.response.status = 200
+        return json.dumps(data)
     
     @webUIapp.route('/trainClassifier', method='POST')
     def train_classifier():
         global dataset
         global kwargs
-        print('TRAINING CLASSIFIER')
+        global sampler
+        global classifier_trained
 
         data = bottle.request.json
 
         # Train on samples that have been labeled so far
-        dataset.set_kind(DetectionKind.UserDetection.value)
+        # dataset.set_kind(DetectionKind.UserDetection.value)
+        dataset.set_kind(4)
+        print(dataset.current_set)
+        print(type(dataset.current_set))
         X_train = dataset.em[dataset.current_set]
         y_train = np.asarray(dataset.getlabels())
-        print(y_train)
+        # print(y_train)
         kwargs["model"].fit(X_train, y_train)
         
         
@@ -300,7 +360,7 @@ if __name__ == '__main__':
         dataset.set_kind(DetectionKind.ModelDetection.value)
         X_pred = dataset.em[dataset.current_set]
         y_pred = kwargs["model"].predict(X_pred)
-        print(y_pred)
+        # print(y_pred)
 
         # Update model predicted class in PostgreSQL database
         for pos in range(len(y_pred)):
@@ -319,6 +379,11 @@ if __name__ == '__main__':
             sample_data = list(dataset.samples[idx])
             sample_data[1] = y_pred[pos]
             dataset.samples[idx] = tuple(sample_data)
+        
+        if not classifier_trained:
+            # once the classifier has been trained the first time, switch to AL sampling
+            classifier_trained = True
+            sampler = get_AL_sampler('confidence')(dataset.em, dataset.getalllabels(), 1234)
 
         bottle.response.content_type = 'application/json'
         bottle.response.status = 200
