@@ -10,6 +10,7 @@
 
 import numpy as np
 from PIL import Image, ImageFile, ImageFont, ImageDraw
+import matplotlib.pyplot as plt
 from data_management.annotations import annotation_constants
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
@@ -29,7 +30,7 @@ def open_image(input):
     Returns:
         an PIL image object in RGB mode
     """
-    
+
     image = Image.open(input)
     if image.mode not in ('RGBA', 'RGB'):
         raise AttributeError('Input image not in RGBA or RGB mode and cannot be processed.')
@@ -45,32 +46,32 @@ def resize_image(image, target_width, target_height=-1):
     in place. If either width or height are -1, resizes with aspect ratio preservation.
     If both are -1, returns the original image (does not copy in this case).
     """
-    
+
     # Null operation
     if target_width == -1 and target_height == -1:
-        
-        return image    
-    
+
+        return image
+
     elif target_width == -1 or target_height == -1:
-    
+
         # Aspect ratio as width over height
         aspect_ratio = image.size[0] / image.size[1]
-        
+
         if target_width != -1:
-            # ar = w / h        
+            # ar = w / h
             # h = w / ar
             target_height = int(target_width / aspect_ratio)
-            
+
         else:
             # ar = w / h
             # w = ar * h
             target_width = int(aspect_ratio * target_height)
-            
+
     resized_image = image.resize((target_width, target_height), Image.ANTIALIAS)
     return resized_image
 
 
-def render_iMerit_boxes(boxes, classes, image, 
+def render_iMerit_boxes(boxes, classes, image,
                         label_map=annotation_constants.bbox_category_id_to_name):
     """
     Renders bounding boxes and their category labels on a PIL image.
@@ -83,7 +84,7 @@ def render_iMerit_boxes(boxes, classes, image,
     Returns:
         image will be altered in place
     """
-    
+
     display_boxes = []
     display_strs = []  # list of list, one list of strings for each bounding box (to accommodate multiple labels)
     for box, clss in zip(boxes, classes):
@@ -102,26 +103,26 @@ def render_iMerit_boxes(boxes, classes, image,
     draw_bounding_boxes_on_image(image, display_boxes, classes, display_strs=display_strs)
 
 
-def render_db_bounding_boxes(boxes, classes, image, original_size=None, 
+def render_db_bounding_boxes(boxes, classes, image, original_size=None,
                              label_map=None, thickness=4):
     """
     Render bounding boxes (with class labels) on [image].  This is a wrapper for
     draw_bounding_boxes_on_image, allowing the caller to operate on a resized image
     by providing the original size of the image; bboxes will be scaled accordingly.
     """
-    
+
     display_boxes = []
     display_strs = []
-    
+
     if original_size is not None:
         image_size = original_size
     else:
         image_size = image.size
-        
+
     img_width, img_height = image_size
-    
+
     for box, clss in zip(boxes, classes):
-        
+
         x_min_abs, y_min_abs, width_abs, height_abs = box
 
         ymin = y_min_abs / img_height
@@ -137,40 +138,67 @@ def render_db_bounding_boxes(boxes, classes, image, original_size=None,
         display_strs.append([clss])
 
     display_boxes = np.array(display_boxes)
-    
-    draw_bounding_boxes_on_image(image, display_boxes, classes, display_strs=display_strs, 
+
+    draw_bounding_boxes_on_image(image, display_boxes, classes, display_strs=display_strs,
                                  thickness=thickness)
+
 
 
 def render_detection_bounding_boxes(detections, image,
                                     label_map={},
+                                    classification_label_map={},
                                     confidence_threshold=0.8, thickness=4):
     """
     Renders bounding boxes, label and confidence on an image if confidence is above the threshold.
     This is works with the output of the detector batch processing API.
+    Supports classification, if the detection contains classification results according to the detector
+    API output version 1.0. The detection label is ignored then, if the detection category is '1'.
 
     Args:
         detections: detections on the image, example content:
             {
-                "category": "2",
-                "conf": 0.996,
-                "bbox": [
-                    0.0,
-                    0.2762,
-                    0.1234,
-                    0.2458
+                [
+                    "category": "2",
+                    "conf": 0.996,
+                    "bbox": [
+                        0.0,
+                        0.2762,
+                        0.1234,
+                        0.2458
+                    ]
                 ]
             }
-            where the bbox coordinates are [x, y, width_box, height_box], (x, y) is upper left
+            where the bbox coordinates are [x, y, width_box, height_box], (x, y) is upper left.
+            Supports classification results, if *detections* have the format
+            {
+                [
+                    "category": "2",
+                    "conf": 0.996,
+                    "bbox": [
+                        0.0,
+                        0.2762,
+                        0.1234,
+                        0.2458
+                    ]
+                    "classifications": [
+                        ["3", 0.901],
+                        ["1", 0.071],
+                        ["4", 0.025]
+                    ]
+                ]
+            }
         image: PIL.Image object, output of generate_detections.
         label_map: optional, mapping the numerical label to a string name. The type of the numerical label
             (default string) needs to be consistent with the keys in label_map; no casting is carried out.
+        classification_label_map: optional, mapping of the string class labels to the actual class names.
+            The type of the numerical label (default string) needs to be consistent with the keys in
+            label_map; no casting is carried out.
         confidence_threshold: optional, threshold above which the bounding box is rendered.
         thickness: optional, rendering line thickness.
 
     image is modified in place.
     """
-    
+
     display_boxes = []
     display_strs = []  # list of lists, one list of strings for each bounding box (to accommodate multiple labels)
     classes = []  # for color selection
@@ -183,8 +211,19 @@ def render_detection_bounding_boxes(detections, image,
             display_boxes.append([y1, x1, y1 + h_box, x1 + w_box])
             clss = detection['category']
             label = label_map[clss] if clss in label_map else clss
-            displayed_label = '{}: {}%'.format(label, round(100 * score))
-            display_strs.append([displayed_label])
+            displayed_label = ['Detected as {}: {}%'.format(label, round(100 * score))]
+            if clss == '1' and 'classifications' in detection:
+                # To avoid duplicate colors with detection-only visualization offset
+                # the classification class index by the number of detection classes
+                clss = len(annotation_constants.bbox_categories) + int(detection['classifications'][0][0])
+                for classification in detection['classifications']:
+                    class_key = classification[0]
+                    if class_key in classification_label_map:
+                        class_name = classification_label_map[class_key]
+                    else:
+                        class_name = class_key
+                    displayed_label += ['{} with confidence {:5.1%}'.format(class_name, classification[1])]
+            display_strs.append(displayed_label)
             classes.append(clss)
 
     display_boxes = np.array(display_boxes)
@@ -245,7 +284,7 @@ def draw_bounding_boxes_on_image(image,
                              bounding box is that it might contain
                              multiple labels.
     """
-    
+
     boxes_shape = boxes.shape
     if not boxes_shape:
         return
@@ -326,7 +365,7 @@ def draw_bounding_box_on_image(image,
         text_bottom = top
     else:
         text_bottom = bottom + total_display_str_height
-        
+
     # Reverse list and print from bottom to top.
     for display_str in display_str_list[::-1]:
         text_width, text_height = font.getsize(display_str)
@@ -341,4 +380,99 @@ def draw_bounding_box_on_image(image,
             display_str,
             fill='black',
             font=font)
-        text_bottom -= text_height - 2 * margin
+        text_bottom -= (text_height + 2 * margin)
+
+
+def plot_confusion_matrix(matrix, classes,
+                          normalize=False,
+                          title='Confusion matrix',
+                          cmap=plt.cm.Blues,
+                         vmax=None,
+                         use_colorbar=True,
+                         y_label = True):
+
+    """
+    This function plots a confusion matrix.
+    Normalization can be applied by setting `normalize=True`.
+
+    Args:
+        matrix: confusion matrix as a numpy 2D matrix. Rows are ground-truth classes
+            and columns the predicted classes. Number of rows and columns have to match
+        classes: list of strings, which contain the corresponding class names for each row/column
+        normalize: boolean indicating whether to perform row-wise normalization to sum 1
+        title: string which will be used as title
+        cmap: pyplot colormap, default: matplotlib.pyplot.cm.Blues
+        vmax: float, specifies the value that corresponds to the largest value of the colormap.
+            If None, the maximum value in *matrix* will be used. Default: None
+        use_colorbar: boolean indicating if a colorbar should be plotted
+        y_label: boolean indicating whether class names should be plotted on the y-axis as well
+
+    Returns a reference to the figure
+    """
+
+    assert matrix.shape[0] == matrix.shape[1]
+    fig = plt.figure(figsize=[3 + 0.5 * len(classes)] * 2)
+
+    if normalize:
+        matrix = matrix.astype(np.double) / (matrix.sum(axis=1, keepdims=True) + 1e-7)
+
+    plt.imshow(matrix, interpolation='nearest', cmap=cmap, vmax=vmax)
+    plt.title(title) #,fontsize=22)
+
+    if use_colorbar:
+        plt.colorbar(fraction=0.046, pad=0.04, ticks=[0.0,0.25,0.5,0.75,1.0]).set_ticklabels(['0%','25%','50%','75%','100%'])
+
+    tick_marks = np.arange(len(classes))
+    plt.xticks(tick_marks, classes, rotation=90)
+
+    if y_label:
+        plt.yticks(tick_marks, classes)
+    else:
+        plt.yticks(tick_marks, ['' for cn in classes])
+
+    for i, j in np.ndindex(matrix.shape):
+
+        plt.text(j, i, '{:.0f}%'.format(matrix[i, j]*100),
+                 horizontalalignment="center",
+                 verticalalignment="center",
+                 color="white" if matrix[i, j] > 0.5 else "black",
+                fontsize='x-small')
+
+    if y_label:
+        plt.ylabel('Ground-truth class')
+
+    plt.xlabel('Predicted class')
+    #plt.grid(False)
+    plt.tight_layout()
+
+    return fig
+
+
+def plot_precision_recall_curve(precisions, recalls, title='Precision/Recall curve'):
+
+    """
+    Plots the precision recall curve given lists of (ordered) precision
+    and recall values
+    Args:
+        precisions: list of floats, the precision for the corresponding recall values.
+            Should have same length as *recalls*.
+        recalls: list of floats, the recall values for corresponding precision values.
+            Should have same length as *precisions*.
+        title: string that will be as as plot title
+
+    Returns a reference to the figure
+    """
+
+    step_kwargs = ({'step': 'post'})
+    fig = plt.figure()
+    plt.title(title)
+    plt.step(recalls, precisions, color='b', alpha=0.2,
+                where='post')
+    plt.fill_between(recalls, precisions, alpha=0.2, color='b', **step_kwargs)
+
+    plt.xlabel('Recall')
+    plt.ylabel('Precision')
+    plt.ylim([0.0, 1.05])
+    plt.xlim([0.0, 1.05])
+
+    return fig
