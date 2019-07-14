@@ -189,7 +189,7 @@ if __name__ == '__main__':
     @webUIapp.route('/loadImages', method='POST')
     def load_images():
         '''
-        Returns a batch of images from the dataset sampler to be displayed int the webUI.
+        Returns a batch of images from the dataset sampler to be displayed in the webUI.
         '''
         global dataset
         global sampler
@@ -213,6 +213,39 @@ if __name__ == '__main__':
                 existing_category_entries = {cat.id: cat.name for cat in Category.select()}
                 cat_name = existing_category_entries[dataset.samples[i][1]].replace("_", " ").title()
                 data['display_images']['detection_categories'].append(cat_name)
+
+
+        bottle.response.content_type = 'application/json'
+        bottle.response.status = 200
+        return json.dumps(data)
+    
+    @webUIapp.route('/loadImagesWithPrediction', method='POST')
+    def load_images():
+        '''
+        Returns a batch of images from the dataset sampler with a specified predicted class to be displayed in the webUI.
+        '''
+        global dataset
+        global sampler
+        global kwargs
+        global indices
+
+        data = bottle.request.json        
+        kwargs["N"] = data['num_images']
+        indices = sampler.select_batch(**kwargs)
+
+        # data['display_images'] = {}
+        # data['display_images']['image_ids'] = [dataset.samples[i][0] for i in indices]
+        # data['display_images']['image_file_names'] = [dataset.samples[i][5] for i in indices]
+        # data['display_images']['detection_kinds'] = [dataset.samples[i][2] for i in indices]
+
+        # data['display_images']['detection_categories'] = []
+        # for i in indices:
+        #     if str(dataset.samples[i][1]) == 'None':
+        #         data['display_images']['detection_categories'].append('None')
+        #     else:
+        #         existing_category_entries = {cat.id: cat.name for cat in Category.select()}
+        #         cat_name = existing_category_entries[dataset.samples[i][1]].replace("_", " ").title()
+        #         data['display_images']['detection_categories'].append(cat_name)
 
 
         bottle.response.content_type = 'application/json'
