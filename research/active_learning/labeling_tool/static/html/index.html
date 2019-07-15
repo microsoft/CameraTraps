@@ -81,7 +81,7 @@
         <!-- Tool Description -->
         <div class="container-fluid">
             <h1 class="mt-4">Species Classification Fine-Tuning Tool</h1>
-            <p>Working:
+            <!-- <p>Working:
                 <ul>
                     <li>Load more images</li>
                     <li>Assign label</li>
@@ -94,7 +94,7 @@
                     <li>Show me images with machine prediction of specified class</li>
                     <li>t-SNE embedding visualization</li>
                 </ul>
-            </p>
+            </p> -->
         </div>
 
         <!-- Tool Area -->
@@ -340,7 +340,7 @@
                 if (predictedLabelText != "None"){
                     $.ajax({
                         type: "POST",
-                        url: "http://lynxvm.southcentralus.cloudapp.azure.com:8080/confirmPredictedLabel",
+                        url: "http://localhost:8000/confirmPredictedLabel",//"http://lynxvm.southcentralus.cloudapp.azure.com:8080/confirmPredictedLabel",
                         contentType: "application/json",
                         data: JSON.stringify({"image": imgid, "label": predictedLabelText}),
                         success: function(data){
@@ -363,7 +363,7 @@
         var refreshImagesToDisplay = function(){
             $.ajax({
                 type: "POST",
-                url: "http://lynxvm.southcentralus.cloudapp.azure.com:8080/refreshImagesToDisplay",
+                url: "http://localhost:8000/refreshImagesToDisplay",//"http://lynxvm.southcentralus.cloudapp.azure.com:8080/refreshImagesToDisplay",
                 contentType: "application/json",
                 data: JSON.stringify({"detection_threshold": detectionThresholdValue, "display_grayscale": displayGrayscale}),
                 success: function(data){
@@ -378,7 +378,7 @@
             displayedImagesInfo = {}
             $.ajax({
                 type: "POST",
-                url: "http://lynxvm.southcentralus.cloudapp.azure.com:8080/loadImages",
+                url: "http://localhost:8000/loadImages",//"http://lynxvm.southcentralus.cloudapp.azure.com:8080/loadImages",
                 contentType: "application/json",
                 data: JSON.stringify({"num_images": 25, "detection_threshold": detectionThresholdValue, "display_grayscale": displayGrayscale}), //what data do we need to send to the ? server with this request? maybe number of images to load?
                 success: function(data){
@@ -478,7 +478,7 @@
             }
             $.ajax({
                 type: "POST",
-                url: "http://lynxvm.southcentralus.cloudapp.azure.com:8080/assignLabel",
+                url: "http://localhost:8000/assignLabel",//"http://lynxvm.southcentralus.cloudapp.azure.com:8080/assignLabel",
                 contentType: "application/json",
                 data: JSON.stringify({"images": currentlyAssigningIDs, "label": assignedLabelText}),
                 success: function(data){
@@ -531,7 +531,7 @@
         var trainClassifier = function(){
             $.ajax({
                 type: "POST",
-                url: "http://lynxvm.southcentralus.cloudapp.azure.com:8080/trainClassifier",
+                url: "http://localhost:8000/trainClassifier",//"http://lynxvm.southcentralus.cloudapp.azure.com:8080/trainClassifier",
                 contentType: "application/json",
                 data: JSON.stringify({"test": "testdata"}),
                 success: function(data){
