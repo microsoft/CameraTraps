@@ -31,9 +31,9 @@ def open_image(input):
     """
     
     image = Image.open(input)
-    if image.mode not in ('RGBA', 'RGB'):
-        raise AttributeError('Input image not in RGBA or RGB mode and cannot be processed.')
-    if image.mode == 'RGBA':
+    if image.mode not in ('RGBA', 'RGB', 'L'):
+        raise AttributeError('Input image {} uses unsupported mode {}'.format(input,image.mode))
+    if image.mode == 'RGBA' or image.mode == 'L':
         # PIL.Image.convert() returns a converted copy of this image
         image = image.convert(mode='RGB')
     return image
