@@ -55,8 +55,8 @@ def moveRecords(dataset, srcKind, destKind, rList):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Run a web user interface for labeling camera trap images for classification.')
-    parser.add_argument('--host', type=str, default='localhost', help='Web server host to bind to.')## default='0.0.0.0', help='Web server host to bind to.')
-    parser.add_argument('--port', type=int, default=8008, help='Web server port port to listen on.')
+    parser.add_argument('--host', type=str, default='0.0.0.0', help='Web server host to bind to.')## default='localhost', help='Web server host to bind to.')
+    parser.add_argument('--port', type=int, default=8080, help='Web server port port to listen on.')
     parser.add_argument('--verbose', type=bool, default=True, help='Enable verbose debugging.')
     parser.add_argument('--db_name', type=str, default='missouricameratraps', help='Name of Postgres DB with target dataset tables.')
     parser.add_argument('--db_user', type=str, default=None, help='Name of user accessing Postgres DB.')
@@ -180,6 +180,16 @@ if __name__ == '__main__':
         elif not data['display_grayscale']:
             indices_to_exclude.update(set(grayscale_indices))
         
+        if data['display_class'] == 'All Species':
+            pass
+        else:
+            cat_name = data['display_class'].lower().replace(' ', '_')
+            existing_category_entries = {cat.name: cat.id for cat in Category.select()}
+            cat_id = existing_category_entries[cat_name]
+            dataset_class_labels = [dataset.samples[i][1] for i in range(len(dataset.samples))]
+            other_classes = [i for i, cl in enumerate(dataset_class_labels) if cl!=cat_id]
+            indices_to_exclude.update(set(other_classes))
+            
         kwargs["already_selected"] = indices_to_exclude
 
         bottle.response.content_type = 'application/json'
@@ -375,6 +385,8 @@ if __name__ == '__main__':
         global kwargs
         global sampler
         global classifier_trained
+        global X_pred
+        global y_pred
 
         data = bottle.request.json
 
