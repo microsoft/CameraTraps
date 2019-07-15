@@ -219,46 +219,12 @@
                 <div class="col-xl-3">
                     <div class="card">
                         <div class="card-header">
-                            Actions
+                            Label Images
                         </div>
                         <div class="card-body">
-                            <h5 class="card-title">Specify Images to View</h5>
-                            <div>
-                                <!-- <label for="detection-confidence-threshold" style="font-weight: bold;">Detection Confidence Threshold: </label> -->
-                                <p class="card-text" style="color:dimgray;">Modify the confidence threshold for animal detections in the displayed images.</p>
-                                <input type="range" id="detection-confidence-threshold" class="slider" min="0.50" max="0.99" value="0.85" step="0.01" style="width:80%;">
-                                <span class="slider_label"></span>
-                                
-                                <!-- <label for="grayscale-checkbox" style="font-weight:bold; margin-top:20px;">Grayscale: </label> -->
-                                <p class="card-text" style="color:dimgray; margin-top:30px;">Specify whether to display grayscale images.</p>
-                                <input type="checkbox" id="grayscale-checkbox"> Grayscale
-
-                                <p class="card-text" style="color:dimgray; margin-top:30px;">Specify whether to view images with a given predicted class.</p>
-                                <form>
-                                    <select name="dropdown" style="width:100%;">
-                                        <option disabled>Species...</option>
-                                        <option>All Species</option>
-                                        <option>Agouti</option>
-                                        <option>Collared Peccary</option>
-                                        <option>Common Opossum</option>
-                                        <option>Ocelot</option>
-                                        <option>Paca</option>
-                                        <option>Red Brocket Deer</option>
-                                        <option>Red Squirrel</option>
-                                        <option>Spiny Rat</option>
-                                        <option>White-Nosed Coati</option>
-                                        <option>White Tailed Deer</option>
-                                    </select>
-                                </form>
-
-                                <a href="#" class="btn btn-primary" style="border:none; background-color:#737373; width:100%; margin-top:20px; margin-bottom:20px;" onclick="refreshImagesToDisplay()">Apply</a>
-                            </div>
+                            <a href="#" class="btn btn-primary" style="border:none; background-color:#00A4EF ; width:100%; margin-top:20px; margin-bottom:20px;" onclick="loadImages()">Load More Images</a>
                             <hr>
 
-                            <a href="#" class="btn btn-primary" style="border:none; background-color:#00A4EF ; width:100%; margin-top:20px; margin-bottom:20px;" onclick="refreshImagesToDisplay()">Load More Images</a>
-                            <hr>
-
-                            <h5 class="card-title">Label Images</h5>
                             <p class="card-text" style="color:dimgray;">Ctrl-click to select multiple images at once or to deselect images before assigning a label to them. If predicted labels are available, right-click an image to confirm its predicted label.</p>
                             <form>
                                 <select id="classification-dropdown" style="width:100%; margin-bottom:10px;">
@@ -293,6 +259,49 @@
                        <a href="#" class="btn btn-primary" style="border:none; background-color:#FFB900; width:100%; margin-bottom:10px;" onclick="trainClassifier()">Train Classifier</a>
 
                         </div>
+                        <div class="card-header">
+                            Specify Images to View
+                        </div>
+                        <div class="card-body">
+                            <!-- <label for="detection-confidence-threshold" style="font-weight: bold;">Detection Confidence Threshold: </label> -->
+                            <p class="card-text" style="color:dimgray;">Modify the confidence threshold for animal detections in the displayed images.</p>
+                            <input type="range" id="detection-confidence-threshold" class="slider" min="0.50" max="0.99" value="0.85" step="0.01" style="width:80%;">
+                            <span class="slider_label"></span>
+
+                            <!-- <label for="grayscale-checkbox" style="font-weight:bold; margin-top:20px;">Grayscale: </label> -->
+                            <p class="card-text" style="color:dimgray; margin-top:30px;">Specify whether to display grayscale images.</p>
+                            <input type="checkbox" id="grayscale-checkbox"> Grayscale
+
+                            <p class="card-text" style="color:dimgray; margin-top:30px;">Specify whether to view images with a given predicted class.</p>
+                            <form>
+                                <select id="prediction-dropdown" name="dropdown" style="width:100%;">
+                                    <option disabled>Species...</option>
+                                    <option>All Species</option>
+                                    <option>Agouti</option>
+                                    <option>Bird Spec</option>
+                                    <option>Coiban Agouti</option>
+                                    <option>Collared Peccary</option>
+                                    <option>Common Opossum</option>
+                                    <option>European Hare</option>
+                                    <option>Great Tinamou</option>
+                                    <option>Mouflon</option>
+                                    <option>Ocelot</option>
+                                    <option>Paca</option>
+                                    <option>Red Brocket Deer</option>
+                                    <option>Red Deer</option>
+                                    <option>Red Fox</option>
+                                    <option>Red Squirrel</option>
+                                    <option>Roe Deer</option>
+                                    <option>Spiny Rat</option>
+                                    <option>White-Nosed Coati</option>
+                                    <option>White Tailed Deer</option>
+                                    <option>Wild Boar</option>
+                                    <option>Wood Mouse</option>
+                                </select>
+                            </form>
+
+                            <a href="#" class="btn btn-primary" style="border:none; background-color:#737373; width:100%; margin-top:20px; margin-bottom:20px;" onclick="refreshImagesToDisplay()">Apply</a>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -310,6 +319,7 @@
         var currentlyAssigning = []; // src of images to which this label is currently being assigned
         var displayedImagesInfo = {}; // info about displayed images, kevalue is src
         var displayGrayscale = false; // whether to show color or grayscale images
+        var displayClass = ''
 
         document.getElementById("grayscale-checkbox").onclick = function(){
             // console.debug('UPDATING CHECKBOX VALUE')
@@ -340,7 +350,7 @@
                 if (predictedLabelText != "None"){
                     $.ajax({
                         type: "POST",
-                        url: "http://localhost:8000/confirmPredictedLabel",//"http://lynxvm.southcentralus.cloudapp.azure.com:8080/confirmPredictedLabel",
+                        url: "http://lynxvm.southcentralus.cloudapp.azure.com:8080/confirmPredictedLabel",//"http://localhost:8000/confirmPredictedLabel",
                         contentType: "application/json",
                         data: JSON.stringify({"image": imgid, "label": predictedLabelText}),
                         success: function(data){
@@ -361,24 +371,26 @@
         }
 
         var refreshImagesToDisplay = function(){
+            var requestedLabelText = $("#prediction-dropdown option:selected").text(); //label in the classification dropdown
             $.ajax({
                 type: "POST",
-                url: "http://localhost:8000/refreshImagesToDisplay",//"http://lynxvm.southcentralus.cloudapp.azure.com:8080/refreshImagesToDisplay",
+                url: "http://lynxvm.southcentralus.cloudapp.azure.com:8080/refreshImagesToDisplay",//"http://localhost:8000/refreshImagesToDisplay",
                 contentType: "application/json",
-                data: JSON.stringify({"detection_threshold": detectionThresholdValue, "display_grayscale": displayGrayscale}),
+                data: JSON.stringify({"detection_threshold": detectionThresholdValue, "display_grayscale": displayGrayscale, "display_class": requestedLabelText}),
                 success: function(data){
                     console.debug('Successfully refreshed image dataset--ajax side');
-                    loadImages();
+                    // loadImages();
                 },
                 error: notifyFail
             });
         };
 
         var loadImages = function(){
+            refreshImagesToDisplay();
             displayedImagesInfo = {}
             $.ajax({
                 type: "POST",
-                url: "http://localhost:8000/loadImages",//"http://lynxvm.southcentralus.cloudapp.azure.com:8080/loadImages",
+                url: "http://lynxvm.southcentralus.cloudapp.azure.com:8080/loadImages",//"http://localhost:8000/loadImages",
                 contentType: "application/json",
                 data: JSON.stringify({"num_images": 25, "detection_threshold": detectionThresholdValue, "display_grayscale": displayGrayscale}), //what data do we need to send to the ? server with this request? maybe number of images to load?
                 success: function(data){
@@ -478,7 +490,7 @@
             }
             $.ajax({
                 type: "POST",
-                url: "http://localhost:8000/assignLabel",//"http://lynxvm.southcentralus.cloudapp.azure.com:8080/assignLabel",
+                url: "http://lynxvm.southcentralus.cloudapp.azure.com:8080/assignLabel",//"http://localhost:8000/assignLabel",
                 contentType: "application/json",
                 data: JSON.stringify({"images": currentlyAssigningIDs, "label": assignedLabelText}),
                 success: function(data){
@@ -531,11 +543,11 @@
         var trainClassifier = function(){
             $.ajax({
                 type: "POST",
-                url: "http://localhost:8000/trainClassifier",//"http://lynxvm.southcentralus.cloudapp.azure.com:8080/trainClassifier",
+                url: "http://lynxvm.southcentralus.cloudapp.azure.com:8080/trainClassifier",//"http://localhost:8000/trainClassifier",
                 contentType: "application/json",
                 data: JSON.stringify({"test": "testdata"}),
                 success: function(data){
-                    console.debug(data)
+                    alert('Finished training species classifier. You can now load more images with newly predicted labels.')
                 },
                 error: notifyFail
             });
@@ -543,7 +555,7 @@
         
         $(document).ready(function(){
             refreshImagesToDisplay();
-            // loadImages();
+            loadImages();
             selectImages();
         });
 
