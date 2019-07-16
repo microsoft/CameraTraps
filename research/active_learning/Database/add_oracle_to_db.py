@@ -1,7 +1,7 @@
 '''
 add_oracle_to_db.py
 
-Uses .json file (from crop_images_from_batch_api_detection.py) to initialize and populate Oracle table in a PostgreSQL database.
+Uses crops.json file (from crop_images_from_batch_api_detection.py) and COCO .json file to initialize and populate Oracle table in a PostgreSQL database.
 
 '''
 
@@ -12,35 +12,19 @@ from DB_models import *
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--crop_dir', type=str, required=True,
-                        help='Path to a directory containing cropped images.')
-    parser.add_argument('--crop_json', type=str, required=True,
-                        help='Path to a .json file with information about crops in crop_dir.')
-    parser.add_argument('--image_dir', type=str,
-                        help='Path to root directory containing original images from which crops were generated.')
-    parser.add_argument('--db_name', default='missouricameratraps', type=str,
-                        help='Name of the output Postgres DB.')
-    parser.add_argument('--db_user', default='new_user', type=str,
-                        help='Name of the user accessing the Postgres DB.')
-    parser.add_argument('--db_password', default='new_user_password', type=str,
-                        help='Password of the user accessing the Postgres DB.')
+    parser.add_argument('--crop_json', type=str, required=True, help='Path to a .json file with information about crops in crop_dir.')
+    parser.add_argument('--coco_json', type=str, required=True, help='Path to .json file with COCO formatted information about detections.')
+    parser.add_argument('--img_base', type=str, help='Path to add as prefix to filenames in COCO json.')
+    parser.add_argument('--class_list', type=str, required=True, help='Path to .txt file containing a list of classes in the dataset.')
+    parser.add_argument('--db_name', default='missouricameratraps', type=str, help='Name of the output Postgres DB.')
+    parser.add_argument('--db_user', default='new_user', type=str, help='Name of the user accessing the Postgres DB.')
+    parser.add_argument('--db_password', default='new_user_password', type=str, help='Password of the user accessing the Postgres DB.')
     args = parser.parse_args()
 
     crop_json = json.load(open(args.crop_json, 'r'))
-    sample_key = list(crop_json.keys())[0]
-    print(crop_json[sample_key].keys())
-    print(crop_json[sample_key]['source_file_name'])
-    print(args.crop_dir)
 
-    # Get class names from images root directory
-    class_folders = os.listdir(args.image_dir)
-    class_names_list = []
-    for cf in class_folders:
-        class_name = ''.join([i for i in cf if not i.isdigit()]).lower() # strip numbers
-        class_name = class_name.lstrip(string.punctuation) # strip leading punctuation
-        # class_name = class_name.replace('_', ' ') # replace underscore between words with space
-        class_names_list.append(class_name)
-    class_names_list = sorted(class_names_list)
+    # Get class names from .txt list
+    class_list = ['empty'] + [cname.lower().replace(' ', '_') for cname in open(args.class_list, 'r').read().splitlines()]
 
     # Initialize Oracle table
     DB_NAME = args.db_name
@@ -50,6 +34,18 @@ def main():
     db_proxy.initialize(target_db)
     target_db.create_tables([Oracle])
 
+    # Map filenames to classes (NOTE: we assume a single image does not contain more than one class)
+    coco_json = json.load(open(args.coco_json, 'r'))
+    coco_categories = {cat['id']:cat['name'] for cat in coco_json['categories']}
+    coco_imgid_to_fn = {im['id']: os.path.join(args.img_base,  im['file_name'].replace('\\', '/')) for im in coco_json['images']}
+    coco_imgfn_to_catname = {}
+    for ann in coco_json['annotations']:
+        ann_imgid = ann['image_id']
+        ann_imgfn = coco_imgid_to_fn[ann_imgid]
+        ann_catid = ann['category_id']
+        ann_catname = coco_categories[ann_catid]
+        coco_imgfn_to_catname[ann_imgfn] = ann_catname
+
     # For each detection, use source image path to get class
     counter = 0
     timer = time.time()
@@ -57,15 +53,7 @@ def main():
         counter += 1
         crop_info = crop_json[crop]
         source_image_file_name = crop_info['source_file_name']
-        crop_class = None
-        for cn in class_names_list:
-            cn_present = source_image_file_name.lower().find(cn) >= 0
-            if cn_present:
-                crop_class = cn
-                break
-        if crop_class is None:
-            print('Class not identified for crop %s, from image %s'%(crop, source_image_file_name))
-            continue
+        crop_class = coco_imgfn_to_catname[source_image_file_name]
         existing_cat_entries = Category.select().where(Category.name == crop_class)
         try:
             existing_category_entry = existing_cat_entries.get()
