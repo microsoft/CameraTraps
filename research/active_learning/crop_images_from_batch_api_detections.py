@@ -43,6 +43,8 @@ def main():
         for row in data:
             counter += 1
             imgfile = row[0]
+            if 'p158' not in imgfile: # this is for Washington Urban-Wildland Carnivore Project in emammal (Robert Long)
+                continue
             maxconf = float(row[1])
             detections = ast.literal_eval(row[2])
 
@@ -56,9 +58,17 @@ def main():
             imggrayscale = bool(np.all(abs(np.mean(img[:,:,0]) - np.mean(img[:,:,1])) < 1) & (abs(np.mean(img[:,:,1]) - np.mean(img[:,:,2])) < 1))
 
             # get info about sequence the source image belongs to from path and directory
-            imgframenum = int(os.path.basename(imgfile).split('.JPG')[0].split('_')[-1])
-            imgseqid = os.path.split(os.path.dirname(imgfile))[-1]
-            imgseqnumframes = len([name for name in os.listdir(os.path.dirname(imgfile)) if os.path.isfile(os.path.join(os.path.dirname(imgfile), name))])
+            ## missouricameratraps:
+            # imgframenum = int(os.path.basename(imgfile).split('.JPG')[0].split('_')[-1])# for missouri camera traps
+            # imgseqid = os.path.split(os.path.dirname(imgfile))[-1]# for missouri camera traps
+            # imgseqnumframes = len([name for name in os.listdir(os.path.dirname(imgfile)) if os.path.isfile(os.path.join(os.path.dirname(imgfile), name))])# for missouri camera traps
+            
+            ## emammal:
+            imgframenum = int(os.path.basename(imgfile).split('.JPG')[0].split('i')[-1])# for emammal
+            imgseqid = int(os.path.basename(imgfile).split('.JPG')[0].split('s')[-1].split('i')[0])# for emammal
+            imgseqid_prefix = os.path.basename(imgfile).split('.JPG')[0].split('i')[0]# for emammal
+            imgseqnumframes = len([name for name in os.listdir(os.path.dirname(imgfile)) if (os.path.isfile(os.path.join(os.path.dirname(imgfile), name)) & (imgseqid_prefix in name))])# for missouri camera traps
+
             
             for box_id in range(len(detections)):
                 if detections[box_id][5] != 1: # something besides an animal was detected (vehicle, person)
@@ -75,7 +85,7 @@ def main():
                 detection_padded_cropped_img = img[crop_box_pix[0]:crop_box_pix[2], crop_box_pix[1]:crop_box_pix[3]]
                 crop_data = []
                 crop_id = str(uuid.uuid4())
-                crop_fn = args.crop_dir + crop_id + '.JPG'
+                crop_fn = os.path.join(args.crop_dir, crop_id + '.JPG')
                 crop_rel_size = (crop_box_pix[2] - crop_box_pix[0])*(crop_box_pix[3] - crop_box_pix[1])/(imgwidth*imgheight)
                 
                 try:
@@ -95,7 +105,7 @@ def main():
                 print('Processed crops for %d out of %d images in %0.2f seconds'%(counter, num_images, time.time() - timer))
 
             
-    with open(args.crop_dir+'crops.json', 'w') as outfile:
+    with open(os.path.join(args.crop_dir, 'crops.json'), 'w') as outfile:
         json.dump(crops_json, outfile)
             
 
