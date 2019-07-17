@@ -25,6 +25,7 @@ from write_html_image_list import write_html_image_list
 
 # Assumes the cameratraps repo root is on the path
 import visualization.visualization_utils as vis_utils
+from data_management.cct_json_utils import IndexedJsonDb
 
 
 #%% Settings
@@ -41,6 +42,7 @@ class DbVizOptions:
     trim_to_images_with_bboxes = False
     random_seed = 0 # None
     add_search_links = False
+    classes_to_exclude = None
 
     # We sometimes flatten image directories by replacing a path separator with 
     # another character.  Leave blank for the typical case where this isn't necessary.
@@ -86,9 +88,10 @@ def process_images(db_path,output_dir,image_base_dir,options=None):
         image_db = json.load(open(db_path))
         print('...done')
     elif isinstance(db_path,dict):
+        print('Using previously-loaded DB')
         image_db = db_path
     else:
-        raise ValueError('Illegal dictionary or filename')
+        raise ValueError('Illegal dictionary or filename')    
         
     annotations = image_db['annotations']
     images = image_db['images']
@@ -114,17 +117,34 @@ def process_images(db_path,output_dir,image_base_dir,options=None):
                 bImageHasBbox[iImage] = True
         imagesWithBboxes = list(compress(images, bImageHasBbox))
         images = imagesWithBboxes
-        
-    # put the annotations in a dataframe so we can select all annotations for a given image
+                
+    # Optionally remove images with specific labels, *before* sampling
+    if options.classes_to_exclude is not None:
+     
+        print('Indexing database')
+        indexed_db = IndexedJsonDb(image_db)
+        bValidClass = [True] * len(images)        
+        for iImage,image in enumerate(images):
+            classes = indexed_db.get_classes_for_image(image)
+            for excludedClass in options.classes_to_exclude:
+                if excludedClass in classes:
+                   bValidClass[iImage] = False
+                   break
+               
+        imagesWithValidClasses = list(compress(images, bValidClass))
+        images = imagesWithValidClasses    
+    
+    # Put the annotations in a dataframe so we can select all annotations for a given image
+    print('Creating data frames')
     df_anno = pd.DataFrame(annotations)
     df_img = pd.DataFrame(images)
     
-    # construct label map
+    # Construct label map
     label_map = {}
     for cat in categories:
         label_map[int(cat['id'])] = cat['name']
     
-    # take a sample of images
+    # Take a sample of images
     if options.num_to_visualize is not None:
         df_img = df_img.sample(n=options.num_to_visualize,random_state=options.random_seed)
     
@@ -191,7 +211,7 @@ def process_images(db_path,output_dir,image_base_dir,options=None):
         
         imageClasses = ', '.join(imageCategories)
         
-        # render bounding boxes in-place
+        # Render bounding boxes in-place
         vis_utils.render_db_bounding_boxes(bboxes, boxClasses, image, original_size, label_map)  
         
         file_name = '{}_gtbbox.jpg'.format(img_id.lower().split('.jpg')[0])
@@ -216,7 +236,10 @@ def process_images(db_path,output_dir,image_base_dir,options=None):
     htmlOutputFile = os.path.join(output_dir, 'index.html')
     
     htmlOptions = options.htmlOptions
-    htmlOptions['headerHtml'] = '<h1>Sample annotations from {}</h1>'.format(db_path)
+    if isinstance(db_path,str):
+        htmlOptions['headerHtml'] = '<h1>Sample annotations from {}</h1>'.format(db_path)
+    else:
+        htmlOptions['headerHtml'] = '<h1>Sample annotations</h1>'
     write_html_image_list(
             filename=htmlOutputFile,
             images=images_html,
@@ -295,6 +318,6 @@ if False:
     options = DbVizOptions()
     options.num_to_visualize = 100
     
-    htmlOutputFile = process_images(db_path,output_dir,image_base_dir,options)
+    htmlOutputFile,db = process_images(db_path,output_dir,image_base_dir,options)
     # os.startfile(htmlOutputFile)
 
