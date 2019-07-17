@@ -18,6 +18,8 @@ import humanfriendly
 import os
 import PIL
 
+from data_management.databases import sanity_check_json_db
+from data_management.cct_json_utils import IndexedJsonDb
 from visualization import visualize_db
 import path_utils
 
@@ -37,6 +39,12 @@ columns_to_copy = {'Total':'count','Horses':'horses','DogsOnLeash':'dogsonleash'
 
 retrieve_image_sizes = False
 
+max_num_csvs = -1
+
+db_sampling_scheme = 'preview' # 'labeled','all'
+n_unlabeled_to_sample = -1
+cap_unlabeled_to_labeled = True
+
 
 #%% Read and concatenate source data
 
@@ -48,6 +56,9 @@ all_input_metadata = []
 
 # i_file = 87; fn = input_files[i_file]
 for i_file,fn in enumerate(input_files):
+
+    if max_num_csvs > 0 and len(all_input_metadata) >= max_num_csvs:
+        break
     
     if not fn.endswith('.csv'):
         continue
@@ -107,6 +118,9 @@ empty_category['id'] = 0
 category_name_to_category['empty'] = empty_category
 next_category_id = 1
 
+labeled_images = []
+unlabeled_images = []
+
 
 #%% Main loop over labels (loop)
 
@@ -156,7 +170,8 @@ for iRow,row in tqdm(input_metadata.iterrows(),total=len(input_metadata)):
     if isinstance(species,float):
         assert np.isnan(species)
         species = 'unlabeled'
-    category_name = species.lower()
+        
+    category_name = species.lower().strip()
     if category_name in category_mappings:
         category_name = category_mappings[category_name]
         
@@ -167,10 +182,16 @@ for iRow,row in tqdm(input_metadata.iterrows(),total=len(input_metadata)):
         next_category_id += 1
         category_name_to_category[category_name] = category
     else:
-        assert category_name_to_category[category_name]['name'] == category_name
+        category = category_name_to_category[category_name]
+        assert category['name'] == category_name
 
     category_id = category['id']
 
+    if category_name == 'unlabeled':
+        unlabeled_images.append(im)
+    else:
+        labeled_images.append(im)
+        
     # Create an annotation
     ann = {}
     
@@ -190,10 +211,11 @@ for iRow,row in tqdm(input_metadata.iterrows(),total=len(input_metadata)):
 categories = list(category_name_to_category.values())
 
 elapsed = time.time() - start_time
-print('Finished verifying file loop in {}, {} matched images, {} missing images'.format(
-        humanfriendly.format_timespan(elapsed), len(images), len(missing_files))) 
+print('Finished verifying file loop in {}, {} matched images, {} missing images, {} unlabeled images'.format(
+        humanfriendly.format_timespan(elapsed), len(images), len(missing_files), len(unlabeled_images))) 
 
-#%%
+
+#%% See what's up with missing files
 
 dirnames = set()
 # s = list(image_relative_paths)[0]
@@ -201,34 +223,92 @@ for s in image_relative_paths:
     image_dir = os.path.dirname(s)
     dirnames.add(image_dir)
         
-n_missing_paths = 0
+missing_images_with_missing_dirs = []
+missing_images_with_non_missing_dirs = []
+
+missing_dirs = set()
 
 # s = missing_files[0]
 for s in missing_files:
     assert s not in image_relative_paths
     dirname = os.path.dirname(s)
     if dirname not in dirnames:
-        n_missing_paths += 1
+        missing_images_with_missing_dirs.append(s)
+        missing_dirs.add(dirname)
+    else:
+        missing_images_with_non_missing_dirs.append(s)
 
-print('Of {} missing files, {} are due to missing folders'.format(len(missing_files),n_missing_paths))    
+print('Of {} missing files, {} are due to {} missing folders'.format(
+        len(missing_files),len(missing_images_with_missing_dirs),len(missing_dirs)))
     
 
 #%% Check for images that aren't included in the metadata file
 
-# Enumerate all images
-# list(relative_path_to_image.keys())[0]
+unmatched_files = []
 
-imageFullPaths = path_utils.find_images(image_base,bRecursive=True)
-unmatchedFiles = []
-
-for iImage,imagePath in enumerate(imageFullPaths):
+for i_image,relative_path in tqdm(enumerate(image_relative_paths),total=len(image_relative_paths)):
     
-    fn = os.path.relpath(imagePath,image_base)    
-    if fn not in relative_path_to_image:
-        unmatchedFiles.append(fn)
+    if relative_path not in relative_path_to_image:
+        unmatched_files.append(relative_path)
 
 print('Finished checking {} images to make sure they\'re in the metadata, found {} mismatches'.format(
-        len(imageFullPaths),len(unmatchedFiles)))
+        len(image_relative_paths),len(unmatched_files)))
+
+
+#%% Sample the database
+
+images_all = images
+annotations_all = annotations
+
+#%%
+
+if db_sampling_scheme == 'all':
+    
+    pass
+
+elif db_sampling_scheme == 'labeled' or db_sampling_scheme == 'preview':
+    
+    json_data = {}
+    json_data['images'] = images
+    json_data['annotations'] = annotations
+    json_data['categories'] = categories
+
+    indexed_db = IndexedJsonDb(json_data)
+    
+    # Collect the images we want
+    sampled_images = []
+    for im in images:
+        classes = indexed_db.get_classes_for_image(im)
+        if 'unlabeled' in classes and len(classes) == 1:
+            pass
+        else:
+            sampled_images.append(im)
+    
+    if db_sampling_scheme == 'preview':
+        n_sample = n_unlabeled_to_sample
+        if n_sample == -1:
+            n_sample = len(labeled_images)
+        if n_sample > len(labeled_images) and cap_unlabeled_to_labeled:
+            n_sample = len(labeled_images)
+        if n_sample > len(unlabeled_images):
+            n_sample = len(unlabeled_images)
+        print('Sampling {} of {} unlabeled images'.format(n_sample,len(unlabeled_images)))
+        from random import sample
+        sampled_images.extend(sample(unlabeled_images,n_sample))
+
+    sampled_annotations = []
+    for im in sampled_images:
+        sampled_annotations.extend(indexed_db.get_annotations_for_image(im))
+    
+    print('Sampling {} of {} images, {} of {} annotations'.format(
+            len(sampled_images),len(images),len(sampled_annotations),len(annotations)))
+  
+    images = sampled_images
+    annotations = sampled_annotations      
+    
+else:
+    
+    raise ValueError('Unrecognized DB sampling scheme {}'.format(db_sampling_scheme))
 
 
 #%% Create info struct
@@ -238,7 +318,7 @@ info['year'] = 2019
 info['version'] = 1
 info['description'] = 'COCO style database'
 info['secondary_contributor'] = 'Converted to COCO .json by Dan Morris'
-info['contributor'] = ''
+info['contributor'] = 'Parks Canada'
 
 
 #%% Write output
@@ -256,20 +336,20 @@ print('Finished writing .json file with {} images, {} annotations, and {} catego
 
 #%% Sanity-check the database's integrity
 
-from data_management.databases import sanity_check_json_db
-
 options = sanity_check_json_db.SanityCheckOptions()
-sortedCategories,data = sanity_check_json_db.sanity_check_json_db(output_file, options)
+sortedCategories,data = sanity_check_json_db.sanity_check_json_db(json_data, options)
 
     
 #%% Render a bunch of images to make sure the labels got carried along correctly
 
-bbox_db_path = output_file
 output_dir = preview_base
 
-options = visualize_bbox_db.BboxDbVizOptions()
-options.num_to_visualize = 1000
+options = visualize_db.DbVizOptions()
+options.num_to_visualize = 100
 options.sort_by_filename = False
+# options.classes_to_exclude = ['unlabeled']
+options.classes_to_exclude = None
 
-htmlOutputFile = visualize_bbox_db.process_images(bbox_db_path,output_dir,image_base,options)
+htmlOutputFile,_ = visualize_db.process_images(json_data,output_dir,input_base,options)
+os.startfile(htmlOutputFile)
 
