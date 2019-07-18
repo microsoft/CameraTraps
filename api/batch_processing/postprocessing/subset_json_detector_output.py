@@ -5,7 +5,7 @@
 # modes:
 #
 # 1) Retrieve all elements where filenames contain a specified query string, optionally
-#    replacing that prefix with a replacement token. If the query is blank, can also be 
+#    replacing that query with a replacement token. If the query is blank, can also be 
 #    used to prepend content to all filenames.
 #
 # 2) Create separate .jsons for each unique path, optionally making the filenames in those .json's relative
@@ -48,10 +48,18 @@ import os
 
 class SubsetJsonDetectorOutputOptions:
     
-    replacement = None
+    # Only process files containing the token 'query'
     query = None
     
+    # Replace 'query' with 'replacement' if 'replacement' is not None.  If 'query' is None,
+    # prepend 'replacement'
+    replacement = None
+    
+    # Should we split output into individual .json files for each folder?
     split_folders = False
+    
+    # Only meaningful if split_folders is True: should we convert pathnames to be relative
+    # the folder for each .json file?
     make_folder_relative = False
     
     
@@ -202,7 +210,7 @@ if False:
     output_filename = r"D:\temp\idfg\output"
      
     options = SubsetJsonDetectorOutputOptions()
-    options.split_folders = True
+    options.split_folders = True    
     options.make_folder_relative = True
     
     data = subset_json_detector_output(input_filename,output_filename,options)
