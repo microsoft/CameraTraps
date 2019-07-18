@@ -67,7 +67,7 @@ except:
 # Populate Category table
 ## For now, we have a predefined list of species we expect to see in the camera trap database (e.g. maybe from a quick look through the images)
 ## TODO: allow user to update the class list through the labeling tool UI as they see different species
-class_list = ['empty'] + [cname.lower().replace(' ', '_') for cname in open(args.class_list, 'r').read().splitlines()]
+class_list = ['empty'] + [cname.lower() for cname in open(args.class_list, 'r').read().splitlines()]
 for i, cat in enumerate(class_list):
     existing_cat_entries = Category.select().where(Category.name == cat)
     try:
@@ -104,5 +104,5 @@ for detectionid in crops_json:
         detection_entry.save()
     
     if counter%100 == 0:
-        print('Processed crops for %d out of %d images in %0.2f seconds'%(counter, num_detections, time.time() - timer))
+        print('Updated database with Image and Detection table entries for %d out of %d crops in %0.2f seconds'%(counter, num_detections, time.time() - timer))
 
