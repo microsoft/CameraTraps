@@ -3,10 +3,11 @@ runapp.py
 
 Starts running a web application for labeling samples.
 '''
-import argparse, bottle, itertools, json, psycopg2, sys
+import argparse, bottle, itertools, json, psycopg2, sys, time
 import numpy as np
 from peewee import *
 from sklearn.neural_network import MLPClassifier
+from sklearn.externals import joblib
 
 sys.path.append('../')
 from Database.DB_models import *
@@ -61,10 +62,14 @@ if __name__ == '__main__':
     parser.add_argument('--db_name', type=str, default='missouricameratraps', help='Name of Postgres DB with target dataset tables.')
     parser.add_argument('--db_user', type=str, default=None, help='Name of user accessing Postgres DB.')
     parser.add_argument('--db_password', type=str, default=None, help='Password of user accessing Postgres DB.')
-    parser.add_argument('--db_query_limit', default=5000, type=int, help='Maximum number of records to read from the Postgres DB.')
+    parser.add_argument('--db_query_limit', default=10000, type=int, help='Maximum number of records to read from the Postgres DB.')
+    parser.add_argument('--crop_dir', type=str, required=True, help='Path to directory containing cropped images to display.')
+    parser.add_argument('--class_list', type=str, required=True, help='Path to .txt file containing classes in dataset.')
+    parser.add_argument('--checkpoint_dir', type=str, required=True, help='Path to directory where checkpoints will be stored.')
+    parser.add_argument('--classifier_checkpoint', type=str, default='', help='Path to a specific classifier checkpoint to load initially.')
+    parser.add_argument('--embedding_checkpoint', type=str, default='/home/lynx/pretrainedmodels/embedding_triplet_resnet50_1499/triplet_resnet50_1499.tar', help='Path to a specific embedding checkpoint to load initially.')
     args = parser.parse_args(sys.argv[1:])
 
-    args.crop_dir = "/home/lynx/data/missouricameratraps/crops/" ## TODO: hard coding this for now, but should not actually need this since Image table stores paths to crops
     args.strategy = 'confidence' ## TODO: hard coding this for now
 
     # -------------------------------------------------------------------------------- #
@@ -80,7 +85,7 @@ if __name__ == '__main__':
     db_proxy.initialize(target_db)
 
     ## Load embedding model
-    checkpoint = load_checkpoint("/home/lynx/pretrainedmodels/embedding_triplet_resnet50_1499/triplet_resnet50_1499.tar")
+    checkpoint = load_checkpoint(args.embedding_checkpoint)
     if checkpoint['loss_type'].lower() == 'center' or checkpoint['loss_type'].lower() == 'softmax':
         embedding_net = SoftmaxNet(checkpoint['arch'], checkpoint['feat_dim'], checkpoint['num_classes'], False)
     else:
@@ -105,14 +110,53 @@ if __name__ == '__main__':
     dataset.updateEmbedding(model)
     dataset.embedding_mode()
     dataset.train()
-    # numLabeled = len(dataset.set_indices[DetectionKind.UserDetection.value])
-    sampler = get_AL_sampler('uniform')(dataset.em, dataset.getalllabels(), 1234)
+    
 
     kwargs = {}
     kwargs["N"] = 25
-    kwargs["already_selected"] = []
-    kwargs["model"] = MLPClassifier(alpha=0.0001)
-    classifier_trained = False
+    kwargs["already_selected"] = set()
+    if args.classifier_checkpoint is not '':
+        print('loading pre-trained classifier')
+        kwargs["model"] = joblib.load(args.classifier_checkpoint)
+        classifier_trained = True
+        sampler = get_AL_sampler('confidence')(dataset.em, dataset.getalllabels(), 1234)
+
+        # Use classifier to generate predictions
+        dataset.set_kind(DetectionKind.ModelDetection.value)
+        X_pred = dataset.em[dataset.current_set]
+        y_pred = kwargs["model"].predict(X_pred)
+        
+        # # Update model predicted class in PostgreSQL database
+        # for pos in range(len(y_pred)):
+        #     idx = dataset.current_set[pos]
+        #     det_id = dataset.samples[idx][0]
+        #     matching_detection_entries = (Detection
+        #                                 .select(Detection.id, Detection.category_id)
+        #                                 .where((Detection.id == det_id)))
+        #     mde = matching_detection_entries.get()
+        #     command = Detection.update(category_id=y_pred[pos]).where(Detection.id == mde.id)
+        #     command.execute()
+
+        # Alternative: batch update PostgreSQL database
+        timer = time.time()
+        det_ids = [dataset.samples[dataset.current_set[pos]][0] for pos in range(len(y_pred))]
+        y_pred = [int(y) for y in y_pred]
+        det_id_pred_pairs = list(zip(det_ids, y_pred))
+        case_statement = Case(Detection.id, det_id_pred_pairs)
+        command = Detection.update(category_id=case_statement).where(Detection.id.in_(det_ids))
+        command.execute()
+        print('Updating the database the other way took %0.2f seconds'%(time.time() - timer))
+
+        # Update dataset dataloader
+        for pos in range(len(y_pred)):
+            idx = dataset.current_set[pos]
+            sample_data = list(dataset.samples[idx])
+            sample_data[1] = y_pred[pos]
+            dataset.samples[idx] = tuple(sample_data)
+    else:
+        kwargs["model"] = MLPClassifier(alpha=0.0001)
+        classifier_trained = False
+        sampler = get_AL_sampler('uniform')(dataset.em, dataset.getalllabels(), 1234)
     
     # -------------------------------------------------------------------------------- #
     # CREATE AND SET UP A BOTTLE APPLICATION FOR THE WEB UI
@@ -149,9 +193,21 @@ if __name__ == '__main__':
     
     @webUIapp.route('/<filename:re:.*.JPG>')
     def send_image(filename):
-        return bottle.static_file(filename, root='../../../../../../../../../.')
+        return bottle.static_file(filename, root='/')
+        # return bottle.static_file(filename, root='../../../../../../../../../.')## missouricameratraps
+        # return bottle.static_file(filename, root='../../../../../../../../../../../.')
     
     ## dynamic routes
+    @webUIapp.route('/getClassList', method='POST')
+    def get_class_list():
+        data = bottle.request.json
+        class_list = [cname for cname in open(args.class_list, 'r').read().splitlines()]
+        data['class_list'] = class_list
+        bottle.response.content_type = 'application/json'
+        bottle.response.status = 200
+        return json.dumps(data)
+
+
     @webUIapp.route('/refreshImagesToDisplay', method='POST')
     def refresh_images_to_display():
         '''
@@ -172,18 +228,19 @@ if __name__ == '__main__':
         
         indices_to_exclude = set() # records that should not be shown
         indices_to_exclude.update(set(dataset.set_indices[DetectionKind.UserDetection.value])) # never show records that have been labeled by the user
-        indices_to_exclude.update(set(dataset.set_indices[DetectionKind.ConfirmedDetection.value])) # never show records that have been confirmed by the user        
+        indices_to_exclude.update(set(dataset.set_indices[DetectionKind.ConfirmedDetection.value])) # never show records that have been confirmed by the user
         detection_conf_thresh_indices = [i for i, e in enumerate(detection_conf_values) if e < float(data['detection_threshold'])] # find records below the detection confidence threshold
         indices_to_exclude.update(set(detection_conf_thresh_indices))
-        if data['display_grayscale']:
-            indices_to_exclude.update(set(color_indices))
-        elif not data['display_grayscale']:
-            indices_to_exclude.update(set(grayscale_indices))
+        # if data['display_grayscale']:
+        #     indices_to_exclude.update(set(color_indices))
+        # elif not data['display_grayscale']:
+        #     indices_to_exclude.update(set(grayscale_indices))
         
         if data['display_class'] == 'All Species':
+            print('Displaying all species')
             pass
         else:
-            cat_name = data['display_class'].lower().replace(' ', '_')
+            cat_name = data['display_class'].lower()
             existing_category_entries = {cat.name: cat.id for cat in Category.select()}
             cat_id = existing_category_entries[cat_name]
             dataset_class_labels = [dataset.samples[i][1] for i in range(len(dataset.samples))]
@@ -208,20 +265,24 @@ if __name__ == '__main__':
 
         data = bottle.request.json        
         kwargs["N"] = data['num_images']
+        indices_to_exclude = set() # records that should not be shown
+        indices_to_exclude.update(set(dataset.set_indices[DetectionKind.UserDetection.value])) # never show records that have been labeled by the user
+        indices_to_exclude.update(set(dataset.set_indices[DetectionKind.ConfirmedDetection.value])) # never show records that have been confirmed by the user
+        kwargs["already_selected"].update(indices_to_exclude)
         indices = sampler.select_batch(**kwargs)
 
+        data['classifier_trained'] = classifier_trained
         data['display_images'] = {}
         data['display_images']['image_ids'] = [dataset.samples[i][0] for i in indices]
         data['display_images']['image_file_names'] = [dataset.samples[i][5] for i in indices]
         data['display_images']['detection_kinds'] = [dataset.samples[i][2] for i in indices]
-
         data['display_images']['detection_categories'] = []
         for i in indices:
             if str(dataset.samples[i][1]) == 'None':
                 data['display_images']['detection_categories'].append('None')
             else:
                 existing_category_entries = {cat.id: cat.name for cat in Category.select()}
-                cat_name = existing_category_entries[dataset.samples[i][1]].replace("_", " ").title()
+                cat_name = existing_category_entries[dataset.samples[i][1]].title()
                 data['display_images']['detection_categories'].append(cat_name)
 
 
@@ -230,7 +291,7 @@ if __name__ == '__main__':
         return json.dumps(data)
     
     @webUIapp.route('/loadImagesWithPrediction', method='POST')
-    def load_images():
+    def load_images_with_prediction():
         '''
         Returns a batch of images from the dataset sampler with a specified predicted class to be displayed in the webUI.
         '''
@@ -284,7 +345,7 @@ if __name__ == '__main__':
             ind = indices[pos]
             indices_to_label.append(ind)
 
-        label_category_name = label_to_assign.lower().replace(" ", "_")
+        label_category_name = label_to_assign.lower()
         if label_category_name == 'empty':
             # Update records in dataset dataloader but not in the PostgreSQL database
             moveRecords(dataset, DetectionKind.ModelDetection.value, DetectionKind.UserDetection.value, indices_to_label)
@@ -340,7 +401,7 @@ if __name__ == '__main__':
         pos = indices_detection_ids.index(image_to_label)
         index_to_label = indices[pos]
 
-        label_category_name = label_to_assign.lower().replace(" ", "_")
+        label_category_name = label_to_assign.lower()
         if label_category_name == 'empty':
             # Update records in dataset dataloader but not in the PostgreSQL database
             moveRecords(dataset, DetectionKind.ModelDetection.value, DetectionKind.ConfirmedDetection.value, [index_to_label])
@@ -398,32 +459,54 @@ if __name__ == '__main__':
         X_train = dataset.em[dataset.current_set]
         y_train = np.asarray(dataset.getlabels())
         # print(y_train)
+        timer = time.time()
         kwargs["model"].fit(X_train, y_train)
-        
+        print('Training took %0.2f seconds'%(time.time() - timer))
+
+        timer = time.time()
+        joblib.dump(kwargs["model"], "%s/%s_%04d.skmodel"%(args.checkpoint_dir, 'classifier', len(dataset.current_set)))
+        print('Saving classifier checkpoint took %0.2f seconds'%(time.time() - timer))
+
         
         # Predict on the samples that have not been labeled
+        timer = time.time()
         dataset.set_kind(DetectionKind.ModelDetection.value)
         X_pred = dataset.em[dataset.current_set]
         y_pred = kwargs["model"].predict(X_pred)
+        print('Predicting on unlabeled samples took %0.2f seconds'%(time.time() - timer))
         # print(y_pred)
 
         # Update model predicted class in PostgreSQL database
-        for pos in range(len(y_pred)):
-            idx = dataset.current_set[pos]
-            det_id = dataset.samples[idx][0]
-            matching_detection_entries = (Detection
-                                        .select(Detection.id, Detection.category_id)
-                                        .where((Detection.id == det_id)))
-            mde = matching_detection_entries.get()
-            command = Detection.update(category_id=y_pred[pos]).where(Detection.id == mde.id)
-            command.execute()
+        # timer = time.time()
+        # for pos in range(len(y_pred)):
+        #     idx = dataset.current_set[pos]
+        #     det_id = dataset.samples[idx][0]
+        #     matching_detection_entries = (Detection
+        #                                 .select(Detection.id, Detection.category_id)
+        #                                 .where((Detection.id == det_id)))
+        #     mde = matching_detection_entries.get()
+        #     command = Detection.update(category_id=y_pred[pos]).where(Detection.id == mde.id)
+        #     command.execute()
+        # print('Updating the database took %0.2f seconds'%(time.time() - timer))
+
+        # Alternative: batch update PostgreSQL database
+        timer = time.time()
+        det_ids = [dataset.samples[dataset.current_set[pos]][0] for pos in range(len(y_pred))]
+        y_pred = [int(y) for y in y_pred]
+        det_id_pred_pairs = list(zip(det_ids, y_pred))
+        case_statement = Case(Detection.id, det_id_pred_pairs)
+        command = Detection.update(category_id=case_statement).where(Detection.id.in_(det_ids))
+        command.execute()
+        print('Updating the database the other way took %0.2f seconds'%(time.time() - timer))
 
         # Update dataset dataloader
+        timer = time.time()
         for pos in range(len(y_pred)):
             idx = dataset.current_set[pos]
             sample_data = list(dataset.samples[idx])
             sample_data[1] = y_pred[pos]
             dataset.samples[idx] = tuple(sample_data)
+        print('Updating the dataset dataloader took %0.2f seconds'%(time.time() - timer))
         
         if not classifier_trained:
             # once the classifier has been trained the first time, switch to AL sampling
