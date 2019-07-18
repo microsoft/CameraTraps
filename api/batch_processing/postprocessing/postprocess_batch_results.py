@@ -51,6 +51,7 @@ from data_management.cct_json_utils import CameraTrapJsonUtils, IndexedJsonDb
 from api.batch_processing.postprocessing.load_api_results import load_api_results
 from ct_utils import args_to_object
 
+
 #%% Options
 
 DEFAULT_NEGATIVE_CLASSES = ['empty']
@@ -67,7 +68,6 @@ def has_overlap(set1, set2):
 # issues in the code
 assert not has_overlap(DEFAULT_NEGATIVE_CLASSES, DEFAULT_UNKNOWN_CLASSES), \
         'Default negative and unknown classes cannot overlap.'
-
 
 
 class PostProcessingOptions:
@@ -355,17 +355,17 @@ def process_batch_results(options):
 
     ##%% If we have ground truth, remove images we can't match to ground truth
 
-    # ground_truth_indexed_db.db['images'][0]
     if ground_truth_indexed_db is not None:
 
         b_match = [False] * len(detection_results)
 
         detector_files = detection_results['file'].tolist()
 
+        # fn = detector_files[0]; print(fn)
         for i_fn, fn in enumerate(detector_files):
 
             # assert fn in ground_truth_indexed_db.filename_to_id, 'Could not find ground truth for row {} ({})'.format(i_fn,fn)
-            if fn in fn in ground_truth_indexed_db.filename_to_id:
+            if fn in ground_truth_indexed_db.filename_to_id:
                 b_match[i_fn] = True
 
         print('Confirmed filename matches to ground truth for {} of {} files'.format(sum(b_match), len(detector_files)))
@@ -373,9 +373,12 @@ def process_batch_results(options):
         detection_results = detection_results[b_match]
         detector_files = detection_results['file'].tolist()
 
+        assert len(detector_files) > 0, 'No detection files available, possible ground truth path issue?'
+        
         print('Trimmed detection results to {} files'.format(len(detector_files)))
 
-
+    assert len(detector_files) > 0, 'No detection files available'
+    
     ##%% Sample images for visualization
 
     images_to_visualize = detection_results
@@ -466,10 +469,12 @@ def process_batch_results(options):
 
         ##%% CLASSIFICATION evaluation
         classifier_accuracies = []
+        
         # Mapping of classnames to idx for the confusion matrix.
         # The lambda is actually kind of a hack, because we use assume that
         # the following code does not reassign classname_to_idx
         classname_to_idx = collections.defaultdict(lambda: len(classname_to_idx))
+        
         # Confusion matrix as defaultdict of defaultdict
         # Rows / first index is ground truth, columns / second index is predicted category
         classifier_cm = collections.defaultdict(lambda: collections.defaultdict(lambda: 0))
@@ -485,25 +490,32 @@ def process_batch_results(options):
             if len(pred_classnames) > 0 \
                     and '_unambiguous_category' in image.keys() \
                     and image['_detection_status'] == DetectionStatus.DS_POSITIVE:
+                        
                 # The unambiguous category, we make this a set for easier handling afterward
                 # TODO: actually we can replace the unambiguous category by all annotated
                 # categories. However, then the confusion matrix doesn't make sense anymore
                 # TODO: make sure we are using the class names as strings in both, not IDs
                 gt_categories = set([image['_unambiguous_category']])
                 pred_categories = set(pred_classnames)
+                
                 # Compute the accuracy as intersection of union,
                 # i.e. (# of categories in both prediciton and GT)
                 #      divided by (# of categories in either prediction or GT
+                #
                 # In case of only one GT category, the result will be 1.0, if
                 # prediction is one category and this category matches GT
+                #
                 # It is 1.0/(# of predicted top-1 categories), if the GT is
                 # one of the predicted top-1 categories.
+                #
                 # It is 0.0, if none of the predicted categories is correct
+                
                 classifier_accuracies.append(
                     len(gt_categories & pred_categories)
                     / len(gt_categories | pred_categories)
                 )
                 image['_classification_accuracy'] = classifier_accuracies[-1]
+                
                 # Distribute this accuracy across all predicted categories in the
                 # confusion matrix
                 assert len(gt_categories) == 1
@@ -512,8 +524,11 @@ def process_batch_results(options):
                     pred_class_idx = classname_to_idx[pred_category]
                     classifier_cm[gt_class_idx][pred_class_idx] += 1
 
+        # ...for each file in the detection results
+        
         # If we have classification results
         if len(classifier_accuracies) > 0:
+            
             # Build confusion matrix as array from classifier_cm
             all_class_ids = sorted(classname_to_idx.values())
             classifier_cm_array = np.array(
@@ -525,6 +540,7 @@ def process_batch_results(options):
             print("Mean accuracy: {}".format(np.mean(classifier_accuracies)))
 
             # Prepare confusion matrix output
+            
             # Get CM matrix as string
             sio = io.StringIO()
             np.savetxt(sio, classifier_cm_array * 100, fmt='%5.1f')
@@ -543,6 +559,7 @@ def process_batch_results(options):
             print(*cm_str_lines, sep='\n')
 
             # Plot confusion matrix
+            
             # To manually add more space at bottom: plt.rcParams['figure.subplot.bottom'] = 0.1
             # Add 0.5 to figsize for every class. For two classes, this will result in
             # fig = plt.figure(figsize=[4,4])
@@ -560,6 +577,8 @@ def process_batch_results(options):
             plt.savefig(cm_figure_filename)
             plt.close(fig)
 
+        # ...if we have classification results
+        
         ##%% Render output
 
         # Write p/r table to .csv file in output directory
