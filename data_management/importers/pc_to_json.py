@@ -21,6 +21,7 @@ import PIL
 from data_management.databases import sanity_check_json_db
 from data_management.cct_json_utils import IndexedJsonDb
 from visualization import visualize_db
+from data_management import cct_json_to_filename_json
 import path_utils
 
 input_base = r"g:\20190715"
@@ -352,4 +353,10 @@ options.classes_to_exclude = None
 
 htmlOutputFile,_ = visualize_db.process_images(json_data,output_dir,input_base,options)
 os.startfile(htmlOutputFile)
+
+
+#%% Write out a list of files to annotate
+
+_,file_list = cct_json_to_filename_json.convertJsonToStringList(output_file,prepend="20190715/")
+os.startfile(file_list)
 
