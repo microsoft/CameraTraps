@@ -16,7 +16,7 @@ Douglas'S Squirrel
 Eastern Cottontail
 Eastern Gray Squirrel
 Elk Aka Red Deer
-Elk_Red Deer
+Elk/Red Deer
 Grey Jay
 Human
 Moose
@@ -35,7 +35,7 @@ Unknown Canid
 Unknown Chipmunk
 Unknown Felid
 Unknown Ground Squirrel
-Unknown Rabbit_Hare
+Unknown Rabbit/Hare
 Unknown Small Rodent
 Unknown Small Weasel
 Unknown Squirrel
