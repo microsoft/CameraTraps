@@ -127,6 +127,7 @@ class SQLDataLoader(Dataset):
             info.RM, info.GM, info.BM = means
             info.RS, info.GS, info.BS = stds
             info.save()
+            print("Updated dataset mean and std")
         else:
             print("Load dataset mean and std from database")
             means = [info.RM, info.GM, info.BM]
