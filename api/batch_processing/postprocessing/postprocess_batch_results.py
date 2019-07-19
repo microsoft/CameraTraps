@@ -377,7 +377,6 @@ def process_batch_results(options):
         
         print('Trimmed detection results to {} files'.format(len(detector_files)))
 
-    assert len(detector_files) > 0, 'No detection files available'
     
     ##%% Sample images for visualization
 
@@ -392,13 +391,23 @@ def process_batch_results(options):
 
     output_html_file = ''
 
+    style_header = """<head>
+        <style type="text/css">
+        <!--
+        a { text-decoration:none; }
+        body { font-family:segoe ui, calibri, "trebuchet ms", verdana, arial, sans-serif; }
+        div.contentdiv { margin-left:20px; }
+        -->
+        </style>
+        </head>"""
+        
     # If we have ground truth, we'll compute precision/recall and sample tp/fp/tn/fn.
     #
     # Otherwise we'll just visualize detections/non-detections.
 
     if ground_truth_indexed_db is not None:
 
-        ##%% DETECTION EVALUATION: Compute precision/recall
+        ##%% Detection evaluation: compute precision/recall
 
         # numpy array of detection probabilities
         p_detection = detection_results['max_detection_conf'].values
@@ -467,18 +476,23 @@ def process_batch_results(options):
         print('At a confidence threshold of {:.1%}, precision={:.1%}, recall={:.1%}, f1={:.1%}'.format(
                 confidence_threshold, precision_at_confidence_threshold, recall_at_confidence_threshold, f1))
 
-        ##%% CLASSIFICATION evaluation
+        ##%% Collect classification results, if they exist
+        
         classifier_accuracies = []
         
         # Mapping of classnames to idx for the confusion matrix.
+        #
         # The lambda is actually kind of a hack, because we use assume that
         # the following code does not reassign classname_to_idx
         classname_to_idx = collections.defaultdict(lambda: len(classname_to_idx))
         
         # Confusion matrix as defaultdict of defaultdict
+        #
         # Rows / first index is ground truth, columns / second index is predicted category
         classifier_cm = collections.defaultdict(lambda: collections.defaultdict(lambda: 0))
+        
         for iDetection,fn in enumerate(detector_files):
+            
             image_id = ground_truth_indexed_db.filename_to_id[fn]
             image = ground_truth_indexed_db.image_id_to_image[image_id]
             pred_class_ids = [det['classifications'][0][0] \
@@ -492,8 +506,10 @@ def process_batch_results(options):
                     and image['_detection_status'] == DetectionStatus.DS_POSITIVE:
                         
                 # The unambiguous category, we make this a set for easier handling afterward
+                #
                 # TODO: actually we can replace the unambiguous category by all annotated
                 # categories. However, then the confusion matrix doesn't make sense anymore
+                #
                 # TODO: make sure we are using the class names as strings in both, not IDs
                 gt_categories = set([image['_unambiguous_category']])
                 pred_categories = set(pred_classnames)
@@ -541,7 +557,7 @@ def process_batch_results(options):
 
             # Prepare confusion matrix output
             
-            # Get CM matrix as string
+            # Get confusion matrix as string
             sio = io.StringIO()
             np.savetxt(sio, classifier_cm_array * 100, fmt='%5.1f')
             cm_str = sio.getvalue()
@@ -554,13 +570,14 @@ def process_batch_results(options):
             cm_str_lines = [' ' * 16 + ' '.join(classname_headers)]
             cm_str_lines += ['{:>15}'.format(cn[:15]) + ' ' + cm_line for cn, cm_line in zip(classname_list, cm_str.splitlines())]
 
-            # print formatted confusion matrix
+            # Print formatted confusion matrix
             print("Confusion matrix: ")
             print(*cm_str_lines, sep='\n')
 
             # Plot confusion matrix
             
             # To manually add more space at bottom: plt.rcParams['figure.subplot.bottom'] = 0.1
+            #
             # Add 0.5 to figsize for every class. For two classes, this will result in
             # fig = plt.figure(figsize=[4,4])
             fig = vis_utils.plot_confusion_matrix(
@@ -596,7 +613,9 @@ def process_batch_results(options):
         plt.close(fig)
 
 
-        ##%% Sample true/false positives/negatives with correct/incorrect top-1
+        ##%% Sampling
+        
+        # Sample true/false positives/negatives with correct/incorrect top-1
         # classification and render to html
 
         # Accumulate html image structs (in the format expected by write_html_image_lists)
@@ -609,7 +628,7 @@ def process_batch_results(options):
 
         count = 0
 
-        # i_row = 0; row = images_to_visualize.iloc[0]
+        # i_row = 1525; row = images_to_visualize.iloc[0]
         for i_row, row in tqdm(images_to_visualize.iterrows(), total=len(images_to_visualize)):
 
             image_relative_path = row['file']
@@ -626,15 +645,16 @@ def process_batch_results(options):
 
             gt_status = image['_detection_status']
 
-            if gt_status > DetectionStatus.DS_MAX_DEFINITIVE_VALUE:
-                print('Skipping image {}, does not have a definitive ground truth status'.format(i_row, gt_status))
-                continue
-
             gt_presence = bool(gt_status)
 
             gt_classes = CameraTrapJsonUtils.annotations_to_classnames(
                     annotations,ground_truth_indexed_db.cat_id_to_name)
             gt_class_summary = ','.join(gt_classes)
+
+            if gt_status > DetectionStatus.DS_MAX_DEFINITIVE_VALUE:
+                print('Skipping image {}, does not have a definitive ground truth status (status: {}, classes: {})'.format(
+                        i_row, gt_status, gt_class_summary))
+                continue
 
             max_conf = row['max_detection_conf']
             detections = row['detections']
@@ -676,51 +696,73 @@ def process_batch_results(options):
             count += 1
 
         # ...for each image in our sample
-
+        
         print('{} images rendered'.format(count))
 
         # Prepare the individual html image files
         image_counts = prepare_html_subpages(images_html, output_dir)
 
-        # Write index.HTML
+        # Write index.html
         all_tp_count = image_counts['tp'] + image_counts['tpc'] + image_counts['tpi']
         total_count = all_tp_count + image_counts['tn'] + image_counts['fp'] + image_counts['fn']
-        index_page = """<html><body>
+        
+        classification_detection_results = """&nbsp;&nbsp;&nbsp;&nbsp;<a href="tpc.html">with all correct top-1 predictions (TPC)</a> ({})<br/>
+           &nbsp;&nbsp;&nbsp;&nbsp;<a href="tpi.html">with one or more incorrect top-1 prediction (TPI)</a> ({})<br/>
+           &nbsp;&nbsp;&nbsp;&nbsp;<a href="tp.html">without classification evaluation</a><sup>*</sup> ({})<br/>""".format(
+            image_counts['tpc'],
+            image_counts['tpi'],
+            image_counts['tp']            
+        )
+        
+        index_page = """<html>
+        {}
+        <body>
         <h2>Evaluation</h2>
 
         <h3>Sample images</h3>
+        <div style="margin-left:20px;">
         <p>A sample of {} images, annotated with detections above {:.1%} confidence.</p>
-        True positives (TP) ({} or {:0.1%})<br/>
-        -- <a href="tpc.html">with all correct top-1 predictions (TPC)</a> ({})<br/>
-        -- <a href="tpi.html">with one or more incorrect top-1 prediction (TPI)</a> ({})<br/>
-        -- <a href="tp.html">without classification evaluation</a> (*) ({})<br/>
-        <a href="tn.html">True negatives (TN)</a> ({} or {:0.1%})<br/>
-        <a href="fp.html">False positives (FP)</a> ({} or {:0.1%})<br/>
-        <a href="fn.html">False negatives (FN)</a> ({} or {:0.1%})<br/>
-        <p>(*) We do not evaluate the classification result of images, if the classification
-        information is missing, if the image contains
-        categories like 'empty' or 'human', or if the image has multiple classification
-        labels.</p>""".format(
+        <a href="tp.html">True positives (TP)</a> ({}) ({:0.1%})<br/>
+        CLASSIFICATION_PLACEHOLDER_1
+        <a href="tn.html">True negatives (TN)</a> ({}) ({:0.1%})<br/>
+        <a href="fp.html">False positives (FP)</a> ({}) ({:0.1%})<br/>
+        <a href="fn.html">False negatives (FN)</a> ({}) ({:0.1%})<br/>
+        CLASSIFICATION_PLACEHOLDER_2
+        </div>        
+        """.format(
+            style_header,
             count, confidence_threshold,
             all_tp_count, all_tp_count/total_count,
-            image_counts['tpc'],
-            image_counts['tpi'],
-            image_counts['tp'],
             image_counts['tn'], image_counts['tn']/total_count,
             image_counts['fp'], image_counts['fp']/total_count,
             image_counts['fn'], image_counts['fn']/total_count
         )
+        
         index_page += """
             <h3>Detection results</h3>
+            <div class="contentdiv">
             <p>At a confidence threshold of {:0.1%}, precision={:0.1%}, recall={:0.1%}</p>
             <p><strong>Precision/recall summary for all {} images</strong></p><img src="{}"><br/>
+            </div>
             """.format(
                 confidence_threshold, precision_at_confidence_threshold, recall_at_confidence_threshold,
                 len(detection_results), pr_figure_relative_filename
            )
+        
+        if len(classifier_accuracies) > 0:
+            index_page = index_page.replace('CLASSIFICATION_PLACEHOLDER_1',classification_detection_results)
+            index_page = index_page.replace('CLASSIFICATION_PLACEHOLDER_2',"""<p><sup>*</sup>We do not evaluate the classification result of images 
+                if the classification information is missing, if the image contains
+                categories like &lsquo;empty&rsquo; or &lsquo;human&rsquo;, or if the image has multiple 
+                classification labels.</p>""")
+        else:
+            index_page = index_page.replace('CLASSIFICATION_PLACEHOLDER_1','')
+            index_page = index_page.replace('CLASSIFICATION_PLACEHOLDER_2','')
+            
         if len(classifier_accuracies) > 0:
             index_page += """
                 <h3>Classification results</h3>
+                <div class="contentdiv">
                 <p>Classification accuracy: {:.2%}<br>
                 The accuracy is computed only for images with exactly one classification label.
                 The accuracy of an image is computed as 1/(number of unique detected top-1 classes),
@@ -729,19 +771,27 @@ def process_batch_results(options):
                 <p>Confusion matrix:</p>
                 <p><img src="{}"></p>
                 <div style='font-family:monospace;display:block;'>{}</div>
+                </div>
                 """.format(
                     np.mean(classifier_accuracies),
                     cm_figure_relative_filename,
                     "<br>".join(cm_str_lines).replace(' ', '&nbsp;')
                 )
+                
         # Show links to each GT class
-        index_page += "<h3>Images of specific classes:</h3>"
-        # Add links to all available classes
-        for cname in sorted(classname_to_idx.keys()):
-            index_page += "<a href='class_{0}.html'>{0}</a> ({1})<br>".format(
-                cname,
-                len(images_html['class_{}'.format(cname)]))
-        # Close body and html tag
+        #
+        # We could do this without classification results; currently we don't.
+        if len(classname_to_idx) > 0:
+            
+            index_page += '<h3>Images of specific classes</h3><br/><div class="contentdiv">'
+            # Add links to all available classes
+            for cname in sorted(classname_to_idx.keys()):
+                index_page += "<a href='class_{0}.html'>{0}</a> ({1})<br>".format(
+                    cname,
+                    len(images_html['class_{}'.format(cname)]))
+            index_page += "</div>"
+            
+        # Close body and html tags
         index_page += "</body></html>"
         output_html_file = os.path.join(output_dir, 'index.html')
         with open(output_html_file, 'w') as f:
@@ -749,7 +799,9 @@ def process_batch_results(options):
 
         print('Finished writing html to {}'.format(output_html_file))
 
-
+    # ...for each image
+    
+    
     ##%% Otherwise, if we don't have ground truth...
 
     else:
@@ -768,8 +820,8 @@ def process_batch_results(options):
             os.makedirs(os.path.join(output_dir, res), exist_ok=True)
 
         count = 0
-
         has_classification_info = False
+        
         # i_row = 0; row = images_to_visualize.iloc[0]
         for i_row, row in tqdm(images_to_visualize.iterrows(), total=len(images_to_visualize)):
 
@@ -815,14 +867,14 @@ def process_batch_results(options):
 
         # Write index.HTML
         total_images = image_counts['detections'] + image_counts['non_detections']
-        index_page = """<html><body>
+        index_page = """<html>{}<body>
         <h2>Visualization of results</h2>
         <p>A sample of {} images, annotated with detections above {:.1%} confidence.</p>
         <h3>Sample images</h3>
-
+        <div class="contentdiv">
         <a href="detections.html">Detections</a> ({}, {:.1%})<br/>
-        <a href="non_detections.html">Non-detections</a> ({}, {:.1%})<br/>""".format(
-            count, confidence_threshold,
+        <a href="non_detections.html">Non-detections</a> ({}, {:.1%})<br/></div>""".format(
+            style_header,count, confidence_threshold,
             image_counts['detections'], image_counts['detections']/total_images,
             image_counts['non_detections'], image_counts['non_detections']/total_images
         )
@@ -830,6 +882,7 @@ def process_batch_results(options):
         if has_classification_info:
             index_page += "<h3>Images of detected classes</h3>"
             index_page += "<p>The same image might appear under multiple classes if multiple species were detected.</p>"
+        
         # Add links to all available classes
         for cname in sorted(classification_categories_map.values()):
             ccount = len(images_html['class_{}'.format(cname)])
