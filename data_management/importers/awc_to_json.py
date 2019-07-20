@@ -1,5 +1,5 @@
 #
-# jb_csv_to_json.py
+# awc_to_json.py
 #
 # Convert a particular .csv file to CCT format.
 #
@@ -14,7 +14,7 @@ from tqdm import tqdm
 import humanfriendly
 import os
 import PIL
-from visualization import visualize_bbox_db
+from visualization import visualize_db
 import path_utils
 
 input_metadata_file = r"D:\wildlife_data\awc\awc_imageinfo.csv"
