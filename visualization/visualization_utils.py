@@ -211,7 +211,7 @@ def render_detection_bounding_boxes(detections, image,
             display_boxes.append([y1, x1, y1 + h_box, x1 + w_box])
             clss = detection['category']
             label = label_map[clss] if clss in label_map else clss
-            displayed_label = ['Detected as {}: {}%'.format(label, round(100 * score))]
+            displayed_label = ['{}: {}%'.format(label, round(100 * score))]
             if clss == '1' and 'classifications' in detection:
                 # To avoid duplicate colors with detection-only visualization offset
                 # the classification class index by the number of detection classes
