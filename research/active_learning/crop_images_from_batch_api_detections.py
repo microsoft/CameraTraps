@@ -61,6 +61,9 @@ def main():
             maxconf = float(row[1])
             detections = ast.literal_eval(row[2])
 
+            if len(detections)>1: # for now, skip if there is more than one detection in the image
+                continue
+
             # get some information about the source image
             img = np.array(Image.open(imgfile))
             if img.dtype != np.uint8:
