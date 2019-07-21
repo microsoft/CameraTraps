@@ -24,7 +24,7 @@ def main():
     crop_json = json.load(open(args.crop_json, 'r'))
 
     # Get class names from .txt list
-    class_list = ['empty'] + [cname.lower().replace(' ', '_') for cname in open(args.class_list, 'r').read().splitlines()]
+    class_list = ['empty'] + [cname.lower() for cname in open(args.class_list, 'r').read().splitlines()]
 
     # Initialize Oracle table
     DB_NAME = args.db_name
@@ -36,7 +36,7 @@ def main():
 
     # Map filenames to classes (NOTE: we assume a single image does not contain more than one class)
     coco_json = json.load(open(args.coco_json, 'r'))
-    coco_categories = {cat['id']:cat['name'] for cat in coco_json['categories']}
+    coco_categories = {cat['id']:cat['name'].replace('_', ' ') for cat in coco_json['categories']}
     coco_imgid_to_fn = {im['id']: os.path.join(args.img_base,  im['file_name'].replace('\\', '/')) for im in coco_json['images']}
     coco_imgfn_to_catname = {}
     for ann in coco_json['annotations']:
@@ -53,7 +53,7 @@ def main():
         counter += 1
         crop_info = crop_json[crop]
         source_image_file_name = crop_info['source_file_name']
-        crop_class = coco_imgfn_to_catname[source_image_file_name]
+        crop_class = coco_imgfn_to_catname[os.path.join(args.img_base , source_image_file_name)]
         existing_cat_entries = Category.select().where(Category.name == crop_class)
         try:
             existing_category_entry = existing_cat_entries.get()
@@ -69,7 +69,7 @@ def main():
             oracle_entry.save()
         
         if counter%100 == 0:
-            print('Updated Oracle table entries for %d out of %d detections in %0.2f seconds'%(counter, len(crop_json), time.time() - timer))
+            print('Updated database with Oracle table entries for %d out of %d detections in %0.2f seconds'%(counter, len(crop_json), time.time() - timer))
 
 
 if __name__ == '__main__':
