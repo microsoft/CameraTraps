@@ -62,7 +62,7 @@ if __name__ == '__main__':
     parser.add_argument('--db_name', type=str, default='missouricameratraps', help='Name of Postgres DB with target dataset tables.')
     parser.add_argument('--db_user', type=str, default=None, help='Name of user accessing Postgres DB.')
     parser.add_argument('--db_password', type=str, default=None, help='Password of user accessing Postgres DB.')
-    parser.add_argument('--db_query_limit', default=10000, type=int, help='Maximum number of records to read from the Postgres DB.')
+    parser.add_argument('--db_query_limit', default=3000, type=int, help='Maximum number of records to read from the Postgres DB.')
     parser.add_argument('--crop_dir', type=str, required=True, help='Path to directory containing cropped images to display.')
     parser.add_argument('--class_list', type=str, required=True, help='Path to .txt file containing classes in dataset.')
     parser.add_argument('--checkpoint_dir', type=str, required=True, help='Path to directory where checkpoints will be stored.')
@@ -138,14 +138,14 @@ if __name__ == '__main__':
         #     command.execute()
 
         # Alternative: batch update PostgreSQL database
-        timer = time.time()
-        det_ids = [dataset.samples[dataset.current_set[pos]][0] for pos in range(len(y_pred))]
-        y_pred = [int(y) for y in y_pred]
-        det_id_pred_pairs = list(zip(det_ids, y_pred))
-        case_statement = Case(Detection.id, det_id_pred_pairs)
-        command = Detection.update(category_id=case_statement).where(Detection.id.in_(det_ids))
-        command.execute()
-        print('Updating the database the other way took %0.2f seconds'%(time.time() - timer))
+        # timer = time.time()
+        # det_ids = [dataset.samples[dataset.current_set[pos]][0] for pos in range(len(y_pred))]
+        # y_pred = [int(y) for y in y_pred]
+        # det_id_pred_pairs = list(zip(det_ids, y_pred))
+        # case_statement = Case(Detection.id, det_id_pred_pairs)
+        # command = Detection.update(category_id=case_statement).where(Detection.id.in_(det_ids))# switch where and update?
+        # command.execute()
+        # print('Updating the database the other way took %0.2f seconds'%(time.time() - timer))
 
         # Update dataset dataloader
         for pos in range(len(y_pred)):
@@ -269,8 +269,11 @@ if __name__ == '__main__':
         indices_to_exclude.update(set(dataset.set_indices[DetectionKind.UserDetection.value])) # never show records that have been labeled by the user
         indices_to_exclude.update(set(dataset.set_indices[DetectionKind.ConfirmedDetection.value])) # never show records that have been confirmed by the user
         kwargs["already_selected"].update(indices_to_exclude)
-        indices = sampler.select_batch(**kwargs)
-
+        try:
+            indices = sampler.select_batch(**kwargs)
+            data['success_status'] = True
+        except:
+            data['success_status'] = False
         data['classifier_trained'] = classifier_trained
         data['display_images'] = {}
         data['display_images']['image_ids'] = [dataset.samples[i][0] for i in indices]
@@ -490,14 +493,14 @@ if __name__ == '__main__':
         # print('Updating the database took %0.2f seconds'%(time.time() - timer))
 
         # Alternative: batch update PostgreSQL database
-        timer = time.time()
-        det_ids = [dataset.samples[dataset.current_set[pos]][0] for pos in range(len(y_pred))]
-        y_pred = [int(y) for y in y_pred]
-        det_id_pred_pairs = list(zip(det_ids, y_pred))
-        case_statement = Case(Detection.id, det_id_pred_pairs)
-        command = Detection.update(category_id=case_statement).where(Detection.id.in_(det_ids))
-        command.execute()
-        print('Updating the database the other way took %0.2f seconds'%(time.time() - timer))
+        # timer = time.time()
+        # det_ids = [dataset.samples[dataset.current_set[pos]][0] for pos in range(len(y_pred))]
+        # y_pred = [int(y) for y in y_pred]
+        # det_id_pred_pairs = list(zip(det_ids, y_pred))
+        # case_statement = Case(Detection.id, det_id_pred_pairs)
+        # command = Detection.update(category_id=case_statement).where(Detection.id.in_(det_ids))
+        # command.execute()
+        # print('Updating the database the other way took %0.2f seconds'%(time.time() - timer))
 
         # Update dataset dataloader
         timer = time.time()
