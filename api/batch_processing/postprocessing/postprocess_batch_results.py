@@ -887,7 +887,7 @@ def process_batch_results(options):
             for cname in sorted(classification_categories_map.values()):
                 ccount = len(images_html['class_{}'.format(cname)])
                 if ccount > 0:
-                    index_page += "<a href='class_{0}.html'>{0}</a> ({1})<br/>\n".format(cname.lower(), ccount)
+                    index_page += "<a href='class_{}.html'>{}</a> ({})<br/>\n".format(cname, cname.lower(), ccount)
             index_page += "</div>\n"
             
         index_page += "</body></html>"
