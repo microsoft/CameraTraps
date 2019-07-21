@@ -319,7 +319,7 @@ def process_batch_results(options):
     ##%% Load ground truth if available
 
     ground_truth_indexed_db = None
-
+    
     if options.ground_truth_json_file and len(options.ground_truth_json_file) > 0:
 
         ground_truth_indexed_db = IndexedJsonDb(options.ground_truth_json_file, b_normalize_paths=True,
@@ -872,8 +872,8 @@ def process_batch_results(options):
         <p>A sample of {} images, annotated with detections above {:.1%} confidence.</p>
         <h3>Sample images</h3>
         <div class="contentdiv">
-        <a href="detections.html">Detections</a> ({}, {:.1%})<br/>
-        <a href="non_detections.html">Non-detections</a> ({}, {:.1%})<br/></div>""".format(
+        <a href="detections.html">detections</a> ({}, {:.1%})<br/>
+        <a href="non_detections.html">non-detections</a> ({}, {:.1%})<br/></div>\n""".format(
             style_header,count, confidence_threshold,
             image_counts['detections'], image_counts['detections']/total_images,
             image_counts['non_detections'], image_counts['non_detections']/total_images
@@ -881,14 +881,15 @@ def process_batch_results(options):
 
         if has_classification_info:
             index_page += "<h3>Images of detected classes</h3>"
-            index_page += "<p>The same image might appear under multiple classes if multiple species were detected.</p>"
+            index_page += "<p>The same image might appear under multiple classes if multiple species were detected.</p>\n<div class='contentdiv'>\n"
         
-        # Add links to all available classes
-        for cname in sorted(classification_categories_map.values()):
-            ccount = len(images_html['class_{}'.format(cname)])
-            if ccount > 0:
-                index_page += "<a href='class_{0}.html'>{0}</a> ({1})<br>".format(cname, ccount)
-
+            # Add links to all available classes
+            for cname in sorted(classification_categories_map.values()):
+                ccount = len(images_html['class_{}'.format(cname)])
+                if ccount > 0:
+                    index_page += "<a href='class_{0}.html'>{0}</a> ({1})<br/>\n".format(cname.lower(), ccount)
+            index_page += "</div>\n"
+            
         index_page += "</body></html>"
         output_html_file = os.path.join(output_dir, 'index.html')
         with open(output_html_file, 'w') as f:
