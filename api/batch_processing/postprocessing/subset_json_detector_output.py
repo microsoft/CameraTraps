@@ -26,7 +26,7 @@
 # corresponding to the subfolders for each .json file.
 #
 # python subset_json_detector_output.py "d:\temp\idfg\1800_detections_S2.json" "d:\temp\idfg\output_to_folders" --split_folders --make_folder_relative --copy_jsons_to_folders
-
+#
 ###
 #
 # Sample invocations (creating a single subset matching a query):
@@ -75,6 +75,9 @@ class SubsetJsonDetectorOutputOptions:
     # Should we over-write .json files?
     overwrite_json_files = False
     
+    # If copy_jsons_to_folders is true, do we require that directories already exist?
+    copy_jsons_to_folders_directories_must_exist = True
+    
     
 #%% Main function
 
@@ -84,7 +87,12 @@ def write_images(data,output_filename,options):
         raise ValueError('File {} exists'.format(output_filename))
     
     basedir = os.path.dirname(output_filename)
-    os.makedirs(basedir,exist_ok=True)
+    
+    if options.copy_jsons_to_folders and options.copy_jsons_to_folders_directories_must_exist:
+        if not os.path.isdir(basedir):
+            raise ValueError('Directory {} does not exist'.format(basedir))
+    else:
+        os.makedirs(basedir,exist_ok=True)
     
     print('Serializing to {}...'.format(output_filename), end = '')    
     s = json.dumps(data, indent=1)
@@ -179,7 +187,7 @@ def subset_json_detector_output(input_filename,output_filename,options):
             
             print('Converting database-relative paths to individual-json-relative paths...')
         
-            for dirname in folders_to_images:
+            for dirname in tqdm(folders_to_images):
                 # im = folders_to_images[dirname][0]
                 for im in folders_to_images[dirname]:
                     fn = im['file']
@@ -190,8 +198,9 @@ def subset_json_detector_output(input_filename,output_filename,options):
                        
         os.makedirs(output_filename,exist_ok=True)
         all_images = data['images']
+        
         # dirname = list(folders_to_images.keys())[0]
-        for dirname in folders_to_images:
+        for dirname in tqdm(folders_to_images):
                         
             if options.copy_jsons_to_folders:
                 json_fn = os.path.join(output_filename,dirname,dirname.replace('/','_').replace('\\','_') + '.json')            
@@ -283,6 +292,7 @@ def main():
     parser.add_argument('--make_folder_relative', action='store_true', help='Make image paths relative to their containing folder (only meaningful with split_folders)')
     parser.add_argument('--overwrite_json_files', action='store_true', help='Overwrite output files')
     parser.add_argument('--copy_jsons_to_folders', action='store_true', help='When using split_folders and make_folder relative, copy jsons to their corresponding folders (relative to output_file)')    
+    parser.add_argument('--create_folders', action='store_true', help='When using copy_jsons_to_folders, create folders that don''t exist')    
     
     if len(sys.argv[1:])==0:
         parser.print_help()
@@ -292,6 +302,9 @@ def main():
     
     # Convert to an options object
     options = SubsetJsonDetectorOutputOptions()
+    if args.create_folders:
+        options.copy_jsons_to_folders_directories_must_exist = False
+        
     argsToObject(args,options)
     
     subset_json_detector_output(args.input_file,args.output_file,options)
