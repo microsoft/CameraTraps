@@ -63,9 +63,57 @@ class IndexedJsonDb:
     filename_to_id = None
     image_id_to_annotations = None
 
+
+    def get_annotations_for_image(self, image):
+        """
+        Returns a list of annotations associated with [image]
+        
+        Returns None is the db has not been loaded, [] if no annotations are available
+        """
+        
+        if self.db is None:
+            return None
+    
+        if image['id'] not in self.image_id_to_annotations:
+            return []
+        
+        image_annotations = self.image_id_to_annotations[image['id']]
+        return image_annotations
+    
+    
+    def get_classes_for_image(self, image):
+        """
+        Returns a list of class names associated with [image]
+        
+        Returns None is the db has not been loaded, [] if no annotations are available
+        """
+        
+        if self.db is None:
+            return None
+    
+        if image['id'] not in self.image_id_to_annotations:
+            return []
+        
+        class_ids = []
+        image_annotations = self.image_id_to_annotations[image['id']]
+        for ann in image_annotations:
+            class_ids.append(ann['category_id'])
+        class_ids = list(set(class_ids))
+        class_ids.sort()
+        class_names = [self.cat_id_to_name[x] for x in class_ids]
+        
+        return class_names
+        
+        
     def __init__(self, json_filename, b_normalize_paths=False, filename_replacements={}):
-       
-        self.db = json.load(open(json_filename))
+        '''
+        json_filename can also be an existing json db
+        '''
+        
+        if isinstance(json_filename,str):
+            self.db = json.load(open(json_filename))
+        else:
+            self.db = json_filename
     
         assert 'images' in self.db, 'Could not find image list in file {}, are you sure this is a COCO camera traps file?'.format(json_filename)
         
