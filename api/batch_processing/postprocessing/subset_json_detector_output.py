@@ -22,6 +22,11 @@
 #
 # python subset_json_detector_output.py "d:\temp\idfg\1800_idfg_statewide_wolf_detections_w_classifications.json" "d:\temp\idfg\output" --split_folders --make_folder_relative
 #
+# Now do the same thing, but instead of writing .json's to d:\temp\idfg\output, write them to *subfolders*
+# corresponding to the subfolders for each .json file.
+#
+# python subset_json_detector_output.py "d:\temp\idfg\1800_detections_S2.json" "d:\temp\idfg\output_to_folders" --split_folders --make_folder_relative --copy_jsons_to_folders
+
 ###
 #
 # Sample invocations (creating a single subset matching a query):
@@ -62,10 +67,21 @@ class SubsetJsonDetectorOutputOptions:
     # the folder for each .json file?
     make_folder_relative = False
     
+    # Only meaningful if split_folders and make_folder_relative are True: if not None, 
+    # will copy .json files to their corresponding output directories, relative to 
+    # output_filename
+    copy_jsons_to_folders = False
+    
+    # Should we over-write .json files?
+    overwrite_json_files = False
+    
     
 #%% Main function
 
-def write_images(data, output_filename):
+def write_images(data,output_filename,options):
+    
+    if (not options.overwrite_json_files) and os.path.isfile(output_filename):
+        raise ValueError('File {} exists'.format(output_filename))
     
     basedir = os.path.dirname(output_filename)
     os.makedirs(basedir,exist_ok=True)
@@ -112,7 +128,7 @@ def subset_json_detector_output_by_query(data,output_filename,options):
     
     data['images'] = images_out
     
-    write_images(data,output_filename)
+    write_images(data,output_filename,options)
     
     print('Done, found {} matches (of {})'.format(len(data['images']),len(images_in)))
     
@@ -123,11 +139,16 @@ def subset_json_detector_output(input_filename,output_filename,options):
 
     if options is None:    
         options = SubsetJsonDetectorOutputOptions()
-        
+            
     # Input validation        
     if (options.query is not None or options.replacement is not None) and options.split_folders:
         raise ValueError('Query/replacement strings and splitting by folders are mutually exclusive')
+
+    if options.copy_jsons_to_folders:
+        assert options.split_folders and options.make_folder_relative, \
+        'copy_json_base set without make_folder_relative and split_folders'
         
+            
     if options.split_folders:
         if os.path.isfile(output_filename):
             raise ValueError('When splitting by folders, output must be a valid directory name, you specified an existing file')
@@ -147,7 +168,7 @@ def subset_json_detector_output(input_filename,output_filename,options):
         # im = data['images'][0]
         for im in tqdm(data['images']):
             fn = im['file']
-            dirname = os.path.dirname(fn)            
+            dirname = os.path.dirname(fn)
             folders_to_images.setdefault(dirname,[]).append(im)
         
         print('Found {} unique folders'.format(len(folders_to_images)))
@@ -156,7 +177,7 @@ def subset_json_detector_output(input_filename,output_filename,options):
         # dirname = list(folders_to_images.keys())[0]
         if options.make_folder_relative:
             
-            print('Converting absolute paths to relative paths...')
+            print('Converting database-relative paths to individual-json-relative paths...')
         
             for dirname in folders_to_images:
                 # im = folders_to_images[dirname][0]
@@ -165,19 +186,23 @@ def subset_json_detector_output(input_filename,output_filename,options):
                     relfn = os.path.relpath(fn,dirname)
                     im['file'] = relfn
                     
-        print('Finished converting to relative paths, writing output')
+        print('Finished converting to json-relative paths, writing output')
                        
         os.makedirs(output_filename,exist_ok=True)
         all_images = data['images']
         # dirname = list(folders_to_images.keys())[0]
         for dirname in folders_to_images:
-            json_fn = os.path.join(output_filename,dirname.replace('/','_').replace('\\','_') + '.json')
+                        
+            if options.copy_jsons_to_folders:
+                json_fn = os.path.join(output_filename,dirname,dirname.replace('/','_').replace('\\','_') + '.json')            
+            else:
+                json_fn = os.path.join(output_filename,dirname.replace('/','_').replace('\\','_') + '.json')
             
             # Recycle the 'data' struct, replacing 'images' every time... medium-hacky, but 
             # forward-compatible in that I don't take dependencies on the other fields
             dir_data = data
             dir_data['images'] = folders_to_images[dirname]
-            write_images(dir_data, json_fn)
+            write_images(dir_data, json_fn, options)
             print('Wrote {} images to {}'.format(len(dir_data['images']),json_fn))
         # ...for each directory
         
@@ -192,26 +217,41 @@ def subset_json_detector_output(input_filename,output_filename,options):
                 
 if False:
 
-    #%%   
+    #%% Subset a file without splitting
     
     input_filename = r"D:\temp\idfg\1800_idfg_statewide_wolf_detections_w_classifications.json"
-    output_filename = r"D:\temp\idfg\output\1800_detections_2017.json"
+    output_filename = r"D:\temp\idfg\1800_detections_S2.json"
      
     options = SubsetJsonDetectorOutputOptions()
-    options.replacement = 'blah'
-    options.query = '2017'
+    options.replacement = None
+    options.query = 'S2'
         
     data = subset_json_detector_output(input_filename,output_filename,options)
     print('Done, found {} matches'.format(len(data['images'])))
 
-    #%%
+
+    #%% Subset and split, but don't copy to individual folders
     
-    input_filename = r"D:\temp\idfg\1800_idfg_statewide_wolf_detections_w_classifications.json"
+    input_filename = r"D:\temp\idfg\1800_detections_S2.json"
     output_filename = r"D:\temp\idfg\output"
      
     options = SubsetJsonDetectorOutputOptions()
     options.split_folders = True    
     options.make_folder_relative = True
+    
+    data = subset_json_detector_output(input_filename,output_filename,options)
+    print('Done')
+    
+    
+    #%% Subset and split, copying to individual folders
+    
+    input_filename = r"D:\temp\idfg\1800_detections_S2.json"
+    output_filename = r"D:\temp\idfg\output_to_folders"
+     
+    options = SubsetJsonDetectorOutputOptions()
+    options.split_folders = True    
+    options.make_folder_relative = True
+    options.copy_jsons_to_folders = True
     
     data = subset_json_detector_output(input_filename,output_filename,options)
     print('Done')
@@ -241,6 +281,8 @@ def main():
     parser.add_argument('--replacement', type=str, default=None, help='Replace [query] with this')
     parser.add_argument('--split_folders', action='store_true', help='Split .json files by leaf-node folder')
     parser.add_argument('--make_folder_relative', action='store_true', help='Make image paths relative to their containing folder (only meaningful with split_folders)')
+    parser.add_argument('--overwrite_json_files', action='store_true', help='Overwrite output files')
+    parser.add_argument('--copy_jsons_to_folders', action='store_true', help='When using split_folders and make_folder relative, copy jsons to their corresponding folders (relative to output_file)')    
     
     if len(sys.argv[1:])==0:
         parser.print_help()
