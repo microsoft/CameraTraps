@@ -1,3 +1,9 @@
+#
+# Script for generating a two-class dataset in COCO format for training an obscured image classifier
+#
+# Requires Python >= 3.6 because of the glob ** expression
+#
+
 import glob
 import PIL.Image
 import json
