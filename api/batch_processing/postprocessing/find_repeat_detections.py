@@ -94,7 +94,7 @@ class RepeatDetectionOptions:
     bRenderHtml = False
     bWriteFilteringFolder = True
 
-    debugMaxDir = -1  # TODO list[0: -1] would exclude the last item actually...
+    debugMaxDir = -1
     debugMaxRenderDir = -1
     debugMaxRenderDetection = -1
     debugMaxRenderInstance = -1
@@ -146,8 +146,9 @@ class RepeatDetectionResults:
 
 class IndexedDetection:
 
-    def __init__(self, iDetection=-1, filename='', bbox=[]):
-        """A single detection event on a single image
+    def __init__(self, iDetection=-1, filename='', bbox=[], confidence=-1):
+        """
+        A single detection event on a single image
 
         Args:
             iDetection: order in API output file
@@ -157,6 +158,7 @@ class IndexedDetection:
         self.iDetection = iDetection
         self.filename = filename
         self.bbox = bbox
+        self.confidence = -1
 
     def __repr__(self):
         s = ct_utils.pretty_print_object(self, False)
@@ -182,8 +184,8 @@ class DetectionLocation:
 
 ##%% Helper functions
 
-
 def render_bounding_box(bbox, inputFileName, imageOutputFilename, linewidth):
+    
     im = open_image(inputFileName)
     # bbox is [x, y, width, height] where x, y is the top left corner, normalized units wrt width and height of image
     x_min, y_min, x_max, y_max = ct_utils.convert_coords_to_xyxy(bbox)
@@ -194,6 +196,7 @@ def render_bounding_box(bbox, inputFileName, imageOutputFilename, linewidth):
 ##%% Look for matches (one directory) (function)
 
 def find_matches_in_directory(dirName, options, rowsByDirectory):
+    
     if options.pbar is not None:
         options.pbar.update()
 
@@ -226,6 +229,7 @@ def find_matches_in_directory(dirName, options, rowsByDirectory):
 
         # For each detection in this image
         for iDetection, detection in enumerate(detections):
+            
             assert 'category' in detection and 'conf' in detection and 'bbox' in detection
 
             confidence = detection['conf']
@@ -242,6 +246,8 @@ def find_matches_in_directory(dirName, options, rowsByDirectory):
                     continue
 
             bbox = detection['bbox']
+            confidence = detection['conf']
+            
             # Is this detection too big to be suspicious?
             w, h = bbox[2], bbox[3]
             area = h * w
@@ -254,7 +260,7 @@ def find_matches_in_directory(dirName, options, rowsByDirectory):
                 continue
 
             instance = IndexedDetection(iDetection,
-                                        row['file'], bbox)
+                                        row['file'], bbox, confidence)
 
             bFoundSimilarDetection = False
 
@@ -265,6 +271,7 @@ def find_matches_in_directory(dirName, options, rowsByDirectory):
                 iou = ct_utils.get_iou(bbox, candidate.bbox)
 
                 if iou >= options.iouThreshold:
+                    
                     bFoundSimilarDetection = True
 
                     # If so, add this example to the list for this detection
@@ -287,13 +294,13 @@ def find_matches_in_directory(dirName, options, rowsByDirectory):
 
     return candidateDetections
 
-
 # ...def find_matches_in_directory(dirName)
 
 
 ##%% Render problematic locations to html (function)
 
 def render_images_for_directory(iDir, directoryHtmlFiles, suspiciousDetections, options):
+    
     nDirs = len(directoryHtmlFiles)
 
     if options.pbar is not None:
@@ -325,6 +332,7 @@ def render_images_for_directory(iDir, directoryHtmlFiles, suspiciousDetections, 
     nDetections = len(suspiciousDetectionsThisDir)
     bPrintedMissingImageWarning = False
 
+    # iDetection = 0; detection = suspiciousDetectionsThisDir[0]
     for iDetection, detection in enumerate(suspiciousDetectionsThisDir):
 
         if options.debugMaxRenderDetection > 0 and iDetection > options.debugMaxRenderDetection:
@@ -355,7 +363,7 @@ def render_images_for_directory(iDir, directoryHtmlFiles, suspiciousDetections, 
                                                imageRelativeFilename)
             thisImageInfo = {}
             thisImageInfo['filename'] = imageRelativeFilename
-            confidence = instance.bbox[4]
+            confidence = instance.confidence
             confidenceStr = '{:.2f}'.format(confidence)
             t = confidenceStr + ' (' + instance.filename + ')'
             thisImageInfo['title'] = t
@@ -402,7 +410,6 @@ def render_images_for_directory(iDir, directoryHtmlFiles, suspiciousDetections, 
                                                 htmlOptions)
 
     return directoryHtmlFile
-
 
 # ...def render_images_for_directory(iDir)
 
@@ -524,6 +531,7 @@ def update_detection_table(RepeatDetectionResults, options, outputFilename=None)
 ##%% Main function
 
 def find_repeat_detections(inputFilename, outputFilename, options=None):
+    
     ##%% Input handling
 
     if options is None:
