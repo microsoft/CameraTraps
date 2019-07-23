@@ -32,6 +32,7 @@ import sys
 from enum import IntEnum
 import collections
 import io
+import warnings
 
 import matplotlib
 matplotlib.use('agg')
@@ -51,6 +52,7 @@ from data_management.cct_json_utils import CameraTrapJsonUtils, IndexedJsonDb
 from api.batch_processing.postprocessing.load_api_results import load_api_results
 from ct_utils import args_to_object
 
+warnings.filterwarnings("ignore", "(Possibly )?corrupt EXIF data", UserWarning)
 
 #%% Options
 
@@ -59,8 +61,8 @@ DEFAULT_UNKNOWN_CLASSES = ['unknown', 'unlabeled']
 
 
 def has_overlap(set1, set2):
-
-    ''' Helper function, which checks if two sets have an overlap '''
+    ''' Helper function that checks whether two sets overlap '''
+    
     return len(set(set1) & set(set2)) > 0
 
 
