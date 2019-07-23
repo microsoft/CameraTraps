@@ -147,7 +147,9 @@ def render_db_bounding_boxes(boxes, classes, image, original_size=None,
 def render_detection_bounding_boxes(detections, image,
                                     label_map={},
                                     classification_label_map={},
-                                    confidence_threshold=0.8, thickness=4):
+                                    confidence_threshold=0.8, thickness=4,
+                                    classification_confidence_threshold=0.3,
+                                    max_classifications=3):
     """
     Renders bounding boxes, label and confidence on an image if confidence is above the threshold.
     This is works with the output of the detector batch processing API.
@@ -207,25 +209,40 @@ def render_detection_bounding_boxes(detections, image,
 
         score = detection['conf']
         if score > confidence_threshold:
+            
             x1, y1, w_box, h_box = detection['bbox']
             display_boxes.append([y1, x1, y1 + h_box, x1 + w_box])
             clss = detection['category']
             label = label_map[clss] if clss in label_map else clss
             displayed_label = ['{}: {}%'.format(label, round(100 * score))]
-            if clss == '1' and 'classifications' in detection:
-                # To avoid duplicate colors with detection-only visualization offset
+            
+            if 'classifications' in detection:
+                
+                # To avoid duplicate colors with detection-only visualization, offset
                 # the classification class index by the number of detection classes
                 clss = len(annotation_constants.bbox_categories) + int(detection['classifications'][0][0])
-                for classification in detection['classifications']:
+                classifications = detection['classifications']
+                if len(classifications) > max_classifications:
+                    classifications = classifications[0:max_classifications]
+                for classification in classifications:
+                    p = classification[1]
+                    if p < classification_confidence_threshold:
+                        continue
                     class_key = classification[0]
                     if class_key in classification_label_map:
                         class_name = classification_label_map[class_key]
                     else:
                         class_name = class_key
-                    displayed_label += ['{} with confidence {:5.1%}'.format(class_name, classification[1])]
+                    displayed_label += ['{}: {:5.1%}'.format(class_name.lower(), classification[1])]
+                    
+            # ...if we have detection results
+            
             display_strs.append(displayed_label)
             classes.append(clss)
 
+        # ...if the confidence of this detection is above threshold
+        
+    # ...for each detection
     display_boxes = np.array(display_boxes)
 
     draw_bounding_boxes_on_image(image, display_boxes, classes,
@@ -308,7 +325,8 @@ def draw_bounding_box_on_image(image,
                                clss=None,
                                thickness=4,
                                display_str_list=(),
-                               use_normalized_coordinates=True):
+                               use_normalized_coordinates=True,
+                               label_font_size=16):
     """
     Adds a bounding box to an image.
 
@@ -350,7 +368,7 @@ def draw_bounding_box_on_image(image,
                (right, top), (left, top)], width=thickness, fill=color)
 
     try:
-        font = ImageFont.truetype('arial.ttf', 32)
+        font = ImageFont.truetype('arial.ttf', label_font_size)
     except IOError:
         font = ImageFont.load_default()
 
@@ -358,6 +376,7 @@ def draw_bounding_box_on_image(image,
     # box exceeds the top of the image, stack the strings below the bounding box
     # instead of above.
     display_str_heights = [font.getsize(ds)[1] for ds in display_str_list]
+    
     # Each display_str has a top and bottom margin of 0.05x.
     total_display_str_height = (1 + 2 * 0.05) * sum(display_str_heights)
 
@@ -387,9 +406,9 @@ def plot_confusion_matrix(matrix, classes,
                           normalize=False,
                           title='Confusion matrix',
                           cmap=plt.cm.Blues,
-                         vmax=None,
-                         use_colorbar=True,
-                         y_label = True):
+                          vmax=None,
+                          use_colorbar=True,
+                          y_label = True):
 
     """
     This function plots a confusion matrix.
