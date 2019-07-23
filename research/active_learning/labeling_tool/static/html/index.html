@@ -87,7 +87,7 @@
         <div class="container-fluid">
             <div class="row center">
                 <!-- Image Display -->
-                <div class="col-xl-10 col-lg-6">
+                <div class="col-xl-10 col-lg-8">
                     <div class="gallery selectable">
                         <!-- Row 1 -->
                         <div class="display-image">
@@ -202,7 +202,7 @@
                     </div>
                 </div>
                 <!-- Widgets -->
-                <div class="col-xl-2 col-lg-3">
+                <div class="col-xl-2 col-lg-4">
                     <div class="card">
                         <div class="card-header">
                             Label Images
@@ -253,7 +253,7 @@
             </div>
 
             <!--Added by Amar-->
-            <div id="fullimagedialog" style="display: none; width: 1fr;">
+            <div id="fullimagedialog" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);">
                 <!-- <p>This is the default dialog which is useful for displaying information. The dialog window can be moved, resized and closed with the 'x' icon.</p> -->
                 <img id="fullimage" class="" src="img/placeholder.JPG"></img>  
             </div>
@@ -339,22 +339,24 @@
         $(function(){
             $(".display-image").on('dblclick', function(){
                 var imgobj = $(this).find('img')
-                var filenew_srcid = $(this).find('img').attr("src");
+                var imgsrc = $(this).find('img').attr("src");
+                /*Added by Amar*/
                 $.ajax({
                     type: "POST",
                     url: "http://lynxvm.southcentralus.cloudapp.azure.com:8080/showFullsizeImage",
                     contentType: "application/json",
-                    data: JSON.stringify({"image_src": filenew_srcid}),
+                    data: JSON.stringify({"img_src": imgsrc}),
                     success: function(data){
-                        $("#fullimage").attr("src", data["fullsize_src"]);
-                        $("#fullimagedialog" ).dialog();
-                    }
-                })
-                // var filenew_srcid= largeImageDisplayDBClick($(this).attr("src"));
-                //var filenew_srcid= "https://icon-library.net//images/image-error-icon/image-error-icon-16.jpg";
-                // $("#fullimage").attr("src", filenew_srcid);
-                // $("#fullimagedialog" ).dialog();
-                //alert("The paragraph was double-clicked -" + filenew_srcid);
+                        if (data['success_status'] == true){
+                            $("#fullimage").attr("src", data['fullsize_src']);
+                        }
+                        else{
+                            $("#fullimage").attr("src", "https://icon-library.net//images/image-error-icon/image-error-icon-16.jpg");
+                        }
+                        $("#fullimagedialog").dialog();
+                    },
+                    error: notifyFail
+                });
             });
             return false;
         });
@@ -583,59 +585,8 @@
             selectImages();
         });
 
-        /*Added by Amar*/
-        
-        // var largeImageDisplayDBClick = function(fullpath){
-        //     $.ajax({
-        //         type: "POST",
-        //         url: "http://lynxvm.southcentralus.cloudapp.azure.com:8080/showFullsizeImage",//"http://localhost:8000/refreshImagesToDisplay",
-        //         contentType: "application/json",
-        //         // data: JSON.stringify({"detection_threshold": detectionThresholdValue, "display_grayscale": displayGrayscale, "display_class": requestedLabelText}),
-        //         data: JSON.stringify({"img_src": fullpath}),
-        //         success: function(data){
-        //             if (data['success_status'] == true){
-        //                 return data['fullsize_src']              // to display images
-        //                 // to check if the app is initialized with a pretrained classifier 
-        //             }
-        //             else{
-        //                 return "https://icon-library.net//images/image-error-icon/image-error-icon-16.jpg"
-        //             }
-        //         },
-        //         error: notifyFail
-        //     });
-        // };
 
-        // $(function() {
-            // $(".selectable").selectable({
-                // selected: function(){
 
-                // }
-            // });
-            // $(".selectable").selectable({
-            //     selected: function() {
-            //         var selectedItemList = $("#selected-item-list").empty();
-            //         $(".selectable img").each(function(index) {
-            //             if ($(this).hasClass("ui-selected")) {
-            //                 selectedItemList.append((index + 1) + ", ");
-            //             }
-            //         });
-            //         alert(selectedItemList)
-            //     }
-            // });
-        // });
-        // $(document).ready(function () {
-        //     $("#selectImage").imagepicker({
-        //         hide_select: true
-        //     });
-        //     var $container = $('.image_picker_selector');
-        //     // initialize
-        //     $container.imagesLoaded(function () {
-        //         $container.masonry({
-        //             columnWidth: 30,
-        //             itemSelector: '.thumbnail'
-        //         });
-        //     });
-        // });
     </script>
 
 </body>
