@@ -524,14 +524,17 @@ if __name__ == '__main__':
     def show_fullsize_image():
         data = bottle.request.json
         
-        image_src = data['image_src']
+        image_src = data['img_src']
         
         matching_image_entries = (Image
-        .select(Image.file_name, Image.source_file_name)
-        .where((Image.file_name == image_src)))
-        mie = matching_image_entries.get()
-        
-        data['fullsize_src'] = mie.source_file_name
+                                .select(Image.file_name, Image.source_file_name)
+                                .where((Image.file_name == image_src)))
+        try:
+            mie = matching_image_entries.get()
+            data['success_status'] = True
+            data['fullsize_src'] = mie.source_file_name
+        except:
+            data['success_status'] = False
         
         bottle.response.content_type = 'application/json'
         bottle.response.status = 200
