@@ -520,4 +520,21 @@ if __name__ == '__main__':
         bottle.response.status = 200
         return json.dumps(data)
     
+    @webUIapp.route('/showFullsizeImage', method='POST')
+    def show_fullsize_image():
+        data = bottle.request.json
+        
+        image_src = data['image_src']
+        
+        matching_image_entries = (Image
+        .select(Image.file_name, Image.source_file_name)
+        .where((Image.file_name == image_src)))
+        mie = matching_image_entries.get()
+        
+        data['fullsize_src'] = mie.source_file_name
+        
+        bottle.response.content_type = 'application/json'
+        bottle.response.status = 200
+        return json.dumps(data)
+    
     webUIapp.run(**webUIapp_server_kwargs)
