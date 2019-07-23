@@ -41,6 +41,10 @@
 #
 # python subset_json_detector_output.py "d:\temp\1800_detections.json" "d:\temp\1800_detections_prefix.json" --replacement "prefix/"
 #
+###
+#
+# To subset a COCO Camera Traps .json database, see subset_json_db.py
+#
 
 #%% Constants and imports
 
