@@ -151,10 +151,12 @@ def render_detection_bounding_boxes(detections, image,
                                     classification_confidence_threshold=0.3,
                                     max_classifications=3):
     """
-    Renders bounding boxes, label and confidence on an image if confidence is above the threshold.
-    This is works with the output of the detector batch processing API.
-    Supports classification, if the detection contains classification results according to the detector
-    API output version 1.0. The detection label is ignored then, if the detection category is '1'.
+    Renders bounding boxes, label, and confidence on an image if confidence is above the threshold.
+    
+    This works with the output of the batch processing API.
+    
+    Supports classification, if the detection contains classification results according to the 
+    API output version 1.0.
 
     Args:
         detections: detections on the image, example content:
