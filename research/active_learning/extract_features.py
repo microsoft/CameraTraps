@@ -119,59 +119,95 @@ def main():
     ## update the dataset embedding
     dataset.updateEmbedding(model)
 
-    # Create a folder for saving embedding visualizations with this model checkpoint
-    model_emb_dirname = os.path.basename(args.base_model).split('.')[0]
-    os.makedirs(model_emb_dirname, exist_ok=True)
-    plot_embedding_images(dataset.em[:], np.asarray(dataset.getlabels()) , dataset.getpaths(), {}, model_emb_dirname+'/embedding_plot.png')
+    print('len(dataset)', len(dataset))
+    random_anchor_idx = np.random.randint(len(dataset))
+    print(random_anchor_idx)
 
-    dataset.embedding_mode()
+
+
+    # # Create a folder for saving embedding visualizations with this model checkpoint
+    # model_emb_dirname = os.path.basename(args.base_model).split('.')[0]
+    # os.makedirs(model_emb_dirname, exist_ok=True)
+    # plot_embedding_images(dataset.em[:], np.asarray(dataset.getlabels()) , dataset.getpaths(), {}, model_emb_dirname+'/embedding_plot.png')
+    model_emb_dirname = os.path.basename(args.base_model).split('.')[0]+'_temp'
+    os.makedirs(model_emb_dirname, exist_ok=True)
+
+    # dataset.embedding_mode()
     X_train = dataset.em[range(len(dataset))]
     y_train = np.asarray(dataset.getalllabels())
     imagepaths = dataset.getallpaths()
+    random_anchor_img = dataset.loader(imagepaths[random_anchor_idx].split('.JPG')[0])
+    random_anchor_img.save(model_emb_dirname+"/anchor_img.png")
+    random_anchor_img_np = np.asarray(random_anchor_img)
+    print(random_anchor_img_np.shape)
+    # assert 2==3, 'break'
 
-    datasetindices = list(range(len(dataset)))
-    np.random.shuffle(datasetindices)
-    random_indices = datasetindices[:args.num]
-    print(random_indices)
+    # datasetindices = list(range(len(dataset)))
+    # np.random.shuffle(datasetindices)
+    # random_indices = datasetindices[:args.num]
+    # print(random_indices)
     
-    selected_sample_features = np.array([]).reshape(0, 256)
-    selected_sample_labels = []
+    # selected_sample_features = np.array([]).reshape(0, 256)
+    # selected_sample_labels = []
     selected_sample_images = []
 
-    for idx in random_indices:
-        selected_sample_features = np.vstack([selected_sample_features, X_train[idx]])
-        selected_sample_labels.append(y_train[idx])
+    # for idx in random_indices:
+    #     selected_sample_features = np.vstack([selected_sample_features, X_train[idx]])
+    #     selected_sample_labels.append(y_train[idx])
+    #     img_path = imagepaths[idx].split('.JPG')[0]
+    #     image = dataset.loader(img_path)
+    #     selected_sample_images.append(image)
+    
+    
+    # # TRY NEAREST NEIGHBORS WALK THROUGH EMBEDDING
+    # nbrs = NearestNeighbors(n_neighbors=args.num).fit(selected_sample_features)
+    # distances, indices = nbrs.kneighbors(selected_sample_features)
+    timer = time.time()
+    nbrs = NearestNeighbors(n_neighbors=args.num).fit(X_train)
+    print('Finished fitting nearest neighbors for whole dataset in %0.2f seconds'%(float(time.time() - timer)))
+    distances, indices = nbrs.kneighbors(X_train)
+    ten_closest_to_anchor = indices[random_anchor_idx, 1:11]
+    print(distances[random_anchor_idx, 0:11])
+
+    for idx in ten_closest_to_anchor:
         img_path = imagepaths[idx].split('.JPG')[0]
         image = dataset.loader(img_path)
         selected_sample_images.append(image)
-    
-    
-    # TRY NEAREST NEIGHBORS WALK THROUGH EMBEDDING
-    nbrs = NearestNeighbors(n_neighbors=args.num).fit(selected_sample_features)
-    distances, indices = nbrs.kneighbors(selected_sample_features)
 
-    idx_w_closest_nbr = np.where(distances[:,1] == min(distances[:,1]))[0][0]
-    order = [idx_w_closest_nbr]
-    for ii in range(len(distances)):
-        distances[ii, 0] = np.inf
+    # plot_embedding_images(dataset.em[:], np.asarray(dataset.getlabels()) , dataset.getpaths(), {}, model_emb_dirname+'/embedding_plot.png')
 
-    while len(order)<args.num:
-        curr_idx = order[-1]
-        curr_neighbors = indices[curr_idx]
-        curr_dists = list(distances[curr_idx])
-        # print(min(curr_dists))
-        next_closest_pos = curr_dists.index(min(curr_dists))
-        next_closest = curr_neighbors[next_closest_pos]
-        order.append(next_closest)
-        # make sure you can't revisit past nodes
-        for vi in order:
-            vi_pos = list(indices[next_closest]).index(vi)
-            distances[next_closest, vi_pos] = np.inf
+    # idx_w_closest_nbr = np.where(distances[:,1] == min(distances[:,1]))[0][0]
+    # order = [idx_w_closest_nbr]
+    # for ii in range(len(distances)):
+    #     distances[ii, 0] = np.inf
+
+    # while len(order)<args.num:
+    #     curr_idx = order[-1]
+    #     curr_neighbors = indices[curr_idx]
+    #     curr_dists = list(distances[curr_idx])
+    #     # print(min(curr_dists))
+    #     next_closest_pos = curr_dists.index(min(curr_dists))
+    #     next_closest = curr_neighbors[next_closest_pos]
+    #     order.append(next_closest)
+    #     # make sure you can't revisit past nodes
+    #     for vi in order:
+    #         vi_pos = list(indices[next_closest]).index(vi)
+    #         distances[next_closest, vi_pos] = np.inf
     
-    for ii in range(len(order)):
-        imgidx = order[ii]
-        image = selected_sample_images[imgidx]
-        image.save(model_emb_dirname+"/img"+str(ii)+"_"+str(selected_sample_labels[imgidx])+".png")
+    # for ii in range(len(order)):
+    #     imgidx = order[ii]
+    #     image = selected_sample_images[imgidx]
+    #     image.save(model_emb_dirname+"/img"+str(ii)+"_"+str(selected_sample_labels[imgidx])+".png")
+
+    for ii in range(len(selected_sample_images)):
+        image = selected_sample_images[ii]
+        image.save(model_emb_dirname+"/img"+str(ii)+".png")
+
+
+
+
+
+
 
     # # Specify the transformations on the input images before inference
     # # test_transforms = transforms.Compose([transforms.Resize([224, 224]), transforms.ToTensor()])
