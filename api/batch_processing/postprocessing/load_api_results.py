@@ -14,8 +14,8 @@ import os
 
 headers = ['image_path', 'max_confidence', 'detections']
 
-#%% Functions
 
+#%% Functions
 
 def load_api_results(api_output_filename, normalize_paths=True, filename_replacements={}):
     """
