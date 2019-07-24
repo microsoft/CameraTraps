@@ -217,7 +217,7 @@
         // var userLabeledImages = []; // src of images for which the user has assigned/confirmed a label
         var currentlyAssigning = []; // src of images to which this label is currently being assigned
         var displayedImagesInfo = {}; // info about displayed images, kevalue is src
-S        var displayClass = ''
+        var displayClass = ''
         
         // Print failure response for failed JQuery requests
         var notifyFail = function(jqXHR, textStatus, errorThrown){
@@ -526,10 +526,24 @@ S        var displayClass = ''
             });
         };
 
+        var getSequentialImages = function(){
+            $.ajax({
+                type: "POST",
+                url: "http://lynxvm.southcentralus.cloudapp.azure.com:8080/getSequentialImages",//"http://localhost:8000/trainClassifier",
+                contentType: "application/json",
+                data: JSON.stringify({"img_src": '/datadrive/missouricameratraps/crops_detector/bcf21a21-5863-4e17-9dde-f10cf9d8dc0c.JPG'}),
+                success: function(data){
+                    console.debug(data['image_sequence'])
+                },
+                error: notifyFail
+            });
+        };
+
         $(document).ready(function(){
             getClassList();
             refreshImagesToDisplay();
             selectImages();
+            getSequentialImages();
         });
 
 
