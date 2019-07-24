@@ -37,6 +37,7 @@ def truncate_float(x, precision=3):
     precision (int)   The number of significant digits to preserve, should be
                       greater or equal 1
     """
+    
     assert precision > 0
 
     if np.isclose(x, 0):
@@ -59,9 +60,8 @@ def args_to_object(args, obj):
         args: (argparse.Namespace) argparse namespace
         obj:  (class or object)    object whose attributes will be updated
 
-    Returns:
-
     """
+    
     for n, v in inspect.getmembers(args):
         if not n.startswith('_'):
             setattr(obj, n, v)
@@ -71,6 +71,7 @@ def pretty_print_object(obj, b_print=True):
     """
     Prints an arbitrary object as .json
     """
+    
     # _ = pretty_print_object(obj)
 
     # Sloppy that I'm making a module-wide change here...
@@ -89,12 +90,15 @@ def is_image_file(s):
     """
     Check a file's extension against a hard-coded set of image file extensions
     """
+    
     ext = os.path.splitext(s)[1]
     return ext.lower() in image_extensions
 
 
-def convert_coords_to_xyxy(api_bbox):
+def convert_xwyh_to_xyxy(api_bbox):
     """
+    Converts an xywh bounding box to an xyxy bounding box.
+    
     Note that this is also different from the TensorFlow Object Detection API coords format.
     Args:
         api_bbox: bbox output by the batch processing API [x_min, y_min, width_of_box, height_of_box]
@@ -102,6 +106,7 @@ def convert_coords_to_xyxy(api_bbox):
     Returns:
         bbox with coordinates represented as [x_min, y_min, x_max, y_max]
     """
+    
     x_min, y_min, width_of_box, height_of_box = api_bbox
     x_max, y_max = x_min + width_of_box, y_min + height_of_box
     return [x_min, y_min, x_max, y_max]
@@ -128,8 +133,9 @@ def get_iou(bb1, bb2):
     Returns:
         intersection_over_union, a float in [0, 1]
     """
-    bb1 = convert_coords_to_xyxy(bb1)
-    bb2 = convert_coords_to_xyxy(bb2)
+    
+    bb1 = convert_xwyh_to_xyxy(bb1)
+    bb2 = convert_xwyh_to_xyxy(bb2)
 
     assert bb1[0] < bb1[2]
     assert bb1[1] < bb1[3]
