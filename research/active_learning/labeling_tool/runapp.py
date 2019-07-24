@@ -540,4 +540,34 @@ if __name__ == '__main__':
         bottle.response.status = 200
         return json.dumps(data)
     
+    @webUIapp.route('/getSequentialImages', method='POST')
+    def get_sequential_images():
+        data = bottle.request.json
+        
+        image_src = data['img_src']
+        
+        matching_image_entries = (Image
+                                .select(Image.seq_id, Image.seq_num_frames, Image.frame_num)
+                                .where((Image.file_name == image_src)))
+        try:
+            mie = matching_image_entries.get()
+            if mie.seq_num_frames > 1:
+                images_in_seq = (Image
+                                .select(Image.source_file_name)
+                                .where((Image.seq_id == mie.seq_id))
+                                .order_by(Image.frame_num))
+                image_sequence = sorted(list(set([i.source_file_name for i in images_in_seq])))
+                if len(image_sequence) > 5:
+                    minidx = max(mie.frame_num - 3, 0)
+                    maxidx = min(mie.frame_num + 3, len(image_sequence))
+                    image_sequence = image_sequence[minidx:maxidx+1]
+                data['image_sequence'] = image_sequence
+            data['success_status'] = True
+        except:
+            data['success_status'] = False
+        
+        bottle.response.content_type = 'application/json'
+        bottle.response.status = 200
+        return json.dumps(data)
+
     webUIapp.run(**webUIapp_server_kwargs)
