@@ -1,5 +1,7 @@
-import argparse, random, sys, time
+import argparse, os, pickle, random, sys, time
+import numpy as np
 import torch
+import scipy.io
 from sklearn.preprocessing import StandardScaler
 from sklearn.neighbors import NearestNeighbors
 
@@ -9,17 +11,16 @@ from DL.networks import *
 from Database.DB_models import *
 from DL.sqlite_data_loader import SQLDataLoader
 
-
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--db_name', default='missouricameratraps', type=str, help='Name of the training (target) data Postgres DB.')
     parser.add_argument('--db_user', default='user', type=str, help='Name of the user accessing the Postgres DB.')
     parser.add_argument('--db_password', default='password', type=str, help='Password of the user accessing the Postgres DB.')
-    parser.add_argument('--num', default=5000, type=int, help='Number of samples to draw from dataset to get embedding features.')
+    parser.add_argument('--num', default=2500, type=int, help='Number of samples to draw from dataset to get embedding features.')
     parser.add_argument('--crop_dir', type=str, help='Path to directory with cropped images to get embedding features for.')
     parser.add_argument('--base_model', type=str, help='Path to latest embedding model checkpoint.')
     parser.add_argument('--random_seed', default=1234, type=int, help='Random seed to get same samples from database.')
+    parser.add_argument('--output_dir', type=str, help='Output directory for subset of crops')
     args = parser.parse_args()
 
     random.seed(args.random_seed)
@@ -49,46 +50,41 @@ def main():
 
     # Update the dataset embedding
     dataset.updateEmbedding(model)
+    X_train = dataset.em[range(len(dataset))]
+    y_train = np.asarray(dataset.getalllabels())
+    imagepaths = dataset.getallpaths()
+
+    datasetindices = list(range(len(dataset)))
     
-    # Get a random query image
-    query_idx = np.random.randint(len(dataset.samples))
-    query_img = dataset.loader(imagepaths[query_idx].split('.')[0])
-    query_img.save("query_img.png")
+    sample_features = np.array([]).reshape(0, 256)
+    sample_labels = []
+    sample_images = []
+
+    for idx in datasetindices:
+        sample_features = np.vstack([sample_features, X_train[idx]])
+        sample_labels.append(y_train[idx])
+        img_path = imagepaths[idx].split('.JPG')[0]
+        image = dataset.loader(img_path)
+        sample_images.append(image)
     
+    # save the images
+    for idx in datasetindices:
+        img_path = imagepaths[idx].split('.JPG')[0]
+        image = dataset.loader(img_path)
+        os.makedirs(os.path.join(args.output_dir, 'crops'), exist_ok=True)
+        image.save(os.path.join(args.output_dir, 'crops', '%d.JPG'%idx))
     
-    # # # # IMAGES IN THE SAME SEQUENCE # # # #
-    matching_image_entries = (Image
-                            .select(Image.seq_id, Image.seq_num_frames, Image.frame_num)
-                            .where((Image.file_name == imagepaths[query_idx])))
-    mie = matching_image_entries.get()
-    if mie.seq_num_frames > 1:
-        images_in_seq = (Image
-                        .select(Image.file_name)
-                        .where((Image.seq_id == mie.seq_id) & (Image.file_name << imagepaths))
-                        )
-    images_in_seq = sorted(list(set([i.file_name for i in images_in_seq])))
-    seq_img_idx = [imagepaths.index(im) for im in images_in_seq]
-    for i in range(len(seq_img_idx)):
-        if images_in_seq[i] != imagepaths[query_idx]:
-            img = dataset.loader(images_in_seq[i].split('.')[0])
-            img.save('same_seq_img%d.png'%i)
-
-
-    # assert 2==3, 'break'
-
-    # # # # CLOSEST IN (EMBEDDING) FEATURE SPACE # # # #
-    timer = time.time()
-    nbrs = NearestNeighbors(n_neighbors=11).fit(dataset.em)
-    print('Finished fitting nearest neighbors for whole dataset in %0.2f seconds'%(float(time.time() - timer)))
-    distances, indices = nbrs.kneighbors(dataset.em)
-    query_nbrs_indices = indices[query_idx, 1:11]
-    for i in range(len(query_nbrs_indices)):
-        nbr_idx = query_nbrs_indices[i]
-        nbr_img = dataset.loader(imagepaths[nbr_idx].split('.')[0])
-        nbr_img.save("embedding_nnbr_img%d.png"%i)
-
-
-    print('Success!')
+    # save the features
+    # with open(os.path.join(args.output_dir, 'lastlayer_features.mat'), 'wb') as f:
+        # pickle.dump(sample_features, f)
+    
+    # with open(os.path.join(args.output_dir, 'labels.mat'), 'wb') as f:
+        # pickle.dump(sample_labels, f)
+    
+    with open(os.path.join(args.output_dir, 'lastlayer_features_and_labels.mat'), 'wb') as f:
+        scipy.io.savemat(f, mdict={'features': sample_features, 'labels': sample_labels})
+        
+    
 
 
 if __name__ == '__main__':
