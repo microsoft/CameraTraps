@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>labeling-tool</title>
+    <meta charset="utf-8">
+    <meta name="author" content="Amrita Gupta">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <link type="text/css" href="css/bootstrap.css" rel="stylesheet">
+    <script src="js/jquery-3.3.1.min.js"></script>
+    <script src="js/bootstrap.bundle.min.js"></script>
+    
+    <script src="https://code.jquery.com/ui/1.12.0/jquery-ui.min.js" integrity="sha256-eGE6blurk5sHj+rmkfsGYeKyZx3M4bG+ZlFyA7Kns7E=" crossorigin="anonymous"></script>   
+    <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/js/toastr.min.js"></script>
+    <link href="//cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/css/toastr.min.css" rel="stylesheet"> 
+    
+    <style type="text/css">
+        @media (min-width:576px) {
+            .card-columns {
+                column-count: 2;
+            }
+        }
+        @media (min-width:768px) {
+            .card-columns {
+                column-count: 3;
+            }
+        }
+        @media (min-width:1200px) {
+            .card-columns {
+                column-count: 4;
+            }
+        }
+
+        .selectable .ui-selected{
+            border: 4px solid rgb(74, 209, 11) !important;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Page Content -->
+    <div id="page-content-wrapper">
+        <!-- Navigation bar -->
+        <nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom">    
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="navbar-header">
+                <a class="navbar-brand" style="font-size: 30px !important;">Species Classification Fine-Tuning Tool</a>
+            </div>
+        </nav>
+        </br>
+
+        <!-- Tool Area -->
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-sm-9">
+                    <div class="card-columns selectable">
+                        <div class="card" style="background-color: white; border: white;">
+                            <img class="card-img-top" src="img/placeholder.JPG" alt="Image 1" id="img1" style="height: 300px; object-fit: contain; display: block; margin: 0 auto;">
+                            <div id="img1-text" style="color:red; font-weight: bold; text-align: center; display:grid">None</div>
+                        </div>
+
+                        <div class="card" style="background-color: white; border: white;">
+                            <img class="card-img-top" src="img/placeholder.JPG" alt="Image 2" id="img2" style="width: 100%; height: 300px; object-fit: contain; display: block; margin: 0 auto;">
+                            <div id="img2-text" style="color:red; font-weight: bold; text-align: center; display:grid">None</div>
+                        </div>
+
+                        <div class="card" style="background-color: gray;">
+                            <img class="card-img-top" style="width:100%; height: 200px;"/>
+                        </div>
+                        <div class="card" style="background-color: gray;">
+                            <img class="card-img-top" style="width:100%; height: 200px;"/>
+                        </div>
+                        <div class="card" style="background-color: gray;">
+                            <img class="card-img-top" style="width:100%; height: 200px;"/>
+                        </div>
+                        <div class="card" style="background-color: gray;">
+                            <img class="card-img-top" style="width:100%; height: 200px;"/>
+                        </div>
+                        <div class="card" style="background-color: gray;">
+                            <img class="card-img-top" style="width:100%; height: 200px;"/>
+                        </div>
+                        <div class="card" style="background-color: gray;">
+                            <img class="card-img-top" style="width:100%; height: 200px;"/>
+                        </div>
+                        <div class="card" style="background-color: gray;">
+                            <img class="card-img-top" style="width:100%; height: 200px;"/>
+                        </div>
+                        <div class="card" style="background-color: gray;">
+                            <img class="card-img-top" style="width:100%; height: 200px;"/>
+                        </div>
+                        <div class="card" style="background-color: gray;">
+                            <img class="card-img-top" style="width:100%; height: 200px;"/>
+                        </div>
+                        <div class="card" style="background-color: gray;">
+                            <img class="card-img-top" style="width:100%; height: 200px;"/>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-3">
+                    <div class="card">
+                        <div class="card-header">Label Images</div>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-text" style="color:dimgray; margin-top:30px;">Specify whether to view images with a given predicted class.</p>
+                        <form>
+                            <select id="prediction-dropdown" name="dropdown" style="width:100%;">
+                                <option disabled>Species...</option>
+                                <option>All Species</option>
+                            </select>
+                        </form>
+    
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        var detectionThresholdValue = 0.85
+
+        // Print failure response for failed JQuery requests
+        var notifyFail = function(jqXHR, textStatus, errorThrown){
+            console.debug(jqXHR.responseText)
+            //var response = $.parseJSON(jqXHR.responseText);
+            //console.log("Error in processing request: "+response.error);
+        }
+
+        // Refresh dataset sampler to reflect specified filters
+        var refreshImagesToDisplay = function(){
+            var requestedLabelText = $("#prediction-dropdown option:selected").text(); //label in the classification dropdown
+            $.ajax({
+                type: "POST",
+                url: "http://lynxvm.southcentralus.cloudapp.azure.com:8080/refreshImagesToDisplay",//"http://localhost:8000/refreshImagesToDisplay",
+                contentType: "application/json",
+                // data: JSON.stringify({"detection_threshold": detectionThresholdValue, "display_grayscale": displayGrayscale, "display_class": requestedLabelText}),
+                data: JSON.stringify({"detection_threshold": detectionThresholdValue, "display_class": requestedLabelText}),
+                success: function(data){
+                    console.debug('Successfully refreshed image dataset--ajax side');
+                    loadImages();
+                },
+                error: notifyFail
+            });
+        };
+
+        var loadImages = function(){
+            // refreshImagesToDisplay();
+            displayedImagesInfo = {}
+            $.ajax({
+                type: "POST",
+                url: "http://lynxvm.southcentralus.cloudapp.azure.com:8080/loadImages",//"http://localhost:8000/loadImages",
+                contentType: "application/json",
+                // data: JSON.stringify({"num_images": 25, "detection_threshold": detectionThresholdValue, "display_grayscale": displayGrayscale}),
+                data: JSON.stringify({"num_images": 16, "detection_threshold": detectionThresholdValue}),
+                success: function(data){
+                    if (data['success_status'] == true){
+                        var img = data['display_images']['image_file_names']                // to display images
+                        var imgid = data['display_images']['image_ids']                     // to store information about displayed images when labeling
+                        var detection_kind = data['display_images']['detection_kinds']      // if ModelDetection, then a detection category and confidence score should be available
+                        var detection_cat = data['display_images']['detection_categories']  // to display current detection category
+                        classifierTrained = data['classifier_trained']                      // to check if the app is initialized with a pretrained classifier
+                        
+                        // map image filenames to ids (also, image ids are currently same as detection id and image due to initialize_target_db.py)
+                        for (i=0; i<img.length; i++){
+                            displayedImagesInfo[img[i]] = {}
+                            displayedImagesInfo[img[i]]['id'] = imgid[i]
+                        }
+
+                        // display the images and the current predictions; TODO: should not color based on detection type 0 (ActiveDetection)--these are actually images flagged for labeling but may also have a machine predicted label
+                        for (i=1; i<3; i++){
+                            $("#img"+i).attr("src", img[i-1])
+                            document.getElementById("img"+i+"-text").innerHTML = detection_cat[i-1]
+                            if (detection_kind[i-1]==0){
+                                document.getElementById("img"+i+"-text").style.color = "red"
+                            } else if (detection_kind[i-1]==1){
+                                document.getElementById("img"+i+"-text").style.color = "peru"
+                            }
+
+                        }
+
+                        // Remove all "ui-selected" classes
+                        var selectedImageObjects = document.querySelectorAll(".ui-selected");
+                        [].forEach.call(selectedImageObjects, function(el){
+                            el.classList.remove("ui-selected");
+                        })
+
+                        // Remove all "classified" classes
+                        var prevUserLabeledImageObjects = document.querySelectorAll(".classified");
+                        [].forEach.call(prevUserLabeledImageObjects, function(el){
+                            el.classList.remove("classified");
+                        })
+                    } else{
+                        toastr.error('Not enough images with the specified selection criteria.', {timeOut: 3000});
+                    }
+                    
+
+                },
+                error: notifyFail
+            });
+        };
+
+        var selectImages = function(){
+            $(".selectable").selectable({
+                filter: "img",
+                // at the end of any select operation, re-create the list of selected images
+                stop: function(){
+                    selectedImages = [];
+                    $(".ui-selected", this).each(function(){
+                        // console.debug($(this).hasClass("classified"));
+                        selectedImages.push($(this).attr("src"));
+                    });
+                    // console.debug('SELECTED IMAGES:')
+                    // console.debug(selectedImages);
+                }
+            });
+            
+        };
+
+        $(document).ready(function(){
+            // getClassList();
+            refreshImagesToDisplay();
+            selectImages();
+            // getSequentialImages();
+        });
+        </script>
+
+
+</body>
+
+</html>

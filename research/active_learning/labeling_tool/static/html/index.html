@@ -28,10 +28,12 @@
             grid-row-gap: 50px;
             padding: 10px 10px 10px 10px;
         }
+        /* .gallery {
+            display: flex;
+            flex-wrap: wrap;
+            padding: 0 4px;
+        } */
         .selectable img{
-            /* max-height: 100%;
-            width: 100%;
-            object-fit: cover; */
             height: 100%;
             object-fit: contain;
             display: block;
@@ -199,7 +201,7 @@
             <!--Added by Amar-->
             <div id="fullimagedialog" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);">
                 <!-- <p>This is the default dialog which is useful for displaying information. The dialog window can be moved, resized and closed with the 'x' icon.</p> -->
-                <img id="fullimage" class="" src="img/placeholder.JPG"></img>  
+                <img id="fullimage" src="img/placeholder.JPG" style="max-width: 70vw;"></img>  
             </div>
         </div>
 
