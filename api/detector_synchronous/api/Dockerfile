@@ -1,21 +1,10 @@
 ### Docker container setup
 
 # Pull in the AI for Earth Base Image, so we can extract necessary libraries.
-FROM mcr.microsoft.com/aiforearth/base-py:1.7 as ai4e_base
+FROM mcr.microsoft.com/aiforearth/base-py:1.8-cuda-9.0-runtime as ai4e_base
 
-# Use any compatible Ubuntu-based image as your selected base image.
-FROM nvidia/cuda:9.0-cudnn7-runtime-ubuntu16.04
-# Copy the AI4E tools and libraries to our container.
-COPY --from=ai4e_base /ai4e_api_tools /ai4e_api_tools
 ENV PATH /usr/local/envs/ai4e_py_api/bin:$PATH
 ENV PYTHONPATH="${PYTHONPATH}:/ai4e_api_tools"
-
-# Install Miniconda, Flask, Supervisor, uwsgi
-RUN /ai4e_api_tools/requirements/install-api-hosting-reqs.sh
-
-# Install Application Insights
-RUN /ai4e_api_tools/requirements/install-appinsights.sh
-
 
 ### Package installation
 RUN echo "source activate ai4e_py_api" >> ~/.bashrc \
@@ -59,7 +48,7 @@ ENV API_PREFIX=/v1/camera-trap/detection-sync
 EXPOSE 8024
 HEALTHCHECK --interval=1m --timeout=3s --start-period=20s \
   CMD curl -f http://localhost/ || exit 1
-
+ENV PYTHONUNBUFFERED=TRUE
 ENTRYPOINT [ "/startup.sh" ]
 
 # Enable for guicorn testing via stdout
