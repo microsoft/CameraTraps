@@ -258,8 +258,8 @@ if False:
     
     #%% Subset and split, copying to individual folders
     
-    input_filename = r"D:\temp\idfg\1800_detections_S2.json"
-    output_filename = r"D:\temp\idfg\output_to_folders"
+    input_filename = r"D:\temp\sulross\detections_kitfox_20190620_refiltered.json"
+    output_filename = r"D:\temp\sulross\output_to_folders"
      
     options = SubsetJsonDetectorOutputOptions()
     options.split_folders = True    
