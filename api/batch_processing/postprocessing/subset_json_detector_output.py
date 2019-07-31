@@ -1,16 +1,18 @@
 #
 # subset_json_detector_output.py
 #
-# Creates one or more subsets of a detector API output file (.json).  Can operate in two
-# modes:
+# Creates one or more subsets of a detector API output file (.json).  Can operate 
+# in two modes:
 #
-# 1) Retrieve all elements where filenames contain a specified query string, optionally
-#    replacing that query with a replacement token. If the query is blank, can also be 
-#    used to prepend content to all filenames.
+# 1) Retrieve all elements where filenames contain a specified query string, 
+#    optionally
+#    replacing that query with a replacement token. If the query is blank, can 
+#    also be  used to prepend content to all filenames.
 #
-# 2) Create separate .jsons for each unique path, optionally making the filenames in those .json's relative
-#    paths.  In this case, you specify an output directory, rather than an output path.  All images in the
-#    folder blah\foo\bar will end up in a .json file called blah_foo_bar.json.
+# 2) Create separate .jsons for each unique path, optionally making the filenames 
+#    in those .json's relative paths.  In this case, you specify an output directory, 
+#    rather than an output path.  All images in the folder blah\foo\bar will end up 
+#    in a .json file called blah_foo_bar.json.
 #
 ###
 #
@@ -147,7 +149,7 @@ def subset_json_detector_output_by_query(data,output_filename,options):
     return data
 
 
-def subset_json_detector_output(input_filename,output_filename,options):
+def subset_json_detector_output(input_filename,output_filename,options,data=None):
 
     if options is None:    
         options = SubsetJsonDetectorOutputOptions()
@@ -159,16 +161,16 @@ def subset_json_detector_output(input_filename,output_filename,options):
     if options.copy_jsons_to_folders:
         assert options.split_folders and options.make_folder_relative, \
         'copy_json_base set without make_folder_relative and split_folders'
-        
-            
+                
     if options.split_folders:
         if os.path.isfile(output_filename):
             raise ValueError('When splitting by folders, output must be a valid directory name, you specified an existing file')
             
-    print('Reading json...',end='')
-    with open(input_filename) as f:
-        data = json.load(f)
-    print(' ...done')
+    if data is None:
+        print('Reading json...',end='')
+        with open(input_filename) as f:
+            data = json.load(f)
+        print(' ...done')
     
     if options.split_folders:
         
@@ -206,10 +208,12 @@ def subset_json_detector_output(input_filename,output_filename,options):
         # dirname = list(folders_to_images.keys())[0]
         for dirname in tqdm(folders_to_images):
                         
+            json_fn = dirname.replace('/','_').replace('\\','_') + '.json'
+            
             if options.copy_jsons_to_folders:
-                json_fn = os.path.join(output_filename,dirname,dirname.replace('/','_').replace('\\','_') + '.json')            
+                json_fn = os.path.join(output_filename,dirname,json_fn)            
             else:
-                json_fn = os.path.join(output_filename,dirname.replace('/','_').replace('\\','_') + '.json')
+                json_fn = os.path.join(output_filename,json_fn)
             
             # Recycle the 'data' struct, replacing 'images' every time... medium-hacky, but 
             # forward-compatible in that I don't take dependencies on the other fields
@@ -217,19 +221,26 @@ def subset_json_detector_output(input_filename,output_filename,options):
             dir_data['images'] = folders_to_images[dirname]
             write_images(dir_data, json_fn, options)
             print('Wrote {} images to {}'.format(len(dir_data['images']),json_fn))
+            
         # ...for each directory
         
         data['images'] = all_images
         return data
     
     else:
+        
         return subset_json_detector_output_by_query(data,output_filename,options)
     
+    # ...if we're splitting folders vs. searching with a query
     
 #%% Interactive driver
                 
 if False:
 
+    #%%
+    
+    data = None
+    
     #%% Subset a file without splitting
     
     input_filename = r"D:\temp\idfg\1800_idfg_statewide_wolf_detections_w_classifications.json"
@@ -239,20 +250,21 @@ if False:
     options.replacement = None
     options.query = 'S2'
         
-    data = subset_json_detector_output(input_filename,output_filename,options)
+    data = subset_json_detector_output(input_filename,output_filename,options,data)
     print('Done, found {} matches'.format(len(data['images'])))
 
 
     #%% Subset and split, but don't copy to individual folders
     
-    input_filename = r"D:\temp\idfg\1800_detections_S2.json"
+    # input_filename = r"D:\temp\idfg\1800_detections_S2.json"
+    input_filename = r"D:\temp\idfg\detections_idfg_20190625_refiltered.json"
     output_filename = r"D:\temp\idfg\output"
      
     options = SubsetJsonDetectorOutputOptions()
     options.split_folders = True    
     options.make_folder_relative = True
     
-    data = subset_json_detector_output(input_filename,output_filename,options)
+    data = subset_json_detector_output(input_filename,output_filename,options,data)
     print('Done')
     
     
@@ -266,8 +278,14 @@ if False:
     options.make_folder_relative = True
     options.copy_jsons_to_folders = True
     
-    data = subset_json_detector_output(input_filename,output_filename,options)
+    data = subset_json_detector_output(input_filename,output_filename,options,data)
     print('Done')
+    
+    #%% Just do a filename replacement
+    
+    # python subset_json_detector_output.py "D:\temp\idfg\detections_idfg_20190625_refiltered.json" "D:\temp\idfg\detections_idfg_20190625_refiltered_renamed.json" --query "20190625-hddrop/" --replacement ""
+    
+    # python subset_json_detector_output.py "D:\temp\idfg\detections_idfg_20190625_refiltered_renamed.json" "D:\temp\idfg\output" --split_folders --make_folder_relative --copy_jsons_to_folders
 
 
 #%% Command-line driver
