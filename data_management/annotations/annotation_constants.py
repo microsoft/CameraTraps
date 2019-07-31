@@ -4,7 +4,8 @@
 # Shared constants used to interpret annotation output
 #
 
-# the four categories for bounding boxes - do not change
+# The four categories for bounding boxes - do not change
+# Note that the category ID in the API output json file is of type string, not int as here
 bbox_categories = [
     {'id': 0, 'name': 'empty'},
     {'id': 1, 'name': 'animal'},
@@ -19,5 +20,3 @@ bbox_category_name_to_id = {}
 for cat in bbox_categories:
     bbox_category_id_to_name[cat['id']] = cat['name']
     bbox_category_name_to_id[cat['name']] = cat['id']
-    
-bbox_color_map = {1:'red',2:'green',3:'blue',4:'white'}
