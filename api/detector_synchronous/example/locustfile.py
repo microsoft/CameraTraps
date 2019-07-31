@@ -74,6 +74,7 @@ class UserBehavior(TaskSet):
         print(text_result)
         for img_name, img in sorted(images.items()):
             print(img_name)
+            img.close()
         print()
 
     @task
