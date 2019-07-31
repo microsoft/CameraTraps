@@ -239,9 +239,12 @@
 
     <script>
         // Global variables, event listeners, etc.
+        var classifierTrained = false // whether a classifier has been trained already (class predictions are available)
         var urlPrefix = "http://lynxvm.southcentralus.cloudapp.azure.com:8080/"
         var detectionThresholdValue = 0.85
         var modalOpen = false
+        var currentlyAssigning = []; // src of images to which this label is currently being assigned
+        var displayedImagesInfo = {}; // info about displayed images, kevalue is src
         // Event listener for spacebar to play sequence of images
         document.addEventListener("keydown", function(event){
             if (modalOpen & event.which==32){
@@ -297,6 +300,14 @@
             });
         })
 
+        // Update prediction dropdown on change
+        document.getElementById("prediction-dropdown").onchange = function(){
+            if (!classifierTrained){
+                toastr.error('You cannot view predicted classes before a trained classifier is available. Please train a classifier first.', {timeOut: 3000});
+                $("#prediction-dropdown").val($("#prediction-dropdown option:eq(1)").val())
+            }
+        }
+
         // Load dropdown options from .txt file
         var getClassList = function(){
             $.ajax({
@@ -346,6 +357,32 @@
                 });
             });
             return false;
+        });
+
+        // Confirm predicted label on right click
+        $(function () {
+            $(".display-image").contextmenu(function(){
+                var imgobj = $(this).find('img')
+                console.debug(imgobj)
+                var imgsrc = $(this).find('img').attr("src");
+                var imgid = displayedImagesInfo[imgsrc]["id"];
+                var imgtxt = $(this).find('div').attr("id");
+                var predictedLabelText = document.getElementById(imgtxt).innerHTML;
+                if (predictedLabelText != "None"){
+                    $.ajax({
+                        type: "POST",
+                        url: "http://lynxvm.southcentralus.cloudapp.azure.com:8080/confirmPredictedLabel",//"http://localhost:8000/confirmPredictedLabel",
+                        contentType: "application/json",
+                        data: JSON.stringify({"image": imgid, "label": predictedLabelText}),
+                        success: function(data){
+                            imgobj[0].classList.add("classified")
+                            document.getElementById(imgtxt).style.color = "greenyellow"
+                        },
+                        error: notifyFail
+                    });
+                }
+                return false;
+            });
         });
 
         // Refresh dataset sampler to reflect specified filters
