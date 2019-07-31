@@ -10,44 +10,36 @@
     <script src="js/jquery-3.3.1.min.js"></script>
     <script src="js/bootstrap.bundle.min.js"></script>
     
-
-    <!-- <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script> -->
     <script src="https://code.jquery.com/ui/1.12.0/jquery-ui.min.js" integrity="sha256-eGE6blurk5sHj+rmkfsGYeKyZx3M4bG+ZlFyA7Kns7E=" crossorigin="anonymous"></script>   
     <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/js/toastr.min.js"></script>
     <link href="//cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/css/toastr.min.css" rel="stylesheet"> 
-    <!-- <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script> -->
-    <!--Added by Amar-->
-    <!-- <link href="//code.jquery.com/ui/1.12.0/themes/smoothness/jquery-ui.css" rel="stylesheet"> -->
     
     <style type="text/css">
-        .gallery {
+        @media (min-width:576px) {
+            .card-columns {
+                column-count: 2;
+            }
+        }
+        @media (min-width:768px) {
+            .card-columns {
+                column-count: 3;
+            }
+        }
+        @media (min-width:1200px) {
+            .card-columns {
+                column-count: 4;
+            }
+        }
+        .img-label{
+            color: red;
+            font-weight: bold;
             display: grid;
-            grid-template-columns: repeat(4, minmax(250px, 20vw));
-            grid-template-rows: repeat(4, 15vh);
-            grid-gap: 10px;
-            grid-row-gap: 50px;
-            padding: 10px 10px 10px 10px;
+            margin-bottom: 40px;
         }
-        /* .gallery {
-            display: flex;
-            flex-wrap: wrap;
-            padding: 0 4px;
-        } */
-        .selectable img{
-            height: 100%;
-            object-fit: contain;
-            display: block;
-            margin: 0 auto;
-        }
+
         .selectable .ui-selected{
             border: 4px solid rgb(74, 209, 11) !important;
         }
-        .selectable .classified{
-            border: 3px solid darkslategray;
-            /* -webkit-filter: blur(1px); Safari 6.0 - 9.0 */
-            /* filter: blur(1px); */
-        }
-        
     </style>
 </head>
 
@@ -63,205 +55,238 @@
             <div class="navbar-header">
                 <a class="navbar-brand" style="font-size: 30px !important;">Species Classification Fine-Tuning Tool</a>
             </div>
+
+            <div class="navbar-collapse collapse w-100 order-3 dual-collapse2">
+                <ul class="navbar-nav ml-auto">
+                    <li class="nav-item">
+                        <div data-toggle="modal" data-target="#help">
+                            <a class="btn btn-primary btn-small navbar-btn" style="border:none; color:white; background-color:#7FBA00; vertical-align: center;">Help</a>
+                        </div>
+                    </li>
+                </ul>
+            </div>
         </nav>
+        <!-- <nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom">    
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="row" style="width: 100%;">
+                <div class="col-sm-11">
+                    <a class="navbar-brand" style="font-size: 30px !important;">Species Classification Fine-Tuning Tool</a>
+                </div>
+                <div class="col-sm-1">
+                    <a class="btn btn-primary btn-small navbar-btn" style="border:none; color:white; background-color:#7FBA00; vertical-align: center;">Help</a>
+                </div>    
+            </div>
+        </nav> -->
         </br>
 
         <!-- Tool Area -->
-        <div class="container-fluid">
-            <div class="row center">
-                <!-- IMAGE DISPLAY -->
-                <div class="col-xl-10 col-lg-8">
-                    <div class="gallery selectable">
-                        <!-- Row 1 -->
-                        <div class="display-image">
-                            <img src="img/placeholder.JPG" alt="Image 1" id="img1"><!-- <figure class="gallery__item gallery__item--1 ui-widget-content"></figure>Consider encoding images in base64 for faster loading -->
-                            <div id="img1-text" style="color:red; font-weight: bold; text-align: center; display:grid"></div>
-                        </div>
-                        <div class="display-image">
-                            <img src="img/placeholder.JPG" alt="Image 2" id="img2"><!-- <figure class="gallery__item gallery__item--2 ui-widget-content"></figure>-->
-                            <div id="img2-text" style="color:red; font-weight: bold; text-align: center; display:grid"></div>
-                        </div>
-                        <div class="display-image">
-                            <img src="img/placeholder.JPG" alt="Image 3" id="img3"><!-- <figure class="gallery__item gallery__item--3 ui-widget-content"></figure> -->
-                            <div id="img3-text" style="color:red; font-weight: bold; text-align: center; display:grid"></div>
-                        </div>
-                        <div class="display-image">
-                            <img src="img/placeholder.JPG" alt="Image 4" id="img4"><!-- <figure class="gallery__item gallery__item--4 ui-widget-content"></figure> -->
-                            <div id="img4-text" style="color:red; font-weight: bold; text-align: center; display:grid"></div>
+        <div class="container-fluid h-100">
+            <div class="row" style="height: 1000px;">
+                <!-- Displayed Images -->
+                <div class="col-sm-9">
+                    <div class="card-columns selectable h-100">
+                        <div class="display-image" style="text-align: center;">
+                            <img src="img/placeholder.JPG" alt="Image 1" id="img1" style="max-width: 100%; height: 250px; object-fit: contain;">
+                            <div id="img1-text" class="img-label">None</div>
                         </div>
 
-                        <!-- Row 2 -->
-                        <div class="display-image">
-                            <img src="img/placeholder.JPG" alt="Image 5" id="img5"><!-- <figure class="gallery__item gallery__item--5 ui-widget-content"></figure> -->
-                            <div id="img5-text" style="color:red; font-weight: bold; text-align: center; display:grid"></div>
-                        </div>
-                        <div class="display-image">
-                            <img src="img/placeholder.JPG" alt="Image 6" id="img6"><!-- <figure class="gallery__item gallery__item--6 ui-widget-content"></figure> -->
-                            <div id="img6-text" style="color:red; font-weight: bold; text-align: center; display:grid"></div>
-                        </div>
-                        <div class="display-image">
-                            <img src="img/placeholder.JPG" alt="Image 7" id="img7"><!-- <figure class="gallery__item gallery__item--7 ui-widget-content"></figure> -->  
-                            <div id="img7-text" style="color:red; font-weight: bold; text-align: center; display:grid"></div>  
-                        </div>
-                        <div class="display-image">
-                            <img src="img/placeholder.JPG" alt="Image 8" id="img8"><!-- <figure class="gallery__item gallery__item--8 ui-widget-content"></figure> -->   
-                            <div id="img8-text" style="color:red; font-weight: bold; text-align: center; display:grid"></div> 
+                        <div class="display-image" style="text-align: center;">
+                            <img src="img/placeholder.JPG" alt="Image 2" id="img2" style="max-width: 100%; height: 250px; object-fit: contain;">
+                            <div id="img2-text" class="img-label">None</div>
                         </div>
 
-                        <!-- Row 3 -->
-                        <div class="display-image">
-                            <img src="img/placeholder.JPG" alt="Image 9" id="img9"><!-- <figure class="gallery__item gallery__item--9 ui-widget-content"></figure> -->
-                            <div id="img9-text" style="color:red; font-weight: bold; text-align: center; display:grid"></div>  
-                        </div>
-                        <div class="display-image">
-                            <img src="img/placeholder.JPG" alt="Image 10" id="img10"><!-- <figure class="gallery__item gallery__item--10 ui-widget-content"></figure> -->
-                            <div id="img10-text" style="color:red; font-weight: bold; text-align: center; display:grid"></div>
-                        </div>
-                        <div class="display-image">
-                            <img src="img/placeholder.JPG" alt="Image 11" id="img11"><!-- <figure class="gallery__item gallery__item--11 ui-widget-content"></figure> -->
-                            <div id="img11-text" style="color:red; font-weight: bold; text-align: center; display:grid"></div>
-                        </div>
-                        <div class="display-image">
-                            <img src="img/placeholder.JPG" alt="Image 12" id="img12"><!-- <figure class="gallery__item gallery__item--12 ui-widget-content"></figure> -->
-                            <div id="img12-text" style="color:red; font-weight: bold; text-align: center; displatwo ajax requests same pagey:grid"></div>  
+                        <div class="display-image" style="text-align: center;">
+                            <img src="img/placeholder.JPG" alt="Image 3" id="img3" style="max-width: 100%; height: 250px; object-fit: contain;">
+                            <div id="img3-text" class="img-label">None</div>
                         </div>
 
-                        <!-- Row 4 -->
-                        <div class="display-image">
-                            <img src="img/placeholder.JPG" alt="Image 13" id="img13"><!-- <figure class="gallery__item gallery__item--13 ui-widget-content"></figure> -->
-                            <div id="img13-text" style="color:red; font-weight: bold; text-align: center; display:grid"></div>
+                        <div class="display-image" style="text-align: center;">
+                            <img src="img/placeholder.JPG" alt="Image 4" id="img4" style="max-width: 100%; height: 250px; object-fit: contain;">
+                            <div id="img4-text" class="img-label">None</div>
                         </div>
-                        <div class="display-image">
-                            <img src="img/placeholder.JPG" alt="Image 14" id="img14"><!-- <figure class="gallery__item gallery__item--14 ui-widget-content"></figure> -->
-                            <div id="img14-text" style="color:red; font-weight: bold; text-align: center; display:grid"></div>
-                        </div>
-                        <div class="display-image">
-                            <img src="img/placeholder.JPG" alt="Image 15" id="img15"><!-- <figure class="gallery__item gallery__item--15 ui-widget-content"></figure> -->
-                            <div id="img15-text" style="color:red; font-weight: bold; text-align: center; display:grid"></div>
-                        </div>
-                        <div class="display-image">
-                            <img src="img/placeholder.JPG" alt="Image 16" id="img16"><!--<figure class="gallery__item gallery__item--16 ui-widget-content"></figure> -->
-                            <div id="img16-text" style="color:red; font-weight: bold; text-align: center; display:grid"></div>
+
+                        <div class="display-image" style="text-align: center;">
+                            <img src="img/placeholder.JPG" alt="Image 5" id="img5" style="max-width: 100%; height: 250px; object-fit: contain;">
+                            <div id="img5-text" class="img-label">None</div>
                         </div>
                         
+                        <div class="display-image" style="text-align: center;">
+                            <img src="img/placeholder.JPG" alt="Image 6" id="img6" style="max-width: 100%; height: 250px; object-fit: contain;">
+                            <div id="img6-text" class="img-label">None</div>
+                        </div>
+
+                        <div class="display-image" style="text-align: center;">
+                            <img src="img/placeholder.JPG" alt="Image 7" id="img7" style="max-width: 100%; height: 250px; object-fit: contain;">
+                            <div id="img7-text" class="img-label">None</div>
+                        </div>
+
+                        <div class="display-image" style="text-align: center;">
+                            <img src="img/placeholder.JPG" alt="Image 8" id="img8" style="max-width: 100%; height: 250px; object-fit: contain;">
+                            <div id="img8-text" class="img-label">None</div>
+                        </div>
+
+                        <div class="display-image" style="text-align: center;">
+                            <img src="img/placeholder.JPG" alt="Image 9" id="img9" style="max-width: 100%; height: 250px; object-fit: contain;">
+                            <div id="img9-text" class="img-label">None</div>
+                        </div>
+
+                        <div class="display-image" style="text-align: center;">
+                            <img src="img/placeholder.JPG" alt="Image 10" id="img10" style="max-width: 100%; height: 250px; object-fit: contain;">
+                            <div id="img10-text" class="img-label">None</div>
+                        </div>
+
+                        <div class="display-image" style="text-align: center;">
+                            <img src="img/placeholder.JPG" alt="Image 11" id="img11" style="max-width: 100%; height: 250px; object-fit: contain;">
+                            <div id="img11-text" class="img-label">None</div>
+                        </div>
+
+                         <div class="display-image" style="text-align: center;">
+                            <img src="img/placeholder.JPG" alt="Image 12" id="img12" style="max-width: 100%; height: 250px; object-fit: contain;">
+                            <div id="img12-text" class="img-label">None</div>
+                        </div>
                     </div>
                 </div>
-                
-                <!-- WIDGETS -->
-                <div class="col-xl-2 col-lg-4">
+
+                <!-- Widget -->
+                <div class="col-sm-3">
                     <div class="card">
                         <div class="card-header">
+                            <a data-toggle="collapse" href="#label-block" aria-expanded="true" aria-controls="label-block" style="color: darkslategray; font-weight: bold;">
                             Label Images
+                            </a>
                         </div>
-                        <div class="card-body">
+                        <div id="label-block" class="card-body collapse show">
                             <a class="btn btn-primary" style="border:none; color:white; background-color:#00A4EF; width:100%; margin-top:15px; margin-bottom:15px;" onclick="loadImages()">Load More Images</a>
-                            <hr>
-
-                            <p class="card-text" style="color:dimgray;">Ctrl-click to select/deselect multiple images to assign a label to. Right-click an image to confirm its predicted label.</p>
-                            <form>
-                                <select id="classification-dropdown" style="width:100%; margin-bottom:10px;">
-                                    <option disabled>Species...</option>
-                                    <option>Empty</option>
-                                </select>
-                           </form>
-                           <a class="btn btn-primary" style="border:none; color:white; background-color:#7FBA00; width:100%; margin-bottom:40px;" onclick="assignLabelToSelectedImages()">Assign Label</a>
-                           <!-- <a href="#" class="btn btn-primary" style="border:none; background-color:#737373; width:49%; margin-bottom:40px;">Undo Assign</a> -->
-                           
-                       <!-- <a href="#" class="btn btn-primary" style="border:none; background-color:peru; width:100%; margin-bottom:10px;" onclick="loadImages()">Show Me</a> -->
-                       <a class="btn btn-primary" style="border:none; color:white; background-color:#FFB900; width:100%; margin-bottom:10px;" onclick="trainClassifier()">Train Classifier</a>
-
+                            <p class="card-title" style="color:dimgray;">Assign Label:</p>
+                            <select id="classification-dropdown" style="width:100%; margin-bottom:10px;" onchange="assignLabelToSelectedImages()">
+                                <option disabled selected="true" value="0">Species...</option>
+                                <option>Empty</option>
+                            </select>
+                            <a class="btn btn-primary" style="border:none; color:white; background-color:#FFB900; width:100%; margin-bottom:10px;" onclick="trainClassifier()">Train Classifier</a>
                         </div>
+                        
                         <div class="card-header">
-                            Specify Images to View
+                            <a data-toggle="collapse" href="#query-block" aria-expanded="true" aria-controls="query-block" style="color: darkslategray; font-weight: bold;">
+                                Query Images
+                            </a>
                         </div>
-                        <div class="card-body">
-                            <!-- <label for="detection-confidence-threshold" style="font-weight: bold;">Detection Confidence Threshold: </label> -->
-                            <p class="card-text" style="color:dimgray;">Modify the confidence threshold for detections in the displayed images.</p>
+                        <div id="query-block" class="card-body collapse">
+                            <p class="card-title" style="color:dimgray;">Detection Confidence:</p>
                             <input type="range" id="detection-confidence-threshold" class="slider" min="0.50" max="0.99" value="0.85" step="0.01" style="width:80%;">
                             <span class="slider_label"></span>
-
-                            <!-- <label for="grayscale-checkbox" style="font-weight:bold; margin-top:20px;">Grayscale: </label>
-                            <p class="card-text" style="color:dimgray; margin-top:30px;">Specify whether to display grayscale images.</p>
-                            <input type="checkbox" id="grayscale-checkbox"> Grayscale -->
-
-                            <p class="card-text" style="color:dimgray; margin-top:30px;">Specify whether to view images with a given predicted class.</p>
+                            <p class="card-text" style="color:dimgray; margin-top:30px;">Predicted Class:</p>
                             <form>
                                 <select id="prediction-dropdown" name="dropdown" style="width:100%;">
                                     <option disabled>Species...</option>
                                     <option>All Species</option>
                                 </select>
                             </form>
-
-                            <a class="btn btn-primary" style="border:none; color:white; background-color:#F25022; width:100%; margin-top:20px; margin-bottom:20px;" onclick="refreshImagesToDisplay()">Apply Selection Criteria</a>
                         </div>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!--Added by Amar-->
-            <div id="fullimagedialog" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);">
-                <!-- <p>This is the default dialog which is useful for displaying information. The dialog window can be moved, resized and closed with the 'x' icon.</p> -->
-                <img id="fullimage" src="img/placeholder.JPG" style="max-width: 70vw;"></img>  
+        <!--Added by Amar-->
+        <!-- <div id="fullimagedialog" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);">
+            <img id="fullimage" src="img/placeholder.JPG" style="max-width: 70vw;"></img>  
+        </div> -->
+        <div class="modal fade" id="fullimagedialog" tabindex="-1" role="dialog" aria-hidden="true">
+            <div class="modal-dialog" role="document" style="position: absolute; left: 25%; top: 50%; transform: translate(-50%, -50%);">
+                <div class="modal-body">
+                    <img id="fullimage" src="img/placeholder.JPG" crop="" style="max-width: 80vw; max-height: 80vh;"></img>
+                </div>
+            </div>
+        </div>
+
+        <!-- Help -->
+        <div class="modal fade" id="help" role="dialog" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <p>The grid shows cropped detections from camera trap images, along with a predicted class label below each image.</p>
+                        <h5>Labeling Images</h5>
+                        <ul>
+                            <li>Ctrl-click to select/deselect multiple cropped images to assign a label to, then select their label from the dropdown.</li>
+                            <li>Double-click a cropped image to view its full-sized image.</li>
+                            <li>Press spacebar when viewing the full-sized image to view multiple images from the same image burst.</li>
+                            <li>Once a classifier has been trained, right-click an image to confirm its predicted class label.</li>
+                        </ul>
+
+                        <h5>Querying Images</h5>
+                        <p>View images based on:</p>
+                        <ul>
+                            <li>Detection confidence.</li>
+                            <li>Predicted class label.</li>
+                        </ul>
+                    </div>
+                </div>
             </div>
         </div>
 
     </div>
-    <!-- /#page-content-wrapper -->
 
+    <footer class="page-footer font-small fixed-bottom" style="background-color: lightgray;">
+        <div class="footer-copyright text-center py-3">
+            <img src="https://img-prod-cms-rt-microsoft-com.akamaized.net/cms/api/am/imageFileData/RE1Mu3b?ver=5c31">
+        </div>
+    </footer>
 
-    <!-- JavaScript -->
-    <script type="text/javascript">
-        // Global variables
+    <script>
+        // Global variables, event listeners, etc.
         var classifierTrained = false // whether a classifier has been trained already (class predictions are available)
+        var urlPrefix = "http://lynxvm.southcentralus.cloudapp.azure.com:8080/"
         var detectionThresholdValue = 0.85
-        // var displayGrayscale = false; // whether to show color or grayscale images
-        var selectedImages = []; // src (filename) of images that are currently selected
-        // var userLabeledImages = []; // src of images for which the user has assigned/confirmed a label
+        var modalOpen = false
         var currentlyAssigning = []; // src of images to which this label is currently being assigned
         var displayedImagesInfo = {}; // info about displayed images, kevalue is src
-        var displayClass = ''
+        // Event listener for spacebar to play sequence of images
+        document.addEventListener("keydown", function(event){
+            if (modalOpen & event.which==32){
+                $.ajax({
+                    type: "POST",
+                    url: urlPrefix+"getSequentialImages",//"http://localhost:8000/getSequentialImages",
+                    contentType: "application/json",
+                    data: JSON.stringify({"img_src": $("#fullimage").attr("crop")}),
+                    success: function(data){
+                        if (data['success_status'] == true){
+                            var imgSrcs = data['image_sequence'];
+                            imgSrcs.push($('#fullimage').attr("src")); // add original image so when the sequence finishes we return to the original img
+                            setModalImgSrc(imgSrcs, 0);
+                        }
+                    },
+                    error: notifyFail
+                });
+            };
+        })
+        var selectedImages = [];
+
+        // Store whether modal is open or hidden for event listener
+        $('#fullimagedialog').on('shown.bs.modal', function(e){modalOpen=true;})
+        $('#fullimagedialog').on('hidden.bs.modal', function(e){modalOpen=false;})
         
+        // Iterate through images in sequence
+        var setModalImgSrc = function(imgSrcs, idx){
+            setTimeout(function(){
+                $('#fullimage').attr("src", imgSrcs[idx]);
+                idx++;
+                if (idx < imgSrcs.length){
+                    setModalImgSrc(imgSrcs, idx);
+                }
+            }, 1000)
+        };
+
         // Print failure response for failed JQuery requests
         var notifyFail = function(jqXHR, textStatus, errorThrown){
             console.debug(jqXHR.responseText)
             //var response = $.parseJSON(jqXHR.responseText);
             //console.log("Error in processing request: "+response.error);
         }
-
-        // Check whether a checkpointed classifier is being used
-        var checkIfClassifierAvailable = function(jqXHR, textStatus, errorThrown){
-            console.debug(jqXHR.responseText)
-            //var response = $.parseJSON(jqXHR.responseText);
-            //console.log("Error in processing request: "+response.error);
-        }
-
-        // Load dropdown options from .txt file
-        var getClassList = function(){
-            $.ajax({
-                type: "POST",
-                url: "http://lynxvm.southcentralus.cloudapp.azure.com:8080/getClassList",//"http://localhost:8000/refreshImagesToDisplay",
-                contentType: "application/json",
-                data: JSON.stringify({}),
-                success: function(data){
-                    // console.debug(data);
-                    // loadImages();
-                    var dropdownselector = document.getElementById('classification-dropdown');
-                    for (i=0; i<data['class_list'].length; i++){
-                        dropdownselector.add(new Option(data['class_list'][i]));
-                    }
-                    var dropdownselector = document.getElementById('prediction-dropdown');
-                    for (i=0; i<data['class_list'].length; i++){
-                        dropdownselector.add(new Option(data['class_list'][i]));
-                    }
-                },
-                error: notifyFail
-            })
-        };
-
-        // // Update grayscale checkbox value on change
-        // document.getElementById("grayscale-checkbox").onclick = function(){
-        //     displayGrayscale = this.checked;
-        // }
 
         // Update detection confidence threshold on change
         $(function(){
@@ -283,6 +308,29 @@
             }
         }
 
+        // Load dropdown options from .txt file
+        var getClassList = function(){
+            $.ajax({
+                type: "POST",
+                url: urlPrefix+"getClassList",//"http://localhost:8000/refreshImagesToDisplay",
+                contentType: "application/json",
+                data: JSON.stringify({}),
+                success: function(data){
+                    // console.debug(data);
+                    // loadImages();
+                    var dropdownselector = document.getElementById('classification-dropdown');
+                    for (i=0; i<data['class_list'].length; i++){
+                        dropdownselector.add(new Option(data['class_list'][i]));
+                    }
+                    var dropdownselector = document.getElementById('prediction-dropdown');
+                    for (i=0; i<data['class_list'].length; i++){
+                        dropdownselector.add(new Option(data['class_list'][i]));
+                    }
+                },
+                error: notifyFail
+            })
+        };
+        
         // View full size source image on double click
         $(function(){
             $(".display-image").on('dblclick', function(){
@@ -291,17 +339,19 @@
                 /*Added by Amar*/
                 $.ajax({
                     type: "POST",
-                    url: "http://lynxvm.southcentralus.cloudapp.azure.com:8080/showFullsizeImage",
+                    url: urlPrefix+"showFullsizeImage",
                     contentType: "application/json",
                     data: JSON.stringify({"img_src": imgsrc}),
                     success: function(data){
+                        console.debug(data['fullsize_src'])
                         if (data['success_status'] == true){
                             $("#fullimage").attr("src", data['fullsize_src']);
+                            $("#fullimagedialog").modal('toggle');
+                            $("#fullimage").attr("crop", imgsrc)
                         }
                         else{
                             $("#fullimage").attr("src", "https://icon-library.net//images/image-error-icon/image-error-icon-16.jpg");
                         }
-                        $("#fullimagedialog").dialog();
                     },
                     error: notifyFail
                 });
@@ -309,23 +359,6 @@
             return false;
         });
 
-        // Refresh dataset sampler to reflect specified filters
-        var refreshImagesToDisplay = function(){
-            var requestedLabelText = $("#prediction-dropdown option:selected").text(); //label in the classification dropdown
-            $.ajax({
-                type: "POST",
-                url: "http://lynxvm.southcentralus.cloudapp.azure.com:8080/refreshImagesToDisplay",//"http://localhost:8000/refreshImagesToDisplay",
-                contentType: "application/json",
-                // data: JSON.stringify({"detection_threshold": detectionThresholdValue, "display_grayscale": displayGrayscale, "display_class": requestedLabelText}),
-                data: JSON.stringify({"detection_threshold": detectionThresholdValue, "display_class": requestedLabelText}),
-                success: function(data){
-                    console.debug('Successfully refreshed image dataset--ajax side');
-                    loadImages();
-                },
-                error: notifyFail
-            });
-        };
-        
         // Confirm predicted label on right click
         $(function () {
             $(".display-image").contextmenu(function(){
@@ -352,14 +385,31 @@
             });
         });
 
+        // Refresh dataset sampler to reflect specified filters
+        var refreshImagesToDisplay = function(){
+            var requestedLabelText = $("#prediction-dropdown option:selected").text(); //label in the classification dropdown
+            $.ajax({
+                type: "POST",
+                url: urlPrefix+"refreshImagesToDisplay",//"http://localhost:8000/refreshImagesToDisplay",
+                contentType: "application/json",
+                // data: JSON.stringify({"detection_threshold": detectionThresholdValue, "display_grayscale": displayGrayscale, "display_class": requestedLabelText}),
+                data: JSON.stringify({"detection_threshold": detectionThresholdValue, "display_class": requestedLabelText}),
+                success: function(data){
+                    console.debug('Successfully refreshed image dataset--ajax side');
+                    loadImages();
+                },
+                error: notifyFail
+            });
+        };
+
+        // Display a batch of images from the dataset sampler
         var loadImages = function(){
             // refreshImagesToDisplay();
             displayedImagesInfo = {}
             $.ajax({
                 type: "POST",
-                url: "http://lynxvm.southcentralus.cloudapp.azure.com:8080/loadImages",//"http://localhost:8000/loadImages",
+                url: urlPrefix+"loadImages",//"http://localhost:8000/loadImages",
                 contentType: "application/json",
-                // data: JSON.stringify({"num_images": 25, "detection_threshold": detectionThresholdValue, "display_grayscale": displayGrayscale}),
                 data: JSON.stringify({"num_images": 16, "detection_threshold": detectionThresholdValue}),
                 success: function(data){
                     if (data['success_status'] == true){
@@ -376,7 +426,7 @@
                         }
 
                         // display the images and the current predictions; TODO: should not color based on detection type 0 (ActiveDetection)--these are actually images flagged for labeling but may also have a machine predicted label
-                        for (i=1; i<17; i++){
+                        for (i=1; i<13; i++){
                             $("#img"+i).attr("src", img[i-1])
                             document.getElementById("img"+i+"-text").innerHTML = detection_cat[i-1]
                             if (detection_kind[i-1]==0){
@@ -384,25 +434,22 @@
                             } else if (detection_kind[i-1]==1){
                                 document.getElementById("img"+i+"-text").style.color = "peru"
                             }
-
                         }
 
-                        // Remove all "ui-selected" classes
+                        // remove all "ui-selected" classes
                         var selectedImageObjects = document.querySelectorAll(".ui-selected");
                         [].forEach.call(selectedImageObjects, function(el){
                             el.classList.remove("ui-selected");
                         })
 
-                        // Remove all "classified" classes
-                        var prevUserLabeledImageObjects = document.querySelectorAll(".classified");
-                        [].forEach.call(prevUserLabeledImageObjects, function(el){
-                            el.classList.remove("classified");
-                        })
+                        // remove all "classified" classes
+                        // var prevUserLabeledImageObjects = document.querySelectorAll(".classified");
+                        // [].forEach.call(prevUserLabeledImageObjects, function(el){
+                        //     el.classList.remove("classified");
+                        // })
                     } else{
                         toastr.error('Not enough images with the specified selection criteria.', {timeOut: 3000});
                     }
-                    
-
                 },
                 error: notifyFail
             });
@@ -429,28 +476,14 @@
             var assignedLabelText = $("#classification-dropdown option:selected").text(); //label in the classification dropdown
             currentlyAssigning = [];
 
-            // console.debug('ALREADY LABELED:')
-            // console.debug(userLabeledImages)
             for (i=0; i<selectedImages.length;i++){
-                // if (!userLabeledImages.includes(selectedImages[i])){ //if selected item is not already labeled
-                //     userLabeledImages.push(selectedImages[i])
-                //     currentlyAssigning.push(selectedImages[i])
-                // }
-                // userLabeledImages.push(selectedImages[i])
                 currentlyAssigning.push(selectedImages[i])
             }
-            // console.debug('CURRENTLY ASSIGNING:')
-            // console.debug(currentlyAssigning)
 
             // mark currently selected images as classified unless they were already classified, and clear ui-selected property
             var selectedImageObjects = document.querySelectorAll(".ui-selected");
             [].forEach.call(selectedImageObjects, function(el){
-                // if (!el.classList.contains("classified")){
-                //     el.classList.add("classified");
-                //     document.getElementById(el.id+"-text").innerHTML = assignedLabelText
-                //     document.getElementById(el.id+"-text").style.color = "green"
-                // }
-                el.classList.add("classified");
+                // el.classList.add("classified");
                 document.getElementById(el.id+"-text").innerHTML = assignedLabelText
                 document.getElementById(el.id+"-text").style.color = "green"
                 el.classList.remove("ui-selected");
@@ -463,7 +496,7 @@
             }
             $.ajax({
                 type: "POST",
-                url: "http://lynxvm.southcentralus.cloudapp.azure.com:8080/assignLabel",//"http://localhost:8000/assignLabel",
+                url: urlPrefix+"assignLabel",//"http:/104.42.168.207:8080/assignLabel",//"http://localhost:8000/assignLabel",
                 contentType: "application/json",
                 data: JSON.stringify({"images": currentlyAssigningIDs, "label": assignedLabelText}),
                 success: function(data){
@@ -471,47 +504,11 @@
                 },
                 error: notifyFail
             });
-
+            
             // clear selectedImages list
             selectedImages = [];
+            document.getElementById('classification-dropdown').value = '0';
         };
-
-        // var undoAssignLabelToSelectedImages = function(){
-        //     currentlyUndoing = [];
-        //     for (i=0; i<selectedImages.length;i++){
-        //         currentlyUndoing.push(selectedImages[i])
-        //     }
-            
-        //     // make a POST request to update the database entry
-        //     var currentlyUnassigningIDs = []
-        //     for (i=0; i<currentlyAssigning.length;i++){
-        //         currentlyUnassigningIDs.push(displayedImagesInfo[currentlyUndoing[i]])
-        //     }
-        //     $.ajax({
-        //         type: "POST",
-        //         url: "http://lynxvm.southcentralus.cloudapp.azure.com:8080/unassignLabel",
-        //         contentType: "application/json",
-        //         data: JSON.stringify({"images": currentlyUnassigningIDs}),
-        //         success: function(data){
-        //             console.debug(data)
-        //         },
-        //         error: notifyFail
-        //     });
-
-        //     // mark currently selected images as classified unless they were already classified, and clear ui-selected property
-        //     var selectedImageObjects = document.querySelectorAll(".ui-selected");
-        //     [].forEach.call(selectedImageObjects, function(el){
-        //         el.classList.remove("classified");
-        //         document.getElementById(el.id+"-text").innerHTML = assignedLabelText
-        //         document.getElementById(el.id+"-text").style.color = "green"
-        //         el.classList.remove("ui-selected");
-        //     })
-
-            
-
-        //     // clear selectedImages list
-        //     selectedImages = [];
-        // };
 
         var trainClassifier = function(){
             toastr.info('Training classifier and updating predictions. Please wait a few seconds.', {timeOut: 3000});
@@ -528,29 +525,14 @@
             });
         };
 
-        var getSequentialImages = function(){
-            $.ajax({
-                type: "POST",
-                url: "http://lynxvm.southcentralus.cloudapp.azure.com:8080/getSequentialImages",//"http://localhost:8000/trainClassifier",
-                contentType: "application/json",
-                data: JSON.stringify({"img_src": '/datadrive/missouricameratraps/crops_detector/bcf21a21-5863-4e17-9dde-f10cf9d8dc0c.JPG'}),
-                success: function(data){
-                    console.debug(data['image_sequence'])
-                },
-                error: notifyFail
-            });
-        };
-
         $(document).ready(function(){
             getClassList();
             refreshImagesToDisplay();
             selectImages();
-            getSequentialImages();
+            // getSequentialImages();
         });
+        </script>
 
-
-
-    </script>
 
 </body>
 
