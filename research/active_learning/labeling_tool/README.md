@@ -15,4 +15,4 @@ This web interface allows users to annotate cropped images for training a specie
 python runapp.py --db_name MYDATABASE --db_user USERNAME --db_password PASSWORD --crop_dir PATH_TO_CROPS --class_list class_lists/MYCLASSLIST.TXT --embedding_checkpoint PATH_TO_EMBEDDING_MODEL --checkpoint_dir PATH_TO_OUTPUT_CHECKPOINT_DIR
 ```
 
-[WebUI](https://github.com/microsoft/CameraTraps/blob/amrita/research/active_learning/labeling_tool/labeling_tool.png)
+![WebUI](https://github.com/microsoft/CameraTraps/blob/amrita/research/active_learning/labeling_tool/labeling_tool.png)
