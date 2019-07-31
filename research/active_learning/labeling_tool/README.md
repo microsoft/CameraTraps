@@ -3,6 +3,8 @@
 
 This web interface allows users to annotate cropped images for training a species classification model with active learning. Built with [`bottle`](https://bottlepy.org/docs/dev/).
 
+![WebUI](https://github.com/microsoft/CameraTraps/blob/amrita/research/active_learning/labeling_tool/labeling_tool.png)
+
 ## Setup
 1. Create an `images` folder containing full-size camera trap images, which may be in nested directories.
 2. (Required if COCO bounding-box annotations are not available, otherwise optional.) Use `run_tf_detector_batch.py` to get predicted bounding boxes in an `detector_output.csv` file.
@@ -14,5 +16,3 @@ This web interface allows users to annotate cropped images for training a specie
 ```bash
 python runapp.py --db_name MYDATABASE --db_user USERNAME --db_password PASSWORD --crop_dir PATH_TO_CROPS --class_list class_lists/MYCLASSLIST.TXT --embedding_checkpoint PATH_TO_EMBEDDING_MODEL --checkpoint_dir PATH_TO_OUTPUT_CHECKPOINT_DIR
 ```
-
-![WebUI](https://github.com/microsoft/CameraTraps/blob/amrita/research/active_learning/labeling_tool/labeling_tool.png)
