@@ -1,7 +1,8 @@
 '''
 add_oracle_to_db.py
 
-Uses crops.json file (from crop_images_from_batch_api_detection.py) and COCO .json file to initialize and populate Oracle table in a PostgreSQL database.
+Uses crops.json file (from crop_images_from_batch_api_detection.py) and
+COCO .json file to initialize and populate Oracle table in a PostgreSQL database.
 
 '''
 
