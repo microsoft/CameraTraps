@@ -335,6 +335,8 @@ if __name__ == '__main__':
         global dataset
         global indices
 
+        print('Started assignLabel call')
+
         data = bottle.request.json
 
         images_to_label = [im['id'] for im in data['images']]
@@ -557,9 +559,9 @@ if __name__ == '__main__':
                                 .where((Image.seq_id == mie.seq_id))
                                 .order_by(Image.frame_num))
                 image_sequence = sorted(list(set([i.source_file_name for i in images_in_seq])))
-                if len(image_sequence) > 5:
-                    minidx = max(mie.frame_num - 3, 0)
-                    maxidx = min(mie.frame_num + 3, len(image_sequence))
+                if len(image_sequence) > 10:
+                    minidx = max(mie.frame_num - 4, 0)
+                    maxidx = min(mie.frame_num + 4, len(image_sequence))
                     image_sequence = image_sequence[minidx:maxidx+1]
                 data['image_sequence'] = image_sequence
             data['success_status'] = True
