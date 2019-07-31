@@ -1,6 +1,8 @@
 '''
 initialize_target_db.py
 
+[deprecated]
+
 Creates a PostgreSQL database of camera trap images for use in active learning for classification.
 
 Prerequisite steps:

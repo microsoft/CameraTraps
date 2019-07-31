@@ -1,3 +1,7 @@
+'''
+One-off script to look at embedding results for a set of script
+'''
+
 import argparse, os, pickle, random, sys, time
 import numpy as np
 import torch
