@@ -16,29 +16,37 @@ import warnings
 import datetime
 from PIL import Image
 
+# from the ai4eutils repo
+from path_utils import find_images
+
 # ignoring all "PIL cannot read EXIF metainfo for the images" warnings
 warnings.filterwarnings("ignore", "(Possibly )?corrupt EXIF data", UserWarning)
 # Metadata Warning, tag 256 had too many entries: 42, expected 1
 warnings.filterwarnings("ignore", "Metadata warning", UserWarning)
 
 # Filenames will be stored in the output .json relative to this base dir
-baseDir = r'd:\wildlife_data\animalblobs'
-outputJsonFilename = os.path.join(baseDir,'animalblobs.json')
-outputCsvFilename = os.path.join(baseDir,'animalblobs.csv')
-rawClassListFilename = os.path.join(baseDir,'animalblobs_raw_classes.csv')
-classMappingsFilename = os.path.join(baseDir,'animalblobs_class_mapping.csv')
+baseDir = r'D:\wildlife_data\bellevue_camera_traps\bellevue_camera_traps.19.06.02.1320'
+outputJsonFilename = os.path.join(baseDir,'bellevue_camera_traps.19.06.02.1320.json')
+outputCsvFilename = os.path.join(baseDir,'bellevue_camera_traps.19.06.02.1320.csv')
+
+# rawClassListFilename = os.path.join(baseDir,'bellevue_camera_traps.19.06.02.1320_classes.csv')
+# classMappingsFilename = os.path.join(baseDir,'bellevue_camera_traps.19.06.02.1320_class_mapping.csv')
 outputEncoding = 'utf-8'
+
+classMappings = {'transitional':'unlabeled','moving':'unlabeled','setup':'unlabeled','blurry':'unlabeled','transitional':'unlabeled','junk':'unlabeled','unknown':'unlabeled'}
 
 bLoadFileListIfAvailable = True
 
 info = {}
 info['year'] = 2019
 info['version'] = '1.0'
-info['description'] = ''
-info['contributor'] = ''
+info['description'] = 'Bellevue Camera Traps'
+info['contributor'] = 'Dan Morris'
 info['date_created'] = str(datetime.date.today())
 
 maxFiles = -1
+bReadImageSizes = False
+bUseExternalRemappingTable = False
 
 
 #%% Enumerate files, read image sizes
@@ -68,26 +76,29 @@ else:
         
     print('Enumerating files from {} to {}'.format(baseDir,outputCsvFilename))
     
-    with io.open(outputCsvFilename, "w", encoding=outputEncoding) as outputFileHandle:
-        
-        for root, subdirs, files in os.walk(baseDir):
-        
-            for fname in files:
-          
-                nFiles = nFiles + 1
-                if maxFiles >= 0 and nFiles > maxFiles:            
-                    print('Warning: early break at {} files'.format(maxFiles))
-                    break
-                
-                fullPath = os.path.join(root,fname)            
-                relativePath = os.path.relpath(fullPath,baseDir)
-                 
-                if maxFiles >= 0:
-                    print(relativePath)
-            
-                h = -1
-                w = -1
+    image_files = find_images(baseDir,bRecursive=True)
+    print('Enumerated {} images'.format(len(image_files)))
     
+    with io.open(outputCsvFilename, "w", encoding=outputEncoding) as outputFileHandle:    
+    
+        for fname in image_files:
+      
+            nFiles = nFiles + 1
+            if maxFiles >= 0 and nFiles > maxFiles:            
+                print('Warning: early break at {} files'.format(maxFiles))
+                break
+            
+            fullPath = fname
+            relativePath = os.path.relpath(fullPath,baseDir)
+             
+            if maxFiles >= 0:
+                print(relativePath)
+        
+            h = -1
+            w = -1
+
+            if bReadImageSizes:
+            
                 # Read the image
                 try:
                 
@@ -99,24 +110,18 @@ else:
                     # Corrupt or not an image
                     nonImages.append(fullPath)
                     continue
-                
-                # Store file info
-                imageInfo = [relativePath, fullPath, w, h]
-                fileInfo.append(imageInfo)
-                
-                # Write to output file
-                outputFileHandle.write('"' + relativePath + '"' + ',' + 
-                                       '"' + fullPath + '"' + ',' + 
-                                       str(w) + ',' + str(h) + '\n')
-                                       
-            # ...if we didn't hit the max file limit, keep going
-            else:
-                continue
             
-            break
-    
-        # ...for each file
-    
+            # Store file info
+            imageInfo = [relativePath, fullPath, w, h]
+            fileInfo.append(imageInfo)
+            
+            # Write to output file
+            outputFileHandle.write('"' + relativePath + '"' + ',' + 
+                                   '"' + fullPath + '"' + ',' + 
+                                   str(w) + ',' + str(h) + '\n')
+                                   
+        # ...for each image file
+                
     # ...csv file output
         
     print("Finished writing {} file names to {}".format(nFiles,outputCsvFilename))
@@ -147,7 +152,7 @@ if 'empty' in classNames:
     classNames.remove('empty')    
 classNames.insert(0,'empty')
 
-print('Finished enumerating classes')
+print('Finished enumerating {} classes'.format(len(classList)))
 
 
 #%% Assemble dictionaries
@@ -214,49 +219,65 @@ originalCategories = categories
 print('Finished assembling dictionaries')
 
 
-#%% Write raw class table
+#%% External class mapping
 
-# cat = categories[0]
-if os.path.isfile(rawClassListFilename):
+if bUseExternalRemappingTable:
     
-    print('Not over-writing raw class table')
-
+    assert classMappings is None
+    
+    
+    #%% Write raw class table
+    
+    # cat = categories[0]
+    if os.path.isfile(rawClassListFilename):
+        
+        print('Not over-writing raw class table')
+    
+    else:
+        
+        with io.open(rawClassListFilename, "w", encoding=outputEncoding) as classListFileHandle:
+            for cat in categories:
+                catId = cat['id']
+                categoryName = cat['name']
+                categoryCount = cat['count']
+                classListFileHandle.write(str(catId) + ',"' + categoryName + '",' + str(categoryCount) + '\n')
+        
+        print('Finished writing raw class table')
+    
+    
+    #%% Read the mapped class table
+    
+    classMappings = {}
+    
+    if os.path.isfile(classMappingsFilename):
+    
+        print('Loading file list from {}'.format(classMappingsFilename))
+            
+        with open(classMappingsFilename,'r') as f:
+            reader = csv.reader(f)
+            mappingInfo = list(list(item) for item in csv.reader(f, delimiter=','))
+        
+        for mapping in mappingInfo:
+            assert len(mapping) == 4
+            
+            # id, source, count, target
+            sourceClass = mapping[1]
+            targetClass = mapping[3]
+            assert sourceClass not in classMappings
+            classMappings[sourceClass] = targetClass
+        
+        print('Finished reading list of {} class mappings'.format(len(mappingInfo)))
+        
 else:
-    
-    with io.open(rawClassListFilename, "w", encoding=outputEncoding) as classListFileHandle:
-        for cat in categories:
-            catId = cat['id']
-            categoryName = cat['name']
-            categoryCount = cat['count']
-            classListFileHandle.write(str(catId) + ',"' + categoryName + '",' + str(categoryCount) + '\n')
-    
-    print('Finished writing raw class table')
 
-
-#%% Read the mapped class table
-
-classMappings = {}
-
-if os.path.isfile(classMappingsFilename):
-
-    print('Loading file list from {}'.format(classMappingsFilename))
-        
-    with open(classMappingsFilename,'r') as f:
-        reader = csv.reader(f)
-        mappingInfo = list(list(item) for item in csv.reader(f, delimiter=','))
+#%% Make classMappings contain *all* classes, not just remapped classes
     
-    for mapping in mappingInfo:
-        assert len(mapping) == 4
-        
-        # id, source, count, target
-        sourceClass = mapping[1]
-        targetClass = mapping[3]
-        assert sourceClass not in classMappings
-        classMappings[sourceClass] = targetClass
-    
-    print('Finished reading list of {} class mappings'.format(len(mappingInfo)))
-    
-    
+    # cat = categories[0]
+    for cat in categories:
+        if cat['name'] not in classMappings:
+            classMappings[cat['name']] = cat['name']
+
+      
 #%% Create new class list
     
 categories = []
@@ -303,7 +324,7 @@ categoryIdToCat = {}
 for cat in categories:
     categoryIdToCat[cat['id']] = cat
     
-print('Mapped {} original classes to {} new classes'.format(len(mappingInfo),len(categories)))
+print('Mapped {} original classes to {} new classes'.format(len(originalCategories),len(categories)))
 
 
 #%% Re-map annotations
