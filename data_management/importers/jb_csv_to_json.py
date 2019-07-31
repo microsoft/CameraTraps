@@ -143,6 +143,6 @@ print('Finished writing .json file with {} images, {} annotations, and {} catego
 from data_management.databases import sanity_check_json_db
 
 options = sanity_check_json_db.SanityCheckOptions()
-sortedCategories,data = sanity_check_json_db.sanityCheckJsonDb(output_file, options)
+sortedCategories,data = sanity_check_json_db.sanity_check_json_db(output_file, options)
 
 
