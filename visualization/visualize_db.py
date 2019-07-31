@@ -25,6 +25,7 @@ from write_html_image_list import write_html_image_list
 
 # Assumes the cameratraps repo root is on the path
 import visualization.visualization_utils as vis_utils
+from data_management.cct_json_utils import IndexedJsonDb
 
 
 #%% Settings
@@ -39,7 +40,9 @@ class DbVizOptions:
     htmlOptions = write_html_image_list()
     sort_by_filename = True
     trim_to_images_with_bboxes = False
-    random_seed = 0; # None
+    random_seed = 0 # None
+    add_search_links = False
+    classes_to_exclude = None
 
     # We sometimes flatten image directories by replacing a path separator with 
     # another character.  Leave blank for the typical case where this isn't necessary.
@@ -50,7 +53,7 @@ class DbVizOptions:
 
 # Translate the file name in an image entry in the json database to a path, possibly doing
 # some manipulation of path separators
-def imageFilenameToPath(image_file_name, image_base_dir, pathsep_replacement=''):
+def image_filename_to_path(image_file_name, image_base_dir, pathsep_replacement=''):
     
     if len(pathsep_replacement) > 0:
         image_file_name = os.path.normpath(image_file_name).replace(os.pathsep,pathsep_replacement)        
@@ -59,12 +62,16 @@ def imageFilenameToPath(image_file_name, image_base_dir, pathsep_replacement='')
 
 #%% Core functions
 
-def processImages(db_path,output_dir,image_base_dir,options=None):
+def process_images(db_path,output_dir,image_base_dir,options=None):
     """
     Writes images and html to output_dir to visualize the annotations in the json file
     db_path.
     
-    Returns the html filename.
+    db_path can also be a previously-loaded database.
+    
+    Returns the html filename and the database:
+        
+    return htmlOutputFile,image_db
     """    
     
     if options is None:
@@ -73,16 +80,22 @@ def processImages(db_path,output_dir,image_base_dir,options=None):
     print(options.__dict__)
     
     os.makedirs(os.path.join(output_dir, 'rendered_images'), exist_ok=True)
-    assert(os.path.isfile(db_path))
     assert(os.path.isdir(image_base_dir))
     
-    print('Loading the database...')
-    bbox_db = json.load(open(db_path))
-    print('...done')
-    
-    annotations = bbox_db['annotations']
-    images = bbox_db['images']
-    categories = bbox_db['categories']
+    if isinstance(db_path,str):
+        assert(os.path.isfile(db_path))    
+        print('Loading database from {}...'.format(db_path))
+        image_db = json.load(open(db_path))
+        print('...done')
+    elif isinstance(db_path,dict):
+        print('Using previously-loaded DB')
+        image_db = db_path
+    else:
+        raise ValueError('Illegal dictionary or filename')    
+        
+    annotations = image_db['annotations']
+    images = image_db['images']
+    categories = image_db['categories']
     
     # Optionally remove all images without bounding boxes, *before* sampling
     if options.trim_to_images_with_bboxes:
@@ -104,17 +117,34 @@ def processImages(db_path,output_dir,image_base_dir,options=None):
                 bImageHasBbox[iImage] = True
         imagesWithBboxes = list(compress(images, bImageHasBbox))
         images = imagesWithBboxes
-        
-    # put the annotations in a dataframe so we can select all annotations for a given image
+                
+    # Optionally remove images with specific labels, *before* sampling
+    if options.classes_to_exclude is not None:
+     
+        print('Indexing database')
+        indexed_db = IndexedJsonDb(image_db)
+        bValidClass = [True] * len(images)        
+        for iImage,image in enumerate(images):
+            classes = indexed_db.get_classes_for_image(image)
+            for excludedClass in options.classes_to_exclude:
+                if excludedClass in classes:
+                   bValidClass[iImage] = False
+                   break
+               
+        imagesWithValidClasses = list(compress(images, bValidClass))
+        images = imagesWithValidClasses    
+    
+    # Put the annotations in a dataframe so we can select all annotations for a given image
+    print('Creating data frames')
     df_anno = pd.DataFrame(annotations)
     df_img = pd.DataFrame(images)
     
-    # construct label map
+    # Construct label map
     label_map = {}
     for cat in categories:
         label_map[int(cat['id'])] = cat['name']
     
-    # take a sample of images
+    # Take a sample of images
     if options.num_to_visualize is not None:
         df_img = df_img.sample(n=options.num_to_visualize,random_state=options.random_seed)
     
@@ -125,7 +155,7 @@ def processImages(db_path,output_dir,image_base_dir,options=None):
         
         img_id = df_img.iloc[iImage]['id']
         img_relative_path = df_img.iloc[iImage]['file_name']
-        img_path = os.path.join(image_base_dir, imageFilenameToPath(img_relative_path, image_base_dir))
+        img_path = os.path.join(image_base_dir, image_filename_to_path(img_relative_path, image_base_dir))
     
         if not os.path.exists(img_path):
             print('Image {} cannot be found'.format(img_path))
@@ -166,6 +196,9 @@ def processImages(db_path,output_dir,image_base_dir,options=None):
                     
             categoryID = anno['category_id']
             categoryName = label_map[categoryID]
+            if options.add_search_links:
+                categoryName = categoryName.replace('"','')
+                categoryName = '<a href="https://www.bing.com/images/search?q={}">{}</a>'.format(categoryName,categoryName)
             imageCategories.add(categoryName)
             
             if 'bbox' in anno:
@@ -178,7 +211,7 @@ def processImages(db_path,output_dir,image_base_dir,options=None):
         
         imageClasses = ', '.join(imageCategories)
         
-        # render bounding boxes in-place
+        # Render bounding boxes in-place
         vis_utils.render_db_bounding_boxes(bboxes, boxClasses, image, original_size, label_map)  
         
         file_name = '{}_gtbbox.jpg'.format(img_id.lower().split('.jpg')[0])
@@ -203,7 +236,10 @@ def processImages(db_path,output_dir,image_base_dir,options=None):
     htmlOutputFile = os.path.join(output_dir, 'index.html')
     
     htmlOptions = options.htmlOptions
-    htmlOptions['headerHtml'] = '<h1>Sample annotations from {}</h1>'.format(db_path)
+    if isinstance(db_path,str):
+        htmlOptions['headerHtml'] = '<h1>Sample annotations from {}</h1>'.format(db_path)
+    else:
+        htmlOptions['headerHtml'] = '<h1>Sample annotations</h1>'
     write_html_image_list(
             filename=htmlOutputFile,
             images=images_html,
@@ -211,9 +247,9 @@ def processImages(db_path,output_dir,image_base_dir,options=None):
 
     print('Visualized {} images, wrote results to {}'.format(len(images_html),htmlOutputFile))
     
-    return htmlOutputFile
+    return htmlOutputFile,image_db
 
-# def processImages(...)
+# def process_images(...)
     
     
 #%% Command-line driver
@@ -221,7 +257,7 @@ def processImages(db_path,output_dir,image_base_dir,options=None):
 # Copy all fields from a Namespace (i.e., the output from parse_args) to an object.  
 #
 # Skips fields starting with _.  Does not check existence in the target object.
-def argsToObject(args, obj):
+def args_to_object(args, obj):
     
     for n, v in inspect.getmembers(args):
         if not n.startswith('_'):
@@ -257,11 +293,11 @@ def main():
     
     # Convert to an options object
     options = DbVizOptions()
-    argsToObject(args,options)
+    args_to_object(args,options)
     if options.random_sort:
         options.sort_by_filename = False
         
-    processImages(options.db_path,options.output_dir,options.image_base_dir,options) 
+    process_images(options.db_path,options.output_dir,options.image_base_dir,options) 
 
 
 if __name__ == '__main__':
@@ -282,6 +318,6 @@ if False:
     options = DbVizOptions()
     options.num_to_visualize = 100
     
-    htmlOutputFile = processImages(db_path,output_dir,image_base_dir,options)
+    htmlOutputFile,db = process_images(db_path,output_dir,image_base_dir,options)
     # os.startfile(htmlOutputFile)
 
