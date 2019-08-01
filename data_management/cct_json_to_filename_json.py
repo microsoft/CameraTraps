@@ -49,7 +49,7 @@ def convertJsonToStringList(inputFilename,outputFilename=None,prepend='',bConfir
     with open(outputFilename, 'w') as f:
         f.write(s)
         
-    return s
+    return s,outputFilename
     
     
 #%% Command-line driver
