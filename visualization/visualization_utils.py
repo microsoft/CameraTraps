@@ -160,8 +160,8 @@ def render_detection_bounding_boxes(detections, image,
 
     Args:
         detections: detections on the image, example content:
-            {
-                [
+            [
+                {
                     "category": "2",
                     "conf": 0.996,
                     "bbox": [
@@ -170,12 +170,12 @@ def render_detection_bounding_boxes(detections, image,
                         0.1234,
                         0.2458
                     ]
-                ]
-            }
+                }
+            ]
             where the bbox coordinates are [x, y, width_box, height_box], (x, y) is upper left.
             Supports classification results, if *detections* have the format
-            {
-                [
+            [
+                {
                     "category": "2",
                     "conf": 0.996,
                     "bbox": [
@@ -189,8 +189,8 @@ def render_detection_bounding_boxes(detections, image,
                         ["1", 0.071],
                         ["4", 0.025]
                     ]
-                ]
-            }
+                }
+            ]
         image: PIL.Image object, output of generate_detections.
         label_map: optional, mapping the numerical label to a string name. The type of the numerical label
             (default string) needs to be consistent with the keys in label_map; no casting is carried out.
