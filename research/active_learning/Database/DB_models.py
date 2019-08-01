@@ -1,7 +1,8 @@
 '''
 DB_models.py
 
-Defines model classes representing database tables used in active learning for classification.
+Defines model classes representing database tables used in active
+learning for classification.
 
 '''
 
