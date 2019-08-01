@@ -28,11 +28,11 @@ image
 {
   # Required
   "id" : str,
-  "width" : int,
-  "height" : int,
   "file_name" : str,
   
   # Optional
+  "width" : int,
+  "height" : int,
   "rights_holder" : str,    
   "datetime": datetime,  
   "seq_id": str,
@@ -80,6 +80,8 @@ annotation
 `seq_num_frames` is the total number of frames in the sequence that this image belongs to.
 
 `frame_num` specifies this frame's order in the sequence.
+
+Note that the coordinates in the `bbox` field are absolute here, different from those in the [batch processing API](api/batch_processing/README.md) output, which are relative.
 
 Fields listed as "optional" are intended to standardize commonly-used parameters (such as date/time information).  When present, fields should follow the above conventions.  Additional fields may be present for specific data sets.
 
