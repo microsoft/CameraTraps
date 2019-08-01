@@ -40,6 +40,7 @@ class SanityCheckOptions:
     
     baseDir = ''
     bCheckImageSizes = False
+    bCheckImageExistence = False
     bFindUnusedImages = False
     iMaxNumImages = -1
     
@@ -47,12 +48,14 @@ class SanityCheckOptions:
 defaultOptions = SanityCheckOptions()
 
 
-def checkImageExistenceAndSize(image,options=None):
+def check_image_existence_and_size(image,options=None):
 
     if options is None:
         
         options = defaultOptions
-        
+    
+    assert options.bCheckImageExistence
+    
     filePath = os.path.join(options.baseDir,image['file_name'])
     if not os.path.isfile(filePath):
         print('Image path {} does not exist'.format(filePath))
@@ -72,29 +75,46 @@ def checkImageExistenceAndSize(image,options=None):
     return True
 
   
-def sanityCheckJsonDb(jsonFile, options=None):
+def sanity_check_json_db(jsonFile, options=None):
+    '''
+    jsonFile can be a filename or an already-loaded json database
+    
+    returns sortedCategories, data
+    '''
     
     if options is None:   
         
         options = SanityCheckOptions()
     
+    if options.bCheckImageSizes:
+        
+        options.bCheckImageExistence = True
+        
     print(options.__dict__)
-    
-    assert os.path.isfile(jsonFile), '.json file {} does not exist'.format(jsonFile)
-    
-    print('\nProcessing .json file {}'.format(jsonFile))
     
     baseDir = options.baseDir
     
     
-    ##%% Read .json file, sanity-check fields
+    ##%% Read .json file if necessary, sanity-check fields
     
-    print('Reading .json {} with base dir [{}]...'.format(
-            jsonFile,baseDir))
+    if isinstance(jsonFile,dict):
+        
+        data = jsonFile
+        
+    elif isinstance(jsonFile,str):
+        
+        assert os.path.isfile(jsonFile), '.json file {} does not exist'.format(jsonFile)
     
-    with open(jsonFile,'r') as f:
-        data = json.load(f)
-    
+        print('Reading .json {} with base dir [{}]...'.format(
+                jsonFile,baseDir))
+        
+        with open(jsonFile,'r') as f:
+            data = json.load(f) 
+            
+    else:
+        
+        raise ValueError('Illegal value for jsonFile')
+            
     images = data['images']
     annotations = data['annotations']
     categories = data['categories']
@@ -210,18 +230,19 @@ def sanityCheckJsonDb(jsonFile, options=None):
                 unusedFiles.append(p)
                 
     # Are we checking file existence and/or image size?
-    if options.bCheckImageSizes:
+    if options.bCheckImageSizes or options.bCheckImageExistence:
         
         if len(baseDir) == 0:
             print('Warning: checking image sizes without a base directory, assuming "."')
             
-        print('Checking image existence and image sizes...')
+        print('Checking image existence and/or image sizes...')
         
         pool = ThreadPool(nThreads)
         # results = pool.imap_unordered(lambda x: fetch_url(x,nImages), indexedUrlList)
         defaultOptions.baseDir = options.baseDir
         defaultOptions.bCheckImageSizes = options.bCheckImageSizes
-        results = tqdm(pool.imap(checkImageExistenceAndSize, images), total=len(images))
+        defaultOptions.bCheckImageExistence = options.bCheckImageExistence
+        results = tqdm(pool.imap(check_image_existence_and_size, images), total=len(images))
         
         for iImage,r in enumerate(results):
             if not r:
@@ -313,7 +334,7 @@ def sanityCheckJsonDb(jsonFile, options=None):
     
     return sortedCategories, data
 
-# ...def sanityCheckJsonDb()
+# ...def sanity_check_json_db()
     
 
 #%% Command-line driver
@@ -330,7 +351,9 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('jsonFile')
     parser.add_argument('--bCheckImageSizes', action='store_true', 
-                        help='Validate image size and existence, requires baseDir to be specified')
+                        help='Validate image size, requires baseDir to be specified.  Implies existence checking.')
+    parser.add_argument('--bCheckImageExistence', action='store_true', 
+                        help='Validate image existence, requires baseDir to be specified')
     parser.add_argument('--bFindUnusedImages', action='store_true', 
                         help='Check for images in baseDir that aren''t in the database, requires baseDir to be specified')
     parser.add_argument('--baseDir', action='store', type=str, default='', 
@@ -343,7 +366,7 @@ def main():
         parser.exit()
         
     args = parser.parse_args()    
-    sanityCheckJsonDb(args.jsonFile,args)
+    sanity_check_json_db(args.jsonFile,args)
 
 
 if __name__ == '__main__':
@@ -374,7 +397,7 @@ if False:
     
     for jsonFile in jsonFiles:
         
-        sortedCategories,data = sanityCheckJsonDb(jsonFile, options)
+        sortedCategories,data = sanity_check_json_db(jsonFile, options)
         
     
       

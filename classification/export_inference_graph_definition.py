@@ -1,3 +1,10 @@
+#
+# Creates a graph description, which is required to create a frozen graph.
+# Adapted from from ./tf-slim/export_inference_graph.py
+# Added preprocessing to the definition for easier handling
+#
+
+
 # Copyright 2017 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");

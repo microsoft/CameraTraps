@@ -1,5 +1,5 @@
 #
-# jb_csv_to_json.py
+# awc_to_json.py
 #
 # Convert a particular .csv file to CCT format.
 #
@@ -14,7 +14,7 @@ from tqdm import tqdm
 import humanfriendly
 import os
 import PIL
-from visualization import visualize_bbox_db
+from visualization import visualize_db
 import path_utils
 
 input_metadata_file = r"D:\wildlife_data\awc\awc_imageinfo.csv"
@@ -171,7 +171,7 @@ print('Finished writing .json file with {} images, {} annotations, and {} catego
 from data_management.databases import sanity_check_json_db
 
 options = sanity_check_json_db.SanityCheckOptions()
-sortedCategories,data = sanity_check_json_db.sanityCheckJsonDb(output_file, options)
+sortedCategories,data = sanity_check_json_db.sanity_check_json_db(output_file, options)
 
     
 #%% Render a bunch of images to make sure the labels got carried along correctly
@@ -183,5 +183,5 @@ options = visualize_bbox_db.BboxDbVizOptions()
 options.num_to_visualize = 1000
 options.sort_by_filename = False
 
-htmlOutputFile = visualize_bbox_db.processImages(bbox_db_path,output_dir,image_base,options)
+htmlOutputFile = visualize_bbox_db.process_images(bbox_db_path,output_dir,image_base,options)
 
