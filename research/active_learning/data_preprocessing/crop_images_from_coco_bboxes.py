@@ -1,3 +1,7 @@
+'''
+Produces a directory of crops from a COCO-annotated .json full of 
+bboxes.
+'''
 import numpy as np
 import argparse, ast, csv, json, pickle, os, sys, time, tqdm, uuid
 from PIL import Image
