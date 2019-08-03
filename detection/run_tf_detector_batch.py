@@ -522,9 +522,10 @@ def args_to_object(args, obj):
 def main():
     
     parser = argparse.ArgumentParser()
-    parser.add_argument('detectorFile', type=str)
-    parser.add_argument('imageFile', action='store', type=str, 
-                        help='Can be a singe image file, a text file containing a list of images, or a directory')
+    parser.add_argument('detectorFile', type=str, 
+                        help='The TensorFlow model file to run, typically MegaDetector[something].pb')
+    parser.add_argument('imageFile', type=str, 
+                        help='Can be a single image file, a text file containing a list of images, or a directory')
     parser.add_argument('outputFile', type=str, 
                        help='Output results file')
     parser.add_argument('--threshold', action='store', type=float, 
@@ -538,7 +539,7 @@ def main():
                         help='Checkpoint results to allow restoration from crash points later')
     parser.add_argument('--resumeFromCheckpoint', type=str, default=None,
                         help='Initiate inference from the specified checkpoint')
-    parser.add_argument('--outputRelativeFilenames', type=bool, action='store_true',
+    parser.add_argument('--outputRelativeFilenames', action='store_true',
                         help='Output relative file names, only meaningful if --imageFile points to a directory')
     
     if len(sys.argv[1:])==0:
