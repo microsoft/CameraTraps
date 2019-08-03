@@ -183,6 +183,7 @@
                                     <option>All Species</option>
                                 </select>
                             </form>
+                            <a class="btn btn-primary" style="border:none; color:white; background-color:#F25022; width:100%; margin-top:20px; margin-bottom:20px;" onclick="refreshImagesToDisplay()">Apply Selection Criteria</a>
                         </div>
                     </div>
                 </div>
@@ -418,6 +419,7 @@
                         var detection_kind = data['display_images']['detection_kinds']      // if ModelDetection, then a detection category and confidence score should be available
                         var detection_cat = data['display_images']['detection_categories']  // to display current detection category
                         classifierTrained = data['classifier_trained']                      // to check if the app is initialized with a pretrained classifier
+                        // alert(classifierTrained)
                         
                         // map image filenames to ids (also, image ids are currently same as detection id and image due to initialize_target_db.py)
                         for (i=0; i<img.length; i++){
