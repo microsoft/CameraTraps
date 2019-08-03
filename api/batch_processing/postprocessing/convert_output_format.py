@@ -14,16 +14,19 @@
 import argparse
 import csv
 import json
+import os
 
-from api.batch_processing.postprocessing.load_api_results import load_api_results
 from api.batch_processing.postprocessing.load_api_results import load_api_results_csv
 from data_management.annotations import annotation_constants
 
 
 #%% Conversion functions
 
-def convert_json_to_csv(input_path,output_path):
+def convert_json_to_csv(input_path,output_path=None):
     
+    if output_path is None:
+        output_path = os.path.splitext(input_path)[0]+'.csv'
+        
     print('Loading json results...')
     json_output = json.load(open(input_path))
 
@@ -58,8 +61,11 @@ def convert_json_to_csv(input_path,output_path):
         writer.writerows(rows)
 
 
-def convert_csv_to_json(input_path,output_path):
+def convert_csv_to_json(input_path,output_path=None):
     
+    if output_path is None:
+        output_path = os.path.splitext(input_path)[0]+'.json'
+        
     # Format spec:
     #
     # https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing
