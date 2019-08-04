@@ -33,6 +33,7 @@ def load_api_results(api_output_filename, normalize_paths=True, filename_replace
             a 'meta' column.
         other_fields: a dict containing fields in the dict
     """
+    
     print('Loading API results from {}'.format(api_output_filename))
 
     with open(api_output_filename) as f:
@@ -84,12 +85,14 @@ def write_api_results(detection_results_table, other_fields, out_path):
     """
     Writes a Pandas DataFrame back to a json that is compatible with the API output format.
     """
+    
     print('Writing detection results to {}'.format(out_path))
 
     fields = other_fields
 
+    # TODO read double_precision from a config elsewhere
     images = detection_results_table.to_json(orient='records',
-                                             double_precision=3)  # TODO read double_precision from a config elsewhere
+                                             double_precision=3)
     images = json.loads(images)
     fields['images'] = images
 
@@ -104,6 +107,7 @@ def load_api_results_csv(filename, normalize_paths=True, filename_replacements={
     DEPRECATED
     Loads .csv-formatted results from the batch processing API to a pandas table
     """
+    
     print('Loading API results from {}'.format(filename))
 
     detection_results = pd.read_csv(filename,nrows=nrows)
