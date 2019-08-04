@@ -416,7 +416,7 @@ def load_and_run_detector(options,detector=None):
     imageFileNames = options_to_images(options)
     
     if options.forceCpu:
-        os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+        os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
         os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
     print('Running detector on {} images'.format(len(imageFileNames)))    
