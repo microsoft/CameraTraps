@@ -53,6 +53,8 @@ import json
 from tqdm import tqdm
 import os
 
+from data_management.annotations import annotation_constants
+
 
 #%% Helper classes
 
@@ -89,10 +91,48 @@ class SubsetJsonDetectorOutputOptions:
     # Threshold on confidence
     confidence_threshold = None
     
+    debug_max_images = -1
+    
     
 #%% Main function
 
-def write_images(data,output_filename,options):
+def add_missing_detection_results_fields(data):
+    """
+    Temporary fix for a sort-of-bug that is causing us to remove fields other than "images"
+    from detection output in certain scenarios.
+    
+    Modifies *data* in-place, also returns *data*.
+    """
+    
+    # Format spec:
+    #
+    # https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing
+    
+    if 'images' not in data:
+        data['images'] = []
+    
+    if 'info' not in data:
+        print('Adding "info" field to .json')
+        info = {
+            "detector": "unknown",
+            "detection_completion_time" : "unknown",
+            "classifier": "unknown",
+            "classification_completion_time": "unknown"
+        }
+        data['info'] = info
+    
+    if 'classification_categories' not in data:
+        print('Adding "classification_categories" field to .json')
+        data['classification_categories'] = {}
+        
+    if 'detection_categories' not in data:
+        print('Adding "detection_categories" field to .json')
+        data['detection_categories'] = annotation_constants.bbox_category_id_to_name
+    
+    return data
+    
+
+def write_detection_results(data,output_filename,options):
     """
     Write the detector-output-formatted dict *data* to *output_filename*.
     """
@@ -273,6 +313,10 @@ def subset_json_detector_output(input_filename,output_filename,options,data=None
         with open(input_filename) as f:
             data = json.load(f)
         print(' ...done, read {} images'.format(len(data['images'])))
+        if options.debug_max_images > 0:
+            print('Trimming to {} images'.format(options.debug_max_images))
+            data['images'] = data['images'][:options.debug_max_images]
+    # data = add_missing_detection_results_fields(data)
     
     if options.query is not None:
         
@@ -284,7 +328,7 @@ def subset_json_detector_output(input_filename,output_filename,options,data=None
         
     if not options.split_folders:
         
-        write_images(data,output_filename,options)
+        write_detection_results(data,output_filename,options)
         return data
     
     else:
@@ -299,8 +343,10 @@ def subset_json_detector_output(input_filename,output_filename,options,data=None
             fn = im['file']
             if options.split_folder_mode == 'bottom':
                 dirname = os.path.dirname(fn)
+            elif options.split_folder_mode == 'top':
+                dirname = top_level_folder(fn)                
             else:
-                dirname = top_level_folder(fn)
+                raise ValueError('Unrecognized folder split mode {}'.format(options.split_folder_mode))
             folders_to_images.setdefault(dirname,[]).append(im)
         
         print('Found {} unique folders'.format(len(folders_to_images)))
@@ -337,7 +383,7 @@ def subset_json_detector_output(input_filename,output_filename,options,data=None
             # forward-compatible in that I don't take dependencies on the other fields
             dir_data = data
             dir_data['images'] = folders_to_images[dirname]
-            write_images(dir_data, json_fn, options)
+            write_detection_results(dir_data, json_fn, options)
             print('Wrote {} images to {}'.format(len(dir_data['images']),json_fn))
             
         # ...for each directory
