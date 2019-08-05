@@ -2,7 +2,7 @@
 #
 # postprocess_batch_results.py
 #
-# Given a .csv file representing the output from the batch API, do one or more of
+# Given a .json or .csv file representing the output from the batch API, do one or more of
 # the following:
 #
 # * Evaluate detector precision/recall, optionally rendering results (requires ground truth)
