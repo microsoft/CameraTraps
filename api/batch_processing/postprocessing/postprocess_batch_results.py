@@ -494,26 +494,24 @@ def process_batch_results(options):
         # Rows / first index is ground truth, columns / second index is predicted category
         classifier_cm = collections.defaultdict(lambda: collections.defaultdict(lambda: 0))
         
+        # iDetection = 0; fn = detector_files[iDetection]; print(fn)
+        assert len(detector_files) == len(detection_results)
         for iDetection,fn in enumerate(detector_files):
             
             image_id = ground_truth_indexed_db.filename_to_id[fn]
             image = ground_truth_indexed_db.image_id_to_image[image_id]
+            detections = detection_results['detections'].iloc[iDetection]
             pred_class_ids = [det['classifications'][0][0] \
-                for det in detection_results['detections'][iDetection] if 'classifications' in det.keys()]
+                for det in detections if 'classifications' in det.keys()]
             pred_classnames = [classification_categories_map[pd] for pd in pred_class_ids]
 
             # If this image has classification predictions, and an unambiguous class
-            # annotated, and is a positive image
+            # annotated, and is a positive image...
             if len(pred_classnames) > 0 \
                     and '_unambiguous_category' in image.keys() \
                     and image['_detection_status'] == DetectionStatus.DS_POSITIVE:
                         
                 # The unambiguous category, we make this a set for easier handling afterward
-                #
-                # TODO: actually we can replace the unambiguous category by all annotated
-                # categories. However, then the confusion matrix doesn't make sense anymore
-                #
-                # TODO: make sure we are using the class names as strings in both, not IDs
                 gt_categories = set([image['_unambiguous_category']])
                 pred_categories = set(pred_classnames)
                 
