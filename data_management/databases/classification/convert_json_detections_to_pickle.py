@@ -1,4 +1,4 @@
-# This file converts the CSV output of the batch processing API to a pickle file, which can be used by the 
+# This file converts the JSON output of the batch processing API to a pickle file, which can be used by the 
 # script ./make_classification_dataset.py
 
 import argparse
@@ -10,7 +10,7 @@ import numpy as np
 import tqdm
 
 
-parser = argparse.ArgumentParser('This file converts the CSV output of the batch processing API to a pickle file, ' + \
+parser = argparse.ArgumentParser('This file converts the JSON output of the batch processing API to a pickle file, ' + \
                    'which can be used by the script ./make_classification_dataset.py')
 parser.add_argument("input_json", type=str, help='Path to the JSON file that contains the API output')
 parser.add_argument("output_pkl", type=str, help='Path to the desired output pickle file')
