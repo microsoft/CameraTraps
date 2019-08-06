@@ -70,7 +70,7 @@ Now the detection can be started by running
     $DATASET_DIR/ \
     $FROZEN_DETECTION_GRAPH \
     --coco_style_output $COCO_STYLE_OUTPUT \
-    --tfrecords_output TFRECORDS_OUTPUT \
+    --tfrecords_output $TFRECORDS_OUTPUT \
     --location_key location \
     --exclude_categories human empty
 
