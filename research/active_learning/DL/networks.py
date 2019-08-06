@@ -1,20 +1,16 @@
-#
-# networks.py
-#
-# Network architectures for active learning: embedding and classification.
-#
+'''
+networks.py
 
-#%% Constants and imports
+Specifies architectures for different embedding networks.
 
+'''
+
+import torch
 import torch.nn as nn
 import torchvision.models as models
 import torch.nn.functional as F
 
-
-#%% Embedding architecture
-
 class EmbeddingNet(nn.Module):
-
     def __init__(self, architecture, feat_dim, use_pretrained=False):
         super(EmbeddingNet, self).__init__()
         self.feat_dim = feat_dim
@@ -36,29 +32,52 @@ class EmbeddingNet(nn.Module):
           self.inner_model.classifier._modules['6'] = nn.Linear(in_feats, feat_dim)
 
     def forward(self, x):
-        # save features last FC layer
-        feat = F.normalize(self.inner_model.forward(x))
-        return feat
+        return self.inner_model.forward(x)
+
+class NormalizedEmbeddingNet(EmbeddingNet):
+    def __init__(self, architecture, feat_dim, use_pretrained=False):
+        EmbeddingNet.__init__(self, architecture, feat_dim, use_pretrained = use_pretrained)
+
+    def forward(self, x):
+        embedding =  F.normalize(self.inner_model.forward(x))*10.0
+        return embedding, embedding
 
 
-#%% Classification architecture
-        
+class SoftmaxNet(nn.Module):
+    def __init__(self, architecture, feat_dim, num_classes, use_pretrained = False):
+        super(SoftmaxNet, self).__init__()
+        self.embedding = EmbeddingNet(architecture, feat_dim, use_pretrained = use_pretrained)
+        self.classifier = nn.Linear(feat_dim, num_classes)
+
+    def forward(self, x):
+        embed = self.embedding(x)
+        x = F.relu(embed)
+        x = self.classifier(x)
+        return x, embed
+
+
 class ClassificationNet(nn.Module):
-    
     def __init__(self, feat_dim, num_classes):
         super(ClassificationNet, self).__init__()
-        self.fc1 = nn.Linear(feat_dim, 100)
-        self.fc2 = nn.Linear(100, num_classes)
+        self.fc1 = nn.Linear(feat_dim, 128)
+        self.fc12 = nn.Linear(128, 64)
+        self.bn1 = nn.BatchNorm1d(64)
+        #self.fc13 = nn.Linear(128, 64)
+        #self.bn2 = nn.BatchNorm1d(64)
+        self.fc2 = nn.Linear(64, num_classes)
 
     def forward(self, x):
         x = F.relu(self.fc1(x))
-        x = F.dropout(x, training=self.training)
+        x = F.dropout(x, p = 0.2, training=self.training)
+        x = F.relu(self.bn1(self.fc12(x)))
+        #x = F.relu(self.fc12(x))
+
+        #x = F.relu(self.bn1(self.fc13(x)))
+        #x = F.relu(self.fc13(x))
+        #x = F.dropout(x, training=self.training)
         x = self.fc2(x)
         return x
 
-
-#%% Combined embedding and classification architecture
-        
 class CombinedNet(nn.Module):
     def __init__(self, embedding_net, classification_net):
         super(CombinedNet, self).__init__()

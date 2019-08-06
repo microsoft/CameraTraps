@@ -1,0 +1,15 @@
+name,strategy
+#margin,margin
+hierarchical,hierarchical
+#uniform,uniform
+margin_cluster_mean,margin_cluster_mean
+bandit_mixture,bandit_mixture
+bandit_discrete,bandit_discrete
+simulate_batch_mixture,simulate_batch_mixture
+simulate_batch_best_sim,simulate_batch_best_sim
+simulate_batch_frequency,simulate_batch_frequency
+#kcenter,kcenter
+#entropy,entropy
+#confidence,confidence
+#graph_density,graph_density
+#informative_diverse,informative_diverse
