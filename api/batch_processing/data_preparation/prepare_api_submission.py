@@ -30,7 +30,11 @@
 #
 # 8) We're now into what we really call "postprocessing", rather than "data_preparation", 
 #    but... possibly do some amount of partner-specific renaming, folder manipulation, etc.  
-#    This is very partner-specific, but generally done via subset_json_detector_output.py.
+#    This is very partner-specific, but generally done via:
+#
+#    find_repeat_detections.py
+#    subset_json_detector_output.py.
+#    postprocess_batch_results.py
 #
 
 #%% Imports and constants
