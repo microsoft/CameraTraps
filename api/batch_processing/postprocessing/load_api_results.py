@@ -45,7 +45,8 @@ def load_api_results(api_output_filename, normalize_paths=True, filename_replace
     for s in ['info', 'detection_categories', 'images']:
         assert s in detection_results
 
-    other_fields = {}  # fields in the API output json other than 'images'
+    # Fields in the API output json other than 'images'
+    other_fields = {}  
     for k, v in detection_results.items():
         if k != 'images':
             other_fields[k] = v
@@ -90,7 +91,7 @@ def write_api_results(detection_results_table, other_fields, out_path):
 
     fields = other_fields
 
-    # TODO read double_precision from a config elsewhere
+    # TODO: read double_precision from a config elsewhere
     images = detection_results_table.to_json(orient='records',
                                              double_precision=3)
     images = json.loads(images)
