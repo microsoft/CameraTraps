@@ -337,6 +337,7 @@ print('Finished writing .json file with {} images, {} annotations, and {} catego
 
 #%% Sanity-check the database's integrity
 
+json_data = json.load(open(output_file))
 options = sanity_check_json_db.SanityCheckOptions()
 sortedCategories,data = sanity_check_json_db.sanity_check_json_db(json_data, options)
 
