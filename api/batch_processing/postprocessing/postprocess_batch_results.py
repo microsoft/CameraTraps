@@ -54,6 +54,7 @@ from ct_utils import args_to_object
 
 warnings.filterwarnings("ignore", "(Possibly )?corrupt EXIF data", UserWarning)
 
+
 #%% Options
 
 DEFAULT_NEGATIVE_CLASSES = ['empty']
