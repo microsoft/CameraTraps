@@ -36,32 +36,31 @@
                 </div>
             </div>
             <div class="col-sm-12 col-lg-5 col-md-12 px-0 col-12">
-                <div class="image-details-bg position-absolute w-100 px-4 py-5 top-27" style="display: none">
+                <div class="image-details-bg position-absolute w-100 px-4 py-5 top-27">
                     <div class="font-size18 custm-grey-5 letter-spacing-1">IMAGE DETAILS</div>
                 </div>
-                <div class="table-bg position-absolute w-100 top-27">
+                <div class="table-bg p-4">
                     <div class="table-responsive">
                         <table class="table responsive-table td-align">
-                            <caption class="table-caption font-size18 custm-grey-5 letter-spacing-1">IMAGE DETAILS</caption>
-                            <thead class="float-right w-100 px-4">
+                            <thead class="float-right w-100">
                                 <tr class="border-bottom border-white">
-                                    <th scope="col" class="custm-gery-2 font-size12 letter-spacing-1 border-0 font-weight-normal file-name-cell">FILE NAME</th>
-                                    <th scope="col" class="custm-gery-2 font-size12 letter-spacing-1 border-0 font-weight-normal results-cell">RESULTS</th>
-                                    <th scope="col" class="custm-gery-2 font-size12 letter-spacing-1 border-0 font-weight-normal bounding-boxes-cell">BOUNDING BOXES</th>
-                                    <th scope="col" class="custm-gery-2 font-size12 letter-spacing-1 border-0 font-weight-normal path-cell">PATH</th>
+                                    <th scope="col" class="custm-gery-2 font-size12 letter-spacing-1 border-0 font-weight-normal">FILE NAME</th>
+                                    <th scope="col" class="custm-gery-2 font-size12 letter-spacing-1 border-0 font-weight-normal">RESULTS</th>
+                                    <th scope="col" class="custm-gery-2 font-size12 letter-spacing-1 border-0 font-weight-normal">BOUNDING BOXES</th>
+                                    <th scope="col" class="custm-gery-2 font-size12 letter-spacing-1 border-0 font-weight-normal">PATH</th>
                                 </tr>
                             </thead>
-                            <tbody class="table-scroll px-4">
+                            <tbody class="table-scroll">
                                 {% for result in result_det %}
                                     <tr id="table-{{ result.image_name.replace('.JPG', '') }}" class="border-bottom border-white table-details">
-                                        <td class="custm-gery-2 font-size14 border-0 text-width file-name-cell">{{ result.image_name }}</td>
+                                        <td class="custm-gery-2 font-size14 border-0 text-width">{{ result.image_name }}</td>
                                         {% if result.num_objects > 0 %}
-                                            <td class="border-0 results-cell"><img src="/CameraTrapAssets/img/success-mark.svg" alt="success" /></td>
+                                            <td class="border-0"><img src="/CameraTrapAssets/img/success-mark.svg" alt="success" /></td>
                                         {% else %}
-                                            <td class="border-0  results-cell"><img src="/CameraTrapAssets/img/cancel.svg" alt="success" /></td>
+                                            <td class="border-0"><img src="/CameraTrapAssets/img/cancel.svg" alt="success" /></td>
                                         {% endif %}
-                                        <td class="custm-gery-2 font-size14 border-0 bounding-boxes-cell">{{ result.num_objects }}</td>
-                                        <td class="custm-gery-2 font-size14 border-0 path-cell"><span class="text-elipse d-block">{{result.org_path}}</span></td>
+                                        <td class="custm-gery-2 font-size14 border-0">{{ result.num_objects }}</td>
+                                        <td class="custm-gery-2 font-size14 border-0"><span class="text-elipse d-block">{{result.org_path}}</span></td>
                                     </tr>
                                 {% endfor %}
                             </tbody>

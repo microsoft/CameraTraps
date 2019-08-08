@@ -20,23 +20,27 @@
     <section class="container-fluid p-0 position-fixed w-100 upload-pos">
             <div class="vh-100 position-relative vh-sm-100">
                 <div class="position-relative top-10 d-flex no-d-flex">
-                    <div class="col-sm-12 col-md-12  col-lg-3 col-12">
+                    <div class="col-sm-12 col-md-12  col-lg-2 col-12">
                         <div class="pl-4 hide-mobile">
                             <h1 class="upload-title-text font-size-36 font-weight-800 font-biryani letter-spacing-1 text-sm-center">
-                                UPLOAD</h1>                  
-                                <img src="/CameraTrapAssets/img/elephant.svg" alt="animal" class="mt-5 ml-auto mr-auto d-sm-none d-md-block hide-mobile">
+                                UPLOAD
+                            </h1>                  
+                            <img src="/CameraTrapAssets/img/elephant.svg" alt="animal" class="mt-5 ml-auto mr-auto d-sm-none d-md-block hide-mobile">
                         </div>
                     </div>
                     <div class="col-sm-12 col-md-12 col-lg-9 col-12">
-                            <form class="pl-5 p-sm-0">
-                                    <input type="text" class="form-control border-light-gray fontsize-24 pl-0 w-80 width-resp" id="upload-url" placeholder="  Enter image URL here" />
-                                    <div class="or-color font-size10 my-3">OR</div>
-                            </form>
+			            <div class="mx-5 no-spacing">
+			                <div class="d-flex justify-content-between no-d-flex mb-2 text-md-center">
+                                <form class="pl-5 p-sm-0">
+                                        <input type="text"  style="display:inline"  class="form-control border-radius-30 border-light-gray letter-spacing-1 custm-gery-3 font-biryani font-size12 custm-width-1 pt-2 pb-1 px-4 width-resp" id="upload-url" placeholder="ENTER IMAGE URL HERE" />
+                                        <button type="button" onclick="onSubmit()" class="btn border-radius-30 border-0
+                                        process-btn text-white letter-spacing-1 font-size12 px-4 pt-2 pb-1 font-biryani ml-2">SUBMIT</button>
+                                        <div class="or font-size10 my-3">OR </div>
+                                        <span id="progress-msg"></span>
+                                </form>     
+            			    </div>
                             {{ dropzone.create(action_view='process_images') }}
-                            <div class="d-flex ml-5 justify-content-end  pt-4 w-75">
-                                    <button type="button" onclick="onSubmit()" class="btn border-radius-30 border-0
-                                     process-btn text-white letter-spacing-1 font-size14 px-5 height-38">SUBMIT</button>
-                            </div>
+			            </div>
                     </div>
                 </div>
             </div>
