@@ -1,8 +1,12 @@
 .font-biryani{
     font-family: 'Biryani', sans-serif;
 }
+.font-sans-serif
+{
+    font-family: sans-serif;
+}
 body{
-    font-family: 'Biryani', sans-serif; 
+    font-family: 'Biryani', sans-serif !important; 
 }
 .vh-100{
     height:100vh;
@@ -19,9 +23,9 @@ li.nav-item.active{
 }
 .bg-img{
     background-image:url('/CameraTrapAssets/img/landing-img.png');
-    background-repeat:no-repeat;
+    background-repeat:no-repeat !important;
     background-size: cover;
-    margin-top:-4%;
+    margin-top:-2.9%;
 }
 .try-it
 {
@@ -85,8 +89,25 @@ li.nav-item.active{
 .or-color{
     color: #7F7B81;
 }
+.or{
+    color: #7F7B81;
+    width: 20px;
+}
+#progress-msg
+{
+    display: block;
+    text-align:left;
+    color:blue;
+    z-index:9500;
+}
 .color-black{
     color:#000;
+}
+.clasif-color{
+color:#04B491;
+}
+.custm-width-1{
+	width:500px;
 }
 .process-btn{
     background-color: #04B491;
@@ -247,8 +268,13 @@ div ::-webkit-scrollbar-thumb {
     opacity:0.5;
 }
 /*gallery details page css*/
+.table-responsive
+{
+    background:#F7F6F4;
+}
 .table-bg{
     background:#F7F6F4;
+    height:98vh !important;
 }
 .text-elipse{
     width:100px;
@@ -266,16 +292,26 @@ div ::-webkit-scrollbar-thumb {
 }
 #carousel {
 	margin:0px auto;
-	margin-top:50px;
+	margin-top:30px;
 	height:300px;
 	position:relative;
 	clear:both;
 	overflow:hidden;
 }
+
+#carousel-classification {
+    margin: 0 auto;
+    margin-top: 30px;
+    height: 300px;
+    position: relative;
+    clear: both;
+    overflow: hidden;
+}
+
 .carousel_wrap .nav_button { 
 	position:absolute;
 	left:0px;
-	top:40%;
+	top:200px;
 	font-size:40px;
 	font-weight:300;
 	color:#979797 !important;
@@ -291,6 +327,20 @@ div ::-webkit-scrollbar-thumb {
 	left:auto;
 	right:50px;
 }
+ .custm-dd-toggle::after {
+    border-top: .5em solid !important;
+    border-right: .5em solid transparent !important;
+    border-left: .5em solid transparent !important;
+    vertical-align:2px !important;
+}
+
+.carousel-item.active,
+.carousel-item-next,
+.carousel-item-prev{
+    display:block;
+}
+
+
 
 /*overlay css*/
 
@@ -355,8 +405,8 @@ div ::-webkit-scrollbar-thumb {
 	top:-8%;
 }
 .table-scroll{
-    	height:450px;
-    	overflow:auto;
+    max-height: 600px;
+    overflow:auto;
 	display:block;
 	width:100% !important;
 }
@@ -602,8 +652,11 @@ div ::-webkit-scrollbar-thumb {
 }
 
 .popover{
+    margin-top:100px !important;
     width:30%;
-    height:30%;  
+    height:auto;  
+    padding:5px;
+    border:solid 1px gray;
     max-width:none;  
 }
 .top-10
@@ -638,12 +691,18 @@ div ::-webkit-scrollbar-thumb {
     display: none;
 }
 .aie-link {
-    font-size: 12pt;
+    font-size: 11pt;
     font-weight: 500;
+    margin-top:6.2px;
+}
+.logo-container
+{
+    margin-top: -4px;
 }
 .logo-divider
 {
-    margin-left: 8px;
+    margin-left: 9px;
+    margin-top:2px;
 }
 .w-65
 {
@@ -664,6 +723,11 @@ div ::-webkit-scrollbar-thumb {
 .dropzone{
 	min-height:300px !important;
 }
+.dropzone .dz-preview .dz-image {
+    width: 120px !important;
+    height: 120px !important;
+}
+
 .hm-logo-grey{
 	display:none;
 }
@@ -674,31 +738,22 @@ div ::-webkit-scrollbar-thumb {
     	white-space: nowrap;
     	max-width: 150px;
 }
-.file-name-heading
-{
-    min-width: 190px;
-}
 .td-align td{
 	max-width: 126px;
 	min-width: 100px;
 }
-.image-name
-{
-	min-width: 210px !important;
-}
 @media (min-width:1024px){
 	.navbar{
 	padding:0px;
-	}
-.bg-img{
-margin-top:-4%;
+    }
+    .bg-img{
+        margin-top:-4%;
+        }
 }
-}
-
 @media (max-width:1024px){
-	.bg-img{
-margin-top:-10%;
-}
+    .bg-img{
+        margin-top:-4%;
+        }
 .ai4e_title_show {
     display: none !important;
 }
@@ -709,7 +764,15 @@ margin-top:-10%;
 	display:block;
 }
 }
+@media (min-width:1024px) (max-width:1290px){
+	.bg-img{
+		margin-top:-4%;
+	}
+} 
 @media (max-width:1024px){
+	/* .text-md-center{
+	text-align:center;
+   } */
 	.bg-img{
 		background-image:url('/CameraTrapAssets/img/mobile_cheetah.png');
 		background-repeat:no-repeat;
@@ -961,4 +1024,34 @@ text-align:center;
 {
   display:none;
 }
+}
+.table-caption
+{
+    caption-side: top !important;
+    background-color: #EDEAE1;
+    padding-top: 55px;
+    padding-bottom: 37px;
+    padding-left:20px;
+}
+.bounding-boxes-cell
+{
+    text-align:center;
+    max-width: 155px !important;
+    min-width:155px !important;
+}
+.file-name-cell
+{
+    min-width:220px !important;
+    max-width: 220px !important;
+}
+.results-cell
+{
+  text-align:center;
+  min-width:100px !important;
+  max-width: 100px !important;
+}
+.path-cell
+{
+  min-width:100px !important;
+  max-width: 100px !important; 
 }
