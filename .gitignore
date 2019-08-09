@@ -22,3 +22,7 @@ __pycache__/
 .spyproject/workspace.ini
 demo/aadconfig.py
 demo/apiconfig.py
+demo/CameraTrapAssets
+.webassets-cache/
+demo/static/uploads
+demo/static/results
