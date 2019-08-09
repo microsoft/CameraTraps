@@ -20,3 +20,5 @@ __pycache__/
 *.idea/
 
 .spyproject/workspace.ini
+demo/aadconfig.py
+demo/apiconfig.py
