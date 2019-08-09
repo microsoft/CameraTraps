@@ -159,7 +159,7 @@ def write_detection_results(data,output_filename,options):
 
 def subset_json_detector_output_by_confidence(data,options):
     """
-    Remove all detections below options.confidence_threshold, update max confidences accordingly
+    Remove all detections below options.confidence_threshold, update max confidences accordingly.
     """
     
     if not options.confidence_threshold:
