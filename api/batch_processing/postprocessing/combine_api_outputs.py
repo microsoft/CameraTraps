@@ -32,15 +32,18 @@ def combine_api_output_files(input_files,output_file=None):
     """
     
     input_dicts = []
+    print('Loading input files')
     for fn in input_files:
         input_dicts.append(json.load(open(fn)))
-        
+    
+    print('Merging results')
     merged_dict = combine_api_output_dictionaries(input_dicts)
     
+    print('Writing output')
     if output_file is not None:
         with open(output_file, 'w') as f:
             json.dump(merged_dict, f, indent=1)
-
+    
     return merged_dict
 
 
