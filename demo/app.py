@@ -7,7 +7,8 @@ from werkzeug.utils import secure_filename
 from flask import send_from_directory
 from requests_toolbelt.multipart import decoder
 from . import app, photos, api
-import CameraTrapAssets.apiconfig as apiconfig
+import apiconfig as apiconfig
+from requests_toolbelt import MultipartEncoder
 
 import os
 # from . import model 
@@ -23,12 +24,16 @@ from io import BytesIO
 from PIL import Image
 from . import aadConfig as aad
 from . import login_helper 
+from log import Log
 import time
 import io
 
-api_url_format = '{0}/camera-trap/detect?confidence={1}&render={1}'
-results_folder = '/CameraTrapAssets/results/'
 
+#api_url = apiconfig.api['base_url'] + '/camera-trap/detect?confidence={1}&render={1}'
+results_folder = '/CameraTrapAssets/results/'
+upload_folder = '/CameraTrapAssets/uploads'
+
+log = Log()
 
 # routes for cameratrapassets as these are being loaded
 # from the cameratrapassets directory instead of the static directory
@@ -49,30 +54,81 @@ def result_images(path):
     return send_from_directory('CameraTrapAssets/results/', path)
 
 def get_api_headers():
-    return {'Ocp-Apim-Subscription-Key': apiconfig.api['subscription_key']}
+    return {'Ocp-Apim-Subscription-Key': apiconfig.SUBSCRIPTION_KEY}
 
-def call_api():
-    params = {
-      'confidence': 0.8,
-      'render': True
-    }
-
-    posted_files = request.files
-    files = {}
+def save_posted_files():
     images = []
+    posted_files = request.files
     for f in posted_files:
         file = posted_files.get(f)
+        print(file.filename)
         image_name = secure_filename(file.filename)
         images.append(image_name)
+        img_path = os.getcwd() + "/" + upload_folder + "/" + image_name
+        print(img_path)
+        file.save(img_path)
+    
+    print("files saved...")
+    return images
+def resize_images(images):
+    img_path = os.getcwd() + "/" + upload_folder + "/" 
+    for image_name in images:
+        im = Image.open(img_path + image_name)
+        width, height = im.size
+        new_width = (width * 2) / 3
+        new_height = (height * 2) / 3
+        im.thumbnail((new_width, new_height), Image.ANTIALIAS)
+        im.save(img_path + image_name, "JPEG")
+    print("files resized...")
 
-        if not image_name.lower().endswith('.jpg'):
+def call_api(images):
+    num_images_to_upload = 8
+
+    detection_confidence = 0.8
+    render_boxes = True  
+
+    params = {
+        'confidence': detection_confidence,
+        'render': render_boxes
+    }
+
+    files = {}
+
+    num_images = 0
+    for image_name in images:
+        if not image_name.lower().endswith(('.jpg', '.jpeg', '.png')):
             continue
+    
+        if num_images >= num_images_to_upload:
+            break
+        else:
+            num_images += 1
+    
+        img_path = os.path.join("." + upload_folder, image_name)
+        print(img_path)
+        files[image_name] = (image_name, open(img_path, 'rb'), 'image/jpeg')
 
-        files[image_name] = (image_name, file, 'image/jpeg')
+    print('number of images to send:', len(files))
+
+    response = requests.post(apiconfig.BASE_URL + 'detect', params=params, files=files, headers=get_api_headers())
+
+    print(response.status_code)
+    print(response.ok)
     
-    r = requests.post(apiconfig.api['base_url'] + 'detect', params=params, files=files, headers=get_api_headers())
+    if not response.ok:
+        log.error("\nResponse ok: "+ str(response.ok))
+        log.error("Response ok: "+ str(response.reason))
+        log.error("Response ok: "+ str(response.text))
+
+        for image_name in images:
+            print("images send:")
+            print(image_name)
+
+        print(response.reason)
+        print(response.text)
+        return None
     
-    return r, images
+    return response
 
 #def track_images(file, name):
 #   print(str(e))
@@ -80,17 +136,22 @@ def call_api():
 @app.route('/processImages', methods=['POST'])
 def process_images():
     error = False
-    print("calling api...")
     
     try:
-        r, images = call_api()
-        results = decoder.MultipartDecoder.from_response(r)
+        print("uploaded....")
+        images = save_posted_files()
+        print(images)
+        #resize_images(images)
+       
+        response = call_api(images)
+
+        if response is None:
+            return "Error occurred while calling API"
+
+        results = decoder.MultipartDecoder.from_response(response)
 
         image_output = []
         for part in results.parts:
-            #print(part)
-            # part is a BodyPart object with b'Content-Type', and b'Content-Disposition', 
-            # the later includes 'name' and 'filename' info
             headers = {}
             for k, v in part.headers.items():
                 headers[k.decode(part.encoding)] = v.decode(part.encoding)
@@ -115,7 +176,6 @@ def process_images():
                         "result": {},
                         "bboxes": {}
                     })
-        #print(image_output)
         session['image_output'] = image_output
         
     except Exception as e:
@@ -150,7 +210,7 @@ def results():
 def gallery():
     gallery_images = os.listdir('CameraTrapAssets/gallery/')
     gallery_images = ['CameraTrapAssets/gallery/' + img for img in gallery_images]
-    
+    #gallery_images = random.sample(gallery_images, 12)
     return render_template('gallery.html', gallery_images=gallery_images)
 
 @app.route('/gallery_results/<img_index>', methods=['GET'])
