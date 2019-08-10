@@ -18,8 +18,8 @@ dropzone = Dropzone(app)
 app.config['SECRET_KEY'] = 'supersecretkeygoeshere'
 
 #api url
-#app.config['API_URL'] = ''
-#app.config['API_RESULTS_URL'] = ''
+app.config['API_URL'] = ''
+app.config['API_RESULTS_URL'] = ''
 
 
 # Dropzone settings
@@ -27,9 +27,9 @@ app.config['DROPZONE_UPLOAD_MULTIPLE'] = True
 app.config['DROPZONE_ALLOWED_FILE_CUSTOM'] = True
 app.config['DROPZONE_ALLOWED_FILE_TYPE'] = 'image/*'
 app.config['DROPZONE_REDIRECT_VIEW'] = 'results'
-app.config['DROPZONE_DEFAULT_MESSAGE'] = 'DRAG OR BROWSE<br/><br/>UP TO 8 IMAGES'
+app.config['DROPZONE_DEFAULT_MESSAGE'] = 'DRAG OR BROWSE<br/><br/>UP TO 10 IMAGES'
 app.config['DROPZONE_TIMEOUT'] = 30000 * 60 * 10
-app.config['DROPZONE_PARALLEL_UPLOADS'] = 8
+app.config['DROPZONE_PARALLEL_UPLOADS'] = 10
 app.config['DROPZONE_MAX_FILE_SIZE'] = 10
 app.config['CHECK_LOGIN'] = False
 app.config['AUTHORITY_URL'] =  aad.AUTHORITY_HOST_URL + '/' + aad.TENANT
