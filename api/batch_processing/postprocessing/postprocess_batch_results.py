@@ -116,12 +116,17 @@ class PostProcessingOptions:
     api_output_filename_replacements = {}
     ground_truth_filename_replacements = {}
 
-
-# Largely a placeholder for future additional return information
+    # Allow bypassing API output loading when operating on previously-loaded results
+    api_detection_results = None
+    api_other_fields = None
+    
+    
 class PostProcessingResults:
 
     output_html_file = ''
-
+    api_detection_results = None
+    api_other_fields = None
+        
 
 ##%% Helper classes and functions
 
@@ -237,7 +242,11 @@ def mark_detection_status(indexed_db, negative_classes=DEFAULT_NEGATIVE_CLASSES,
 
 def render_bounding_boxes(image_base_dir, image_relative_path, display_name, detections, res,
                           detection_categories_map=None, classification_categories_map=None, options=None):
-
+        """
+        Renders detection bounding boxes on a single image.  Returns the html info struct
+        for this image in the form that's used for write_html_image_list.
+        """
+        
         if options is None:
             options = PostProcessingOptions()
 
@@ -250,11 +259,20 @@ def render_bounding_boxes(image_base_dir, image_relative_path, display_name, det
         """
 
         image_full_path = os.path.join(image_base_dir, image_relative_path)
-        if not os.path.isfile(image_full_path):
-            print('Warning: could not find image file {}'.format(image_full_path))
+        
+        # isfile() is slow when mounting remote directories; much faster to just try/except
+        # on the image open.
+        if False:
+            if not os.path.isfile(image_full_path):
+                print('Warning: could not find image file {}'.format(image_full_path))
+                return ''
+        
+        try:
+            image = vis_utils.open_image(image_full_path)
+        except:
+            print('Warning: could not open image file {}'.format(image_full_path))
             return ''
-
-        image = vis_utils.open_image(image_full_path)
+        
         image = vis_utils.resize_image(image, options.viz_target_width)
 
         vis_utils.render_detection_bounding_boxes(detections, image,
@@ -318,6 +336,8 @@ def prepare_html_subpages(images_html, output_dir, options=None):
 
 def process_batch_results(options):
 
+    ppresults = PostProcessingResults()
+    
     ##%% Expand some options for convenience
 
     output_dir = options.output_dir
@@ -346,9 +366,19 @@ def process_batch_results(options):
 
     ##%% Load detection results
 
-    detection_results, other_fields = load_api_results(options.api_output_file,
-                                             normalize_paths=True,
-                                             filename_replacements=options.api_output_filename_replacements)
+    if options.api_detection_results is None:
+        detection_results, other_fields = load_api_results(options.api_output_file,
+                                                 normalize_paths=True,
+                                                 filename_replacements=options.api_output_filename_replacements)
+        ppresults.api_detection_results = detection_results
+        ppresults.api_other_fields = other_fields
+        
+    else:
+        print('Bypassing detection results loading...')
+        assert options.api_other_fields is not None
+        detection_results = options.api_detection_results
+        other_fields = options.api_other_fields
+        
     detection_categories_map = other_fields['detection_categories']
     if 'classification_categories' in other_fields:
         classification_categories_map = other_fields['classification_categories']
@@ -409,8 +439,6 @@ def process_batch_results(options):
         images_to_visualize = images_to_visualize.sample(options.num_images_to_sample, random_state=options.sample_seed)
 
 
-    ##%% Fork here depending on whether or not ground truth is available
-
     output_html_file = ''
 
     style_header = """<head>
@@ -423,6 +451,8 @@ def process_batch_results(options):
         </style>
         </head>"""
         
+    ##%% Fork here depending on whether or not ground truth is available
+
     # If we have ground truth, we'll compute precision/recall and sample tp/fp/tn/fn.
     #
     # Otherwise we'll just visualize detections/non-detections.
@@ -646,10 +676,13 @@ def process_batch_results(options):
         for res in images_html.keys():
             os.makedirs(os.path.join(output_dir, res), exist_ok=True)
 
-        count = 0
+        image_count = len(images_to_visualize)
 
+        # Each element will be a list of 2-tuples, with elements [collection name,html info struct]
+        rendering_results = [None] * image_count
+        
         # i_row = 1525; row = images_to_visualize.iloc[0]
-        for i_row, row in tqdm(images_to_visualize.iterrows(), total=len(images_to_visualize)):
+        for i_row, row in tqdm(images_to_visualize.iterrows(), total=image_count):
 
             image_relative_path = row['file']
 
@@ -708,16 +741,27 @@ def process_batch_results(options):
                                                                 classification_categories_map,
                                                                 options)
 
+            image_result = None
             if len(rendered_image_html_info) > 0:
-                images_html[res].append(rendered_image_html_info)
+                image_result = [[res,rendered_image_html_info]]
                 for gt_class in gt_classes:
-                    images_html['class_{}'.format(gt_class)].append(rendered_image_html_info)
-
-            count += 1
-
+                    image_result.append(['class_{}'.format(gt_class)],rendered_image_html_info)
+            
+            rendering_results[i_row] = image_result
+            
         # ...for each image in our sample
         
-        print('{} images rendered'.format(count))
+        # Map all the rendering results in the list rendering_results into the 
+        # dictionary images_html
+        image_rendered_count = 0
+        for rendering_result in rendering_results:
+            if rendering_result is None:
+                continue
+            image_rendered_count += 1
+            for assignment in rendering_result:
+                images_html[assignment[0]].append(assignment[1])
+                
+        print('{} images rendered (of {})'.format(image_rendered_count,image_count))
 
         # Prepare the individual html image files
         image_counts = prepare_html_subpages(images_html, output_dir)
@@ -751,7 +795,7 @@ def process_batch_results(options):
         </div>        
         """.format(
             style_header,
-            count, options.confidence_threshold,
+            image_count, options.confidence_threshold,
             all_tp_count, all_tp_count/total_count,
             image_counts['tn'], image_counts['tn']/total_count,
             image_counts['fp'], image_counts['fp']/total_count,
@@ -826,7 +870,7 @@ def process_batch_results(options):
 
     else:
 
-        ##%% Sample detections/non-detections
+        #%% Sample detections/non-detections
 
         # Accumulate html image structs (in the format expected by write_html_image_lists)
         # for each category
@@ -841,18 +885,29 @@ def process_batch_results(options):
         for res in images_html.keys():
             os.makedirs(os.path.join(output_dir, res), exist_ok=True)
 
-        count = 0
+        image_count = len(images_to_visualize)
         has_classification_info = False
         
+        # Each element will be a list of 2-tuples, with elements [collection name,html info struct]
+        rendering_results = []
+
+        # Each element will be a three-tuple with elements file,max_conf,detections
+        files_to_render = []
+        
+        # Assemble the information we need for rendering, so we can parallelize without
+        # dealing with Pandas
         # i_row = 0; row = images_to_visualize.iloc[0]
-        for i_row, row in tqdm(images_to_visualize.iterrows(), total=len(images_to_visualize)):
+        for _, row in images_to_visualize.iterrows():
 
-            image_relative_path = row['file']
-
-            # This should already have been normalized to either '/' or '\'
-            max_conf = row['max_detection_conf']
-            detections = row['detections']
-
+            # Filenames should already have been normalized to either '/' or '\'
+            files_to_render.append([row['file'],row['max_detection_conf'],row['detections']])
+            
+        def render_image_no_gt(file_info):
+            
+            image_relative_path = file_info[0]
+            max_conf = file_info[1]
+            detections = file_info[2]
+            
             detection_status = DetectionStatus.DS_UNASSIGNED            
             if max_conf >= options.confidence_threshold:
                 detection_status = DetectionStatus.DS_POSITIVE
@@ -888,28 +943,45 @@ def process_batch_results(options):
                                                                 classification_categories_map,
                                                                 rendering_options)
             
+            image_result = None
             if len(rendered_image_html_info) > 0:
-                images_html[res].append(rendered_image_html_info)
+                image_result = [[res,rendered_image_html_info]]
                 for det in detections:
                     if 'classifications' in det:
-                        has_classification_info = True
                         top1_class = classification_categories_map[det['classifications'][0][0]]
-                        images_html['class_{}'.format(top1_class)].append(rendered_image_html_info)
-
-            count += 1
-
+                        image_result.append(['class_{}'.format(top1_class)],rendered_image_html_info)
+            
+            return image_result
+        
+        for file_info in tqdm(files_to_render):        
+            rendering_results.append(render_image_no_gt(file_info))
+            
         # ...for each image in our sample
 
-        print('{} images rendered'.format(count))
-
+        # Map all the rendering results in the list rendering_results into the 
+        # dictionary images_html
+        image_rendered_count = 0
+        for rendering_result in rendering_results:
+            if rendering_result is None:
+                continue
+            image_rendered_count += 1
+            for assignment in rendering_result:
+                if 'class' in assignment[0]:
+                    has_classification_info = True
+                images_html[assignment[0]].append(assignment[1])
+                
+        print('{} images rendered (of {})'.format(image_rendered_count,image_count))
         # Prepare the individual html image files
         image_counts = prepare_html_subpages(images_html, output_dir)
-
+        
+        #%%
+        
         # Write index.HTML
         total_images = image_counts['detections'] + image_counts['non_detections']
         if options.include_almost_detections:
             total_images += image_counts['almost_detections']
-            
+        assert(total_images == image_count)
+        
         index_page = """<html>{}<body>
         <h2>Visualization of results</h2>
         <p>A sample of {} images, annotated with detections above {:.1%} confidence.</p>
@@ -917,13 +989,13 @@ def process_batch_results(options):
         <div class="contentdiv">
         <a href="detections.html">detections</a> ({}, {:.1%})<br/>
         <a href="non_detections.html">non-detections</a> ({}, {:.1%})<br/>""".format(
-            style_header,count, options.confidence_threshold,
+            style_header,image_count, options.confidence_threshold,
             image_counts['detections'], image_counts['detections']/total_images,
             image_counts['non_detections'], image_counts['non_detections']/total_images
         )
         
         if options.include_almost_detections:
-            index_page += """<a href="non_detections.html">non-detections</a> ({}, {:.1%})<br/>""".format( 
+            index_page += """<a href="almost_detections.html">almost-detections</a> ({}, {:.1%})<br/>""".format( 
                     image_counts['almost_detections'], image_counts['almost_detections']/total_images)
         
         index_page += '</div>\n'
@@ -946,9 +1018,11 @@ def process_batch_results(options):
 
         print('Finished writing html to {}'.format(output_html_file))
 
+        # os.startfile(output_html_file)
+        #%%
+        
     # ...if we do/don't have ground truth
 
-    ppresults = PostProcessingResults()
     ppresults.output_html_file = output_html_file
     return ppresults
 
