@@ -29,11 +29,13 @@
 import argparse
 import os
 import sys
-from enum import IntEnum
 import collections
 import io
 import warnings
 import copy
+import time
+from multiprocessing.pool import ThreadPool    
+from enum import IntEnum
             
 import matplotlib
 matplotlib.use('agg')
@@ -42,6 +44,7 @@ import pandas as pd
 import numpy as np
 from sklearn.metrics import precision_recall_curve, confusion_matrix, average_precision_score
 from tqdm import tqdm
+import humanfriendly
 
 # Assumes ai4eutils is on the python path
 # https://github.com/Microsoft/ai4eutils
@@ -105,11 +108,6 @@ class PostProcessingOptions:
 
     sort_html_by_filename = True
     
-    # Should we also split out a separate report about the detections that were
-    # just below our main confidence threshold?
-    include_almost_detections = False
-    almost_detection_confidence_threshold = 0.75
-
     # Optionally replace one or more strings in filenames with other strings;
     # this is useful for taking a set of results generated for one folder structure
     # and applying them to a slightly different folder structure.
@@ -119,6 +117,19 @@ class PostProcessingOptions:
     # Allow bypassing API output loading when operating on previously-loaded results
     api_detection_results = None
     api_other_fields = None
+    
+    # Should we also split out a separate report about the detections that were
+    # just below our main confidence threshold?
+    #
+    # Currently only supported when ground truth is unavailable
+    include_almost_detections = False
+    almost_detection_confidence_threshold = 0.75
+
+    # Control rendering parallelization
+    #
+    # Currently only supported when ground truth is unavailable
+    parallelize_rendering_n_cores = 100
+    parallelize_rendering = False
     
     
 class PostProcessingResults:
@@ -870,7 +881,7 @@ def process_batch_results(options):
 
     else:
 
-        #%% Sample detections/non-detections
+        ##%% Sample detections/non-detections
 
         # Accumulate html image structs (in the format expected by write_html_image_lists)
         # for each category
@@ -902,6 +913,7 @@ def process_batch_results(options):
             # Filenames should already have been normalized to either '/' or '\'
             files_to_render.append([row['file'],row['max_detection_conf'],row['detections']])
             
+        # Local function for parallelization
         def render_image_no_gt(file_info):
             
             image_relative_path = file_info[0]
@@ -953,11 +965,21 @@ def process_batch_results(options):
             
             return image_result
         
-        for file_info in tqdm(files_to_render):        
-            rendering_results.append(render_image_no_gt(file_info))
-            
-        # ...for each image in our sample
-
+        # ...def render_image_no_gt(file_info):
+        
+        start_time = time.time()
+        if options.parallelize_rendering:
+            if options.parallelize_rendering_n_cores is None:
+                pool = ThreadPool()
+            else:
+                print('Rendering images with {} workers'.format(options.parallelize_rendering_n_cores))
+                pool = ThreadPool(options.parallelize_rendering_n_cores)
+                rendering_results = list(tqdm(pool.imap(render_image_no_gt, files_to_render), total=len(files_to_render)))    
+        else:
+            for file_info in tqdm(files_to_render):        
+                rendering_results.append(render_image_no_gt(file_info))            
+        elapsed = time.time() - start_time
+        
         # Map all the rendering results in the list rendering_results into the 
         # dictionary images_html
         image_rendered_count = 0
@@ -970,26 +992,31 @@ def process_batch_results(options):
                     has_classification_info = True
                 images_html[assignment[0]].append(assignment[1])
                 
-        print('{} images rendered (of {})'.format(image_rendered_count,image_count))
         # Prepare the individual html image files
         image_counts = prepare_html_subpages(images_html, output_dir)
         
-        #%%
-        
+        print('Rendered {} images (of {}) in {} ({} per image)'.format(image_rendered_count,
+              image_count,humanfriendly.format_timespan(elapsed),
+              humanfriendly.format_timespan(elapsed/image_rendered_count)))
+
         # Write index.HTML
         total_images = image_counts['detections'] + image_counts['non_detections']
         if options.include_almost_detections:
             total_images += image_counts['almost_detections']
         assert(total_images == image_count)
         
+        almost_detection_string = ''
+        if options.include_almost_detections:
+            almost_detection_string = ' (&ldquo;almost detection&rdquo; threshold at {:.1%})'.format(options.almost_detection_confidence_threshold)
+            
         index_page = """<html>{}<body>
         <h2>Visualization of results</h2>
-        <p>A sample of {} images, annotated with detections above {:.1%} confidence.</p>
+        <p>A sample of {} images, annotated with detections above {:.1%} confidence{}.</p>
         <h3>Sample images</h3>
         <div class="contentdiv">
         <a href="detections.html">detections</a> ({}, {:.1%})<br/>
         <a href="non_detections.html">non-detections</a> ({}, {:.1%})<br/>""".format(
-            style_header,image_count, options.confidence_threshold,
+            style_header,image_count, options.confidence_threshold, almost_detection_string,
             image_counts['detections'], image_counts['detections']/total_images,
             image_counts['non_detections'], image_counts['non_detections']/total_images
         )
@@ -1019,7 +1046,6 @@ def process_batch_results(options):
         print('Finished writing html to {}'.format(output_html_file))
 
         # os.startfile(output_html_file)
-        #%%
         
     # ...if we do/don't have ground truth
 
