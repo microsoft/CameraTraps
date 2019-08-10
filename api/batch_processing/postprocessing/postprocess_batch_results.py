@@ -33,7 +33,8 @@ from enum import IntEnum
 import collections
 import io
 import warnings
-
+import copy
+            
 import matplotlib
 matplotlib.use('agg')
 import matplotlib.pyplot as plt
@@ -103,6 +104,11 @@ class PostProcessingOptions:
     viz_target_width = 800
 
     sort_html_by_filename = True
+    
+    # Should we also split out a separate report about the detections that were
+    # just below our main confidence threshold?
+    include_almost_detections = False
+    almost_detection_confidence_threshold = 0.75
 
     # Optionally replace one or more strings in filenames with other strings;
     # this is useful for taking a set of results generated for one folder structure
@@ -141,6 +147,10 @@ class DetectionStatus(IntEnum):
     # This image has not yet been assigned a state
     DS_UNASSIGNED = 4
 
+    # In some analyses, we add an additional class that lets us look at detections just below
+    # our main confidence threshold
+    DS_ALMOST = 5
+        
 
 def mark_detection_status(indexed_db, negative_classes=DEFAULT_NEGATIVE_CLASSES,
                           unknown_classes=DEFAULT_UNKNOWN_CLASSES):
@@ -311,7 +321,6 @@ def process_batch_results(options):
     ##%% Expand some options for convenience
 
     output_dir = options.output_dir
-    confidence_threshold = options.confidence_threshold
 
 
     ##%% Prepare output dir
@@ -346,15 +355,25 @@ def process_batch_results(options):
     else:
         classification_categories_map = {}
 
-    # Add a column (pred_detection_label) to indicate predicted detection status, not separating out the classes
-    detection_results['pred_detection_label'] = \
+    # Add a column (pred_detection_label) to indicate predicted detection status, not separating out the classes    
+    if options.include_almost_detections:
+        detection_results['pred_detection_label'] = DetectionStatus.DS_ALMOST
+        confidences = detection_results['max_detection_conf']
+        detection_results.loc[confidences >= options.confidence_threshold,'pred_detection_label'] = DetectionStatus.DS_POSITIVE
+        detection_results.loc[confidences < options.almost_detection_confidence_threshold,'pred_detection_label'] = DetectionStatus.DS_NEGATIVE        
+    else:
+        detection_results['pred_detection_label'] = \
         np.where(detection_results['max_detection_conf'] >= options.confidence_threshold,
                  DetectionStatus.DS_POSITIVE, DetectionStatus.DS_NEGATIVE)
-
+        
     n_positives = sum(detection_results['pred_detection_label'] == DetectionStatus.DS_POSITIVE)
     print('Finished loading and preprocessing {} rows from detector output, predicted {} positives'.format(
             len(detection_results), n_positives))
 
+    if options.include_almost_detections:
+        n_almosts = sum(detection_results['pred_detection_label'] == DetectionStatus.DS_ALMOST)
+        print('...and {} almost-positives'.format(n_almosts))
+    
 
     ##%% If we have ground truth, remove images we can't match to ground truth
 
@@ -466,7 +485,7 @@ def process_batch_results(options):
             precision_at_target_recall = precisions[i_target_recall]
         print('Precision at {:.1%} recall: {:.1%}'.format(target_recall, precision_at_target_recall))
 
-        cm = confusion_matrix(gt_detections_pr, np.array(p_detection_pr) > confidence_threshold)
+        cm = confusion_matrix(gt_detections_pr, np.array(p_detection_pr) > options.confidence_threshold)
 
         # Flatten the confusion matrix
         tn, fp, fn, tp = cm.ravel()
@@ -477,7 +496,7 @@ def process_batch_results(options):
             (precision_at_confidence_threshold + recall_at_confidence_threshold)
 
         print('At a confidence threshold of {:.1%}, precision={:.1%}, recall={:.1%}, f1={:.1%}'.format(
-                confidence_threshold, precision_at_confidence_threshold, recall_at_confidence_threshold, f1))
+                options.confidence_threshold, precision_at_confidence_threshold, recall_at_confidence_threshold, f1))
 
         ##%% Collect classification results, if they exist
         
@@ -660,7 +679,7 @@ def process_batch_results(options):
             max_conf = row['max_detection_conf']
             detections = row['detections']
 
-            detected = max_conf > confidence_threshold
+            detected = max_conf > options.confidence_threshold
 
             if gt_presence and detected:
                 if '_classification_accuracy' not in image.keys():
@@ -732,7 +751,7 @@ def process_batch_results(options):
         </div>        
         """.format(
             style_header,
-            count, confidence_threshold,
+            count, options.confidence_threshold,
             all_tp_count, all_tp_count/total_count,
             image_counts['tn'], image_counts['tn']/total_count,
             image_counts['fp'], image_counts['fp']/total_count,
@@ -746,7 +765,7 @@ def process_batch_results(options):
             <p><strong>Precision/recall summary for all {} images</strong></p><img src="{}"><br/>
             </div>
             """.format(
-                confidence_threshold, precision_at_confidence_threshold, recall_at_confidence_threshold,
+                options.confidence_threshold, precision_at_confidence_threshold, recall_at_confidence_threshold,
                 len(detection_results), pr_figure_relative_filename
            )
         
@@ -809,14 +828,16 @@ def process_batch_results(options):
 
         ##%% Sample detections/non-detections
 
-        os.makedirs(os.path.join(output_dir, 'detections'), exist_ok=True)
-        os.makedirs(os.path.join(output_dir, 'non_detections'), exist_ok=True)
-
         # Accumulate html image structs (in the format expected by write_html_image_lists)
         # for each category
-        images_html = collections.defaultdict(lambda: [])
+        images_html = collections.defaultdict(lambda: [])        
+        
         # Add default entries by accessing them for the first time
         [images_html[res] for res in ['detections', 'non_detections']]
+        if options.include_almost_detections:
+            images_html['almost_detections']
+            
+        # Create output directories
         for res in images_html.keys():
             os.makedirs(os.path.join(output_dir, res), exist_ok=True)
 
@@ -831,16 +852,33 @@ def process_batch_results(options):
             # This should already have been normalized to either '/' or '\'
             max_conf = row['max_detection_conf']
             detections = row['detections']
-            detected = True if max_conf > confidence_threshold else False
 
-            if detected:
-                res = 'detections'
+            detection_status = DetectionStatus.DS_UNASSIGNED            
+            if max_conf >= options.confidence_threshold:
+                detection_status = DetectionStatus.DS_POSITIVE
             else:
+                if options.include_almost_detections:
+                    if max_conf >= options.almost_detection_confidence_threshold:
+                        detection_status = DetectionStatus.DS_ALMOST
+                    else:
+                        detection_status = DetectionStatus.DS_NEGATIVE
+                else:
+                    detection_status = DetectionStatus.DS_NEGATIVE
+            
+            if detection_status == DetectionStatus.DS_POSITIVE:
+                res = 'detections'
+            elif detection_status == DetectionStatus.DS_NEGATIVE:
                 res = 'non_detections'
+            else:
+                assert detection_status == DetectionStatus.DS_ALMOST
+                res = 'almost_detections'
 
             display_name = '<b>Result type</b>: {}, <b>Image</b>: {}, <b>Max conf</b>: {}'.format(
                 res, image_relative_path, max_conf)
 
+            rendering_options = copy.copy(options)
+            if detection_status == DetectionStatus.DS_ALMOST:
+                rendering_options.confidence_threshold = rendering_options.almost_detection_confidence_threshold
             rendered_image_html_info = render_bounding_boxes(options.image_base_dir,
                                                                 image_relative_path,
                                                                 display_name,
@@ -848,7 +886,8 @@ def process_batch_results(options):
                                                                 res,
                                                                 detection_categories_map,
                                                                 classification_categories_map,
-                                                                options)
+                                                                rendering_options)
+            
             if len(rendered_image_html_info) > 0:
                 images_html[res].append(rendered_image_html_info)
                 for det in detections:
@@ -868,18 +907,27 @@ def process_batch_results(options):
 
         # Write index.HTML
         total_images = image_counts['detections'] + image_counts['non_detections']
+        if options.include_almost_detections:
+            total_images += image_counts['almost_detections']
+            
         index_page = """<html>{}<body>
         <h2>Visualization of results</h2>
         <p>A sample of {} images, annotated with detections above {:.1%} confidence.</p>
         <h3>Sample images</h3>
         <div class="contentdiv">
         <a href="detections.html">detections</a> ({}, {:.1%})<br/>
-        <a href="non_detections.html">non-detections</a> ({}, {:.1%})<br/></div>\n""".format(
-            style_header,count, confidence_threshold,
+        <a href="non_detections.html">non-detections</a> ({}, {:.1%})<br/>""".format(
+            style_header,count, options.confidence_threshold,
             image_counts['detections'], image_counts['detections']/total_images,
             image_counts['non_detections'], image_counts['non_detections']/total_images
         )
-
+        
+        if options.include_almost_detections:
+            index_page += """<a href="non_detections.html">non-detections</a> ({}, {:.1%})<br/>""".format( 
+                    image_counts['almost_detections'], image_counts['almost_detections']/total_images)
+        
+        index_page += '</div>\n'
+        
         if has_classification_info:
             index_page += "<h3>Images of detected classes</h3>"
             index_page += "<p>The same image might appear under multiple classes if multiple species were detected.</p>\n<div class='contentdiv'>\n"
