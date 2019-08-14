@@ -974,7 +974,7 @@ def process_batch_results(options):
             else:
                 print('Rendering images with {} workers'.format(options.parallelize_rendering_n_cores))
                 pool = ThreadPool(options.parallelize_rendering_n_cores)
-                rendering_results = list(tqdm(pool.imap(render_image_no_gt, files_to_render), total=len(files_to_render)))    
+            rendering_results = list(tqdm(pool.imap(render_image_no_gt, files_to_render), total=len(files_to_render)))    
         else:
             for file_info in tqdm(files_to_render):        
                 rendering_results.append(render_image_no_gt(file_info))            
