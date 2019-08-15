@@ -19,7 +19,7 @@ This page used to host long and complicated instructions about loading the outpu
 It's fun and that you can see bounding boxes on top of your animals (we love bounding boxes, and we love animals), but the real goal of this integration is to allow users to:
 
 - Quickly select empty images, review them efficiently and only as necessary, and spend almost no time overall on empty images
-- Quickly select images that contain people, review them efficiently and only as necessary, and &ndash; for surveys where people are &ldquo;noise&;rdquo; &ndash; spend almost no time overall on images that are people/researchers
+- Quickly select images that contain people, review them efficiently and only as necessary, and &ndash; for surveys where people are &ldquo;noise&rdquo; &ndash; spend almost no time overall on images that are people/researchers
 - Focus all of your time on images that actually contain animals
 
 <img src="images/tl_boxes.jpg">
