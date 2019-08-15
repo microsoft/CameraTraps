@@ -4,6 +4,9 @@
 # Given an image json and/or a bounding box json in the COCO Camera Trap format, output
 # an embedded/denormalized version of it.
 #
+# All fields in the original image json would be carried over, and any fields in the bounding box json
+# but not in the corresponding entry in the image json will be added.
+#
 # Check carefully that the dataset_name parameter is set correctly!!
 #
 
@@ -30,20 +33,24 @@ def main():
     args = parser.parse_args()
 
     assert len(args.dataset_name) > 0, 'dataset name cannot be an empty string'
-    assert os.path.exists(args.image_db), 'image_db file path provided does not point to a file'
-    assert os.path.exists(args.bbox_db), 'bbox_db file path provided does not point to a file'
+
+    if args.image_db:
+        assert os.path.exists(args.image_db), 'image_db file path provided does not point to a file'
+    if args.bbox_db:
+        assert os.path.exists(args.bbox_db), 'bbox_db file path provided does not point to a file'
 
     #%% integrate the image DB
 
     # at first a dict of image_id: image_obj with annotations embedded,
-    # then its items becomes the array of documents that will get uploaded to Cosmos DB
+    # then its values becomes the array of documents that will get uploaded to Cosmos DB
     docs = {}
 
     if args.image_db:
+        print('Loading image DB...')
         cct_json_db = IndexedJsonDb(args.image_db)
-        docs = cct_json_db.image_id_to_image
+        docs = cct_json_db.image_id_to_image  # each image entry is first assigned the image object
 
-        # takes in image entries and species annotation in the image DB
+        # takes in image entries and species and other annotations in the image DB
         num_images_with_more_than_1_species = 0
         for image_id, annotations in cct_json_db.image_id_to_annotations.items():
             docs[image_id]['annotations'] = {
@@ -52,8 +59,15 @@ def main():
             if len(annotations) > 1:
                 num_images_with_more_than_1_species += 1
             for anno in annotations:
+                # convert the species category to explicit string name
                 cat_name = cct_json_db.cat_id_to_name[anno['category_id']]
                 docs[image_id]['annotations']['species'].append(cat_name)
+
+                # there may be other fields in the annotation object
+                for anno_field_name, anno_field_val in anno.items():
+                    # these fields should already be gotten from the image object
+                    if anno_field_name not in ['category_id', 'id', 'image_id', 'datetime', 'location', 'sequence_level_annotation', 'seq_id', 'seq_num_frames', 'frame_num']:
+                        docs[image_id]['annotations'][anno_field_name] = anno_field_val
 
         print('Number of items from the image DB:', len(docs))
         print('Number of images with more than 1 species: {} ({}% of image DB)'.format(
@@ -61,6 +75,7 @@ def main():
 
     #%% integrate the bbox DB
     if args.bbox_db:
+        print('Loading bbox DB...')
         cct_bbox_json_db = IndexedJsonDb(args.bbox_db)
 
         # add any images that are not in the image DB
@@ -151,8 +166,12 @@ def main():
         del i['id']
 
     #%% some validation
-    print('Example item:')
+    print('Example items:')
+    print()
+    print(docs[0])
+    print()
     print(docs[-1])
+    print()
 
     num_both_species_bbox = 0
     for item in docs:
