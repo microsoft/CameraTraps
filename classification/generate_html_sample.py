@@ -115,7 +115,7 @@ with model_graph.as_default():
 
             cur_class_name = class_list[cur_class_id]
             out_image_name = image_path
-            display_name = '<b>Class</b>: {}, <b>{}</b>: {:0.6f}%, <b>Image</b>: {}'.format(
+            display_name = '<b>Class</b>: {}, <b>{}</b>: {:.4%}, <b>Image</b>: {}'.format(
                     cur_class_name, conf_name, cur_conf, out_image_name)
 
             cur_image_out_dir = os.path.join(args.output_dir, cur_class_name)
@@ -142,8 +142,10 @@ index_page += """
         <p>A sample of {} images.</p>""".format(sum(class_counts.values()))
 
 if args.binary_threshold:
-    index_page += '<p>Evaluated a binary classifier at threshold {}</p>'.format(
-            args.binary_threshold)
+    index_page += """
+            <p>Evaluated a binary classifier at threshold {0:g}%.
+            All scores above {0:g}% are classified as '{1}', all below as '{2}'.</p>""".format(
+            args.binary_threshold*100, class_list[0], class_list[1])
 
 index_page += """
         <h3>Sample images</h3>
