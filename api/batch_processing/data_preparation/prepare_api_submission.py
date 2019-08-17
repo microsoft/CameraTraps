@@ -209,7 +209,7 @@ if False:
     
     #%%
     account_name = ''
-    sas_token = ''
+    sas_token = 'st=...'
     container_name = ''
     rmatch = None # '^Y53'
     output_file = r'output.json'
