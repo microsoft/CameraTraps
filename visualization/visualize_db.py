@@ -15,10 +15,13 @@ import json
 import math
 import os
 import sys
+import time
 from itertools import compress
+from multiprocessing.pool import ThreadPool
 
 import pandas as pd
 from tqdm import tqdm
+import humanfriendly
 
 # Assumes ai4eutils is on the path (github.com/Microsoft/ai4eutils)
 from write_html_image_list import write_html_image_list
@@ -48,6 +51,10 @@ class DbVizOptions:
     # another character.  Leave blank for the typical case where this isn't necessary.
     pathsep_replacement = '' # '~'
 
+    # Control rendering parallelization
+    parallelize_rendering_n_cores = 100
+    parallelize_rendering = False
+    
 
 #%% Helper functions
 
@@ -150,6 +157,12 @@ def process_images(db_path,output_dir,image_base_dir,options=None):
     
     images_html = []
     
+    # Set of dicts representing inputs to render_db_bounding_boxes:
+    #
+    # bboxes, boxClasses, image_path
+    rendering_info = []
+    
+    print('Preparing rendering list')
     # iImage = 0
     for iImage in tqdm(range(len(df_img))):
         
@@ -157,19 +170,7 @@ def process_images(db_path,output_dir,image_base_dir,options=None):
         img_relative_path = df_img.iloc[iImage]['file_name']
         img_path = os.path.join(image_base_dir, image_filename_to_path(img_relative_path, image_base_dir))
     
-        if not os.path.exists(img_path):
-            print('Image {} cannot be found'.format(img_path))
-            continue
-    
         annos_i = df_anno.loc[df_anno['image_id'] == img_id, :]  # all annotations on this image
-    
-        try:
-            originalImage = vis_utils.open_image(img_path)
-            original_size = originalImage .size
-            image = vis_utils.resize_image(originalImage , options.viz_size[0], options.viz_size[1])
-        except Exception as e:
-            print('Image {} failed to open. Error: {}'.format(img_path, e))
-            continue
     
         bboxes = []
         boxClasses = []
@@ -210,18 +211,22 @@ def process_images(db_path,output_dir,image_base_dir,options=None):
                 boxClasses.append(anno['category_id'])
         
         imageClasses = ', '.join(imageCategories)
-        
-        # Render bounding boxes in-place
-        vis_utils.render_db_bounding_boxes(bboxes, boxClasses, image, original_size, label_map)  
-        
+                
         file_name = '{}_gtbbox.jpg'.format(img_id.lower().split('.jpg')[0])
         file_name = file_name.replace('/', '~')
-        image.save(os.path.join(output_dir, 'rendered_images', file_name))
-    
+        
+        rendering_info.append({'bboxes':bboxes, 'boxClasses':boxClasses, 'img_path':img_path,
+                               'output_file_name':file_name})
+                
         labelLevelString = ''
         if len(annotationLevelForImage) > 0:
             labelLevelString = ' (annotation level: {})'.format(annotationLevelForImage)
             
+        # We're adding html for an image before we render it, so it's possible this image will
+        # fail to render.  For applications where this script is being used to debua a database
+        # (the common case?), this is useful behavior, for other applications, this is annoying.
+        #
+        # TODO: optionally write html only for images where rendering succeeded
         images_html.append({
             'filename': '{}/{}'.format('rendered_images', file_name),
             'title': '{}<br/>{}, number of boxes: {}, class labels: {}{}'.format(img_relative_path,img_id, len(bboxes), imageClasses, labelLevelString),
@@ -230,6 +235,48 @@ def process_images(db_path,output_dir,image_base_dir,options=None):
     
     # ...for each image
 
+    def render_image_info(rendering_info):
+        
+        img_path = rendering_info['img_path']
+        bboxes = rendering_info['bboxes']
+        bboxClasses = rendering_info['boxClasses']
+        output_file_name = rendering_info['output_file_name']
+        
+        if not os.path.exists(img_path):
+            print('Image {} cannot be found'.format(img_path))
+            return
+            
+        try:
+            original_image = vis_utils.open_image(img_path)
+            original_size = original_image.size
+            image = vis_utils.resize_image(original_image, options.viz_size[0], options.viz_size[1])
+        except Exception as e:
+            print('Image {} failed to open. Error: {}'.format(img_path, e))
+            return
+            
+        vis_utils.render_db_bounding_boxes(boxes=bboxes, classes=bboxClasses,
+                                           image=image, original_size=original_size,
+                                           label_map=label_map)
+        image.save(os.path.join(output_dir, 'rendered_images', output_file_name))
+    
+    # ...def render_image_info
+    
+    print('Rendering images')
+    start_time = time.time()
+    if options.parallelize_rendering:
+        if options.parallelize_rendering_n_cores is None:
+            pool = ThreadPool()
+        else:
+            print('Rendering images with {} workers'.format(options.parallelize_rendering_n_cores))
+            pool = ThreadPool(options.parallelize_rendering_n_cores)
+            tqdm(pool.imap(render_image_info, rendering_info), total=len(rendering_info))
+    else:
+        for file_info in tqdm(rendering_info):        
+            render_image_info(file_info)
+    elapsed = time.time() - start_time
+    
+    print('Rendered {} images in {}'.format(len(rendering_info),humanfriendly.format_timespan(elapsed)))
+        
     if options.sort_by_filename:    
         images_html = sorted(images_html, key=lambda x: x['filename'])
         
