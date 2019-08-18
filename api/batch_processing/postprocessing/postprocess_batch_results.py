@@ -459,6 +459,7 @@ def process_batch_results(options):
         -->
         </style>
         </head>"""
+
         
     ##%% Fork here depending on whether or not ground truth is available
 
@@ -655,6 +656,7 @@ def process_batch_results(options):
 
         # ...if we have classification results
         
+        
         ##%% Render output
 
         # Write p/r table to .csv file in output directory
@@ -688,19 +690,31 @@ def process_batch_results(options):
         image_count = len(images_to_visualize)
 
         # Each element will be a list of 2-tuples, with elements [collection name,html info struct]
-        rendering_results = [None] * image_count
+        rendering_results = []
         
-        # i_row = 1525; row = images_to_visualize.iloc[0]
-        for i_row, row in tqdm(images_to_visualize.iterrows(), total=image_count):
+        # Each element will be a three-tuple with elements file,max_conf,detections
+        files_to_render = []
+        
+        # Assemble the information we need for rendering, so we can parallelize without
+        # dealing with Pandas
+        # i_row = 0; row = images_to_visualize.iloc[0]
+        for _, row in images_to_visualize.iterrows():
 
-            image_relative_path = row['file']
+            # Filenames should already have been normalized to either '/' or '\'
+            files_to_render.append([row['file'],row['max_detection_conf'],row['detections']])
+            
+        def render_image_with_gt(file_info):
+
+            image_relative_path = file_info[0]
+            max_conf = file_info[1]
+            detections = file_info[2]
 
             # This should already have been normalized to either '/' or '\'
 
             image_id = ground_truth_indexed_db.filename_to_id.get(image_relative_path, None)
             if image_id is None:
                 print('Warning: couldn''t find ground truth for image {}'.format(image_relative_path))
-                continue
+                return None
 
             image = ground_truth_indexed_db.image_id_to_image[image_id]
             annotations = ground_truth_indexed_db.image_id_to_annotations[image_id]
@@ -715,11 +729,8 @@ def process_batch_results(options):
 
             if gt_status > DetectionStatus.DS_MAX_DEFINITIVE_VALUE:
                 print('Skipping image {}, does not have a definitive ground truth status (status: {}, classes: {})'.format(
-                        i_row, gt_status, gt_class_summary))
-                continue
-
-            max_conf = row['max_detection_conf']
-            detections = row['detections']
+                        image_id, gt_status, gt_class_summary))
+                return None
 
             detected = max_conf > options.confidence_threshold
 
@@ -754,11 +765,25 @@ def process_batch_results(options):
             if len(rendered_image_html_info) > 0:
                 image_result = [[res,rendered_image_html_info]]
                 for gt_class in gt_classes:
-                    image_result.append(['class_{}'.format(gt_class)],rendered_image_html_info)
+                    image_result.append(['class_{}'.format(gt_class),rendered_image_html_info])
             
-            rendering_results[i_row] = image_result
+            return image_result
             
-        # ...for each image in our sample
+        # ...def render_image_with_gt(file_info)
+        
+        start_time = time.time()
+        if options.parallelize_rendering:
+            if options.parallelize_rendering_n_cores is None:
+                pool = ThreadPool()
+            else:
+                print('Rendering images with {} workers'.format(options.parallelize_rendering_n_cores))
+                pool = ThreadPool(options.parallelize_rendering_n_cores)
+            rendering_results = list(tqdm(pool.imap(render_image_with_gt, files_to_render), total=len(files_to_render)))    
+        else:
+            # file_info = files_to_render[0]
+            for file_info in tqdm(files_to_render):        
+                rendering_results.append(render_image_with_gt(file_info))
+        elapsed = time.time() - start_time
         
         # Map all the rendering results in the list rendering_results into the 
         # dictionary images_html
@@ -770,10 +795,10 @@ def process_batch_results(options):
             for assignment in rendering_result:
                 images_html[assignment[0]].append(assignment[1])
                 
-        print('{} images rendered (of {})'.format(image_rendered_count,image_count))
-
         # Prepare the individual html image files
         image_counts = prepare_html_subpages(images_html, output_dir)
+
+        print('{} images rendered (of {})'.format(image_rendered_count,image_count))
 
         # Write index.html
         all_tp_count = image_counts['tp'] + image_counts['tpc'] + image_counts['tpi']
@@ -959,7 +984,7 @@ def process_batch_results(options):
                 for det in detections:
                     if 'classifications' in det:
                         top1_class = classification_categories_map[det['classifications'][0][0]]
-                        image_result.append(['class_{}'.format(top1_class)],rendered_image_html_info)
+                        image_result.append(['class_{}'.format(top1_class),rendered_image_html_info])
             
             return image_result
         
