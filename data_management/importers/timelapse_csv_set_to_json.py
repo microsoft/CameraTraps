@@ -27,17 +27,20 @@ from visualization import visualize_db
 import path_utils
 
 # Text file with relative paths to all files (images and .csv files)
-input_relative_file_list = r"f:\uw_gardner\all_files_2019.08.17.txt"
-output_file = r"f:\uw_gardner\uw_gardner.2019.08.17.json"
-preview_base = r"f:\uw_gardner\db_preview"
-file_base = 'y:\\'
-top_level_image_folder = 'Processed Images'
-contributor_name = 'University of Washington'
+input_relative_file_list = ''
+output_file = ''
+preview_base = ''
+file_base = ''
+top_level_image_folder = ''
+contributor_name = ''
+csv_filename_mappings = []
+site_name_mappings = []
+csv_ignore_tokens = []
 
 expected_columns = 'File,RelativePath,Folder,Date,Time,ImageQuality,DeleteFlag,CameraLocation,StartDate,TechnicianName,Empty,Service,Species,HumanActivity,Count,AdultFemale,AdultMale,AdultUnknown,Offspring,YOY,UNK,Collars,Tags,NaturalMarks,Reaction,Illegal,GoodPicture,SecondOpinion,Comments'.\
     split(',')
-ignore_fields = 'Unnamed: 29'
-required_image_regex = '^Processed'
+ignore_fields = []
+required_image_regex = None
 
 category_mappings = {'none':'empty'}
 
@@ -132,7 +135,7 @@ print('Enumerated {} unique image folders'.format(len(all_image_folders)))
 
 # In this data set, a site folder looks like:
 #
-# Processed Images\\OK7658_complete
+# Processed Images\\site_name
 
 site_folders = set()
 for image_folder in all_image_folders:
@@ -148,13 +151,12 @@ csv_filename_to_camera_folder = {}
 for fn_original in valid_csv_files:
     
     fn = fn_original
-    if 'Template' in fn:
-        continue
+    for ignore_token in csv_ignore_tokens:
+        if ignore_token in fn:
+            continue
             
-    fn = fn.replace('OK7658_OK7658_','OK7658_')
-    fn = fn.replace('Moutlrie','Moultrie')
-    fn = fn.replace('CameraMoultrie','Moultrie')
-    fn = fn.replace('Moultrie','Moultrie_')
+    for mapping in csv_filename_mappings:
+        fn = fn.replace(mapping[0],mapping[1])
     
     csv_filename = os.path.basename(fn)
     pat = '^(?P<site>[^_]+)_(?P<cameranum>[^_]+)_'
@@ -163,11 +165,10 @@ for fn_original in valid_csv_files:
         print('Couldn''t match tokens in {}'.format(csv_filename))
         continue
     site = re_result.group('site')
-    
-    # Random typos in some filenames
-    site = site.replace('NE5735','NE5736')
-    site = site.replace('NE3419','NE3149')
-    
+        
+    for mapping in site_name_mappings:
+        site = site.replace(mapping[0],mapping[1])
+        
     cameranum = re_result.group('cameranum')
     
     site_folder = top_level_image_folder + '/' + site
@@ -200,10 +201,12 @@ for fn_original in valid_csv_files:
 print('Successfully mapped {} of {} csv files to camera folders'.format(len(csv_filename_to_camera_folder),
       len(valid_csv_files)))
 
-
 for fn in valid_csv_files:
-    if 'Template' in fn:
-        continue
+    
+    for ignore_token in csv_ignore_tokens:
+        if ignore_token in fn:
+            continue
+
     if fn not in csv_filename_to_camera_folder:
         print('No camera folder mapping for {}'.format(fn))
 
@@ -267,6 +270,10 @@ for i_row,row in tqdm(input_metadata.iterrows(),total=len(input_metadata)):
     image_folder = path_utils.split_path(image_folder)[-1]
     csv_filename = row['source_file']
         
+    for ignore_token in csv_ignore_tokens:
+        if ignore_token in csv_filename:
+            continue
+
     if csv_filename not in csv_filename_to_camera_folder:
         if csv_filename not in ignored_csv_files:
             print('No camera folder for {}'.format(csv_filename))
