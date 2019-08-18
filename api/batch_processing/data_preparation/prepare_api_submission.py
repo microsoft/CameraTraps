@@ -174,9 +174,11 @@ def generate_api_queries(input_container_sas_url,file_list_sas_urls,request_name
         d = {}
         d['input_container_sas'] = input_container_sas_url
         d['images_requested_json_sas'] = file_list_sas_url
-        if len(file_list_sas_urls) > 0:
+        if len(file_list_sas_urls) > 1:
             chunk_id = '_chunk{0:0>3d}'.format(i_url)
             request_name = request_name_base + chunk_id
+        else:
+            request_name = request_name_base
         d['request_name'] = request_name
         d['caller'] = caller
         request_dicts.append(d)
