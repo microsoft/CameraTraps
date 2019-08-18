@@ -20,6 +20,7 @@ import argparse
 import os
 import sys
 import warnings
+import json
 from datetime import datetime
 from itertools import compress
 
@@ -30,6 +31,7 @@ from tqdm import tqdm
 
 # from ai4eutils; this is assumed to be on the path, as per repo convention
 import write_html_image_list
+import path_utils
 
 from api.batch_processing.postprocessing.load_api_results import load_api_results, write_api_results
 import ct_utils
@@ -120,7 +122,8 @@ class RepeatDetectionResults:
     The results of an entire repeat detection analysis
     """
 
-    # The data table (Pandas DataFrame), as loaded from the input json file via load_api_results()
+    # The data table (Pandas DataFrame), as loaded from the input json file via 
+    # load_api_results()
     detectionResults = None
 
     # The other fields in the input json file, loaded via load_api_results()
@@ -192,6 +195,26 @@ class DetectionLocation:
 
 
 ##%% Helper functions
+
+def enumerate_images(dirName,outputFileName=None):
+    """
+    Non-recursively enumerates all image files in *dirName* to the .json file 
+    *outputFileName*, as relative paths.  This is used to produce a file list
+    after removing true positives from the image directory.
+    
+    Not used directly in this module, but provides a consistent way to enumerate
+    files in the format expected by this module.
+    """
+    imageList = path_utils.find_images(dirName)
+    imageList = [os.path.basename(fn) for fn in imageList]
+    
+    if outputFileName is not None:
+        s = json.dumps(imageList,indent=1)
+        with open(outputFileName,'w') as f:
+            f.write(s)
+            
+    return imageList
+    
 
 def render_bounding_box(detection, inputFileName, outputFileName, lineWidth):
     
