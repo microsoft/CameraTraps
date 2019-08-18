@@ -481,8 +481,6 @@ sortedCategories,data = sanity_check_json_db.sanity_check_json_db(output_file, o
 
 #%% Render a bunch of images to make sure the labels got carried along correctly
 
-from visualization import visualize_db
-
 options = visualize_db.DbVizOptions()
 options.num_to_visualize = 1000
 options.parallelize_rendering = True
