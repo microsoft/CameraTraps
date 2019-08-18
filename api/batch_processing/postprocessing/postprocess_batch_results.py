@@ -126,8 +126,6 @@ class PostProcessingOptions:
     almost_detection_confidence_threshold = 0.75
 
     # Control rendering parallelization
-    #
-    # Currently only supported when ground truth is unavailable
     parallelize_rendering_n_cores = 100
     parallelize_rendering = False
     
