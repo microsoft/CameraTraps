@@ -24,6 +24,7 @@ import numpy as np
 from tqdm import tqdm
 
 from visualization import visualize_db
+from data_management.databases import sanity_check_json_db
 import path_utils
 
 # Text file with relative paths to all files (images and .csv files)
@@ -39,6 +40,10 @@ csv_ignore_tokens = []
 
 expected_columns = 'File,RelativePath,Folder,Date,Time,ImageQuality,DeleteFlag,CameraLocation,StartDate,TechnicianName,Empty,Service,Species,HumanActivity,Count,AdultFemale,AdultMale,AdultUnknown,Offspring,YOY,UNK,Collars,Tags,NaturalMarks,Reaction,Illegal,GoodPicture,SecondOpinion,Comments'.\
     split(',')
+im_fields_to_copy = ['TechnicianName','Service','HumanActivity','Count','AdultFemale','AdultMale',
+                     'AdultUnknown','Offspring','YOY','UNK','Collars','Tags','NaturalMarks','Reaction',
+                     'Illegal','GoodPicture','SecondOpinion','Comments']
+        
 ignore_fields = []
 required_image_regex = None
 
@@ -73,11 +78,12 @@ for fn in all_files:
         else:
             image_files.add(fn)
         
+for fn in image_files:
+    assert fn.lower().endswith('.jpg')
+
 print('Found {} image files and {} .csv files ({} non-matching files)'.format(
         len(image_files),len(csv_files),len(non_matching_files)))
 
-for fn in image_files:
-    assert fn.lower().endswith('.jpg')
 
     
 #%% Verify column consistency, create a giant array with all rows from all .csv files
@@ -151,9 +157,8 @@ csv_filename_to_camera_folder = {}
 for fn_original in valid_csv_files:
     
     fn = fn_original
-    for ignore_token in csv_ignore_tokens:
-        if ignore_token in fn:
-            continue
+    if any(s in fn for s in csv_ignore_tokens):
+        continue
             
     for mapping in csv_filename_mappings:
         fn = fn.replace(mapping[0],mapping[1])
@@ -198,14 +203,15 @@ for fn_original in valid_csv_files:
     assert fn not in csv_filename_to_camera_folder
     csv_filename_to_camera_folder[fn_original] = camera_folder
 
+# ...for each .csv file
+    
 print('Successfully mapped {} of {} csv files to camera folders'.format(len(csv_filename_to_camera_folder),
       len(valid_csv_files)))
 
 for fn in valid_csv_files:
     
-    for ignore_token in csv_ignore_tokens:
-        if ignore_token in fn:
-            continue
+    if any(s in fn for s in csv_ignore_tokens):
+        continue
 
     if fn not in csv_filename_to_camera_folder:
         print('No camera folder mapping for {}'.format(fn))
@@ -270,9 +276,8 @@ for i_row,row in tqdm(input_metadata.iterrows(),total=len(input_metadata)):
     image_folder = path_utils.split_path(image_folder)[-1]
     csv_filename = row['source_file']
         
-    for ignore_token in csv_ignore_tokens:
-        if ignore_token in csv_filename:
-            continue
+    if any(s in csv_filename for s in csv_ignore_tokens):
+        continue
 
     if csv_filename not in csv_filename_to_camera_folder:
         if csv_filename not in ignored_csv_files:
@@ -314,6 +319,16 @@ for i_row,row in tqdm(input_metadata.iterrows(),total=len(input_metadata)):
         im['id'] = image_id
         im['file_name'] = image_relative_path
         im['seq_id'] = '-1'
+        im['datetime'] = row['Date'] + ' ' + row['Time']
+        im['location'] = row['CameraLocation']
+        
+        for col in im_fields_to_copy:
+            im[col.lower()] = row[col]
+            
+        for k in im:
+            if isinstance(im[k],float) and np.isnan(im[k]):
+                im[k] = ''
+                
         images.append(im)
         relative_path_to_image[image_relative_path] = im
         image_id_to_image[image_id] = im
@@ -322,6 +337,7 @@ for i_row,row in tqdm(input_metadata.iterrows(),total=len(input_metadata)):
         
             image_full_path = os.path.join(file_base,image_relative_path)        
             
+            # Check whether this file exists on disk
             if check_file_existence:
                 if not os.path.isfile(image_full_path):                    
                     files_missing_on_disk.append(image_relative_path)
@@ -387,6 +403,37 @@ print('Finished verifying file loop in {}, {} images, {} missing images, {} repe
         len(duplicate_image_ids), len(ambiguous_images)))
 
 
+#%% Fix cases where an image was annotated as 'unlabeled' and as something else
+
+image_id_to_annotations = {}
+for ann in annotations:
+    image_id = ann['image_id']
+    image_id_to_annotations.setdefault(image_id,[]).append(ann)
+    
+valid_annotations = []
+unlabeled_id = category_name_to_category['unlabeled']['id']
+
+for ann in annotations:
+
+    if ann['category_id'] != unlabeled_id:
+        valid_annotations.append(ann)
+        continue
+
+    # This annotation is 'unlabeled'
+    image_id = ann['image_id']
+    image_annotations = image_id_to_annotations[image_id]
+    image_categories = list(set([a['category_id'] for a in image_annotations]))
+    
+    # Was there another category associated with this image?
+    assert unlabeled_id in image_categories
+    if len(image_categories) > 1:
+        continue
+    
+    valid_annotations.append(ann)
+    
+print('Removed {} redundant unlabeled annotations'.format(len(annotations)-len(valid_annotations)))
+
+
 #%% Check for un-annnotated images
 
 # Enumerate all images
@@ -428,19 +475,20 @@ print('Finished writing .json file with {} images, {} annotations, and {} catego
 
 #%% Sanity-check the database's integrity
 
-from data_management.databases import sanity_check_json_db
-
 options = sanity_check_json_db.SanityCheckOptions()
 sortedCategories,data = sanity_check_json_db.sanity_check_json_db(output_file, options)
 
 
 #%% Render a bunch of images to make sure the labels got carried along correctly
 
+from visualization import visualize_db
+
 options = visualize_db.DbVizOptions()
-options.num_to_visualize = 500
+options.num_to_visualize = 1000
+options.parallelize_rendering = True
 options.sort_by_filename = False
-options.classes_to_exclude = ['unlabeled','empty']
+options.classes_to_exclude = ['unlabeled','empty','ambiguous']
 
 html_output_file,data = visualize_db.process_images(output_file,preview_base,file_base,options)
-# os.startfile(html_output_file)
+os.startfile(html_output_file)
 
