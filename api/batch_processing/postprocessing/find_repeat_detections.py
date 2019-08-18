@@ -86,10 +86,12 @@ class RepeatDetectionOptions:
 
     # Load detections from a filter file rather than finding them from the detector output
 
-    # .json file containing detections, should be called detectionIndex.json in the filtering_* folder produced in the first pass
+    # .json file containing detections, should be called detectionIndex.json in the filtering_* folder 
+    # produced in the first pass
     filterFileToLoad = ''
 
-    # (optional) list of filenames remaining after deletion of identified repeated detections that are actually animals
+    # (optional) list of filenames remaining after deletion of identified 
+    # repeated detections that are actually animals
     filteredFileListToLoad = None
 
     # Turn on/off optional outputs
@@ -198,7 +200,7 @@ class DetectionLocation:
 
 def enumerate_images(dirName,outputFileName=None):
     """
-    Non-recursively enumerates all image files in *dirName* to the .json file 
+    Non-recursively enumerates all image files in *dirName* to the text file 
     *outputFileName*, as relative paths.  This is used to produce a file list
     after removing true positives from the image directory.
     
@@ -209,9 +211,9 @@ def enumerate_images(dirName,outputFileName=None):
     imageList = [os.path.basename(fn) for fn in imageList]
     
     if outputFileName is not None:
-        s = json.dumps(imageList,indent=1)
         with open(outputFileName,'w') as f:
-            f.write(s)
+            for s in imageList:
+                f.write(s + '\n')
             
     return imageList
     
