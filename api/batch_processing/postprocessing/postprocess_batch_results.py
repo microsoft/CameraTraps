@@ -62,7 +62,7 @@ warnings.filterwarnings("ignore", "(Possibly )?corrupt EXIF data", UserWarning)
 #%% Options
 
 DEFAULT_NEGATIVE_CLASSES = ['empty']
-DEFAULT_UNKNOWN_CLASSES = ['unknown', 'unlabeled']
+DEFAULT_UNKNOWN_CLASSES = ['unknown', 'unlabeled', 'ambiguous']
 
 
 def has_overlap(set1, set2):
