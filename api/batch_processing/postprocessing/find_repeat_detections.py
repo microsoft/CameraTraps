@@ -90,8 +90,9 @@ class RepeatDetectionOptions:
     # produced in the first pass
     filterFileToLoad = ''
 
-    # (optional) list of filenames remaining after deletion of identified 
-    # repeated detections that are actually animals
+    # (optional) List of filenames remaining after deletion of identified 
+    # repeated detections that are actually animals.  This should be a flat
+    # text file, one relative filename per line.  See enumerate_images().
     filteredFileListToLoad = None
 
     # Turn on/off optional outputs
