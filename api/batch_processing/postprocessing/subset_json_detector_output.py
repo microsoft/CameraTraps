@@ -52,6 +52,7 @@
 import json
 from tqdm import tqdm
 import os
+import copy
 
 from data_management.annotations import annotation_constants
 
@@ -294,6 +295,8 @@ if False:
 def subset_json_detector_output(input_filename,output_filename,options,data=None):
     """
     Main internal entry point
+    
+    Makes a copy of [data] before modifying if an data dictionary is supplied
     """
     
     if options is None:    
@@ -316,6 +319,9 @@ def subset_json_detector_output(input_filename,output_filename,options,data=None
         if options.debug_max_images > 0:
             print('Trimming to {} images'.format(options.debug_max_images))
             data['images'] = data['images'][:options.debug_max_images]
+    else:
+        data = copy.deepcopy(data)
+        
     # data = add_missing_detection_results_fields(data)
     
     if options.query is not None:
