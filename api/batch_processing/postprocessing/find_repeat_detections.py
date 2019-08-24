@@ -55,7 +55,7 @@ warnings.filterwarnings('ignore', 'Metadata warning', UserWarning)
 class RepeatDetectionOptions:
     # inputFlename = r'D:\temp\tigers_20190308_all_output.csv'
 
-    # Only relevant for HTML rendering
+    # Relevant for rendering HTML or filtering folder of images
     imageBase = ''
     outputBase = ''
 
@@ -940,7 +940,7 @@ def main():
     parser.add_argument('--imageBase', action='store', type=str,
                         help='Image base dir, relevant if renderHtml is True or if omitFilteringFolder is not set')
     parser.add_argument('--outputBase', action='store', type=str,
-                        help='Html output dir, only relevant if renderHtml is True')
+                        help='Html or filtering folder output dir')
     parser.add_argument('--filterFileToLoad', action='store', type=str, default='',  # checks for string length so default needs to be the empty string
                         help='Path to detectionIndex.json, which should be inside a folder of images that are manually verified to _not_ contain valid animals')
 
