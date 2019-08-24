@@ -52,7 +52,7 @@ default_n_files_per_api_task = 1000000
 
 #%% File enumeration
 
-def enumerate_blobs(account_name,sas_token,container_name,rmatch=None):
+def enumerate_blobs(account_name,sas_token,container_name,rmatch=None,prefix=None):
     """
     Enumerates blobs in a container, optionally filtering with a regex
     """
@@ -61,7 +61,7 @@ def enumerate_blobs(account_name,sas_token,container_name,rmatch=None):
         
     block_blob_service = BlockBlobService(account_name=account_name, sas_token=sas_token)
     
-    generator = block_blob_service.list_blobs(container_name)
+    generator = block_blob_service.list_blobs(container_name=container_name,prefix=prefix)
     matched_blobs = []
     i_blob = 0
     for blob in generator:
@@ -83,7 +83,7 @@ def enumerate_blobs(account_name,sas_token,container_name,rmatch=None):
     return matched_blobs
 
 
-def enumerate_blobs_to_file(output_file,account_name,sas_token,container_name,account_key=None,rmatch=None):
+def enumerate_blobs_to_file(output_file,account_name,sas_token,container_name,account_key=None,rmatch=None,prefix=None):
     """
     Enumerates to a .json string if output_file ends in ".json", otherwise enumerates to a 
     newline-delimited list.
@@ -92,7 +92,8 @@ def enumerate_blobs_to_file(output_file,account_name,sas_token,container_name,ac
     matched_blobs = enumerate_blobs(account_name=account_name,
                                     sas_token=sas_token,
                                     container_name=container_name,
-                                    rmatch=rmatch)
+                                    rmatch=rmatch,
+                                    prefix=prefix)
     
     if output_file.endswith('.json'):
         s = json.dumps(matched_blobs,indent=1)
