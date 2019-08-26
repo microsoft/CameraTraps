@@ -11,10 +11,10 @@ from PIL import Image
 """
 Load testing using Locust.
 
-Installation instructions: https://docs.locust.io/en/stable/quickstart.html
+Once Locust is installed (instructions https://docs.locust.io), to run the tests, set the
+API_KEY as an environment variable and run:
 
-Once Locust is installed, to run the tests:
-locust --host=http://example.com/api/
+locust --host=http://example.com/camera-trap/
 
 and visit http://127.0.0.1:8089 in a browser (local testing)
 """
@@ -90,7 +90,8 @@ class UserBehavior(TaskSet):
                                                 params=params,
                                                 files=files,
                                                 headers=headers)
-        UserBehavior.open_detection_results(response)
+        if response.headers['content-type'] != 'text/html':
+            UserBehavior.open_detection_results(response)
 
 
 class WebsiteUser(HttpLocust):
