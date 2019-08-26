@@ -937,9 +937,9 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('inputFile')
     parser.add_argument('outputFile')
-    parser.add_argument('--imageBase', action='store', type=str,
+    parser.add_argument('--imageBase', action='store', type=str, default='',
                         help='Image base dir, relevant if renderHtml is True or if omitFilteringFolder is not set')
-    parser.add_argument('--outputBase', action='store', type=str,
+    parser.add_argument('--outputBase', action='store', type=str, default='',
                         help='Html or filtering folder output dir')
     parser.add_argument('--filterFileToLoad', action='store', type=str, default='',  # checks for string length so default needs to be the empty string
                         help='Path to detectionIndex.json, which should be inside a folder of images that are manually verified to _not_ contain valid animals')
