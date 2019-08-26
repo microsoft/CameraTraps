@@ -36,12 +36,14 @@ import copy
 import time
 from multiprocessing.pool import ThreadPool    
 from enum import IntEnum
+import errno
+import uuid
             
 import matplotlib
 matplotlib.use('agg')
 import matplotlib.pyplot as plt
-import pandas as pd
 import numpy as np
+import pandas as pd
 from sklearn.metrics import precision_recall_curve, confusion_matrix, average_precision_score
 from tqdm import tqdm
 import humanfriendly
@@ -294,7 +296,14 @@ def render_bounding_boxes(image_base_dir, image_relative_path, display_name, det
         # already normalized paths
         sample_name = res + '_' + image_relative_path.replace(os.sep, '~')
 
-        image.save(os.path.join(options.output_dir, res, sample_name))
+        try:
+            image.save(os.path.join(options.output_dir, res, sample_name))
+        except OSError as e:
+            if e.errno == errno.ENAMETOOLONG:
+                sample_name = res + '_' + str(uuid.uuid4()) + '.jpg'
+                image.save(os.path.join(options.output_dir, res, sample_name))
+            else:
+                raise
 
         # Use slashes regardless of os
         file_name = '{}/{}'.format(res, sample_name)
@@ -683,7 +692,7 @@ def process_batch_results(options):
         # for each category, e.g. 'tp', 'fp', ..., 'class_bird', ...
         images_html = collections.defaultdict(lambda: [])
         # Add default entries by accessing them for the first time
-        [images_html[res] for res in ['tp', 'tpc', 'tpi', 'fp', 'tn', 'fn']]
+        [images_html[res] for res in ['tp', 'tpc', 'tpi', 'fp', 'tn', 'fn']]  # Siyu: what does this do? This line should have no effect
         for res in images_html.keys():
             os.makedirs(os.path.join(output_dir, res), exist_ok=True)
 
