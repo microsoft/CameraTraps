@@ -8,10 +8,13 @@
 
 #%% Constants and imports
 
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 import numpy as np
 from PIL import Image, ImageFile, ImageFont, ImageDraw
-import matplotlib.pyplot as plt
+
 from data_management.annotations import annotation_constants
+
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 
@@ -496,4 +499,52 @@ def plot_precision_recall_curve(precisions, recalls, title='Precision/Recall cur
     plt.ylim([0.0, 1.05])
     plt.xlim([0.0, 1.05])
 
+    return fig
+
+
+def plot_stacked_bar_chart(data, series_labels, col_labels=None, x_label=None, y_label=None):
+    """
+    For plotting e.g. species distribution across locations.
+    Reference: https://stackoverflow.com/questions/44309507/stacked-bar-plot-using-matplotlib
+    Args:
+        data: a 2-dimensional numpy array or nested list containing data for each series (species)
+              in rows (1st dimension) across locations (columns, 2nd dimension)
+
+    Returns:
+        the plot that can then be saved as a png.
+    """
+
+    fig = plt.figure()
+    ax = plt.subplot(111)
+
+    data = np.array(data)
+    num_series, num_columns = data.shape
+    ind = list(range(num_columns))
+
+    colors = cm.rainbow(np.linspace(0, 1, num_series))
+
+    cumulative_size = np.zeros(num_columns)  # stacked bar charts are made with each segment starting from a y position
+
+    for i, row_data in enumerate(data):
+        ax.bar(ind, row_data, bottom=cumulative_size, label=series_labels[i], color=colors[i])
+        cumulative_size += row_data
+
+    if col_labels:
+        ax.set_xticks(ind)
+        ax.set_xticklabels(col_labels, rotation=90)
+
+    if x_label:
+        ax.set_xlabel(x_label)
+
+    if y_label:
+        ax.set_ylabel(y_label)
+
+    # To fit the legend in, shrink current axis by 20%
+    box = ax.get_position()
+    ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+
+    # Put a legend to the right of the current axis
+    ax.legend(loc='center left', bbox_to_anchor=(0.99, 0.5), frameon=False)
+
+    fig.tight_layout()
     return fig

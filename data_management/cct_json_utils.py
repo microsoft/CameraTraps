@@ -15,7 +15,7 @@
 
 import os
 import json
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 
 
 #%% Classes
@@ -45,6 +45,56 @@ class CameraTrapJsonUtils:
         class_names = sorted(list(set(class_names)))
         return class_names
 
+    @staticmethod
+    def order_db_keys(db):
+        """
+        Given a dict representing a JSON database in the COCO Camera Trap format, return an
+        OrderedDict with keys in the order of 'info', 'categories', 'annotations' and 'images'.
+        When this OrderedDict is serialized with json.dump(), the order of the keys are preserved.
+        Args:
+            db: a dict representing a JSON database in the COCO Camera Trap format
+
+        Returns:
+            the same db but as an OrderedDict with keys ordered for readability.
+        """
+        ordered = OrderedDict([
+            ('info', db['info']),
+            ('categories', db['categories']),
+            ('annotations', db['annotations']),
+            ('images', db['images'])])
+        return ordered
+
+    @staticmethod
+    def get_entries_from_locations(db, locations):
+        """
+        Given a dict representing a JSON database in the COCO Camera Trap format, return a dict
+        with the 'images' and 'annotations' fields in the CCT format, each is an array that only
+        includes entries in the original `db` that are in the `locations` set.
+        Args:
+            db: a dict representing a JSON database in the COCO Camera Trap format
+            locations: a set or list of locations to include
+
+        Returns:
+            a dict with the 'images' and 'annotations' fields in the CCT format
+        """
+        locations = set(locations)
+        print('Original DB has {} image and {} annotation entries.'.format(len(db['images']), len(db['annotations'])))
+        new_db = {
+            'images': [],
+            'annotations': []
+        }
+        new_images = set()
+        for i in db['images']:
+            if i['location'] in locations:
+                new_db['images'].append(i)
+                new_images.add(i['id'])
+        for a in db['annotations']:
+            if a['image_id'] in new_images:
+                new_db['annotations'].append(a)
+        print(
+            'New DB has {} image and {} annotation entries.'.format(len(new_db['images']), len(new_db['annotations'])))
+        return new_db
+
 
 class IndexedJsonDb:
     """
@@ -53,16 +103,6 @@ class IndexedJsonDb:
     Handles boilerplate dictionary creation that we do almost every time we load
     a .json database.
     """
-
-    # The underlying .json db
-    db = None
-
-    # Useful dictionaries
-    cat_id_to_name = None
-    cat_name_to_id = None
-    filename_to_id = None
-    image_id_to_annotations = None
-
 
     def get_annotations_for_image(self, image):
         """

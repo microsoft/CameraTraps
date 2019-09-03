@@ -138,6 +138,7 @@ The script will only add images to the output folders, if they:
 - have at least one detection with confidence 0.5 or above
 - are annotated with exactly one class label (the COCO annotation format allows multiple class labels per image)
 - do not exist yet in the output folders (this can happen if you re-run the script with a `detections_final.pkl` file as show above
+
 All other images will be ignored without warning.
 
 The default padding factor is fairly large and optimized for images with only one animal inside and TF-slim based classification.
