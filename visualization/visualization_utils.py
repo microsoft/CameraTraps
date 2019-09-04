@@ -138,10 +138,9 @@ def render_db_bounding_boxes(boxes, classes, image, original_size=None,
 
         if label_map:
             clss = label_map[int(clss)]
-        display_strs.append([clss])
+        display_strs.append([str(clss)])  # need to be a string here because PIL needs to iterate through chars
 
     display_boxes = np.array(display_boxes)
-
     draw_bounding_boxes_on_image(image, display_boxes, classes, display_strs=display_strs,
                                  thickness=thickness)
 
@@ -241,7 +240,6 @@ def render_detection_bounding_boxes(detections, image,
                     displayed_label += ['{}: {:5.1%}'.format(class_name.lower(), classification[1])]
                     
             # ...if we have detection results
-            
             display_strs.append(displayed_label)
             classes.append(clss)
 
@@ -297,7 +295,7 @@ def draw_bounding_boxes_on_image(image,
       image: a PIL.Image object.
       boxes: a 2 dimensional numpy array of [N, 4]: (ymin, xmin, ymax, xmax).
              The coordinates are in normalized format between [0, 1].
-      classes: a list of ints or strings (which can be cast to ints) corresponding to the class labels of the boxes.
+      classes: a list of ints or strings (that can be cast to ints) corresponding to the class labels of the boxes.
              This is only used for selecting the color to render the bounding box in.
       thickness: line thickness. Default value is 4.
       display_strs: list of list of strings.
@@ -349,7 +347,7 @@ def draw_bounding_box_on_image(image,
       xmin: xmin of bounding box.
       ymax: ymax of bounding box.
       xmax: xmax of bounding box.
-      clss: the class of the object in this bounding box - will be cast to an int.
+      clss: str, the class of the object in this bounding box - will be cast to an int.
       thickness: line thickness. Default value is 4.
       display_str_list: list of strings to display in box
                         (each to be shown on its own line).
@@ -381,7 +379,7 @@ def draw_bounding_box_on_image(image,
     # box exceeds the top of the image, stack the strings below the bounding box
     # instead of above.
     display_str_heights = [font.getsize(ds)[1] for ds in display_str_list]
-    
+
     # Each display_str has a top and bottom margin of 0.05x.
     total_display_str_height = (1 + 2 * 0.05) * sum(display_str_heights)
 
@@ -392,6 +390,7 @@ def draw_bounding_box_on_image(image,
 
     # Reverse list and print from bottom to top.
     for display_str in display_str_list[::-1]:
+
         text_width, text_height = font.getsize(display_str)
         margin = np.ceil(0.05 * text_height)
 
@@ -399,11 +398,13 @@ def draw_bounding_box_on_image(image,
             [(left, text_bottom - text_height - 2 * margin), (left + text_width,
                                                               text_bottom)],
             fill=color)
+
         draw.text(
             (left + margin, text_bottom - text_height - margin),
             display_str,
             fill='black',
             font=font)
+
         text_bottom -= (text_height + 2 * margin)
 
 
@@ -502,7 +503,7 @@ def plot_precision_recall_curve(precisions, recalls, title='Precision/Recall cur
     return fig
 
 
-def plot_stacked_bar_chart(data, series_labels, col_labels=None, x_label=None, y_label=None):
+def plot_stacked_bar_chart(data, series_labels, col_labels=None, x_label=None, y_label=None, log_scale=False):
     """
     For plotting e.g. species distribution across locations.
     Reference: https://stackoverflow.com/questions/44309507/stacked-bar-plot-using-matplotlib
@@ -529,8 +530,11 @@ def plot_stacked_bar_chart(data, series_labels, col_labels=None, x_label=None, y
         ax.bar(ind, row_data, bottom=cumulative_size, label=series_labels[i], color=colors[i])
         cumulative_size += row_data
 
-    if col_labels:
+    if col_labels and len(col_labels) < 25:
         ax.set_xticks(ind)
+        ax.set_xticklabels(col_labels, rotation=90)
+    elif col_labels:
+        ax.set_xticks(list(range(0, len(col_labels), 20)))
         ax.set_xticklabels(col_labels, rotation=90)
 
     if x_label:
@@ -539,6 +543,9 @@ def plot_stacked_bar_chart(data, series_labels, col_labels=None, x_label=None, y
     if y_label:
         ax.set_ylabel(y_label)
 
+    if log_scale:
+        ax.set_yscale('log')
+
     # To fit the legend in, shrink current axis by 20%
     box = ax.get_position()
     ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
@@ -546,5 +553,4 @@ def plot_stacked_bar_chart(data, series_labels, col_labels=None, x_label=None, y
     # Put a legend to the right of the current axis
     ax.legend(loc='center left', bbox_to_anchor=(0.99, 0.5), frameon=False)
 
-    fig.tight_layout()
     return fig
