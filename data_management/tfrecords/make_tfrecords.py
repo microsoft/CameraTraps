@@ -12,17 +12,17 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 
 #%% Configurations
-dataset_name = 'calt-20'  # this needs to be exactly 7 letters long
+dataset_name = 'ss_sea1'  # this needs to be exactly 7 letters long
 
 # if the following two files are provided, only the tfrecord generation section will be executed
 tfrecord_format_json_path = None  # '/datadrive/megadetectorv3_tfrecords/intermediate/rspb_bboxes_20190409_tfrecord_format.json'
-split_file_path = '/beaver_disk/camtrap/caltech/benchmark/cct-20/CaltechCameraTrapsSplits_v0_benchmark.json' # None if no split files made yet
+split_file_path = '/beaver_disk/camtrap/ss_season1/benchmark/SnapshotSerengetiSplits_v0_benchmark.json' # None if no split files made yet
 
 # proceed to generate tfrecords if True
 generate_tfrecords = True
 
-database_path = '/beaver_disk/camtrap/caltech/benchmark/cct-20/caltech-20_bboxes_20190904_train.json'
-image_file_root = '/beaver_disk/camtrap/caltech/cct_images'
+database_path = '/beaver_disk/camtrap/ss_season1/benchmark/SnapshotSerengetiBboxesS01_20190903_train.json'
+image_file_root = '/home/marmot/camtrap/mnt/snapshot-serengeti-v2/SER'
 
 tfrecords_out_dir = '/beaver_disk/camtrap/benchmark_tfrecords'
 others_out_dir = '/beaver_disk/camtrap/benchmark_tfrecords/intermediate'  # where the tfrecord_format json and the splits will be written
