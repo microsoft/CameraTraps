@@ -1,7 +1,7 @@
 import copy
 import io
 import os
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 from datetime import datetime, timedelta
 import json
 
@@ -387,6 +387,12 @@ class AMLMonitor:
             'detection_categories': api_config.DETECTION_CATEGORIES,
             'images': all_detections
         }
+        # order the json output keys
+        detection_output_content = OrderedDict([
+                                                ('info', detection_output_content['info']),
+                                                ('detection_categories', detection_output_content['detection_categories']),
+                                                ('images', detection_output_content['images'])])
+
         detection_output_str = json.dumps(detection_output_content, indent=1)
 
         # upload aggregated results to output_store

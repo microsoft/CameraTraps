@@ -110,8 +110,8 @@ def request_detections():
     # check request_name has only allowed characters
     request_name = post_body.get('request_name', '')
     if request_name != '':
-        if len(request_name) > 32:
-            return _abort(400, 'request_name is longer than 32 characters.')
+        if len(request_name) > 92:
+            return _abort(400, 'request_name is longer than 92 characters.')
         allowed = set(string.ascii_letters + string.digits + '_' + '-')
         if not set(request_name) <= allowed:
             return _abort(400, 'request_name contains unallowed characters (only letters, digits, - and _ are allowed).')
