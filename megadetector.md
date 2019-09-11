@@ -37,7 +37,7 @@ We provide three ways to apply this model to new images:
 - To apply this model to larger image sets on a single machine, we recommend a slightly different script, [run_tf_detector_batch](https://github.com/Microsoft/CameraTraps/blob/master/detection/run_tf_detector_batch.py).  This outputs data in the same format as our [batch processing API](https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing), so you can leverage all of our post-processing tools.
 - Speaking of which, when we process loads of images from collaborators, we use our [batch processing API](https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing), which we can make available externally on request.  [Email us](mailto:cameratraps@microsoft.com) for more information.
 
-If you use the megadetector in a publication, please cite: 
+If you use the MegaDetector in a publication, please cite: 
 ```
 @article{beery2019efficient,
   title={Efficient Pipeline for Camera Trap Image Review},
