@@ -38,14 +38,14 @@ We provide three ways to apply this model to new images:
 - Speaking of which, when we process loads of images from collaborators, we use our [batch processing API](https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing), which we can make available externally on request.  [Email us](mailto:cameratraps@microsoft.com) for more information.
 
 If you use the megadetector in a publication, please cite: 
-'''
+```
 @article{beery2019efficient,
   title={Efficient Pipeline for Camera Trap Image Review},
   author={Beery, Sara and Morris, Dan and Yang, Siyu},
   journal={arXiv preprint arXiv:1907.06772},
   year={2019}
 }
-'''
+```
 
 
 ## Pretty picture
