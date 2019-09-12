@@ -4,10 +4,84 @@ import math
 import numpy as np
 from object_detection.utils import per_image_evaluation, metrics
 from tqdm import tqdm
+from sklearn.metrics import precision_recall_curve, average_precision_score, accuracy_score
 
 
-def compute_precision_recall(per_image_detections, per_image_gts, num_gt_classes,
-                             matching_iou_threshold=0.5):
+def compute_emptiness_accuracy(gt_db_indexed, detection_res, threshold=0.5):
+    gt = []
+    pred = []
+
+    for image_id, annotations in gt_db_indexed.image_id_to_annotations.items():
+        max_det_score = detection_res[image_id]['max_detection_conf']
+        pred_class = 0 if max_det_score < threshold else 1
+
+        pred.append(pred_class)
+
+        if len(annotations) > 0:
+            gt_score = 0
+            for a in annotations:
+                if 'bbox' in a:
+                    gt_score = 1  # not empty
+                    break
+            gt.append(gt_score)
+        else:
+            gt.append(0)  # empty
+    accuracy = accuracy_score(gt, pred)
+    return accuracy
+
+
+def compute_precision_recall_image(gt_db_indexed, detection_res):
+    """
+    For empty/non-empty classification based on max_detection_conf in detection entries.
+    Args:
+        gt_db_indexed: IndexedJsonDb of the ground truth bbox json.
+        detection_res: dict of image_id to image entry in the API output file's `images` field. The key needs to be
+        the same image_id as those in the ground truth json db.
+
+    Returns:
+        precisions, recalls, thresholds (confidence levels)
+    """
+    gt = []
+    pred = []
+
+    for image_id, annotations in gt_db_indexed.image_id_to_annotations.items():
+        det_image_obj = detection_res[image_id]
+
+        max_det_score = det_image_obj['max_detection_conf']
+        pred.append(max_det_score)
+
+        if len(annotations) > 0:
+            gt_score = 0
+            for a in annotations:
+                if 'bbox' in a:
+                    gt_score = 1  # not empty
+                    break
+            gt.append(gt_score)
+        else:
+            gt.append(0)  # empty
+
+
+    print('Length of gt and pred:', len(gt), len(pred))
+    precisions, recalls, thresholds = precision_recall_curve(gt, pred)
+    average_precision = average_precision_score(gt, pred)
+    return precisions, recalls, thresholds, average_precision
+
+
+def compute_precision_recall_bbox(per_image_detections, per_image_gts, num_gt_classes,
+                                  matching_iou_threshold=0.5):
+    """
+    Compute the precision and recall at each confidence level
+    Args:
+        per_image_detections: dict of image_id to a dict with fields `boxes`, `scores` and `labels`
+        per_image_gts: dict of image_id to a dict with fields `gt_boxes` and `gt_labels`
+        num_gt_classes: number of classes in the ground truth labels
+        matching_iou_threshold: IoU above which a detected and a ground truth box are considered overlapping
+
+    Returns:
+    A dict `per_cat_metrics`, where the keys are the possible gt classes and `one_class` which considers
+    all classes. Each key corresponds to a dict with the fields precision, recall, average_precision, etc.
+
+    """
     per_image_eval = per_image_evaluation.PerImageEvaluation(
         num_groundtruth_classes=num_gt_classes,
         matching_iou_threshold=matching_iou_threshold,
@@ -112,6 +186,75 @@ def compute_precision_recall(per_image_detections, per_image_gts, num_gt_classes
     return per_cat_metrics
 
 
+def get_per_image_gts_and_detections(gt_db_indexed, detection_res):
+    """
+    Group the detected and ground truth bounding boxes by image_id.
+
+    Args:
+        gt_db_indexed: IndexedJsonDb of the ground truth bbox json.
+        detection_res: dict of image_id to image entry in the API output file's `images` field. The key needs to be
+        the same image_id as those in the ground truth json db.
+
+    Returns:
+        per_image_gts: dict where the image_id is the key, corresponding to a dict with `gt_boxes` and
+            `gt_labels` for that image
+        per_image_detections: dict where the image_id is the key, corresponding to a dict with the detections'
+            `boxes`, `scores` and `labels` for that image
+    """
+    per_image_gts = {}
+    per_image_detections = {}
+
+    # iterate through each image in the gt file, not the detection file
+
+    for image_id, annotations in gt_db_indexed.image_id_to_annotations.items():
+        # ground truth
+        image_obj = gt_db_indexed.image_id_to_image[image_id]
+        im_h, im_w = image_obj['height'], image_obj['width']
+
+        gt_boxes = []
+        gt_labels = []
+
+        for gt_anno in annotations:
+            # convert gt box coordinates to TFODAPI format
+            gt_box_x, gt_box_y, gt_box_w, gt_box_h = gt_anno['bbox']
+            gt_y_min, gt_x_min = gt_box_y / im_h, gt_box_x / im_w
+            gt_y_max, gt_x_max = (gt_box_y + gt_box_h) / im_h, (gt_box_x + gt_box_w) / im_w
+            gt_boxes.append([gt_y_min, gt_x_min, gt_y_max, gt_x_max])
+
+            gt_labels.append(gt_anno['category_id'])
+
+        per_image_gts[image_id] = {
+            'gt_boxes': gt_boxes,
+            'gt_labels': gt_labels
+        }
+
+        # detections
+        det_image_obj = detection_res[image_id]
+
+        detection_boxes = []
+        detection_scores = []
+        detection_labels = []
+
+        for det in det_image_obj['detections']:
+            x_min, y_min, width_of_box, height_of_box = det['bbox']
+            y_max = y_min + height_of_box
+            x_max = x_min + width_of_box
+            detection_boxes.append([y_min, x_min, y_max, x_max])
+
+            detection_scores.append(det['conf'])
+            detection_labels.append(int(det['category']))
+
+        # only include a detection entry if that image had detections
+        if len(detection_boxes) > 0:
+            per_image_detections[image_id] = {
+                'boxes': detection_boxes,
+                'scores': detection_scores,
+                'labels': detection_labels
+            }
+
+    return per_image_gts, per_image_detections
+
+
 def find_mAP(per_cat_metrics):
     """
     Mean average precision, the mean of the average precision for each category
@@ -129,7 +272,7 @@ def find_mAP(per_cat_metrics):
     return mAP_from_cats
 
 
-def find_precision_at_recall(precision, recall, recall_level=0.9):
+def find_precision_at_recall(precision, recall, thresholds, recall_level=0.9):
     """ Returns the precision at a specified level of recall.
 
     Args:
@@ -145,11 +288,11 @@ def find_precision_at_recall(precision, recall, recall_level=0.9):
         print('Returning 0')
         return 0.0
 
-    for p, r in zip(precision, recall):
+    for p, r, t in zip(precision, recall, thresholds):
         if r is None or r < recall_level:
             continue
-        return p
+        return p, t
 
-    return 0.0  # recall level never reaches recall_level specified
+    return 0.0, t  # recall level never reaches recall_level specified
 
 
