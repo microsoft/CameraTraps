@@ -15,7 +15,7 @@ CLASSIFICATION_MODEL_PATHS = {
 }
 
 CLASSIFICATION_CLASS_NAMES = {
-    'serengeti': '/app/animal_detection_api/classnames/serengeti.txt'
+    'serengeti': '/app/animal_detection_api/classnames/serengeti.txt',
     'caltech': '/app/animal_detection_api/classnames/caltech.txt'
 }
 
