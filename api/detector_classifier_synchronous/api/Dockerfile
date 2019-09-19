@@ -23,7 +23,7 @@ COPY ./startup.sh /
 RUN chmod +x /startup.sh
 
 # Copy your API code
-COPY ./animal_detection_api /app/animal_detection_api/
+COPY ./animal_detection_classification_api /app/animal_detection_classification_api/
 
 # Add this API directory to PYTHONPATH
 ENV PYTHONPATH="${PYTHONPATH}:/app/"
@@ -37,12 +37,12 @@ ENV APPINSIGHTS_INSTRUMENTATIONKEY= \
 # The following variables will allow you to filter logs in AppInsights
 ENV SERVICE_OWNER="AI4E_camera_trap" \
     SERVICE_CLUSTER="Local Docker" \
-    SERVICE_MODEL_NAME="camera-trap-detection-sync" \
+    SERVICE_MODEL_NAME="camera-trap-detection-classification-sync" \
     SERVICE_MODEL_FRAMEWORK=Python \
     SERVICE_MODEL_FRAMEOWRK_VERSION=3.6.6 \
     SERVICE_MODEL_VERSION=0.1.0
 
-ENV API_PREFIX=/v1/camera-trap/detection-classifier-sync
+ENV API_PREFIX=/v1/camera-trap/detection-classification-sync
 
 # Expose the port that is to be used when calling your API
 EXPOSE 8000
