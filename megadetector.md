@@ -1,6 +1,10 @@
 ## MegaDetector overview
 
-This page hosts a model we&rsquo;ve trained to detect (but not identify) animals in camera trap images, using several hundred thousand bounding boxes from a variety of ecosystems.  The current model is based on Faster-RCNN with an InceptionResNetv2 base network, and was trained with the TensorFlow Object Detection API.  We use this model as our first stage for classifier training and inference.
+Conservation biologists invest a huge amount of time reviewing camera trap images, and &ndash; even worse &ndash; a huge fraction of that time is spent reviewing images they aren&rsquo;t interested in.  This primarily includes empty images, but for many projects, images of people and vehicles are also &ldquo;noise&rdquo;, or at least need to be handled separately from animals.
+
+<i>Machine learning can accelerate this process, letting biologists spend their time on the images that matter.</i>
+
+To this end, this page hosts a model we&rsquo;ve trained to detect animals, people, and vehicles in camera trap images, using several hundred thousand bounding boxes from a variety of ecosystems.  It does not identify animals, it just finds them.  The current model is based on Faster-RCNN with an InceptionResNetv2 base network, and was trained with the TensorFlow Object Detection API.  We use this model as our first stage for classifier training and inference.
 
 ## Downloading the model(s)
 
@@ -47,6 +51,9 @@ If you use the MegaDetector in a publication, please cite:
 }
 ```
 
+## Tell me more about why detectors are a good first step for camera trap images
+
+Can do!  See these &ldquo;<a href="http://dmorris.net/misc/cameratraps/ai4e_camera_traps_overview">slides</a>&rdquo;.
 
 ## Pretty picture
 
