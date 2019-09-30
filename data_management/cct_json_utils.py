@@ -72,7 +72,7 @@ class CameraTrapJsonUtils:
         includes entries in the original `db` that are in the `locations` set.
         Args:
             db: a dict representing a JSON database in the COCO Camera Trap format
-            locations: a set or list of locations to include
+            locations: a set or list of locations to include; each item is a string
 
         Returns:
             a dict with the 'images' and 'annotations' fields in the CCT format
@@ -85,7 +85,8 @@ class CameraTrapJsonUtils:
         }
         new_images = set()
         for i in db['images']:
-            if i['location'] in locations:
+            # cast location to string as the entries in locations are strings
+            if str(i['location']) in locations:
                 new_db['images'].append(i)
                 new_images.add(i['id'])
         for a in db['annotations']:
