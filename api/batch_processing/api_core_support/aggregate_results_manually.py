@@ -28,7 +28,7 @@ def main():
     parser.add_argument('request_id', type=str,
                         help='the request ID to restart monitoring')
     parser.add_argument('model_version', type=str, help='version of megadetector used; this is used to fill in the meta info section of the output file')
-    parser.add_argument('request_name', type=str, help='easy to remember name for that job, optional', default='')
+    parser.add_argument('--request_name', type=str, help='easy to remember name for that job, optional', default='')
     args = parser.parse_args()
 
 
