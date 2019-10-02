@@ -4,9 +4,9 @@
 # aggregate results from each shard using this script, assuming all jobs submitted to AML have finished.
 #
 # Need to have set environment variables STORAGE_ACCOUNT_NAME and STORAGE_ACCOUNT_KEY to those of the
-# storage account backing the API. Also need to adjust the INTERNAL_CONTAINER and AML_CONTAINER in
-# AML_CONFIG in api_core/orchestrator_api/api_config.py to match the instance of the API that this request
-# was submitted to.
+# storage account backing the API. Also need to adjust the INTERNAL_CONTAINER, AML_CONTAINER and
+# AML_CONFIG fields in api_core/orchestrator_api/api_config.py to match the instance of the API that this
+# request was submitted to.
 #
 # May need to change the import statement in api_core/orchestrator_api/orchestrator.py
 # "from sas_blob_utils import SasBlob" to
@@ -14,11 +14,10 @@
 # and change "import api_config" to
 # "from api.batch_processing.api_core.orchestrator_api import api_config"
 
+# Execute this script from the root of the repository. You may need to add the repository to PYTHONPATH.
+
 import argparse
 import json
-import sys
-
-sys.path.append('./api_core/detector_batch_processing/api/orchestrator_api')
 
 from api.batch_processing.api_core.orchestrator_api.orchestrator import AMLMonitor
 
@@ -28,7 +27,7 @@ def main():
     parser.add_argument('request_id', type=str,
                         help='the request ID to restart monitoring')
     parser.add_argument('model_version', type=str, help='version of megadetector used; this is used to fill in the meta info section of the output file')
-    parser.add_argument('--request_name', type=str, help='easy to remember name for that job, optional', default='')
+    parser.add_argument('request_name', type=str, help='easy to remember name for that job, optional', default='')
     args = parser.parse_args()
 
 
