@@ -65,6 +65,23 @@ class CameraTrapJsonUtils:
         return ordered
 
     @staticmethod
+    def annotations_groupby_image_field(db_indexed, image_field='seq_id'):
+        """
+        Given an instance of IndexedJsonDb, group annotation entries by a field in the
+        image entry.
+        """
+        image_id_to_image_field = {}
+        for image_id, image_entry in db_indexed.image_id_to_image.items():
+            image_id_to_image_field[image_id] = image_entry[image_field]
+
+        res = defaultdict(list)
+        for annotations in db_indexed.image_id_to_annotations.values():
+            for annotation_entry in annotations:
+                field_value = image_id_to_image_field[annotation_entry['image_id']]
+                res[field_value].append(annotation_entry)
+        return res
+
+    @staticmethod
     def get_entries_from_locations(db, locations):
         """
         Given a dict representing a JSON database in the COCO Camera Trap format, return a dict
@@ -105,6 +122,50 @@ class IndexedJsonDb:
     a .json database.
     """
 
+    def __init__(self, json_filename, b_normalize_paths=False, filename_replacements={}):
+        '''
+        json_filename can also be an existing json db
+        '''
+
+        if isinstance(json_filename, str):
+            self.db = json.load(open(json_filename))
+        else:
+            self.db = json_filename
+
+        assert 'images' in self.db, 'Could not find image list in file {}, are you sure this is a COCO camera traps file?'.format(
+            json_filename)
+
+        if b_normalize_paths:
+            # Normalize paths to simplify comparisons later
+            for im in self.db['images']:
+                im['file_name'] = os.path.normpath(im['file_name'])
+
+        for s in filename_replacements:
+            r = filename_replacements[s]
+            for im in self.db['images']:
+                im['file_name'] = im['file_name'].replace(s, r)
+
+        ### Build useful mappings to facilitate working with the DB
+
+        # Category ID <--> name
+        self.cat_id_to_name = {cat['id']: cat['name'] for cat in self.db['categories']}
+        self.cat_name_to_id = {cat['name']: cat['id'] for cat in self.db['categories']}
+
+        # Image filename --> ID
+        self.filename_to_id = {im['file_name']: im['id'] for im in self.db['images']}
+
+        # Each image can potentially multiple annotations, hence using lists
+        self.image_id_to_annotations = defaultdict(list)
+
+        # Image ID --> image object
+        self.image_id_to_image = {im['id']: im for im in self.db['images']}
+
+        # Image ID --> annotations
+        for ann in self.db['annotations']:
+            self.image_id_to_annotations[ann['image_id']].append(ann)
+
+    # ...__init__
+
     def get_annotations_for_image(self, image):
         """
         Returns a list of annotations associated with [image]
@@ -144,49 +205,5 @@ class IndexedJsonDb:
         class_names = [self.cat_id_to_name[x] for x in class_ids]
         
         return class_names
-        
-        
-    def __init__(self, json_filename, b_normalize_paths=False, filename_replacements={}):
-        '''
-        json_filename can also be an existing json db
-        '''
-        
-        if isinstance(json_filename,str):
-            self.db = json.load(open(json_filename))
-        else:
-            self.db = json_filename
-    
-        assert 'images' in self.db, 'Could not find image list in file {}, are you sure this is a COCO camera traps file?'.format(json_filename)
-        
-        if b_normalize_paths:
-            # Normalize paths to simplify comparisons later
-            for im in self.db['images']:
-                im['file_name'] = os.path.normpath(im['file_name'])
-
-        for s in filename_replacements:
-            r = filename_replacements[s]
-            for im in self.db['images']:
-                im['file_name'] = im['file_name'].replace(s, r)
-        
-        ### Build useful mappings to facilitate working with the DB
-
-        # Category ID <--> name
-        self.cat_id_to_name = {cat['id']: cat['name'] for cat in self.db['categories']}
-        self.cat_name_to_id = {cat['name']: cat['id'] for cat in self.db['categories']}
-
-        # Image filename --> ID
-        self.filename_to_id = {im['file_name']: im['id'] for im in self.db['images']}
-
-        # Each image can potentially multiple annotations, hence using lists
-        self.image_id_to_annotations = defaultdict(list)
-
-        # Image ID --> image object
-        self.image_id_to_image = {im['id']: im for im in self.db['images']}
-        
-        # Image ID --> annotations
-        for ann in self.db['annotations']:
-            self.image_id_to_annotations[ann['image_id']].append(ann)
-
-    # ...__init__
 
 # ...class IndexedJsonDb
