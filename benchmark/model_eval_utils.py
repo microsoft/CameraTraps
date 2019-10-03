@@ -154,6 +154,18 @@ def pred_seq_max_conf(detector_output_images_entries):
     return max([entry['max_detection_conf'] for entry in detector_output_images_entries])
 
 
+def get_number_empty_seq(gt_db_indexed):
+    gt_seq_id_to_annotations = CameraTrapJsonUtils.annotations_groupby_image_field(gt_db_indexed, image_field='seq_id')
+    empty_category_id_in_gt = gt_db_indexed.cat_name_to_id['empty']
+    gt_seq_level = []
+    for seq_id, seq_annotations in gt_seq_id_to_annotations.items():
+        gt_seq_level.append(is_gt_seq_non_empty(seq_annotations, empty_category_id_in_gt))
+
+    total = len(gt_seq_level)
+    num_empty = total - sum(gt_seq_level)
+    print('There are {} sequences, {} are empty, which is {}%'.format(total, num_empty, 100 * num_empty / total))
+
+
 def empty_accuracy_seq_level(gt_db_indexed, detector_output_path, file_to_image_id, threshold=0.5):
     """ Ground truth label is empty if the fine-category label on all images in this sequence are "empty"
 
@@ -164,7 +176,6 @@ def empty_accuracy_seq_level(gt_db_indexed, detector_output_path, file_to_image_
     Returns:
 
     """
-    print('Grouping GT and prediction results by seq_id')
     gt_seq_id_to_annotations = CameraTrapJsonUtils.annotations_groupby_image_field(gt_db_indexed, image_field='seq_id')
     pred_seq_id_to_res = load_api_results.api_results_groupby(detector_output_path, gt_db_indexed,
                                                               file_to_image_id)
@@ -182,7 +193,6 @@ def empty_accuracy_seq_level(gt_db_indexed, detector_output_path, file_to_image_
     print('Number of sequences not in both gt and pred: {}'.format(len(diff)))
 
     intersection_sequences = gt_sequences.intersection(pred_sequences)
-    print('Evaluating results on {} sequences'.format(len(intersection_sequences)))
 
     for seq_id in intersection_sequences:
         gt_seq_level.append(is_gt_seq_non_empty(gt_seq_id_to_annotations[seq_id], empty_category_id_in_gt))

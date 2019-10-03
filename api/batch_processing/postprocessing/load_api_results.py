@@ -27,7 +27,7 @@ def ss_file_to_file_name(f):
 
 
 def caltech_file_to_file_name(f):
-    return f.split('cct-images/')[1].split('.')[0]
+    return f.split('cct_images/')[1].split('.')[0]
 
 
 def api_results_groupby(api_output_path, gt_db_indexed, file_to_image_id, field='seq_id'):
