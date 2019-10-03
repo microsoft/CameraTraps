@@ -74,6 +74,21 @@ def resize_image(image, target_width, target_height=-1):
     return resized_image
 
 
+def show_images_in_a_row(images):
+    num = len(images)
+    assert num > 0
+
+    if isinstance(images[0], str):
+        images = [Image.open(img) for img in images]
+
+    fig, axarr = plt.subplots(1, num, squeeze=False)  # number of rows, number of columns
+    fig.set_size_inches((num * 5, 25))  # each image is 2 inches wide
+    for i, img in enumerate(images):
+        axarr[0, i].set_axis_off()
+        axarr[0, i].imshow(img)
+    return fig
+
+
 def render_iMerit_boxes(boxes, classes, image,
                         label_map=annotation_constants.bbox_category_id_to_name):
     """
@@ -458,9 +473,9 @@ def plot_confusion_matrix(matrix, classes,
     for i, j in np.ndindex(matrix.shape):
 
         plt.text(j, i, '{:.0f}%'.format(matrix[i, j]*100),
-                 horizontalalignment="center",
-                 verticalalignment="center",
-                 color="white" if matrix[i, j] > 0.5 else "black",
+                 horizontalalignment='center',
+                 verticalalignment='center',
+                 color='white' if matrix[i, j] > 0.5 else 'black',
                 fontsize='x-small')
 
     if y_label:
