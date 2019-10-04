@@ -1,6 +1,10 @@
 ## MegaDetector overview
 
-This page hosts a model we&rsquo;ve trained to detect (but not identify) animals in camera trap images, using several hundred thousand bounding boxes from a variety of ecosystems.  The current model is based on Faster-RCNN with an InceptionResNetv2 base network, and was trained with the TensorFlow Object Detection API.  We use this model as our first stage for classifier training and inference.
+Conservation biologists invest a huge amount of time reviewing camera trap images, and &ndash; even worse &ndash; a huge fraction of that time is spent reviewing images they aren&rsquo;t interested in.  This primarily includes empty images, but for many projects, images of people and vehicles are also &ldquo;noise&rdquo;, or at least need to be handled separately from animals.
+
+<i>Machine learning can accelerate this process, letting biologists spend their time on the images that matter.</i>
+
+To this end, this page hosts a model we&rsquo;ve trained to detect animals, people, and vehicles in camera trap images, using several hundred thousand bounding boxes from a variety of ecosystems.  It does not identify animals, it just finds them.  The current model is based on Faster-RCNN with an InceptionResNetv2 base network, and was trained with the TensorFlow Object Detection API.  We use this model as our first stage for classifier training and inference.
 
 ## Downloading the model(s)
 
@@ -37,6 +41,19 @@ We provide three ways to apply this model to new images:
 - To apply this model to larger image sets on a single machine, we recommend a slightly different script, [run_tf_detector_batch](https://github.com/Microsoft/CameraTraps/blob/master/detection/run_tf_detector_batch.py).  This outputs data in the same format as our [batch processing API](https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing), so you can leverage all of our post-processing tools.
 - Speaking of which, when we process loads of images from collaborators, we use our [batch processing API](https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing), which we can make available externally on request.  [Email us](mailto:cameratraps@microsoft.com) for more information.
 
+If you use the MegaDetector in a publication, please cite: 
+```
+@article{beery2019efficient,
+  title={Efficient Pipeline for Camera Trap Image Review},
+  author={Beery, Sara and Morris, Dan and Yang, Siyu},
+  journal={arXiv preprint arXiv:1907.06772},
+  year={2019}
+}
+```
+
+## Tell me more about why detectors are a good first step for camera trap images
+
+Can do!  See these &ldquo;<a href="http://dmorris.net/misc/cameratraps/ai4e_camera_traps_overview">slides</a>&rdquo;.
 
 ## Pretty picture
 
