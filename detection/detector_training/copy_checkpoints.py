@@ -11,7 +11,7 @@ import shutil
 
 check_every_n_minutes = 10
 
-source_dir = '/datadrive/megadetectorv3/experiments/0425'
+source_dir = '/datadrive/megadetectorv3/experiments/190425'
 target_dir = '/datadrive/megadetectorv3/experiments/0425_checkpoints'
 
 os.makedirs(target_dir, exist_ok=True)

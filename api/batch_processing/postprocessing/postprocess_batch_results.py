@@ -43,10 +43,10 @@ import matplotlib
 matplotlib.use('agg')
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 from sklearn.metrics import precision_recall_curve, confusion_matrix, average_precision_score
 from tqdm import tqdm
 import humanfriendly
+import pandas as pd
 
 # Assumes ai4eutils is on the python path
 # https://github.com/Microsoft/ai4eutils
@@ -199,6 +199,7 @@ def mark_detection_status(indexed_db, negative_classes=DEFAULT_NEGATIVE_CLASSES,
 
         # Check if image has unassigned-type labels
         image_has_unknown_labels = has_overlap(image_category_names, unknown_classes)
+        assert image_has_unknown_labels is False, '{} has unknown labels'.format(annotations)
         # Check if image has negative-type labels
         image_has_negative_labels = has_overlap(image_category_names, negative_classes)
         # Check if image has positive labels
@@ -206,11 +207,13 @@ def mark_detection_status(indexed_db, negative_classes=DEFAULT_NEGATIVE_CLASSES,
         # there are still labels left
         image_has_positive_labels = 0 < len(image_category_names - unknown_classes - negative_classes)
 
-        # If there are no image annotations, the result is unknonw
+        # If there are no image annotations, the result is unknown
         if len(image_categories) == 0:
+            # n_unknown += 1
+            # im['_detection_status'] = DetectionStatus.DS_UNKNOWN
 
-            n_unknown += 1
-            im['_detection_status'] = DetectionStatus.DS_UNKNOWN
+            n_negative += 1
+            im['_detection_status'] = DetectionStatus.DS_NEGATIVE
 
         # If the image has more than one type of labels, it's ambiguous
         # note: booleans get automatically converted to 0/1, hence we can use the sum
