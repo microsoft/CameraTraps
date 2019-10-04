@@ -4,73 +4,15 @@ import math
 import numpy as np
 from object_detection.utils import per_image_evaluation, metrics
 from tqdm import tqdm
-from sklearn.metrics import precision_recall_curve, average_precision_score, accuracy_score
 
-
-def compute_emptiness_accuracy(gt_db_indexed, detection_res, threshold=0.5):
-    gt = []
-    pred = []
-
-    for image_id, annotations in gt_db_indexed.image_id_to_annotations.items():
-        max_det_score = detection_res[image_id]['max_detection_conf']
-        pred_class = 0 if max_det_score < threshold else 1
-
-        pred.append(pred_class)
-
-        if len(annotations) > 0:
-            gt_score = 0
-            for a in annotations:
-                if 'bbox' in a:
-                    gt_score = 1  # not empty
-                    break
-            gt.append(gt_score)
-        else:
-            gt.append(0)  # empty
-    accuracy = accuracy_score(gt, pred)
-    return accuracy
-
-
-def compute_precision_recall_image(gt_db_indexed, detection_res):
-    """
-    For empty/non-empty classification based on max_detection_conf in detection entries.
-    Args:
-        gt_db_indexed: IndexedJsonDb of the ground truth bbox json.
-        detection_res: dict of image_id to image entry in the API output file's `images` field. The key needs to be
-        the same image_id as those in the ground truth json db.
-
-    Returns:
-        precisions, recalls, thresholds (confidence levels)
-    """
-    gt = []
-    pred = []
-
-    for image_id, annotations in gt_db_indexed.image_id_to_annotations.items():
-        det_image_obj = detection_res[image_id]
-
-        max_det_score = det_image_obj['max_detection_conf']
-        pred.append(max_det_score)
-
-        if len(annotations) > 0:
-            gt_score = 0
-            for a in annotations:
-                if 'bbox' in a:
-                    gt_score = 1  # not empty
-                    break
-            gt.append(gt_score)
-        else:
-            gt.append(0)  # empty
-
-
-    print('Length of gt and pred:', len(gt), len(pred))
-    precisions, recalls, thresholds = precision_recall_curve(gt, pred)
-    average_precision = average_precision_score(gt, pred)
-    return precisions, recalls, thresholds, average_precision
+# This file contains functions for evaluating detectors on detection tasks.
+# See benchmark/model_eval_utils.py for functions to evaluate on more generic tasks.
 
 
 def compute_precision_recall_bbox(per_image_detections, per_image_gts, num_gt_classes,
                                   matching_iou_threshold=0.5):
     """
-    Compute the precision and recall at each confidence level
+    Compute the precision and recall at each confidence level for detection results of various classes.
     Args:
         per_image_detections: dict of image_id to a dict with fields `boxes`, `scores` and `labels`
         per_image_gts: dict of image_id to a dict with fields `gt_boxes` and `gt_labels`
@@ -272,27 +214,6 @@ def find_mAP(per_cat_metrics):
     return mAP_from_cats
 
 
-def find_precision_at_recall(precision, recall, thresholds, recall_level=0.9):
-    """ Returns the precision at a specified level of recall.
 
-    Args:
-        precision: List of precisions for each confidence
-        recall: List of recalls for each confidence, paired with items in the `precision` list
-        recall_level: A float between 0 and 1.0, the level of recall to retrieve precision at.
-
-    Returns:
-        precision at the specified recall_level
-    """
-
-    if precision is None or recall is None:
-        print('Returning 0')
-        return 0.0
-
-    for p, r, t in zip(precision, recall, thresholds):
-        if r is None or r < recall_level:
-            continue
-        return p, t
-
-    return 0.0, t  # recall level never reaches recall_level specified
 
 
