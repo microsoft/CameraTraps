@@ -2,6 +2,7 @@
 # load_api_results.py
 #
 # Loads the output of the batch processing API (json).
+# Also functions to group entries by seq_id.
 #
 # Includes the deprecated functions that worked with the old CSV API output format.
 #
@@ -11,19 +12,59 @@
 import pandas as pd
 import json
 import os
+from collections import defaultdict
 
 headers = ['image_path', 'max_confidence', 'detections']
 
 
-#%% Functions
+#%% Functions for grouping by sequence_id
 
-def load_api_results(api_output_filename, normalize_paths=True, filename_replacements={}):
+def ss_file_to_file_name(f):
+    # example
+    # input 'file': 'SER/S1/F08/F08_R3/S1_F08_R3_PICT1150.JPG'
+    # output 'id': 'S1/F08/F08_R3/S1_F08_R3_PICT1150.JPG'
+    return f.split('SER/')[1].split('.JPG')[0]
+
+
+def caltech_file_to_file_name(f):
+    return f.split('cct_images/')[1].split('.')[0]
+
+
+def api_results_groupby(api_output_path, gt_db_indexed, file_to_image_id, field='seq_id'):
+    """
+    Given the output file of the API, groupby (currently only seq_id).
+    Args:
+        api_output_path: path to the API output json file
+        gt_db_indexed: an instance of IndexedJsonDb so we know the seq_id to image_id mapping
+        file_to_image_id: a function that takes in the 'file' field in 'images' in the detector
+            output file and converts it to the 'id' field in the gt DB.
+        field: which field in the 'images' array to group by
+
+    Returns:
+    A dict where the keys are of the field requested, each points to an array
+    containing entries in the 'images' section of the output file
+    """
+
+    with open(api_output_path) as f:
+        detection_results = json.load(f)
+
+    res = defaultdict(list)
+    for i in detection_results['images']:
+        image_id = file_to_image_id(i['file'])
+        field_val = gt_db_indexed.image_id_to_image[image_id][field]
+        res[field_val].append(i)
+    return res
+
+
+#%% Functions for loading the result as a Pandas DataFrame
+
+def load_api_results(api_output_path, normalize_paths=True, filename_replacements={}):
     """
     Loads the json formatted results from the batch processing API to a Pandas DataFrame, mainly useful for
     various postprocessing functions.
 
     Args:
-        api_output_filename: path to the API output json file
+        api_output_path: path to the API output json file
         normalize_paths: whether to apply os.path.normpath to the 'file' field in each image entry in the output file
         filename_replacements: replace some path tokens to match local paths to the original blob structure
 
@@ -34,12 +75,12 @@ def load_api_results(api_output_filename, normalize_paths=True, filename_replace
         other_fields: a dict containing fields in the dict
     """
     
-    print('Loading API results from {}'.format(api_output_filename))
+    print('Loading API results from {}'.format(api_output_path))
 
-    with open(api_output_filename) as f:
+    with open(api_output_path) as f:
         detection_results = json.load(f)
 
-    print('De-serializing API results from {}'.format(api_output_filename))
+    print('De-serializing API results from {}'.format(api_output_path))
 
     # Sanity-check that this is really a detector output file
     for s in ['info', 'detection_categories', 'images']:
@@ -77,7 +118,7 @@ def load_api_results(api_output_filename, normalize_paths=True, filename_replace
             detection_results.at[i_row, 'file'] = fn
 
     print('Finished loading and de-serializing API results for {} images from {}'.format(len(detection_results),
-                                                                                         api_output_filename))
+                                                                                         api_output_path))
 
     return detection_results, other_fields
 
