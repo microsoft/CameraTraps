@@ -7,7 +7,7 @@ import numpy as np
 import PIL
 import tqdm
 import math
-from animal_detection_api import api_config
+from animal_detection_classification_api import api_config
 
 class TFClassifier(object):
     def __init__(self, checkpoints, class_names):
@@ -34,8 +34,6 @@ class TFClassifier(object):
 
             # Number of significant float digits in JSON output
             self.num_significant_digits = api_config.NUM_SIGNIFICANT_DIGITS
-
-
 
 
     def load_model(self, checkpoint):
@@ -133,9 +131,7 @@ class TFClassifier(object):
                         if not str(cur_detection[5]) in self.detection_category_whitelist:
                             continue
 
-                        
-
-                        #box ymin, xim, ymax, xmax
+                        # box ymin, xim, ymax, xmax
                         x_min = cur_detection[1]
                         y_min = cur_detection[0]
                         width_of_box = cur_detection[1] + cur_detection[3]
@@ -175,7 +171,6 @@ class TFClassifier(object):
                                 
 
                         classification_predictions[image_names[i_image]].append(current_predicitions)
-
                         
         return classification_predictions
     

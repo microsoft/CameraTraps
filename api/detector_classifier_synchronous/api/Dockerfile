@@ -1,6 +1,7 @@
 ### Docker container setup
 
-# Pull in the AI for Earth Base Image, so we can extract necessary libraries.
+# Pull in the AI for Earth Base Image, so we can extract necessary libraries
+# Look up the available versions of the base image at https://hub.docker.com/_/microsoft-aiforearth-base-py
 FROM mcr.microsoft.com/aiforearth/base-py:1.8-cuda-9.0-runtime as ai4e_base
 
 ENV PATH /usr/local/envs/ai4e_py_api/bin:$PATH

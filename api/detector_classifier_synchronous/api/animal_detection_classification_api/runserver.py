@@ -28,7 +28,7 @@ log = AI4EAppInsights()
 with app.app_context():
     ai4e_service = APIService(app, log)
 
-detector = TFDetector(api_config.MODEL_PATH)
+detector = TFDetector(api_config.DETECTOR_MODEL_PATH)
 classifier = TFClassifier(api_config.CLASSIFICATION_MODEL_PATHS, api_config.CLASSIFICATION_CLASS_NAMES)
 
 
@@ -37,7 +37,6 @@ classifier = TFClassifier(api_config.CLASSIFICATION_MODEL_PATHS, api_config.CLAS
 def _detect_process_request_data(request):
     files = request.files
     params = request.args
-
     
     # check that the content uploaded is not too big
     # request.content_length is the length of the total payload
@@ -64,24 +63,19 @@ def _detect_process_request_data(request):
     num_images = sum([1 if file.content_type in api_config.IMAGE_CONTENT_TYPES else 0 for file in files.values()])
     print('runserver, post_detect_sync, number of images received: ', num_images)
     if num_images > api_config.MAX_IMAGES_ACCEPTED:
-        abort(413,
-                      'Too many images. Maximum number of images that can be processed in one call is {}.'.format(str(
+        abort(413, 'Too many images. Maximum number of images that can be processed in one call is {}.'.format(str(
                         api_config.MAX_IMAGES_ACCEPTED)))
     elif num_images == 0:
         abort(400, 'No image(s) of accepted types (image/jpeg, image/png, application/octet-stream) received.')
 
+    # check if classification is requested and if so, which classifier to use
     if 'classification' in params:
         classification = params['classification']
 
         if classification not in api_config.CLASSIFICATION_CLASS_NAMES.keys():
             error_message = 'Classification name provided is not supported, The classifiers supported are {}'\
                 .format(str(list(api_config.CLASSIFICATION_CLASS_NAMES.keys())).replace('[', '').replace(']', ''))
-
-            abort(413, error_message)
-
-            return make_response(jsonify({'error', error_message}), 500)
-
-            
+            abort(400, error_message)
     else:
         classification = None
 
@@ -162,7 +156,7 @@ def detect_sync(*args, **kwargs):
         abort(500, 'Error consolidating the detection boxes: ' + str(e))
 
 
-    #classification
+    # classification
     try:
         if classification:
             print('runserver, classification...')
@@ -224,9 +218,10 @@ def detect_sync(*args, **kwargs):
                             trace_name='get:get_model_detector_version')
 def get_model_detector_version(*args, **kwargs):
     try:
-        return api_config.MODEL_VERSION
+        return api_config.DETECTOR_MODEL_VERSION
     except Exception as e:
-        return 'Detection Model version unknown. Error: {}'.format(str(e))
+        return 'Detection model version unknown. Error: {}'.format(str(e))
+
 
 @ai4e_service.api_sync_func(api_path='/supported_classifiers',
                             methods=['GET'],

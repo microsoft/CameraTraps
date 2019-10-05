@@ -5,9 +5,9 @@ info:
     time.
   version: 0.2.0
 paths:
-  /model_version:
+  /detector_model_version:
     get:
-      summary: Returns the detector model version.
+      summary: Returns the detector model's version.
       description: |
         Returns a string indicating the version of the model currently used by
         this API.

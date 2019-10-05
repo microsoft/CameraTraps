@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 from PIL import Image, ImageDraw, ImageFont
 
-from animal_detection_api import api_config
+from animal_detection_classification_api import api_config
 
 tf.logging.set_verbosity(tf.logging.ERROR)
 
