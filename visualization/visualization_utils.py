@@ -176,6 +176,7 @@ def render_detection_bounding_boxes(detections, image,
     API output version 1.0.
 
     Args:
+        
         detections: detections on the image, example content:
             [
                 {
@@ -189,7 +190,11 @@ def render_detection_bounding_boxes(detections, image,
                     ]
                 }
             ]
-            where the bbox coordinates are [x, y, width_box, height_box], (x, y) is upper left.
+            
+            ...where the bbox coordinates are [x, y, box_width, box_height].
+            
+            (0, 0) is the upper-left.  Coordinates are normalized.
+            
             Supports classification results, if *detections* have the format
             [
                 {
@@ -208,13 +213,18 @@ def render_detection_bounding_boxes(detections, image,
                     ]
                 }
             ]
+        
         image: PIL.Image object, output of generate_detections.
+        
         label_map: optional, mapping the numerical label to a string name. The type of the numerical label
             (default string) needs to be consistent with the keys in label_map; no casting is carried out.
+        
         classification_label_map: optional, mapping of the string class labels to the actual class names.
             The type of the numerical label (default string) needs to be consistent with the keys in
             label_map; no casting is carried out.
+        
         confidence_threshold: optional, threshold above which the bounding box is rendered.
+        
         thickness: optional, rendering line thickness.
 
     image is modified in place.
@@ -272,10 +282,10 @@ def render_detection_bounding_boxes(detections, image,
 # https://github.com/tensorflow/models/blob/master/research/object_detection/utils/visualization_utils.py
 
 COLORS = [
-    'AliceBlue', 'Red', 'RoyalBlue', 'Gold', 'Chartreuse', 'Aqua',  'Azure', 'Beige', 'Bisque',
-    'BlanchedAlmond', 'BlueViolet', 'BurlyWood', 'CadetBlue', 'AntiqueWhite',
-    'Chocolate', 'Coral', 'CornflowerBlue', 'Cornsilk', 'Crimson', 'Cyan',
-    'DarkCyan', 'DarkGoldenRod', 'DarkGrey', 'DarkKhaki', 'DarkOrange',
+    'AliceBlue', 'Red', 'RoyalBlue', 'Gold', 'Chartreuse', 'Aqua',  'Azure', 
+    'Beige', 'Bisque', 'BlanchedAlmond', 'BlueViolet', 'BurlyWood', 'CadetBlue',
+    'AntiqueWhite', 'Chocolate', 'Coral', 'CornflowerBlue', 'Cornsilk', 'Crimson',
+    'Cyan', 'DarkCyan', 'DarkGoldenRod', 'DarkGrey', 'DarkKhaki', 'DarkOrange',
     'DarkOrchid', 'DarkSalmon', 'DarkSeaGreen', 'DarkTurquoise', 'DarkViolet',
     'DeepPink', 'DeepSkyBlue', 'DodgerBlue', 'FireBrick', 'FloralWhite',
     'ForestGreen', 'Fuchsia', 'Gainsboro', 'GhostWhite', 'GoldenRod',
