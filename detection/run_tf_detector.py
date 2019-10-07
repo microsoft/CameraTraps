@@ -80,14 +80,13 @@ bbox_categories = [
     {'id': 4, 'name': 'vehicle'}
 ]
 
-bbox_category_id_to_name = {}
-bbox_category_name_to_id = {}
+bbox_category_str_id_to_name = {}
 
+# As this table is used in this file, we will be mapping string-formatted integers to
+# class names
 for cat in bbox_categories:
-    bbox_category_id_to_name[cat['id']] = cat['name']
-    bbox_category_name_to_id[cat['name']] = cat['id']
-
-
+    bbox_category_str_id_to_name[str([cat['id']])] = cat['name']
+    
 #%% Core detection functions
 
 def load_model(checkpoint):
@@ -568,28 +567,68 @@ def render_bounding_boxes(boxes, scores, classes, inputFileNames, outputFileName
 
     USE_VIS_UTILS_RENDERING = True
     
-    if USE_VIS_UTILS_RENDERING:
+    nImages = len(inputFileNames)
+    iImage = 0
+
+    for iImage in range(0,nImages):
+
+        inputFileName = inputFileNames[iImage]
+
+        if iImage >= len(outputFileNames):
+            outputFileName = ''
+        else:
+            outputFileName = outputFileNames[iImage]
+
+        if len(outputFileName) == 0:
+            name, ext = os.path.splitext(inputFileName)
+            outputFileName = "{}{}{}".format(name,DETECTION_FILENAME_INSERT,ext)
+
+        if USE_VIS_UTILS_RENDERING:
         
-        pass
-    
-    else:
+            """
+            def render_detection_bounding_boxes(detections, image,
+                                        label_map={},
+                                        classification_label_map={},
+                                        confidence_threshold=0.8, thickness=4,
+                                        classification_confidence_threshold=0.3,
+                                        max_classifications=3):
+            """
+            """
+            detections: detections on the image, example content:
+            [
+                {
+                    "category": "2",
+                    "conf": 0.996,
+                    "bbox": [
+                        0.0,
+                        0.2762,
+                        0.1234,
+                        0.2458
+                    ]
+                }
+            ]
+
+            ...where the bbox coordinates are [x, y, box_width, box_height].
+            
+            (0, 0) is the upper-left.  Coordinates are normalized.
+            """
+            image = PIL.Image.open(inputFileName).convert("RGB")
+            detections = []
+            for iBox in range(0,len(boxes)):
+                bbox = [0,0,0.25,0.5] # boxes[iImage][iBox]
+                detections.append({'category':str(classes[iImage][iBox]),
+                          'conf':scores[iImage][iBox],
+                          'bbox':bbox})
+            #  ...for each box
+            
+            render_detection_bounding_boxes(detections, image,
+                                        confidence_threshold=confidenceThreshold, 
+                                        thickness=linewidth,
+                                        label_map=bbox_category_str_id_to_name)
+            image.save(outputFileName)
         
-        nImages = len(inputFileNames)
-        iImage = 0
-    
-        for iImage in range(0,nImages):
-    
-            inputFileName = inputFileNames[iImage]
-    
-            if iImage >= len(outputFileNames):
-                outputFileName = ''
-            else:
-                outputFileName = outputFileNames[iImage]
-    
-            if len(outputFileName) == 0:
-                name, ext = os.path.splitext(inputFileName)
-                outputFileName = "{}{}{}".format(name,DETECTION_FILENAME_INSERT,ext)
-    
+        else:
+            
             image = mpimg.imread(inputFileName)
             iBox = 0; box = boxes[iImage][iBox]
             dpi = 100
@@ -658,8 +697,8 @@ def render_bounding_boxes(boxes, scores, classes, inputFileNames, outputFileName
             plt.savefig(outputFileName, dpi=dpi, transparent=True, optimize=True, quality=90)
             plt.close()
             # os.startfile(outputFileName)
-    
-        # ...for each image
+
+    # ...for each image
 
 # ...def render_bounding_boxes
 
@@ -793,7 +832,7 @@ def main():
     
     # python run_tf_detector.py "D:\temp\models\object_detection\megadetector\megadetector_v2.pb" --imageFile "D:\temp\demo_images\test\S1_J08_R1_PICT0120.JPG"
     # python run_tf_detector.py "D:\temp\models\object_detection\megadetector\megadetector_v2.pb" --imageDir "d:\temp\demo_images\test"
-    # python run_tf_detector.py "d:\temp\models\object_detection\megadetector\megadetector_v3.pb" --imageDir "d:\temp\test\in" --outputDir "d:\temp\test\out"
+    # python run_tf_detector.py "d:\temp\models\megadetector_v3.pb" --imageDir "d:\temp\test\in" --outputDir "d:\temp\test\out"
     
     parser = argparse.ArgumentParser()
     parser.add_argument('detectorFile', type=str)
