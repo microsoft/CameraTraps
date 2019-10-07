@@ -44,10 +44,6 @@ from PIL import ImageFont, ImageDraw
 import humanfriendly
 import matplotlib
 matplotlib.use('TkAgg')
-import matplotlib.image as mpimg
-import matplotlib.patches as patches
-import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
@@ -85,7 +81,8 @@ bbox_category_str_id_to_name = {}
 # As this table is used in this file, we will be mapping string-formatted integers to
 # class names
 for cat in bbox_categories:
-    bbox_category_str_id_to_name[str([cat['id']])] = cat['name']
+    bbox_category_str_id_to_name[str(cat['id'])] = cat['name']
+    
     
 #%% Core detection functions
 
@@ -117,9 +114,9 @@ def generate_detections(detection_graph,images):
     Boxes are returned in relative coordinates as (top, left, bottom, right); 
     x,y origin is the upper-left.
     
-    [boxes] will be returned as a numpy array of size nImages x nDetections x 4.
+    [boxes] will be returned as a numpy array of size n_images x n_detections x 4.
     
-    [scores] and [classes] will each be returned as a numpy array of size nImages x nDetections.
+    [scores] and [classes] will each be returned as a numpy array of size n_images x n_detections.
     
     [images] is a set of numpy arrays corresponding to the input parameter [images], which may have
     have been either arrays or filenames.    
@@ -131,7 +128,7 @@ def generate_detections(detection_graph,images):
         images = images.copy()
 
     print('Loading images...')
-    startTime = time.time()
+    start_time = time.time()
     
     # Load images if they're not already numpy arrays
     # iImage = 0; image = images[iImage]
@@ -159,7 +156,7 @@ def generate_detections(detection_graph,images):
         else:
             assert isinstance(image,np.ndarray)
 
-    elapsed = time.time() - startTime
+    elapsed = time.time() - start_time
     print("Finished loading {} file(s) in {}".format(len(images),
           humanfriendly.format_timespan(elapsed)))    
     
@@ -167,11 +164,11 @@ def generate_detections(detection_graph,images):
     scores = []
     classes = []
     
-    nImages = len(images)
+    n_images = len(images)
 
     print('Running detector...')    
-    startTime = time.time()
-    firstImageCompleteTime = None
+    start_time = time.time()
+    first_image_complete_time = None
     
     with detection_graph.as_default():
         
@@ -196,7 +193,7 @@ def generate_detections(detection_graph,images):
                 classes.append(clss)
             
                 if iImage == 0:
-                    firstImageCompleteTime = time.time()
+                    first_image_complete_time = time.time()
                     
             # ...for each image                
     
@@ -204,68 +201,68 @@ def generate_detections(detection_graph,images):
 
     # ...with detection_graph.as_default()
     
-    elapsed = time.time() - startTime
-    if nImages == 1:
+    elapsed = time.time() - start_time
+    if n_images == 1:
         print("Finished running detector in {}".format(humanfriendly.format_timespan(elapsed)))
     else:
-        firstImageElapsed = firstImageCompleteTime - startTime
-        remainingImagesElapsed = elapsed - firstImageElapsed
-        remainingImagesTimePerImage = remainingImagesElapsed/(nImages-1)
+        first_image_elapsed = first_image_complete_time - start_time
+        remaining_images_elapsed = elapsed - first_image_elapsed
+        remaining_images_time_per_image = remaining_images_elapsed/(n_images-1)
         
         print("Finished running detector on {} images in {} ({} for the first image, {} for each subsequent image)".format(len(images),
               humanfriendly.format_timespan(elapsed),
-              humanfriendly.format_timespan(firstImageElapsed),
-              humanfriendly.format_timespan(remainingImagesTimePerImage)))
+              humanfriendly.format_timespan(first_image_elapsed),
+              humanfriendly.format_timespan(remaining_images_time_per_image)))
     
     nBoxes = len(boxes)
     
-    # Currently "boxes" is a list of length nImages, where each element is shaped as
+    # Currently "boxes" is a list of length n_images, where each element is shaped as
     #
-    # 1,nDetections,4
+    # 1,n_detections,4
     #
     # This implicitly banks on TF giving us back a fixed number of boxes, let's assert on this
     # to make sure this doesn't silently break in the future.
-    nDetections = -1
+    n_detections = -1
     # iBox = 0; box = boxes[iBox]
     for iBox,box in enumerate(boxes):
-        nDetectionsThisBox = box.shape[1]
-        assert (nDetections == -1 or nDetectionsThisBox == nDetections), 'Detection count mismatch'
-        nDetections = nDetectionsThisBox
+        n_detections_this_box = box.shape[1]
+        assert (n_detections == -1 or n_detections_this_box == n_detections), 'Detection count mismatch'
+        n_detections = n_detections_this_box
         assert(box.shape[0] == 1)
     
-    # "scores" is a length-nImages list of elements with size 1,nDetections
-    assert(len(scores) == nImages)
+    # "scores" is a length-n_images list of elements with size 1,n_detections
+    assert(len(scores) == n_images)
     for(iScore,score) in enumerate(scores):
         assert score.shape[0] == 1
-        assert score.shape[1] == nDetections
+        assert score.shape[1] == n_detections
         
-    # "classes" is a length-nImages list of elements with size 1,nDetections
+    # "classes" is a length-n_images list of elements with size 1,n_detections
     #
     # Still as floats, but really representing ints
     assert(len(classes) == nBoxes)
     for(iClass,c) in enumerate(classes):
         assert c.shape[0] == 1
-        assert c.shape[1] == nDetections
+        assert c.shape[1] == n_detections
             
     # Squeeze out the empty axis
     boxes = np.squeeze(np.array(boxes),axis=1)
     scores = np.squeeze(np.array(scores),axis=1)
     classes = np.squeeze(np.array(classes),axis=1).astype(int)
     
-    # boxes is nImages x nDetections x 4
+    # boxes is n_images x n_detections x 4
     assert(len(boxes.shape) == 3)
-    assert(boxes.shape[0] == nImages)
-    assert(boxes.shape[1] == nDetections)
+    assert(boxes.shape[0] == n_images)
+    assert(boxes.shape[1] == n_detections)
     assert(boxes.shape[2] == 4)
     
-    # scores and classes are both nImages x nDetections
+    # scores and classes are both n_images x n_detections
     assert(len(scores.shape) == 2)
-    assert(scores.shape[0] == nImages)
-    assert(scores.shape[1] == nDetections)
+    assert(scores.shape[0] == n_images)
+    assert(scores.shape[1] == n_detections)
     
     assert(len(classes.shape) == 2)
-    assert(classes.shape[0] == nImages)
-    assert(classes.shape[1] == nDetections)
+    assert(classes.shape[0] == n_images)
+    assert(classes.shape[1] == n_detections)
     
     return boxes,scores,classes,images
 
@@ -372,6 +369,7 @@ def render_detection_bounding_boxes(detections, image,
         # ...if the confidence of this detection is above threshold
         
     # ...for each detection
+    
     display_boxes = np.array(display_boxes)
 
     draw_bounding_boxes_on_image(image, display_boxes, classes,
@@ -383,10 +381,10 @@ def render_detection_bounding_boxes(detections, image,
 # https://github.com/tensorflow/models/blob/master/research/object_detection/utils/visualization_utils.py
 
 COLORS = [
-    'AliceBlue', 'Red', 'RoyalBlue', 'Gold', 'Chartreuse', 'Aqua',  'Azure', 'Beige', 'Bisque',
-    'BlanchedAlmond', 'BlueViolet', 'BurlyWood', 'CadetBlue', 'AntiqueWhite',
-    'Chocolate', 'Coral', 'CornflowerBlue', 'Cornsilk', 'Crimson', 'Cyan',
-    'DarkCyan', 'DarkGoldenRod', 'DarkGrey', 'DarkKhaki', 'DarkOrange',
+    'AliceBlue', 'Red', 'RoyalBlue', 'Gold', 'Chartreuse', 'Aqua',  'Azure', 
+    'Beige', 'Bisque', 'BlanchedAlmond', 'BlueViolet', 'BurlyWood', 'CadetBlue',
+    'AntiqueWhite', 'Chocolate', 'Coral', 'CornflowerBlue', 'Cornsilk', 'Crimson',
+    'Cyan', 'DarkCyan', 'DarkGoldenRod', 'DarkGrey', 'DarkKhaki', 'DarkOrange',
     'DarkOrchid', 'DarkSalmon', 'DarkSeaGreen', 'DarkTurquoise', 'DarkViolet',
     'DeepPink', 'DeepSkyBlue', 'DodgerBlue', 'FireBrick', 'FloralWhite',
     'ForestGreen', 'Fuchsia', 'Gainsboro', 'GhostWhite', 'GoldenRod',
@@ -468,19 +466,26 @@ def draw_bounding_box_on_image(image,
     are displayed below the bounding box.
 
     Args:
-      image: a PIL.Image object.
-      ymin: ymin of bounding box - upper left.
-      xmin: xmin of bounding box.
-      ymax: ymax of bounding box.
-      xmax: xmax of bounding box.
+      
+        image: a PIL.Image object
+      
+      ymin: ymin of bounding box
+      xmin: xmin of bounding box
+      ymax: ymax of bounding box
+      xmax: xmax of bounding box
+      
       clss: str, the class of the object in this bounding box - will be cast to an int.
+      
       thickness: line thickness. Default value is 4.
+      
       display_str_list: list of strings to display in box
                         (each to be shown on its own line).
+                        
       use_normalized_coordinates: If True (default), treat coordinates
         ymin, xmin, ymax, xmax as relative to the image.  Otherwise treat
         coordinates as absolute.
-    """
+        
+    """    
     if clss is None:
         color = COLORS[1]
     else:
@@ -534,28 +539,30 @@ def draw_bounding_box_on_image(image,
         text_bottom -= (text_height + 2 * margin)
 
 
+#%% Rendering functions 
 
-#%% Rendering functions
+# Wrappers for the above rendering functions, a legacy artifact from before this
+# script used the copied visualization_utils.py functions
 
-def render_bounding_box(box, score, classLabel, inputFileName, outputFileName=None,
-                          confidenceThreshold=DEFAULT_CONFIDENCE_THRESHOLD,linewidth=DEFAULT_LINE_WIDTH):
+def render_bounding_box(box, score, class_label, input_file_name, output_file_name=None,
+                          confidence_threshold=DEFAULT_CONFIDENCE_THRESHOLD,linewidth=DEFAULT_LINE_WIDTH):
     """
     Convenience wrapper to apply render_bounding_boxes to a single image
     """
-    outputFileNames = []
-    if outputFileName is not None:
-        outputFileNames = [outputFileName]
+    output_file_names = []
+    if output_file_name is not None:
+        output_file_names = [output_file_name]
     scores = [[score]]
     boxes = [[box]]
-    render_bounding_boxes(boxes,scores,[classLabel],[inputFileName],outputFileNames,
-                          confidenceThreshold,linewidth)
+    render_bounding_boxes(boxes,scores,[class_label],[input_file_name],output_file_names,
+                          confidence_threshold,linewidth)
 
 
-def render_bounding_boxes(boxes, scores, classes, inputFileNames, outputFileNames=[],
-                          confidenceThreshold=DEFAULT_CONFIDENCE_THRESHOLD, 
+def render_bounding_boxes(boxes, scores, classes, input_file_names, output_file_names=[],
+                          confidence_threshold=DEFAULT_CONFIDENCE_THRESHOLD, 
                           linewidth=DEFAULT_LINE_WIDTH):
     """
-    Render bounding boxes on the image files specified in [inputFileNames].  
+    Render bounding boxes on the image files specified in [input_file_names].  
     
     [boxes] and [scores] should be in the format returned by generate_detections, 
     specifically [top, left, bottom, right] in normalized units, where the
@@ -565,174 +572,99 @@ def render_bounding_boxes(boxes, scores, classes, inputFileNames, outputFileName
     later.
     """
 
-    USE_VIS_UTILS_RENDERING = True
-    
-    nImages = len(inputFileNames)
+    n_images = len(input_file_names)
     iImage = 0
 
-    for iImage in range(0,nImages):
+    for iImage in range(0,n_images):
 
-        inputFileName = inputFileNames[iImage]
+        input_file_name = input_file_names[iImage]
 
-        if iImage >= len(outputFileNames):
-            outputFileName = ''
+        if iImage >= len(output_file_names):
+            output_file_name = ''
         else:
-            outputFileName = outputFileNames[iImage]
+            output_file_name = output_file_names[iImage]
 
-        if len(outputFileName) == 0:
-            name, ext = os.path.splitext(inputFileName)
-            outputFileName = "{}{}{}".format(name,DETECTION_FILENAME_INSERT,ext)
+        if len(output_file_name) == 0:
+            name, ext = os.path.splitext(input_file_name)
+            output_file_name = "{}{}{}".format(name,DETECTION_FILENAME_INSERT,ext)
 
-        if USE_VIS_UTILS_RENDERING:
+        image = PIL.Image.open(input_file_name).convert("RGB")
+        detections = []
         
-            """
-            def render_detection_bounding_boxes(detections, image,
-                                        label_map={},
-                                        classification_label_map={},
-                                        confidence_threshold=0.8, thickness=4,
-                                        classification_confidence_threshold=0.3,
-                                        max_classifications=3):
-            """
-            """
-            detections: detections on the image, example content:
-            [
-                {
-                    "category": "2",
-                    "conf": 0.996,
-                    "bbox": [
-                        0.0,
-                        0.2762,
-                        0.1234,
-                        0.2458
-                    ]
-                }
-            ]
-
-            ...where the bbox coordinates are [x, y, box_width, box_height].
+        for iBox in range(0,len(boxes)):
             
-            (0, 0) is the upper-left.  Coordinates are normalized.
-            """
-            image = PIL.Image.open(inputFileName).convert("RGB")
-            detections = []
-            for iBox in range(0,len(boxes)):
-                bbox = [0,0,0.25,0.5] # boxes[iImage][iBox]
-                detections.append({'category':str(classes[iImage][iBox]),
-                          'conf':scores[iImage][iBox],
-                          'bbox':bbox})
-            #  ...for each box
+            # Boxes are input to this function as:
+            #
+            # top, left, bottom, right 
+            #
+            # x,y origin is the upper-left
+            #
+            # normalized
+            #
+            # ...and our rendering function needs:
+            #
+            # left, top, w, h
+            #
+            # x,y origin is the upper-left
+            #
+            # normalized
             
-            render_detection_bounding_boxes(detections, image,
-                                        confidence_threshold=confidenceThreshold, 
-                                        thickness=linewidth,
-                                        label_map=bbox_category_str_id_to_name)
-            image.save(outputFileName)
+            bbox_in = boxes[iImage][iBox]
+            bbox = [bbox_in[1],
+                    bbox_in[0], 
+                    bbox_in[3]-bbox_in[1],
+                    bbox_in[2]-bbox_in[0]]
+            
+            detections.append({'category':str(classes[iImage][iBox]),
+                      'conf':scores[iImage][iBox],
+                      'bbox':bbox})
+                    
+        #  ...for each detection
         
-        else:
-            
-            image = mpimg.imread(inputFileName)
-            iBox = 0; box = boxes[iImage][iBox]
-            dpi = 100
-            s = image.shape; imageHeight = s[0]; imageWidth = s[1]
-            figsize = imageWidth / float(dpi), imageHeight / float(dpi)
-    
-            plt.figure(figsize=figsize)
-            ax = plt.axes([0,0,1,1])
-            
-            # Display the image
-            ax.imshow(image)
-            ax.set_axis_off()
+        render_detection_bounding_boxes(detections, image,
+                                    confidence_threshold=confidence_threshold, 
+                                    thickness=linewidth,
+                                    label_map=bbox_category_str_id_to_name)
+        image.save(output_file_name)
         
-            # plt.show()
-            for iBox,box in enumerate(boxes[iImage]):
-    
-                score = scores[iImage][iBox]
-                if score < confidenceThreshold:
-                    continue
-    
-                # top, left, bottom, right 
-                #
-                # x,y origin is the upper-left
-                topRel = box[0]
-                leftRel = box[1]
-                bottomRel = box[2]
-                rightRel = box[3]
-                
-                x = leftRel * imageWidth
-                y = topRel * imageHeight
-                w = (rightRel-leftRel) * imageWidth
-                h = (bottomRel-topRel) * imageHeight
-                
-                # Location is the bottom-left of the rect
-                #
-                # Origin is the upper-left
-                iLeft = x
-                iBottom = y
-                iClass = int(classes[iImage][iBox])
-                
-                boxColor = BOX_COLORS[iClass % len(BOX_COLORS)]
-                rect = patches.Rectangle((iLeft,iBottom),w,h,linewidth=linewidth,edgecolor=boxColor,
-                                         facecolor='none')
-                
-                # Add the patch to the Axes
-                ax.add_patch(rect)        
-                
-                if SHOW_CONFIDENCE_VALUES:
-                    pLabel = 'Class {} ({:.2f})'.format(iClass,score)
-                    ax.text(iLeft+5,iBottom+5,pLabel,color=boxColor,fontsize=12,
-                            verticalalignment='top',bbox=dict(facecolor='black'))
-                
-            # ...for each box
-    
-            # This is magic goop that removes whitespace around image plots (sort of)        
-            plt.subplots_adjust(top = 1, bottom = 0, right = 1, left = 0, hspace = 0, 
-                                wspace = 0)
-            plt.margins(0,0)
-            ax.xaxis.set_major_locator(ticker.NullLocator())
-            ax.yaxis.set_major_locator(ticker.NullLocator())
-            ax.axis('tight')
-            ax.set(xlim=[0,imageWidth],ylim=[imageHeight,0],aspect=1)
-            plt.axis('off')                
-    
-            # plt.savefig(outputFileName, bbox_inches='tight', pad_inches=0.0, dpi=dpi, transparent=True)
-            plt.savefig(outputFileName, dpi=dpi, transparent=True, optimize=True, quality=90)
-            plt.close()
-            # os.startfile(outputFileName)
-
     # ...for each image
-
+    
 # ...def render_bounding_boxes
 
 
-def load_and_run_detector(modelFile, imageFileNames, outputDir=None,
-                          confidenceThreshold=DEFAULT_CONFIDENCE_THRESHOLD, detection_graph=None):
+#%% Main function
     
-    if len(imageFileNames) == 0:        
+def load_and_run_detector(model_file, image_file_names, output_dir=None,
+                          confidence_threshold=DEFAULT_CONFIDENCE_THRESHOLD, 
+                          detection_graph=None):
+    
+    if len(image_file_names) == 0:        
         print('Warning: no files available')
         return
         
     # Load and run detector on target images
     print('Loading model...')
-    startTime = time.time()
+    start_time = time.time()
     if detection_graph is None:
-        detection_graph = load_model(modelFile)
-    elapsed = time.time() - startTime
+        detection_graph = load_model(model_file)
+    elapsed = time.time() - start_time
     print("Loaded model in {}".format(humanfriendly.format_timespan(elapsed)))
     
-    boxes,scores,classes,images = generate_detections(detection_graph,imageFileNames)
+    boxes,scores,classes,images = generate_detections(detection_graph,image_file_names)
     
-    assert len(boxes) == len(imageFileNames)
+    assert len(boxes) == len(image_file_names)
     
     print('Rendering output...')
-    startTime = time.time()
+    start_time = time.time()
     
-    outputFullPaths = []
-    outputFileNames = {}
+    output_full_paths = []
+    output_file_names = {}
     
-    if outputDir is not None:
+    if output_dir is not None:
             
-        os.makedirs(outputDir,exist_ok=True)
+        os.makedirs(output_dir,exist_ok=True)
         
-        for iFn,fullInputPath in enumerate(tqdm(imageFileNames)):
+        for iFn,fullInputPath in enumerate(tqdm(image_file_names)):
             
             fn = os.path.basename(fullInputPath).lower()            
             name, ext = os.path.splitext(fn)
@@ -740,30 +672,71 @@ def load_and_run_detector(modelFile, imageFileNames, outputDir=None,
             
             # Since we'll be writing a bunch of files to the same folder, rename
             # as necessary to avoid collisions
-            if fn in outputFileNames:
-                nCollisions = outputFileNames[fn]
+            if fn in output_file_names:
+                nCollisions = output_file_names[fn]
                 fn = str(nCollisions) + '_' + fn
-                outputFileNames[fn] = nCollisions + 1
+                output_file_names[fn] = nCollisions + 1
             else:
-                outputFileNames[fn] = 0
-            outputFullPaths.append(os.path.join(outputDir,fn))
+                output_file_names[fn] = 0
+            output_full_paths.append(os.path.join(output_dir,fn))
     
         # ...for each file
         
     # ...if we're writing files to a directory other than the input directory
     
-    plt.ioff()
+    render_bounding_boxes(boxes=boxes, scores=scores, 
+                          classes=classes, 
+                          input_file_names=image_file_names, 
+                          output_file_names=output_full_paths,
+                          confidence_threshold=confidence_threshold)
     
-    render_bounding_boxes(boxes=boxes, scores=scores, classes=classes, 
-                          inputFileNames=imageFileNames, outputFileNames=outputFullPaths,
-                          confidenceThreshold=confidenceThreshold)
-    
-    elapsed = time.time() - startTime
+    elapsed = time.time() - start_time
     print("Rendered output in {}".format(humanfriendly.format_timespan(elapsed)))
     
     return detection_graph
 
 
+#%% File helper functions
+
+image_extensions = ['.jpg','.jpeg','.gif','.png']
+    
+def is_image_file(s):
+    """
+    Check a file's extension against a hard-coded set of image file extensions    '
+    """
+    ext = os.path.splitext(s)[1]
+    return ext.lower() in image_extensions
+    
+    
+def find_image_strings(strings):
+    """
+    Given a list of strings that are potentially image file names, look for strings
+    that actually look like image file names (based on extension).
+    """
+    imageStrings = []
+    bIsImage = [False] * len(strings)
+    for iString,f in enumerate(strings):
+        bIsImage[iString] = is_image_file(f) 
+        if bIsImage[iString]:
+            imageStrings.append(f)
+        
+    return imageStrings
+
+    
+def find_images(dir_name,bRecursive=False):
+    """
+    Find all files in a directory that look like image file names
+    """
+    if bRecursive:
+        strings = glob.glob(os.path.join(dir_name,'**','*.*'), recursive=True)
+    else:
+        strings = glob.glob(os.path.join(dir_name,'*.*'))
+        
+    imageStrings = find_image_strings(strings)
+    
+    return imageStrings
+
+    
 #%% Interactive driver
 
 if False:
@@ -774,58 +747,22 @@ if False:
     
     #%%
     
-    modelFile = r'D:\temp\models\megadetector_v3.pb'
-    imageDir = r'D:\temp\demo_images\ssmini'    
-    imageFileNames = [fn for fn in glob.glob(os.path.join(imageDir,'*.jpg'))
-         if (not 'detections' in fn)]
-    # imageFileNames = [r"D:\temp\test\1\NE2881-9_RCNX0195_xparent.png"]
+    # python run_tf_detector.py "d:\temp\models\megadetector_v3.pb" --imageDir "d:\temp\test\in" --outputDir "d:\temp\test\out" --threshold 0.6
     
-    detection_graph = load_and_run_detector(modelFile,imageFileNames,
-                                            confidenceThreshold=DEFAULT_CONFIDENCE_THRESHOLD,
+    model_file = r'd:\temp\models\megadetector_v3.pb'
+    input_dir = r'D:\temp\test\in'    
+    output_dir = r'D:\temp\test\out'    
+    threshold = 0.8 # DEFAULT_CONFIDENCE_THRESHOLD
+    image_file_names = [fn for fn in find_images(input_dir) \
+         if (not 'detections' in fn)]
+    
+    # image_file_names = [r"D:\temp\test\1\NE2881-9_RCNX0195_xparent.png"]
+        
+    detection_graph = load_and_run_detector(model_file,image_file_names,
+                                            confidence_threshold=threshold,
                                             detection_graph=detection_graph)
     
 
-#%% File helper functions
-
-imageExtensions = ['.jpg','.jpeg','.gif','.png']
-    
-def isImageFile(s):
-    """
-    Check a file's extension against a hard-coded set of image file extensions    '
-    """
-    ext = os.path.splitext(s)[1]
-    return ext.lower() in imageExtensions
-    
-    
-def findImageStrings(strings):
-    """
-    Given a list of strings that are potentially image file names, look for strings
-    that actually look like image file names (based on extension).
-    """
-    imageStrings = []
-    bIsImage = [False] * len(strings)
-    for iString,f in enumerate(strings):
-        bIsImage[iString] = isImageFile(f) 
-        if bIsImage[iString]:
-            imageStrings.append(f)
-        
-    return imageStrings
-
-    
-def findImages(dirName,bRecursive=False):
-    """
-    Find all files in a directory that look like image file names
-    """
-    if bRecursive:
-        strings = glob.glob(os.path.join(dirName,'**','*.*'), recursive=True)
-    else:
-        strings = glob.glob(os.path.join(dirName,'*.*'))
-        
-    imageStrings = findImageStrings(strings)
-    
-    return imageStrings
-
-    
 #%% Command-line driver
     
 def main():
@@ -862,21 +799,21 @@ def main():
         raise Exception('Must specify either an image file or an image directory')
         
     if len(args.imageFile) > 0:
-        imageFileNames = [args.imageFile]
+        image_file_names = [args.imageFile]
     else:
-        imageFileNames = findImages(args.imageDir,args.recursive)
+        image_file_names = find_images(args.imageDir,args.recursive)
 
     if args.forceCpu:
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
         os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
     # Hack to avoid running on already-detected images
-    imageFileNames = [x for x in imageFileNames if DETECTION_FILENAME_INSERT not in x]
+    image_file_names = [x for x in image_file_names if DETECTION_FILENAME_INSERT not in x]
                 
-    print('Running detector on {} images'.format(len(imageFileNames)))    
+    print('Running detector on {} images'.format(len(image_file_names)))    
     
-    load_and_run_detector(modelFile=args.detectorFile, imageFileNames=imageFileNames, 
-                          confidenceThreshold=args.threshold, outputDir=args.outputDir)
+    load_and_run_detector(model_file=args.detectorFile, image_file_names=image_file_names, 
+                          confidence_threshold=args.threshold, output_dir=args.outputDir)
     
 
 if __name__ == '__main__':
