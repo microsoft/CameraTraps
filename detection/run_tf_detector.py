@@ -6,7 +6,18 @@
 # render bounding boxes on images, and write out the resulting
 # images (with bounding boxes).
 #
-# This script depends on nothing else in our repo, just standard pip
+# THIS SCRIPT IS NOT A GOOD WAY TO PROCESS LOTS OF IMAGES.
+#
+# Did we mention in all caps that this script is not a good way to process lots
+# of images?  It loads all the images first, then runs the model.  If you want to
+# run a detector (e.g. ours) on lots of images, you should check out:
+#
+# 1) run_tf_detector_batch.py (for local execution)
+# 
+# 2) https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing
+#    (for running large jobs on Azure ML)
+#
+# The good news: this script depends on nothing else in our repo, just standard pip
 # installs.  It's a good way to test our detector on a handful of images and
 # get super-satisfying, graphical results.  It's also a good way to see how
 # fast a detector model will run on a particular machine.
@@ -15,16 +26,7 @@
 # contains copies of a bunch of rendering functions whose current versions
 # live in visualization_utils.py.
 #
-# This script is *not* a good way to process lots and lots of images; it loads all
-# the images first, then runs the model.  If you want to run a detector (e.g. ours)
-# on lots of images, you should check out:
-#
-# 1) run_tf_detector_batch.py (for local execution)
-# 
-# 2) https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing
-#    (for running large jobs on Azure ML)
-#
-# See the "test driver" cell for example invocation.
+# See the "command-line driver" cell for example invocations.
 #
 # If no output directory is specified, writes detections for c:\foo\bar.jpg to
 # c:\foo\bar_detections.jpg .
@@ -214,7 +216,7 @@ def generate_detections(detection_graph,images):
               humanfriendly.format_timespan(first_image_elapsed),
               humanfriendly.format_timespan(remaining_images_time_per_image)))
     
-    nBoxes = len(boxes)
+    n_boxes = len(boxes)
     
     # Currently "boxes" is a list of length n_images, where each element is shaped as
     #
@@ -239,7 +241,7 @@ def generate_detections(detection_graph,images):
     # "classes" is a length-n_images list of elements with size 1,n_detections
     #
     # Still as floats, but really representing ints
-    assert(len(classes) == nBoxes)
+    assert(len(classes) == n_boxes)
     for(iClass,c) in enumerate(classes):
         assert c.shape[0] == 1
         assert c.shape[1] == n_detections
@@ -269,8 +271,7 @@ def generate_detections(detection_graph,images):
 
 #%% Rendering functions, copied from visualization_utils.py
     
-def render_detection_bounding_boxes(detections, image,
-                                    label_map={},
+def render_detection_bounding_boxes(detections, image, label_map={},
                                     classification_label_map={},
                                     confidence_threshold=0.8, thickness=4,
                                     classification_confidence_threshold=0.3,
@@ -759,6 +760,7 @@ if False:
     # image_file_names = [r"D:\temp\test\1\NE2881-9_RCNX0195_xparent.png"]
         
     detection_graph = load_and_run_detector(model_file,image_file_names,
+                                            output_dir=output_dir,
                                             confidence_threshold=threshold,
                                             detection_graph=detection_graph)
     
