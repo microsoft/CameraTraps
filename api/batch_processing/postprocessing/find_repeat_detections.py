@@ -20,7 +20,6 @@ import argparse
 import os
 import sys
 import warnings
-import json
 from datetime import datetime
 from itertools import compress
 
