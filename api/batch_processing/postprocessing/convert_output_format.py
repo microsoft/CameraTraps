@@ -15,6 +15,7 @@ import argparse
 import csv
 import json
 import os
+from tqdm import tqdm
 
 from api.batch_processing.postprocessing.load_api_results import load_api_results_csv
 from data_management.annotations import annotation_constants
@@ -22,22 +23,39 @@ from data_management.annotations import annotation_constants
 
 #%% Conversion functions
 
-def convert_json_to_csv(input_path,output_path=None):
+def convert_json_to_csv(input_path,output_path=None,min_confidence=None,omit_bounding_boxes=False):
     
     if output_path is None:
         output_path = os.path.splitext(input_path)[0]+'.csv'
         
-    print('Loading json results...')
+    print('Loading json results from {}...'.format(input_path))
     json_output = json.load(open(input_path))
 
     rows = []
-
+    
+    # We add an output column for each class other than 'empty', 
+    # containing the maximum probability of  that class for each image
+    n_non_empty_categories = len(annotation_constants.bbox_categories) - 1
+    category_column_names = []
+    assert annotation_constants.bbox_category_id_to_name[0] == 'empty'
+    for cat_id in range(1,n_non_empty_categories+1):
+        cat_name = annotation_constants.bbox_category_id_to_name[cat_id]
+        category_column_names.append('max_conf_' + cat_name)
+        
     print('Iterating through results...')
-    for i in json_output['images']:
-        image_id = i['file']
-        max_conf = i['max_detection_conf']
+    for im in tqdm(json_output['images']):
+        
+        image_id = im['file']
+        max_conf = im['max_detection_conf']
         detections = []
-        for d in i['detections']:
+        max_category_probabilities = [None] * n_non_empty_categories
+                
+        for d in im['detections']:
+            
+            # Skip sub-threshold detections
+            if (min_confidence is not None) and (d['conf'] < min_confidence):
+                continue
+            
             detection = d['bbox']
             
             # Our .json format is xmin/ymin/w/h
@@ -50,17 +68,40 @@ def convert_json_to_csv(input_path,output_path=None):
             detection = [ymin, xmin, ymax, xmax]
                 
             detection.append(d['conf'])
-            detection.append(int(d['category']))
+            
+            # Category 0 is empty, for which we don't have a column, so the max
+            # confidence for category N goes in column N-1
+            category_id = int(d['category'])
+            assert category_id > 0 and category_id <= n_non_empty_categories
+            category_column = category_id - 1
+            category_max = max_category_probabilities[category_column]
+            if category_max is None or d['conf'] > category_max:
+                max_category_probabilities[category_column] = d['conf']
+            
+            detection.append(category_id)
             detections.append(detection)
-        rows.append((image_id, max_conf, json.dumps(detections)))
+            
+        # ...for each detection
+        
+        detection_string = ''
+        if not omit_bounding_boxes:
+            detection_string = json.dumps(detections)
+            
+        row = [image_id, max_conf, detection_string]
+        row.extend(max_category_probabilities)
+        rows.append(row)
+        
+    # ...for each image
 
     print('Writing to csv...')
     with open(output_path, 'w', newline='') as f:
         writer = csv.writer(f, delimiter=',')
-        writer.writerow(['image_path', 'max_confidence', 'detections'])
+        header = ['image_path', 'max_confidence', 'detections']
+        header.extend(category_column_names)
+        writer.writerow(header)
         writer.writerows(rows)
 
-
+    
 def convert_csv_to_json(input_path,output_path=None):
     
     if output_path is None:
@@ -127,6 +168,27 @@ def convert_csv_to_json(input_path,output_path=None):
     json.dump(json_out,open(output_path,'w'),indent=1)
 
 
+#%% Interactive driver
+
+if False:    
+
+    #%%
+    
+    min_confidence = None
+    input_path = r'd:\wildlife_data\bellevue_camera_traps\706_detections_bellevuecameratraps20190718_20190718162519.json'
+    output_path = input_path + '.csv'
+    convert_json_to_csv(input_path,output_path,min_confidence=min_confidence,omit_bounding_boxes=False)
+        
+    #%% 
+    
+    min_confidence = None    
+    input_paths = [r'D:\temp\idfg_json_to_csv\detections_idfg_20190625_refiltered.json',
+                   r'D:\temp\idfg_json_to_csv\idfg_20190801-hddrop_combined.refiltered_trimmed_renamed.json']
+    for input_path in input_paths:
+        output_path = input_path + '.csv'
+        convert_json_to_csv(input_path,output_path,min_confidence=min_confidence,omit_bounding_boxes=True)
+    
+    
 #%% Command-line driver
         
 def main():
