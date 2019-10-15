@@ -45,7 +45,7 @@ from api.batch_processing.postprocessing import convert_output_format
 from api.batch_processing.postprocessing.load_api_results import write_api_results_csv
 from api.batch_processing.api_core.orchestrator_api.aml_scripts.tf_detector import TFDetector
 
-DEFAULT_CONFIDENCE_THRESHOLD = 0.5
+DEFAULT_CONFIDENCE_THRESHOLD = 0.0
 
 # Suppress excessive tensorflow output
 tf.logging.set_verbosity(tf.logging.ERROR)
