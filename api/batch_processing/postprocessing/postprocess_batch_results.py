@@ -108,6 +108,9 @@ class PostProcessingOptions:
 
     viz_target_width = 800
 
+    line_thickness = 4
+    box_expansion = 0
+    
     sort_html_by_filename = True
     
     # Optionally replace one or more strings in filenames with other strings;
@@ -287,13 +290,14 @@ def render_bounding_boxes(image_base_dir, image_relative_path, display_name, det
             print('Warning: could not open image file {}'.format(image_full_path))
             return ''
         
-        image = vis_utils.resize_image(image, options.viz_target_width)
+        if options.viz_target_width is not None:
+            image = vis_utils.resize_image(image, options.viz_target_width)
 
         vis_utils.render_detection_bounding_boxes(detections, image,
                                                   label_map=detection_categories_map,
                                                   classification_label_map=classification_categories_map,
                                                   confidence_threshold=options.confidence_threshold,
-                                                  thickness=4)
+                                                  thickness=options.line_thickness,expansion=options.box_expansion)
 
         # Render images to a flat folder... we can use os.sep here because we've
         # already normalized paths
@@ -760,7 +764,7 @@ def process_batch_results(options):
             else:
                 res = 'tn'
 
-            display_name = '<b>Result type</b>: {}, <b>Presence</b>: {}, <b>Class</b>: {}, <b>Max conf</b>: {:0.2f}%, <b>Image</b>: {}'.format(
+            display_name = '<b>Result type</b>: {}, <b>Presence</b>: {}, <b>Class</b>: {}, <b>Max conf</b>: {:0.3f}%, <b>Image</b>: {}'.format(
                 res.upper(), str(gt_presence), gt_class_summary,
                 max_conf * 100, image_relative_path)
 
@@ -975,7 +979,7 @@ def process_batch_results(options):
                 assert detection_status == DetectionStatus.DS_ALMOST
                 res = 'almost_detections'
 
-            display_name = '<b>Result type</b>: {}, <b>Image</b>: {}, <b>Max conf</b>: {}'.format(
+            display_name = '<b>Result type</b>: {}, <b>Image</b>: {}, <b>Max conf</b>: {:0.3f}'.format(
                 res, image_relative_path, max_conf)
 
             rendering_options = copy.copy(options)
