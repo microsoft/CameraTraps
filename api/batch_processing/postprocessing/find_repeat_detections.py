@@ -529,8 +529,8 @@ def update_detection_table(RepeatDetectionResults, options, outputFilename=None)
 
             if (maxP is None) or (p > maxP):
                 maxP = p
-
-        if abs(maxP - maxPOriginal) > 0.00000001:
+        
+        if abs(maxP - maxPOriginal) > 1e-3:
 
             # We should only be making detections *less* likely
             assert maxP < maxPOriginal
@@ -549,7 +549,7 @@ def update_detection_table(RepeatDetectionResults, options, outputFilename=None)
             # we should have found at least one negative value
             assert nNegative > 0
 
-        # ...if there was a change to the max probability for this row
+        # ...if there was a meaningful change to the max probability for this row
 
     # ...for each row
 
@@ -603,13 +603,16 @@ def find_repeat_detections(inputFilename, outputFilename, options=None):
     for iRow, row in detectionResults.iterrows():
         relativePath = row['file']
         dirName = os.path.dirname(relativePath)
-
-        if options.nDirLevelsFromLeaf > 0:
-            iLevel = 0
-            while (iLevel < options.nDirLevelsFromLeaf):
-                iLevel += 1
-                dirName = os.path.dirname(dirName)
-        assert len(dirName) > 0
+        
+        if len(dirName) == 0:
+            assert options.nDirLevelsFromLeaf == 0, 'Can''t use the dirLevelsFromLeaf option with flat filenames'
+        else:
+            if options.nDirLevelsFromLeaf > 0:
+                iLevel = 0
+                while (iLevel < options.nDirLevelsFromLeaf):
+                    iLevel += 1
+                    dirName = os.path.dirname(dirName)
+            assert len(dirName) > 0
 
         if not dirName in rowsByDirectory:
             # Create a new DataFrame with just this row
@@ -635,7 +638,9 @@ def find_repeat_detections(inputFilename, outputFilename, options=None):
 
     ##% Look for matches (or load them from file)
 
-    dirsToSearch = list(rowsByDirectory.keys())[0:options.debugMaxDir]
+    dirsToSearch = list(rowsByDirectory.keys())
+    if options.debugMaxDir > 0:
+        dirsToSearch = dirsToSearch[0:options.debugMaxDir]
 
     # length-nDirs list of lists of DetectionLocation objects
     suspiciousDetections = [None] * len(dirsToSearch)
