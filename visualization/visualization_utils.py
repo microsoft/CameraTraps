@@ -122,7 +122,7 @@ def render_iMerit_boxes(boxes, classes, image,
 
 
 def render_db_bounding_boxes(boxes, classes, image, original_size=None,
-                             label_map=None, thickness=4):
+                             label_map=None, thickness=4, expansion=0):
     """
     Render bounding boxes (with class labels) on [image].  This is a wrapper for
     draw_bounding_boxes_on_image, allowing the caller to operate on a resized image
@@ -157,14 +157,14 @@ def render_db_bounding_boxes(boxes, classes, image, original_size=None,
 
     display_boxes = np.array(display_boxes)
     draw_bounding_boxes_on_image(image, display_boxes, classes, display_strs=display_strs,
-                                 thickness=thickness)
+                                 thickness=thickness,expansion=expansion)
 
 
 
 def render_detection_bounding_boxes(detections, image,
                                     label_map={},
                                     classification_label_map={},
-                                    confidence_threshold=0.8, thickness=4,
+                                    confidence_threshold=0.8, thickness=4, expansion=0,
                                     classification_confidence_threshold=0.3,
                                     max_classifications=3):
     """
@@ -225,7 +225,7 @@ def render_detection_bounding_boxes(detections, image,
         
         confidence_threshold: optional, threshold above which the bounding box is rendered.
         
-        thickness: optional, rendering line thickness.
+        thickness: optional, rendering line thickness.        
 
     image is modified in place.
     """
@@ -237,7 +237,7 @@ def render_detection_bounding_boxes(detections, image,
     for detection in detections:
 
         score = detection['conf']
-        if score > confidence_threshold:
+        if score >= confidence_threshold:
             
             x1, y1, w_box, h_box = detection['bbox']
             display_boxes.append([y1, x1, y1 + h_box, x1 + w_box])
@@ -274,7 +274,7 @@ def render_detection_bounding_boxes(detections, image,
     display_boxes = np.array(display_boxes)
 
     draw_bounding_boxes_on_image(image, display_boxes, classes,
-                                 display_strs=display_strs, thickness=thickness)
+                                 display_strs=display_strs, thickness=thickness, expansion=expansion)
 
 
 # The following functions are modified versions of those at:
@@ -312,6 +312,7 @@ def draw_bounding_boxes_on_image(image,
                                  boxes,
                                  classes,
                                  thickness=4,
+                                 expansion=0,
                                  display_strs=()):
     """
     Draws bounding boxes on image.
@@ -322,7 +323,8 @@ def draw_bounding_boxes_on_image(image,
              The coordinates are in normalized format between [0, 1].
       classes: a list of ints or strings (that can be cast to ints) corresponding to the class labels of the boxes.
              This is only used for selecting the color to render the bounding box in.
-      thickness: line thickness. Default value is 4.
+      thickness: line thickness in pixels. Default value is 4.
+      expansion: number of pixels to expand bounding boxes on each side.  Default is 0.
       display_strs: list of list of strings.
                              a list of strings for each bounding box.
                              The reason to pass a list of strings for a
@@ -342,7 +344,8 @@ def draw_bounding_boxes_on_image(image,
             draw_bounding_box_on_image(image,
                                        boxes[i, 0], boxes[i, 1], boxes[i, 2], boxes[i, 3],
                                        classes[i],
-                                       thickness=thickness, display_str_list=display_str_list)
+                                       thickness=thickness, expansion=expansion,
+                                       display_str_list=display_str_list)
 
 
 def draw_bounding_box_on_image(image,
@@ -352,6 +355,7 @@ def draw_bounding_box_on_image(image,
                                xmax,
                                clss=None,
                                thickness=4,
+                               expansion=0,
                                display_str_list=(),
                                use_normalized_coordinates=True,
                                label_font_size=16):
@@ -374,6 +378,7 @@ def draw_bounding_box_on_image(image,
       xmax: xmax of bounding box.
       clss: str, the class of the object in this bounding box - will be cast to an int.
       thickness: line thickness. Default value is 4.
+      expansion: number of pixels to expand bounding boxes on each side.  Default is 0.
       display_str_list: list of strings to display in box
                         (each to be shown on its own line).
       use_normalized_coordinates: If True (default), treat coordinates
@@ -392,6 +397,13 @@ def draw_bounding_box_on_image(image,
                                       ymin * im_height, ymax * im_height)
     else:
         (left, right, top, bottom) = (xmin, xmax, ymin, ymax)
+
+    if expansion > 0:
+        left -= expansion
+        right += expansion
+        top -= expansion
+        bottom += expansion
+        
     draw.line([(left, top), (left, bottom), (right, bottom),
                (right, top), (left, top)], width=thickness, fill=color)
 
