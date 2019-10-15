@@ -63,19 +63,20 @@ def enumerate_blobs(account_name,sas_token,container_name,rmatch=None,prefix=Non
     
     generator = block_blob_service.list_blobs(container_name=container_name,prefix=prefix)
     matched_blobs = []
+
     i_blob = 0
     for blob in generator:
-        i_blob += 1
-        if (i_blob % 1000) == 0:
-            print('.',end='')
-        if (i_blob % 50000) == 0:
-            print('{} blobs enumerated ({} matches)'.format(i_blob,len(matched_blobs)))
         blob_name = blob.name
         if rmatch is not None:
             m = re.match(rmatch,blob_name)
             if m is None:
                 continue
         matched_blobs.append(blob.name)
+        i_blob += 1
+        if (i_blob % 1000) == 0:
+            print('.',end='')
+        if (i_blob % 50000) == 0:
+            print('{} blobs enumerated ({} matches)'.format(i_blob,len(matched_blobs)))
                 
     print('Enumerated {} matching blobs (of {} total) from {}/{}'.format(len(matched_blobs),
           i_blob,account_name,container_name))
@@ -109,6 +110,21 @@ def enumerate_blobs_to_file(output_file,account_name,sas_token,container_name,ac
     return matched_blobs
 
 
+def concatenate_json_string_lists(input_files,output_file):
+    """
+    Given several files that contain json-formatted lists of strings (typically filenames),
+    concatenate them into one new file.
+    """
+    output_list = []
+    for fn in input_files:
+        file_list = json.load(open(fn)) 
+        output_list.extend(file_list)
+    s = json.dumps(output_list,indent=1)
+    with open(output_file,'w') as f:
+        f.write(s)
+    return output_list
+
+        
 #%% Dividing files into multiple tasks
 
 def divide_chunks(l, n): 
