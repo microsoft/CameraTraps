@@ -122,7 +122,8 @@ def concatenate_json_string_lists(input_files,output_file):
     s = json.dumps(output_list,indent=1)
     with open(output_file,'w') as f:
         f.write(s)
-        
+    return output_list
+
         
 #%% Dividing files into multiple tasks
 
