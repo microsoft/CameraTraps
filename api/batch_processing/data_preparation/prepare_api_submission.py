@@ -118,7 +118,7 @@ def concatenate_json_string_lists(input_files,output_file):
     output_list = []
     for fn in input_files:
         file_list = json.load(open(fn)) 
-        output_list.append(file_list)
+        output_list.extend(file_list)
     s = json.dumps(output_list,indent=1)
     with open(output_file,'w') as f:
         f.write(s)
