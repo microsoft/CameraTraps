@@ -16,7 +16,7 @@
 # ever cleaned up, but also not large), and if you want to resume from one, use 
 # options.resumeFromCheckpoint.
 #
-# See the "test driver" cell for example invocation.
+# See the "command-line driver" cell for example invocation.
 #
 ######
 
@@ -142,7 +142,7 @@ def generate_detections(detector,images,options):
         
     print('Running detector...')    
     startTime = time.time()
-    firstImageCompleteTime = startTime
+    firstImageCompleteTime = None
     
     detection_graph = detector.detection_graph
     
@@ -163,33 +163,46 @@ def generate_detections(detector,images,options):
                     cpState.bValidImage[iImage] = False
                     continue
                 
-                # Load the image as an nparray of size h,w,nChannels            
-                imageNP = PIL.Image.open(image).convert("RGB"); imageNP = np.array(imageNP)
-                # image = mpimg.imread(image)
+                try:
+                    
+                    # Load the image as an nparray of size h,w,nChannels            
+                    imageNP = PIL.Image.open(image).convert("RGB"); imageNP = np.array(imageNP)
+                    # image = mpimg.imread(image)
+                    
+                    nChannels = imageNP.shape[2]
+                    
+                    # This shouldn't be necessary when loading with PIL and converting to RGB, 
+                    # since by definition this leaves us with three channels.  But keeping it 
+                    # here for future-proofing.
+                    if nChannels > 3:
+                        print('Warning: trimming channels from image')
+                        imageNP = imageNP[:,:,0:3]
+                    
+                    imageNP_expanded = np.expand_dims(imageNP, axis=0)
+                    image_tensor = detection_graph.get_tensor_by_name('image_tensor:0')
+                    box = detection_graph.get_tensor_by_name('detection_boxes:0')
+                    score = detection_graph.get_tensor_by_name('detection_scores:0')
+                    clss = detection_graph.get_tensor_by_name('detection_classes:0')
+                    num_detections = detection_graph.get_tensor_by_name('num_detections:0')
+                    
+                    # Run inference on this image
+                    (box, score, clss, num_detections) = sess.run(
+                            [box, score, clss, num_detections],
+                            feed_dict={image_tensor: imageNP_expanded})
+    
+                    cpState.boxes[iImage] = box
+                    cpState.scores[iImage] = score
+                    cpState.classes[iImage] = clss
+                    
+                except (KeyboardInterrupt, SystemExit):
+                    raise
+                    
+                except Exception as e:
+                    print('Error processing image {}: {}',image,str(e))
+                    cpState.bValidImage[iImage] = False
+                    continue
                 
-                # This shouldn't be necessary when loading with PIL and converting to RGB
-                nChannels = imageNP.shape[2]
-                if nChannels > 3:
-                    print('Warning: trimming channels from image')
-                    imageNP = imageNP[:,:,0:3]
-                
-                imageNP_expanded = np.expand_dims(imageNP, axis=0)
-                image_tensor = detection_graph.get_tensor_by_name('image_tensor:0')
-                box = detection_graph.get_tensor_by_name('detection_boxes:0')
-                score = detection_graph.get_tensor_by_name('detection_scores:0')
-                clss = detection_graph.get_tensor_by_name('detection_classes:0')
-                num_detections = detection_graph.get_tensor_by_name('num_detections:0')
-                
-                # Run inference on this image
-                (box, score, clss, num_detections) = sess.run(
-                        [box, score, clss, num_detections],
-                        feed_dict={image_tensor: imageNP_expanded})
-
-                cpState.boxes[iImage] = box
-                cpState.scores[iImage] = score
-                cpState.classes[iImage] = clss
-            
-                if iImage == 0:
+                if firstImageCompleteTime is None:
                     firstImageCompleteTime = time.time()
                 
                 if options.checkpointFrequency > 0:
@@ -221,11 +234,18 @@ def generate_detections(detector,images,options):
     
     nImages = len(images)
     
+    if nImages == 0:
+        print('Warning: couldn''t process any images')
+        return [],[],[],[]
+    
     elapsed = time.time() - startTime
     if nImages == 1:
         print("Finished running detector in {}".format(humanfriendly.format_timespan(elapsed)))
     else:
-        firstImageElapsed = firstImageCompleteTime - startTime
+        if firstImageCompleteTime is None:
+            firstImageElapsed = 0
+        else:
+            firstImageElapsed = firstImageCompleteTime - startTime
         remainingImagesElapsed = elapsed - firstImageElapsed
         remainingImagesTimePerImage = remainingImagesElapsed/(nImages-1)
         
@@ -340,7 +360,6 @@ def options_to_images(options):
     if os.path.isdir(options.imageFile):
         
         imageFileNames = find_images(options.imageFile,options.recursive)
-        imageFileNames.append('asdfasdfasd')
         
     else:
         
@@ -509,6 +528,10 @@ if False:
     
 #%% Command-line driver
    
+# Sample invocation:
+#
+# python run_tf_detector_batch.py "d:\temp\models\megadetector_v3.pb" "d:\temp\test" "d:\temp\test\out.json" --recursive
+    
 # Copy all fields from a Namespace (i.e., the output from parse_args) to an object.  
 #
 # Skips fields starting with _.  Does not check existence in the target object.
@@ -530,7 +553,7 @@ def main():
                        help='Output results file')
     parser.add_argument('--threshold', action='store', type=float, 
                         default=DEFAULT_CONFIDENCE_THRESHOLD, 
-                        help='Confidence threshold, don''t render boxes below this confidence')
+                        help='Confidence threshold, don''t include boxes below this confidence in the output file')
     parser.add_argument('--recursive', action='store_true', 
                         help='Recurse into directories, only meaningful if --imageFile points to a directory')
     parser.add_argument('--forceCpu', action='store_true', 
