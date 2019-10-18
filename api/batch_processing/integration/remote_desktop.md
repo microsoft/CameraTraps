@@ -10,7 +10,7 @@ A virtual machine is a computer simulated by software to have the same functiona
 To access this VM, we use the same mechanism as for accessing any computer in a remote location, which is "remote desktop." This is a type of software run on your local computer that transmits the graphical user interface of the remote computer to you. 
 
 
-## Start a Windows VM on Azure Portal
+## Create a Windows VM on Azure Portal
 
 Visit Azure Portal at [https://portal.azure.com](https://portal.azure.com). This is where you can manage the resources in your Azure subscription. Authenticate with your credentials associated with the subscription.
 
@@ -95,4 +95,4 @@ Once you have it installed, you will be prompted to "Connect to Azure Storage," 
 
 ! Make sure you enable the AzCopy (currently in Preview) feature - it makes a big difference in download speed: on the top menu bar, go to "Preview" and check "Use AzCopy for Improved Blob Upload and Download."
 
-You should be able to browse the images in a blob storage container, and select folders to download to the VM.
+You should be able to browse the images in a blob storage container and select folders to download to the VM.
