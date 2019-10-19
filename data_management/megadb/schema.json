@@ -1,0 +1,197 @@
+{
+  "definitions": {},
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "array",
+  "title": "Camera Trap MegaDB Schema",
+  "description": "Internally we store all labels and metadata associated with each image sequence, image and annotation in a NoSQL database for easy querying.",
+  "default": null,
+  "items": {
+    "$id": "#/items",
+    "type": "object",
+    "title": "Sequence is the top level object stored in the outmost array",
+    "default": null,
+    "required": [
+      "dataset",
+      "seq_id",
+      "location",
+      "images",
+      "class"
+    ],
+    "properties": {
+      "dataset": {
+        "$id": "#/items/properties/dataset",
+        "type": "string",
+        "title": "Dataset to which the Sequence belongs.",
+        "description": "This is the partition key of the DB",
+        "examples": [
+          "caltech",
+          "rspb_gola",
+          "peaceparks_201908_humans"
+        ],
+        "pattern": "^(.*)$"
+      },
+      "seq_id": {
+        "$id": "#/items/properties/seq_id",
+        "type": "string",
+        "title": "ID of the sequence. Starts with \"dummy\" if we have no information on sequences.",
+        "description": "This is unique within a Dataset. Not used as the ID for the item in the DB - the DB assigns one",
+        "examples": [
+          "6f8696a3-5567-11e8-b69a-dca9047ef277",
+          "dummy_340987183457814"
+        ],
+        "pattern": "^(.*)$"
+      },
+      "seq_num_frames": {
+        "$id": "#/items/properties/seq_num_frames",
+        "type": "integer",
+        "title": "Number of frames in this Sequence",
+        "examples": [
+          3
+        ]
+      },
+      "location": {
+        "$id": "#/items/properties/location",
+        "type": "string",
+        "title": "Camera location",
+        "description": "Training and validation splits are based on location.",
+        "examples": [
+          "33",
+          "P1158__C18"
+        ],
+        "pattern": "^(.*)$"
+      },
+      "rights_holder": {
+        "$id": "#/items/properties/rights_holder",
+        "type": "string",
+        "examples": [
+          "Jane Smith"
+        ],
+        "pattern": "^(.*)$"
+      },
+      "width": {
+        "$id": "#/items/properties/width",
+        "type": "integer",
+        "title": "Width of images in this sequence",
+        "examples": [
+          2048
+        ]
+      },
+      "height": {
+        "$id": "#/items/properties/height",
+        "type": "integer",
+        "title": "Height of images in this sequence",
+        "examples": [
+          1494
+        ]
+      },
+      "images": {
+        "$id": "#/items/properties/images",
+        "type": "array",
+        "title": "Images belonging to this Sequence",
+        "description": "",
+        "default": null,
+        "items": {
+          "$id": "#/items/properties/images/items",
+          "type": "object",
+          "title": "An Image in this Sequence",
+          "properties": {
+            "frame_num": {
+              "$id": "#/items/properties/images/items/properties/frame_num",
+              "type": "integer",
+              "title": "Position of this Image in the Sequence. Starts at 1",
+              "examples": [
+                1
+              ],
+              "minimum": 1.0
+            },
+            "datetime": {
+              "$id": "#/items/properties/images/items/properties/datetime",
+              "type": "string",
+              "title": "Datetime timestamp of the image",
+              "examples": [
+                "2012-05-21 04:58:05"
+              ],
+              "pattern": "^(.*)$"
+            },
+            "file": {
+              "$id": "#/items/properties/images/items/properties/file",
+              "type": "string",
+              "title": "Path to the image file from the path_prefix of this dataset",
+              "examples": [
+                "P1158/C18/P1158__C18__2011-06-24__15-25-35(15).JPG"
+              ],
+              "pattern": "^(.+)(.jpg|.JPG|.jpeg|.JPEG)$"
+            },
+            "bbox": {
+              "$id": "#/properties/images/items/properties/bbox",
+              "type": "array",
+              "title": "Bounding boxes on this image",
+              "default": null,
+              "items": {
+                "$id": "#/properties/images/items/properties/bbox/items",
+                "type": "object",
+                "title": "A bounding box annotation",
+                "required": [
+                  "category",
+                  "bbox"
+                ],
+                "properties": {
+                  "category": {
+                    "$id": "#/properties/images/items/properties/bbox/items/properties/category",
+                    "type": "string",
+                    "title": "Category assigned to the bounding box",
+                    "examples": [
+                      "animal", "person", "vehicle", "group"
+                    ],
+                    "pattern": "^(.*)$"
+                  },
+                  "bbox": {
+                    "$id": "#/properties/images/items/properties/bbox/items/properties/bbox",
+                    "type": "array",
+                    "title": "Relative coordinates of the bounding box, in x_min, y_min, width, height",
+                    "default": null,
+                    "maxItems": 4,
+                    "minItems": 4,
+                    "items": {
+                      "$id": "#/properties/images/items/properties/bbox/items/properties/bbox/items",
+                      "type": "number",
+                      "title": "Relative coordinate",
+                      "default": 0.0,
+                      "examples": [
+                        0.739,
+                        0.448,
+                        0.187,
+                        0.198
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "required": [
+            "file"
+          ]
+        }
+      },
+      "class": {
+        "$id": "#/items/properties/class",
+        "type": "array",
+        "title": "Sequence level class label",
+        "items": {
+          "$id": "#/items/properties/class/items",
+          "type": "string",
+          "title": "A Sequence level class label",
+          "examples": [
+            "raccoon",
+            "lionfemale",
+            "bird",
+            "unidentified",
+            "empty"
+          ],
+          "pattern": "^(.*)$"
+        }
+      }
+    }
+  }
+}
