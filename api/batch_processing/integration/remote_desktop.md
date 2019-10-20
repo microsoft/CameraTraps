@@ -63,7 +63,13 @@ On this side panel, under the "RDP" tab (default), click on "Download RDP File" 
 ![screenshot of the Connect popup where you can download the RDP file](images/vm_6_connect_popup.png)
 
 
-You will then need the "Microsoft Remote Desktop" application on your local computer to access the VM (available for free from Microsoft Store [here](https://www.microsoft.com/en-us/p/microsoft-remote-desktop/9wzdncrfj3ps?activetab=pivot:overviewtab) and the Mac App Store [here](https://apps.apple.com/us/app/microsoft-remote-desktop/id714464092)). Once installed, double clicking on the RDP file should get the application started, from which you can operate the VM.
+You will then need the "Microsoft Remote Desktop" application on your local computer to access the VM (available for free from Microsoft Store [here](https://www.microsoft.com/en-us/p/microsoft-remote-desktop/9wzdncrfj3ps?activetab=pivot:overviewtab) and the Mac App Store [here](https://apps.apple.com/us/app/microsoft-remote-desktop/id714464092)). 
+
+Once installed, double clicking on the RDP file should get the application started, from which you can operate the VM.
+
+In the Windows Security window, select "More choices" and then "Use a different account". Enter the admin username and password you created above, and then click OK.
+
+You may receive a certificate warning during the sign-in process. Click "Yes" or "Continue" to create the connection.
 
 
 ### Side step: make the IP address of the VM static
@@ -73,7 +79,7 @@ The IP address of the VM is by default dynamic and can change over time (especia
 
 ![screenshot of the networking overview page](images/vm_7_networking.png)
 
-2 - In the subsequent interface, select "Configuration" from the menu on the left, and check the "Static" radio button.
+2 - In the subsequent interface, select "Configuration" from the menu on the left, and check the "Static" radio button instead. Remember to click on the "Save" button above to record this change.
 
 ![screenshot of the networking configuration page](images/vm_8_static_ip.png)
 
