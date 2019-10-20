@@ -2,6 +2,8 @@
 
 This guide documents how to set up Window Virtual Machines (VMs) on Azure and add users to them. This could be useful for distributing image labeling tasks using e.g. Timelapse to other team members.
 
+If you would like to more thoroughly understand the VM creation process, head over to the [Create a Windows virtual machine in Azure](https://docs.microsoft.com/en-us/learn/modules/create-windows-virtual-machine-in-azure/) tutorial on Microsoft Learn.
+
 Where not noted, it is fine to accept the default value provided by Azure Portal. The screenshot relevant to a series of steps is shown below the text.
 
 ### What is a virtual machine?
