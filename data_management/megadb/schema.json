@@ -14,8 +14,7 @@
       "dataset",
       "seq_id",
       "location",
-      "images",
-      "class"
+      "images"
     ],
     "properties": {
       "dataset": {
