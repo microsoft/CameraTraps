@@ -198,7 +198,7 @@ def generate_detections(detector,images,options):
                     raise
                     
                 except Exception as e:
-                    print('Error processing image {}: {}',image,str(e))
+                    print('Error processing image {}: {}'.format(image,str(e)))
                     cpState.bValidImage[iImage] = False
                     continue
                 
