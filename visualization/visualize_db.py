@@ -332,7 +332,7 @@ def main():
     parser.add_argument('--pathsep_replacement', action='store', type=str, default='',
                         help='Replace path separators in relative filenames with another character (frequently ~)')
     
-    if len(sys.argv[1:])==0:
+    if len(sys.argv[1:]) == 0:
         parser.print_help()
         parser.exit()
             
@@ -340,7 +340,7 @@ def main():
     
     # Convert to an options object
     options = DbVizOptions()
-    args_to_object(args,options)
+    args_to_object(args, options)
     if options.random_sort:
         options.sort_by_filename = False
         
