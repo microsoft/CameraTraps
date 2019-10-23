@@ -1,19 +1,16 @@
 {
   "definitions": {},
-  "$schema": "http://json-schema.org/draft-04/schema#",
+  "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "array",
   "title": "Camera Trap MegaDB Schema",
   "description": "Internally we store all labels and metadata associated with each image sequence, image and annotation in a NoSQL database for easy querying.",
-  "default": null,
   "items": {
     "$id": "#/items",
     "type": "object",
     "title": "Sequence is the top level object stored in the outmost array",
-    "default": null,
     "required": [
       "dataset",
       "seq_id",
-      "location",
       "images"
     ],
     "properties": {
@@ -22,11 +19,13 @@
         "type": "string",
         "title": "Dataset to which the Sequence belongs.",
         "description": "This is the partition key of the DB",
+        "default": null,
         "examples": [
           "caltech",
           "rspb_gola",
           "peaceparks_201908_humans"
         ],
+        "minLength": 3,
         "pattern": "^(.*)$"
       },
       "seq_id": {
@@ -34,25 +33,23 @@
         "type": "string",
         "title": "ID of the sequence. Starts with \"dummy\" if we have no information on sequences.",
         "description": "This is unique within a Dataset. Not used as the ID for the item in the DB - the DB assigns one",
+        "default": null,
         "examples": [
           "6f8696a3-5567-11e8-b69a-dca9047ef277",
           "dummy_340987183457814"
         ],
+        "minLength": 8,
         "pattern": "^(.*)$"
-      },
-      "seq_num_frames": {
-        "$id": "#/items/properties/seq_num_frames",
-        "type": "integer",
-        "title": "Number of frames in this Sequence",
-        "examples": [
-          3
-        ]
       },
       "location": {
         "$id": "#/items/properties/location",
-        "type": "string",
+        "type": [
+          "object",
+          "string"
+        ],
         "title": "Camera location",
-        "description": "Training and validation splits are based on location.",
+        "description": "Training and validation splits are based on location. Highly recommend that sequences include the location information.",
+        "default": null,
         "examples": [
           "33",
           "P1158__C18"
@@ -67,28 +64,12 @@
         ],
         "pattern": "^(.*)$"
       },
-      "width": {
-        "$id": "#/items/properties/width",
-        "type": "integer",
-        "title": "Width of images in this sequence",
-        "examples": [
-          2048
-        ]
-      },
-      "height": {
-        "$id": "#/items/properties/height",
-        "type": "integer",
-        "title": "Height of images in this sequence",
-        "examples": [
-          1494
-        ]
-      },
       "images": {
         "$id": "#/items/properties/images",
         "type": "array",
         "title": "Images belonging to this Sequence",
         "description": "",
-        "default": null,
+        "minItems": 1,
         "items": {
           "$id": "#/items/properties/images/items",
           "type": "object",
@@ -101,7 +82,7 @@
               "examples": [
                 1
               ],
-              "minimum": 1.0
+              "minimum": 1
             },
             "datetime": {
               "$id": "#/items/properties/images/items/properties/datetime",
@@ -121,11 +102,31 @@
               ],
               "pattern": "^(.+)(.jpg|.JPG|.jpeg|.JPEG)$"
             },
+            "class": {
+              "$id": "#/properties/images/items/properties/class",
+              "type": "array",
+              "title": "Image-level class label",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "$id": "#/properties/images/items/properties/class/items",
+                "type": "string",
+                "title": "An Image-level class label. Use 'empty' for sequences that are empty of objects of interest; use '__label_unavailabl' if unlabeled.",
+                "examples": [
+                  "raccoon",
+                  "lionfemale",
+                  "bird",
+                  "unidentified",
+                  "__label_unavailable",
+                  "empty"
+                ],
+                "pattern": "^(.*)$"
+              }
+            },
             "bbox": {
               "$id": "#/properties/images/items/properties/bbox",
               "type": "array",
               "title": "Bounding boxes on this image",
-              "default": null,
               "items": {
                 "$id": "#/properties/images/items/properties/bbox/items",
                 "type": "object",
@@ -138,9 +139,18 @@
                   "category": {
                     "$id": "#/properties/images/items/properties/bbox/items/properties/category",
                     "type": "string",
+                    "enum": [
+                      "animal",
+                      "person",
+                      "vehicle",
+                      "group"
+                    ],
                     "title": "Category assigned to the bounding box",
                     "examples": [
-                      "animal", "person", "vehicle", "group"
+                      "animal",
+                      "person",
+                      "vehicle",
+                      "group"
                     ],
                     "pattern": "^(.*)$"
                   },
@@ -148,20 +158,20 @@
                     "$id": "#/properties/images/items/properties/bbox/items/properties/bbox",
                     "type": "array",
                     "title": "Relative coordinates of the bounding box, in x_min, y_min, width, height",
-                    "default": null,
                     "maxItems": 4,
                     "minItems": 4,
                     "items": {
                       "$id": "#/properties/images/items/properties/bbox/items/properties/bbox/items",
                       "type": "number",
                       "title": "Relative coordinate",
-                      "default": 0.0,
                       "examples": [
                         0.739,
                         0.448,
                         0.187,
                         0.198
-                      ]
+                      ],
+                      "minimum": 0.0,
+                      "maximum": 1.0
                     }
                   }
                 }
@@ -176,16 +186,20 @@
       "class": {
         "$id": "#/items/properties/class",
         "type": "array",
-        "title": "Sequence level class label",
+        "title": "Sequence-level class label",
+        "default": null,
+        "minItems": 1,
+        "uniqueItems": true,
         "items": {
           "$id": "#/items/properties/class/items",
           "type": "string",
-          "title": "A Sequence level class label",
+          "title": "A Sequence-level class label. Use 'empty' for sequences that are empty of objects of interest; use '__label_unavailabl' if unlabeled.",
           "examples": [
             "raccoon",
             "lionfemale",
             "bird",
             "unidentified",
+            "__label_unavailable",
             "empty"
           ],
           "pattern": "^(.*)$"

@@ -2,11 +2,8 @@
   {
     "dataset": "caltech",
     "seq_id": "6f8696a3-5567-11e8-b69a-dca9047ef277",
-    "seq_num_frames": 3,
     "location": "33",
     "rights_holder": "Jane Smith",
-    "width": 2048,
-    "height": 1494,
     "images": [
       {
         "frame_num": 1,
@@ -31,11 +28,8 @@
   {
     "dataset": "caltech",
     "seq_id": "6f3ca3dc-5567-11e8-8ec5-dca9047ef277",
-    "seq_num_frames": 1,
     "location": "26",
     "rights_holder": "Erin Jones",
-    "width": 2048,
-    "height": 1494,
     "images": [
       {
         "frame_num": 1,
@@ -50,11 +44,8 @@
   {
     "dataset": "caltech",
     "seq_id": "66ff9ef3d-5567-11e8-9654-dca9047ef277",
-    "seq_num_frames": 1,
     "location": "26",
     "rights_holder": "Erin Jones",
-    "width": 2048,
-    "height": 1494,
     "images": [
       {
         "frame_num": 1,
@@ -97,9 +88,7 @@
         "class": [
           "red deer",
           "bird"
-        ],
-        "height": 1536,
-        "width": 2048
+        ]
       }
     ]
   },
@@ -130,11 +119,8 @@
   {
     "dataset": "ss_s7",
     "seq_id": "ASG000qvqd",
-    "seq_num_frames": 3,
     "location": "K10",
     "datetime": "2012-09-30 13:14:39",
-    "width": 2048,
-    "height": 1536,
     "season": "S7",
     "interacting": 0,
     "has_young": 1,
