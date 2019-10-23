@@ -9,3 +9,4 @@ Pillow>=5.3.0
 tqdm<4.21.0
 scikit-image>=0.13.1
 scikit-learn>=0.19.1
+jsonschema
