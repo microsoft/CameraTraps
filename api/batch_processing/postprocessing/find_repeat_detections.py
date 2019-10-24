@@ -2,15 +2,25 @@
 #
 # find_repeat_detections.py
 #
-# Looks through a sequence of detections in the API output json file, and finds candidates
-# that might be "repeated false positives", i.e. that random branch that the detector
-# thinks is an animal.
+# If you want to use this script, we recommend that you read the user's guide:
+#
+# https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing/postprocessing/repeat_detection_elimination.ms
+#
+# Really, don't try to run this script without reading the user's guide, you'll think 
+# it's more magical than it is. 
+#
+# This script looks through a sequence of detections in the API output json file, and finds 
+# candidates that might be "repeated false positives", i.e. that random branch that the 
+# detector thinks is an animal/person/vehicle.
 #
 # Writes out a new .json file where "suspicious" detections have had their
 # probabilities multiplied by -1.  Optionally (and slowly) also writes an html
 # result set so you can examine what was deemed "suspicious"
 #
-# Currently the unit within which images are compared is a *directory*.
+# Typically after running this script, you would do a manual step to remove 
+# true positives, then run remove_repeat_detections to produce a final output file.
+#
+# There's no way that statement was self-explanatory; see the user's guide.
 #
 ########
 
@@ -48,6 +58,10 @@ warnings.filterwarnings('ignore', '(Possibly )?corrupt EXIF data', UserWarning)
 # Metadata Warning, tag 256 had too many entries: 42, expected 1
 warnings.filterwarnings('ignore', 'Metadata warning', UserWarning)
 
+
+#%% Constants
+
+DETECTION_INDEX_FILE_NAME = 'detectionIndex.json'
 
 ##%% Classes
 
@@ -553,7 +567,8 @@ def update_detection_table(RepeatDetectionResults, options, outputFilename=None)
 
     # ...for each row
 
-    if outputFilename is not None:
+    # If we're also writing output...
+    if outputFilename is not None and len(outputFilename) > 0:
         write_api_results(detectionResults, RepeatDetectionResults.otherFields, outputFilename)
 
     print(
@@ -562,13 +577,12 @@ def update_detection_table(RepeatDetectionResults, options, outputFilename=None)
 
     return detectionResults
 
-
 # ...def update_detection_table(RepeatDetectionResults,options)
 
 
 ##%% Main function
 
-def find_repeat_detections(inputFilename, outputFilename, options=None):
+def find_repeat_detections(inputFilename, outputFilename=None, options=None):
     
     ##%% Input handling
 
@@ -866,7 +880,7 @@ def find_repeat_detections(inputFilename, outputFilename, options=None):
                 detection.sampleImageRelativeFileName = outputRelativePath
 
         # Write out the detection index
-        detectionIndexFileName = os.path.join(filteringDir, 'detectionIndex.json')
+        detectionIndexFileName = os.path.join(filteringDir, DETECTION_INDEX_FILE_NAME)
         jsonpickle.set_encoder_options('json', sort_keys=True, indent=4)
         s = jsonpickle.encode(suspiciousDetections)
         with open(detectionIndexFileName, 'w') as f:
@@ -879,7 +893,6 @@ def find_repeat_detections(inputFilename, outputFilename, options=None):
 
     return toReturn
 
-
 # ...find_repeat_detections()
 
 
@@ -888,7 +901,7 @@ def find_repeat_detections(inputFilename, outputFilename, options=None):
 if False:
     #%%
 
-    baseDir = '/Users/siyuyang/Source/temp_data/CameraTrap/test_repeat_detection'
+    baseDir = ''
 
     options = RepeatDetectionOptions()
     options.bRenderHtml = True
@@ -927,6 +940,7 @@ if False:
 #%% Command-line driver
 
 def main():
+    
     # With HTML (debug)
     # python find_repeat_detections.py "D:\temp\tigers_20190308_all_output.json" "D:\temp\tigers_20190308_all_output.filtered.json" --renderHtml --debugMaxDir 100 --imageBase "d:\wildlife_data\tigerblobs" --outputBase "d:\temp\repeatDetections"
 
@@ -940,7 +954,8 @@ def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument('inputFile')
-    parser.add_argument('outputFile')
+    parser.add_argument('--outputFile', action='store', type=str, default=None,
+                        help='.json file to write filtered results to')
     parser.add_argument('--imageBase', action='store', type=str, default='',
                         help='Image base dir, relevant if renderHtml is True or if omitFilteringFolder is not set')
     parser.add_argument('--outputBase', action='store', type=str, default='',
