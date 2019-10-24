@@ -37,15 +37,16 @@ This script is going to generate a results file that you probably won&rsquo;t lo
 So let&rsquo;s assume that:
 
 * Your .json results file is in `c:\my_results.json`
-* You want to put the results of this script in a file called `c:\repeat_detection_stuff\results.json`
 * You want all the temporary images to end up under `c:\repeat_detection_stuff`
 * Your images are in `c:\my_images`
 
 You would run:
 
-`python find_repeat_detections.py "c:\my_results.json" "c:\repeat_detection_stuff\results.json" --imageBase "c:\my_images" --outputBase "c:\repeat_detection_stuff"`
+`python find_repeat_detections.py "c:\my_results.json" --imageBase "c:\my_images" --outputBase "c:\repeat_detection_stuff"`
 
-This script can take a while!  Possibly hours if you have millions of images.
+This script can take a while!  Possibly hours if you have millions of images.  If you want to test it on just a couple folders first, you can use the `debugMaxDir` option, to tell the script to only process a certain number of cameras.  E.g.:
+
+`python find_repeat_detections.py [...all the other stuff...] --debugMaxDir 10`
 
 There are lots of other options to this script; we&rsquo;ll talk about them later.  They all relate to the things you can do to make the basic process even more efficient by controlling what gets identified as &ldquo;suspicious&rdquo;.
 
@@ -81,13 +82,39 @@ You can do this step (deleting images) using any tool you like, but for the auth
 1. The regular Windows explorer with &ldquo;view&rdquo; set to &ldquo;extra large icons&rdquo;.
 2. <a href="https://www.irfanview.com">IrfanView</a>, which is a simple, fast image viewer that makes it very quick to page through lots and lots of images in a row that are all just branches and leaves (by pressing or holding down the &ldquo;right&rdquo; key), and you can just press the &ldquo;delete&rdquo; key in IrfanView to delete an image when you see an animal/person.  This makes things very fast!
 
-Remember that in the next step, we&rsquo;ll be marking any detections left in this folder as false positives, so you probably won&rsquo;t see any of these images again.  <b>So make sure to delete all the images with boxes on stuff you care about!</b>
+Pro tip: this directory (starting with &ldquo;filtering&rdquo;) is entirely self-contained, so you can zip it up and take it to a different computer to do the actual deletion.  This is useful, for example, if you&rsquo;re working on a remote machine but you want the super-duper-low-latency experience of working on your local machine for the actual image deletion.  When you&rsquo;re done, you can just zip up the folder (now smaller, because you deleted a bunch of images) and ship it back to the other machine.
+
+Remember that in the next step, we&rsquo;ll be marking any detections left in this folder as false positives, so you probably won&rsquo;t see any of these images again.  <b>So make sure to delete all the images that have boxes on stuff you care about!</b>
 
 
 # Producing the final &ldquo;filtered&rdquo; output file
 
 When that directory contains only false positives, you&rsquo;re ready to remove those - and the many many images of the same detections that you never had to look at - from your results.  To do this, you&rsquo;ll use this script:
 
+`(camera trap repo base)/api/batch_processing/postprocessing/remove_repeat_detections.py`
+
+This script takes your original .json file and removes detections corresponding to the stuff you left in the folder in the previous step.  Actually, it doesn&rsquo;t technically remove them; rather, it sets their probabilities to be negative numbers.  So it&rsquo;s possible in downstream processing tools to figure out which things were &ldquo;removed&rdquo; by this process.
+
+This script is also slow: for historical reasons, it *re-finds* all the suspicious detections, then removes the ones that were left in the directory.  We hope to fix this soon.
+
+
+# What next?
+
+After running this process, you still have a .json file in the same format that our API produces, just with (hopefully) many fewer false positives that are above your confidence threshold.  At this point, you can proceed with whatever workflow you would normally use to work with our API output, e.g. our <a href="https://github.com/microsoft/CameraTraps/blob/master/api/batch_processing/integration/timelapse.md">integration with Timelapse</a>.
 
 
 # Advanced options
+
+There are a few magic numbers involved in identifying &ldquo;suspicious&rdquo; detections.  You can tune these to identify more or fewer detections as suspicious, depending on how it&rsquo;s performing on your data and how much time you want to spend reviewing.
+
+You can run:
+
+`python find_repeat_detections.py`
+
+...for a full list of options and documentation for each, but some specific options of interest:
+
+* `--confidenceMax` is a way of telling the script not to consider anything that&rsquo;s very high confidence as suspicious.  This defaults to 1.0, meaning even a box with confidence 0.99999 could be treated as suspicious.
+* `--confidenceMin` is a way of not wasting time on things you were going to throw out anyway, by telling the scripts not to even consider low-confidence detections as suspicious.
+* `--iouThreshold` controls exactly how similar two boxes have to be in order to be considered &ldquo;identical&rdquo;.  If you show any detector nearly identical images with just a couple pixels of difference between them, the resulting bounding boxes may move around a bit.  A value of 1.0 (which you shouldn&rsquo;t use) says that two boxes have to be <i>identical</i> to be considered repeats.  Lowering this value will collapse more detections into a single example detection, but if you lower this too far, anything can be considered identical, and you&rsquo;ll start treating totally separate detections as identical.
+* `--occurrenceThreshold` controls how many times a detection needs to be seen to be considered suspicious.
+* `--maxSuspiciousDetectionSize` puts a limit on how large a suspicious box can be: sometimes animals take up the whole image, and by definition you get the same box for every animal that takes up the whole image.
