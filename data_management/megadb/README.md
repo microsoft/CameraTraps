@@ -27,7 +27,7 @@ This table stores information about each dataset in the database. Each dataset o
 
 ## Conventions
 
-While most of the enforceable rules are included in the schema `schema.json` and the extra checks in `verify_items_to_insert.py`, we observe a number of additional conventions detailed here.
+While most of the enforceable rules are included in the schema `schema.json` and the extra checks in `verify_items_to_insert.py`, we observe a number of additional conventions detailed here. Some rules enforced by the schema and additional checks are explained here also for clarity.
 
 ### Which level to associate a property
 We always associated a property with the highest level in the hierachy that is still correct. 

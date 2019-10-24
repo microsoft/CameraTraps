@@ -112,15 +112,17 @@
                 "$id": "#/properties/images/items/properties/class/items",
                 "type": "string",
                 "title": "An Image-level class label. Use 'empty' for sequences that are empty of objects of interest; use '__label_unavailabl' if unlabeled.",
-                "examples": [
-                  "raccoon",
-                  "lionfemale",
-                  "bird",
-                  "unidentified",
-                  "__label_unavailable",
-                  "empty"
-                ],
-                "pattern": "^(.*)$"
+              "examples": [
+                "raccoon",
+                "lionfemale",
+                "bird",
+                "storm's stork",
+                "white-headed langur",
+                "unidentified",
+                "__label_unavailable",
+                "empty"
+              ],
+                "pattern": "^[a-z0-9_][ a-z0-9_\\-']*[a-z0-9]$"
               }
             },
             "bbox": {
@@ -198,11 +200,13 @@
             "raccoon",
             "lionfemale",
             "bird",
+            "storm's stork",
+            "white-headed langur",
             "unidentified",
             "__label_unavailable",
             "empty"
           ],
-          "pattern": "^(.*)$"
+          "pattern": "^[a-z0-9_][ a-z0-9_\\-']*[a-z0-9]$"
         }
       }
     }
