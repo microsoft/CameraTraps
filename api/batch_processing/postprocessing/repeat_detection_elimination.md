@@ -61,7 +61,7 @@ This directory will have lots of pictures with bounding boxes on them.  Importan
 
 Most of these images indeed correspond to repeated false positives:
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<img src="media/false_positive.jpg" width="500"><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<img src="images/false_positive.jpg" width="500"><br/>
 
 But some are just animals that aren&rsquo;t moving much:
 
