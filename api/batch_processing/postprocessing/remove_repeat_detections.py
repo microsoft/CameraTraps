@@ -16,18 +16,28 @@
 
 import argparse
 import os
-
-import find_repeat_detections
 from api.batch_processing.postprocessing import find_repeat_detections
-from api.batch_processing.postprocessing import RepeatDetectionOptions
+
 
 #%% Main function
 
 def remove_repeat_detections(inputFile,outputFile,filteringDir):
-    
-    options = RepeatDetectionOptions()
+
+    assert os.path.isfile(inputFile)    
+    assert os.path.isdir(filteringDir)    
+    options = find_repeat_detections.RepeatDetectionOptions()
     options.filterFileToLoad = os.path.join(filteringDir,find_repeat_detections.DETECTION_INDEX_FILE_NAME)
-    find_repeat_detections(inputFile, outputFile, options)
+    options.bWriteFilteringFolder = False
+    find_repeat_detections.find_repeat_detections(inputFile, outputFile, options)
+
+
+#%% Interactive driver
+
+# python remove_repeat_detections.py "F:\wpz\6714_detections_wpz_all_20191015233705.SUCP_subset.json" "F:\wpz\6714_detections_wpz_all_20191015233705.SUCP_subset_filtered.json" "F:\wpz\rde\filtering_2019.10.24.16.52.54"
+inputFile = r"F:\wpz\6714_detections_wpz_all_20191015233705.SUCP_subset.json" "F:\wpz\6714_detections_wpz_all_20191015233705.SUCP_subset_filtered.json"
+outputFile = r"F:\wpz\6714_detections_wpz_all_20191015233705.SUCP_subset_filtered.json"
+filteringDir = "F:\wpz\rde\filtering_2019.10.24.16.52.54"
+remove_repeat_detections(inputFile,outputFile,filteringDir)
 
 
 #%% Command-line driver
