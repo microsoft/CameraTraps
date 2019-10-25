@@ -63,6 +63,7 @@ warnings.filterwarnings('ignore', 'Metadata warning', UserWarning)
 
 DETECTION_INDEX_FILE_NAME = 'detectionIndex.json'
 
+
 ##%% Classes
 
 class RepeatDetectionOptions:
