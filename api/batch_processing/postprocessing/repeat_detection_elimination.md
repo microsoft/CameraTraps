@@ -16,6 +16,8 @@ This whole process can eliminate tens of thousands of false detections with just
 
 This document shows you how to run these scripts.
 
+<b>None of this is required</b>; you can work with our API output without doing this step.  It takes a file in our API format and produces a file in the same format (with fewer false positives, hopefully), so for many situations you might decide to skip this step entirely.
+
 
 # Prerequisites
 
