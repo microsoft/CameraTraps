@@ -1,6 +1,6 @@
 # Overview
 
-We like to think our camera trap detector model is pretty good, but we admit it&rsquo; not perfect: inevitably, we see some &ldquo;false positives&rdquo;, i.e. pesky branches, piles of snow, or roadside litter that our model thinks is an animal.  As with <i>all</i> objection models, you can reduce your false positive rate by raising your detection threshold, but if you raise it too high, you risk missing objects you care about.
+We like to think our camera trap detector model is pretty good, but we admit it&rsquo;s not perfect: inevitably, we see some &ldquo;false positives&rdquo;, i.e. pesky branches, piles of snow, or roadside litter that our model thinks is an animal.  As with <i>all</i> objection models, you can reduce your false positive rate by raising your detection threshold, but if you raise it too high, you risk missing objects you care about.
 
 One of the things we can take advantage of for camera traps, though, is the fact that cameras typically take thousands of images from the same perspective, and if a detector thinks that branch is an animal in one image, it probably identifies the same branch in <i>hundreds</i> of other images.  If <i>exactly the same bounding box</i> is predicted on many images, we call that a <i>suspicious detection</i>.
 
