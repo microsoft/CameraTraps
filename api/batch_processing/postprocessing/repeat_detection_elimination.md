@@ -4,7 +4,7 @@ We like to think our camera trap detector model is pretty good, but we admit it&
 
 One of the things we can take advantage of for camera traps, though, is the fact that cameras typically take thousands of images from the same perspective, and if a detector thinks that branch is an animal in one image, it probably identifies the same branch in <i>hundreds</i> of other images.  If <i>exactly the same bounding box</i> is predicted on many images, we call that a <i>suspicious detection</i>.
 
-Suspicious detections aren&lsquo;t definitely false positives though: sleeping animals can occur in many images without moving an inch, and sometimes cameras on trails frequently have humans entering from the same spot, so we might see thousands of legitiamte detections around that spot, and some of them are bound to be about the same size.
+Suspicious detections aren&rsquo;t always false positives though: sleeping animals can occur in many images without moving an inch, and sometimes cameras on trails frequently have humans entering from the same spot, so we might see thousands of legitimate detections around that spot, and some of them are bound to be about the same size.
 
 Consequently, we have a set of scripts that:
 
@@ -34,13 +34,13 @@ The first step is to find all the detections that are suspicious, i.e. cases whe
 
 `(camera trap repo base)/api/batch_processing/postprocessing/find_repeat_detections.py`
 
-This script is going to generate a results file that you probably won&rsquo;t look at (more on this later), and a bunch of images that you will look at, so before running the script, we recommend creating a folder to put all those images.  
+This script is going to generate a bunch of temporary images that you will look at to quickly identify which are actually false positives.
 
 So let&rsquo;s assume that:
 
 * Your .json results file is in `c:\my_results.json`
 * You want all the temporary images to end up under `c:\repeat_detection_stuff`
-* Your images are in `c:\my_images`
+* Your original images are in `c:\my_images`
 
 You would run:
 
@@ -55,7 +55,7 @@ There are lots of other options to this script; we&rsquo;ll talk about them late
 
 # Cleaning up the suspicious detections that were, in fact, real objects
 
-When the script finishes, you'll have a directory called something like `filtering_2019.10.24.13.40.45` inside the main directory you specified above.  For example, using our running example: 
+When the script finishes, you&rsquo;ll have a directory called something like `filtering_2019.10.24.13.40.45` inside the main directory you specified above.  For example, using our running example: 
 
 `c:\repeat_detection_stuff\filtering_2019.10.24.13.40.45`
 
