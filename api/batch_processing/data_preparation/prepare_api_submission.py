@@ -219,6 +219,54 @@ def generate_api_query(input_container_sas_url,file_list_sas_url,request_name,ca
     return request_strings[0],request_dicts[0]
 
 
+def fetch_task_status(endpoint_url,task_id):
+    """
+    Currently a very thin wrapper to fetch the .json content from the task URL
+    
+    Returns status dictionary,status code
+    """
+    import requests
+    from posixpath import join as urljoin
+    response = requests.get(urljoin(endpoint_url,str(task_id)))
+    return response.json(),response.status_code
+
+
+def get_output_file_urls(response):
+    """
+    Given the dictionary returned by fetch_task_status, get the set of
+    URLs returned at the end of the task, or None if they're not available.'    
+    """
+    try:
+        output_file_urls = response['status']['message']['output_file_urls']
+    except:
+        return None
+    assert 'detections' in output_file_urls
+    assert 'failed_images' in output_file_urls
+    assert 'images' in output_file_urls
+    return output_file_urls
+    
+
+def get_missing_images(response):
+    """
+    Downloads and parses the list of submitted and processed images for a task,
+    and compares them to find missing images.  Double-checks that 'failed_images'
+    is a subset of the missing images.
+    """
+    output_file_urls = get_output_file_urls(response)
+    if output_file_urls is None:
+        return None
+    
+    # Download all three urls to temporary files
+    
+    # Load all three files
+    
+    # Diff submitted and processed images
+    
+    # Confirm that the failed images are a suset of the missing images
+    
+
+    
+
 #%% Interactive driver
         
 if False:
