@@ -95,7 +95,7 @@ When that directory contains only false positives, you&rsquo;re ready to remove 
 
 The syntax is:
 
-`python remove_repeat_detections.py [inputFile] [outputFile] [filteringFolder]
+`python remove_repeat_detections.py [inputFile] [outputFile] [filteringFolder]`
 
 So specifically, in our running example, to take the original `my_results.json` file and produce a new `my_results_filtered.json` file with the repeat detections removed, you would run:
 
