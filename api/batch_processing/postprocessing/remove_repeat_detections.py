@@ -2,9 +2,8 @@
 #
 # remove_repeat_detections.py
 #
-# This script is a thin wrapper around find_repeat_detections.py, used to invoke
-# that script a second time *after* you've manually deleted the true positives
-# from the folder of images that it produces.
+# Used after running find_repeat_detections, then manually filtering the results,
+# to create a final filtered output file.
 #
 # If you want to use this script, we recommend that you read the user's guide:
 #
@@ -16,28 +15,32 @@
 
 import argparse
 import os
-from api.batch_processing.postprocessing import find_repeat_detections
+from api.batch_processing.postprocessing import repeat_detections_core
 
 
 #%% Main function
 
 def remove_repeat_detections(inputFile,outputFile,filteringDir):
 
-    assert os.path.isfile(inputFile)    
-    assert os.path.isdir(filteringDir)    
-    options = find_repeat_detections.RepeatDetectionOptions()
-    options.filterFileToLoad = os.path.join(filteringDir,find_repeat_detections.DETECTION_INDEX_FILE_NAME)
+    assert os.path.isfile(inputFile), "Can't find file {}".format(intputFile)
+    assert os.path.isdir(filteringDir), "Can't find folder {}".format(filteringDir)
+    options = repeat_detections_core.RepeatDetectionOptions()
+    options.filterFileToLoad = os.path.join(filteringDir,repeat_detections_core.DETECTION_INDEX_FILE_NAME)
     options.bWriteFilteringFolder = False
-    find_repeat_detections.find_repeat_detections(inputFile, outputFile, options)
+    repeat_detections_core.find_repeat_detections(inputFile, outputFile, options)
 
 
 #%% Interactive driver
 
-# python remove_repeat_detections.py "F:\wpz\6714_detections_wpz_all_20191015233705.SUCP_subset.json" "F:\wpz\6714_detections_wpz_all_20191015233705.SUCP_subset_filtered.json" "F:\wpz\rde\filtering_2019.10.24.16.52.54"
-inputFile = r"F:\wpz\6714_detections_wpz_all_20191015233705.SUCP_subset.json" "F:\wpz\6714_detections_wpz_all_20191015233705.SUCP_subset_filtered.json"
-outputFile = r"F:\wpz\6714_detections_wpz_all_20191015233705.SUCP_subset_filtered.json"
-filteringDir = "F:\wpz\rde\filtering_2019.10.24.16.52.54"
-remove_repeat_detections(inputFile,outputFile,filteringDir)
+if False:
+    
+    #%%
+    
+    # python remove_repeat_detections.py "F:\wpz\6714_detections_wpz_all_20191015233705.SUCP_subset.json" "F:\wpz\6714_detections_wpz_all_20191015233705.SUCP_subset_filtered.json" "F:\wpz\rde\filtering_2019.10.24.16.52.54"
+    inputFile = r"F:\wpz\6714_detections_wpz_all_20191015233705.SUCP_subset.json"
+    outputFile = r"F:\wpz\6714_detections_wpz_all_20191015233705.SUCP_subset_filtered.json"
+    filteringDir = r"F:\wpz\rde\filtering_2019.10.24.16.52.54"
+    remove_repeat_detections(inputFile,outputFile,filteringDir)
 
 
 #%% Command-line driver
