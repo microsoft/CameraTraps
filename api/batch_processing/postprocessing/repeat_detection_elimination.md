@@ -69,7 +69,7 @@ But some are just animals that aren&rsquo;t moving much:
 
 Anything left in this folder will be considered a false positive and removed from your results in subsequent steps<, so the next task is to <i>delete all the images in this folder that have bounding boxes on actual objects of interest</i>.
 
-Note that it&rsquo;s common to have a false positive in an image that also has an animal in it; you can safely delete these, because these scripts operate on individual <i>detections</i>, not <i>images</i>.  So this image is safe to delete:
+Note that it&rsquo;s common to have a false positive in an image that also has an animal in it; you can safely delete these, because these scripts operate on individual <i>detections</i>, not <i>images</i>.  So this image is safe to delete, and you&rsquo;ll be telling the script that the box is a false positive, but you <i>won&rsquo;t</i> be telling it that the deer is a false positive:
 
 <img style="margin-left:50px;" src="images/mixed_positive.jpg" width="700"><br/>
 
@@ -92,6 +92,18 @@ Remember that in the next step, we&rsquo;ll be marking any detections left in th
 When that directory contains only false positives, you&rsquo;re ready to remove those - and the many many images of the same detections that you never had to look at - from your results.  To do this, you&rsquo;ll use this script:
 
 `(camera trap repo base)/api/batch_processing/postprocessing/remove_repeat_detections.py`
+
+The syntax is:
+
+`python remove_repeat_detections.py [inputFile] [outputFile] [filteringFolder]
+
+So specifically, in our running example, to take the original `my_results.json` file and produce a new `my_results_filtered.json` file with the repeat detections removed, you would run:
+
+`python remove_repeat_detections.py "c:\my_results.json" "c:\my_results_filtered.json" "c:\repeat_detection_stuff\filtering_something_something"`
+
+The &ldquo;something_something&rdquo; part at the end refers to the exact folder name, which includes some date and time information, so this might actually look like:
+
+`python remove_repeat_detections.py "c:\my_results.json" "c:\my_results_filtered.json" "c:\repeat_detection_stuff\filtering_2019.10.24.16.52.54"`
 
 This script takes your original .json file and removes detections corresponding to the stuff you left in the folder in the previous step.  Actually, it doesn&rsquo;t technically remove them; rather, it sets their probabilities to be negative numbers.  So it&rsquo;s possible in downstream processing tools to figure out which things were &ldquo;removed&rdquo; by this process.
 
