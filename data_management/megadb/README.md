@@ -56,5 +56,11 @@ We always associated a property with the highest level in the hierachy that is s
 #### Empty images
 - The one `class` where we do enforce a "taxonomy": all images that are labeled as emtpy of objects of interest should have its `class` property be a list with only the "empty" label. Do not use "blank", "nothing", etc. 
 
+
+## Future
+
 ### Videos
 - When we have video data, it will be added as a property of the sequence object at the same level as `images`.
+
+### More properties associated with each class
+- We will create another table `classes` that will associate a `class` property value with additional fields, for each dataset.

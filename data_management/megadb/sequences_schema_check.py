@@ -2,6 +2,7 @@ import argparse
 import json
 import sys
 import os
+from collections import OrderedDict
 
 import jsonschema
 
@@ -9,6 +10,23 @@ import jsonschema
 This script takes one argument, path to the JSON file containing the entries to be ingested 
 into MegaDB in a JSON array. It then verifies it against the schema in schema.json in this directory.
 """
+
+def order_seq_properties(seq_item):
+    ordered = OrderedDict([
+        ('dataset', seq_item['dataset']),
+        ('seq_id', seq_item['seq_id'])])
+    if 'location' in seq_item:
+        ordered['location'] = seq_item['location']
+    if 'images' in seq_item:
+        ordered['images'] = seq_item['images']
+    if 'class' in seq_item:
+        ordered['class'] = seq_item['class']
+    if 'datetime' in seq_item:
+        ordered['datetime'] = seq_item['datetime']
+    for name, val in seq_item.items():
+        if name not in ordered:
+            ordered[name] = val
+    return ordered
 
 def check_frame_num(seq):
     # schema already checks that the min possible value of frame_num is 1
