@@ -22,7 +22,7 @@ from api.batch_processing.postprocessing import repeat_detections_core
 
 def remove_repeat_detections(inputFile,outputFile,filteringDir):
 
-    assert os.path.isfile(inputFile), "Can't find file {}".format(intputFile)
+    assert os.path.isfile(inputFile), "Can't find file {}".format(inputFile)
     assert os.path.isdir(filteringDir), "Can't find folder {}".format(filteringDir)
     options = repeat_detections_core.RepeatDetectionOptions()
     options.filterFileToLoad = os.path.join(filteringDir,repeat_detections_core.DETECTION_INDEX_FILE_NAME)
