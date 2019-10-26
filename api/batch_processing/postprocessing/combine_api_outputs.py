@@ -15,6 +15,9 @@
 #
 # combine_api_outputs input1.json input2.json ... inputN.json output.json
 #
+# Also see combine_api_shard_files (not exposed via the command line yet) to combine the
+# intermediate files created by the API.
+#
 ####
 
 #%% Constants and imports
@@ -113,6 +116,36 @@ def combine_api_output_dictionaries(input_dicts):
         
     return merged_dict
     
+
+def combine_api_shard_files(input_files,output_file=None):
+    """
+    Merges the list of .json-formatted API shard files *input_files* into a single
+    list of dictionaries, optionally writing the result to *output_file*.
+    """
+    
+    input_lists = []
+    print('Loading input files')
+    for fn in input_files:
+        input_lists.append(json.load(open(fn)))
+    
+    detections = []
+    # detection_list = input_lists[0]
+    for detection_list in input_lists:
+        assert isinstance(detection_list,list)
+        # d = detection_list[0]
+        for d in detection_list:
+            assert 'file' in d
+            assert 'max_detection_conf' in d
+            assert 'detections' in d
+            detections.extend([d])
+            
+    print('Writing output')
+    if output_file is not None:
+        with open(output_file, 'w') as f:
+            json.dump(detections, f, indent=1)
+    
+    return detections
+
 
 #%% Driver
     
