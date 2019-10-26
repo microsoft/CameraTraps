@@ -9,6 +9,9 @@
 #
 # No remapping of the 'category' field is done and no checks for duplicated result entries.
 #
+# Also see 'combine_api_outputs.py' in the 'postprocessing' folder, which is a re-packaging
+# of the same functionality that's meant to be invoked programmatically.
+#
 ########
 
 import json
