@@ -219,6 +219,8 @@ def generate_api_query(input_container_sas_url,file_list_sas_url,request_name,ca
     return request_strings[0],request_dicts[0]
 
 
+#%% Tools for working with API output
+
 def fetch_task_status(endpoint_url,task_id):
     """
     Currently a very thin wrapper to fetch the .json content from the task URL
@@ -245,6 +247,26 @@ def get_output_file_urls(response):
     assert 'images' in output_file_urls
     return output_file_urls
     
+
+def download_url(url, destination_filename):
+    """
+    Download a URL to a local file
+    """
+    urllib.request.urlretrieve(url, destination_filename)  
+    assert(os.path.isfile(destination_filename))
+    return destination_filename
+
+import tempfile    
+import os
+ct_api_temp_dir = os.path.join(tempfile.gettempdir(),'camera_trap_api')
+
+def get_temporary_filename():
+    os.makedirs(ct_api_temp_dir,exist_ok=True)
+    fn = os.path.join(ct_api_temp_dir,next(tempfile._get_candidate_names()))
+    return fn
+        
+def download_to_temporary_file(url):
+    return download_url(url,get_temporary_filename())
 
 def get_missing_images(response):
     """
