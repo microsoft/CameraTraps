@@ -45,16 +45,63 @@ import re
 from azure.storage.blob import BlockBlobService
 
 # assumes ai4eutils is on the path
-from path_utils import insert_before_extension
+import path_utils
 
 default_n_files_per_api_task = 1000000
 
 
 #%% File enumeration
 
+def concatenate_json_string_lists(input_files,output_file):
+    """
+    Given several files that contain json-formatted lists of strings (typically filenames),
+    concatenate them into one new file.
+    """
+    output_list = []
+    for fn in input_files:
+        file_list = json.load(open(fn)) 
+        output_list.extend(file_list)
+    s = json.dumps(output_list,indent=1)
+    with open(output_file,'w') as f:
+        f.write(s)
+    return output_list
+
+        
+def write_list_to_file(output_file,strings):
+    """
+    Writes a list of strings to file, either .json or text depending on extension
+    """
+    if output_file.endswith('.json'):
+        s = json.dumps(strings,indent=1)
+        with open(output_file,'w') as f:
+            f.write(s)
+    else:
+        with open(output_file,'w') as f:
+            for fn in strings:
+                f.write(fn + '\n')
+                
+    print('Finished writing list {}'.format(output_file))
+    
+   
+def read_list_from_file(filename):
+    """
+    Reads a json-formatted list of strings from *filename*
+    """
+    assert filename.endswith('.json')
+    file_list = json.load(open(filename))             
+    assert isinstance(file_list,list)
+    for s in file_list:
+        assert isinstance(s,str)
+    return file_list
+    
+    
 def enumerate_blobs(account_name,sas_token,container_name,rmatch=None,prefix=None):
     """
     Enumerates blobs in a container, optionally filtering with a regex
+    
+    Using the prefix parameter is faster than using a regex starting with ^
+    
+    sas_token should start with st=
     """
     
     print('Enumerating blobs from {}/{}'.format(account_name,container_name))
@@ -88,6 +135,8 @@ def enumerate_blobs_to_file(output_file,account_name,sas_token,container_name,ac
     """
     Enumerates to a .json string if output_file ends in ".json", otherwise enumerates to a 
     newline-delimited list.
+    
+    See enumerate_blobs for parameter information.
     """        
     
     matched_blobs = enumerate_blobs(account_name=account_name,
@@ -96,35 +145,35 @@ def enumerate_blobs_to_file(output_file,account_name,sas_token,container_name,ac
                                     rmatch=rmatch,
                                     prefix=prefix)
     
-    if output_file.endswith('.json'):
-        s = json.dumps(matched_blobs,indent=1)
-        with open(output_file,'w') as f:
-            f.write(s)
-    else:
-        with open(output_file,'w') as f:
-            for fn in matched_blobs:
-                f.write(fn + '\n')
-                
-    print('Finished writing results for {}/{} to {}'.format(account_name,container_name,output_file))
-    
+    write_list_to_file(output_file,matched_blobs)
     return matched_blobs
 
 
-def concatenate_json_string_lists(input_files,output_file):
+def enumerate_image_blobs(account_name,sas_token,container_name,
+                                         account_key=None,rmatch=None,prefix=None):    
     """
-    Given several files that contain json-formatted lists of strings (typically filenames),
-    concatenate them into one new file.
-    """
-    output_list = []
-    for fn in input_files:
-        file_list = json.load(open(fn)) 
-        output_list.extend(file_list)
-    s = json.dumps(output_list,indent=1)
-    with open(output_file,'w') as f:
-        f.write(s)
-    return output_list
+    Enumerates files from a blob container, returning only files with image extensions
+    
+    See enumerate_blobs for parameter information.
+    """        
+    matched_blobs = enumerate_blobs(account_name,sas_token,container_name,account_key=None,rmatch=None,prefix=None)
+    matched_blobs = path_utils.find_image_strings(matched_blobs)
+    return matched_blobs
+    
 
-        
+def enumerate_image_blobs_fo_file(output_file,account_name,sas_token,container_name,
+                                         account_key=None,rmatch=None,prefix=None):    
+    """
+    Enumerates files from a blob container, returning only files with image extensions
+    
+    See enumerate_blobs for parameter information.
+    """        
+    matched_blobs = enumerate_blobs(account_name,sas_token,container_name,account_key=None,rmatch=None,prefix=None)
+    matched_blobs = path_utils.find_image_strings(matched_blobs)
+    write_list_to_file(output_file,matched_blobs)
+    return matched_blobs
+    
+
 #%% Dividing files into multiple tasks
 
 def divide_chunks(l, n): 
@@ -159,7 +208,7 @@ def divide_files_into_tasks(file_list_json,n_files_per_task=default_n_files_per_
     # i_chunk = 0; chunk = chunks[0]
     for i_chunk,chunk in enumerate(chunks):
         chunk_id = 'chunk{0:0>3d}'.format(i_chunk)
-        output_file = insert_before_extension(file_list_json,chunk_id)
+        output_file = path_utils.insert_before_extension(file_list_json,chunk_id)
         output_files.append(output_file)
         s = json.dumps(chunk,indent=1)
         with open(output_file,'w') as f:
@@ -217,6 +266,124 @@ def generate_api_query(input_container_sas_url,file_list_sas_url,request_name,ca
                                                          request_name,
                                                          caller)
     return request_strings[0],request_dicts[0]
+
+
+#%% Tools for working with API output
+
+import urllib
+import tempfile    
+import os
+ct_api_temp_dir = os.path.join(tempfile.gettempdir(),'camera_trap_api')
+IMAGES_PER_SHARD = 2000
+
+def fetch_task_status(endpoint_url,task_id):
+    """
+    Currently a very thin wrapper to fetch the .json content from the task URL
+    
+    Returns status dictionary,status code
+    """
+    import requests
+    from posixpath import join as urljoin
+    response = requests.get(urljoin(endpoint_url,str(task_id)))
+    return response.json(),response.status_code
+
+
+def get_output_file_urls(response):
+    """
+    Given the dictionary returned by fetch_task_status, get the set of
+    URLs returned at the end of the task, or None if they're not available.'    
+    """
+    try:
+        output_file_urls = response['status']['message']['output_file_urls']
+    except:
+        return None
+    assert 'detections' in output_file_urls
+    assert 'failed_images' in output_file_urls
+    assert 'images' in output_file_urls
+    return output_file_urls
+    
+
+def download_url(url, destination_filename, verbose=True):
+    """
+    Download a URL to a local file
+    """
+    if verbose:
+        print('Downloading {} to {}'.format(url,destination_filename))
+    urllib.request.urlretrieve(url, destination_filename)  
+    assert(os.path.isfile(destination_filename))
+    return destination_filename
+
+
+def get_temporary_filename():
+    os.makedirs(ct_api_temp_dir,exist_ok=True)
+    fn = os.path.join(ct_api_temp_dir,next(tempfile._get_candidate_names()))
+    return fn
+
+        
+def download_to_temporary_file(url):
+    return download_url(url,get_temporary_filename())
+
+
+def get_missing_images(response):
+    """
+    Downloads and parses the list of submitted and processed images for a task,
+    and compares them to find missing images.  Double-checks that 'failed_images'
+    is a subset of the missing images.
+    """
+    output_file_urls = get_output_file_urls(response)
+    if output_file_urls is None:
+        return None
+    
+    # Download all three urls to temporary files
+    #
+    # detections, failed_images, images
+    temporary_files = {}
+    for s in output_file_urls.keys():
+        temporary_files[s] = download_to_temporary_file(output_file_urls[s])
+        
+    # Load all three files
+    results = {}
+    for s in temporary_files.keys():
+        with open(temporary_files[s]) as f:
+            results[s] = json.load(f)
+    
+    # Diff submitted and processed images
+    submitted_images = results['images']
+    print('Submitted {} images'.format(len(submitted_images)))
+    
+    detections = results['detections']
+    processed_images = [detection['file'] for detection in detections['images']]
+    print('Received results for {} images'.format(len(processed_images)))
+    
+    failed_images = results['failed_images']
+    print('{} failed images'.format(len(failed_images)))
+    
+    n_failed_shards = int(response['status']['message']['num_failed_shards'])
+    estimated_failed_shard_images = n_failed_shards * IMAGES_PER_SHARD
+    print('{} failed shards (approimately {} images)'.format(n_failed_shards,estimated_failed_shard_images))
+            
+    missing_images = list(set(submitted_images) - set(processed_images))
+    print('{} images not in results'.format(len(missing_images)))
+    
+    # Confirm that the failed images are a subset of the missing images
+    assert len(set(failed_images) - set(missing_images)) == 0, 'Failed images should be a subset of missing images'
+        
+    for fn in temporary_files.values():
+        os.remove(fn)
+        
+    return missing_images
+        
+
+def generate_resubmission_list(endpoint_url,task_id,resubmission_file_list_name):
+    """
+    Finds all the image files that failed to process in a job and writes them to a file.
+    """
+    response,_ = fetch_task_status(endpoint_url,task_id)
+    missing_files = get_missing_images(response)
+    missing_images = path_utils.find_image_strings(missing_files)
+    non_images = list(set(missing_files) - set(missing_images))
+    write_list_to_file(resubmission_file_list_name,missing_images)
+    return missing_images,non_images
 
 
 #%% Interactive driver
