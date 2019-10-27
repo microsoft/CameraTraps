@@ -270,9 +270,15 @@ def generate_api_query(input_container_sas_url,file_list_sas_url,request_name,ca
 
 #%% Tools for working with API output
 
+# I suspect this whole section will move to a separate file at some point,
+# so leaving these imports and constants here for now.
+from posixpath import join as urljoin
+
 import urllib
 import tempfile    
 import os
+import requests
+    
 ct_api_temp_dir = os.path.join(tempfile.gettempdir(),'camera_trap_api')
 IMAGES_PER_SHARD = 2000
 
@@ -282,8 +288,6 @@ def fetch_task_status(endpoint_url,task_id):
     
     Returns status dictionary,status code
     """
-    import requests
-    from posixpath import join as urljoin
     response = requests.get(urljoin(endpoint_url,str(task_id)))
     return response.json(),response.status_code
 
