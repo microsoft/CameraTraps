@@ -572,8 +572,15 @@ def find_repeat_detections(inputFilename, outputFilename=None, options=None):
 
     toReturn = RepeatDetectionResults()
 
+    
+    # Check early to avoid problems with the output folder
+    
+    if options.bWriteFilteringFolder or options.bRenderHtml:
+        assert options.outputBase is not None and len(options.outputBase) > 0
+        os.makedirs(options.outputBase,exist_ok=True)
 
-    ##%% Load file
+
+    # Load file
 
     detectionResults, otherFields = load_api_results(inputFilename, normalize_paths=True,
                                          filename_replacements=options.filenameReplacements)
@@ -581,6 +588,18 @@ def find_repeat_detections(inputFilename, outputFilename=None, options=None):
     toReturn.otherFields = otherFields
 
 
+    # Before doing any real work, make sure we can *probably* access images
+    # This is just a cursory check on the first image, but it heads off most 
+    # problems related to incorrect mount points, etc.  Better to do this before
+    # spending 20 minutes finding repeat detections.  
+    if options.bWriteFilteringFolder or options.bRenderHtml:
+        row = detectionResults.iloc[0]
+        relativePath = row['file']
+        for s in options.filenameReplacements.keys():
+            relativePath = relativePath.replace(s,options.filenameReplacements[s])
+        assert os.path.isfile(os.path.join(options.imageBase,relativePath))
+        
+        
     ##%% Separate files into directories
 
     # This will be a map from a directory name to smaller data frames
