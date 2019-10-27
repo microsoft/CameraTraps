@@ -260,8 +260,18 @@ def mark_detection_status(indexed_db, negative_classes=DEFAULT_NEGATIVE_CLASSES,
 def render_bounding_boxes(image_base_dir, image_relative_path, display_name, detections, res,
                           detection_categories_map=None, classification_categories_map=None, options=None):
         """
-        Renders detection bounding boxes on a single image.  Returns the html info struct
-        for this image in the form that's used for write_html_image_list.
+        Renders detection bounding boxes on a single image.  
+        
+        The source image is:
+            
+            image_base_dir / image_relative_path
+            
+        The target image is, for example:
+            
+            [options.output_dir] / ['detections' or 'non-detections'] / [filename with slashes turned into tildes]
+        
+        Returns the html info struct for this image in the form that's used for 
+        write_html_image_list.
         """
         
         if options is None:
@@ -302,12 +312,15 @@ def render_bounding_boxes(image_base_dir, image_relative_path, display_name, det
         # Render images to a flat folder... we can use os.sep here because we've
         # already normalized paths
         sample_name = res + '_' + image_relative_path.replace(os.sep, '~')
-
+        fullpath = os.path.join(options.output_dir, res, sample_name)
         try:
-            image.save(os.path.join(options.output_dir, res, sample_name))
+            image.save(fullpath)
         except OSError as e:
-            if e.errno == errno.ENAMETOOLONG:
-                sample_name = res + '_' + str(uuid.uuid4()) + '.jpg'
+            # errno.ENAMETOOLONG doesn't get thrown properly on Windows, so 
+            # we awkwardly check against a hard-coded limit
+            if (e.errno == errno.ENAMETOOLONG) or (len(fullpath) >= 259):
+                extension = os.path.splitext(sample_name)[1]
+                sample_name = res + '_' + str(uuid.uuid4()) + extension
                 image.save(os.path.join(options.output_dir, res, sample_name))
             else:
                 raise
@@ -460,9 +473,8 @@ def process_batch_results(options):
     images_to_visualize = detection_results
 
     if options.num_images_to_sample > 0 and options.num_images_to_sample <= len(detection_results):
-
+    
         images_to_visualize = images_to_visualize.sample(options.num_images_to_sample, random_state=options.sample_seed)
-
 
     output_html_file = ''
 
@@ -922,7 +934,7 @@ def process_batch_results(options):
 
         ##%% Sample detections/non-detections
 
-        # Accumulate html image structs (in the format expected by write_html_image_lists)
+        # Accumulate html image structs (in the format expected by write_html_image_list)
         # for each category
         images_html = collections.defaultdict(lambda: [])        
         
@@ -941,7 +953,7 @@ def process_batch_results(options):
         # Each element will be a list of 2-tuples, with elements [collection name,html info struct]
         rendering_results = []
 
-        # Each element will be a three-tuple with elements file,max_conf,detections
+        # Each element will be a three-tuple with elements [file,max_conf,detections]
         files_to_render = []
         
         # Assemble the information we need for rendering, so we can parallelize without
@@ -950,7 +962,9 @@ def process_batch_results(options):
         for _, row in images_to_visualize.iterrows():
 
             # Filenames should already have been normalized to either '/' or '\'
-            files_to_render.append([row['file'],row['max_detection_conf'],row['detections']])
+            files_to_render.append([row['file'],
+                                    row['max_detection_conf'],
+                                    row['detections']])
             
         # Local function for parallelization
         def render_image_no_gt(file_info):
