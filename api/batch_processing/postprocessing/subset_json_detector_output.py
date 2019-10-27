@@ -295,8 +295,8 @@ if False:
 def subset_json_detector_output(input_filename,output_filename,options,data=None):
     """
     Main internal entry point
-    
-    Makes a copy of [data] before modifying if an data dictionary is supplied
+        
+    Makes a copy of [data] before modifying if a data dictionary is supplied.
     """
     
     if options is None:    
