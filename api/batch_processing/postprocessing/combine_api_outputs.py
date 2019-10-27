@@ -28,7 +28,7 @@ import argparse
 
 #%% Merge functions
 
-def combine_api_output_files(input_files,output_file=None):
+def combine_api_output_files(input_files,output_file=None,require_uniqueness=True):
     """
     Merges the list of .json-formatted API output files *input_files* into a single
     dictionary, optionally writing the result to *output_file*.
@@ -40,7 +40,7 @@ def combine_api_output_files(input_files,output_file=None):
         input_dicts.append(json.load(open(fn)))
     
     print('Merging results')
-    merged_dict = combine_api_output_dictionaries(input_dicts)
+    merged_dict = combine_api_output_dictionaries(input_dicts,require_uniqueness=require_uniqueness)
     
     print('Writing output')
     if output_file is not None:
@@ -50,7 +50,7 @@ def combine_api_output_files(input_files,output_file=None):
     return merged_dict
 
 
-def combine_api_output_dictionaries(input_dicts):
+def combine_api_output_dictionaries(input_dicts,require_uniqueness=True):
     """
     Merges the list of API output dictionaries *input_dicts*.  See header comment
     for details on merge rules.
@@ -61,6 +61,8 @@ def combine_api_output_dictionaries(input_dicts):
     info = {}
     detection_categories = {}
     classification_categories = {}    
+    n_redundant_images = 0
+    n_images = 0
     
     for input_dict in input_dicts:
         
@@ -88,8 +90,13 @@ def combine_api_output_dictionaries(input_dicts):
         
         # Merge image lists, checking uniqueness
         for im in input_dict['images']:
-            assert im['file'] not in images, 'Duplicate image: {}'.format(im['file'])
+            if require_uniqueness:
+                assert im['file'] not in images, 'Duplicate image: {}'.format(im['file'])
+            elif im['file'] in images:
+                n_redundant_images += 1
+                # print('Warning, duplicate results for image: {}'.format(im['file']))
             images[im['file']] = im
+            n_images += 1
         
         # Merge info dicts, within reason
         if len(info) == 0:
@@ -107,6 +114,10 @@ def combine_api_output_dictionaries(input_dicts):
                     
     # ...for each dictionary
 
+    if n_redundant_images > 0:
+        print('Warning: found {} redundant images (of {}) during merge'.format(
+            n_redundant_images,n_images))
+        
     # Convert merged image dictionaries to a sorted list
     sorted_images = sorted(images.values(), key = lambda im: im['file']) 
     
