@@ -31,15 +31,14 @@ Here are instructions for steps 2 and 3 that assume you <i>don&rsquo;t</i> have 
 
 After installing git and Anaconda, open an Anaconda Prompt, and run:
 
-mkdir c:\git
+```mkdir c:\git
 cd c:\git
 git clone https://github.com/Microsoft/cameratraps
 git clone https://github.com/Microsoft/ai4eutils
 pip install jsonpickle
 cd c:\git\cameratraps\api\batch_processing\postprocessing
 set PYTHONPATH=c:\git\cameratraps;c:\git\ai4eutils
-python find_repeat_detections.py
-
+python find_repeat_detections.py```
 
 4. You have run our our <a href="https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing">batch processing API</a> on our images, and have the .json file it produced for your images.
 5. Your images are organized such that the lowest-level folder is a camera.  For example, if you have images in `c:\my_images\2019\B1`, everything in `B1` comes from the same caemra.  This matters because we won&rsquo;t even compare images in this folder to images in `c:\my_images\2019\A1`.  If your images are arranged differently, but there&rsquo;s still some easy way to identify which images are from the same camera, <a href="mailto:cameratraps@microsoft.com">contact us</a>.
