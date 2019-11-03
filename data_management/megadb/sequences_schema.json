@@ -45,7 +45,8 @@
         "$id": "#/items/properties/location",
         "type": [
           "object",
-          "string"
+          "string",
+          "integer"
         ],
         "title": "Camera location",
         "description": "Training and validation splits are based on location. Highly recommend that sequences include the location information.",

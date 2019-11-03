@@ -15,6 +15,7 @@ import os
 import uuid
 from collections import defaultdict
 import sys
+from random import sample
 
 from data_management.megadb import sequences_schema_check
 from data_management.cct_json_utils import IndexedJsonDb
@@ -26,8 +27,14 @@ def write_json(p, content, indent=1):
         json.dump(content, f, indent=indent)
 
 
+# some property names have changed in the new schema
+old_to_new_prop_name_mapping = {
+    'file_name': 'file'
+}
+
+
 def process_sequences(docs, dataset_name):
-    print('Putting into sequences...')
+    print('Putting into sequences... The docs object passed in will be altered.')
     img_level_properties = set()
     sequences = defaultdict(list)
 
@@ -41,8 +48,13 @@ def process_sequences(docs, dataset_name):
             del im['seq_id']
         else:
             seq_id = 'dummy_' + uuid.uuid4().hex  # if this will be sent for annotation, may need a sequence ID based on file name to group potential sequences together
-            img_level_properties.add('file_name')
+            img_level_properties.add('file')
             img_level_properties.add('image_id')
+
+        for old_name, new_name in old_to_new_prop_name_mapping.items():
+            if old_name in im:
+                im[new_name] = im[old_name]
+                del im[old_name]
 
         for obsolete_prop in ['seq_num_frames', 'width', 'height']:
             if obsolete_prop in im:
@@ -278,10 +290,12 @@ def main():
     print()
     print(sequences[0])
     print()
-    print(sequences[-1])
+    sample(sequences, 1)
+    print()
+    sample(sequences, 1)
     print()
 
-    sequences_schema_check.sequences_schema_check(sequences, args.dataset)
+    sequences_schema_check.sequences_schema_check(sequences)
 
     write_json(args.partial_mega_db, sequences)
 

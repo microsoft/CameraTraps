@@ -74,9 +74,9 @@ def check_class_on_seq_or_image(seq):
 def sequences_schema_check(items_json):
     assert len(items_json) > 0, 'The .json file you passed in is empty'
 
-    # load the schema. sys.argv[0] is always the path to this script, even if this fn is called from another script
-    cur_dir = os.path.dirname(sys.argv[0])
-    with open(os.path.join(cur_dir, 'sequences_schema.json')) as f:
+    # load the schema
+    # https://stackoverflow.com/questions/4060221/how-to-reliably-open-a-file-in-the-same-directory-as-a-python-script
+    with open(os.path.join(sys.path[0], 'sequences_schema.json')) as f:
         schema = json.load(f)
 
     jsonschema.validate(items_json, schema)
