@@ -37,7 +37,7 @@ We always associated a property with the highest level in the hierachy that is s
 
 ### Sequence information
 - For images whose sequence information is unknown, each image is contained in a sequence object whose `seq_id` will start with `dummy_`.
-- The `frame_num` property on each image object is kept to be safe, even though it is redundant because the image objects are in a list. `frame_num` for image objects in a sequence objects should start at 1 (not 0), if the first frame in the sequence is included, and be unique, but does not need to be consecutive. 
+- The `frame_num` property on each image object is kept to be safe, even though it is redundant because the image objects are in a list. Actually, image items in the list are not ordered according to `frame_num`. `frame_num` need to be unique, but does not need to be consecutive. The min value for `frame_num` is 0 even though most start at 1.
 - The `location` property can be a string or an object (e.g. latitude/longitude).
 
 

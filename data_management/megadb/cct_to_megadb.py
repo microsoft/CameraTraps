@@ -34,14 +34,34 @@ old_to_new_prop_name_mapping = {
 
 
 def process_sequences(docs, dataset_name):
-    print('Putting into sequences... The docs object passed in will be altered.')
+    """
+    Combine the image entries in an embedded COCO Camera Trap json from make_cct_embedded()
+    into sequence objects that can be ingested to the `sequences` table in MegaDB.
+
+    Image-level properties that have the same value are moved to the sequence level;
+    sequence-level properties that have the same value are removed with a print-out
+    describing what should be added to the `datasets` table instead.
+
+    All strings in the array for the `class` property are lower-cased.
+
+    Args:
+        docs: array of image objects returned by make_cct_embedded()
+        dataset_name: Make sure this is the desired name for the dataset!
+
+    Returns:
+        an array of sequence objects
+    """
+    print('The dataset_name is set to {}. Please make sure this is correct!'.format(dataset_name))
+
+    print('Putting {} images into sequences... The docs object (first argument) passed in will be altered!'.format(
+        len(docs)))
     img_level_properties = set()
     sequences = defaultdict(list)
 
     # a dummy sequence ID will be generated if the image entry does not have a seq_id field
     # seq_id only needs to be unique within this dataset; MegaDB does not rely on it as the _id field
 
-    # "annotations" fields will be opened and have its sub-field surfaced one level up
+    # "annotations" fields are opened and have its sub-field surfaced one level up
     for im in docs:
         if 'seq_id' in im:
             seq_id = im['seq_id']
@@ -84,6 +104,7 @@ def process_sequences(docs, dataset_name):
 
         sequences[seq_id].append(im)
 
+    # set the `dataset` property on each sequence to the provided dataset_name
     new_sequences = []
     for seq_id, images in sequences.items():
         new_sequences.append({
@@ -91,10 +112,8 @@ def process_sequences(docs, dataset_name):
             'dataset': dataset_name,
             'images': images
         })
-
     sequences = new_sequences
-    print(len(sequences))
-    print(sequences[100])
+    print('Number of sequences: {}'.format(len(sequences)))
 
     # check that the location field is the same for all images in a sequence
     print('Checking the location field...')
@@ -110,7 +129,8 @@ def process_sequences(docs, dataset_name):
         if 'images' not in seq:
             continue
 
-        image_properties = defaultdict(set)
+        image_properties = defaultdict(set)  # property name to stringfied property value
+
         for im in seq['images']:
             for prop_name, prop_value in im.items():
                 image_properties[prop_name].add(str(prop_value))  # make all hashable
@@ -122,72 +142,103 @@ def process_sequences(docs, dataset_name):
 
     # image-level properties that really should be sequence-level
     seq_level_properties = all_img_properties - img_level_properties
-    print('all_img_properties')
-    print(all_img_properties)
-    print('img_level_properties')
-    print(img_level_properties)
-    print('image-level properties that really should be sequence-level')
-    print(seq_level_properties)
 
+    # need to add (misidentified) seq properties not present for each image in a sequence to img_level_properties
+    # (some properties act like booleans - all have the same value, but not present on each img)
+    bool_img_level_properties = set()
+    for seq in sequences:
+        if 'images' not in seq:
+            continue
+        for im in seq['images']:
+            for seq_property in seq_level_properties:
+                if seq_property not in im:
+                    bool_img_level_properties.add(seq_property)
+    seq_level_properties -= bool_img_level_properties
+    img_level_properties |= bool_img_level_properties
+
+    print('\nall_img_properties')
+    print(all_img_properties)
+    print('\nimg_level_properties')
+    print(img_level_properties)
+    print('\nimage-level properties that really should be sequence-level')
+    print(seq_level_properties)
+    print('')
+
+    # add the sequence-level properties to the sequence objects
     for seq in sequences:
         if 'images' not in seq:
             continue
 
         for seq_property in seq_level_properties:
-            # get the value of this sequence-level property from the first image entry
-            seq[seq_property] = seq['images'][0][seq_property]
-            for im in seq['images']:
-                del im[seq_property]  # and remove it from the image level
+            # not every sequence have to have all the seq_level_properties
+            if seq_property in seq['images'][0]:
+                # get the value of this sequence-level property from the first image entry
+                seq[seq_property] = seq['images'][0][seq_property]
+                for im in seq['images']:
+                    del im[seq_property]  # and remove it from the image level
 
     # check which fields are really dataset-level and should be included in the dataset table instead.
     seq_level_prop_values = defaultdict(set)
-
     for seq in sequences:
         for prop_name in seq:
             if prop_name not in ['dataset', 'seq_id', 'class', 'images', 'location']:
                 seq_level_prop_values[prop_name].add(seq[prop_name])
-
     dataset_props = []
     for prop_name, values in seq_level_prop_values.items():
         if len(values) == 1:
             dataset_props.append(prop_name)
-            print('   Sequence-level property {} with value {} should be a dataset-level property. Removed from sequences.'.format(prop_name, list(values)[0]))
+            print('! Sequence-level property {} with value {} should be a dataset-level property. Removed from sequences.'.format(prop_name, list(values)[0]))
 
+    # delete sequence-level properties that should be dataset-level
+    # make all `class` fields lower-case; cast `seq_id` to type string in case they're integers
     sequences_neat = []
     for seq in sequences:
         for dataset_prop in dataset_props:
             del seq[dataset_prop]
+
+        seq['seq_id'] = str(seq['seq_id'])
+
+        if 'class' in seq:
+            seq['class'] = [c.lower() for c in seq['class']]
+        if 'images' in seq:
+            for im in seq['images']:
+                if 'class' in im:
+                    im['class'] = [c.lower() for c in im['class']]
         sequences_neat.append(sequences_schema_check.order_seq_properties(seq))
 
     print('Finished processing sequences.')
+    #%% validation
+    print('Example sequence items:')
+    print()
+    print(sequences[0])
+    print()
+    print(sample(sequences, 1))
+    print()
+
     return sequences_neat
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('dataset_name', type=str,
-                        help='a short string representing the dataset to be used as a partition key in MegaDB')
-    parser.add_argument('--image_db', type=str, help='path to the json containing the image DB in CCT format')
-    parser.add_argument('--bbox_db', type=str, help='path to the json containing the bbox DB in CCT format')
-    parser.add_argument('--docs', type=str, help='embedded CCT format json to use instead of image_db or bbox_db')
-    parser.add_argument('--partial_mega_db', type=str, required=True, help='path to store the resulting json')
-    args = parser.parse_args()
+def make_cct_embedded(image_db=None, bbox_db=None):
+    """
+    Takes in path to the COCO Camera Trap format jsons for images (species labels) and/or
+    bboxes (animal/human/vehicle) labels and embed the class names and annotations into the image entries.
 
-    assert len(args.dataset_name) > 0, 'dataset name cannot be an empty string'
-    print('The dataset_name is set to {}. Please make sure this is correct!'.format(args.dataset_name))
+    Since IndexedJsonDb() can take either a path or a loaded json object as a dict, both
+    arguments can be paths or loaded json objects
 
-    if args.image_db:
-        assert os.path.exists(args.image_db), 'image_db file path provided does not point to a file'
-    if args.bbox_db:
-        assert os.path.exists(args.bbox_db), 'bbox_db file path provided does not point to a file'
+    Returns:
+        an embedded version of the COCO Camera Trap format json database
+    """
 
-    # at first a dict of image_id: image_obj with annotations embedded,
+
+    # at first a dict of image_id: image_obj with annotations embedded, then it becomes
+    # an array of image objects
     docs = {}
 
     # %% integrate the image DB
-    if args.image_db:
+    if image_db:
         print('Loading image DB...')
-        cct_json_db = IndexedJsonDb(args.image_db)
+        cct_json_db = IndexedJsonDb(image_db)
         docs = cct_json_db.image_id_to_image  # each image entry is first assigned the image object
 
         # takes in image entries and species and other annotations in the image DB
@@ -214,9 +265,9 @@ def main():
             num_images_with_more_than_1_species, round(100 * num_images_with_more_than_1_species / len(docs), 2)))
 
     #%% integrate the bbox DB
-    if args.bbox_db:
+    if bbox_db:
         print('Loading bbox DB...')
-        cct_bbox_json_db = IndexedJsonDb(args.bbox_db)
+        cct_bbox_json_db = IndexedJsonDb(bbox_db)
 
         # add any images that are not in the image DB
         # also add any fields in the image object that are not present already
@@ -283,17 +334,30 @@ def main():
 
     assert len(docs) > 0, 'No image entries found in the image or bbox DB jsons provided.'
 
-    sequences = process_sequences(docs)
+    docs = list(docs.values())
+    return docs
 
-    #%% validation
-    print('Example sequence items:')
-    print()
-    print(sequences[0])
-    print()
-    sample(sequences, 1)
-    print()
-    sample(sequences, 1)
-    print()
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('dataset_name', type=str,
+                        help='a short string representing the dataset to be used as a partition key in MegaDB')
+    parser.add_argument('--image_db', type=str, help='path to the json containing the image DB in CCT format')
+    parser.add_argument('--bbox_db', type=str, help='path to the json containing the bbox DB in CCT format')
+    parser.add_argument('--docs', type=str, help='embedded CCT format json to use instead of image_db or bbox_db')
+    parser.add_argument('--partial_mega_db', type=str, required=True, help='path to store the resulting json')
+    args = parser.parse_args()
+
+    assert len(args.dataset_name) > 0, 'dataset name cannot be an empty string'
+
+    if args.image_db:
+        assert os.path.exists(args.image_db), 'image_db file path provided does not point to a file'
+    if args.bbox_db:
+        assert os.path.exists(args.bbox_db), 'bbox_db file path provided does not point to a file'
+
+    docs = make_cct_embedded(args.image_db, args.bbox_db)
+
+    sequences = process_sequences(docs, args.dataset_name)
 
     sequences_schema_check.sequences_schema_check(sequences)
 
