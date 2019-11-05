@@ -23,9 +23,33 @@ This document shows you how to run these scripts.
 
 The suspicious detection elimination process assumes the following:
 
-1. You have checked out this repo and put the repo base on your Python path.  If you are using Windows, for example, you would do this by finding the directory to which you cloned this repo, and adding that directory to your PYTHONPATH environment variable.  Here&rsquo;s a <a href="https://www.computerhope.com/issues/ch000549.htm">good page</a> about editing environment variables in Windows.
-2. You have run our our <a href="https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing">batch processing API</a> on our images, and have the .json file it produced for your images.
-3. Your images are organized such that the lowest-level folder is a camera.  For example, if you have images in `c:\my_images\2019\B1`, everything in `B1` comes from the same caemra.  This matters because we won&rsquo;t even compare images in this folder to images in `c:\my_images\2019\A1`.  If your images are arranged differently, but there&rsquo;s still some easy way to identify which images are from the same camera, <a href="mailto:cameratraps@microsoft.com">contact us</a>.
+1. You have Python installed.  If you&rsquo;re working on Windows, we recommend installing <a href="anaconda.com/distribution/">Anaconda</a>, which is Python plus a zillion useful packages.  You will also need the &ldquo;jsonpickle&rdquo; package.
+2. You have checked out this git repo, and the <a href="http://github.com/microsoft/ai4eutils">AI for Earth Utilities</a> repo.  If you&rsquo;re not familiar with git, we recommend installing <a href="https://git-scm.com/download/win">Git for Windows</a>.  Specific instructions for checking out the repo will be rolled into the next step.
+3. You have put the base folder of both repos on your Python path.  If you are using Windows, for example, you would do this by finding the directory to which you cloned each repo, and adding that directory to your PYTHONPATH environment variable.  Here&rsquo;s a <a href="https://www.computerhope.com/issues/ch000549.htm">good page</a> about editing environment variables in Windows.  You will need administrative access to your PC to set an environment variable.
+
+Here are instructions for steps 2 and 3 that assume you <i>don&rsquo;t</i> have administrative access to your PC (if you set the environment variable as per above, you can skip the &ldquo;set PYTHONPATH&rdquo; step here).  We&rsquo;re going to put things in &ldquo;c:\git&rdquo;, but you can use any folder youl ike. 
+
+After installing git and Anaconda, open an Anaconda Prompt, and run:
+
+```mkdir c:\git
+cd c:\git
+git clone https://github.com/Microsoft/cameratraps
+git clone https://github.com/Microsoft/ai4eutils
+pip install jsonpickle
+cd c:\git\cameratraps\api\batch_processing\postprocessing
+set PYTHONPATH=c:\git\cameratraps;c:\git\ai4eutils
+python find_repeat_detections.py
+```
+
+Subsequent times you open your Anaconda prompt, you'll just need to do:
+
+```cd c:\git\cameratraps\api\batch_processing\postprocessing
+set PYTHONPATH=c:\git\cameratraps;c:\git\ai4eutils
+python find_repeat_detections.py
+```
+
+4. You have run our our <a href="https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing">batch processing API</a> on our images, and have the .json file it produced for your images.
+5. Your images are organized such that the lowest-level folder is a camera.  For example, if you have images in `c:\my_images\2019\B1`, everything in `B1` comes from the same caemra.  This matters because we won&rsquo;t even compare images in this folder to images in `c:\my_images\2019\A1`.  If your images are arranged differently, but there&rsquo;s still some easy way to identify which images are from the same camera, <a href="mailto:cameratraps@microsoft.com">contact us</a>.
 
 
 # Finding suspicious detections
