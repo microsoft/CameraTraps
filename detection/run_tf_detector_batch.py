@@ -365,7 +365,7 @@ def options_to_images(options):
         
         assert os.path.isfile(options.imageFile)
         
-        if is_image_file(options.imagefile):
+        if is_image_file(options.imageFile):
             imageFileNames = [options.imageFile]
         else:
             with open(options.imageFile) as f:
