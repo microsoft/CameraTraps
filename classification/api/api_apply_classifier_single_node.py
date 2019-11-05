@@ -3,7 +3,7 @@
 # api_apply_classifier_single_node.py
 #
 # Takes the JSON file produced by the detection API and
-# classifies all boxes above a certain confidence threshold.
+# classifies all boxes above a confidence threshold.
 #
 ######
 
@@ -14,7 +14,7 @@ import time
 import argparse
 import json
 
-# Assumes that the root of the CameraTrap repo is in the PYTHONPATH
+# Assumes that the root of the CameraTraps repo is on the PYTHONPATH
 import ct_utils
 
 import tensorflow as tf
@@ -30,12 +30,15 @@ DEFAULT_CONFIDENCE_THRESHOLD = 0.85
 NUM_ANNOTATED_CLASSES = 3
 
 # Enlargment factor applied to boxes before passing them to the classifier
+#
 # Provides more context and can lead to better results
 PADDING_FACTOR = 1.6
 
-# List of detection categories, for which we will run the classification
+# List of detection categories for which we will run the classification
+#
 # Currently there are {"1": "animal", "2": "person", "4": "vehicle"}
-# Please use strings here
+#
+# Should be a list of string-formatted ints.
 DETECTION_CATEGORY_WHITELIST = ['1']
 assert all([isinstance(x, str) for x in DETECTION_CATEGORY_WHITELIST])
 
@@ -64,7 +67,7 @@ def load_model(checkpoint):
 
 
 def add_classification_categories(json_object, classes_file):
-    '''
+    """
     Reads the name of classes from the file *classes_file* and adds them to
     the JSON object *json_object*. The function assumes that the first line
     corresponds to output no. 0, i.e. we use 0-based indexing.
@@ -78,7 +81,7 @@ def add_classification_categories(json_object, classes_file):
     Return:
     The modified json_object with classification_categories added. If the field 'classification_categories'
     already exists, then this function is a no-op.
-    '''
+    """
 
     if ('classification_categories' not in json_object.keys()) or (len(json_object['classification_categories']) == 0):
 
@@ -98,11 +101,13 @@ def add_classification_categories(json_object, classes_file):
 
     return json_object
 
+# def add_classification_categories
+    
 
 def classify_boxes(classification_graph, json_with_classes, image_dir, confidence_threshold=DEFAULT_CONFIDENCE_THRESHOLD,
                   detection_category_whitelist=DETECTION_CATEGORY_WHITELIST, padding_factor=PADDING_FACTOR,
                   num_annotated_classes=NUM_ANNOTATED_CLASSES):
-    '''
+    """
     Takes a classification model and applies it to all detected boxes with a detection confidence
     larger than confidence_threshold.
 
@@ -120,7 +125,7 @@ def classify_boxes(classification_graph, json_with_classes, image_dir, confidenc
 
     Returns the updated json object. Classification results are added as field 'classifications' to all elements images/detections
     assuming a 0-based indexing of the classifier output, i.e. output with index 0 has the class key '0'
-    '''
+    """
 
     # Make sure we have the right json object
     assert 'classification_categories' in json_with_classes.keys()
@@ -154,7 +159,7 @@ def classify_boxes(classification_graph, json_with_classes, image_dir, confidenc
                 except KeyboardInterrupt as e:
                     raise e
                 except:
-                    print('Couldn\' load image {}'.format(image_path))
+                    print('Couldn\'t load image {}'.format(image_path))
                     continue
 
                 # For each box
@@ -217,6 +222,8 @@ def classify_boxes(classification_graph, json_with_classes, image_dir, confidenc
 
     return json_with_classes
 
+# def classify_boxes
+    
 
 def load_and_run_classifier(classifier_file, classes_file, image_dir, detector_json_file, output_json_file,
                           confidence_threshold=DEFAULT_CONFIDENCE_THRESHOLD, padding_factor=PADDING_FACTOR,
@@ -247,15 +254,18 @@ def load_and_run_classifier(classifier_file, classes_file, image_dir, detector_j
 
     return detection_graph, classification_graph
 
+# def load_and_run_classifier
+    
 
 #%% Command-line driver
 
 def main():
+    
     parser = argparse.ArgumentParser(description='Applies a classifier to all detected boxes of the detection API output (JSON format).')
     parser.add_argument('classifier_file', type=str, help='Frozen graph for classification including pre-processing. The graphs ' + \
                         ' will receive an image with values in [0,1], so double check that you use the correct model. The script ' + \
                         ' `export_inference_graph_serengeti.sh` shows how to create such a model',
-                       metavar='PATH_TO_CLASSIFIER_W_PREPROCESSING')
+                       metavar='classifier_file')
     parser.add_argument('classes_file', action='store', type=str, help='File with the class names. Each line should contain ' + \
                         ' one name and the first line should correspond to the first output, the second line to the second model output, etc.')
     parser.add_argument('detector_json_file', type=str, help='JSON file that was produced by the detection API.')
@@ -276,7 +286,6 @@ def main():
                           detector_json_file=args.detector_json_file, output_json_file=args.output_json_file,
                           confidence_threshold=args.threshold, padding_factor=args.padding_factor,
                           num_annotated_classes=args.num_annotated_classes, detection_category_whitelist=args.detection_category_whitelist)
-
 
 
 if __name__ == '__main__':
