@@ -71,8 +71,13 @@ class SubsetJsonDetectorOutputOptions:
     # Should we split output into individual .json files for each folder?
     split_folders = False
     
-    # Folder level to use for splitting ("top" or "bottom")
+    # Folder level to use for splitting ['bottom','top','n_from_bottom']
     split_folder_mode = 'bottom' # 'top'
+    
+    # When using the 'n_from_bottom' parameter to define folder splitting, this
+    # defines the number of directories from the bottom.  'n_from_bottom' with
+    # a parameter of zero is the same as 'bottom'.
+    n_directory_param = 0
     
     # Only meaningful if split_folders is True: should we convert pathnames to be relative
     # the folder for each .json file?
@@ -349,6 +354,10 @@ def subset_json_detector_output(input_filename,output_filename,options,data=None
             fn = im['file']
             if options.split_folder_mode == 'bottom':
                 dirname = os.path.dirname(fn)
+            elif options.split_folder_mode == 'n_from_bottom':
+                dirname = os.path.dirname(fn)
+                for n in range(0,options.n_directory_param):
+                    dirname = os.path.dirname(dirname)
             elif options.split_folder_mode == 'top':
                 dirname = top_level_folder(fn)                
             else:
