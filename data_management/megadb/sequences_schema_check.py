@@ -3,6 +3,7 @@ import json
 import sys
 import os
 from collections import OrderedDict
+import inspect
 
 import jsonschema
 
@@ -75,8 +76,10 @@ def sequences_schema_check(items_json):
     assert len(items_json) > 0, 'The .json file you passed in is empty'
 
     # load the schema
-    # https://stackoverflow.com/questions/4060221/how-to-reliably-open-a-file-in-the-same-directory-as-a-python-script
-    with open(os.path.join(sys.path[0], 'sequences_schema.json')) as f:
+    # https://stackoverflow.com/questions/3718657/how-to-properly-determine-current-script-directory
+    this_script = inspect.getframeinfo(inspect.currentframe()).filename
+    dir = os.path.dirname(this_script)
+    with open(os.path.join(dir, 'sequences_schema.json')) as f:
         schema = json.load(f)
 
     jsonschema.validate(items_json, schema)

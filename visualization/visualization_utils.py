@@ -121,6 +121,36 @@ def render_iMerit_boxes(boxes, classes, image,
     draw_bounding_boxes_on_image(image, display_boxes, classes, display_strs=display_strs)
 
 
+def render_megadb_bounding_boxes(boxes_info, image):
+    """
+    each item in boxes_info is
+    {
+        "category": "animal",
+        "bbox": [
+          0.739,
+          0.448,
+          0.187,
+          0.198
+        ]
+    }
+    """
+    display_boxes = []
+    display_strs = []
+    classes = []  # ints, for selecting colors
+
+    for b in boxes_info:
+        x_rel, y_rel, w_rel, h_rel = b['bbox']
+        ymin, xmin = y_rel, x_rel
+        ymax = ymin + h_rel
+        xmax = xmin + w_rel
+        display_boxes.append([ymin, xmin, ymax, xmax])
+        display_strs.append([b['category']])
+        classes.append(annotation_constants.bbox_category_name_to_id[b['category']])
+
+    display_boxes = np.array(display_boxes)
+    draw_bounding_boxes_on_image(image, display_boxes, classes, display_strs=display_strs)
+
+
 def render_db_bounding_boxes(boxes, classes, image, original_size=None,
                              label_map=None, thickness=4, expansion=0):
     """

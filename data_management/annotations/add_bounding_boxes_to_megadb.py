@@ -1,3 +1,10 @@
+#
+# add_bounding_boxes_to_megadb.py
+#
+# Given pseudo-jsons containing the bounding box annotations made by iMerit, add them to
+# a list of entries from the MegaDB sequences table.
+
+
 import os
 import json
 from collections import defaultdict
