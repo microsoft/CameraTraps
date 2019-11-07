@@ -42,8 +42,6 @@ def extract_annotations(annotation_path, dataset_name):
     """
     Extract the bounding box annotations from the pseudo-jsons iMerit sends us for a single dataset.
 
-    Note that the image filename in the returned mapping is lowercased.
-
     Args:
         annotation_path: a list or string; the list of annotation entries, a path to a directory
             containing pseudo-jsons with the annotations or a path to a single pseudo-json (cannot have sub-directories)
@@ -52,7 +50,7 @@ def extract_annotations(annotation_path, dataset_name):
             from what's in the `dataset` table
 
     Returns:
-        image_filename_to_bboxes: a dict of image filename (lower-cased) to the bbox items ready to
+        image_filename_to_bboxes: a dict of image filename to the bbox items ready to
         insert to MegaDB sequences' image objects.
     """
     content = []
@@ -129,6 +127,7 @@ def extract_annotations(annotation_path, dataset_name):
         for im in entry_images:
             image_ref = urllib.parse.unquote(im['file_name'])
 
+            #dataset = image_ref.split('dataset')[1].split('.')[0]  # prior to batch 10
             dataset = image_ref.split('+')[0]
             if dataset != dataset_name:
                 continue
@@ -158,7 +157,7 @@ def zsl_image_filename_map_func(db_img_obj):
     return db_img_obj['id'] + '.jpg'
 
 def default_image_filename_map_func(db_img_obj):
-    return db_img_obj['file']
+    return db_img_obj['file'].replace('/', '~')
 
 
 def add_annotations_to_sequences(sequences, image_filename_to_bboxes,
