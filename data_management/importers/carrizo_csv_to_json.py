@@ -19,12 +19,14 @@ import humanfriendly
 import PIL
 from PIL import Image
 import numpy as np
+import logging
 
 input_metadata_file = r'C:\Users\Gramener\Desktop\Projects\Microsoft\Camera Traps\shrub-free 2018.csv'
 output_file = r'C:\Users\Gramener\Desktop\Projects\Microsoft\Camera Traps\carrizo_camera_traps.json'
 image_directory = r'C:\Users\Gramener\Desktop\Projects\Microsoft\Camera Traps\Shrub-free zone Carrizo 2018'
 
 assert(os.path.isdir(image_directory))
+logging.basicConfig(filename='carrizo.log', level=logging.INFO)
 
 
 # %% Read source data
@@ -49,6 +51,7 @@ imageFilenames = input_metadata.file
 
 duplicateRows = []
 
+logging.info("File names which are present in CSV but not in the directory")
 # Build up a map from filenames to a list of rows, checking image existence as we go
 for iFile, fn in enumerate(imageFilenames):
     if (fn in filenamesToRows):
@@ -60,7 +63,7 @@ for iFile, fn in enumerate(imageFilenames):
         try:
             assert(os.path.isfile(imagePath))
         except Exception:
-            print(imagePath)
+            logging.info(imagePath)
 
 elapsed = time.time() - startTime
 print('Finished verifying image existence in {}, found {} filenames with multiple labels'.format(
