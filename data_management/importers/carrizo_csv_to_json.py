@@ -18,8 +18,9 @@ import ntpath
 import humanfriendly
 import PIL
 from PIL import Image
+import numpy as np
 
-input_metadata_file = r'C:\Users\Gramener\Desktop\Projects\Microsoft\Camera Traps\sample.csv'
+input_metadata_file = r'C:\Users\Gramener\Desktop\Projects\Microsoft\Camera Traps\shrub-free 2018.csv'
 output_file = r'C:\Users\Gramener\Desktop\Projects\Microsoft\Camera Traps\carrizo_camera_traps.json'
 image_directory = r'C:\Users\Gramener\Desktop\Projects\Microsoft\Camera Traps\Shrub-free zone Carrizo 2018'
 
@@ -34,7 +35,6 @@ print('Read {} columns and {} rows from metadata file'.format(len(input_metadata
       len(input_metadata)))
 # Filenames were provided as *.jpg, but images were *.JPG, converting here
 input_metadata['file'] = 1 + input_metadata.groupby("rep ").cumcount()
-# import pdb;pdb.set_trace()
 input_metadata['file'] = input_metadata[['file', 'rep ']].apply(lambda x: "{0}\IMG_{1}.JPG".format(x[1], str(x[0]).zfill(4)), axis=1)
 print('Converted extensions to uppercase')
 
@@ -57,7 +57,10 @@ for iFile, fn in enumerate(imageFilenames):
     else:
         filenamesToRows[fn] = [iFile]
         imagePath = os.path.join(image_directory, fn)
-        assert(os.path.isfile(imagePath))
+        try:
+            assert(os.path.isfile(imagePath))
+        except Exception:
+            print(imagePath)
 
 elapsed = time.time() - startTime
 print('Finished verifying image existence in {}, found {} filenames with multiple labels'.format(
@@ -124,6 +127,11 @@ for imageName in imageFilenames:
 #     im['camera'] = row['camera']
     # In the form "7/29/2016 11:40"
     im['datetime'] = row['date']
+    im['location'] = "{0}_{1}_{2}".format(row['region'], row['site'], row['microsite'])
+    if row['observations'] is np.nan:
+          im['observations'] = ""
+    else:
+          im['observations'] = row['observations']
     # Check image height and width
     imagePath = os.path.join(image_directory, parent_dir, fn)
     assert(os.path.isfile(imagePath))
@@ -135,49 +143,55 @@ for imageName in imageFilenames:
     images.append(im)
     
 #     category = row['label'].lower()
+    is_image = row['animal.capture']
     
-#     # Use 'empty', to be consistent with other data on lila    
-#     if (category == 'nothinghere'):
-#         category = 'empty'
+    # Use 'empty', to be consistent with other data on lila    
+    if (is_image == 0):
+        category = 'empty'
+    else:
+        if row['latin.bionomial'] is np.nan:
+            category = 'unidentifiable'
+        else:
+            category = row['latin.bionomial']
         
-#     # Have we seen this category before?
-#     if category in categoriesToCategoryId:
-#         categoryID = categoriesToCategoryId[category]
-#         categoriesToCounts[category] += 1
-#     else:
-#         categoryID = nextCategoryID
-#         categoriesToCategoryId[category] = categoryID
-#         categoriesToCounts[category] = 0
-#         nextCategoryID += 1
+    # Have we seen this category before?
+    if category in categoriesToCategoryId:
+        categoryID = categoriesToCategoryId[category]
+        categoriesToCounts[category] += 1
+    else:
+        categoryID = nextCategoryID
+        categoriesToCategoryId[category] = categoryID
+        categoriesToCounts[category] = 0
+        nextCategoryID += 1
     
-#     # Create an annotation
-#     ann = {}
+    # Create an annotation
+    ann = {}
     
-#     # The Internet tells me this guarantees uniqueness to a reasonable extent, even
-#     # beyond the sheer improbability of collisions.
-#     ann['id'] = str(uuid.uuid1())
-#     ann['image_id'] = im['id']    
-#     ann['category_id'] = categoryID
+    # The Internet tells me this guarantees uniqueness to a reasonable extent, even
+    # beyond the sheer improbability of collisions.
+    ann['id'] = str(uuid.uuid1())
+    ann['image_id'] = im['id']    
+    ann['category_id'] = categoryID
     
-#     annotations.append(ann)
+    annotations.append(ann)
     
-# # ...for each image
+# ...for each image
     
-# # Convert categories to a CCT-style dictionary
+# Convert categories to a CCT-style dictionary
 
-# categories = []
+categories = []
 
-# for category in categoriesToCounts:
-#     print('Category {}, count {}'.format(category,categoriesToCounts[category]))
-#     categoryID = categoriesToCategoryId[category]
-#     cat = {}
-#     cat['name'] = category
-#     cat['id'] = categoryID
-#     categories.append(cat)    
+for category in categoriesToCounts:
+    print('Category {}, count {}'.format(category,categoriesToCounts[category]))
+    categoryID = categoriesToCategoryId[category]
+    cat = {}
+    cat['name'] = category
+    cat['id'] = categoryID
+    categories.append(cat)    
     
-# elapsed = time.time() - startTime
-# print('Finished creating CCT dictionaries in {}'.format(
-#       humanfriendly.format_timespan(elapsed)))
+elapsed = time.time() - startTime
+print('Finished creating CCT dictionaries in {}'.format(
+      humanfriendly.format_timespan(elapsed)))
     
 
 # %% Create info struct
@@ -194,10 +208,10 @@ info['contributor'] = 'Vardhan Duvvuri'
 
 json_data = {}
 json_data['images'] = images
-# json_data['annotations'] = annotations
-# json_data['categories'] = categories
+json_data['annotations'] = annotations
+json_data['categories'] = categories
 json_data['info'] = info
 json.dump(json_data, open(output_file, 'w'), indent=4)
 
-# print('Finished writing .json file with {} images, {} annotations, and {} categories'.format(
-#         len(images),len(annotations),len(categories)))
+print('Finished writing .json file with {} images, {} annotations, and {} categories'.format(
+        len(images),len(annotations),len(categories)))
