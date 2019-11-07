@@ -2,6 +2,8 @@ import argparse
 import json
 import sys
 import os
+from collections import OrderedDict
+import inspect
 
 import jsonschema
 
@@ -9,6 +11,23 @@ import jsonschema
 This script takes one argument, path to the JSON file containing the entries to be ingested 
 into MegaDB in a JSON array. It then verifies it against the schema in schema.json in this directory.
 """
+
+def order_seq_properties(seq_item):
+    ordered = OrderedDict([
+        ('dataset', seq_item['dataset']),
+        ('seq_id', seq_item['seq_id'])])
+    if 'location' in seq_item:
+        ordered['location'] = seq_item['location']
+    if 'images' in seq_item:
+        ordered['images'] = seq_item['images']
+    if 'class' in seq_item:
+        ordered['class'] = seq_item['class']
+    if 'datetime' in seq_item:
+        ordered['datetime'] = seq_item['datetime']
+    for name, val in seq_item.items():
+        if name not in ordered:
+            ordered[name] = val
+    return ordered
 
 def check_frame_num(seq):
     # schema already checks that the min possible value of frame_num is 1
@@ -53,6 +72,32 @@ def check_class_on_seq_or_image(seq):
     assert class_on_seq or class_on_all_img, 'sequence {} does not have the class property on either sequence or image level'.format(seq['seq_id'])
 
 
+def sequences_schema_check(items_json):
+    assert len(items_json) > 0, 'The .json file you passed in is empty'
+
+    # load the schema
+    # https://stackoverflow.com/questions/3718657/how-to-properly-determine-current-script-directory
+    this_script = inspect.getframeinfo(inspect.currentframe()).filename
+    dir = os.path.dirname(this_script)
+    with open(os.path.join(dir, 'sequences_schema.json')) as f:
+        schema = json.load(f)
+
+    jsonschema.validate(items_json, schema)
+
+    print('Verified that the sequence items conform to the schema.')
+
+    # checks across all sequence items
+    seq_ids = set([seq['seq_id'] for seq in items_json])
+    assert len(seq_ids) == len(items_json), 'Not all seq_id in this batch are unique.'
+
+    # per sequence item checks
+    for seq in items_json:
+        check_class_on_seq_or_image(seq)
+        check_frame_num(seq)
+
+    print('Verified that the sequence items meet the additional requirements.')
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('items_json', action='store', type=str,
@@ -64,27 +109,10 @@ def main():
 
     args = parser.parse_args()
 
-    cur_dir = os.path.dirname(sys.argv[0])
-    with open(os.path.join(cur_dir, 'sequences_schema.json')) as f:
-        schema = json.load(f)
-
     with open(args.items_json) as f:
-        instance = json.load(f)
+        items_json = json.load(f)
 
-    jsonschema.validate(instance, schema)
-
-    print('Verified that the sequence items conform to the schema.')
-
-    # checks across all sequence items
-    seq_ids = set([seq['seq_id'] for seq in instance])
-    assert len(seq_ids) == len(instance), 'Not all seq_id in this batch are unique.'
-
-    # per sequence item checks
-    for seq in instance:
-        check_class_on_seq_or_image(seq)
-        check_frame_num(seq)
-
-    print('Verified that the sequence items meet the additional requirements.')
+    sequences_schema_check(items_json)
 
 
 if __name__ == '__main__':
