@@ -27,7 +27,7 @@ This table stores information about each dataset in the database. Each dataset o
 
 ## Conventions
 
-While most of the enforceable rules are included in the schema `schema.json` and the extra checks in `verify_items_to_insert.py`, we observe a number of additional conventions detailed here.
+While most of the enforceable rules are included in the schema `schema.json` and the extra checks in `verify_items_to_insert.py`, we observe a number of additional conventions detailed here. Some rules enforced by the schema and additional checks are explained here also for clarity.
 
 ### Which level to associate a property
 We always associated a property with the highest level in the hierachy that is still correct. 
@@ -37,7 +37,7 @@ We always associated a property with the highest level in the hierachy that is s
 
 ### Sequence information
 - For images whose sequence information is unknown, each image is contained in a sequence object whose `seq_id` will start with `dummy_`.
-- The `frame_num` property on each image object is kept to be safe, even though it is redundant because the image objects are in a list. `frame_num` for image objects in a sequence objects should start at 1 (not 0), if the first frame in the sequence is included, and be unique, but does not need to be consecutive. 
+- The `frame_num` property on each image object is kept to be safe, even though it is redundant because the image objects are in a list. Actually, image items in the list are not ordered according to `frame_num`. `frame_num` need to be unique, but does not need to be consecutive. The min value for `frame_num` is 0 even though most start at 1.
 - The `location` property can be a string or an object (e.g. latitude/longitude).
 
 
@@ -48,7 +48,6 @@ We always associated a property with the highest level in the hierachy that is s
 
 ### Images
 - Images in a sequence are stored in the `images` field.
-- Bounding boxes are stored in the `bbox` field in an image object.
 - We do not store the height and width of the images 
     - when creating training data the images will need to be opened and their sizes read then
     - all bounding box and other coordinate annotations are stored in relative coordinates.
@@ -56,5 +55,16 @@ We always associated a property with the highest level in the hierachy that is s
 #### Empty images
 - The one `class` where we do enforce a "taxonomy": all images that are labeled as emtpy of objects of interest should have its `class` property be a list with only the "empty" label. Do not use "blank", "nothing", etc. 
 
+
+### Bounding boxes labels for images
+- Bounding boxes are stored in the `bbox` field in an image object. The coordinates in the `bbox` sub-field is `[x_min, y_min, w, h]`, the top-left corner of the box and its width and height, all relative to the width and height of the image.
+- If an image was sent for annotation but was determined to be empty, the image entry will still have a `bbox` field that points to an empty list. We save this information as a more reliable "empty" label.
+
+
+## Future
+
 ### Videos
 - When we have video data, it will be added as a property of the sequence object at the same level as `images`.
+
+### More properties associated with each class
+- We will create another table `classes` that will associate a `class` property value with additional fields, for each dataset.
