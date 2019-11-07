@@ -269,7 +269,7 @@ def process_images(db_path,output_dir,image_base_dir,options=None):
         else:
             print('Rendering images with {} workers'.format(options.parallelize_rendering_n_cores))
             pool = ThreadPool(options.parallelize_rendering_n_cores)
-            tqdm(pool.imap(render_image_info, rendering_info), total=len(rendering_info))
+        tqdm(pool.imap(render_image_info, rendering_info), total=len(rendering_info))
     else:
         for file_info in tqdm(rendering_info):        
             render_image_info(file_info)
