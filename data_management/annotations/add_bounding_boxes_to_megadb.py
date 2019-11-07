@@ -8,12 +8,13 @@
 import os
 import json
 from collections import defaultdict
+import urllib
 
 from tqdm import tqdm
 
 import ct_utils
 
-
+# the category map that comes in the pseudo-jsons
 bbox_categories = [
     {
       "id": "1",
@@ -45,7 +46,7 @@ def extract_annotations(annotation_path, dataset_name):
 
     Args:
         annotation_path: a list or string; the list of annotation entries, a path to a directory
-            containing pseudo-jsons with the annotations or a path to a single pseudo-json
+            containing pseudo-jsons with the annotations or a path to a single pseudo-json (cannot have sub-directories)
         dataset_name: string used to identify this dataset when the images were sent for annotation.
             Note that this needs to be the same as what's in the annotation files, if different
             from what's in the `dataset` table
@@ -61,6 +62,8 @@ def extract_annotations(annotation_path, dataset_name):
         if os.path.isdir(annotation_path):
             # annotation_path points to a directory containing annotation pseudo-jsons
             for file_name in os.listdir(annotation_path):
+                if not file_name.endswith('.json'):
+                    continue
                 p = os.path.join(annotation_path, file_name)
                 with open(p) as f:
                     c = f.readlines()
@@ -88,7 +91,9 @@ def extract_annotations(annotation_path, dataset_name):
         assert json.dumps(bbox_categories, sort_keys=True) == json.dumps(entry_categories, sort_keys=True)
 
         entry_annotations = entry.get('annotations', [])
+        entry_images = entry.get('images', [])
 
+        images_non_empty = set()
         for anno in entry_annotations:
             assert 'image_id' in anno
             assert 'bbox' in anno
@@ -96,15 +101,18 @@ def extract_annotations(annotation_path, dataset_name):
             assert 'category_id' in anno
             assert type(anno['category_id']) == int
 
-            image_ref = anno['image_id']  # iMerit calls this field image_id
+            # iMerit calls this field image_id; some of these are URL encoded
+            image_ref = urllib.parse.unquote(anno['image_id'])
 
-            dataset = image_ref.split('dataset')[1].split('.')[0]
+            # dataset = image_ref.split('dataset')[1].split('.')[0]  # prior to batch 10
+            dataset = image_ref.split('+')[0]
             if dataset != dataset_name:
                 num_bboxes_skipped += 1
                 continue
 
             # lower-case all image filenames !
-            image_filename = image_ref.split('.img')[1].lower()
+            # image_filename = image_ref.split('.img')[1].lower()  # prior to batch 10
+            image_filename = image_ref.split('+')[1]
 
             bbox_coords = anno['bbox']  # [x_rel, y_rel, w_rel, h_rel]
             bbox_coords = ct_utils.truncate_float_array(bbox_coords, precision=4)
@@ -116,6 +124,20 @@ def extract_annotations(annotation_path, dataset_name):
 
             image_filename_to_bboxes[image_filename].append(bbox_entry)
             num_bboxes += 1
+            images_non_empty.add(image_ref)  # remember that this image has at least one bbox
+
+        for im in entry_images:
+            image_ref = urllib.parse.unquote(im['file_name'])
+
+            dataset = image_ref.split('+')[0]
+            if dataset != dataset_name:
+                continue
+
+            #image_filename = image_ref.split('.img')[1].lower()  # prior to batch 10
+            image_filename = image_ref.split('+')[1]
+            if image_ref not in images_non_empty:
+                image_filename_to_bboxes[image_filename] = []  # to indicate "confirmed emptiness"
+
 
     print('{} boxes on {} images were in the annotation file(s). {} boxes skipped because they are not for the requested dataset'.format(
         num_bboxes, len(image_filename_to_bboxes), num_bboxes_skipped))
@@ -144,9 +166,11 @@ def add_annotations_to_sequences(sequences, image_filename_to_bboxes,
     """
 
     Args:
-        sequences:
-        image_filename_to_bboxes:
-        im_id_map_func:
+        sequences: a list of entries from the `sequences` table
+        image_filename_to_bboxes: dict returned by extract_annotations
+        im_id_map_func: a function that can take in an image object in the sequence's `images` field and return
+            a string that is a key in image_filename_to_bboxes, which is the image identifier after the .img tag
+            in the image file names sent to get annotated.
 
     Returns:
         the original sequences list updated with bbox annotations (not a copy)
@@ -154,7 +178,6 @@ def add_annotations_to_sequences(sequences, image_filename_to_bboxes,
 
     # check that all sequences are for a single dataset; each may need adjustment to how image
     # identifiers are mapped
-
     datasets_present = set([s['dataset'] for s in sequences])
     assert len(datasets_present) == 1, 'the sequences provided need to come from a single dataset'
 

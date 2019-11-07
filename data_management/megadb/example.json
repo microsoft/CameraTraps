@@ -34,7 +34,8 @@
       {
         "frame_num": 1,
         "datetime": "2014-05-12 13:11:07",
-        "file": "59ddc15a-23d2-11e8-a6a3-ec086b02610b.jpg"
+        "file": "59ddc15a-23d2-11e8-a6a3-ec086b02610b.jpg",
+        "bbox": []
       }
     ],
     "class": [

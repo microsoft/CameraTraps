@@ -22,7 +22,7 @@ def get_blob_service(datasets_table, dataset_name):
     """
     Return the azure.storage.blob BlockBlobService object corresponding to the dataset
 
-    datasets_table is updated (no new copy)
+    datasets_table is updated (no new copy) if a new BlockBlobService is created for a dataset
     """
     if dataset_name not in datasets_table:
         raise KeyError('Dataset {} is not in the datasets table.'.format(dataset_name))
@@ -61,10 +61,9 @@ def render_image_info(rendering, args):
     image = vis_utils.resize_image(vis_utils.open_image(image_obj), args.output_image_width)
     vis_utils.render_megadb_bounding_boxes(rendering['bbox'], image)
 
-    annotated_img_name = 'anno_' + rendering['blob_path'].replace('/', args.pathsep_replacement).replace('\\', args.pathsep_replacement)
+    annotated_img_name = rendering['annotated_img_name']
     annotated_img_path = os.path.join(args.output_dir, 'rendered_images', annotated_img_name)
     image.save(annotated_img_path)
-    print('saved {} - image.size is {}'.format(rendering['blob_path'], image.size))
 
 
 def visualize_sequences(datasets_table, sequences, args):
@@ -81,22 +80,26 @@ def visualize_sequences(datasets_table, sequences, args):
         dataset_name = seq['dataset']
         seq_id = seq['seq_id']
 
-        rendering = {}
         for im in seq['images']:
             if args.trim_to_images_with_bboxes and 'bbox' not in im:
                 continue
 
             blob_path = get_full_path(datasets_table, dataset_name, im['file'])
+            print('blob_path is {}'.format(blob_path))
             frame_num = im.get('frame_num', -1)
             im_class = im.get('class', [])
 
+            rendering = {}
             rendering['blob_service'] = get_blob_service(datasets_table, dataset_name)
             rendering['container_name'] = datasets_table[dataset_name]['container']
             rendering['blob_path'] = blob_path
             rendering['bbox'] = im.get('bbox', [])
-            rendering_info.append(rendering)
 
             annotated_img_name = 'anno_' + blob_path.replace('/', args.pathsep_replacement).replace('\\', args.pathsep_replacement)
+            rendering['annotated_img_name'] = annotated_img_name
+
+            rendering_info.append(rendering)
+
             images_html.append({
                 'filename': 'rendered_images/{}'.format(annotated_img_name),
                 'title': 'Seq ID: {}. Frame number: {}<br/> Image file: {}<br/> number of boxes: {}, image class labels: {}'.format(seq_id, frame_num, blob_path, len(rendering['bbox']), im_class),
@@ -132,7 +135,6 @@ def main():
     parser.add_argument('megadb_entries', type=str, help='Path to a json list of MegaDB entries')
     parser.add_argument('output_dir', action='store', type=str,
                         help='Output directory for html and rendered images')
-
     parser.add_argument('--trim_to_images_with_bboxes', action='store_true',
                         help='Only include images labeled with bounding boxes. Turn this on if QAing annotations.')
     parser.add_argument('--num_to_visualize', action='store', type=int, default=50,

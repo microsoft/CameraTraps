@@ -48,13 +48,17 @@ We always associated a property with the highest level in the hierachy that is s
 
 ### Images
 - Images in a sequence are stored in the `images` field.
-- Bounding boxes are stored in the `bbox` field in an image object.
 - We do not store the height and width of the images 
     - when creating training data the images will need to be opened and their sizes read then
     - all bounding box and other coordinate annotations are stored in relative coordinates.
     
 #### Empty images
 - The one `class` where we do enforce a "taxonomy": all images that are labeled as emtpy of objects of interest should have its `class` property be a list with only the "empty" label. Do not use "blank", "nothing", etc. 
+
+
+### Bounding boxes labels for images
+- Bounding boxes are stored in the `bbox` field in an image object. The coordinates in the `bbox` sub-field is `[x_min, y_min, w, h]`, the top-left corner of the box and its width and height, all relative to the width and height of the image.
+- If an image was sent for annotation but was determined to be empty, the image entry will still have a `bbox` field that points to an empty list. We save this information as a more reliable "empty" label.
 
 
 ## Future
