@@ -67,7 +67,7 @@ def render_image_info(rendering, args):
 
 
 def visualize_sequences(datasets_table, sequences, args):
-    num_seqs = 0
+    num_images = 0
 
     images_html = []
     rendering_info = []
@@ -81,11 +81,12 @@ def visualize_sequences(datasets_table, sequences, args):
         seq_id = seq['seq_id']
 
         for im in seq['images']:
-            if args.trim_to_images_with_bboxes and 'bbox' not in im:
+            if args.trim_to_images_bboxes_labeled and 'bbox' not in im:
                 continue
 
+            num_images += 1
+
             blob_path = get_full_path(datasets_table, dataset_name, im['file'])
-            print('blob_path is {}'.format(blob_path))
             frame_num = im.get('frame_num', -1)
             im_class = im.get('class', [])
 
@@ -106,8 +107,8 @@ def visualize_sequences(datasets_table, sequences, args):
                 'textStyle': 'font-family:verdana,arial,calibri;font-size:80%;text-align:left;margin-top:20;margin-bottom:5'
             })
 
-        num_seqs += 1
-        if num_seqs >= args.num_to_visualize:
+        if num_images >= args.num_to_visualize:
+            print('num_images visualized is {}'.format(num_images))
             break
 
     # pool = ThreadPool()
@@ -135,10 +136,10 @@ def main():
     parser.add_argument('megadb_entries', type=str, help='Path to a json list of MegaDB entries')
     parser.add_argument('output_dir', action='store', type=str,
                         help='Output directory for html and rendered images')
-    parser.add_argument('--trim_to_images_with_bboxes', action='store_true',
-                        help='Only include images labeled with bounding boxes. Turn this on if QAing annotations.')
-    parser.add_argument('--num_to_visualize', action='store', type=int, default=50,
-                        help='Number of sequences to visualize (randomly drawn) (defaults to 50). Use -1 to visualize all.')
+    parser.add_argument('--trim_to_images_bboxes_labeled', action='store_true',
+                        help='Only include images that have been sent for bbox labeling (but may be actually empty). Turn this on if QAing annotations.')
+    parser.add_argument('--num_to_visualize', action='store', type=int, default=200,
+                        help='Number of images to visualize (all comformant images in a sequence are shown, so may be a few more than specified). Sequences are shuffled. Defaults to 200. Use -1 to visualize all.')
 
     parser.add_argument('--pathsep_replacement', action='store', type=str, default='~',
                         help='Replace path separators in relative filenames with another character (default ~)')
@@ -154,7 +155,7 @@ def main():
     args = parser.parse_args()
 
     os.makedirs(args.output_dir, exist_ok=True)
-    os.makedirs(os.path.join(args.output_dir, 'rendered_images'), exist_ok=True)
+    os.makedirs(os.path.join(args.output_dir, 'rendered_images'))
 
     with open(args.datasets_table) as f:
         datasets_table = json.load(f)
@@ -166,9 +167,6 @@ def main():
 
     # print('Checking that the MegaDB entries conform to the schema...')
     # sequences_schema_check.sequences_schema_check(sequences)
-
-    if args.num_to_visualize == -1:
-        args.num_to_visualize = len(sequences)
 
     shuffle(sequences)
     visualize_sequences(datasets_table, sequences, args)
