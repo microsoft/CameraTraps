@@ -26,31 +26,33 @@ The following illustrates what an item in the `sequences` and `datasets` tables 
         # required
         "dataset": str,
         "seq_id": str,
-        "images": [{
-            # required
-            "file": str (path to the image file at prefix in the storage container of this dataset)
-            
-            # required if "class" not present on the sequence
-            "class": [str]
-            
-            # optional
-            "frame_num": int,
-            "datetime": datetime str
-            
-            "bbox": [
-                {
-                    "category": str, one of "animal", "person" or "vehicle",
-                    "bbox": [
-                        {
-                          x_min,  # float, relative coordinates
-                          y_min,
-                          width_box,
-                          height_box
-                        }
-                    ]
-                }
-            ]
-        }]
+        "images": [
+            {
+                # required
+                "file": str (path to the image file at prefix in the storage container of this dataset)
+                
+                # required if "class" not present on the sequence
+                "class": [str]
+                
+                # optional
+                "frame_num": int,
+                "datetime": datetime str
+                
+                "bbox": [
+                    {
+                        "category": str, one of "animal", "person" or "vehicle",
+                        "bbox": [
+                            {
+                              x_min,  # float, relative coordinates
+                              y_min,
+                              width_box,
+                              height_box
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
         
         # optional
         "location": str or int,
