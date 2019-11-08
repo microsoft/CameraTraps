@@ -2,7 +2,7 @@
 
 We would like to centralize all COCO Camera Trap (CCT) format json databases containing image metadata and species/bounding box annotations into an instance of a Cosmos DB for easier management and querying. We refer to this database as the MegaDB. 
 
-- `make_embedded_db.py` converts a json database in the CTT format to an embedded/denormalized format, so that the image metadata and annotations on image are both within the image entry. It actually takes the image database and bounding box database json files when these are separate.
+- `make_embedded_db.py` converts a json database in the CCT format to an embedded/denormalized format, so that the image metadata and annotations on image are both within the image entry. It actually takes the image database and bounding box database json files when these are separate.
  
     - Be very careful to make sure the `dataset_name` parameter to this script (first positional argument) is set properly - bulk updating entries is very slow! 
     
