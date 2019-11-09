@@ -6,7 +6,7 @@ The database allows for any properties to be associated at the sequence, image, 
 
 We do not enforce a taxonomy for animal class / species labels: the original labels provided by the organization are kept, with minor typo and consistency corrections.
 
-The resulting database allows for queries such as :
+The resulting database allows for queries such as:
 - get all the publicly released images with the class label "bear" in sequences of length greater than 2
 - get all images in the dataset "caltech" with one or more bounding boxes
 - get a list of all species in the database
