@@ -2,11 +2,11 @@
 
 Internally we store all labels and metadata associated with each image sequence in a NoSQL database for easy querying.
 
-The database allows for any properties to be associated at the sequence, image and bounding box levels.
+The database allows for any properties to be associated at the sequence, image, and bounding box levels.
 
 We do not enforce a taxonomy for animal class / species labels: the original labels provided by the organization are kept, with minor typo and consistency corrections.
 
-The resulting database allows for queries such as 
+The resulting database allows for queries such as :
 - get all the publicly released images with the class label "bear" in sequences of length greater than 2
 - get all images in the dataset "caltech" with one or more bounding boxes
 - get a list of all species in the database
@@ -16,7 +16,7 @@ All images are stored in blob storage, so we can download all the images identif
 
 ## Format
 
-The following illustrates what an item in the `sequences` and `datasets` tables looks like. For the `sequences` table, the formal schema, required fields and constraints on allowed values are specified in `sequences_schema.json`.
+The following illustrates what an item in the `sequences` and `datasets` tables looks like. For the `sequences` table, the formal schema, required fields, and constraints on allowed values are specified in `sequences_schema.json`.
 
 `sequences` table
 
@@ -88,29 +88,30 @@ The following illustrates what an item in the `sequences` and `datasets` tables 
 
 ## Structure
 
-There are two tables in this database. 
+There are two tables in this database: 
+
 - `sequences`
 Each item in this list is a `sequence` object. 
 
 - `datasets`
-This table stores information about each dataset in the database. Each dataset object contains information on where in blob storage its images are stored, including any path prefix, its public access status and any other dataset-level properties.
+This table stores information about each dataset in the database. Each dataset object contains information on where in blob storage its images are stored, including any path prefix, its public access status, and any other dataset-level properties.
 
 
 
 ## Conventions
 
-While most of the enforceable rules are included in the schema `sequences_schema.json` and the extra checks in `sequences_schema_check.py`, we observe a number of additional conventions detailed here. Some rules enforced by the schema and additional checks are explained here also for clarity.
+While most of the enforceable rules are included in the schema `sequences_schema.json` and the extra checks in `sequences_schema_check.py`, we observe a number of additional conventions detailed here. Some rules enforced by the schema and additional checks are explained here also.
 
 ### Which level to associate a property
-We always associated a property with the highest level in the hierachy that is still correct. 
+We always associate a property with the highest level in the hierachy that is still correct. 
 - If the `rights_holder` is the same across a dataset, this property should be on the dataset object in the `datasets` table.
 - If `class`, usually used for species or other fine animal categories, is labeled on sequences, this property should be at the `sequence` level, not the `image` level. 
 
 
 ### Sequence information
 - For images whose sequence information is unknown, each image is contained in a sequence object whose `seq_id` will start with `dummy_`.
-- The `frame_num` property on each image object is kept to be safe, even though it is redundant because the image objects are in a list. Actually, image items in the list are not ordered according to `frame_num`. `frame_num` need to be unique, but does not need to be consecutive. The min value for `frame_num` is 0 even though most start at 1.
-- The `location` property can be a string, an int or an serializable object (e.g. latitude/longitude).
+- The `frame_num` property is stored for each image object, even though it is redundant because the image objects are in a list. Actually, image items in the list are not ordered according to `frame_num`. `frame_num` values need to be unique within a sequence, but do not need to be consecutive. The min value for `frame_num` is 0 even though most start at 1.
+- The `location` property can be a string, an int, or a serializable object (e.g. latitude/longitude).
 
 
 ### When labels are unavailable
@@ -121,7 +122,7 @@ We always associated a property with the highest level in the hierachy that is s
 ### Images
 - Images in a sequence are stored in the `images` field.
 - We do not store the height and width of the images
-    - all bounding box and other coordinate annotations are stored in relative coordinates.
+    - All bounding box and other coordinate annotations are stored in relative coordinates.
     
 #### Empty images
 - The one `class` where we do enforce a "taxonomy": all images that are labeled as emtpy of objects of interest should have its `class` property be a list with only the "empty" label. Do not use "blank", "nothing", etc. 
