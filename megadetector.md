@@ -1,3 +1,20 @@
+## Table of Contents
+
+- [MegaDetector overview](#megadetector-overview)
+- [Our ask to MegaDetector users](#our-ask-to-megadetector-users)
+- [Downloading the model(s)](#downloading-the-model-s-)
+  * [MegaDetector v3, 2019.05.30](#megadetector-v3--20190530)
+    + [Release notes](#release-notes)
+    + [Download links](#download-links)
+  * [MegaDetector v2, 2018](#megadetector-v2--2018)
+    + [Release notes](#release-notes-1)
+    + [Download links](#download-links-1)
+- [Using the models](#using-the-models)
+- [Tell me more about why detectors are a good first step for camera trap images](#tell-me-more-about-why-detectors-are-a-good-first-step-for-camera-trap-images)
+- [Pretty picture](#pretty-picture)
+- [Mesmerizing video](#mesmerizing-video)
+- [Can you share the training data?](#can-you-share-the-training-data-)
+
 ## MegaDetector overview
 
 Conservation biologists invest a huge amount of time reviewing camera trap images, and &ndash; even worse &ndash; a huge fraction of that time is spent reviewing images they aren&rsquo;t interested in.  This primarily includes empty images, but for many projects, images of people and vehicles are also &ldquo;noise&rdquo;, or at least need to be handled separately from animals.
