@@ -1,13 +1,13 @@
 ## Table of Contents
 
-- [MegaDetector overview](#megadetector-overview)
-- [Our ask to MegaDetector users](#our-ask-to-megadetector-users)
-- [Downloading the model(s)](#downloading-the-model-s-)
-- [Using the models](#using-the-models)
-- [Tell me more about why detectors are a good first step for camera trap images](#tell-me-more-about-why-detectors-are-a-good-first-step-for-camera-trap-images)
-- [Pretty picture](#pretty-picture)
-- [Mesmerizing video](#mesmerizing-video)
-- [Can you share the training data?](#can-you-share-the-training-data-)
+[MegaDetector overview](#megadetector-overview)
+[Our ask to MegaDetector users](#our-ask-to-megadetector-users)
+[Downloading the model(s)](#downloading-the-model-s-)
+[Using the models](#using-the-models)
+[Tell me more about why detectors are a good first step for camera trap images](#tell-me-more-about-why-detectors-are-a-good-first-step-for-camera-trap-images)
+[Pretty picture](#pretty-picture)
+[Mesmerizing video](#mesmerizing-video)
+[Can you share the training data?](#can-you-share-the-training-data-)
 
 ## MegaDetector overview
 
