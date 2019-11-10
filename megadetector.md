@@ -1,4 +1,4 @@
-## Table of Contents
+## Table of contents
 
 1. [MegaDetector overview](#megadetector-overview)<br/>
 2. [Our ask to MegaDetector users](#our-ask-to-megadetector-users)<br/>
