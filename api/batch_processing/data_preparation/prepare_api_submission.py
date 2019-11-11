@@ -218,13 +218,17 @@ def divide_files_into_tasks(file_list_json,n_files_per_task=default_n_files_per_
     return output_files,chunks    
 
 
-def generate_api_queries(input_container_sas_url,file_list_sas_urls,request_name_base,caller):
+def generate_api_queries(input_container_sas_url,file_list_sas_urls,request_name_base,
+                         caller,image_path_prefixes=None):
     """
     Generate .json-formatted API input from input parameters.  file_list_sas_urls is
     a list of SAS URLs to individual file lists (all relative to the same container).
     
     request_name_base is a request name for the set; if the base name is 'blah', individual
     requests will get request names of 'blah_chunk000', 'blah_chunk001', etc.
+    
+    image_path_prefixes, if supplied, can be a single string or a list of strings 
+    (one per request)
     
     Returns both strings and Python dicts
     
@@ -248,13 +252,18 @@ def generate_api_queries(input_container_sas_url,file_list_sas_urls,request_name
             request_name = request_name_base
         d['request_name'] = request_name
         d['caller'] = caller
+        if image_path_prefixes is not None:
+            if not isinstance(image_path_prefixes,list):
+                d['image_path_prefix'] = image_path_prefixes
+            else:
+                d['image_path_prefix'] = image_path_prefixes[i_url]
         request_dicts.append(d)
         request_strings.append(json.dumps(d,indent=1))
     
     return request_strings,request_dicts
 
 
-def generate_api_query(input_container_sas_url,file_list_sas_url,request_name,caller):
+def generate_api_query(input_container_sas_url,file_list_sas_url,request_name,caller,image_path_prefix=None):
     """
     Convenience function to call generate_api_queries for a single batch.
     
@@ -262,10 +271,12 @@ def generate_api_query(input_container_sas_url,file_list_sas_url,request_name,ca
     """
     
     file_list_sas_urls = [file_list_sas_url]
+    image_path_prefixes = [image_path_prefix]
     request_strings,request_dicts = generate_api_queries(input_container_sas_url,
                                                          file_list_sas_urls,
                                                          request_name,
-                                                         caller)
+                                                         caller,
+                                                         image_path_prefixes)
     return request_strings[0],request_dicts[0]
 
 
