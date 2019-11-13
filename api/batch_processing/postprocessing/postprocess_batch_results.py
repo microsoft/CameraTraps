@@ -84,12 +84,11 @@ class PostProcessingOptions:
     ### Required inputs
 
     api_output_file = ''
-    image_base_dir = ''
-    ground_truth_json_file = ''
     output_dir = ''
 
     ### Options
 
+    image_base_dir = '.'
     ground_truth_json_file = ''
 
     negative_classes = DEFAULT_NEGATIVE_CLASSES
@@ -1140,20 +1139,23 @@ def main():
     parser.add_argument('output_dir', action='store', type=str,
                         help='Base directory for output (required)')
     parser.add_argument('--image_base_dir', action='store', type=str,
-                        help='Base directory for images (optional, can compute statistics without images)')
+                        help='Base directory for images (optional, can compute statistics without images)',
+                        default=default_options.image_base_dir)
     parser.add_argument('--ground_truth_json_file', action='store', type=str,
-                        help='Ground truth labels (optional, can render detections without ground truth)')
-
+                        help='Ground truth labels (optional, can render detections without ground truth)',
+                        default=default_options.ground_truth_json_file)
     parser.add_argument('--confidence_threshold', action='store', type=float,
-                        default=default_options.confidence_threshold,
-                        help='Confidence threshold for statistics and visualization')
-    parser.add_argument('--target_recall', action='store', type=float, default=default_options.target_recall,
-                        help='Target recall (for statistics only)')
+                        help='Confidence threshold for statistics and visualization',
+                        default=default_options.confidence_threshold)
+    parser.add_argument('--target_recall', action='store', type=float, 
+                        help='Target recall (for statistics only)',
+                        default=default_options.target_recall)
     parser.add_argument('--num_images_to_sample', action='store', type=int,
-                        default=default_options.num_images_to_sample,
-                        help='Number of images to visualize (defaults to 500) (-1 to include all images)')
-    parser.add_argument('--viz_target_width', action='store', type=int, default=default_options.viz_target_width,
-                        help='Output image width')
+                        help='Number of images to visualize (defaults to 500) (-1 to include all images)',
+                        default=default_options.num_images_to_sample)
+    parser.add_argument('--viz_target_width', action='store', type=int,
+                        help='Output image width',
+                        default=default_options.viz_target_width)
     parser.add_argument('--random_output_sort', action='store_true', help='Sort output randomly (defaults to sorting by filename)')
 
     if len(sys.argv[1:]) == 0:
