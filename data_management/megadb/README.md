@@ -9,6 +9,7 @@ We do not enforce a taxonomy for animal class / species labels: the original lab
 The resulting database allows for queries such as:
 - get all the publicly released images with the class label "bear" in sequences of length greater than 2
 - get all images in the dataset "caltech" with one or more bounding boxes
+- get the newest 1000 images included in the database
 - get a list of all species in the database
 
 All images are stored in blob storage, so we can download all the images identified by a query.
@@ -43,7 +44,7 @@ The following illustrates what an item in the `sequences` and `datasets` tables 
                         "category": str, one of "animal", "person" or "vehicle",
                         "bbox": [
                             {
-                              x_min,  # float, relative coordinates
+                              x_min,  # float, relative coordinates. (x_min, y_min) is the upper-left corner
                               y_min,
                               width_box,
                               height_box
@@ -75,10 +76,8 @@ The following illustrates what an item in the `sequences` and `datasets` tables 
         "storage_account": str,
         "container": str,
         "path_prefix": str,
-        "container_sas_key": str,
-        "container_sas_key_exp": str indicating a date,
+        "container_sas_key": str, e.g. "?se=2021-01-01T07%3A59%3A00Z&sp=rl&sv=2018-03-28&sr=c&sig=a_long_string"
         "access": [str],
-        "version": str,
         "comment": str,
         "rights_holder": str (if the same across all sequences in this dataset)
     }
@@ -110,13 +109,9 @@ We always associate a property with the highest level in the hierachy that is st
 
 ### Sequence information
 - For images whose sequence information is unknown, each image is contained in a sequence object whose `seq_id` will start with `dummy_`.
-- The `frame_num` property is stored for each image object, even though it is redundant because the image objects are in a list. Actually, image items in the list are not ordered according to `frame_num`. `frame_num` values need to be unique within a sequence, but do not need to be consecutive. The min value for `frame_num` is 0 even though most start at 1.
+- Use the `frame_num` property to order images in a sequence. The order of the image objects in the list may not be correct.
+- `frame_num` values need to be unique within a sequence, but do not need to be consecutive. The min value for `frame_num` is 0 even though most start at 1.
 - The `location` property can be a string, an int, or a serializable object (e.g. latitude/longitude).
-
-
-### When labels are unavailable
-- The database we have is intended for *labeled* images, but in some datasets it makes sense to keep subsets of images that do not have labels. For those, their `class` property will be a list with one item "__label_unavailable". This is different from "unidentified", which may be an animal that does not have the finer category label.
-- Since we have this special keyword for unavailable labels, each sequence OR all images in a sequence should have the `class` property.
 
 
 ### Images
@@ -129,8 +124,15 @@ We always associate a property with the highest level in the hierachy that is st
 
 
 ### Bounding boxes labels for images
-- Bounding boxes are stored in the `bbox` field in an image object. The coordinates in the `bbox` sub-field is `[x_min, y_min, width_box, height_box]`, the top-left corner of the box and its width and height, all relative to the width and height of the image.
+- Bounding boxes are stored in the `bbox` field in an image object. The coordinates in the `bbox` sub-field is `[x_min, y_min, width_box, height_box]`, the upper-left corner of the box and its width and height, all relative to the width and height of the image.
 - If an image was sent for annotation but was determined to be empty, the image entry will still have a `bbox` field that points to an empty list. We save this information as a more reliable "empty" label.
+
+
+### When labels are unavailable
+- The database we have is intended for *labeled* images, but in some datasets it makes sense to keep subsets of images that do not have labels. For those, their `class` property will be a list with one item "__label_unavailable". This is different from "unidentified", which may be an animal that does not have the finer category label.
+- Since we have this special keyword for unavailable labels, each sequence OR all images in a sequence should have the `class` property.
+
+
 
 
 ## Future
