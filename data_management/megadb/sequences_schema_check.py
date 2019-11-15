@@ -10,6 +10,7 @@ import jsonschema
 """
 This script takes one argument, path to the JSON file containing the entries to be ingested 
 into MegaDB in a JSON array. It then verifies it against the schema in schema.json in this directory.
+It assumes that all entries are from the same dataset and checks that the `seq_id` field is unique.
 """
 
 def order_seq_properties(seq_item):

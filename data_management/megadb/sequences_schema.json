@@ -2,8 +2,8 @@
   "definitions": {},
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "array",
-  "title": "Camera Trap MegaDB Schema",
-  "description": "Internally we store all labels and metadata associated with each image sequence, image and annotation in a NoSQL database for easy querying.",
+  "title": "Camera trap MegaDB sequences table schema",
+  "description": "Table storing all labels and metadata associated with each image sequence.",
   "items": {
     "$id": "#/items",
     "type": "object",
