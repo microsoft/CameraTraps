@@ -390,6 +390,19 @@ def get_missing_images(response):
     return missing_images
         
 
+def download_detection_results(endpoint_url,task_id,output_file):
+    """
+    Download the detection results .json file for a task
+    """
+    response,_ = fetch_task_status(endpoint_url,task_id)
+    output_file_urls = get_output_file_urls(response)
+    if output_file_urls is None:
+        return None
+    detection_url = output_file_urls['detections']
+    download_url(detection_url,output_file)
+    return response
+
+
 def generate_resubmission_list(endpoint_url,task_id,resubmission_file_list_name):
     """
     Finds all the image files that failed to process in a job and writes them to a file.
