@@ -460,20 +460,25 @@ def update_detection_table(RepeatDetectionResults, options, outputFilename=None)
 
     print('Updating output table')
 
-    # For each suspicious detection (two loops)
+    # For each directory
     for iDir, directoryEvents in enumerate(suspiciousDetectionsByDirectory):
 
+        # For each suspicious detection group in this directory
         for iDetectionEvent, detectionEvent in enumerate(directoryEvents):
 
             locationBbox = detectionEvent.bbox
 
+            # For each instance othis suspicious detection
             for iInstance, instance in enumerate(detectionEvent.instances):
 
                 instanceBbox = instance.bbox
 
                 # This should match the bbox for the detection event
                 iou = ct_utils.get_iou(instanceBbox, locationBbox)
-                # There are instances where iou is very close to the threshold so cannot use >
+                
+                # The bbox for this instance should be almost the same as the bbox
+                # for this detection group, where "almost" is defined by the IOU
+                # threshold.
                 assert iou >= options.iouThreshold
 
                 assert instance.filename in RepeatDetectionResults.filenameToRow
