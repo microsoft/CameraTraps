@@ -7,7 +7,7 @@
 5. [Tell me more about why detectors are a good first step for camera trap images](#tell-me-more-about-why-detectors-are-a-good-first-step-for-camera-trap-images)<br/>
 6. [Pretty picture](#pretty-picture)<br/>
 7. [Mesmerizing video](#mesmerizing-video)<br/>
-8. [Can you share the training data?](#can-you-share-the-training-data-)<br/>
+8. [Can you share the training data?](#can-you-share-the-training-data)<br/>
 
 ## MegaDetector overview
 
