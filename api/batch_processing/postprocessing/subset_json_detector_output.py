@@ -278,7 +278,10 @@ def top_level_folder(p):
     
     if len(parts) == 1:
         return parts[0]
-    
+
+    # Handle paths like:
+    #
+    # /, \, /stuff, c:, c:\stuff
     drive = os.path.splitdrive(p)[0]
     if parts[0] == drive or parts[0] == drive + '/' or parts[0] == drive + '\\' or parts[0] in ['\\','/']: 
         return os.path.join(parts[0],parts[1])    
