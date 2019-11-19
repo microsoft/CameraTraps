@@ -77,7 +77,7 @@ class SubsetJsonDetectorOutputOptions:
     # When using the 'n_from_bottom' parameter to define folder splitting, this
     # defines the number of directories from the bottom.  'n_from_bottom' with
     # a parameter of zero is the same as 'bottom'.
-    n_directory_param = 0
+    split_folder_param = 0
     
     # Only meaningful if split_folders is True: should we convert pathnames to be relative
     # the folder for each .json file?
@@ -182,18 +182,28 @@ def subset_json_detector_output_by_confidence(data,options):
     for iImage,im in tqdm(enumerate(images_in),total=len(images_in)):
         
         p_orig = im['max_detection_conf']
-        
+
+        # Find all detections above threshold for this image
         detections = [d for d in im['detections'] if d['conf'] >= options.confidence_threshold]
+
+        # If there are no detections above threshold, set the max probability
+        # to -1, unless it already had a negative probability.
         if len(detections) == 0:
             if p_orig <= 0:                
                 p = p_orig
             else:
                 p = -1
+
+        # Otherwise find the max confidence
         else:
             p = max(d['conf'] for d in detections)
         
         im['detections'] = detections
+
+        # Did this thresholding result in a max-confidence change?
         if abs(p_orig - p) > 0.00001:
+
+            # We should only be *lowering* max confidence values (i.e., making them negative)
             assert (p_orig <= 0) or (p < p_orig), 'Confidence changed from {} to {}'.format(p_orig,p)
             n_max_changes += 1
         im['max_detection_conf'] = p
@@ -359,7 +369,7 @@ def subset_json_detector_output(input_filename,output_filename,options,data=None
                 dirname = os.path.dirname(fn)
             elif options.split_folder_mode == 'n_from_bottom':
                 dirname = os.path.dirname(fn)
-                for n in range(0,options.n_directory_param):
+                for n in range(0,options.split_folder_param):
                     dirname = os.path.dirname(dirname)
             elif options.split_folder_mode == 'top':
                 dirname = top_level_folder(fn)                
@@ -490,6 +500,7 @@ def main():
     parser.add_argument('--replacement', type=str, default=None, help='Replace [query] with this')
     parser.add_argument('--confidence_threshold', type=float, default=None, help='Remove detections below this confidence level')
     parser.add_argument('--split_folders', action='store_true', help='Split .json files by leaf-node folder')
+    parser.add_argument('--split_folder_param', type=int, help='Directory level count for n_from_bottom and n_from_top splitting')
     parser.add_argument('--split_folder_mode', type=str, help='Folder level to use for splitting ("top" or "bottom")')
     parser.add_argument('--make_folder_relative', action='store_true', help='Make image paths relative to their containing folder (only meaningful with split_folders)')
     parser.add_argument('--overwrite_json_files', action='store_true', help='Overwrite output files')
