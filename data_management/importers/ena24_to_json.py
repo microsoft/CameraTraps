@@ -107,7 +107,7 @@ for iFile in dir_list:
     ann['id'] = str(uuid.uuid1())
     ann['image_id'] = im['id']    
     ann['category_id'] = categoryID
-    ann['bbox'] = [float(row[1]), float(row[2]), float(row[3])*width, float(row[4])*height]
+    ann['bbox'] = [float(row[1])*width, float(row[2])*height, float(row[3])*width, float(row[4])*height]
     annotations.append(ann)
     
 # ...for each image
