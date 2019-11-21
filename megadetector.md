@@ -2,12 +2,12 @@
 
 1. [MegaDetector overview](#megadetector-overview)<br/>
 2. [Our ask to MegaDetector users](#our-ask-to-megadetector-users)<br/>
-3. [Downloading the model(s)](#downloading-the-model-s-)<br/>
+3. [Downloading the model(s)](#downloading-the-models)<br/>
 4. [Using the models](#using-the-models)<br/>
 5. [Tell me more about why detectors are a good first step for camera trap images](#tell-me-more-about-why-detectors-are-a-good-first-step-for-camera-trap-images)<br/>
 6. [Pretty picture](#pretty-picture)<br/>
 7. [Mesmerizing video](#mesmerizing-video)<br/>
-8. [Can you share the training data?](#can-you-share-the-training-data-)<br/>
+8. [Can you share the training data?](#can-you-share-the-training-data)<br/>
 
 ## MegaDetector overview
 
