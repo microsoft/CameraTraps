@@ -95,6 +95,23 @@ def read_list_from_file(filename):
         assert isinstance(s,str)
     return file_list
     
+
+def copy_file_to_blob(account_name,sas_token,container_name,
+                      local_path,remote_path):
+    """
+    Copies a local file to blob storage
+    """
+    block_blob_service = BlockBlobService(account_name=account_name,
+                                          sas_token=sas_token)
+    block_blob_service.create_blob_from_path(container_name, remote_path, local_path, 
+                          content_settings=None, metadata=None, 
+                          validate_content=False, progress_callback=None, 
+                          max_connections=2, lease_id=None, if_modified_since=None, 
+                          if_unmodified_since=None, if_match=None, 
+                          if_none_match=None, timeout=None)
+    print('Finished copying {} to {}/{}/{}'.format(
+        local_path,account_name,container_name,remote_path))
+        
     
 def enumerate_blobs(account_name,sas_token,container_name,rmatch=None,prefix=None):
     """
@@ -189,10 +206,11 @@ def divide_chunks(l, n):
 def divide_files_into_tasks(file_list_json,n_files_per_task=default_n_files_per_api_task):
     """
     Divides the file *file_list_json*, which should contain a single json-encoded list
-    of strings, into a set of json files, each containing *n_files_per_task* files (the last 
-    file will contain <= *n_files_per_task* files).
+    of strings, into a set of json files, each containing *n_files_per_task* files
+    (the last file will contain <= *n_files_per_task* files).
     
-    If the input .json is blah.json, output_files will be blah.chunk001.json, blah.002.json, etc.
+    If the input .json is blah.json, output_files will be blah.chunk000.json,
+    blah.chunk001.json, etc.
     
     Returns the list of .json filenames and the list of lists of files.
     
