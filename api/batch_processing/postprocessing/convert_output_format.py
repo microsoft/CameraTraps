@@ -21,6 +21,8 @@ from api.batch_processing.postprocessing.load_api_results import load_api_result
 from data_management.annotations import annotation_constants
 
 
+CONF_DIGITS = 3
+
 #%% Conversion functions
 
 def convert_json_to_csv(input_path,output_path=None,min_confidence=None,omit_bounding_boxes=False):
@@ -131,7 +133,7 @@ def convert_csv_to_json(input_path,output_path=None):
         
         image = {}
         image['file'] = row['image_path']
-        image['max_detection_conf'] = row['max_confidence']
+        image['max_detection_conf'] = round(row['max_confidence'], CONF_DIGITS)
         src_detections = row['detections']        
         out_detections = []
         
