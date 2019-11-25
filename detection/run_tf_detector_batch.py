@@ -47,6 +47,13 @@ from api.batch_processing.api_core.orchestrator_api.aml_scripts.tf_detector impo
 
 DEFAULT_CONFIDENCE_THRESHOLD = 0.0
 
+MIN_DIM = 600
+MAX_DIM = 1024
+
+# Number of decimal places to round to for confidence and bbox coordinates
+CONF_DIGITS = 3
+COORD_DIGITS = 4
+
 # Suppress excessive tensorflow output
 tf.logging.set_verbosity(tf.logging.ERROR)
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -165,8 +172,11 @@ def generate_detections(detector,images,options):
                 
                 try:
                     
-                    # Load the image as an nparray of size h,w,nChannels            
-                    imageNP = PIL.Image.open(image).convert("RGB"); imageNP = np.array(imageNP)
+                    # Load the image as an nparray of size h,w,nChannels
+                    height, width = MIN_DIM, MAX_DIM
+                    imageNP = PIL.Image.open(image).convert("RGB").resize((width, height))
+
+                    imageNP = np.asarray(imageNP, np.uint8)
                     # image = mpimg.imread(image)
                     
                     nChannels = imageNP.shape[2]
@@ -412,9 +422,9 @@ def detector_output_to_api_output(imageFileNames,options,boxes,scores,classes):
             box = list(imageBoxes[iBox])
             
             # convert from float32 to float
-            box = [float(x) for x in box]
+            box = [round(float(x), COORD_DIGITS) for x in box]
             # x/y/w/h/p/class
-            box.append(float(imageScores[iBox]))
+            box.append(round(float(imageScores[iBox]), CONF_DIGITS))
             box.append(int(imageClasses[iBox]))
             imageBoxesOut.append(box)
         
