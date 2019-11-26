@@ -51,6 +51,7 @@ import pandas as pd
 # Assumes ai4eutils is on the python path
 # https://github.com/Microsoft/ai4eutils
 from write_html_image_list import write_html_image_list
+import path_utils
 
 # Assumes the cameratraps repo root is on the path
 import visualization.visualization_utils as vis_utils
@@ -296,7 +297,7 @@ def render_bounding_boxes(image_base_dir, image_relative_path, display_name, det
         try:
             image = vis_utils.open_image(image_full_path)
         except:
-            print('Warning: could not open image file {}'.format(image_full_path))
+            print('Warning: could not open image file {}'.format(image_full_path))            
             return ''
         
         if options.viz_target_width is not None:
@@ -310,7 +311,7 @@ def render_bounding_boxes(image_base_dir, image_relative_path, display_name, det
 
         # Render images to a flat folder... we can use os.sep here because we've
         # already normalized paths
-        sample_name = res + '_' + image_relative_path.replace(os.sep, '~')
+        sample_name = res + '_' + path_utils.flatten_path(image_relative_path)        
         fullpath = os.path.join(options.output_dir, res, sample_name)
         try:
             image.save(fullpath)
@@ -1047,15 +1048,21 @@ def process_batch_results(options):
         # Prepare the individual html image files
         image_counts = prepare_html_subpages(images_html, output_dir)
         
+        if image_rendered_count == 0:
+            seconds_per_image = 0
+        else:
+            seconds_per_image = elapsed/image_rendered_count
+            
         print('Rendered {} images (of {}) in {} ({} per image)'.format(image_rendered_count,
               image_count,humanfriendly.format_timespan(elapsed),
-              humanfriendly.format_timespan(elapsed/image_rendered_count)))
+              humanfriendly.format_timespan(seconds_per_image)))
 
         # Write index.HTML
         total_images = image_counts['detections'] + image_counts['non_detections']
         if options.include_almost_detections:
             total_images += image_counts['almost_detections']
-        assert(total_images == image_count)
+        assert total_images == image_count, \
+            'Error: image_count is {}, total_images is {}'.format(image_count,total_images)
         
         almost_detection_string = ''
         if options.include_almost_detections:
