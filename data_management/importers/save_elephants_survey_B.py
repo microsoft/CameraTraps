@@ -1,7 +1,7 @@
 #
-# save_elephants_survey_A.py
+# save_elephants_survey_B.py
 #
-# Convert the .csv file provided for the Save The Elephants Survey A data set to a 
+# Convert the .csv file provided for the Save The Elephants Survey B data set to a 
 # COCO-camera-traps .json file
 #
 
@@ -21,10 +21,10 @@ from PIL import Image
 import numpy as np
 import logging
 
-input_metadata_file = r'/mnt/blobfuse/wildlifeblobssc/ste_2019_08_drop/SURVEY_A.xlsx'
-output_file = r'/data/home/gramener/SURVEY_A.json'
-image_directory = r'/mnt/blobfuse/wildlifeblobssc/ste_2019_08_drop/SURVEY A with False Triggers'
-log_file = r'/data/home/gramener/save_elephants_survey_a.log'
+input_metadata_file = r'/mnt/blobfuse/wildlifeblobssc/ste_2019_08_drop/SURVEY B.xlsx'
+output_file = r'/data/home/gramener/SURVEY_B.json'
+image_directory = r'/mnt/blobfuse/wildlifeblobssc/ste_2019_08_drop/SURVEY B with False Triggers'
+log_file = r'/data/home/gramener/save_elephants_survey_b.log'
 
 assert(os.path.isdir(image_directory))
 logging.basicConfig(filename=log_file, level=logging.INFO)
@@ -56,8 +56,9 @@ for iFile, fn in enumerate(imageFilenames):
         filenamesToRows[fn].append(iFile)
     else:
         filenamesToRows[fn] = [iFile]
-        imagePath = os.path.join(image_directory, fn)
+        print(fn)
         try:
+            imagePath = os.path.join(image_directory, fn)
             assert(os.path.isfile(imagePath))
         except Exception:
             logging.info(imagePath)
@@ -116,6 +117,10 @@ for imageName in imageFilenames:
         im['file_name'] = imageName
         im['datetime'] = row['Date'].strftime("%d/%m/%Y")
         im['Camera Trap Station Label'] = row['Camera Trap Station Label']
+        if row['No. of Animals in Photo'] is np.nan:
+            im['No. of Animals in Photo'] = 0
+        else:
+            im['No. of Animals in Photo'] = row['No. of Animals in Photo']
         if row['Photo Type '] is np.nan:
             im['Photo Type '] = ""
         else:
@@ -123,44 +128,44 @@ for imageName in imageFilenames:
         # Check image height and width
         imagePath = os.path.join(image_directory, imageName)
         assert(os.path.isfile(imagePath))
+        pilImage = Image.open(imagePath)
+        width, height = pilImage.size
+        im['width'] = width
+        im['height'] = height
+
+        images.append(im)
+    
+        # category = row['label'].lower()
+        is_image = row['Species']
+    
+        # Use 'empty', to be consistent with other data on lila    
+        if (is_image == np.nan):
+            category = 'empty'
+        else:
+            category = row['Species']
+        
+        # Have we seen this category before?
+        if category in categoriesToCategoryId:
+            categoryID = categoriesToCategoryId[category]
+            categoriesToCounts[category] += 1
+        else:
+            categoryID = nextCategoryID
+            categoriesToCategoryId[category] = categoryID
+            categoriesToCounts[category] = 0
+            nextCategoryID += 1
+    
+        # Create an annotation
+        ann = {}
+    
+        # The Internet tells me this guarantees uniqueness to a reasonable extent, even
+        # beyond the sheer improbability of collisions.
+        ann['id'] = str(uuid.uuid1())
+        ann['image_id'] = im['id']    
+        ann['category_id'] = categoryID
+    
+        annotations.append(ann)
     except Exception:
         continue
-    pilImage = Image.open(imagePath)
-    width, height = pilImage.size
-    im['width'] = width
-    im['height'] = height
-
-    images.append(im)
-    
-#     category = row['label'].lower()
-    is_image = row['Species']
-    
-    # Use 'empty', to be consistent with other data on lila    
-    if (is_image == np.nan):
-        category = 'empty'
-    else:
-        category = row['Species']
-        
-    # Have we seen this category before?
-    if category in categoriesToCategoryId:
-        categoryID = categoriesToCategoryId[category]
-        categoriesToCounts[category] += 1
-    else:
-        categoryID = nextCategoryID
-        categoriesToCategoryId[category] = categoryID
-        categoriesToCounts[category] = 0
-        nextCategoryID += 1
-    
-    # Create an annotation
-    ann = {}
-    
-    # The Internet tells me this guarantees uniqueness to a reasonable extent, even
-    # beyond the sheer improbability of collisions.
-    ann['id'] = str(uuid.uuid1())
-    ann['image_id'] = im['id']    
-    ann['category_id'] = categoryID
-    
-    annotations.append(ann)
     
 # ...for each image
     
