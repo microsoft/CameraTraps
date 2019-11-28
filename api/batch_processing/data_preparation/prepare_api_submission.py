@@ -81,7 +81,7 @@ def write_list_to_file(output_file,strings):
             for fn in strings:
                 f.write(fn + '\n')
                 
-    print('Finished writing list {}'.format(output_file))
+    # print('Finished writing list {}'.format(output_file))
     
    
 def read_list_from_file(filename):
@@ -109,8 +109,8 @@ def copy_file_to_blob(account_name,sas_token,container_name,
                           max_connections=2, lease_id=None, if_modified_since=None, 
                           if_unmodified_since=None, if_match=None, 
                           if_none_match=None, timeout=None)
-    print('Finished copying {} to {}/{}/{}'.format(
-        local_path,account_name,container_name,remote_path))
+    # print('Finished copying {} to {}/{}/{}'.format(
+    #     local_path,account_name,container_name,remote_path))
         
     
 def enumerate_blobs(account_name,sas_token,container_name,rmatch=None,prefix=None):
@@ -337,7 +337,7 @@ def get_output_file_urls(response):
     return output_file_urls
     
 
-def download_url(url, destination_filename, verbose=True):
+def download_url(url, destination_filename, verbose=False):
     """
     Download a URL to a local file
     """
@@ -358,7 +358,7 @@ def download_to_temporary_file(url):
     return download_url(url,get_temporary_filename())
 
 
-def get_missing_images(response):
+def get_missing_images(response,verbose=False):
     """
     Downloads and parses the list of submitted and processed images for a task,
     and compares them to find missing images.  Double-checks that 'failed_images'
@@ -383,21 +383,26 @@ def get_missing_images(response):
     
     # Diff submitted and processed images
     submitted_images = results['images']
-    print('Submitted {} images'.format(len(submitted_images)))
+    if verbose:
+        print('Submitted {} images'.format(len(submitted_images)))
     
     detections = results['detections']
     processed_images = [detection['file'] for detection in detections['images']]
-    print('Received results for {} images'.format(len(processed_images)))
+    if verbose:
+        print('Received results for {} images'.format(len(processed_images)))
     
     failed_images = results['failed_images']
-    print('{} failed images'.format(len(failed_images)))
+    if verbose:
+        print('{} failed images'.format(len(failed_images)))
     
     n_failed_shards = int(response['status']['message']['num_failed_shards'])
     estimated_failed_shard_images = n_failed_shards * IMAGES_PER_SHARD
-    print('{} failed shards (approimately {} images)'.format(n_failed_shards,estimated_failed_shard_images))
+    if verbose:
+        print('{} failed shards (approimately {} images)'.format(n_failed_shards,estimated_failed_shard_images))
             
     missing_images = list(set(submitted_images) - set(processed_images))
-    print('{} images not in results'.format(len(missing_images)))
+    if verbose:
+        print('{} images not in results'.format(len(missing_images)))
     
     # Confirm that the failed images are a subset of the missing images
     assert len(set(failed_images) - set(missing_images)) == 0, 'Failed images should be a subset of missing images'
