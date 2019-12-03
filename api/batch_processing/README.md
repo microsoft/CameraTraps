@@ -117,7 +117,7 @@ We can store a (short) string of metadata with each image path or URL. The json 
 
 #### Other notes and example  
 
-- Only images with file name ending in &lsquo;.jpg&rsquo; or &lsquo;.jpeg&rsquo; (case insensitive) will be processed, so please make sure the file names are compliant before you upload them to the container (you cannot rename a blob without copying it entirely once it is in Blob Storage). 
+- Only images with file name ending in &lsquo;.jpg&rsquo; (case insensitive) will be processed, so please make sure the file names are compliant before you upload them to the container (you cannot rename a blob without copying it entirely once it is in Blob Storage). 
 
 - By default we process all such images in the specified container. You can choose to only process a subset of them by specifying the other input parameters, and the images will be filtered out accordingly in this order:
     - `images_requested_json_sas`
