@@ -4,7 +4,7 @@ from flask_dropzone import Dropzone
 from flask_uploads import UploadSet, configure_uploads, IMAGES, patch_request_class
 
 from flask_restful import Resource, Api
-from . import aadConfig as aad
+# from . import aadConfig as aad
 
 import os
 
@@ -32,7 +32,7 @@ app.config['DROPZONE_TIMEOUT'] = 30000 * 60 * 10
 app.config['DROPZONE_PARALLEL_UPLOADS'] = 10
 app.config['DROPZONE_MAX_FILE_SIZE'] = 10
 app.config['CHECK_LOGIN'] = False
-app.config['AUTHORITY_URL'] =  aad.AUTHORITY_HOST_URL + '/' + aad.TENANT
+# app.config['AUTHORITY_URL'] =  aad.AUTHORITY_HOST_URL + '/' + aad.TENANT
 app.config['TEMPLATE_AUTHZ_URL']= ('https://login.microsoftonline.com/{}/oauth2/authorize?' +
                       'response_type=code&client_id={}&redirect_uri={}&' +
                       'state={}&resource={}')
