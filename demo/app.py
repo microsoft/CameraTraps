@@ -22,7 +22,7 @@ import random
 import urllib.request as urlopen
 from io import BytesIO
 from PIL import Image
-from . import aadConfig as aad
+# from . import aadConfig as aad
 from . import login_helper 
 from log import Log
 import time
