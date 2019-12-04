@@ -122,7 +122,12 @@ def enumerate_blobs(account_name,sas_token,container_name,rmatch=None,prefix=Non
     sas_token should start with st=
     """
     
-    print('Enumerating blobs from {}/{}'.format(account_name,container_name))
+    folder_string = '{}/{}'.format(account_name,container_name)
+    if prefix is not None:
+        folder_string += '/{}'.format(prefix)
+    if rmatch is not None:
+        folder_string += ' (matching {})'.format(rmatch)
+    print('Enumerating blobs from {}'.format(folder_string))
         
     block_blob_service = BlockBlobService(account_name=account_name, sas_token=sas_token)
     
