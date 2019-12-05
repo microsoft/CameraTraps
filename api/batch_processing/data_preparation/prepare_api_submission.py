@@ -41,6 +41,8 @@
 
 import json
 import re
+import string
+import unicodedata
 
 from azure.storage.blob import BlockBlobService
 
@@ -240,6 +242,19 @@ def divide_files_into_tasks(file_list_json,n_files_per_task=default_n_files_per_
     
     return output_files,chunks    
 
+valid_request_name_chars = "-_%s%s" % (string.ascii_letters, string.digits)
+request_name_char_limit = 100
+
+def clean_request_name(request_name, whitelist=valid_request_name_chars):
+    """
+    Removes invalid characters from an API request name
+    """    
+    cleaned_name = unicodedata.normalize('NFKD', request_name).encode('ASCII', 'ignore').decode()
+    
+    # keep only whitelisted chars
+    cleaned_name = ''.join([c for c in cleaned_name if c in whitelist])
+    return cleaned_name[:request_name_char_limit]  
+
 
 def generate_api_queries(input_container_sas_url,file_list_sas_urls,request_name_base,
                          caller,image_path_prefixes=None):
@@ -260,6 +275,11 @@ def generate_api_queries(input_container_sas_url,file_list_sas_urls,request_name
     
     assert isinstance(file_list_sas_urls,list)        
 
+    request_name_original = request_name_base
+    request_name_base = clean_request_name(request_name_base)
+    if request_name_base != request_name_original:
+        print('Warning: renamed {} to {}'.format(request_name_original,request_name_base))
+        
     request_dicts = []
     request_strings = []
     # i_url = 0; file_list_sas_url = file_list_sas_urls[0]
