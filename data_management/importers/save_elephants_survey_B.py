@@ -22,7 +22,7 @@ import numpy as np
 import logging
 
 input_metadata_file = r'/mnt/blobfuse/wildlifeblobssc/ste_2019_08_drop/SURVEY B.xlsx'
-output_file = r'/data/home/gramener/SURVEY_B.json'
+output_file = r'/data/home/gramener/STE_SURVEY_B.json'
 image_directory = r'/mnt/blobfuse/wildlifeblobssc/ste_2019_08_drop/SURVEY B with False Triggers'
 log_file = r'/data/home/gramener/save_elephants_survey_b.log'
 
@@ -56,7 +56,6 @@ for iFile, fn in enumerate(imageFilenames):
         filenamesToRows[fn].append(iFile)
     else:
         filenamesToRows[fn] = [iFile]
-        print(fn)
         try:
             imagePath = os.path.join(image_directory, fn)
             assert(os.path.isfile(imagePath))
@@ -103,7 +102,7 @@ categoriesToCounts = {}
 #
 # Because in practice images are 1:1 with annotations in this data set,
 # this is also a loop over annotations.
-
+processed = []
 startTime = time.time()
 # print(imageFilenames)
 # imageName = imageFilenames[0]
@@ -113,7 +112,11 @@ for imageName in imageFilenames:
         iRow = rows[0]
         row = input_metadata.iloc[iRow+2]
         im = {}
-        im['id'] = imageName.split('.')[0]
+        img_id = imageName.split('.')[0]
+        if img_id in processed:
+            continue
+        processed.append(img_id)
+        im['id'] = img_id
         im['file_name'] = imageName
         im['datetime'] = row['Date'].strftime("%d/%m/%Y")
         im['Camera Trap Station Label'] = row['Camera Trap Station Label']
@@ -139,7 +142,7 @@ for imageName in imageFilenames:
         is_image = row['Species']
     
         # Use 'empty', to be consistent with other data on lila    
-        if (is_image == np.nan):
+        if (is_image == np.nan or is_image == " " or type(is_image) == float):
             category = 'empty'
         else:
             category = row['Species']
