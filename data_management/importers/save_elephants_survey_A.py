@@ -102,7 +102,7 @@ categoriesToCounts = {}
 #
 # Because in practice images are 1:1 with annotations in this data set,
 # this is also a loop over annotations.
-
+processed = []
 startTime = time.time()
 # print(imageFilenames)
 # imageName = imageFilenames[0]
@@ -112,7 +112,11 @@ for imageName in imageFilenames:
         iRow = rows[0]
         row = input_metadata.iloc[iRow+2]
         im = {}
-        im['id'] = imageName.split('.')[0]
+        img_id = imageName.split('.')[0]
+        if img_id in processed:
+            continue
+        processed.append(img_id)
+        im['id'] = img_id
         im['file_name'] = imageName
         im['datetime'] = row['Date'].strftime("%d/%m/%Y")
         im['Camera Trap Station Label'] = row['Camera Trap Station Label']
@@ -136,7 +140,7 @@ for imageName in imageFilenames:
     is_image = row['Species']
     
     # Use 'empty', to be consistent with other data on lila    
-    if (is_image == np.nan):
+    if (is_image == np.nan or is_image == " " or type(is_image) == float):
         category = 'empty'
     else:
         category = row['Species']
