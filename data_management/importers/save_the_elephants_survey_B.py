@@ -1,22 +1,19 @@
 #
-# save_elephants_survey_B.py
+# save_the_elephants_survey_B.py
 #
-# Convert the .csv file provided for the Save The Elephants Survey B data set to a 
+# Convert the .csv file provided for the Save the Elephants Survey B data set to a 
 # COCO-camera-traps .json file
 #
 
-# %% Constants and environment
+#%% Constants and environment
 
 import pandas as pd
 import os
 import glob
 import json
-import re
 import uuid
 import time
-import ntpath
 import humanfriendly
-import PIL
 from PIL import Image
 import numpy as np
 import logging
@@ -30,14 +27,16 @@ assert(os.path.isdir(image_directory))
 logging.basicConfig(filename=log_file, level=logging.INFO)
 
 
-# %% Read source data
+#%% Read source data
 
 input_metadata = pd.read_excel(input_metadata_file, sheet_name='9. CT Image')
 input_metadata = input_metadata.iloc[2:]
 
 print('Read {} columns and {} rows from metadata file'.format(len(input_metadata.columns),
       len(input_metadata)))
-# %% Map filenames to rows, verify image existence
+
+
+#%% Map filenames to rows, verify image existence
 
 # Takes ~30 seconds, since it's checking the existence of ~270k images
 
@@ -56,8 +55,8 @@ for iFile, fn in enumerate(imageFilenames):
         filenamesToRows[fn].append(iFile)
     else:
         filenamesToRows[fn] = [iFile]
+        imagePath = os.path.join(image_directory, fn)
         try:
-            imagePath = os.path.join(image_directory, fn)
             assert(os.path.isfile(imagePath))
         except Exception:
             logging.info(imagePath)
@@ -66,12 +65,8 @@ elapsed = time.time() - startTime
 print('Finished verifying image existence in {}, found {} filenames with multiple labels'.format(
       humanfriendly.format_timespan(elapsed), len(duplicateRows)))
 
-# I didn't expect this to be true a priori, but it appears to be true, and
-# it saves us the trouble of checking consistency across multiple occurrences
-# of an image.
-# assert(len(duplicateRows) == 0)    
 
-# %% Check for images that aren't included in the metadata file
+#%% Check for images that aren't included in the metadata file
 
 # Enumerate all images
 imageFullPaths = glob.glob(os.path.join(image_directory, '*\\*\\*\\*.JPG'))
@@ -84,7 +79,8 @@ for iImage, imagePath in enumerate(imageFullPaths):
 print('Finished checking {} images to make sure they\'re in the metadata'.format(
         len(imageFullPaths)))
 
-# %% Create CCT dictionaries
+
+#%% Create CCT dictionaries
 
 # Also gets image sizes, so this takes ~6 minutes
 #
@@ -107,7 +103,8 @@ startTime = time.time()
 # print(imageFilenames)
 # imageName = imageFilenames[0]
 for imageName in imageFilenames:
-    try:
+    
+    try:        
         rows = filenamesToRows[imageName]
         iRow = rows[0]
         row = input_metadata.iloc[iRow+2]
@@ -128,7 +125,8 @@ for imageName in imageFilenames:
             im['Photo Type '] = ""
         else:
             im['Photo Type'] = row['Photo Type ']
-        # Check image height and width
+
+        # Check image height and width        
         imagePath = os.path.join(image_directory, imageName)
         assert(os.path.isfile(imagePath))
         pilImage = Image.open(imagePath)
@@ -189,14 +187,14 @@ print('Finished creating CCT dictionaries in {}'.format(
       humanfriendly.format_timespan(elapsed)))
     
 
-# %% Create info struct
+#%% Create info struct
 
 info = {}
 info['year'] = 2014
 info['version'] = 1
-info['description'] = 'COCO style database'
-info['secondary_contributor'] = 'Converted to COCO .json by Dan Morris'
-info['contributor'] = 'Vardhan Duvvuri'
+info['description'] = ''
+info['secondary_contributor'] = 'Converted to COCO .json by Vardhan Duvvuri'
+info['contributor'] = 'Save the Elephants'
 
 
 # # %% Write output
@@ -206,7 +204,7 @@ json_data['images'] = images
 json_data['annotations'] = annotations
 json_data['categories'] = categories
 json_data['info'] = info
-json.dump(json_data, open(output_file, 'w'), indent=4)
+json.dump(json_data, open(output_file, 'w'), indent=2)
 
 print('Finished writing .json file with {} images, {} annotations, and {} categories'.format(
         len(images),len(annotations),len(categories)))
