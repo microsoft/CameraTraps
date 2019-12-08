@@ -1,22 +1,20 @@
 #
 # carrizo_csv_to_json.py
 #
-# Convert the .csv file provided for the Carrizo Mojave data set to a 
+# Convert the .csv file provided for the Carrizo/Mojave data set to a 
 # COCO-camera-traps .json file
 #
 
-# %% Constants and environment
+#%% Constants and environment
 
 import pandas as pd
 import os
 import glob
 import json
-import re
 import uuid
 import time
 import ntpath
 import humanfriendly
-import PIL
 from PIL import Image
 import numpy as np
 import logging
@@ -29,7 +27,7 @@ assert(os.path.isdir(image_directory))
 logging.basicConfig(filename='carrizo.log', level=logging.INFO)
 
 
-# %% Read source data
+#%% Read source data
 
 input_metadata = pd.read_csv(input_metadata_file)
 
@@ -41,7 +39,7 @@ input_metadata['file'] = input_metadata[['file', 'rep ']].apply(lambda x: "{0}\I
 print('Converted extensions to uppercase')
 
 
-# %% Map filenames to rows, verify image existence
+#%% Map filenames to rows, verify image existence
 
 # Takes ~30 seconds, since it's checking the existence of ~270k images
 
@@ -74,7 +72,8 @@ print('Finished verifying image existence in {}, found {} filenames with multipl
 # of an image.
 assert(len(duplicateRows) == 0)    
 
-# %% Check for images that aren't included in the metadata file
+
+#%% Check for images that aren't included in the metadata file
 
 # Enumerate all images
 imageFullPaths = glob.glob(os.path.join(image_directory, '*\\*.JPG'))
@@ -86,7 +85,8 @@ for iImage, imagePath in enumerate(imageFullPaths):
 print('Finished checking {} images to make sure they\'re in the metadata'.format(
         len(imageFullPaths)))
 
-# %% Create CCT dictionaries
+
+#%% Create CCT dictionaries
 
 # Also gets image sizes, so this takes ~6 minutes
 #
@@ -109,7 +109,9 @@ startTime = time.time()
 # print(imageFilenames)
 # imageName = imageFilenames[0]
 for imageName in imageFilenames:
+    
     rows = filenamesToRows[imageName]
+    
     # As per above, this is convenient and appears to be true; asserting to be safe
     assert(len(rows) == 1)    
     iRow = rows[0]
@@ -117,24 +119,13 @@ for imageName in imageFilenames:
     im = {}
     im['id'] = imageName.split('.')[0]
     im['file_name'] = imageName
-#     # This gets imported as an int64
-#     im['seq_id'] = int(row['sequence'])
-#     # These appear as "image1", "image2", etc.
-#     frameID = row['image_sequence']
-#     m = re.match('^image(\d+)$',frameID)
-#     assert (m is not None)
-#     im['frame_num'] = int(m.group(1))-1
-#     # In the form "001a"
-#     im['site']= row['site']
-#     # Can be in the form '111' or 's46'
-#     im['camera'] = row['camera']
-    # In the form "7/29/2016 11:40"
     im['datetime'] = row['date']
     im['location'] = "{0}_{1}_{2}".format(row['region'], row['site'], row['microsite'])
     if row['observations'] is np.nan:
           im['observations'] = ""
     else:
           im['observations'] = row['observations']
+    
     # Check image height and width
     imagePath = os.path.join(image_directory, parent_dir, fn)
     assert(os.path.isfile(imagePath))
@@ -145,7 +136,7 @@ for imageName in imageFilenames:
 
     images.append(im)
     
-#     category = row['label'].lower()
+    # category = row['label'].lower()
     is_image = row['animal.capture']
     
     # Use 'empty', to be consistent with other data on lila    
@@ -197,17 +188,17 @@ print('Finished creating CCT dictionaries in {}'.format(
       humanfriendly.format_timespan(elapsed)))
     
 
-# %% Create info struct
+#%% Create info struct
 
 info = {}
 info['year'] = 2018
 info['version'] = 1
 info['description'] = 'COCO style database'
-info['secondary_contributor'] = 'Converted to COCO .json by Dan Morris'
-info['contributor'] = 'Vardhan Duvvuri'
+info['secondary_contributor'] = 'Converted to COCO .json by Vardhan Duvvuri'
+info['contributor'] = 'York University'
 
 
-# %% Write output
+#%% Write output
 
 json_data = {}
 json_data['images'] = images
