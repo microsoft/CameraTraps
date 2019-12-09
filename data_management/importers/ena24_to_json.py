@@ -14,6 +14,16 @@ import humanfriendly
 import numpy as np
 from PIL import Image
 from tqdm import tqdm
+import shutil
+import zipfile
+
+#%% Function to create zip file
+
+def zipdir(path, ziph):
+    # ziph is zipfile handle
+    for root, dirs, files in os.walk(path):
+        for file in files:
+            ziph.write(os.path.join(root, file))
 
 # output_file = r'C:\Users\Gramener\Desktop\Projects\Microsoft\Camera Traps\ena24.json'
 # image_directory = r'C:\Users\Gramener\Desktop\Projects\Microsoft\Camera Traps\ena24\images'
@@ -23,7 +33,11 @@ base_directory = r'e:\wildlife_data\ena24'
 output_file = os.path.join(base_directory,'ena24.json')
 image_directory = os.path.join(base_directory,'images')
 label_directory = os.path.join(base_directory,'labels')
-
+# %% Create folders for human and non-human images
+human_dir = "human"
+non_human_dir = "non-human"
+os.mkdir(os.path.join(base_directory, human_dir))
+os.mkdir(os.path.join(base_directory, non_human_dir))
 labels = ['White_Tailed_Deer', 'Dog', 'Bobcat', 'Red Fox', 'Horse', 
           'Domestic Cat', 'American Black Bear', 'Eastern Cottontail', 'Grey Fox', 'Coyote', 
           'Eastern Fox Squirrel', 'Eastern Gray Squirrel', 'Vehicle', 'Eastern Chipmunk', 'Wild Turkey',
@@ -75,7 +89,7 @@ categoriesToCounts = {}
 
 startTime = time.time()
 for filename in tqdm(image_list):
-    
+    is_human= False    
     im = {}
     im['id'] = filename.split('.')[0]
     fn = "{}.jpg".format(filename.split('.')[0])
@@ -114,6 +128,8 @@ for filename in tqdm(image_list):
         
         i_category = int(row[0])-1        
         category = labels[i_category]
+        if category == 'Human':
+            is_human = True
         categories_this_image.add(category)
         
         # Have we seen this category before?
@@ -145,7 +161,10 @@ for filename in tqdm(image_list):
             for c in categories_this_image:
                 print(c, end=',')
             print('')
-            
+    if is_human:
+          shutil.copy(imagePath, os.path.join(base_directory, human_dir))
+    else:
+          shutil.copy(imagePath, os.path.join(base_directory, non_human_dir))
 # ...for each image
     
 # Convert categories to a CCT-style dictionary
@@ -187,7 +206,13 @@ json.dump(json_data, open(output_file, 'w'), indent=2)
 print('Finished writing .json file with {} images, {} annotations, and {} categories'.format(
         len(images),len(annotations),len(categories)))
 
-
+#%% Create ZIP files for human and non human
+zipf = zipfile.ZipFile(os.path.join(base_directory, 'human.zip'), 'w', zipfile.ZIP_DEFLATED)
+zipdir(os.path.join(base_directory, 'human'), zipf)
+zipf.close()
+zipf = zipfile.ZipFile(os.path.join(base_directory, 'non-human.zip'), 'w', zipfile.ZIP_DEFLATED)
+zipdir(os.path.join(base_directory, 'non-human'), zipf)
+zipf.close()
 #%% Validate output
 
 from data_management.databases import sanity_check_json_db
