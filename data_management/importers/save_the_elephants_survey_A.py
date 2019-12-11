@@ -222,7 +222,7 @@ print('Finished writing .json file with {} images, {} annotations, and {} catego
 
 #%% Create ZIP files for human and non human
 zipf = zipfile.ZipFile('SurveyA.zip', 'w', zipfile.ZIP_DEFLATED)
-zipdir(output_dir, 'human'), zipf)
+zipdir(output_dir, zipf)
 zipf.close()
 
 #%% Validate output
