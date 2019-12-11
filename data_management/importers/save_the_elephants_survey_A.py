@@ -17,12 +17,26 @@ import humanfriendly
 from PIL import Image
 import numpy as np
 import logging
+from tqdm import tqdm
+import shutil
+import zipfile
+
+#%% Function to create zip file
+
+
+def zipdir(path, ziph):
+    # ziph is zipfile handle
+    for root, dirs, files in os.walk(path):
+        for file in files:
+            ziph.write(os.path.join(root, file))
 
 input_metadata_file = r'/mnt/blobfuse/wildlifeblobssc/ste_2019_08_drop/SURVEY_A.xlsx'
 output_file = r'/data/home/gramener/SURVEY_A.json'
 image_directory = r'/mnt/blobfuse/wildlifeblobssc/ste_2019_08_drop/SURVEY A with False Triggers'
 log_file = r'/data/home/gramener/save_elephants_survey_a.log'
 
+output_dir = r'/data/home/gramener/SURVEY_A'
+os.mkdir(output_dir)
 assert(os.path.isdir(image_directory))
 logging.basicConfig(filename=log_file, level=logging.INFO)
 
@@ -102,7 +116,7 @@ processed = []
 startTime = time.time()
 # print(imageFilenames)
 # imageName = imageFilenames[0]
-for imageName in imageFilenames:
+for imageName in tqdm(imageFilenames):
     
     try:
         rows = filenamesToRows[imageName]
@@ -133,6 +147,7 @@ for imageName in imageFilenames:
     im['height'] = height
 
     images.append(im)
+    shutil.copy(imagePath, output_dir)
     
     # category = row['label'].lower()
     is_image = row['Species']
@@ -204,3 +219,39 @@ json.dump(json_data, open(output_file, 'w'), indent=2)
 
 print('Finished writing .json file with {} images, {} annotations, and {} categories'.format(
         len(images),len(annotations),len(categories)))
+
+#%% Create ZIP files for human and non human
+zipf = zipfile.ZipFile('SurveyA.zip', 'w', zipfile.ZIP_DEFLATED)
+zipdir(output_dir, 'human'), zipf)
+zipf.close()
+
+#%% Validate output
+
+from data_management.databases import sanity_check_json_db
+
+fn = output_file
+options = sanity_check_json_db.SanityCheckOptions()
+options.baseDir = image_directory
+options.bCheckImageSizes = False
+options.bCheckImageExistence = True
+options.bFindUnusedImages = True
+    
+sortedCategories, data = sanity_check_json_db.sanity_check_json_db(fn,options)
+
+
+#%% Preview labels
+
+from visualization import visualize_db
+from data_management.databases import sanity_check_json_db
+
+viz_options = visualize_db.DbVizOptions()
+viz_options.num_to_visualize = None
+viz_options.trim_to_images_with_bboxes = False
+viz_options.add_search_links = True
+viz_options.sort_by_filename = False
+viz_options.parallelize_rendering = True
+html_output_file,image_db = visualize_db.process_images(db_path=output_file,
+                                                        output_dir=os.path.join(base_directory,'previewA'),
+                                                        image_base_dir=image_directory,
+                                                        options=viz_options)
+os.startfile(html_output_file)
