@@ -38,8 +38,8 @@ import tensorflow as tf
 import numpy as np
 import humanfriendly
 import PIL
-from tqdm import tqdm
 import pandas as pd
+from tqdm import tqdm
 
 from api.batch_processing.postprocessing import convert_output_format
 from api.batch_processing.postprocessing.load_api_results import write_api_results_csv
@@ -66,6 +66,7 @@ CHECKPOINT_SUBDIR = 'detector_batch'
 
 # ignoring all "PIL cannot read EXIF metainfo for the images" warnings
 warnings.filterwarnings('ignore', '(Possibly )?corrupt EXIF data', UserWarning)
+
 # Metadata Warning, tag 256 had too many entries: 42, expected 1
 warnings.filterwarnings('ignore', 'Metadata warning', UserWarning)
 
@@ -505,11 +506,7 @@ if False:
     options.detectorFile = r'D:\temp\models\megadetector_v3.pb'
     options.imageFile = r'D:\temp\demo_images\ssmini'    
     options.outputFile = r'D:\temp\demo_images\ssmini\detector_out.json'
-    options.outputPathReplacements = {'D:\\temp\\demo_images\\ssmini\\':''}
     options.recursive = False
-    # options.checkpointFrequency = -1
-    options.forceCpu = True
-    options.resumeFromCheckpoint = None # r'C:\Users\dan\AppData\Local\Temp\detector_batch\tmp77xdq9dp'
     
     if options.forceCpu:
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -522,8 +519,7 @@ if False:
     boxes,scores,classes,imageFileNames = load_and_run_detector(options,detector)
     
     
-    #%% Post-processing with process_batch_results... this can also be run from the
-    #   command line.
+    #%% Post-processing with process_batch_results... this can also be run from the command line.
     
     from api.batch_processing.postprocess_batch_results import PostProcessingOptions
     from api.batch_processing.postprocess_batch_results import process_batch_results
