@@ -221,7 +221,7 @@ print('Finished writing .json file with {} images, {} annotations, and {} catego
         len(images),len(annotations),len(categories)))
 
 #%% Create ZIP files for human and non human
-zipf = zipfile.ZipFile('SurveyA.zip', 'w', zipfile.ZIP_DEFLATED)
+zipf = zipfile.ZipFile('/home/gramener/SurveyA.zip', 'w', zipfile.ZIP_DEFLATED)
 zipdir(output_dir, zipf)
 zipf.close()
 
@@ -245,13 +245,13 @@ from visualization import visualize_db
 from data_management.databases import sanity_check_json_db
 
 viz_options = visualize_db.DbVizOptions()
-viz_options.num_to_visualize = None
+viz_options.num_to_visualize = 1000
 viz_options.trim_to_images_with_bboxes = False
 viz_options.add_search_links = True
 viz_options.sort_by_filename = False
 viz_options.parallelize_rendering = True
 html_output_file,image_db = visualize_db.process_images(db_path=output_file,
-                                                        output_dir=os.path.join(base_directory,'previewA'),
+                                                        output_dir='previewA',
                                                         image_base_dir=image_directory,
                                                         options=viz_options)
 os.startfile(html_output_file)
