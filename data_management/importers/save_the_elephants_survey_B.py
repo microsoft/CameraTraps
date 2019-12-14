@@ -70,8 +70,8 @@ for iFile, fn in enumerate(imageFilenames):
         filenamesToRows[fn].append(iFile)
     else:
         filenamesToRows[fn] = [iFile]
-        imagePath = os.path.join(image_directory, fn)
         try:
+            imagePath = os.path.join(image_directory, fn)
             assert(os.path.isfile(imagePath))
         except Exception:
             logging.info(imagePath)
