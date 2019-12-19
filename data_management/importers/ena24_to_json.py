@@ -17,35 +17,60 @@ from tqdm import tqdm
 import shutil
 import zipfile
 
-#%% Function to create zip file
-
-def zipdir(path, ziph):
-    # ziph is zipfile handle
-    for root, dirs, files in os.walk(path):
-        for file in files:
-            ziph.write(os.path.join(root, file))
-
-# output_file = r'C:\Users\Gramener\Desktop\Projects\Microsoft\Camera Traps\ena24.json'
-# image_directory = r'C:\Users\Gramener\Desktop\Projects\Microsoft\Camera Traps\ena24\images'
-# label_directory = r'C:\Users\Gramener\Desktop\Projects\Microsoft\Camera Traps\ena24\labels'
-
 base_directory = r'e:\wildlife_data\ena24'
 output_file = os.path.join(base_directory,'ena24.json')
 image_directory = os.path.join(base_directory,'images')
 label_directory = os.path.join(base_directory,'labels')
-# %% Create folders for human and non-human images
-human_dir = "human"
-non_human_dir = "non-human"
-os.mkdir(os.path.join(base_directory, human_dir))
-os.mkdir(os.path.join(base_directory, non_human_dir))
+
+assert(os.path.isdir(label_directory))
+assert(os.path.isdir(image_directory))
+
+# Temporary folders for human and non-human images
+human_dir = os.path.join(base_directory, 'human')
+non_human_dir = os.path.join(base_directory, 'non-human')
+
+human_zipfile = os.path.join(base_directory, 'ena24_humans.zip')
+non_human_zipfile = os.path.join(base_directory, 'ena24.zip')
+
+# Clean existing output folders/zipfiles
+if os.path.isdir(human_dir):
+    shutil.rmtree(human_dir)
+if os.path.isdir(non_human_dir):
+    shutil.rmtree(non_human_dir)    
+
+if os.path.isfile(human_zipfile):
+    os.remove(human_zipfile)
+if os.path.isfile(human_zipfile):
+    os.remove(non_human_zipfile)
+    
+os.makedirs(human_dir,exist_ok=True)
+os.makedirs(non_human_dir,exist_ok=True)
+
 labels = ['White_Tailed_Deer', 'Dog', 'Bobcat', 'Red Fox', 'Horse', 
           'Domestic Cat', 'American Black Bear', 'Eastern Cottontail', 'Grey Fox', 'Coyote', 
           'Eastern Fox Squirrel', 'Eastern Gray Squirrel', 'Vehicle', 'Eastern Chipmunk', 'Wild Turkey',
           'Northern Raccoon', 'Striped Skunk', 'Woodchuck', 'Virginia Opossum', 'Human', 
           'Bird', 'American Crow', 'Chicken']
 
-assert(os.path.isdir(label_directory))
-assert(os.path.isdir(image_directory))
+
+#%% Support functions
+
+def zipdir(path, zipfilename, basepath=None):
+    """
+    Zip everything in [path] into [zipfilename], with paths in the zipfile relative to [basepath]
+    """
+    ziph = zipfile.ZipFile(zipfilename, 'w', zipfile.ZIP_STORED)
+    
+    for root, dirs, files in os.walk(path):
+        for file in files:
+            src = os.path.join(root, file)
+            if basepath is None:
+                dst = file
+            else:
+                dst = os.path.relpath(src,basepath)
+            ziph.write(src, dst, zipfile.ZIP_STORED)
+
+    ziph.close()
 
 
 #%% Read source data
@@ -89,7 +114,8 @@ categoriesToCounts = {}
 
 startTime = time.time()
 for filename in tqdm(image_list):
-    is_human= False    
+    
+    contains_human = False    
     im = {}
     im['id'] = filename.split('.')[0]
     fn = "{}.jpg".format(filename.split('.')[0])
@@ -129,7 +155,7 @@ for filename in tqdm(image_list):
         i_category = int(row[0])-1        
         category = labels[i_category]
         if category == 'Human':
-            is_human = True
+            contains_human = True
         categories_this_image.add(category)
         
         # Have we seen this category before?
@@ -161,10 +187,12 @@ for filename in tqdm(image_list):
             for c in categories_this_image:
                 print(c, end=',')
             print('')
-    if is_human:
+    
+    if contains_human:
           shutil.copy(imagePath, os.path.join(base_directory, human_dir))
     else:
           shutil.copy(imagePath, os.path.join(base_directory, non_human_dir))
+
 # ...for each image
     
 # Convert categories to a CCT-style dictionary
@@ -206,13 +234,13 @@ json.dump(json_data, open(output_file, 'w'), indent=2)
 print('Finished writing .json file with {} images, {} annotations, and {} categories'.format(
         len(images),len(annotations),len(categories)))
 
+
 #%% Create ZIP files for human and non human
-zipf = zipfile.ZipFile(os.path.join(base_directory, 'human.zip'), 'w', zipfile.ZIP_DEFLATED)
-zipdir(os.path.join(base_directory, 'human'), zipf)
-zipf.close()
-zipf = zipfile.ZipFile(os.path.join(base_directory, 'non-human.zip'), 'w', zipfile.ZIP_DEFLATED)
-zipdir(os.path.join(base_directory, 'non-human'), zipf)
-zipf.close()
+
+zipdir(human_dir,human_zipfile)
+zipdir(non_human_dir,non_human_zipfile)
+
+
 #%% Validate output
 
 from data_management.databases import sanity_check_json_db
