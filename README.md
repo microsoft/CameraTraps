@@ -87,9 +87,11 @@ Random things that don&rsquo;t fit in any other directory.  Currently contains a
 
 # Installation
 
-We use [conda](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html) to manage our Python package dependencies. Conda is a package and environment management system. You can install a lightweight distribution of conda (Miniconda) for your OS via installers at [https://docs.conda.io/en/latest/miniconda.html](https://docs.conda.io/en/latest/miniconda.html). Installing packages with conda may be slower as it sorts out package dependencies.
+We use [conda](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html) to manage our Python package dependencies. Conda is a package and environment management system. You can install a lightweight distribution of conda (Miniconda) for your OS via installers at [https://docs.conda.io/en/latest/miniconda.html](https://docs.conda.io/en/latest/miniconda.html). Installing packages with conda may be slower as it optimizes package version compatibility.
 
-Some Azure SDKs are only available on PyPI, but we include steps to install them using pip in the conda environment file too.
+Some Azure SDKs are only available on PyPI; we install them using pip as a part of the conda installation step.
+
+## Initial setup
 
 The required Python packages for running utility and visualization scripts in this repo are listed in [environment.yml](environment.yml). Scripts in some folders including `api`,`detection` and `classification` may require additional setup. In particular, the `detection/run_tf_detector*.py` scripts should use [environment-detector.yml](environment-detector.yml) to set up the environment.
 
@@ -100,13 +102,21 @@ conda env create --file environment.yml
 
 If you run into an error while creating the environment, try updating conda to version 4.5.11 or above. Check the version of conda using `conda --version`.
 
-To exit the conda environment, issue `conda deactivate cameratraps`.
+## Usage
+
+To enter the conda virtual environment at your current shell, issue `conda activate cameratraps`. You should see `(cameratraps)` prepended to the command line prompt. Invoking `python` or `jupyter notebook` will now be using the interpreter and packages available in this virtual env.
+
+To exit the virtual env, issue `conda deactivate cameratraps`.
+
+## Add additional packages
 
 If you need to use additional packages, add them to the environment file and run
 
 ```bash
 conda env update --file environment.yml
 ```
+
+## Other notes
 
 In some scripts, we also assume that you have the [AI for Earth utilities repo](https://github.com/Microsoft/ai4eutils) cloned and its path appended to `PYTHONPATH`. You can append a path to `PYTHONPATH` for the current shell session by executing
 
