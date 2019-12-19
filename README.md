@@ -87,7 +87,9 @@ Random things that don&rsquo;t fit in any other directory.  Currently contains a
 
 # Installation
 
-We use [conda](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html) to manage our Python package dependencies. Conda is a package and environment management system. You can install a lightweight distribution of conda (Miniconda) for your OS via installers at [https://docs.conda.io/en/latest/miniconda.html](https://docs.conda.io/en/latest/miniconda.html). 
+We use [conda](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html) to manage our Python package dependencies. Conda is a package and environment management system. You can install a lightweight distribution of conda (Miniconda) for your OS via installers at [https://docs.conda.io/en/latest/miniconda.html](https://docs.conda.io/en/latest/miniconda.html). Installing packages with conda may be slower as it sorts out package dependencies.
+
+Some Azure SDKs are only available on PyPI, but we include steps to install them using pip in the conda environment file too.
 
 The required Python packages for running utility and visualization scripts in this repo are listed in [environment.yml](environment.yml). Scripts in some folders including `api`,`detection` and `classification` may require additional setup. In particular, the `detection/run_tf_detector*.py` scripts should use [environment-detector.yml](environment-detector.yml) to set up the environment.
 
@@ -96,7 +98,7 @@ In your shell, navigate to the root directory of this repo and issue the followi
 conda env create --file environment.yml
 ```
 
-If you run into an error while creating the environment, try updating conda to version 4.5.11 or above. Check the version of conda using `conda --version`; upgrade it using `conda update conda`. 
+If you run into an error while creating the environment, try updating conda to version 4.5.11 or above. Check the version of conda using `conda --version`.
 
 To exit the conda environment, issue `conda deactivate cameratraps`.
 
