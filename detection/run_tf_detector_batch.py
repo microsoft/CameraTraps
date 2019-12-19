@@ -22,28 +22,28 @@
 
 #%% Constants, imports, environment
 
-import time
-import glob
-import sys
 import argparse
-import os
-import json
-import pickle
+import glob
 import inspect
+import json
+import os
+import pickle
+import sys
 import tempfile
+import time
 import warnings
 from itertools import compress
 
-import tensorflow as tf
-import numpy as np
-import humanfriendly
 import PIL
+import humanfriendly
+import numpy as np
 import pandas as pd
+import tensorflow as tf
 from tqdm import tqdm
 
+from api.batch_processing.api_core.orchestrator_api.aml_scripts.tf_detector import TFDetector
 from api.batch_processing.postprocessing import convert_output_format
 from api.batch_processing.postprocessing.load_api_results import write_api_results_csv
-from api.batch_processing.api_core.orchestrator_api.aml_scripts.tf_detector import TFDetector
 
 DEFAULT_CONFIDENCE_THRESHOLD = 0.0
 
