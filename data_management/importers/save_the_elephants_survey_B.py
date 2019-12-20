@@ -21,22 +21,14 @@ import numpy as np
 import logging
 from tqdm import tqdm
 import shutil
-import zipfile
 
-#%% Function to create zip file
-
-def zipdir(path, ziph):
-    # ziph is zipfile handle
-    for root, dirs, files in os.walk(path):
-        for file in files:
-            ziph.write(os.path.join(root, file))
 
 input_metadata_file = r'/mnt/blobfuse/wildlifeblobssc/ste_2019_08_drop/SURVEY B.xlsx'
 output_file = r'/data/home/gramener/SURVEY_B.json'
 image_directory = r'/mnt/blobfuse/wildlifeblobssc/ste_2019_08_drop/SURVEY B with False Triggers'
 log_file = r'/data/home/gramener/save_elephants_survey_b.log'
-
 output_dir = r'/data/home/gramener/SURVEY_B'
+
 os.mkdir(output_dir)
 assert(os.path.isdir(image_directory))
 logging.basicConfig(filename=log_file, level=logging.INFO)
@@ -212,7 +204,7 @@ info['secondary_contributor'] = 'Converted to COCO .json by Vardhan Duvvuri'
 info['contributor'] = 'Save the Elephants'
 
 
-# # %% Write output
+#%% Write output
 
 json_data = {}
 json_data['images'] = images
@@ -224,13 +216,8 @@ json.dump(json_data, open(output_file, 'w'), indent=2)
 print('Finished writing .json file with {} images, {} annotations, and {} categories'.format(
         len(images),len(annotations),len(categories)))
 
-#%% Create ZIP files for human and non human
-zipf = zipfile.ZipFile('/home/gramener/SurveyB.zip', 'w', zipfile.ZIP_DEFLATED)
-zipdir(output_dir, zipf)
-zipf.close()
 
 #%% Validate output
-
 
 fn = output_file
 options = sanity_check_json_db.SanityCheckOptions()
@@ -244,7 +231,6 @@ sortedCategories, data = sanity_check_json_db.sanity_check_json_db(fn, options)
 
 #%% Preview labels
 
-
 viz_options = visualize_db.DbVizOptions()
 viz_options.num_to_visualize = 1000
 viz_options.trim_to_images_with_bboxes = False
@@ -254,5 +240,5 @@ viz_options.parallelize_rendering = True
 html_output_file, image_db = visualize_db.process_images(db_path=output_file,
                                                          output_dir='/home/gramener/previewB',
                                                          image_base_dir=image_directory,
-                                                        options=viz_options)
+                                                         options=viz_options)
 os.startfile(html_output_file)
