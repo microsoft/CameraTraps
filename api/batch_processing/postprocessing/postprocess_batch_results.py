@@ -200,32 +200,35 @@ def mark_detection_status(indexed_db, negative_classes=DEFAULT_NEGATIVE_CLASSES,
         image_categories = [ann['category_id'] for ann in annotations]
         image_category_names = set([indexed_db.cat_id_to_name[cat] for cat in image_categories])
 
-        # Check if image has unassigned-type labels
+        # Check whether this image has unassigned-type labels
         image_has_unknown_labels = has_overlap(image_category_names, unknown_classes)
-        assert image_has_unknown_labels is False, '{} has unknown labels'.format(annotations)
-        # Check if image has negative-type labels
+        # assert image_has_unknown_labels is False, '{} has unknown labels'.format(annotations)
+        
+        # Check whether this image has negative-type labels
         image_has_negative_labels = has_overlap(image_category_names, negative_classes)
-        # Check if image has positive labels
-        # i.e. if we remove negative and unknown labels from image_category_names, then
-        # there are still labels left
-        image_has_positive_labels = 0 < len(image_category_names - unknown_classes - negative_classes)
+        
+        # Check whether this image has positive labels, i.e. whether it has labels that are neither
+        # negative nor unknown
+        image_has_positive_labels = 0 < len(image_category_names - (unknown_classes.union(negative_classes)))
 
-        # If there are no image annotations, the result is unknown
+        # If there are no image annotations, treat this as unknown
         if len(image_categories) == 0:
-            # n_unknown += 1
-            # im['_detection_status'] = DetectionStatus.DS_UNKNOWN
+            
+            n_unknown += 1
+            im['_detection_status'] = DetectionStatus.DS_UNKNOWN
 
-            n_negative += 1
-            im['_detection_status'] = DetectionStatus.DS_NEGATIVE
+            # n_negative += 1
+            # im['_detection_status'] = DetectionStatus.DS_NEGATIVE
 
         # If the image has more than one type of labels, it's ambiguous
         # note: booleans get automatically converted to 0/1, hence we can use the sum
-        elif image_has_unknown_labels + image_has_negative_labels + image_has_positive_labels > 1:
+        elif (image_has_unknown_labels + image_has_negative_labels + image_has_positive_labels) > 1:
 
             n_ambiguous += 1
             im['_detection_status'] = DetectionStatus.DS_AMBIGUOUS
 
         # After the check above, we can be sure it's only one of positive, negative, or unknown
+        #
         # Important: do not merge the following 'unknown' branch with the first 'unknown' branch
         # above, where we were testing 'if len(image_categories) == 0'
         #
@@ -252,8 +255,11 @@ def mark_detection_status(indexed_db, negative_classes=DEFAULT_NEGATIVE_CLASSES,
                 im['_unambiguous_category'] = list(image_category_names)[0]
 
         else:
-            raise Exception('Invalid state, please check the code for bugs')
+            
+            raise Exception('Invalid detection state')
 
+    # ...for each image
+            
     return n_negative, n_positive, n_unknown, n_ambiguous
 
 
