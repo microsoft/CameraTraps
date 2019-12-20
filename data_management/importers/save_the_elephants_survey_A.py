@@ -9,36 +9,44 @@
 
 import pandas as pd
 import os
-import glob
 import json
 import uuid
 import time
 import humanfriendly
-from PIL import Image
 import numpy as np
-import logging
 from tqdm import tqdm
-import shutil
-import zipfile
 
-#%% Function to create zip file
+from path_utils import find_images
 
+input_base = r'z:/ste_2019_08_drop'
+input_metadata_file = os.path.join(input_base,'SURVEY_A.xlsx')
 
-def zipdir(path, ziph):
-    # ziph is zipfile handle
-    for root, dirs, files in os.walk(path):
-        for file in files:
-            ziph.write(os.path.join(root, file))
-
-input_metadata_file = r'/mnt/blobfuse/wildlifeblobssc/ste_2019_08_drop/SURVEY_A.xlsx'
-output_file = r'/data/home/gramener/SURVEY_A.json'
-image_directory = r'/mnt/blobfuse/wildlifeblobssc/ste_2019_08_drop/SURVEY A with False Triggers'
-log_file = r'/data/home/gramener/save_elephants_survey_a.log'
-
-output_dir = r'/data/home/gramener/SURVEY_A'
-os.mkdir(output_dir)
+output_base = r'f:/save_the_elephants/survey_a'
+output_json_file = os.path.join(output_base,'ste_survey_a.json')
+image_directory = os.path.join(input_base,'SURVEY A with False Triggers')
+                        
+os.makedirs(output_base,exist_ok=True)
 assert(os.path.isdir(image_directory))
-logging.basicConfig(filename=log_file, level=logging.INFO)
+assert(os.path.isfile(input_metadata_file))
+
+# Handle all unstructured fields in the source data as extra fields in the annotations
+mapped_fields = {'No. of Animals in Photo':'num_animals',
+                 'No. of new indiviauls (first sighting of new individual)':'num_new_individuals',
+                 'Number Adult Males (first sighting of new individual)':'num_adult_males',
+                 'Number Adult Females (first sighting of new individual)':'num_adult_females',
+                 'Number Adult Unknown (first sighting of new individual)':'num_adult_unknown',
+                 'Number Sub-adult Males (first sighting of new individual)':'num_subadult_males',
+                 'Number Sub-adult Females (first sighting of new individual)':'num_subadult_females',
+                 'Number Sub-adult Unknown (first sighting of new individual)':'num_subadult_unknown',
+                 'Number Juvenile (first sighting of new individual)':'num_juvenile',
+                 'Number Newborn (first sighting of new individual)':'num_newborn',
+                 'Activity':'activity',
+                 'Animal ID':'animal_id',
+                 'Specific Notes':'notes'}
+
+# photo_type really should be an image property, but there are a few conflicts
+# that forced me to handle it as an annotation proprerty
+mapped_fields['Photo Type '] = 'photo_type'
 
 
 #%% Read source data
@@ -52,148 +60,193 @@ print('Read {} columns and {} rows from metadata file'.format(len(input_metadata
 
 #%% Map filenames to rows, verify image existence
 
-# Takes ~30 seconds, since it's checking the existence of ~270k images
+start_time = time.time()
 
-startTime = time.time()
-filenamesToRows = {}
-imageFilenames = input_metadata['Image Name']
+# Maps relative paths to row indices in input_metadata
+filenames_to_rows = {}
+filenames_with_multiple_annotations = []
+missing_images = []
 
-duplicateRows = []
-
-logging.info("File names which are present in CSV but not in the directory")
 # Build up a map from filenames to a list of rows, checking image existence as we go
-for iFile, fn in enumerate(imageFilenames):
-    if (fn in filenamesToRows):
-        # print(fn)
-        duplicateRows.append(iFile)
-        filenamesToRows[fn].append(iFile)
+for i_row, fn in tqdm(enumerate(input_metadata['Image Name']),total=len(input_metadata)):
+    
+    # Ignore directories
+    if not fn.endswith('.JPG'):
+        continue
+    
+    if fn in filenames_to_rows:
+        filenames_with_multiple_annotations.append(fn)
+        filenames_to_rows[fn].append(i_row)
     else:
-        filenamesToRows[fn] = [iFile]
-        imagePath = os.path.join(image_directory, fn)
-        try:
-            assert(os.path.isfile(imagePath))
-        except Exception:
-            logging.info(imagePath)
+        filenames_to_rows[fn] = [i_row]
+        image_path = os.path.join(image_directory, fn)
+        if not os.path.isfile(image_path):
+            missing_images.append(image_path)
+        
+elapsed = time.time() - start_time
 
-elapsed = time.time() - startTime
-print('Finished verifying image existence in {}, found {} filenames with multiple labels'.format(
-      humanfriendly.format_timespan(elapsed), len(duplicateRows)))
+print('Finished verifying image existence for {} files in {}, found {} filenames with multiple labels, {} missing images'.format(
+      len(filenames_to_rows), humanfriendly.format_timespan(elapsed), 
+      len(filenames_with_multiple_annotations),len(missing_images)))
 
+        
+#%% Make sure the multiple-annotation cases make sense
+
+if False:
+    
+    #%% 
+    
+    fn = filenames_with_multiple_annotations[1000] 
+    rows = filenames_to_rows[fn]
+    assert(len(rows) > 1)
+    for i_row in rows:
+        print(input_metadata.iloc[i_row]['Species'])
+    
 
 #%% Check for images that aren't included in the metadata file
 
 # Enumerate all images
-imageFullPaths = glob.glob(os.path.join(image_directory, '*\\*\\*\\*.JPG'))
-for iImage, imagePath in enumerate(imageFullPaths):
-    # fn = ntpath.basename(imagePath)
-    fn = imagePath.split(image_directory)[1]
-    # parent_dir = os.path.basename(os.path.dirname(imagePath))
-    assert(fn[1:] in filenamesToRows)
+image_full_paths = find_images(image_directory, bRecursive=True)
 
-print('Finished checking {} images to make sure they\'re in the metadata'.format(
-        len(imageFullPaths)))
+unannotated_images = []
+
+for iImage, image_path in tqdm(enumerate(image_full_paths),total=len(image_full_paths)):
+    relative_path = os.path.relpath(image_path,image_directory)
+    if relative_path not in filenames_to_rows:
+        unannotated_images.append(relative_path)
+
+print('Finished checking {} images to make sure they\'re in the metadata, found {} unannotated images'.format(
+        len(image_full_paths),len(unannotated_images)))
 
 
 #%% Create CCT dictionaries
 
-# Also gets image sizes, so this takes ~6 minutes
-#
-# Implicitly checks images for overt corruptness, i.e. by not crashing.
-
 images = []
 annotations = []
-
-# Map categories to integer IDs (that's what COCO likes)
-nextCategoryID = 0
-categoriesToCategoryId = {}
-categoriesToCounts = {}
-
-# For each image
-#
-# Because in practice images are 1:1 with annotations in this data set,
-# this is also a loop over annotations.
-processed = []
-startTime = time.time()
-# print(imageFilenames)
-# imageName = imageFilenames[0]
-for imageName in tqdm(imageFilenames):
-    
-    try:
-        rows = filenamesToRows[imageName]
-        iRow = rows[0]
-        row = input_metadata.iloc[iRow+2]
-        im = {}
-        img_id = imageName.split('.')[0]
-        if img_id in processed:
-            continue
-        processed.append(img_id)
-        im['id'] = img_id
-        im['file_name'] = imageName
-        im['datetime'] = row['Date'].strftime("%d/%m/%Y")
-        im['Camera Trap Station Label'] = row['Camera Trap Station Label']
-        if row['Photo Type '] is np.nan:
-            im['Photo Type '] = ""
-        else:
-            im['Photo Type'] = row['Photo Type ']
-        # Check image height and width
-        imagePath = os.path.join(image_directory, imageName)
-        assert(os.path.isfile(imagePath))
-    except Exception:
-        continue
-    
-    pilImage = Image.open(imagePath)
-    width, height = pilImage.size
-    im['width'] = width
-    im['height'] = height
-
-    images.append(im)
-    shutil.copy(imagePath, output_dir)
-    
-    # category = row['label'].lower()
-    is_image = row['Species']
-    
-    # Use 'empty', to be consistent with other data on lila    
-    if (is_image == np.nan or is_image == " " or type(is_image) == float):
-        category = 'empty'
-    else:
-        category = row['Species']
-        
-    # Have we seen this category before?
-    if category in categoriesToCategoryId:
-        categoryID = categoriesToCategoryId[category]
-        categoriesToCounts[category] += 1
-    else:
-        categoryID = nextCategoryID
-        categoriesToCategoryId[category] = categoryID
-        categoriesToCounts[category] = 0
-        nextCategoryID += 1
-    
-    # Create an annotation
-    ann = {}
-    
-    # The Internet tells me this guarantees uniqueness to a reasonable extent, even
-    # beyond the sheer improbability of collisions.
-    ann['id'] = str(uuid.uuid1())
-    ann['image_id'] = im['id']    
-    ann['category_id'] = categoryID
-    
-    annotations.append(ann)
-    
-# ...for each image
-    
-# Convert categories to a CCT-style dictionary
-
 categories = []
 
-for category in categoriesToCounts:
-    print('Category {}, count {}'.format(category,categoriesToCounts[category]))
-    categoryID = categoriesToCategoryId[category]
-    cat = {}
-    cat['name'] = category
-    cat['id'] = categoryID
-    categories.append(cat)    
+image_ids_to_images = {}
+
+category_name_to_category = {}
+
+# Force the empty category to be ID 0
+empty_category = {}
+empty_category['name'] = 'empty'
+empty_category['id'] = 0
+category_name_to_category['empty'] = empty_category
+categories.append(empty_category)
+next_category_id = 1
+
+start_time = time.time()
+
+# i_image = 0; image_name = list(filenames_to_rows.keys())[i_image]
+for image_name in tqdm(list(filenames_to_rows.keys())):
+
+    # Example filename:
+    #        
+    # 'Site 1_Oloisukut_1\Oloisukut_A11_UP\Service_2\100EK113\EK001382.JPG'
+    # 'Site 1_Oloisukut_1\Oloisukut_A11_UP\Service_2.1\100EK113\EK001382.JPG'
+    img_id = image_name.replace('\\','/').replace('/','_').replace(' ','_')
     
-elapsed = time.time() - startTime
+    row_indices = filenames_to_rows[image_name]
+    
+    # i_row = row_indices[0]
+    for i_row in row_indices:
+        
+        row = input_metadata.iloc[i_row]
+        assert(row['Image Name'] == image_name)
+        
+        timestamp = row['Date'].strftime("%d/%m/%Y")
+        station_label = row['Camera Trap Station Label']
+        photo_type = row['Photo Type ']
+        if isinstance(photo_type,float):
+            photo_type = ''
+        photo_type = photo_type.strip().lower()
+            
+        if img_id in image_ids_to_images:
+            
+            im = image_ids_to_images[img_id]
+            assert im['file_name'] == image_name
+            assert im['station_label'] == station_label
+            
+            # There are a small handful of datetime mismatches across annotations
+            # for the same image
+            # assert im['datetime'] == timestamp
+            if im['datetime'] != timestamp:
+                print('Warning: timestamp conflict for image {}: {},{}'.format(
+                    image_name,im['datetime'],timestamp))
+                
+        else:
+            
+            im = {}
+            im['id'] = img_id
+            im['file_name'] = image_name
+            im['datetime'] = timestamp
+            im['station_label'] = station_label
+            im['photo_type'] = photo_type
+            
+            image_ids_to_images[img_id] = im
+            images.append(im)
+    
+        species = row['Species']
+        
+        if (isinstance(species,float) or \
+            (isinstance(species,str) and (len(species) == 0))):
+            category_name = 'empty'
+        else:
+            category_name = species
+        
+        # Special cases based on the 'photo type' field
+        if 'vehicle' in photo_type:
+            category_name = 'vehicle'
+        # Various spellings of 'community'
+        elif 'comm' in photo_type:
+            category_name = 'human'
+        elif 'camera' in photo_type or 'researcher' in photo_type:
+            category_name = 'human'
+        elif 'livestock' in photo_type:
+            category_name = 'livestock'
+        elif 'blank' in photo_type:
+            category_name = 'empty'
+        elif 'plant movement' in photo_type:
+            category_name = 'empty'
+            
+        category_name = category_name.strip().lower()
+            
+        # Have we seen this category before?
+        if category_name in category_name_to_category:
+            category_id = category_name_to_category[category_name]['id'] 
+        else:
+            category_id = next_category_id
+            category = {}
+            category['id'] = category_id
+            category['name'] = category_name
+            category_name_to_category[category_name] = category
+            categories.append(category)
+            next_category_id += 1
+        
+        # Create an annotation
+        ann = {}        
+        ann['id'] = str(uuid.uuid1())
+        ann['image_id'] = im['id']    
+        ann['category_id'] = category_id
+        
+        # fieldname = list(mapped_fields.keys())[0]
+        for fieldname in mapped_fields:
+            target_field = mapped_fields[fieldname]
+            val = row[fieldname]
+            if isinstance(val,float) and np.isnan(val):
+                val = ''
+            else:
+                val = str(val).strip()
+            ann[target_field] = val
+            
+        annotations.append(ann)
+        
+    # ...for each row
+                
+# ...for each image
+    
 print('Finished creating CCT dictionaries in {}'.format(
       humanfriendly.format_timespan(elapsed)))
     
@@ -201,42 +254,36 @@ print('Finished creating CCT dictionaries in {}'.format(
 #%% Create info struct
 
 info = {}
-info['year'] = 2014
+info['year'] = 2019
 info['version'] = 1
-info['description'] = ''
-info['secondary_contributor'] = 'Converted to COCO .json by Vardhan Duvvuri'
+info['description'] = 'Save the Elephants Survey A'
 info['contributor'] = 'Save the Elephants'
 
 
-# # %% Write output
+#%% Write output
 
 json_data = {}
 json_data['images'] = images
 json_data['annotations'] = annotations
 json_data['categories'] = categories
 json_data['info'] = info
-json.dump(json_data, open(output_file, 'w'), indent=2)
+json.dump(json_data, open(output_json_file, 'w'), indent=2)
 
 print('Finished writing .json file with {} images, {} annotations, and {} categories'.format(
         len(images),len(annotations),len(categories)))
 
-#%% Create ZIP files for human and non human
-zipf = zipfile.ZipFile('/home/gramener/SurveyA.zip', 'w', zipfile.ZIP_DEFLATED)
-zipdir(output_dir, zipf)
-zipf.close()
 
 #%% Validate output
 
 from data_management.databases import sanity_check_json_db
 
-fn = output_file
 options = sanity_check_json_db.SanityCheckOptions()
 options.baseDir = image_directory
 options.bCheckImageSizes = False
-options.bCheckImageExistence = True
-options.bFindUnusedImages = True
+options.bCheckImageExistence = False
+options.bFindUnusedImages = False
     
-sortedCategories, data = sanity_check_json_db.sanity_check_json_db(fn,options)
+sortedCategories, data = sanity_check_json_db.sanity_check_json_db(output_json_file,options)
 
 
 #%% Preview labels
@@ -250,8 +297,22 @@ viz_options.trim_to_images_with_bboxes = False
 viz_options.add_search_links = True
 viz_options.sort_by_filename = False
 viz_options.parallelize_rendering = True
-html_output_file,image_db = visualize_db.process_images(db_path=output_file,
-                                                        output_dir='previewA',
+html_output_file,image_db = visualize_db.process_images(db_path=output_json_file,
+                                                        output_dir=os.path.join(output_base,'preview'),
                                                         image_base_dir=image_directory,
                                                         options=viz_options)
 os.startfile(html_output_file)
+
+
+#%% Scrap
+
+if False:
+
+    pass
+    
+    #%% Find unique photo types
+    
+    annotations = image_db['annotations']
+    photo_types = set()
+    for ann in tqdm(annotations):
+        photo_types.add(ann['photo_type'])
