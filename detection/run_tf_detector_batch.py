@@ -559,7 +559,7 @@ def main():
                        help='Output results file')
     parser.add_argument('--threshold', action='store', type=float, 
                         default=DEFAULT_CONFIDENCE_THRESHOLD, 
-                        help='Confidence threshold, don''t include boxes below this confidence in the output file')
+                        help='Confidence threshold, don\'t include boxes below this confidence in the output file')
     parser.add_argument('--recursive', action='store_true', 
                         help='Recurse into directories, only meaningful if --imageFile points to a directory')
     parser.add_argument('--forceCpu', action='store_true', 
