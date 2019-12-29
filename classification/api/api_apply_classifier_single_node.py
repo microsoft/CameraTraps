@@ -118,7 +118,7 @@ def classify_boxes(classification_graph, json_with_classes, image_dir, confidenc
                               field 'classification_categories' is already added. The script assumes 0-based indexing.
         image_dir:            Base directory of the images. All paths in the JSON are relative to this folder
         confidence_threshold: Only classify boxes with a threshold larger than this
-        detection_category_whitelist : Only boxes with this detection category will be classified
+        detection_category_whitelist: Only boxes with this detection category will be classified
         padding_factor:       The function will enlarge the bounding boxes by this factor before passing them to the
                               classifier.
         num_annotated_classes: Number of top-scoring class predictions to store in the json
@@ -263,11 +263,11 @@ def main():
     
     parser = argparse.ArgumentParser(description='Applies a classifier to all detected boxes of the detection API output (JSON format).')
     parser.add_argument('classifier_file', type=str, help='Frozen graph for classification including pre-processing. The graphs ' + \
-                        ' will receive an image with values in [0,1], so double check that you use the correct model. The script ' + \
-                        ' `export_inference_graph_serengeti.sh` shows how to create such a model',
+                        'will receive an image with values in [0,1], so double check that you use the correct model. The script ' + \
+                        '`export_inference_graph_serengeti.sh` shows how to create such a model',
                        metavar='classifier_file')
     parser.add_argument('classes_file', action='store', type=str, help='File with the class names. Each line should contain ' + \
-                        ' one name and the first line should correspond to the first output, the second line to the second model output, etc.')
+                        'one name and the first line should correspond to the first output, the second line to the second model output, etc.')
     parser.add_argument('detector_json_file', type=str, help='JSON file that was produced by the detection API.')
     parser.add_argument('output_json_file', type=str, help='Path to output file, will be in JSON format.')
     parser.add_argument('--image_dir', action='store', type=str, default='', help='Base directory of the images. Default: ""')
