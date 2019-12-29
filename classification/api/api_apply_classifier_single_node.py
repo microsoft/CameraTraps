@@ -23,7 +23,7 @@ import PIL
 import humanfriendly
 import tqdm
 
-# Minimum detection confidence for showing a bounding box on the output image
+# Minimum detection confidence for classifying an object
 DEFAULT_CONFIDENCE_THRESHOLD = 0.85
 
 # Number of top-scoring classes to show at each bounding box
@@ -182,8 +182,9 @@ def classify_boxes(classification_graph, json_with_classes, image_dir, confidenc
 
                     # Get current box in relative coordinates and format [x_min, y_min, width_of_box, height_of_box]
                     box_orig = cur_detection['bbox']
-                    # Convert to [ymin, xmin, ymax, xmax] and
-                    # store it as 1x4 numpy array so we can re-use the generic multi-box padding code
+                    
+                    # Convert to [ymin, xmin, ymax, xmax] and store it as 1x4 numpy array so we can
+                    # re-use the generic multi-box padding code
                     box_coords = np.array([[box_orig[1],
                                             box_orig[0],
                                             box_orig[1]+box_orig[3],
@@ -191,22 +192,27 @@ def classify_boxes(classification_graph, json_with_classes, image_dir, confidenc
                                           ]])
                     # Convert normalized coordinates to pixel coordinates
                     box_coords_abs = (box_coords * np.tile([image_height, image_width], (1,2)))
-                    # Pad the detected animal to a square box and additionally by PADDING_FACTOR, the result will be in crop_boxes
-                    # However, we need to make sure that it box coordinates are still within the image
+                    
+                    # Pad the detected animal to a square box and additionally by PADDING_FACTOR, the result will be in crop_boxes.
+                    #
+                    # However, we need to make sure that it box coordinates are still within the image.
                     bbox_sizes = np.vstack([box_coords_abs[:,2] - box_coords_abs[:,0], box_coords_abs[:,3] - box_coords_abs[:,1]]).T
                     offsets = (padding_factor * np.max(bbox_sizes, axis=1, keepdims=True) - bbox_sizes) / 2
                     crop_boxes = box_coords_abs + np.hstack([-offsets,offsets])
                     crop_boxes = np.maximum(0,crop_boxes).astype(int)
+                    
                     # Get the first (and only) row as our bbox to classify
                     crop_box = crop_boxes[0]
 
                     # Get the image data for that box
                     cropped_img = image_data[crop_box[0]:crop_box[2], crop_box[1]:crop_box[3]]
+                    
                     # Run inference
                     predictions = sess.run(predictions_tensor, feed_dict={image_tensor: cropped_img})
 
                     # Add an empty list to the json for our predictions
                     cur_detection['classifications'] = list()
+                    
                     # Add the *num_annotated_classes* top scoring classes
                     for class_idx in np.argsort(-predictions)[:num_annotated_classes]:
                         class_conf = ct_utils.truncate_float(predictions[class_idx].item())
@@ -272,7 +278,7 @@ def main():
     parser.add_argument('output_json_file', type=str, help='Path to output file, will be in JSON format.')
     parser.add_argument('--image_dir', action='store', type=str, default='', help='Base directory of the images. Default: ""')
     parser.add_argument('--threshold', action='store', type=float, default=DEFAULT_CONFIDENCE_THRESHOLD,
-                        help="Confidence threshold, don't render boxes below this confidence. Default: %.2f"%DEFAULT_CONFIDENCE_THRESHOLD)
+                        help="Confidence threshold, don't classify detections below this confidence. Default: %.2f"%DEFAULT_CONFIDENCE_THRESHOLD)
     parser.add_argument('--padding_factor', action='store', type=float, default=PADDING_FACTOR,
                         help="Enlargement factor for bounding boxes before they are passed to the classifier. Default: %.2f"%PADDING_FACTOR)
     parser.add_argument('--num_annotated_classes', action='store', type=int, default=NUM_ANNOTATED_CLASSES,
