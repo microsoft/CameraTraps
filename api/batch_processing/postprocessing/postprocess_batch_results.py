@@ -134,6 +134,8 @@ class PostProcessingOptions:
     parallelize_rendering_n_cores = 100
     parallelize_rendering = False
     
+    # Determines whether missing images force an error
+    allow_missing_images = False
     
 class PostProcessingResults:
 
@@ -1067,8 +1069,13 @@ def process_batch_results(options):
         total_images = image_counts['detections'] + image_counts['non_detections']
         if options.include_almost_detections:
             total_images += image_counts['almost_detections']
-        assert total_images == image_count, \
-            'Error: image_count is {}, total_images is {}'.format(image_count,total_images)
+            
+        if options.allow_missing_images:
+            if total_images != image_count:
+                print('Warning: image_count is {}, total_images is {}'.format(image_count,total_images))
+            else:
+                assert total_images == image_count, \
+                    'Error: image_count is {}, total_images is {}'.format(image_count,total_images)
         
         almost_detection_string = ''
         if options.include_almost_detections:
