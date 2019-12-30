@@ -31,7 +31,7 @@ def order_seq_properties(seq_item):
     return ordered
 
 def check_frame_num(seq):
-    # schema already checks that the min possible value of frame_num is 1
+    # schema already checks that the min possible value of frame_num is 0
 
     if 'images' not in seq:
         return

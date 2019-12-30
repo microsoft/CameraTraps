@@ -109,7 +109,7 @@ We always associate a property with the highest level in the hierachy that is st
 
 ### Sequence information
 - For images whose sequence information is unknown, each image is contained in a sequence object whose `seq_id` will start with `dummy_`.
-- Use the `frame_num` property to order images in a sequence. The order of the image objects in the list may not be correct.
+- Use the `frame_num` property to sort images in a sequence. The order of the image objects in the list is usually *incorrect*.
 - `frame_num` values need to be unique within a sequence, but do not need to be consecutive. The min value for `frame_num` is 0 even though most start at 1.
 - The `location` property can be a string, an int, or a serializable object (e.g. latitude/longitude).
 
