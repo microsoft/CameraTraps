@@ -9,15 +9,15 @@ We do not enforce a taxonomy for animal class / species labels: the original lab
 The resulting database allows for queries such as:
 - get all the publicly released images with the class label "bear" in sequences of length greater than 2
 - get all images in the dataset "caltech" with one or more bounding boxes
-- get the newest 1000 images included in the database
+- get the newest 1000 images ingested into the database
 - get a list of all species in the database
 
-All images are stored in blob storage, so we can download all the images identified by a query.
+All images are stored (unzipped) in blob storage, so we can download individual images identified by a query to form a training set.
 
 
 ## Format
 
-The following illustrates what an item in the `sequences` and `datasets` tables looks like. For the `sequences` table, the formal schema, required fields, and constraints on allowed values are specified in `sequences_schema.json`.
+The following illustrates what items in the `sequences` and `datasets` tables look like. The formal schema, required fields, and constraints on allowed values are specified in `schema/sequences_schema.json` and `schema/datasets_schema.json` and the associated `schema_check.py` scripts.
 
 `sequences` table
 
@@ -102,7 +102,7 @@ This table stores information about each dataset in the database. Each dataset o
 While most of the enforceable rules are included in the schema `sequences_schema.json` and the extra checks in `sequences_schema_check.py`, we observe a number of additional conventions detailed here. Some rules enforced by the schema and additional checks are explained here also.
 
 ### Which level to associate a property
-We always associate a property with the highest level in the hierachy that is still correct. 
+We always associate a property with the highest level in the hierachy that is still correct:
 - If the `rights_holder` is the same across a dataset, this property should be on the dataset object in the `datasets` table.
 - If `class`, usually used for species or other fine animal categories, is labeled on sequences, this property should be at the `sequence` level, not the `image` level. 
 
@@ -123,13 +123,13 @@ We always associate a property with the highest level in the hierachy that is st
 - The one `class` where we do enforce a "taxonomy": all images that are labeled as emtpy of objects of interest should have its `class` property be a list with only the "empty" label. Do not use "blank", "nothing", etc. 
 
 
-### Bounding boxes labels for images
+### Bounding box labels for images
 - Bounding boxes are stored in the `bbox` field in an image object. The coordinates in the `bbox` sub-field is `[x_min, y_min, width_box, height_box]`, the upper-left corner of the box and its width and height, all relative to the width and height of the image.
 - If an image was sent for annotation but was determined to be empty, the image entry will still have a `bbox` field that points to an empty list. We save this information as a more reliable "empty" label.
 
 
 ### When labels are unavailable
-- The database we have is intended for *labeled* images, but in some datasets it makes sense to keep subsets of images that do not have labels. For those, their `class` property will be a list with one item "__label_unavailable". This is different from "unidentified", which may be an animal that does not have the finer category label.
+- The database we have is intended for *labeled* images, but in some datasets it makes sense to keep subsets of images that do not have labels. For those, their `class` property will be a list with one item `__label_unavailable`. This is different from "unidentified", which often means the animal present is unidentifiable to the finer category.
 - Since we have this special keyword for unavailable labels, each sequence OR all images in a sequence should have the `class` property.
 
 

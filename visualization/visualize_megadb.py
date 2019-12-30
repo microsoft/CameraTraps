@@ -14,7 +14,7 @@ from azure.storage.blob import BlockBlobService
 # Assumes ai4eutils is on the path (github.com/Microsoft/ai4eutils)
 from write_html_image_list import write_html_image_list
 
-from data_management.megadb import sequences_schema_check
+from data_management.megadb.schema import sequences_schema_check
 from visualization import visualization_utils as vis_utils
 
 

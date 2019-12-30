@@ -16,14 +16,15 @@ import uuid
 from collections import defaultdict
 import sys
 from random import sample
+from copy import deepcopy
 
-from data_management.megadb import sequences_schema_check
+from data_management.megadb.schema import sequences_schema_check
 from data_management.cct_json_utils import IndexedJsonDb
 from ct_utils import truncate_float
 
 
-def write_json(p, content, indent=1):
-    with open(p, 'w') as f:
+def write_json(path, content, indent=1):
+    with open(path, 'w') as f:
         json.dump(content, f, indent=indent)
 
 
@@ -53,7 +54,10 @@ def process_sequences(docs, dataset_name):
     """
     print('The dataset_name is set to {}. Please make sure this is correct!'.format(dataset_name))
 
-    print('Putting {} images into sequences... The docs object (first argument) passed in will be altered!'.format(
+    print('Making a deep copy of docs...')
+    docs = deepcopy(docs)
+
+    print('Putting {} images into sequences...'.format(
         len(docs)))
     img_level_properties = set()
     sequences = defaultdict(list)
@@ -144,7 +148,7 @@ def process_sequences(docs, dataset_name):
     seq_level_properties = all_img_properties - img_level_properties
 
     # need to add (misidentified) seq properties not present for each image in a sequence to img_level_properties
-    # (some properties act like booleans - all have the same value, but not present on each img)
+    # (some properties act like flags - all have the same value, but not present on each img)
     bool_img_level_properties = set()
     for seq in sequences:
         if 'images' not in seq:
