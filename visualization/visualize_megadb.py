@@ -160,6 +160,8 @@ def main():
     with open(args.datasets_table) as f:
         datasets_table = json.load(f)
 
+    datasets_table = {i['dataset_name']: {k: v for k, v in i.items() if not k.startswith('_')} for i in datasets_table}
+
     print('Loading the MegaDB entries...')
     with open(args.megadb_entries) as f:
         sequences = json.load(f)
