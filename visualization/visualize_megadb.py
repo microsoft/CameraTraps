@@ -14,7 +14,7 @@ from azure.storage.blob import BlockBlobService
 # Assumes ai4eutils is on the path (github.com/Microsoft/ai4eutils)
 from write_html_image_list import write_html_image_list
 
-from data_management.megadb import sequences_schema_check
+from data_management.megadb.schema import sequences_schema_check
 from visualization import visualization_utils as vis_utils
 
 
@@ -80,7 +80,11 @@ def visualize_sequences(datasets_table, sequences, args):
         dataset_name = seq['dataset']
         seq_id = seq['seq_id']
 
-        for im in seq['images']:
+        # sort the images in the sequence
+
+        images_in_seq = sorted(seq['images'], key=lambda x: x['frame_num']) if len(seq['images']) > 1 else seq['images']
+
+        for im in images_in_seq:
             if args.trim_to_images_bboxes_labeled and 'bbox' not in im:
                 continue
 
@@ -88,7 +92,9 @@ def visualize_sequences(datasets_table, sequences, args):
 
             blob_path = get_full_path(datasets_table, dataset_name, im['file'])
             frame_num = im.get('frame_num', -1)
-            im_class = im.get('class', [])
+            im_class = im.get('class', None)
+            if im_class is None:  # if no class label on the image, show the class label on the sequence
+                im_class = seq.get('class', [])
 
             rendering = {}
             rendering['blob_service'] = get_blob_service(datasets_table, dataset_name)
@@ -159,6 +165,8 @@ def main():
 
     with open(args.datasets_table) as f:
         datasets_table = json.load(f)
+
+    datasets_table = {i['dataset_name']: {k: v for k, v in i.items() if not k.startswith('_')} for i in datasets_table}
 
     print('Loading the MegaDB entries...')
     with open(args.megadb_entries) as f:
