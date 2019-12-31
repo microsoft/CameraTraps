@@ -122,7 +122,8 @@ class IndexedJsonDb:
     a .json database.
     """
 
-    def __init__(self, json_filename, b_normalize_paths=False, filename_replacements={}):
+    def __init__(self, json_filename, b_normalize_paths=False, 
+                 filename_replacements={}, b_convert_classes_to_lower=True):
         '''
         json_filename can also be an existing json db
         '''
@@ -135,12 +136,19 @@ class IndexedJsonDb:
         assert 'images' in self.db, 'Could not find image list in file {}, are you sure this is a COCO camera traps file?'.format(
             json_filename)
 
+        if b_convert_classes_to_lower:
+            # Convert classnames to lowercase to simplify comparisons later
+            for c in self.db['categories']:
+                c['name'] = c['name'].lower()
+                
         if b_normalize_paths:
             # Normalize paths to simplify comparisons later
             for im in self.db['images']:
                 im['file_name'] = os.path.normpath(im['file_name'])
 
         for s in filename_replacements:
+            # Make custom replacements in filenames, typically used to
+            # accommodate changes in root paths between DB construction and use
             r = filename_replacements[s]
             for im in self.db['images']:
                 im['file_name'] = im['file_name'].replace(s, r)
