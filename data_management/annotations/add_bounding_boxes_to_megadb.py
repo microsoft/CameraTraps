@@ -156,6 +156,9 @@ def extract_annotations(annotation_path, dataset_name):
 def zsl_image_filename_map_func(db_img_obj):
     return db_img_obj['id'] + '.jpg'
 
+def bnf_image_filename_map_func(db_img_obj):
+    return str(db_img_obj['image_id']) + '.jpg'
+
 def default_image_filename_map_func(db_img_obj):
     return db_img_obj['file'].replace('/', '~')
 
@@ -180,7 +183,7 @@ def add_annotations_to_sequences(sequences, image_filename_to_bboxes,
     datasets_present = set([s['dataset'] for s in sequences])
     assert len(datasets_present) == 1, 'the sequences provided need to come from a single dataset'
 
-    print('Dataset to which the sequences belong to: {}. Make sure this is the intended dataset where the bboxes also come from!'.format(datasets_present.pop()))
+    print('Dataset to which the sequences belong to: {}. The bboxes should also be for this set.'.format(datasets_present.pop()))
 
     images_updated = []
     num_images_rewritten = 0
