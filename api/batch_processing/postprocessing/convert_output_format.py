@@ -203,7 +203,7 @@ def main():
     if args.input_path.endswith('.csv') and args.output_path.endswith('.json'):
         convert_csv_to_json(args.input_path,args.output_path)
     elif args.input_path.endswith('.json') and args.output_path.endswith('.csv'):
-        convert_json_to_csv(args.output_path,args.input_path)
+        convert_json_to_csv(args.input_path,args.output_path)
     else:
         raise ValueError('Illegal format combination')            
 
