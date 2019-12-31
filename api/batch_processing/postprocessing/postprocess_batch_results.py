@@ -410,7 +410,7 @@ def process_batch_results(options):
                 n_negative, n_positive, n_unknown, n_ambiguous))
 
 
-    ##%% Load detection results
+    ##%% Load detection (and possibly classification) results
 
     if options.api_detection_results is None:
         detection_results, other_fields = load_api_results(options.api_output_file,
@@ -428,6 +428,13 @@ def process_batch_results(options):
     detection_categories_map = other_fields['detection_categories']
     if 'classification_categories' in other_fields:
         classification_categories_map = other_fields['classification_categories']
+        
+        # Convert keys and values to lowercase
+        #
+        # In practice, keys are string integers, but I'm angry at variable casing
+        # so I'm converting those to lowercase too just to pound my fist.
+        classification_categories_map = \
+          {k.lower():v.lower() for k, v in classification_categories_map.items()}
     else:
         classification_categories_map = {}
 
