@@ -14,6 +14,7 @@ dependencies:
 - scikit-image>=0.13.1
 - scikit-learn>=0.19.1
 - jsonschema
+- unidecode  # needed sometimes for curating MegaDB entries
 - pip:                            # Some Azure packages or versions are only available from PyPI, see https://azure.github.io/azure-sdk/releases/latest/
   - azure-storage-blob>=1.5.0, <=2.1.0   # doc: https://azure-storage.readthedocs.io - this will go to versions prior to v12 update
   - azure-cosmos==4.0.0b5  # doc: https://azuresdkdocs.blob.core.windows.net/$web/python/azure-cosmos/4.0.0b5/index.html

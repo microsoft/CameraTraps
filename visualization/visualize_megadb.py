@@ -80,7 +80,11 @@ def visualize_sequences(datasets_table, sequences, args):
         dataset_name = seq['dataset']
         seq_id = seq['seq_id']
 
-        for im in seq['images']:
+        # sort the images in the sequence
+
+        images_in_seq = sorted(seq['images'], key=lambda x: x['frame_num']) if len(seq['images']) > 1 else seq['images']
+
+        for im in images_in_seq:
             if args.trim_to_images_bboxes_labeled and 'bbox' not in im:
                 continue
 
@@ -88,7 +92,9 @@ def visualize_sequences(datasets_table, sequences, args):
 
             blob_path = get_full_path(datasets_table, dataset_name, im['file'])
             frame_num = im.get('frame_num', -1)
-            im_class = im.get('class', [])
+            im_class = im.get('class', None)
+            if im_class is None:  # if no class label on the image, show the class label on the sequence
+                im_class = seq.get('class', [])
 
             rendering = {}
             rendering['blob_service'] = get_blob_service(datasets_table, dataset_name)

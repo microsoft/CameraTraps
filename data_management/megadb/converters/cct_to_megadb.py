@@ -36,7 +36,7 @@ old_to_new_prop_name_mapping = {
 }
 
 
-def process_sequences(docs, dataset_name, deepcopy_docs=True):
+def process_sequences(embedded_image_objects, dataset_name, deepcopy_embedded=True):
     """
     Combine the image entries in an embedded COCO Camera Trap json from make_cct_embedded()
     into sequence objects that can be ingested to the `sequences` table in MegaDB.
@@ -48,18 +48,20 @@ def process_sequences(docs, dataset_name, deepcopy_docs=True):
     All strings in the array for the `class` property are lower-cased.
 
     Args:
-        docs: array of image objects returned by make_cct_embedded()
+        embedded_image_objects: array of image objects returned by make_cct_embedded()
         dataset_name: Make sure this is the desired name for the dataset
-        deepcopy_docs: True if to make a deep copy of `docs`; otherwise the `docs` object passed in will be modified!
+        deepcopy_embedded: True if to make a deep copy of `docs`; otherwise the `docs` object passed in will be modified!
 
     Returns:
         an array of sequence objects
     """
     print('The dataset_name is set to {}. Please make sure this is correct!'.format(dataset_name))
 
-    if deepcopy_docs:
+    if deepcopy_embedded:
         print('Making a deep copy of docs...')
-        docs = deepcopy(docs)
+        docs = deepcopy(embedded_image_objects)
+    else:
+        docs = embedded_image_objects
 
     print('Putting {} images into sequences...'.format(
         len(docs)))

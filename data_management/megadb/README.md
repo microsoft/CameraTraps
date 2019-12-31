@@ -128,10 +128,17 @@ We always associate a property with the highest level in the hierachy that is st
 - If an image was sent for annotation but was determined to be empty, the image entry will still have a `bbox` field that points to an empty list. We save this information as a more reliable "empty" label.
 
 
-### When labels are unavailable
+### Class labels
 - The database we have is intended for *labeled* images, but in some datasets it makes sense to keep subsets of images that do not have labels. For those, their `class` property will be a list with one item `__label_unavailable`. This is different from "unidentified", which often means the animal present is unidentifiable to the finer category.
 - Since we have this special keyword for unavailable labels, each sequence OR all images in a sequence should have the `class` property.
+- Items in `class` need to be *lower-cased* strings of ASCII characters only (for allowable characters see regex specified in the schema). To convert to ASCII characters, use
 
+```python
+from unidecode import unidecode
+
+class_item_to_use = unidecode("père david's rock squirrel")
+# will be converted to "pere david's rock squirrel"
+```
 
 
 
