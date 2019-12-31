@@ -31,7 +31,7 @@ def order_seq_properties(seq_item):
     return ordered
 
 def check_frame_num(seq):
-    # schema already checks that the min possible value of frame_num is 1
+    # schema already checks that the min possible value of frame_num is 0
 
     if 'images' not in seq:
         return
@@ -76,6 +76,17 @@ def check_class_on_seq_or_image(seq):
 def sequences_schema_check(items_json):
     assert len(items_json) > 0, 'The .json file you passed in is empty'
 
+    # checks across all sequence items
+    seq_ids = set([seq['seq_id'] for seq in items_json])
+    assert len(seq_ids) == len(items_json), 'Not all seq_id in this batch are unique.'
+
+    # per sequence item checks
+    for seq in items_json:
+        check_class_on_seq_or_image(seq)
+        check_frame_num(seq)
+
+    print('Verified that the sequence items meet requirements not captured by the schema.')
+
     # load the schema
     # https://stackoverflow.com/questions/3718657/how-to-properly-determine-current-script-directory
     this_script = inspect.getframeinfo(inspect.currentframe()).filename
@@ -86,17 +97,6 @@ def sequences_schema_check(items_json):
     jsonschema.validate(items_json, schema)
 
     print('Verified that the sequence items conform to the schema.')
-
-    # checks across all sequence items
-    seq_ids = set([seq['seq_id'] for seq in items_json])
-    assert len(seq_ids) == len(items_json), 'Not all seq_id in this batch are unique.'
-
-    # per sequence item checks
-    for seq in items_json:
-        check_class_on_seq_or_image(seq)
-        check_frame_num(seq)
-
-    print('Verified that the sequence items meet the additional requirements.')
 
 
 def main():
