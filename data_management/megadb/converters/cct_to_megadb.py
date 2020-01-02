@@ -325,7 +325,7 @@ def make_cct_embedded(image_db=None, bbox_db=None):
                     image_w = docs[image_id]['width']
                     image_h = docs[image_id]['height']
                     x, y, w, h = bbox_anno['bbox']
-                    item_bbox['bbox'] = [
+                    item_bbox['bbox_rel'] = [
                         truncate_float(x / image_w),
                         truncate_float(y / image_h),
                         truncate_float(w / image_w),
