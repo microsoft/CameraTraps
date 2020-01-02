@@ -212,7 +212,7 @@ def process_images(db_path,output_dir,image_base_dir,options=None):
         
         imageClasses = ', '.join(imageCategories)
                 
-        file_name = '{}_gtbbox.jpg'.format(img_id.lower().split('.jpg')[0])
+        file_name = '{}_gt.jpg'.format(img_id.lower().split('.jpg')[0])
         file_name = file_name.replace('/', '~')
         
         rendering_info.append({'bboxes':bboxes, 'boxClasses':boxClasses, 'img_path':img_path,
