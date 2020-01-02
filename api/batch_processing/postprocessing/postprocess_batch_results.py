@@ -134,6 +134,8 @@ class PostProcessingOptions:
     parallelize_rendering_n_cores = 100
     parallelize_rendering = False
     
+    # Determines whether missing images force an error
+    allow_missing_images = False
     
 class PostProcessingResults:
 
@@ -200,32 +202,35 @@ def mark_detection_status(indexed_db, negative_classes=DEFAULT_NEGATIVE_CLASSES,
         image_categories = [ann['category_id'] for ann in annotations]
         image_category_names = set([indexed_db.cat_id_to_name[cat] for cat in image_categories])
 
-        # Check if image has unassigned-type labels
+        # Check whether this image has unassigned-type labels
         image_has_unknown_labels = has_overlap(image_category_names, unknown_classes)
-        assert image_has_unknown_labels is False, '{} has unknown labels'.format(annotations)
-        # Check if image has negative-type labels
+        # assert image_has_unknown_labels is False, '{} has unknown labels'.format(annotations)
+        
+        # Check whether this image has negative-type labels
         image_has_negative_labels = has_overlap(image_category_names, negative_classes)
-        # Check if image has positive labels
-        # i.e. if we remove negative and unknown labels from image_category_names, then
-        # there are still labels left
-        image_has_positive_labels = 0 < len(image_category_names - unknown_classes - negative_classes)
+        
+        # Check whether this image has positive labels, i.e. whether it has labels that are neither
+        # negative nor unknown
+        image_has_positive_labels = 0 < len(image_category_names - (unknown_classes.union(negative_classes)))
 
-        # If there are no image annotations, the result is unknown
+        # If there are no image annotations, treat this as unknown
         if len(image_categories) == 0:
-            # n_unknown += 1
-            # im['_detection_status'] = DetectionStatus.DS_UNKNOWN
+            
+            n_unknown += 1
+            im['_detection_status'] = DetectionStatus.DS_UNKNOWN
 
-            n_negative += 1
-            im['_detection_status'] = DetectionStatus.DS_NEGATIVE
+            # n_negative += 1
+            # im['_detection_status'] = DetectionStatus.DS_NEGATIVE
 
         # If the image has more than one type of labels, it's ambiguous
         # note: booleans get automatically converted to 0/1, hence we can use the sum
-        elif image_has_unknown_labels + image_has_negative_labels + image_has_positive_labels > 1:
+        elif (image_has_unknown_labels + image_has_negative_labels + image_has_positive_labels) > 1:
 
             n_ambiguous += 1
             im['_detection_status'] = DetectionStatus.DS_AMBIGUOUS
 
         # After the check above, we can be sure it's only one of positive, negative, or unknown
+        #
         # Important: do not merge the following 'unknown' branch with the first 'unknown' branch
         # above, where we were testing 'if len(image_categories) == 0'
         #
@@ -252,8 +257,11 @@ def mark_detection_status(indexed_db, negative_classes=DEFAULT_NEGATIVE_CLASSES,
                 im['_unambiguous_category'] = list(image_category_names)[0]
 
         else:
-            raise Exception('Invalid state, please check the code for bugs')
+            
+            raise Exception('Invalid detection state')
 
+    # ...for each image
+            
     return n_negative, n_positive, n_unknown, n_ambiguous
 
 
@@ -402,7 +410,7 @@ def process_batch_results(options):
                 n_negative, n_positive, n_unknown, n_ambiguous))
 
 
-    ##%% Load detection results
+    ##%% Load detection (and possibly classification) results
 
     if options.api_detection_results is None:
         detection_results, other_fields = load_api_results(options.api_output_file,
@@ -420,6 +428,13 @@ def process_batch_results(options):
     detection_categories_map = other_fields['detection_categories']
     if 'classification_categories' in other_fields:
         classification_categories_map = other_fields['classification_categories']
+        
+        # Convert keys and values to lowercase
+        #
+        # In practice, keys are string integers, but I'm angry at variable casing
+        # so I'm converting those to lowercase too just to pound my fist.
+        classification_categories_map = \
+          {k.lower():v.lower() for k, v in classification_categories_map.items()}
     else:
         classification_categories_map = {}
 
@@ -1061,8 +1076,13 @@ def process_batch_results(options):
         total_images = image_counts['detections'] + image_counts['non_detections']
         if options.include_almost_detections:
             total_images += image_counts['almost_detections']
-        assert total_images == image_count, \
-            'Error: image_count is {}, total_images is {}'.format(image_count,total_images)
+            
+        if options.allow_missing_images:
+            if total_images != image_count:
+                print('Warning: image_count is {}, total_images is {}'.format(image_count,total_images))
+            else:
+                assert total_images == image_count, \
+                    'Error: image_count is {}, total_images is {}'.format(image_count,total_images)
         
         almost_detection_string = ''
         if options.include_almost_detections:
