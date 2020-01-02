@@ -22,28 +22,28 @@
 
 #%% Constants, imports, environment
 
-import time
-import glob
-import sys
 import argparse
-import os
-import json
-import pickle
+import glob
 import inspect
+import json
+import os
+import pickle
+import sys
 import tempfile
+import time
 import warnings
 from itertools import compress
 
-import tensorflow as tf
-import numpy as np
-import humanfriendly
 import PIL
-from tqdm import tqdm
+import humanfriendly
+import numpy as np
 import pandas as pd
+import tensorflow as tf
+from tqdm import tqdm
 
+from api.batch_processing.api_core.orchestrator_api.aml_scripts.tf_detector import TFDetector
 from api.batch_processing.postprocessing import convert_output_format
 from api.batch_processing.postprocessing.load_api_results import write_api_results_csv
-from api.batch_processing.api_core.orchestrator_api.aml_scripts.tf_detector import TFDetector
 
 DEFAULT_CONFIDENCE_THRESHOLD = 0.0
 
@@ -66,6 +66,7 @@ CHECKPOINT_SUBDIR = 'detector_batch'
 
 # ignoring all "PIL cannot read EXIF metainfo for the images" warnings
 warnings.filterwarnings('ignore', '(Possibly )?corrupt EXIF data', UserWarning)
+
 # Metadata Warning, tag 256 had too many entries: 42, expected 1
 warnings.filterwarnings('ignore', 'Metadata warning', UserWarning)
 
@@ -505,11 +506,7 @@ if False:
     options.detectorFile = r'D:\temp\models\megadetector_v3.pb'
     options.imageFile = r'D:\temp\demo_images\ssmini'    
     options.outputFile = r'D:\temp\demo_images\ssmini\detector_out.json'
-    options.outputPathReplacements = {'D:\\temp\\demo_images\\ssmini\\':''}
     options.recursive = False
-    # options.checkpointFrequency = -1
-    options.forceCpu = True
-    options.resumeFromCheckpoint = None # r'C:\Users\dan\AppData\Local\Temp\detector_batch\tmp77xdq9dp'
     
     if options.forceCpu:
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -522,8 +519,7 @@ if False:
     boxes,scores,classes,imageFileNames = load_and_run_detector(options,detector)
     
     
-    #%% Post-processing with process_batch_results... this can also be run from the
-    #   command line.
+    #%% Post-processing with process_batch_results... this can also be run from the command line.
     
     from api.batch_processing.postprocess_batch_results import PostProcessingOptions
     from api.batch_processing.postprocess_batch_results import process_batch_results
@@ -563,7 +559,7 @@ def main():
                        help='Output results file')
     parser.add_argument('--threshold', action='store', type=float, 
                         default=DEFAULT_CONFIDENCE_THRESHOLD, 
-                        help='Confidence threshold, don''t include boxes below this confidence in the output file')
+                        help='Confidence threshold, don\'t include boxes below this confidence in the output file')
     parser.add_argument('--recursive', action='store_true', 
                         help='Recurse into directories, only meaningful if --imageFile points to a directory')
     parser.add_argument('--forceCpu', action='store_true', 
