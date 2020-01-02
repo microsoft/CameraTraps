@@ -16,14 +16,17 @@ import uuid
 from collections import defaultdict
 import sys
 from random import sample
+from copy import deepcopy
 
-from data_management.megadb import sequences_schema_check
+from tqdm import tqdm
+
+from data_management.megadb.schema import sequences_schema_check
 from data_management.cct_json_utils import IndexedJsonDb
 from ct_utils import truncate_float
 
 
-def write_json(p, content, indent=1):
-    with open(p, 'w') as f:
+def write_json(path, content, indent=1):
+    with open(path, 'w') as f:
         json.dump(content, f, indent=indent)
 
 
@@ -33,7 +36,7 @@ old_to_new_prop_name_mapping = {
 }
 
 
-def process_sequences(docs, dataset_name):
+def process_sequences(embedded_image_objects, dataset_name, deepcopy_embedded=True):
     """
     Combine the image entries in an embedded COCO Camera Trap json from make_cct_embedded()
     into sequence objects that can be ingested to the `sequences` table in MegaDB.
@@ -45,15 +48,22 @@ def process_sequences(docs, dataset_name):
     All strings in the array for the `class` property are lower-cased.
 
     Args:
-        docs: array of image objects returned by make_cct_embedded()
-        dataset_name: Make sure this is the desired name for the dataset!
+        embedded_image_objects: array of image objects returned by make_cct_embedded()
+        dataset_name: Make sure this is the desired name for the dataset
+        deepcopy_embedded: True if to make a deep copy of `docs`; otherwise the `docs` object passed in will be modified!
 
     Returns:
         an array of sequence objects
     """
     print('The dataset_name is set to {}. Please make sure this is correct!'.format(dataset_name))
 
-    print('Putting {} images into sequences... The docs object (first argument) passed in will be altered!'.format(
+    if deepcopy_embedded:
+        print('Making a deep copy of docs...')
+        docs = deepcopy(embedded_image_objects)
+    else:
+        docs = embedded_image_objects
+
+    print('Putting {} images into sequences...'.format(
         len(docs)))
     img_level_properties = set()
     sequences = defaultdict(list)
@@ -62,7 +72,7 @@ def process_sequences(docs, dataset_name):
     # seq_id only needs to be unique within this dataset; MegaDB does not rely on it as the _id field
 
     # "annotations" fields are opened and have its sub-field surfaced one level up
-    for im in docs:
+    for im in tqdm(docs):
         if 'seq_id' in im:
             seq_id = im['seq_id']
             del im['seq_id']
@@ -124,6 +134,7 @@ def process_sequences(docs, dataset_name):
         assert len(set(locations)) == 1, 'Location fields in images of the sequence {} are different.'.format(seq['seq_id'])
 
     # check which fields in a CCT image entry are sequence-level
+    print('Checking which fields in a CCT image entry are sequence-level...')
     all_img_properties = set()
     for seq in sequences:
         if 'images' not in seq:
@@ -144,7 +155,7 @@ def process_sequences(docs, dataset_name):
     seq_level_properties = all_img_properties - img_level_properties
 
     # need to add (misidentified) seq properties not present for each image in a sequence to img_level_properties
-    # (some properties act like booleans - all have the same value, but not present on each img)
+    # (some properties act like flags - all have the same value, but not present on each img)
     bool_img_level_properties = set()
     for seq in sequences:
         if 'images' not in seq:
