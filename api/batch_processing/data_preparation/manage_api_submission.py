@@ -79,7 +79,7 @@ max_tolerable_missing_images = 20
 # Pushing the previews to shared storage
 
 
-#%% URL parsing
+#%% Support functions
 
 # https://gist.github.com/zed/c2168b9c52b032b5fb7d
 def url_to_filename(url):
@@ -101,8 +101,15 @@ list_files = []
 
 # folder_name = folder_names[0]
 for folder_name in folder_names:
-    list_file = os.path.join(filename_base,folder_name + '_all.json')
-    prefix = container_prefix + folder_name
+    list_file = os.path.join(filename_base,path_utils.clean_filename(folder_name) + '_all.json')
+    
+    # If this is intended to be a folder, it needs to end in '/', otherwise files that start
+    # with the same string will match too
+    folder_name_suffix = folder_name
+    folder_name_suffix = folder_name_suffix.replace('\\','/')
+    if not folder_name_suffix.endswith('/'):
+        folder_name_suffix = folder_name_suffix + '/'
+    prefix = container_prefix + folder_name_suffix
     file_list = prepare_api_submission.enumerate_blobs_to_file(output_file=list_file,
                                     account_name=account_name,sas_token=read_only_sas_token,
                                     container_name=container_name,
@@ -375,8 +382,9 @@ for i_task_group,task_group in enumerate(task_groups):
 folder_name_to_combined_output_file = {}
 
 # i_folder = 0; folder_name = folder_names[i_folder]
-for i_folder,folder_name in enumerate(folder_names):
+for i_folder,folder_name_raw in enumerate(folder_names):
     
+    folder_name = path_utils.clean_filename(folder_name_raw)
     print('Combining results for {}'.format(folder_name))
     
     task_group = task_groups[i_folder]
@@ -421,8 +429,9 @@ for i_folder,folder_name in enumerate(folder_names):
 
 html_output_files = []
 
-for i_folder,folder_name in enumerate(folder_names):
-        
+for i_folder,folder_name_raw in enumerate(folder_names):
+    
+    folder_name = path_utils.clean_filename(folder_name_raw)
     output_base = os.path.join(postprocessing_output_folder,folder_name)
     os.makedirs(output_base,exist_ok=True)
     print('Processing {} to {}'.format(folder_name,output_base))
