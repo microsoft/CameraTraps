@@ -107,9 +107,12 @@ species_list_filename = os.path.join(output_base,project_friendly_name.replace('
                              + '_v' + json_version + '.species_list.csv')
 summary_info_filename = os.path.join(output_base,project_friendly_name.replace(' ','') + '_' + season_name \
                              + '_v' + json_version + '.summary_info.txt')
-    
+
+# Images will be placed in a season-specific folder inside this (the source data includes
+# this in path names)
+output_public_folder = os.path.join(output_base,project_name + '_public')
+
 output_public_zipfile = os.path.join(output_base,project_season_name + '.lila.zip')
-output_public_folder = os.path.join(output_base,project_season_name + '_public')
 output_private_folder = os.path.join(output_base,project_season_name + '_private')
 output_preview_folder = os.path.join(output_base,project_season_name + '_preview')
 
@@ -162,7 +165,7 @@ print('Processing image table')
 start_time = time.time()
 
 # irow = 0; row = image_table.iloc[0]
-for iRow,row in tqdm(image_table.iterrows()):
+for iRow,row in tqdm(image_table.iterrows(),total=len(image_table)):
     
     # Loaded as an int64, converting to int here
     frame_num = int(row['image_rank_in_capture'])
@@ -199,7 +202,7 @@ def is_float_and_nan(x):
 
 n_invalid_dates = 0
     
-for iRow,row in tqdm(annotation_table.iterrows()):
+for iRow,row in tqdm(annotation_table.iterrows(),total=len(annotation_table)):
 
     sequence_id = row['capture_id']
     
@@ -257,23 +260,18 @@ print('Converted {} annotations, {} images, {} categories ({} invalid dates)'.fo
     
 #%% Take a look at categories (just sanity-checking)
 
-if False:
-    
-    pass
+assert(len(im_id_to_image)==len(images)) 
+print('Loaded metadata about {} images and {} sequences'.format(len(images),len(seq_id_to_annotations)))
 
-    #%%
-    assert(len(im_id_to_image)==len(images)) 
-    print('Loaded metadata about {} images and {} sequences'.format(len(images),len(seq_id_to_annotations)))
+categories_by_species = sorted(categories, key = lambda i: i['name'])
+categories_by_count = sorted(categories, key = lambda i: i['count'])
 
-    categories_by_species = sorted(categories, key = lambda i: i['name'])
-    categories_by_count = sorted(categories, key = lambda i: i['count'])
-    
-    pp = pprint.PrettyPrinter(depth=6)
-    
-    # print('\nCategories by species:')
-    # pp.pprint(categories_by_species)
-    print('\nCategories by count:')
-    pp.pprint(categories_by_count)
+pp = pprint.PrettyPrinter(depth=6)
+
+# print('\nCategories by species:')
+# pp.pprint(categories_by_species)
+print('\nCategories by count:')
+pp.pprint(categories_by_count)
 
 
 #%% Fill in some image fields we didn't have when we created the image table
@@ -386,7 +384,7 @@ for im in tqdm(images):
 print('\nOf {} images: {} missing, {} corrupt, {} no annotation'.format(len(images),
       n_missing, n_corrupt, n_no_annotation))
     
-
+    
 #%% Print distribution of sequence lengths (sanity-check)
 
 seq_id_to_sequence_length = {}
@@ -571,6 +569,7 @@ for iImage,im in tqdm(enumerate(images),total=len(images)):
 # ...for each image
 
 zip.close()
+
 print('\nFinished writing {}, added {} files'.format(zipfilename,n_images_added))
 
 
@@ -584,7 +583,10 @@ options.bCheckImageSizes = False
 options.bCheckImageExistence = True
 options.bFindUnusedImages = False
 
-sortedCategories, data = sanity_check_json_db.sanity_check_json_db(json_filename,options)
+sortedCategories, data, errorInfo = sanity_check_json_db.sanity_check_json_db(json_filename,options)
+
+# This will produce some validation errors, because this zipfile doesn't include humans
+assert(len(errorInfo['validationErrors']) == len(human_image_ids))
 
 
 #%% Zip up .json and .csv files
@@ -677,10 +679,12 @@ for i_category in range(0,len(sorted_categories)):
         if len(top_categories) == 3:
             break
     
-s = 'This data set contains {} sequences of camera trap images, totaling {} images, from the {} project. Labels are provided for {} categories, primarily at the species level (for example, the most common labels are {}, {}, and {}). Approximately {:.2f}% of images are labeled as empty.'.format(
+s = 'This data set contains {} sequences of camera trap images, totaling {} images, from the {} project. Labels are provided for {} categories, primarily at the species level (for example, the most common labels are {}, {}, and {}). Approximately {:.2f}% of images are labeled as empty. A full list of species and associated image counts is available <a href="{}">here</a>.'.format(
     n_sequences,n_images,project_friendly_name,n_categories,
     top_categories[0],top_categories[1],top_categories[2],
-    percent_empty)
+    percent_empty,
+    'https://lilablobssc.blob.core.windows.net/snapshot-safari/{}/{}_{}_v{}.species_list.csv'.format(
+        project_name,project_friendly_name.replace(' ',''),season_name,json_version))
 print(s)
 
 with open(summary_info_filename,'w') as f:
