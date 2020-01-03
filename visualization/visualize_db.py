@@ -45,7 +45,10 @@ class DbVizOptions:
     trim_to_images_with_bboxes = False
     random_seed = 0 # None
     add_search_links = False
+    
+    # These are mutually exclusive
     classes_to_exclude = None
+    classes_to_include = None
 
     # We sometimes flatten image directories by replacing a path separator with 
     # another character.  Leave blank for the typical case where this isn't necessary.
@@ -125,21 +128,35 @@ def process_images(db_path,output_dir,image_base_dir,options=None):
         imagesWithBboxes = list(compress(images, bImageHasBbox))
         images = imagesWithBboxes
                 
-    # Optionally remove images with specific labels, *before* sampling
-    if options.classes_to_exclude is not None:
+    # Optionally include/remove images with specific labels, *before* sampling
+        
+    assert (not ((options.classes_to_exclude is not None) and (options.classes_to_include is not None))), \
+        'Cannot specify an inclusion and exclusion list'
+        
+    if (options.classes_to_exclude is not None) or (options.classes_to_include is not None):
      
         print('Indexing database')
         indexed_db = IndexedJsonDb(image_db)
         bValidClass = [True] * len(images)        
         for iImage,image in enumerate(images):
             classes = indexed_db.get_classes_for_image(image)
-            for excludedClass in options.classes_to_exclude:
-                if excludedClass in classes:
-                   bValidClass[iImage] = False
-                   break
-               
+            if options.classes_to_exclude is not None:
+                for excludedClass in options.classes_to_exclude:
+                    if excludedClass in classes:
+                       bValidClass[iImage] = False
+                       break
+            elif options.classes_to_include is not None:       
+                bValidClass[iImage] = False
+                for c in classes:
+                    if c in options.classes_to_include:
+                        bValidClass[iImage] = True
+                        break                        
+            else:
+                raise ValueError('Illegal include/exclude combination')
+                
         imagesWithValidClasses = list(compress(images, bValidClass))
         images = imagesWithValidClasses    
+    
     
     # Put the annotations in a dataframe so we can select all annotations for a given image
     print('Creating data frames')
