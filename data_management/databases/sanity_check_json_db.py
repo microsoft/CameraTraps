@@ -203,7 +203,9 @@ def sanity_check_json_db(jsonFile, options=None):
             sequences.add(image['seq_id'])
             
         assert not ('sequence_id' in image or 'sequence' in image), 'Illegal sequence identifier'
-            
+        
+    unusedFiles = []
+                
     # Are we checking for unused images?
     if (len(baseDir) > 0) and options.bFindUnusedImages:    
         
@@ -222,11 +224,9 @@ def sanity_check_json_db(jsonFile, options=None):
                             relFile = relFile[2:]
                     imagePaths.append(relFile)
           
-        unusedFiles = []
-        
         for p in imagePaths:
             if p not in imagePathsInJson:
-                print('Image {} is unused'.format(p))
+                # print('Image {} is unused'.format(p))
                 unusedFiles.append(p)
                 
     # Are we checking file existence and/or image size?
@@ -299,6 +299,9 @@ def sanity_check_json_db(jsonFile, options=None):
     print('Found {} unannotated images, {} images with multiple annotations'.format(
             nUnannotated,nMultiAnnotated))
     
+    if (len(baseDir) > 0) and options.bFindUnusedImages:
+        print('Found {} unused image files'.format(len(unusedFiles)))
+        
     nUnusedCategories = 0
     
     # Find unused categories
@@ -332,7 +335,7 @@ def sanity_check_json_db(jsonFile, options=None):
     
     print('')
     
-    return sortedCategories, data
+    return sortedCategories, data, unusedFiles
 
 # ...def sanity_check_json_db()
     
