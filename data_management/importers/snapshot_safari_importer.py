@@ -693,13 +693,15 @@ with open(summary_info_filename,'w') as f:
 
 #%% Generate preview, sanity-check labels
     
+from visualization import visualize_db
 viz_options = visualize_db.DbVizOptions()
-viz_options.num_to_visualize = 2000
+viz_options.num_to_visualize = 5000
 viz_options.trim_to_images_with_bboxes = False
 viz_options.add_search_links = True
 viz_options.sort_by_filename = False
 viz_options.parallelize_rendering = True
-viz_options.classes_to_exclude = ['test']
+viz_options.classes_to_exclude = ['test','empty']
+# viz_options.classes_to_include = ['jackalblackbacked','bustardkori']
 html_output_file, image_db = visualize_db.process_images(db_path=json_filename,
                                                          output_dir=output_preview_folder,
                                                          image_base_dir=output_public_folder,
