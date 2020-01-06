@@ -13,6 +13,8 @@ Classifiers and detectors are trained using TensorFlow.
 
 This repo is maintained by folks in the [Microsoft AI for Earth](http://aka.ms/aiforearth) program who like looking at pictures of animals.  I mean, we want to use machine learning to support conservation too, but we also really like looking at pictures of animals.
 
+You can read more about what we do to support camera trap researchers in our recent [blog post](https://medium.com/microsoftazure/accelerating-biodiversity-surveys-with-azure-machine-learning-9be53f41e674).
+
 
 # Data
 
