@@ -24,9 +24,11 @@ from tqdm import tqdm
 from path_utils import find_images
 
 input_base = r'z:/ste_2019_08_drop'
-input_metadata_file = os.path.join(input_base,'SURVEY_B.xlsx')
+# input_base = r'/mnt/blobfuse/wildlifeblobssc/ste_2019_08_drop'
+input_metadata_file = os.path.join(input_base,'SURVEY B.xlsx')
 
 output_base = r'f:/save_the_elephants/survey_b'
+# output_base = r'/home/gramener/survey_b'
 output_json_file = os.path.join(output_base,'ste_survey_b.json')
 image_directory = os.path.join(input_base,'SURVEY B with False Triggers')
                         
@@ -75,19 +77,21 @@ missing_images = []
 
 # Build up a map from filenames to a list of rows, checking image existence as we go
 for i_row, fn in tqdm(enumerate(input_metadata['Image Name']), total=len(input_metadata)):
+    try:
+        # Ignore directories
+        if not fn.endswith('.JPG'):
+            continue
 
-    # Ignore directories
-    if not fn.endswith('.JPG'):
+        if fn in filenames_to_rows:
+            filenames_with_multiple_annotations.append(fn)
+            filenames_to_rows[fn].append(i_row)
+        else:
+            filenames_to_rows[fn] = [i_row]
+            image_path = os.path.join(image_directory, fn)
+            if not os.path.isfile(image_path):
+                missing_images.append(image_path)
+    except:
         continue
-
-    if fn in filenames_to_rows:
-        filenames_with_multiple_annotations.append(fn)
-        filenames_to_rows[fn].append(i_row)
-    else:
-        filenames_to_rows[fn] = [i_row]
-        image_path = os.path.join(image_directory, fn)
-        if not os.path.isfile(image_path):
-            missing_images.append(image_path)
 
 elapsed = time.time() - start_time
 
@@ -158,8 +162,11 @@ for image_name in tqdm(list(filenames_to_rows.keys())):
         
         row = input_metadata.iloc[i_row]
         assert(row['Image Name'] == image_name)
-        
-        timestamp = row['Date'].strftime("%d/%m/%Y")
+        try:
+            timestamp = row['Date'].strftime("%d/%m/%Y")
+        except:
+            timestamp = ""
+        # timestamp = row['Date']
         station_label = row['Camera Trap Station Label']
         photo_type = row['Photo Type ']
         if isinstance(photo_type,float):
