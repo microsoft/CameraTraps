@@ -7,11 +7,11 @@ from datetime import datetime
 from urllib import parse, request
 
 import azureml.core
-from azure.storage.blob import BlockBlobService
 from azureml.core.model import Model
 from azureml.core.run import Run
 
 from tf_detector import TFDetector
+from sas_blob_utils import SasBlob
 
 print('score.py, beginning, using AML version {}'.format(azureml.core.__version__))
 
@@ -35,6 +35,7 @@ class BatchScorer:
 
         self.detection_threshold = kwargs.get('detection_threshold')
         self.batch_size = kwargs.get('batch_size')
+        print('BatchScorer, __init__(), batch_size is: ', self.batch_size)
 
         self.image_ids_to_score = kwargs.get('image_ids_to_score')
         self.use_url = kwargs.get('use_url')
@@ -49,33 +50,6 @@ class BatchScorer:
         self.failed_images = []  # list of image_ids that failed to open or be processed
         self.failed_metas = []  # their corresponding metadata
 
-    @staticmethod
-    def get_account_from_uri(sas_uri):
-        url_parts = parse.urlsplit(sas_uri)
-        loc = url_parts.netloc
-        return loc.split('.')[0]
-
-    @staticmethod
-    def get_sas_key_from_uri(sas_uri):
-        """Get the query part of the SAS token that contains permissions, access times and
-        signature.
-
-        Args:
-            sas_uri: Azure blob storage SAS token
-
-        Returns: Query part of the SAS token.
-        """
-        url_parts = parse.urlsplit(sas_uri)
-        return url_parts.query
-
-    @staticmethod
-    def get_container_from_uri(sas_uri):
-        url_parts = parse.urlsplit(sas_uri)
-
-        raw_path = url_parts.path[1:]
-        container = raw_path.split('/')[0]
-
-        return container
 
     def download_images(self):
 
@@ -84,10 +58,8 @@ class BatchScorer:
 
         if not self.use_url:
             print('blob_service created')
-            blob_service = BlockBlobService(
-                account_name=BatchScorer.get_account_from_uri(self.input_container_sas),
-                sas_token=BatchScorer.get_sas_key_from_uri(self.input_container_sas))
-            container_name = BatchScorer.get_container_from_uri(self.input_container_sas)
+            blob_service = SasBlob.get_service_from_uri(self.input_container_sas)
+            container_name = SasBlob.get_container_from_uri(self.input_container_sas)
 
         for i in self.image_ids_to_score:
             if self.metadata_available:
@@ -246,7 +218,10 @@ if __name__ == '__main__':
         raise RuntimeError('Exception in scorer.download_images(): {}'.format(str(e)))
 
     try:
+        score_start = datetime.now()
         scorer.score()
+        inference_duration_seconds = datetime.now() - score_start
+        print('score.py - inference_duration_seconds (inference only):', inference_duration_seconds)
     except Exception as e:
         raise RuntimeError('Exception in scorer.score(): {}'.format(str(e)))
 
@@ -256,5 +231,6 @@ if __name__ == '__main__':
         run_duration_seconds = datetime.now() - start_time
         print('score.py - run_duration_seconds (load, inference, writing output):', run_duration_seconds)
         run.log('run_duration_seconds', str(run_duration_seconds))
+        run.log('inference_duration_seconds', str(inference_duration_seconds))
     except Exception as e:
         raise RuntimeError('Exception in writing output or logging to AML: {}'.format(str(e)))

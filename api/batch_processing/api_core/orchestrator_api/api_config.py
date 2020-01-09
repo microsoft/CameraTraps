@@ -1,12 +1,11 @@
 # name of the container in the internal storage account to store user facing files:
 # image list, detection results and failed images list.
-INTERNAL_CONTAINER = 'async-api-zooniverse'
+INTERNAL_CONTAINER = 'async-api'
 
 # name of the container in the internal storage account to store outputs of each AML job
-AML_CONTAINER = 'aml-out-zooniverse'
+AML_CONTAINER = 'aml-out'
 
-# how often does the checking thread wake up to check if all jobs are done
-MONITOR_PERIOD_MINUTES = 5
+MONITOR_PERIOD_MINUTES = 15
 
 # if this number of times the thread wakes up to check is exceeded, stop the monitoring thread
 MAX_MONITOR_CYCLES = 4 * 7 * int((60 * 24) / MONITOR_PERIOD_MINUTES)  # 4 weeks
@@ -28,25 +27,27 @@ JOB_SUBMISSION_UPDATE_INTERVAL = 2
 
 # AML Compute
 AML_CONFIG = {
-    'subscription_id': '74d91980-e5b4-4fd9-adb6-263b8f90ec5b',
-    'workspace_region': 'eastus',
+    'subscription_id': '',
+    'workspace_region': 'southcentralus',
     'resource_group': 'camera_trap_api_rg',
-    'workspace_name': 'camera_trap_aml_ws_zooniverse',
+    'workspace_name': 'camera_trap_aml_ws_sc',
     'aml_compute_name': 'camera-trap-com',
 
     'default_model_version': '3',
     'models': {
         '3': 'megadetector_v3_tf19',  # user input model_version : name of model registered with AML
-        '2': 'megadetector_v2'
+        '2': 'megadetector_v2',
+        'benchmark_190904_cct20_tf19': 'benchmark_190904_cct20_tf19',
+        'benchmark_190904_ss1_tf19': 'benchmark_190904_ss1_tf19'
     },
 
     'source_dir': '/app/orchestrator_api/aml_scripts',
     'script_name': 'score.py',
 
     'param_batch_size': 8,
-    'param_detection_threshold': 0.1,  # megadetector v3 tends to have more very low confident detections and issues with NMS
+    'param_detection_threshold': 0.3,  # megadetector v3 tends to have more very low confident detections and issues with NMS
 
-    'completed_status': ['Finished', 'Failed', 'Completed'],
+    'completed_status': ['Finished', 'Failed', 'Completed', 'Canceled'],
 
     # service principle for authenticating to AML
     'tenant-id': '',  # fill these out before building the container
