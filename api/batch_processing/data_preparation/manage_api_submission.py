@@ -107,7 +107,7 @@ for folder_name in folder_names:
     # with the same string will match too
     folder_name_suffix = folder_name
     folder_name_suffix = folder_name_suffix.replace('\\','/')
-    if not folder_name_suffix.endswith('/'):
+    if (not len(folder_name) == 0) and (not folder_name_suffix.endswith('/')):
         folder_name_suffix = folder_name_suffix + '/'
     prefix = container_prefix + folder_name_suffix
     file_list = prepare_api_submission.enumerate_blobs_to_file(output_file=list_file,
