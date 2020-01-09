@@ -52,5 +52,5 @@ print('Finished writing output .json to {}'.format(outputJsonFile))
 
 #%% Check output data file
 
-sanity_check_json_db.sanityCheckJsonDb(outputJsonFile)
+sanity_check_json_db.sanity_check_json_db(outputJsonFile)
 

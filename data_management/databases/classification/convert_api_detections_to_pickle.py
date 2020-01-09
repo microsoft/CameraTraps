@@ -7,6 +7,7 @@ import json
 import pickle 
 import pandas
 import numpy as np
+import tqdm
 
 parser = argparse.ArgumentParser('This file converts the CSV output of the batch processing API to a pickle file, ' + \
                    'which can be used by the script ./make_classification_dataset.py')
@@ -17,16 +18,17 @@ args = parser.parse_args()
 assert os.path.isfile(args.input_csv), 'ERROR: The input CSV file could not be found!'
 assert not os.path.isfile(args.output_pkl), 'ERROR: The output file exists already!'
 
-csv = pandas.read_csv(args.input_csv, header=None, names=['filename',  'maxscore', 'boxes'])
+csv = pandas.read_csv(args.input_csv, header=0, names=['filename',  'maxscore', 'boxes'])
 detection_dict = dict()
-for row in csv.itertuples():
+for row in tqdm.tqdm(list(csv.itertuples())):
     boxes = np.array(json.loads(row.boxes))
     if boxes.size > 0:
-        conf = boxes[:,-1].ravel()
-        boxes = boxes[:,:-1]
+        box_selection = np.isclose(boxes[:,5], 1)
+        conf = boxes[box_selection, 4].ravel()
+        boxes = boxes[box_selection, :4]
     else:
-        conf = np.array([])
-        boxes = np.array([])
+        conf = np.array([[]])
+        boxes = np.array([[]])
     key = row.filename
     detection_dict[key] = dict(detection_scores=conf, detection_boxes=boxes)
 

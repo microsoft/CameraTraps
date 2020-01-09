@@ -24,8 +24,8 @@ from multiprocessing.dummy import Pool as ThreadPool  # this functions like thre
 from shutil import copy, copyfile
 
 # configurations and paths
-log_folder = '/home/yasiyu/yasiyu_log'
-dest_folder = '/datadrive/emammal'  # data disk attached where data is stored
+log_folder = '/home/lynx/logs'
+dest_folder = '/datadrive/emammal_robertlong'  # data disk attached where data is stored
 origin = 'cloud'  # 'cloud' or 'mounted'
 
 
@@ -125,10 +125,14 @@ def download_from_container(dest_folder, blob_service, container='emammal', desi
     generator = blob_service.list_blobs(container)
     desired_blobs = [blob.name for blob in generator if blob.name.startswith(desired_blob_prefix)]
 
+    print('desired_blobs', desired_blobs)
+
     results = []
     for blob_path in tqdm(desired_blobs):
-        blob_name = blob_path.split('/')[1]
+        blob_name = blob_path.split('/')[2]
+        print('blob_name', blob_name)
         dest_path = os.path.join(dest_folder, blob_name)
+        print('dest_path', dest_path)
         result = _download_unzip(blob_service, blob_path, dest_path)
         results.append(result)
 
@@ -141,8 +145,8 @@ def download_from_container(dest_folder, blob_service, container='emammal', desi
         
 if __name__ == '__main__':
     if origin == 'cloud':
-        container = 'emammal'
-        desired_blob_prefix = '0Robert Long/'
+        container = 'wpz'
+        desired_blob_prefix = 'emammal/0Robert Long/'
 
     print('Start timing...')
     start_time = datetime.now()

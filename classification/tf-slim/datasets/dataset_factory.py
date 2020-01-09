@@ -24,8 +24,13 @@ from datasets import imagenet
 from datasets import mnist
 from datasets import cct
 from datasets import wellington
+from datasets import rspb
+from datasets import idfg
+from datasets import wiitigers
 from datasets import serengeti
 from datasets import nacti
+from datasets import obscured
+from datasets import obscured_large
 
 datasets_map = {
     'cifar10': cifar10,
@@ -34,8 +39,13 @@ datasets_map = {
     'mnist': mnist,
     'cct': cct,
     'wellington': wellington,
+    'rspb': rspb,
+    'idfg': idfg,
+    'wiitigers': wiitigers,
     'serengeti': serengeti,
-    'nacti': nacti
+    'nacti': nacti,
+    'obscured_large': obscured_large,
+    'obscured': obscured
 }
 
 

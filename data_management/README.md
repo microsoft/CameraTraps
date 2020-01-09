@@ -28,11 +28,11 @@ image
 {
   # Required
   "id" : str,
-  "width" : int,
-  "height" : int,
   "file_name" : str,
   
   # Optional
+  "width" : int,
+  "height" : int,
   "rights_holder" : str,    
   "datetime": datetime,  
   "seq_id": str,

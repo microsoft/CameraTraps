@@ -322,7 +322,7 @@ options = sanity_check_json_db.SanityCheckOptions()
 options.baseDir = imageBaseDir
 options.bCheckImageSizes = False
 options.bFindUnusedImages = False
-sanity_check_json_db.sanityCheckJsonDb(outputFile, options)
+sanity_check_json_db.sanity_check_json_db(outputFile, options)
 
 
 #%% Preview a few images to make sure labels were passed along sensibly
@@ -332,7 +332,7 @@ output_dir = os.path.join(baseDir,'label_preview')
 image_base_dir = imageBaseDir
 options = visualize_db.DbVizOptions()
 options.num_to_visualize = 100
-htmlOutputFile = visualize_db.processImages(db_path,output_dir,image_base_dir,options)
+htmlOutputFile = visualize_db.process_images(db_path,output_dir,image_base_dir,options)
     
 
 #%% One-time processing step: copy images to a flat directory for annotation

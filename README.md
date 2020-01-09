@@ -13,6 +13,8 @@ Classifiers and detectors are trained using TensorFlow.
 
 This repo is maintained by folks in the [Microsoft AI for Earth](http://aka.ms/aiforearth) program who like looking at pictures of animals.  I mean, we want to use machine learning to support conservation too, but we also really like looking at pictures of animals.
 
+You can read more about what we do to support camera trap researchers in our recent [blog post](https://medium.com/microsoftazure/accelerating-biodiversity-surveys-with-azure-machine-learning-9be53f41e674).
+
 
 # Data
 
@@ -87,20 +89,44 @@ Random things that don&rsquo;t fit in any other directory.  Currently contains a
 
 # Installation
 
-The required Python packages for running utility scripts in this repo are listed in [requirements.txt](requirements.txt). Here are some instructions for setting up a conda virtual environment with the required packages.
+We use [conda](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html) to manage our Python package dependencies. Conda is a package and environment management system. You can install a lightweight distribution of conda (Miniconda) for your OS via installers at [https://docs.conda.io/en/latest/miniconda.html](https://docs.conda.io/en/latest/miniconda.html). Installing packages with conda may be slower as it optimizes package version compatibility.
 
-Python >= 3.5 should work. Create a virtual environment via conda called `cameratraps`, activates it, upgrade the Python package manager `pip`, and install the required packages:
+Some Azure SDKs are only available on PyPI; we install them using pip as a part of the conda installation step.
+
+## Initial setup
+
+The required Python packages for running utility and visualization scripts in this repo are listed in [environment.yml](environment.yml). Scripts in some folders including `api`,`detection` and `classification` may require additional setup. In particular, the `detection/run_tf_detector*.py` scripts should use [environment-detector.yml](environment-detector.yml) to set up the environment.
+
+In your shell, navigate to the root directory of this repo and issue the following command to create a virtual environment via conda called `cameratraps` (specified in the environment file) and install the required packages:
 ```
-conda create -n cameratraps python=3.5
-
-source activate cameratraps
-
-pip install --upgrade pip
-
-pip install -r requirements.txt
+conda env create --file environment.yml
 ```
 
-In some scripts, we also assume that you have the [AI for Earth utilities repo](https://github.com/Microsoft/ai4eutils) cloned and its path appended to $PYTHONPATH.
+If you run into an error while creating the environment, try updating conda to version 4.5.11 or above. Check the version of conda using `conda --version`.
+
+## Usage
+
+To enter the conda virtual environment at your current shell, issue `conda activate cameratraps`. You should see `(cameratraps)` prepended to the command line prompt. Invoking `python` or `jupyter notebook` will now be using the interpreter and packages available in this virtual env.
+
+To exit the virtual env, issue `conda deactivate cameratraps`.
+
+## Add additional packages
+
+If you need to use additional packages, add them to the environment file and run
+
+```bash
+conda env update --file environment.yml
+```
+
+## Other notes
+
+In some scripts, we also assume that you have the [AI for Earth utilities repo](https://github.com/Microsoft/ai4eutils) (`ai4eutils`) cloned and its path appended to `PYTHONPATH`. You can append a path to `PYTHONPATH` for the current shell session by executing
+
+```bash
+export PYTHONPATH="$PYTHONPATH:/absolute/path/to/repo/ai4eutils"
+```
+
+Adding this line to your `~/.bashrc` modifies `PYTHONPATH` permanently.
 
 
 # Gratuitous pretty camera trap picture

@@ -41,7 +41,6 @@ def print_locations(json_file):
     print('Classes with one or more images: ', len(set(labels)))
     print('Images per class:')
     print('{:5} {:<15} {:>11}'.format('ID','Name','Image count'))
-    print(class_to_name)
     for cls in range(max(class_to_name.keys()) + 1):
         print('{:5} {:<15} {:>11}'.format(cls, class_to_name[cls], np.sum(labels==cls)))
 

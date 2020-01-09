@@ -7,6 +7,17 @@ from animal_detection_api import api_config
 tf.logging.set_verbosity(tf.logging.ERROR)
 
 
+DEFAULT_DETECTION_LABEL_MAP = {
+    1: 'animal',
+    2: 'person',
+    4: 'vehicle'
+}
+
+COLORS = [
+    'AliceBlue', 'Red', 'RoyalBlue', 'Gold', 'Chartreuse'
+]
+
+
 class TFDetector:
 
     def __init__(self, checkpoint):
@@ -53,20 +64,17 @@ class TFDetector:
             image = image.convert(mode='RGB')
         return image
 
-    def _generate_detections_batch(self, images, image_tensor, box, score):
+    def _generate_detections_batch(self, images, image_tensor, box_tensor, score_tensor, class_tensor):
         print('_generate_detections_batch')
         np_images = [np.asarray(image, np.uint8) for image in images]
         images_stacked = np.stack(np_images, axis=0) if len(images) > 1 else np.expand_dims(np_images[0], axis=0)
         print('images_stacked shape: ', images_stacked.shape)
 
         # performs inference
-        (box, score) = self.session.run(
-            [box, score],
+        box_tensor, score_tensor, class_tensor = self.session.run(
+            [box_tensor, score_tensor, class_tensor],
             feed_dict={image_tensor: images_stacked})
-
-        print('box shape: ', box.shape)
-        print('score shape: ', score.shape)
-        return box, score
+        return box_tensor, score_tensor, class_tensor
 
     def generate_detections_batch(self, images):
         # number of images should be small - all are loaded at once and a copy of resized version exists at one point
@@ -85,30 +93,31 @@ class TFDetector:
         print('Length of image_batches: ', len(image_batches))
         detections = []
 
-
         # get the operators to go in the fetch list
         image_tensor = self.detection_graph.get_tensor_by_name('image_tensor:0')
-        box = self.detection_graph.get_tensor_by_name('detection_boxes:0')
-        score = self.detection_graph.get_tensor_by_name('detection_scores:0')
+        box_tensor = self.detection_graph.get_tensor_by_name('detection_boxes:0')
+        score_tensor = self.detection_graph.get_tensor_by_name('detection_scores:0')
+        class_tensor = self.detection_graph.get_tensor_by_name('detection_classes:0')
 
         for image_batch in image_batches:
-            b_box, b_score = self._generate_detections_batch(image_batch, image_tensor, box, score)
+            b_box, b_score, b_class = self._generate_detections_batch(image_batch, image_tensor,
+                                                             box_tensor, score_tensor, class_tensor)
             for i, image in enumerate(image_batch):
                 detections.append({
                     'box': b_box[i],
                     'score': b_score[i],
+                    'category': b_class[i],
                     'image': image  # save the opened image for rendering
                 })
-
-        print('tf_detector.py: generate_detections_batch finished')
         return detections
 
     @staticmethod
-    def render_bounding_boxes(boxes, scores, image, label_map={}, confidence_threshold=0.5):
+    def render_bounding_boxes(boxes, scores, classes, image, label_map=DEFAULT_DETECTION_LABEL_MAP,
+                              confidence_threshold=0.5):
         """Renders bounding boxes, label and confidence on an image if confidence is above the threshold.
 
         Args:
-            boxes, scores, classes:  outputs of generate_detections.
+            boxes, scores, classes:  outputs of generate_detections. Here classes are still floats.
             image: PIL.Image object, output of generate_detections.
             label_map: optional, mapping the numerical label to a string name.
             confidence_threshold: threshold above which the bounding box is rendered.
@@ -117,55 +126,57 @@ class TFDetector:
         """
         display_boxes = []
         display_strs = []  # list of list, one list of strings for each bounding box (to accommodate multiple labels)
-        for box, score in zip(boxes, scores):
+        categories = []  # for color selection
+        for box, score, clss in zip(boxes, scores, classes):
             if score > confidence_threshold:
-                # print('To draw score {}, box {}'.format(score, box))
                 display_boxes.append(box)
-                clss = 1  # only 1 class "animal"
+                clss = int(clss)
+                categories.append(clss)
                 label = label_map[clss] if clss in label_map else str(clss)
-                displayed_label = '{}: {}%'.format(label, round(100*score))
+                displayed_label = '{}: {}%'.format(label, round(100 * score))
                 display_strs.append([displayed_label])
 
         display_boxes = np.array(display_boxes)
-        TFDetector.draw_bounding_boxes_on_image(image, display_boxes, display_str_list_list=display_strs)
+        TFDetector.draw_bounding_boxes_on_image(image, display_boxes, categories, display_strs=display_strs)
 
     # the following two functions are from https://github.com/tensorflow/models/blob/master/research/object_detection/utils/visualization_utils.py
 
     @staticmethod
     def draw_bounding_boxes_on_image(image,
                                      boxes,
-                                     color='red',
+                                     classes,
                                      thickness=4,
-                                     display_str_list_list=()):
-      """Draws bounding boxes on image.
+                                     display_strs=()):
+        """
+        Draws bounding boxes on image.
 
-      Args:
-        image: a PIL.Image object.
-        boxes: a 2 dimensional numpy array of [N, 4]: (ymin, xmin, ymax, xmax).
-               The coordinates are in normalized format between [0, 1].
-        color: color to draw bounding box. Default is red.
-        thickness: line thickness. Default value is 4.
-        display_str_list_list: list of list of strings.
-                               a list of strings for each bounding box.
-                               The reason to pass a list of strings for a
-                               bounding box is that it might contain
-                               multiple labels.
+        Args:
+            image: a PIL.Image object.
+            boxes: a 2 dimensional numpy array of [N, 4]: (ymin, xmin, ymax, xmax).
+                 The coordinates are in normalized format between [0, 1].
+            classes: a list of ints or strings (which can be cast to ints) corresponding to the class labels of the boxes.
+                 This is only used for selecting the color to render the bounding box in.
+            thickness: line thickness. Default value is 4.
+            display_strs: list of list of strings.
+                                 a list of strings for each bounding box.
+                                 The reason to pass a list of strings for a
+                                 bounding box is that it might contain
+                                 multiple labels.
+        """
 
-      Raises:
-        ValueError: if boxes is not a [N, 4] array
-      """
-      boxes_shape = boxes.shape
-      if not boxes_shape:
-        return
-      if len(boxes_shape) != 2 or boxes_shape[1] != 4:
-        #print('Input must be of size [N, 4], but is ' + str(boxes_shape))
-        return  # no object detection on this image, return
-      for i in range(boxes_shape[0]):
-        display_str_list = ()
-        if display_str_list_list:
-          display_str_list = display_str_list_list[i]
-          TFDetector.draw_bounding_box_on_image(image, boxes[i, 0], boxes[i, 1], boxes[i, 2],
-                                   boxes[i, 3], color, thickness, display_str_list)
+        boxes_shape = boxes.shape
+        if not boxes_shape:
+            return
+        if len(boxes_shape) != 2 or boxes_shape[1] != 4:
+            # print('Input must be of size [N, 4], but is ' + str(boxes_shape))
+            return  # no object detection on this image, return
+        for i in range(boxes_shape[0]):
+            if display_strs:
+                display_str_list = display_strs[i]
+                TFDetector.draw_bounding_box_on_image(image,
+                                           boxes[i, 0], boxes[i, 1], boxes[i, 2], boxes[i, 3],
+                                           classes[i],
+                                           thickness=thickness, display_str_list=display_str_list)
 
     @staticmethod
     def draw_bounding_box_on_image(image,
@@ -173,71 +184,79 @@ class TFDetector:
                                    xmin,
                                    ymax,
                                    xmax,
-                                   color='red',
+                                   clss=None,
                                    thickness=4,
                                    display_str_list=(),
                                    use_normalized_coordinates=True):
-      """Adds a bounding box to an image.
+        """
+        Adds a bounding box to an image.
 
-      Bounding box coordinates can be specified in either absolute (pixel) or
-      normalized coordinates by setting the use_normalized_coordinates argument.
+        Bounding box coordinates can be specified in either absolute (pixel) or
+        normalized coordinates by setting the use_normalized_coordinates argument.
 
-      Each string in display_str_list is displayed on a separate line above the
-      bounding box in black text on a rectangle filled with the input 'color'.
-      If the top of the bounding box extends to the edge of the image, the strings
-      are displayed below the bounding box.
+        Each string in display_str_list is displayed on a separate line above the
+        bounding box in black text on a rectangle filled with the input 'color'.
+        If the top of the bounding box extends to the edge of the image, the strings
+        are displayed below the bounding box.
 
-      Args:
-        image: a PIL.Image object.
-        ymin: ymin of bounding box.
-        xmin: xmin of bounding box.
-        ymax: ymax of bounding box.
-        xmax: xmax of bounding box.
-        color: color to draw bounding box. Default is red.
-        thickness: line thickness. Default value is 4.
-        display_str_list: list of strings to display in box
-                          (each to be shown on its own line).
-        use_normalized_coordinates: If True (default), treat coordinates
-          ymin, xmin, ymax, xmax as relative to the image.  Otherwise treat
-          coordinates as absolute.
-      """
-      draw = ImageDraw.Draw(image)
-      im_width, im_height = image.size
-      if use_normalized_coordinates:
-        (left, right, top, bottom) = (xmin * im_width, xmax * im_width,
-                                      ymin * im_height, ymax * im_height)
-      else:
-        (left, right, top, bottom) = (xmin, xmax, ymin, ymax)
-      draw.line([(left, top), (left, bottom), (right, bottom),
-                 (right, top), (left, top)], width=thickness, fill=color)
+        Args:
+          image: a PIL.Image object.
+          ymin: ymin of bounding box - upper left.
+          xmin: xmin of bounding box.
+          ymax: ymax of bounding box.
+          xmax: xmax of bounding box.
+          clss: the class of the object in this bounding box - will be cast to an int.
+          thickness: line thickness. Default value is 4.
+          display_str_list: list of strings to display in box
+                            (each to be shown on its own line).
+          use_normalized_coordinates: If True (default), treat coordinates
+            ymin, xmin, ymax, xmax as relative to the image.  Otherwise treat
+            coordinates as absolute.
+        """
+        if clss is None:
+            color = COLORS[1]
+        else:
+            color = COLORS[int(clss) % len(COLORS)]
 
-      try:
-        font = ImageFont.truetype('arial.ttf', 24)
-      except IOError:
-        font = ImageFont.load_default()
+        draw = ImageDraw.Draw(image)
+        im_width, im_height = image.size
+        if use_normalized_coordinates:
+            (left, right, top, bottom) = (xmin * im_width, xmax * im_width,
+                                          ymin * im_height, ymax * im_height)
+        else:
+            (left, right, top, bottom) = (xmin, xmax, ymin, ymax)
+        draw.line([(left, top), (left, bottom), (right, bottom),
+                   (right, top), (left, top)], width=thickness, fill=color)
 
-      # If the total height of the display strings added to the top of the bounding
-      # box exceeds the top of the image, stack the strings below the bounding box
-      # instead of above.
-      display_str_heights = [font.getsize(ds)[1] for ds in display_str_list]
-      # Each display_str has a top and bottom margin of 0.05x.
-      total_display_str_height = (1 + 2 * 0.05) * sum(display_str_heights)
+        try:
+            font = ImageFont.truetype('arial.ttf', 32)
+        except IOError:
+            font = ImageFont.load_default()
 
-      if top > total_display_str_height:
-        text_bottom = top
-      else:
-        text_bottom = bottom + total_display_str_height
-      # Reverse list and print from bottom to top.
-      for display_str in display_str_list[::-1]:
-        text_width, text_height = font.getsize(display_str)
-        margin = np.ceil(0.05 * text_height)
-        draw.rectangle(
-            [(left, text_bottom - text_height - 2 * margin), (left + text_width,
-                                                              text_bottom)],
-            fill=color)
-        draw.text(
-            (left + margin, text_bottom - text_height - margin),
-            display_str,
-            fill='black',
-            font=font)
-        text_bottom -= text_height - 2 * margin
+        # If the total height of the display strings added to the top of the bounding
+        # box exceeds the top of the image, stack the strings below the bounding box
+        # instead of above.
+        display_str_heights = [font.getsize(ds)[1] for ds in display_str_list]
+        # Each display_str has a top and bottom margin of 0.05x.
+        total_display_str_height = (1 + 2 * 0.05) * sum(display_str_heights)
+
+        if top > total_display_str_height:
+            text_bottom = top
+        else:
+            text_bottom = bottom + total_display_str_height
+
+        # Reverse list and print from bottom to top.
+        for display_str in display_str_list[::-1]:
+            text_width, text_height = font.getsize(display_str)
+            margin = np.ceil(0.05 * text_height)
+
+            draw.rectangle(
+                [(left, text_bottom - text_height - 2 * margin), (left + text_width,
+                                                                  text_bottom)],
+                fill=color)
+            draw.text(
+                (left + margin, text_bottom - text_height - margin),
+                display_str,
+                fill='black',
+                font=font)
+            text_bottom -= text_height - 2 * margin

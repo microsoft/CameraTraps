@@ -124,11 +124,12 @@ def detect_sync(*args, **kwargs):
         result = {}  # json to return to the user along with the rendered images if they opted for it
         for image_name, d in zip(image_names, detections):
             result[image_name] = []
-            for box, score in zip(d['box'], d['score']):
+            for box, score, category in zip(d['box'], d['score'], d['category']):
                 if score > detection_confidence:
-                    res = convert_numpy_floats(box)  # each result is [ymin, xmin, ymax, xmax, confidence]
-                    res.append(float(score))  # numpy float doesn't jsonify
-                    # assume only one class
+                    # each result is [ymin, xmin, ymax, xmax, confidence, category]
+                    res = convert_numpy_floats(box)  # numpy float doesn't jsonify
+                    res.append(float(score))
+                    res.append(int(category))  # category is an int here, not string as in the async API
                     result[image_name].append(res)
 
     except Exception as e:
@@ -146,13 +147,12 @@ def detect_sync(*args, **kwargs):
         if render_boxes:
             for image_name, d in zip(image_names, detections):
                 image = d['image']
-                TFDetector.render_bounding_boxes(d['box'], d['score'], image,
+                TFDetector.render_bounding_boxes(d['box'], d['score'], d['category'], image,
                                                  confidence_threshold=detection_confidence)
                 output_img_stream = BytesIO()
                 image.save(output_img_stream, format='jpeg')
                 output_img_stream.seek(0)
                 files[image_name] = (image_name, output_img_stream, 'image/jpeg')
-
         m = MultipartEncoder(fields=files)
 
         log.log_info('runserver, post_detect_sync, inference duration: {} seconds.'.format(inference_duration),
@@ -162,7 +162,6 @@ def detect_sync(*args, **kwargs):
                          'render_boxes': render_boxes,
                          'detection_confidence': detection_confidence
                      })
-
         return Response(m.to_string(), mimetype=m.content_type)
     except Exception as e:
         print('Error returning result or rendering the detection boxes: ' + str(e))

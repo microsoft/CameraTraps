@@ -4,7 +4,11 @@
 # Shared constants used to interpret annotation output
 #
 
-# the four categories for bounding boxes - do not change
+# Categories assigned to bounding boxes.  Used throughout our repo; do not change unless
+# you are Dan or Siyu.  In fact, do not change unless you are both Dan *and* Siyu.
+#
+# We use integer indices here; this is different than the API output .json file, 
+# where indices are string integers.
 bbox_categories = [
     {'id': 0, 'name': 'empty'},
     {'id': 1, 'name': 'animal'},
@@ -19,6 +23,3 @@ bbox_category_name_to_id = {}
 for cat in bbox_categories:
     bbox_category_id_to_name[cat['id']] = cat['name']
     bbox_category_name_to_id[cat['name']] = cat['id']
-    
-bbox_color_map = {1:'red',2:'green',3:'blue',4:'white'}
-
