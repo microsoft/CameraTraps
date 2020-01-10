@@ -471,7 +471,7 @@ from api.batch_processing.postprocessing import repeat_detections_core
 import path_utils
 
 options = repeat_detections_core.RepeatDetectionOptions()
-options.bRenderHtml = True
+options.bRenderHtml = False
 options.imageBase = image_base
 options.outputBase = os.path.join(filename_base,'rde_0.6_0.85_10_0.2')
 options.filenameReplacements = {'':''}
@@ -491,7 +491,7 @@ api_output_filename = list(folder_name_to_combined_output_file.values())[0]
 filtered_output_filename = path_utils.insert_before_extension(api_output_filename,'filtered')
 
 suspiciousDetectionResults = repeat_detections_core.find_repeat_detections(api_output_filename,
-                                                                           filtered_output_filename,
+                                                                           None,
                                                                            options)
 
 
