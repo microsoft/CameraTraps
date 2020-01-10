@@ -101,7 +101,7 @@ list_files = []
 
 # folder_name = folder_names[0]
 for folder_name in folder_names:
-    list_file = os.path.join(filename_base,path_utils.clean_filename(folder_name) + '_all.json')
+    list_file = os.path.join(filename_base,job_set_name + '_' + path_utils.clean_filename(folder_name) + '_all.json')
     
     # If this is intended to be a folder, it needs to end in '/', otherwise files that start
     # with the same string will match too
@@ -131,7 +131,7 @@ for list_file in list_files:
     chunked_files,chunks = prepare_api_submission.divide_files_into_tasks(list_file)
     print('Divided images into files:')
     for i_fn,fn in enumerate(chunked_files):
-        new_fn = chunked_files[i_fn].replace('_all','')
+        new_fn = chunked_files[i_fn].replace('__','_').replace('_all','')
         os.rename(fn, new_fn)
         chunked_files[i_fn] = new_fn
         print(fn,len(chunks[i_fn]))
@@ -252,7 +252,7 @@ task_groups = task_ids_by_task_group
 
 #%% Manually define task groups if we ran the jobs manually
 
-task_groups = [[7618], [7452], [9090]]
+task_groups = [[2407]]
 
 
 #%% Status check
@@ -396,7 +396,9 @@ for i_folder,folder_name_raw in enumerate(folder_names):
         raw_output_file = task_id_to_results_file[task_id]
         results_files.append(raw_output_file)
     
-    combined_api_output_file = os.path.join(combined_api_output_folder,folder_name + '_detections.json')
+    combined_api_output_file = os.path.join(combined_api_output_folder,job_set_name + 
+                                            folder_name + '_detections.json')
+    
     print('Combining the following into {}'.format(combined_api_output_file))
     for fn in results_files:
         print(fn)
@@ -414,7 +416,7 @@ for i_folder,folder_name_raw in enumerate(folder_names):
     missing_files = requested_images_set - result_images_set
     missing_images = path_utils.find_image_strings(missing_files)
     if len(missing_images) > 0:
-        print('Warning: {} missing images for folder {}'.format(len(missing_images),folder_name))    
+        print('Warning: {} missing images for folder [{}]'.format(len(missing_images),folder_name))    
     assert len(missing_images) < max_tolerable_missing_images
 
     # Something has gone bonkers if there are images in the results that
@@ -455,18 +457,71 @@ for fn in html_output_files:
     os.startfile(fn)
 
 
-#%% Timelapse prep 
+#%% Manual processing follows
+    
+#
+# Everything after this should be considered mostly manual, and no longer includes
+# looping over folders.    
+#
+    
+    
+#%% Repeat detection eleimination, phase 1
+
+from api.batch_processing.postprocessing import repeat_detections_core
+import path_utils
+
+options = repeat_detections_core.RepeatDetectionOptions()
+options.bRenderHtml = True
+options.imageBase = image_base
+options.outputBase = os.path.join(filename_base,'rde_0.6_0.85_10_0.2')
+options.filenameReplacements = {'':''}
+
+options.confidenceMin = 0.6
+options.confidenceMax = 1.01 
+options.iouThreshold = 0.85
+options.occurrenceThreshold = 10
+options.maxSuspiciousDetectionSize = 0.2
+
+options.debugMaxDir = -1
+options.debugMaxRenderDir = -1
+options.debugMaxRenderDetection = -1
+options.debugMaxRenderInstance = -1
+
+api_output_filename = list(folder_name_to_combined_output_file.values())[0]
+filtered_output_filename = path_utils.insert_before_extension(api_output_filename,'filtered')
+
+suspiciousDetectionResults = repeat_detections_core.find_repeat_detections(api_output_filename,
+                                                                           filtered_output_filename,
+                                                                           options)
+
+
+#%% Manual RDE step
+
+## DELETE THE ANIMALS ##
+
+
+#%% Re-filtering
+
+from api.batch_processing.postprocessing import remove_repeat_detections
+
+remove_repeat_detections.remove_repeat_detections(
+    inputFile=api_output_filename,
+    outputFile=filtered_output_filename,
+    filteringDir=r"Q:\uidaho.nelson_2019.10.drop\repeat_detections\filtering_2019.10.26.19.55.02"
+    )
+
+
+#%% Subsetting
 
 data = None
 
 from api.batch_processing.postprocessing.subset_json_detector_output import subset_json_detector_output
 from api.batch_processing.postprocessing.subset_json_detector_output import SubsetJsonDetectorOutputOptions
 
-input_filename = r"F:\blah.20190817.refiltered.json"
-output_base = r"F:\blah\json_subsets_2019.08.17"
-base_dir = r'Y:\Unprocessed Images'
+input_filename = inputFilename = list(folder_name_to_combined_output_file.values())[0]
+output_base = os.path.join(filename_base,'json_subsets')
 
-folders = os.listdir(base_dir)
+folders = os.listdir(image_base)
 
 if data is None:
     with open(input_filename) as f:
