@@ -34,8 +34,6 @@ class BatchScorer:
         self.output_dir = kwargs.get('output_dir')
 
         self.detection_threshold = kwargs.get('detection_threshold')
-        self.batch_size = kwargs.get('batch_size')
-        print('BatchScorer, __init__(), batch_size is: ', self.batch_size)
 
         self.image_ids_to_score = kwargs.get('image_ids_to_score')
         self.use_url = kwargs.get('use_url')
@@ -71,15 +69,15 @@ class BatchScorer:
 
             try:
                 if self.use_url:
-                    # local_filename will be a tempfile with a generated name
-                    local_filename, headers = request.urlretrieve(image_id)  # TODO do not save to disk
-                    image = TFDetector.open_image(local_filename)
-                    image = TFDetector.resize_image(image)
+                    # im_to_open will be a tempfile with a generated name
+                    im_to_open, headers = request.urlretrieve(image_id)  # TODO do not save to disk
                 else:
-                    stream = io.BytesIO()
-                    _ = blob_service.get_blob_to_stream(container_name, image_id, stream)
-                    image = TFDetector.open_image(stream)
-                    image = TFDetector.resize_image(image)  # image loaded here
+                    im_to_open = io.BytesIO()
+                    _ = blob_service.get_blob_to_stream(container_name, image_id, im_to_open)
+
+                # open is lazy; load() loads the image so we know it can be read successfully
+                image = TFDetector.open_image(im_to_open)
+                px = image.load()
 
                 self.images.append(image)
                 self.image_ids.append(image_id)
@@ -96,7 +94,7 @@ class BatchScorer:
         # self.image_ids does not include any failed images; self.image_ids is overwritten here
         self.detections, failed_images, failed_metas = self.detector.generate_detections_batch(
             images=self.images, image_ids=self.image_ids,
-            batch_size=self.batch_size, detection_threshold=self.detection_threshold,
+            detection_threshold=self.detection_threshold,
             image_metas=self.image_metas, metadata_available=self.metadata_available)
 
         self.failed_images.extend(failed_images)
@@ -145,7 +143,6 @@ if __name__ == '__main__':
     parser.add_argument('--output_dir', required=True)  # API's AML container storing jobs' outputs
 
     parser.add_argument('--detection_threshold', type=float, default=0.05)
-    parser.add_argument('--batch_size', type=int, default=8)
 
     args = parser.parse_args()
 
@@ -209,8 +206,7 @@ if __name__ == '__main__':
                          image_ids_to_score=image_ids_to_score,
                          use_url=args.use_url,
                          output_dir=args.output_dir,
-                         detection_threshold=args.detection_threshold,
-                         batch_size=args.batch_size)
+                         detection_threshold=args.detection_threshold)
 
     try:
         scorer.download_images()

@@ -19,7 +19,8 @@ from urllib import parse
 from azure.storage.blob import BlockBlobService
 from tqdm import tqdm
 
-import visualization_utils as vis_utils
+from visualization import visualization_utils as vis_utils
+from detection.run_tf_detector import TFDetector
 
 
 #%% Settings and user-supplied arguments
@@ -89,12 +90,6 @@ os.makedirs(args.out_dir, exist_ok=True)
 
 #%% Helper functions and constants
 
-DEFAULT_DETECTOR_LABEL_MAP = {
-    '1': 'animal',
-    '2': 'person',
-    '4': 'vehicle' # will be available in megadetector v4
-}
-
 def get_sas_key_from_uri(sas_uri):
     """
     Get the query part of the SAS token that contains permissions, access times and
@@ -141,7 +136,7 @@ detector_output = json.load(open(args.detector_output_path))
 assert 'images' in detector_output, 'Detector output file should be a json with an "images" field.'
 images = detector_output['images']
 
-detector_label_map = DEFAULT_DETECTOR_LABEL_MAP
+detector_label_map = TFDetector.DEFAULT_DETECTOR_LABEL_MAP
 if 'detection_categories' in detector_output:
     print('detection_categories provided')
     detector_label_map = detector_output['detection_categories']

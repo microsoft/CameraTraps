@@ -172,7 +172,7 @@ def _request_detections(**kwargs):
             print('runserver.py, running - listing all images to process.')
 
             # list all images to process
-            image_paths = SasBlob.list_blobs_in_container(api_config.MAX_NUMBER_IMAGES_ACCEPTED,
+            image_paths = SasBlob.list_blobs_in_container(api_config.MAX_NUMBER_IMAGES_ACCEPTED + 1,  # so > MAX_NUMBER_IMAGES_ACCEPTED will find that there are too many images requested so should not proceed
                                                           sas_uri=input_container_sas,
                                                           blob_prefix=image_path_prefix, blob_suffix='.jpg')
         # case 2 - user supplied a list of images to process; can include metadata

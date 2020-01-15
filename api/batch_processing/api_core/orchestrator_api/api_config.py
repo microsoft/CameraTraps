@@ -44,7 +44,6 @@ AML_CONFIG = {
     'source_dir': '/app/orchestrator_api/aml_scripts',
     'script_name': 'score.py',
 
-    'param_batch_size': 8,
     'param_detection_threshold': 0.3,  # megadetector v3 tends to have more very low confident detections and issues with NMS
 
     'completed_status': ['Finished', 'Failed', 'Completed', 'Canceled'],
