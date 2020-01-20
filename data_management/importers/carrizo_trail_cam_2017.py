@@ -23,7 +23,7 @@ import logging
 
 from path_utils import find_images
 
-input_base = r'/mnt/blobfuse/wildlifeblobssc/Trail Cam Carrizo 2017'
+input_base = r'/mnt/blobfuse/wildlifeblobssc/Trail Cam Carrizo 2017/'
 open_metadata_file = os.path.join(input_base, 'Carrizo open 2017.csv')
 shrub_metadata_file = os.path.join(input_base, 'Carrizo Shrub 2017.csv')
 
@@ -51,7 +51,7 @@ for inp_file in input_metadata_files:
     input_metadata['file'] = input_metadata.groupby(["rep", "week"]).cumcount()
     week_folder_format = {1: 'week 1- 2017', 2: 'week2- 2017', 3: 'week3-2017'}
     input_metadata['file'] = input_metadata[['file', 'rep', 'week', 'microsite']].apply(
-        lambda x: "{3}\{4}{1}-week{0}-carrizo-2017\IMG_{2}.JPG".format(int(x[2]), int(x[1]), str(int(x[0]+1)).zfill(4), week_folder_format[int(x[2])], x[3].lower()), axis=1)
+        lambda x: "{3}/{4}{1}-week{0}-carrizo-2017/IMG_{2}.JPG".format(int(x[2]), int(x[1]), str(int(x[0]+1)).zfill(4), week_folder_format[int(x[2])], x[3].lower()), axis=1)
     print('Converted filenames in the dataframe')
     final_data = final_data.append(input_metadata)
 # import pdb;pdb.set_trace()
@@ -92,10 +92,10 @@ assert(len(duplicateRows) == 0)
 # imageFullPaths = glob.glob(os.path.join(image_directory, '*\\*\\*.JPG'))
 imageFullPaths = find_images(image_directory, bRecursive=True)
 for iImage, imagePath in enumerate(imageFullPaths):
-    fn = ntpath.basename(imagePath)
-    parent_dir = os.path.basename(os.path.dirname(imagePath))
-    import pdb;pdb.set_trace()
-    assert((os.path.join(parent_dir, fn)) in filenamesToRows)
+    # fn = ntpath.basename(imagePath)
+    # parent_dir = os.path.basename(os.path.dirname(imagePath))
+    # import pdb;pdb.set_trace()
+    assert(imagePath.replace(input_base, '') in filenamesToRows)
 
 print('Finished checking {} images to make sure they\'re in the metadata'.format(
         len(imageFullPaths)))
