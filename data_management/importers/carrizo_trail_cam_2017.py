@@ -90,10 +90,11 @@ assert(len(duplicateRows) == 0)
 
 # Enumerate all images
 # imageFullPaths = glob.glob(os.path.join(image_directory, '*\\*\\*.JPG'))
-image_full_paths = find_images(image_directory, bRecursive=True)
+imageFullPaths = find_images(image_directory, bRecursive=True)
 for iImage, imagePath in enumerate(imageFullPaths):
     fn = ntpath.basename(imagePath)
     parent_dir = os.path.basename(os.path.dirname(imagePath))
+    import pdb;pdb.set_trace()
     assert((os.path.join(parent_dir, fn)) in filenamesToRows)
 
 print('Finished checking {} images to make sure they\'re in the metadata'.format(
