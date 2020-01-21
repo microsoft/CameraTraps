@@ -95,7 +95,12 @@ for iImage, imagePath in enumerate(imageFullPaths):
     # fn = ntpath.basename(imagePath)
     # parent_dir = os.path.basename(os.path.dirname(imagePath))
     # import pdb;pdb.set_trace()
-    assert(imagePath.replace(input_base, '') in filenamesToRows)
+    try:
+        assert(imagePath.replace(input_base, '') in filenamesToRows)
+    except Exception as e:
+        print(e)
+        continue
+        # import pdb;pdb.set_trace()
 
 print('Finished checking {} images to make sure they\'re in the metadata'.format(
         len(imageFullPaths)))
@@ -120,7 +125,7 @@ categoriesToCounts = {}
 # this is also a loop over annotations.
 
 startTime = time.time()
-print(imageFilenames)
+#print(imageFilenames)
 imageName = imageFilenames[0]
 for imageName in imageFilenames:
     rows = filenamesToRows[imageName]
@@ -129,15 +134,15 @@ for imageName in imageFilenames:
     iRow = rows[0]
     row = input_metadata.iloc[iRow]
     im = {}
-    im['id'] = image_name.replace('\\','/').replace('/','_').replace(' ','_')
+    im['id'] = imageName.replace('\\','/').replace('/','_').replace(' ','_')
     im['file_name'] = imageName
     im['region'] = row['region']
     im['site']= row['site']
-    im['mircosite'] = row['mircosite']
+    im['mircosite'] = row['microsite']
     im['datetime'] = row['calendar date']
     im['location'] = "{0}_{1}_{2}".format(row['region'], row['site'], row['microsite'])
     # Check image height and width
-    imagePath = os.path.join(image_directory, parent_dir, fn)
+    imagePath = os.path.join(image_directory, fn)
     assert(os.path.isfile(imagePath))
     pilImage = Image.open(imagePath)
     width, height = pilImage.size
@@ -215,7 +220,7 @@ json_data['images'] = images
 json_data['annotations'] = annotations
 json_data['categories'] = categories
 json_data['info'] = info
-json.dump(json_data, open(output_file, 'w'), indent=4)
+json.dump(json_data, open(output_json_file, 'w'), indent=4)
 
 print('Finished writing .json file with {} images, {} annotations, and {} categories'.format(
         len(images),len(annotations),len(categories)))
