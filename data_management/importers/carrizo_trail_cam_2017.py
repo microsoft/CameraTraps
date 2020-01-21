@@ -224,3 +224,35 @@ json.dump(json_data, open(output_json_file, 'w'), indent=4)
 
 print('Finished writing .json file with {} images, {} annotations, and {} categories'.format(
         len(images),len(annotations),len(categories)))
+
+
+#%% Validate output
+
+from data_management.databases import sanity_check_json_db
+
+options = sanity_check_json_db.SanityCheckOptions()
+options.baseDir = image_directory
+options.bCheckImageSizes = False
+options.bCheckImageExistence = False
+options.bFindUnusedImages = False
+    
+sortedCategories, data = sanity_check_json_db.sanity_check_json_db(output_json_file,options)
+
+
+#%% Preview labels
+
+from visualization import visualize_db
+from data_management.databases import sanity_check_json_db
+
+viz_options = visualize_db.DbVizOptions()
+viz_options.num_to_visualize = 1000
+viz_options.trim_to_images_with_bboxes = False
+viz_options.add_search_links = True
+viz_options.sort_by_filename = False
+viz_options.parallelize_rendering = True
+html_output_file,image_db = visualize_db.process_images(db_path=output_json_file,
+                                                        output_dir=os.path.join(
+                                                            output_base, 'Trail Cam Carrizo 2017/preview'),
+                                                        image_base_dir=image_directory,
+                                                        options=viz_options)
+os.startfile(html_output_file)
