@@ -1,50 +1,49 @@
-######
-#
-# run_tf_detector.py
-#
-# Functions to load a TensorFlow detection model, run inference,
-# render bounding boxes on images, and write out the resulting
-# images (with bounding boxes).
-#
-# THIS SCRIPT IS NOT A GOOD WAY TO PROCESS LOTS OF IMAGES.
-#
-# Did we mention in all caps that this script is not a good way to process lots
-# of images?  It loads all the images first, then runs the model.  If you want to
-# run a detector (e.g. ours) on lots of images, you should check out:
-#
-# 1) run_tf_detector_batch.py (for local execution)
-#
-# 2) https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing
-#    (for running large jobs on Azure ML)
-#
-# The good news: this script depends on nothing else in our repo, just standard pip
-# installs (the list of packages you need to install via pip is listed in `envrionment-detector.yml`
-# at the root of the repo; alternatively, we recommend you set up a conda virtual environment
-# following the Installation section on the main README, using `envrionment-detector.yml` as the
-# environment file where asked).
-#
-# It's a good way to test our detector on a handful of images and
-# get super-satisfying, graphical results.  It's also a good way to see how
-# fast a detector model will run on a particular machine.
-#
-# As a consequence of being completely self-contained, this script also
-# contains copies of a bunch of rendering functions whose current versions
-# live in visualization_utils.py.
-#
-# See the "command-line driver" cell for example invocations.
-#
-# If you would like to not use the GPU on the machine, set the environment variable CUDA_VISIBLE_DEVICES to "-1"
-#
-# If no output directory is specified, writes detections for c:\foo\bar.jpg to
-# c:\foo\bar_detections.jpg .
-#
-# Reference:
-# https://github.com/tensorflow/models/blob/master/research/object_detection/inference/detection_inference.py
-######
+"""
+Module to run a TensorFlow animal detection model on images.
 
-"""Module to run a TF animal detection model on images"""
+Contains functions to load a TensorFlow detection model, run inference,
+render bounding boxes on images, and write out the resulting
+images (with bounding boxes).
 
-# %% Constants, imports, environment
+THIS SCRIPT IS NOT A GOOD WAY TO PROCESS LOTS OF IMAGES.
+
+Did we mention in all caps that this script is not a good way to process lots
+of images? It does not facilitate checkpointing the results so if it crashes
+you would have to start from scratch. If you want to run a detector (e.g. ours)
+on lots of images, you should check out:
+
+1) run_tf_detector_batch.py (for local execution)
+
+2) https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing
+   (for running large jobs on Azure ML)
+
+The good news: this script depends on nothing else in our repo, just standard pip
+installs (the list of packages you need to install via pip is listed in `envrionment-detector.yml`
+at the root of the repo); alternatively, we recommend you set up a conda virtual environment
+following the Installation section on the main README, using `envrionment-detector.yml` as the
+environment file where asked).
+
+It's a good way to test our detector on a handful of images and
+get super-satisfying, graphical results.  It's also a good way to see how
+fast a detector model will run on a particular machine.
+
+See the "command-line driver" cell for example invocations.
+
+If you would like to not use the GPU on the machine, set the environment variable CUDA_VISIBLE_DEVICES to "-1"
+
+If no output directory is specified, writes detections for c:\foo\bar.jpg to
+c:\foo\bar_detections.jpg .
+
+This script will only consider detections with > 0.3 confidence at all times. The `threshold` you
+provide is only for rendering the results. If you need to see lower-confidence detections, you can change
+DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD.
+
+Reference:
+https://github.com/tensorflow/models/blob/master/research/object_detection/inference/detection_inference.py
+"""
+
+
+#%% Constants, imports, environment
 
 import argparse
 import glob
@@ -77,9 +76,9 @@ print('TensorFlow version:', tf.__version__)
 print('Is GPU available? tf.test.is_gpu_available:', tf.test.is_gpu_available())
 
 
-# %% Classes
+#%% Classes
 
-class ScriptUtils:
+class ImagePathUtils:
     """A collection of utility functions supporting this stand-alone script"""
 
     # Stick this into filenames before the extension for the rendered result
@@ -93,7 +92,7 @@ class ScriptUtils:
         Check a file's extension against a hard-coded set of image file extensions    '
         """
         ext = os.path.splitext(s)[1]
-        return ext.lower() in ScriptUtils.image_extensions
+        return ext.lower() in ImagePathUtils.image_extensions
 
     @staticmethod
     def find_image_files(strings):
@@ -101,7 +100,7 @@ class ScriptUtils:
         Given a list of strings that are potentially image file names, look for strings
         that actually look like image file names (based on extension).
         """
-        return [s for s in strings if ScriptUtils.is_image_file(s)]
+        return [s for s in strings if ImagePathUtils.is_image_file(s)]
 
     @staticmethod
     def find_images(dir_name, recursive=False):
@@ -113,7 +112,7 @@ class ScriptUtils:
         else:
             strings = glob.glob(os.path.join(dir_name, '*.*'))
 
-        image_strings = ScriptUtils.find_image_files(strings)
+        image_strings = ImagePathUtils.find_image_files(strings)
 
         return image_strings
 
@@ -492,7 +491,8 @@ class TFDetector:
     FAILURE_TF_INFER = 'Failure TF inference'
     FAILURE_IMAGE_OPEN = 'Failure image access'
 
-    DEFAULT_CONFIDENCE_THRESHOLD = 0.85
+    DEFAULT_RENDERING_CONFIDENCE_THRESHOLD = 0.85  # to render bounding boxes
+    DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD = 0.3  # to include in the output json file
 
     DEFAULT_DETECTOR_LABEL_MAP = {
         '1': 'animal',
@@ -572,7 +572,22 @@ class TFDetector:
 
         return box_tensor_out, score_tensor_out, class_tensor_out
 
-    def generate_detections_one_image(self, image, image_id, detection_threshold=0.3):
+    def generate_detections_one_image(self, image, image_id,
+                                      detection_threshold=DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD):
+        """Apply the detector to an image.
+
+        Args:
+            image: the PIL Image object
+            image_id: a path to identify the image; will be in the `file` field of the output object
+            detection_threshold: confidence above which to include the detection proposal
+
+        Returns:
+        A dict with the following fields, see https://github.com/microsoft/CameraTraps/tree/siyu/inference_refactor/api/batch_processing#batch-processing-api-output-format
+            - image_id (always present)
+            - max_detection_conf
+            - detections, which is a list of detection objects containing `category`, `conf` and `bbox`
+            - failure
+        """
         result = {
             'file': image_id
         }
@@ -607,15 +622,15 @@ class TFDetector:
         return result
 
 
-# %% Main function
+#%% Main function
 
 def load_and_run_detector(model_file, image_file_names, output_dir,
-                          confidence_threshold=TFDetector.DEFAULT_CONFIDENCE_THRESHOLD):
+                          render_confidence_threshold=TFDetector.DEFAULT_RENDERING_CONFIDENCE_THRESHOLD):
     if len(image_file_names) == 0:
         print('Warning: no files available')
         return
 
-    # Load and run detector on target images, and visualize the results
+    # load and run detector on target images, and visualize the results
     start_time = time.time()
     tf_detector = TFDetector(model_file)
     elapsed = time.time() - start_time
@@ -625,7 +640,7 @@ def load_and_run_detector(model_file, image_file_names, output_dir,
     time_load = []
     time_infer = []
 
-    # Since we'll be writing a bunch of files to the same folder, rename
+    # since we'll be writing a bunch of files to the same folder, rename
     # as necessary to avoid collisions
     output_file_names = {}
 
@@ -658,27 +673,28 @@ def load_and_run_detector(model_file, image_file_names, output_dir,
             print('An error occurred while running the detector on image {}. Exception: {}'.format(im_file, e))
             continue
 
-        # try:
-        # image is modified in place
-        DetectorUtils.render_detection_bounding_boxes(result['detections'], image,
-                                                      label_map=TFDetector.DEFAULT_DETECTOR_LABEL_MAP,
-                                                      confidence_threshold=confidence_threshold)
-        fn = os.path.basename(im_file).lower()
-        name, ext = os.path.splitext(fn)
-        fn = '{}{}{}'.format(name, ScriptUtils.DETECTION_FILENAME_INSERT, '.jpg')  # save all as JPG
-        if fn in output_file_names:
-            n_collisions = output_file_names[fn]  # if there were a collision, the count is at least 1
-            fn = str(n_collisions) + '_' + fn
-            output_file_names[fn] = n_collisions + 1
-        else:
-            output_file_names[fn] = 0
-        print(output_dir)
-        print(fn)
-        output_full_path = os.path.join(output_dir, fn)
-        image.save(output_full_path)
+        try:
+            # image is modified in place
+            DetectorUtils.render_detection_bounding_boxes(result['detections'], image,
+                                                          label_map=TFDetector.DEFAULT_DETECTOR_LABEL_MAP,
+                                                          confidence_threshold=render_confidence_threshold)
+            fn = os.path.basename(im_file).lower()
+            name, ext = os.path.splitext(fn)
+            fn = '{}{}{}'.format(name, ImagePathUtils.DETECTION_FILENAME_INSERT, '.jpg')  # save all as JPG
+            if fn in output_file_names:
+                n_collisions = output_file_names[fn]  # if there were a collision, the count is at least 1
+                fn = str(n_collisions) + '_' + fn
+                output_file_names[fn] = n_collisions + 1
+            else:
+                output_file_names[fn] = 0
+            print(output_dir)
+            print(fn)
+            output_full_path = os.path.join(output_dir, fn)
+            image.save(output_full_path)
 
-        # except Exception as e:
-        #     print('Visualizing results on the image {} failed. Exception: {}'.format(im_file, e))
+        except Exception as e:
+            print('Visualizing results on the image {} failed. Exception: {}'.format(im_file, e))
+            continue
 
     ave_time_load = statistics.mean(time_load)
     ave_time_infer = statistics.mean(time_infer)
@@ -695,7 +711,7 @@ def load_and_run_detector(model_file, image_file_names, output_dir,
                                                     std_dev_time_infer))
 
 
-# %% Command-line driver
+#%% Command-line driver
 
 def main():
     parser = argparse.ArgumentParser(
@@ -703,7 +719,7 @@ def main():
     )
     parser.add_argument(
         'detector_file',
-        help='path to .pb TensorFlow model file'
+        help='path to .pb TensorFlow detector model file'
     )
     group = parser.add_mutually_exclusive_group(required=True)  # must specify either an image file or a directory
     group.add_argument(
@@ -725,8 +741,8 @@ def main():
     parser.add_argument(
         '--threshold',
         type=float,
-        default=TFDetector.DEFAULT_CONFIDENCE_THRESHOLD,
-        help='confidence threshold between 0 and 1.0, only render boxes above this confidence'
+        default=TFDetector.DEFAULT_RENDERING_CONFIDENCE_THRESHOLD,
+        help='confidence threshold between 0 and 1.0, only render boxes above this confidence (but only boxes above 0.3 confidence will be considered at all)'
     )
 
     if len(sys.argv[1:]) == 0:
@@ -741,10 +757,7 @@ def main():
     if args.image_file:
         image_file_names = [args.image_file]
     else:
-        image_file_names = ScriptUtils.find_images(args.image_dir, args.recursive)
-
-    # hack to avoid scoring already-detected images; only for the case where output_dir is the same as image_dir
-    image_file_names = [x for x in image_file_names if ScriptUtils.DETECTION_FILENAME_INSERT not in x]
+        image_file_names = ImagePathUtils.find_images(args.image_dir, args.recursive)
 
     print('Running detector on {} images...'.format(len(image_file_names)))
 
@@ -760,7 +773,7 @@ def main():
     load_and_run_detector(model_file=args.detector_file,
                           image_file_names=image_file_names,
                           output_dir=args.output_dir,
-                          confidence_threshold=args.threshold)
+                          render_confidence_threshold=args.threshold)
 
 
 if __name__ == '__main__':
