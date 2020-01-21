@@ -235,8 +235,8 @@ options.baseDir = image_directory
 options.bCheckImageSizes = False
 options.bCheckImageExistence = False
 options.bFindUnusedImages = False
-    
-sortedCategories, data = sanity_check_json_db.sanity_check_json_db(output_json_file,options)
+# import pdb;pdb.set_trace()    
+data = sanity_check_json_db.sanity_check_json_db(output_json_file,options)
 
 
 #%% Preview labels
@@ -256,3 +256,4 @@ html_output_file,image_db = visualize_db.process_images(db_path=output_json_file
                                                         image_base_dir=image_directory,
                                                         options=viz_options)
 os.startfile(html_output_file)
+
