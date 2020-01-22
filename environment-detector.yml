@@ -11,11 +11,9 @@ dependencies:
 # a particular version of tensorflow in the range given here:
 - tensorflow-gpu>=1.9.0, <1.15.0
 - tqdm
-- numpy
-- pandas
 - Pillow>=5.3.0
 - humanfriendly
-- matplotlib
+- matplotlib  # will install numpy as a dependency
 - nb_conda_kernels
 - ipykernel
 
