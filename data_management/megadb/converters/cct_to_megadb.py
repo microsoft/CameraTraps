@@ -1,16 +1,16 @@
-#
-# cct_to_megadb.py
-#
-# Given an image json and/or a bounding box json in the COCO Camera Trap format, output
-# the equivalent database in the MegaDB format so that the entries can be ingested into MegaDB.
-#
-# All fields in the original image json would be carried over, and any fields in the
-# bounding box json but not in the corresponding entry in the image json will be added.
-#
-# Check carefully that the dataset_name parameter is set correctly!!
+"""
+cct_to_megadb.py
+
+Given an image json and/or a bounding box json in the COCO Camera Trap format, output
+the equivalent database in the MegaDB format so that the entries can be ingested into MegaDB.
+
+All fields in the original image json would be carried over, and any fields in the
+bounding box json but not in the corresponding entry in the image json will be added.
+
+Check carefully that the dataset_name parameter is set correctly!!
+"""
 
 import argparse
-import json
 import os
 import uuid
 from collections import defaultdict
@@ -22,12 +22,7 @@ from tqdm import tqdm
 
 from data_management.megadb.schema import sequences_schema_check
 from data_management.cct_json_utils import IndexedJsonDb
-from ct_utils import truncate_float
-
-
-def write_json(path, content, indent=1):
-    with open(path, 'w') as f:
-        json.dump(content, f, indent=indent)
+from ct_utils import truncate_float, write_json
 
 
 # some property names have changed in the new schema
