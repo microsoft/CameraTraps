@@ -59,7 +59,7 @@ from PIL import Image, ImageFont, ImageDraw
 import numpy as np
 from tqdm import tqdm
 import matplotlib
-matplotlib.use('TkAgg')
+#matplotlib.use('TkAgg')
 
 # ignoring all "PIL cannot read EXIF metainfo for the images" warnings
 warnings.filterwarnings('ignore', '(Possibly )?corrupt EXIF data', UserWarning)
@@ -634,7 +634,7 @@ def load_and_run_detector(model_file, image_file_names, output_dir,
     start_time = time.time()
     tf_detector = TFDetector(model_file)
     elapsed = time.time() - start_time
-    print("Loaded model in {}".format(humanfriendly.format_timespan(elapsed)))
+    print('Loaded model in {}'.format(humanfriendly.format_timespan(elapsed)))
 
     detection_results = []
     time_load = []
@@ -671,6 +671,8 @@ def load_and_run_detector(model_file, image_file_names, output_dir,
             time_infer.append(elapsed)
         except Exception as e:
             print('An error occurred while running the detector on image {}. Exception: {}'.format(im_file, e))
+            # the error code and message is written by generate_detections_one_image,
+            # which is wrapped in a big try catch
             continue
 
         try:
@@ -687,8 +689,7 @@ def load_and_run_detector(model_file, image_file_names, output_dir,
                 output_file_names[fn] = n_collisions + 1
             else:
                 output_file_names[fn] = 0
-            print(output_dir)
-            print(fn)
+
             output_full_path = os.path.join(output_dir, fn)
             image.save(output_full_path)
 
@@ -705,9 +706,9 @@ def load_and_run_detector(model_file, image_file_names, output_dir,
         std_dev_time_load = 'not available'
         std_dev_time_infer = 'not available'
     print('On average, for each image,')
-    print('loading took {}, std dev is {}'.format(humanfriendly.format_timespan(ave_time_load),
+    print('- loading took {}, std dev is {}'.format(humanfriendly.format_timespan(ave_time_load),
                                                   std_dev_time_load))
-    print('inference took {}, std dev is {}'.format(humanfriendly.format_timespan(ave_time_infer),
+    print('- inference took {}, std dev is {}'.format(humanfriendly.format_timespan(ave_time_infer),
                                                     std_dev_time_infer))
 
 
@@ -752,7 +753,7 @@ def main():
     args = parser.parse_args()
 
     assert os.path.exists(args.detector_file), 'detector_file specified does not exist'
-    assert 0.0 < args.threshold <= 1.0, 'confidence threshold needs to be between 0 and 1'  # Python chained comparison
+    assert 0.0 < args.threshold <= 1.0, 'Confidence threshold needs to be between 0 and 1'  # Python chained comparison
 
     if args.image_file:
         image_file_names = [args.image_file]
