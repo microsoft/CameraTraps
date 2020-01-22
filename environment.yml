@@ -6,6 +6,7 @@ dependencies:
 - ipykernel
 - humanfriendly
 - joblib
+- jsonpickle
 - matplotlib    # will install numpy as a dependency
 - pandas
 - Pillow>=5.3.0
