@@ -191,7 +191,7 @@ def main():
     # test that we can write to the output_file's dir if checkpointing requested
     if args.checkpoint_frequency != -1:
         output_dir = os.path.dirname(args.output_file)
-        checkpoint_path = os.path.join(output_dir, 'checkpoint_{}.json'.format(datetime.utcnow().strftime("%Y%m%d%H%M%S")))
+        checkpoint_path = os.path.join(output_dir, 'checkpoint_{}.json'.format(datetime.utcnow().strftime('%Y%m%d%H%M%S')))
         with open(checkpoint_path, 'w') as f:
             json.dump({'images': []}, f)
         print('The checkpoint file will be written to {}'.format(checkpoint_path))

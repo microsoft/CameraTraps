@@ -1,6 +1,8 @@
 """
 Create the tfrecord files for a dataset.
 
+This script is taken from the Visipedia repo: https://github.com/visipedia/tfrecords
+
 A lot of this code comes from the tensorflow inception example, so here is their license:
 
 # Copyright 2016 Google Inc. All Rights Reserved.
