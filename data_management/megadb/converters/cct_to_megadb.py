@@ -1,16 +1,16 @@
-#
-# cct_to_megadb.py
-#
-# Given an image json and/or a bounding box json in the COCO Camera Trap format, output
-# the equivalent database in the MegaDB format so that the entries can be ingested into MegaDB.
-#
-# All fields in the original image json would be carried over, and any fields in the
-# bounding box json but not in the corresponding entry in the image json will be added.
-#
-# Check carefully that the dataset_name parameter is set correctly!!
+"""
+cct_to_megadb.py
+
+Given an image json and/or a bounding box json in the COCO Camera Trap format, output
+the equivalent database in the MegaDB format so that the entries can be ingested into MegaDB.
+
+All fields in the original image json would be carried over, and any fields in the
+bounding box json but not in the corresponding entry in the image json will be added.
+
+Check carefully that the dataset_name parameter is set correctly!!
+"""
 
 import argparse
-import json
 import os
 import uuid
 from collections import defaultdict
@@ -22,12 +22,7 @@ from tqdm import tqdm
 
 from data_management.megadb.schema import sequences_schema_check
 from data_management.cct_json_utils import IndexedJsonDb
-from ct_utils import truncate_float
-
-
-def write_json(path, content, indent=1):
-    with open(path, 'w') as f:
-        json.dump(content, f, indent=indent)
+from ct_utils import truncate_float, write_json
 
 
 # some property names have changed in the new schema
@@ -351,15 +346,25 @@ def make_cct_embedded(image_db=None, bbox_db=None):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('dataset_name', type=str,
-                        help='a short string representing the dataset to be used as a partition key in MegaDB')
-    parser.add_argument('--image_db', type=str, help='path to the json containing the image DB in CCT format')
-    parser.add_argument('--bbox_db', type=str, help='path to the json containing the bbox DB in CCT format')
-    parser.add_argument('--docs', type=str, help='embedded CCT format json to use instead of image_db or bbox_db')
-    parser.add_argument('--partial_mega_db', type=str, required=True, help='path to store the resulting json')
+    parser.add_argument(
+        'dataset_name',
+        help='A short string representing the dataset to be used as a partition key in MegaDB')
+    parser.add_argument(
+        '--image_db',
+        help='Path to the json containing the image DB in CCT format')
+    parser.add_argument(
+        '--bbox_db',
+        help='Path to the json containing the bbox DB in CCT format')
+    parser.add_argument(
+        '--docs',
+        help='Embedded CCT format json to use instead of image_db or bbox_db')
+    parser.add_argument(
+        '--partial_mega_db',
+        required=True,
+        help='Path to store the resulting json')
     args = parser.parse_args()
 
-    assert len(args.dataset_name) > 0, 'dataset name cannot be an empty string'
+    assert len(args.dataset_name) > 0, 'dataset_name cannot be an empty string'
 
     if args.image_db:
         assert os.path.exists(args.image_db), 'image_db file path provided does not point to a file'
