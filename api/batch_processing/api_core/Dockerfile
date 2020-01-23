@@ -20,6 +20,9 @@ COPY ./LocalForwarder.config /lf/
 # Copy your API code
 COPY ./orchestrator_api /app/orchestrator_api/
 
+# Copy utility libraries to the AML scripts folder
+COPY ./orchestrator_api/sas_blob_utils.py /app/orchestrator_api/aml_scripts/sas_blob_utils.py
+
 # Add this API directory to PYTHONPATH
 ENV PYTHONPATH="${PYTHONPATH}:/app/"
 

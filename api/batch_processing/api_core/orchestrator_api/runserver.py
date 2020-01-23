@@ -1,6 +1,6 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
-# # /ai4e_api_tools has been added to the PYTHONPATH, so we can reference those
+# ai4e_api_tools has been added to the PYTHONPATH, so we can reference those
 # libraries directly.
 import json
 import math
@@ -110,8 +110,8 @@ def request_detections():
     # check request_name has only allowed characters
     request_name = post_body.get('request_name', '')
     if request_name != '':
-        if len(request_name) > 32:
-            return _abort(400, 'request_name is longer than 32 characters.')
+        if len(request_name) > 92:
+            return _abort(400, 'request_name is longer than 92 characters.')
         allowed = set(string.ascii_letters + string.digits + '_' + '-')
         if not set(request_name) <= allowed:
             return _abort(400, 'request_name contains unallowed characters (only letters, digits, - and _ are allowed).')
@@ -172,10 +172,9 @@ def _request_detections(**kwargs):
             print('runserver.py, running - listing all images to process.')
 
             # list all images to process
-            blob_prefix = None if image_path_prefix is None else image_path_prefix
-            image_paths = SasBlob.list_blobs_in_container(api_config.MAX_NUMBER_IMAGES_ACCEPTED,
+            image_paths = SasBlob.list_blobs_in_container(api_config.MAX_NUMBER_IMAGES_ACCEPTED + 1,  # so > MAX_NUMBER_IMAGES_ACCEPTED will find that there are too many images requested so should not proceed
                                                           sas_uri=input_container_sas,
-                                                          blob_prefix=blob_prefix, blob_suffix='.jpg')
+                                                          blob_prefix=image_path_prefix, blob_suffix='.jpg')
         # case 2 - user supplied a list of images to process; can include metadata
         else:
             print('runserver.py, running - using provided list of images.')
