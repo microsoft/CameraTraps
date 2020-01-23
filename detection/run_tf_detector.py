@@ -707,9 +707,9 @@ def load_and_run_detector(model_file, image_file_names, output_dir,
         std_dev_time_infer = 'not available'
     print('On average, for each image,')
     print('- loading took {}, std dev is {}'.format(humanfriendly.format_timespan(ave_time_load),
-                                                  std_dev_time_load))
+                                                    std_dev_time_load))
     print('- inference took {}, std dev is {}'.format(humanfriendly.format_timespan(ave_time_infer),
-                                                    std_dev_time_infer))
+                                                      std_dev_time_infer))
 
 
 #%% Command-line driver
@@ -720,30 +720,30 @@ def main():
     )
     parser.add_argument(
         'detector_file',
-        help='path to .pb TensorFlow detector model file'
+        help='Path to .pb TensorFlow detector model file'
     )
     group = parser.add_mutually_exclusive_group(required=True)  # must specify either an image file or a directory
     group.add_argument(
         '--image_file',
-        help='single file to process, mutually exclusive with --image_dir')
+        help='Single file to process, mutually exclusive with --image_dir')
     group.add_argument(
         '--image_dir',
-        help='directory to search for images, with optional recursion by adding --recursive'
+        help='Directory to search for images, with optional recursion by adding --recursive'
     )
     parser.add_argument(
         '--recursive',
         action='store_true',
-        help='recurse into directories, only meaningful if using --image_dir'
+        help='Recurse into directories, only meaningful if using --image_dir'
     )
     parser.add_argument(
         '--output_dir',
-        help='directory for output images (defaults to same as input)'
+        help='Directory for output images (defaults to same as input)'
     )
     parser.add_argument(
         '--threshold',
         type=float,
         default=TFDetector.DEFAULT_RENDERING_CONFIDENCE_THRESHOLD,
-        help='confidence threshold between 0 and 1.0, only render boxes above this confidence (but only boxes above 0.3 confidence will be considered at all)'
+        help='Confidence threshold between 0 and 1.0; only render boxes above this confidence (but only boxes above 0.3 confidence will be considered at all)'
     )
 
     if len(sys.argv[1:]) == 0:

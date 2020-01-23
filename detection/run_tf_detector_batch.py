@@ -106,36 +106,36 @@ def main():
     )
     parser.add_argument(
         'detector_file',
-        help='path to .pb TensorFlow detector model file'
+        help='Path to .pb TensorFlow detector model file'
     )
     parser.add_argument(
         'image_file',
-        help='can be a single image file, a json file containing a list of paths to images, or a directory'
+        help='Can be a single image file, a json file containing a list of paths to images, or a directory'
     )
     parser.add_argument(
         'output_file',
-        help='output results file, should end with a .json extension')
+        help='Output results file, should end with a .json extension')
     parser.add_argument(
         '--recursive',
         action='store_true',
-        help='recurse into directories, only meaningful if --image_file points to a directory')
+        help='Recurse into directories, only meaningful if --image_file points to a directory')
     parser.add_argument(
         '--output_relative_filenames',
         action='store_true',
-        help='output relative file names, only meaningful if --image_file points to a directory')
+        help='Output relative file names, only meaningful if --image_file points to a directory')
     parser.add_argument(
         '--threshold',
         type=float,
         default=TFDetector.DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD,
-        help="confidence threshold between 0 and 1.0, don't include boxes below this confidence in the output file")
+        help="Confidence threshold between 0 and 1.0, don't include boxes below this confidence in the output file")
     parser.add_argument(
         '--checkpoint_frequency',
         type=int,
         default=-1,
-        help='write results to a temporary file every N images; default is -1, which disables this feature')
+        help='Write results to a temporary file every N images; default is -1, which disables this feature')
     parser.add_argument(
         '--resume_from_checkpoint',
-        help='initiate from the specified checkpoint, which is in the same directory as the output_file specified')
+        help='Initiate from the specified checkpoint, which is in the same directory as the output_file specified')
 
 
     if len(sys.argv[1:]) == 0:
