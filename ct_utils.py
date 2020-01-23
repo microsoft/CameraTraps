@@ -5,6 +5,7 @@
 ##############################################################
 
 import inspect
+import json
 import jsonpickle
 import math
 import os
@@ -81,6 +82,11 @@ def pretty_print_object(obj, b_print=True):
     if b_print:
         print(s)
     return s
+
+
+def write_json(path, content, indent=1):
+    with open(path, 'w') as f:
+        json.dump(content, f, indent=indent)
 
 
 image_extensions = ['.jpg', '.jpeg', '.gif', '.png']

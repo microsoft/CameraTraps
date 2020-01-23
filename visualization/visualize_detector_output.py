@@ -14,13 +14,22 @@ import io
 import json
 import os
 import random
-from urllib import parse
+import urllib.parse as parse
 
 from azure.storage.blob import BlockBlobService
 from tqdm import tqdm
 
-import visualization_utils as vis_utils
+from visualization import visualization_utils as vis_utils
 
+
+#%% Constants
+# !! Note that this dict is a copy of that in detection/run_tf_detector.py TFDetector
+# Please modify over there and copy over. Reason: do not want to include tensorflow in environment.yml
+DEFAULT_DETECTOR_LABEL_MAP = {
+    '1': 'animal',
+    '2': 'person',
+    '4': 'vehicle'  # will be available in megadetector v4
+}
 
 #%% Settings and user-supplied arguments
 
@@ -88,12 +97,6 @@ os.makedirs(args.out_dir, exist_ok=True)
 
 
 #%% Helper functions and constants
-
-DEFAULT_DETECTOR_LABEL_MAP = {
-    '1': 'animal',
-    '2': 'person',
-    '4': 'vehicle' # will be available in megadetector v4
-}
 
 def get_sas_key_from_uri(sas_uri):
     """
@@ -172,6 +175,10 @@ print('Starting to annotate the images...')
 num_saved = 0
 
 for entry in tqdm(images):
+    if 'failure' in entry:
+        print('Skipping {}, which failed because of "{}"'.format(entry['file'], entry['failure']))
+        continue
+
     image_id = entry['file']
     max_conf = entry['max_detection_conf']
     detections = entry['detections']
@@ -192,7 +199,7 @@ for entry in tqdm(images):
     # resize is for displaying them more quickly
     image = vis_utils.resize_image(vis_utils.open_image(image_obj), args.output_image_width)
 
-    vis_utils.render_detection_bounding_boxes(detections, image, label_map=detector_label_map,
+    vis_utils.DetectorUtils.render_detection_bounding_boxes(detections, image, label_map=detector_label_map,
                                               confidence_threshold=args.confidence)
 
     annotated_img_name = 'anno_' + image_id.replace('/', '~').replace('\\', '~')

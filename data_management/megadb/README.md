@@ -43,12 +43,10 @@ The following illustrates what items in the `sequences` and `datasets` tables lo
                     {
                         "category": str, one of "animal", "person" or "vehicle",
                         "bbox": [
-                            {
-                              x_min,  # float, relative coordinates. (x_min, y_min) is the upper-left corner
-                              y_min,
-                              width_box,
-                              height_box
-                            }
+                            x_min,  # float, relative coordinates. (x_min, y_min) is the upper-left corner
+                            y_min,
+                            width_box,
+                            height_box
                         ]
                     }
                 ]
