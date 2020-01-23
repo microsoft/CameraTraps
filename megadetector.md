@@ -53,9 +53,9 @@ First MegaDetector release!
 
 ## Using the models 
 
-We provide three ways to apply this model to new images:
+We provide three ways to apply this model to new images - see below. For the two scripts, we describe how you can get set up if you have Python 3 and pip installed on a Linux computer or if you are on Windows and are starting from scratch. If your computer is also used for other Python projects, we recommend you set up the environment as described in the [Installation](https://github.com/microsoft/CameraTraps#installation) section of our main readme, and use conda to set up a virtual environment in which to run scripts from this repo. This reduces potential version conflict headaches with your other projects. The environment file you should use to run the two scripts below is `environment-detector.yml`. You will still need to add the required repos to `PYTHONPATH`, but don't have to worry about installing Python, pip or any packages yourself. If you do not have a GPU on your computer, change `tensorflow-gpu` to `tensorflow` in `environment-detector.yml`.
 
-### run_tf_detector.py
+### 1. run_tf_detector.py
 
 To &ldquo;test drive&rdquo; this model on small sets of images and get super-satisfying visual output, we provide [run_tf_detector.py](https://github.com/Microsoft/CameraTraps/blob/master/detection/run_tf_detector.py), an example script for invoking this detector on new images.  This script doesn&rsquo;t depend on anything else in our repo, so you can download it and give it a try.  [Let us know](mailto:cameratraps@microsoft.com) how it works on your images!
 
@@ -77,7 +77,7 @@ pip install tensorflow==1.13.1
 pip install Pillow humanfriendly matplotlib tqdm
 
 # Run MegaDetector
-python run_tf_detector.py megadetector_v3.pb --imageFile some_image_file.jpg
+python run_tf_detector.py megadetector_v3.pb --image_file some_image_file.jpg
 ```
 
 Run `python run_tf_detector.py` for a full list of options.
@@ -91,11 +91,11 @@ Then you can do the following, changing "tensorflow" to "tensorflow-gpu" if you 
 ```
 pip install tensorflow==1.13.1
 pip install Pillow humanfriendly matplotlib tqdm
-python wherever_you_downloaded_the_script/run_tf_detector.py wherever_you_downloaded_the_detector_file/megadetector_v3.pb --imageFile some_image_file.jpg
+python wherever_you_downloaded_the_script/run_tf_detector.py wherever_you_downloaded_the_detector_file/megadetector_v3.pb --image_file some_image_file.jpg
 ```
 
 
-### run_tf_detector_batch.py
+### 2. run_tf_detector_batch.py
 
 To apply this model to larger image sets on a single machine, we recommend a slightly different script, [run_tf_detector_batch.py](https://github.com/Microsoft/CameraTraps/blob/master/detection/run_tf_detector_batch.py).  This outputs data in the same format as our [batch processing API](https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing), so you can leverage all of our post-processing tools.
 
@@ -150,7 +150,7 @@ python CameraTraps/detection/run_tf_detector_batch.py wherever_you_put_the_detec
 ```
 
 
-### Batch processing API
+### 3. Batch processing API
 
 Speaking of which, when we process loads of images from collaborators, we use our [batch processing API](https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing), which we can make available externally on request.  [Email us](mailto:cameratraps@microsoft.com) for more information.
 
