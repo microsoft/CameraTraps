@@ -6,15 +6,16 @@ name: cameratraps-detector
 
 dependencies:
 - python>=3.5
-- nb_conda_kernels
-- ipykernel
-- tensorflow-gpu>=1.12.0, <1.15.0
+# note that tensorflow < 1.13.0 needs CUDA 9.0, and later versions need CUDA 10;
+# depending on the CUDA stack installed in your environment, you might have to specify
+# a particular version of tensorflow in the range given here:
+- tensorflow-gpu>=1.9.0, <1.15.0
 - tqdm
-- numpy
-- pandas
 - Pillow>=5.3.0
 - humanfriendly
-- matplotlib
+- matplotlib  # will install numpy as a dependency
+- nb_conda_kernels
+- ipykernel
 
 # the `nb_conda_kernels` and `ipykernel` packages are installed so that we
 # can use Jupyter Notebooks with this environment as a kernel
