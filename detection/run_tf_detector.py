@@ -58,8 +58,6 @@ import humanfriendly
 from PIL import Image, ImageFont, ImageDraw
 import numpy as np
 from tqdm import tqdm
-import matplotlib
-#matplotlib.use('TkAgg')
 
 # ignoring all "PIL cannot read EXIF metainfo for the images" warnings
 warnings.filterwarnings('ignore', '(Possibly )?corrupt EXIF data', UserWarning)
@@ -210,7 +208,7 @@ class DetectorUtils:
             an PIL image object in RGB mode
         """
         image = DetectorUtils.__open_image(input_file)
-        px = image.load()
+        image.load()
         return image
 
     # The following functions are modified versions of those at:
@@ -500,7 +498,7 @@ class TFDetector:
         '4': 'vehicle'  # will be available in megadetector v4
     }
 
-    NUM_DETECTOR_CATEGORIES = 5  # empty, animal, person, group, vehicle - for color assignment
+    NUM_DETECTOR_CATEGORIES = 4  # animal, person, group, vehicle - for color assignment
 
     def __init__(self, model_path):
         """Loads the model at model_path and start a tf.Session with this graph. The necessary
