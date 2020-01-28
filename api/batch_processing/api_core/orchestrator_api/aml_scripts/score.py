@@ -4,7 +4,7 @@ import json
 import os
 import sys
 from datetime import datetime
-from urllib import parse, request
+from urllib import request
 
 import azureml.core
 from azureml.core.model import Model
@@ -77,7 +77,7 @@ class BatchScorer:
 
                 # open is lazy; load() loads the image so we know it can be read successfully
                 image = TFDetector.open_image(im_to_open)
-                px = image.load()
+                image.load()
 
                 self.images.append(image)
                 self.image_ids.append(image_id)
