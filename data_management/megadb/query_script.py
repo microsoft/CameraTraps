@@ -12,18 +12,28 @@ from datetime import datetime
 import humanfriendly
 from azure.cosmos.cosmos_client import CosmosClient
 
-#%% Parameters
+#%% Common queries
 
-output_dir = '/path/200123_bbox'
-assert os.path.isdir(output_dir), 'Please create the output directory first'
-
-output_indent = 1  # None if no indentation needed in the output
-
-query = '''
+query_bbox = '''
 SELECT im.bbox, im.file, seq.dataset, seq.location
 FROM sequences seq JOIN im IN seq.images 
 WHERE ARRAY_LENGTH(im.bbox) > 0
 '''
+
+query_locations = '''
+SELECT seq.location, seq.dataset
+FROM sequences seq
+WHERE seq.location != null AND seq.dataset != 'nacti'
+'''
+
+#%% Parameters
+
+query = query_locations
+
+output_dir = '/Users/siyuyang/Source/temp_data/CameraTrap/megadb_query_results/locations'
+assert os.path.isdir(output_dir), 'Please create the output directory first'
+
+output_indent = 1  # None if no indentation needed in the output
 
 partition_key=None  # use None if querying across all partitions
 
