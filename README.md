@@ -13,7 +13,11 @@ Classifiers and detectors are trained using TensorFlow.
 
 This repo is maintained by folks in the [Microsoft AI for Earth](http://aka.ms/aiforearth) program who like looking at pictures of animals.  I mean, we want to use machine learning to support conservation too, but we also really like looking at pictures of animals.
 
-You can read more about what we do to support camera trap researchers in our recent [blog post](https://medium.com/microsoftazure/accelerating-biodiversity-surveys-with-azure-machine-learning-9be53f41e674).
+# How we work with ecologists
+
+We work with ecologists all over the world to help them spend less time annotating images and more time thinking about conservation.  You can read a little more about how this works on our [AI for Earth camera trap collaborations page](collaborations.md).
+
+You can also read about what we do to support camera trap researchers in our recent [blog post](https://medium.com/microsoftazure/accelerating-biodiversity-surveys-with-azure-machine-learning-9be53f41e674).
 
 
 # Data
@@ -23,7 +27,7 @@ This repo does not directly host camera trap data, but we work with our collabor
 
 # Models
 
-This repo does not extensively host models, though we will release models when they are at a level of generality that they might be useful to other people.  
+This repo does not extensively host species classification models, though we will release models when they are at a level of generality that they might be useful to other people.  But...
 
 
 ## MegaDetector
@@ -35,6 +39,7 @@ Here&rsquo;s a &ldquo;teaser&rdquo; image of what detector output looks like:
 ![alt text](images/detector_example.jpg "Red bounding box on fox")
 
 Image credit University of Washington.
+
 
 # Contact
 
