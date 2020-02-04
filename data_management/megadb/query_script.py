@@ -20,20 +20,21 @@ FROM sequences seq JOIN im IN seq.images
 WHERE ARRAY_LENGTH(im.bbox) > 0
 '''
 
-query_locations = '''
-SELECT seq.location, seq.dataset
-FROM sequences seq
-WHERE seq.location != null AND seq.dataset != 'nacti'
+query_empty = '''
+SELECT im.file, seq.dataset, seq.location
+FROM sequences seq JOIN im IN seq.images 
+WHERE ARRAY_LENGTH(im.class) = 1 AND ARRAY_CONTAINS(im.class, "empty") 
+OR ARRAY_LENGTH(seq.class) = 1 AND ARRAY_CONTAINS(seq.class, "empty") 
 '''
 
 #%% Parameters
 
-query = query_locations
+query = query_empty
 
-output_dir = '/Users/siyuyang/Source/temp_data/CameraTrap/megadb_query_results/locations'
+output_dir = '/home/marmot/camtrap/data/mdv4_empty'
 assert os.path.isdir(output_dir), 'Please create the output directory first'
 
-output_indent = 1  # None if no indentation needed in the output
+output_indent = None  # None if no indentation needed in the output, or int
 
 partition_key=None  # use None if querying across all partitions
 
@@ -93,7 +94,7 @@ print('Getting all the results used {}'.format(humanfriendly.format_timespan(ela
 if consolidate_results:
     print('Consolidating the parts...')
 
-    all_results = []
+    all_results = results  # the unsaved entries
     for part_path in part_paths:
         with open(part_path) as f:
             part_items = json.load(f)

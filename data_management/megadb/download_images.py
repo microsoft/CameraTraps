@@ -1,4 +1,25 @@
 """
+Download images multi-threaded.
+
+Expect the input JSON to be a list of dicts, where the dicts have fields
+- download_id (usually dataset_name+uuid, uuid doesn't have to be from the database)
+- file (from images)
+- dataset and possibly location (from sequences)
+
+Example entry:
+ {
+  "bbox": [
+   {
+    "category": "animal",
+    "bbox": [ 0.3876, 0.3667, 0.1046, 0.22 ]
+   }
+  ],
+  "file": "animals/0467/0962.jpg",
+  "dataset": "wcs",
+  "location": "3282",
+  "download_id": "wcs+8a066ce6-3f14-11ea-aae7-9801a7a664ab"
+ }
+
 The environment variables COSMOS_ENDPOINT and COSMOS_KEY need to be set.
 """
 
@@ -67,7 +88,7 @@ def main():
 
     megadb_utils = MegadbUtils()
     datasets_table = megadb_utils.get_datasets_table()
-    print('Obtained datasets table. Loading the file_list now...')
+    print('Obtained the datasets table. Loading the file_list now...')
 
     with open(args.file_list) as f:
         file_list = json.load(f)
@@ -75,6 +96,10 @@ def main():
     existing = os.listdir(args.store_dir)
     existing = set([i.split('.jpg')[0] for i in existing])
     file_list_to_download = [i for i in file_list if i['download_id'] not in existing]
+
+    # if need to re-download a dataset's images in case of corruption
+    # file_list_to_download = [i for i in file_list_to_download if i['dataset'] == 'rspb_gola']
+
     print('file_list has {} items, still need to download {} items'.format(
         len(file_list),
         len(file_list_to_download)

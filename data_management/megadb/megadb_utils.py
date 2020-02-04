@@ -40,7 +40,7 @@ class MegadbUtils:
         """
 
         Returns: a dict where the key is the name of the `dataset` and value is a dict with
-        the train, val and test splits by location as sets.
+        the train, val and test splits by location as *sets*.
 
         """
         query = '''SELECT * FROM datasets d'''
