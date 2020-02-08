@@ -39,7 +39,8 @@ from datetime import datetime
 import humanfriendly
 from tqdm import tqdm
 
-from detection.run_tf_detector import ImagePathUtils, DetectorUtils, TFDetector
+from detection.run_tf_detector import ImagePathUtils, TFDetector
+import visualization.visualization_utils as viz_utils
 
 # Numpy FutureWarnings from tensorflow import
 warnings.filterwarnings('ignore', category=FutureWarning)
@@ -70,7 +71,7 @@ def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path,
         count += 1
 
         try:
-            image = DetectorUtils.load_image(im_file)
+            image = viz_utils.load_image(im_file)
         except Exception as e:
             print('Image {} cannot be loaded. Exception: {}'.format(im_file, e))
             result = {
@@ -127,7 +128,7 @@ def main():
         '--threshold',
         type=float,
         default=TFDetector.DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD,
-        help="Confidence threshold between 0 and 1.0, don't include boxes below this confidence in the output file")
+        help="Confidence threshold between 0 and 1.0, don't include boxes below this confidence in the output file. Default is 0.1")
     parser.add_argument(
         '--checkpoint_frequency',
         type=int,
@@ -137,7 +138,6 @@ def main():
         '--resume_from_checkpoint',
         help='Initiate from the specified checkpoint, which is in the same directory as the output_file specified')
 
-
     if len(sys.argv[1:]) == 0:
         parser.print_help()
         parser.exit()
@@ -145,7 +145,7 @@ def main():
     args = parser.parse_args()
 
     assert os.path.exists(args.detector_file), 'detector_file specified does not exist'
-    assert 0.0 < args.threshold <= 1.0, 'Confidence threshold needs to be between 0 and 1' # Python chained comparison
+    assert 0.0 < args.threshold <= 1.0, 'Confidence threshold needs to be between 0 and 1'  # Python chained comparison
     assert args.output_file.endswith('.json'), 'output_file specified needs to end with .json'
     if args.checkpoint_frequency != -1:
         assert args.checkpoint_frequency > 0, 'Checkpoint_frequency needs to be > 0 or == -1'
