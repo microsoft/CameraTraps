@@ -1,27 +1,25 @@
-########
-#
-# postprocess_batch_results.py
-#
-# Given a .json or .csv file representing the output from the batch API, do one or more of
-# the following:
-#
-# * Evaluate detector precision/recall, optionally rendering results (requires ground truth)
-#
-# * Sample true/false positives/negatives and render to html (requires ground truth)
-#
-# * Sample detections/non-detections and render to html (when ground truth isn't available)
-#
-# Upcoming improvements:
-#
-# * Elimination of "suspicious detections", i.e. detections repeated numerous times with
-#   unrealistically limited movement... this is implemented, but currently as a step that
-#   runs *before* this script.  See find_problematic_detections.py.
-#
-# * Support for accessing blob storage directly (currently images are accessed by
-#   file paths, so images in Azure blobs should be accessed by mounting the
-#   containers).
-#
-########
+"""
+postprocess_batch_results.py
+
+Given a .json or .csv file representing the output from the batch API, do one or more of
+the following:
+
+* Evaluate detector precision/recall, optionally rendering results (requires ground truth)
+
+* Sample true/false positives/negatives and render to html (requires ground truth)
+
+* Sample detections/non-detections and render to html (when ground truth isn't available)
+
+Upcoming improvements:
+
+* Elimination of "suspicious detections", i.e. detections repeated numerous times with
+  unrealistically limited movement... this is implemented, but currently as a step that
+  runs *before* this script.  See find_problematic_detections.py.
+
+* Support for accessing blob storage directly (currently images are accessed by
+  file paths, so images in Azure blobs should be accessed by mounting the
+  containers).
+"""
 
 
 #%% Constants and imports
