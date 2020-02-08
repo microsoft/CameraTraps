@@ -11,6 +11,7 @@ dependencies:
 # a particular version of tensorflow in the range given here:
 - tensorflow-gpu>=1.9.0, <1.15.0
 - tqdm
+- jsonpickle
 - Pillow>=5.3.0
 - humanfriendly
 - matplotlib  # will install numpy as a dependency
