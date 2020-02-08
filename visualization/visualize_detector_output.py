@@ -19,17 +19,15 @@ import urllib.parse as parse
 from azure.storage.blob import BlockBlobService
 from tqdm import tqdm
 
+from data_management.annotations.annotation_constants import  bbox_category_id_to_name  # here id is int
 from visualization import visualization_utils as vis_utils
 
 
 #%% Constants
-# !! Note that this dict is a copy of that in detection/run_tf_detector.py TFDetector
-# Please modify over there and copy over. Reason: do not want to include tensorflow in environment.yml
-DEFAULT_DETECTOR_LABEL_MAP = {
-    '1': 'animal',
-    '2': 'person',
-    '4': 'vehicle'  # will be available in megadetector v4
-}
+
+# convert category ID from int to str
+DEFAULT_DETECTOR_LABEL_MAP = {str(k): v for k, v in bbox_category_id_to_name.items()}
+
 
 #%% Settings and user-supplied arguments
 
@@ -199,7 +197,7 @@ for entry in tqdm(images):
     # resize is for displaying them more quickly
     image = vis_utils.resize_image(vis_utils.open_image(image_obj), args.output_image_width)
 
-    vis_utils.DetectorUtils.render_detection_bounding_boxes(detections, image, label_map=detector_label_map,
+    vis_utils.render_detection_bounding_boxes(detections, image, label_map=detector_label_map,
                                               confidence_threshold=args.confidence)
 
     annotated_img_name = 'anno_' + image_id.replace('/', '~').replace('\\', '~')
