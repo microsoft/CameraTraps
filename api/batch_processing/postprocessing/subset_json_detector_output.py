@@ -71,12 +71,18 @@ class SubsetJsonDetectorOutputOptions:
     # Should we split output into individual .json files for each folder?
     split_folders = False
     
-    # Folder level to use for splitting ['bottom','top','n_from_bottom']
+    # Folder level to use for splitting ['bottom','top','n_from_bottom','dict']
+    #
+    # 'dict' requires 'split_folder_param' to be a dictionary mapping each filename
+    # to a token.
     split_folder_mode = 'bottom' # 'top'
     
     # When using the 'n_from_bottom' parameter to define folder splitting, this
     # defines the number of directories from the bottom.  'n_from_bottom' with
     # a parameter of zero is the same as 'bottom'.
+    #
+    # When 'split_folder_mode' is 'dict', this should be a dictionary mapping each filename
+    # to a token.
     split_folder_param = 0
     
     # Only meaningful if split_folders is True: should we convert pathnames to be relative
@@ -373,6 +379,9 @@ def subset_json_detector_output(input_filename,output_filename,options,data=None
                     dirname = os.path.dirname(dirname)
             elif options.split_folder_mode == 'top':
                 dirname = top_level_folder(fn)                
+            elif options.split_folder_mode == 'dict':
+                assert isinstance(options.split_folder_param,dict)
+                dirname = options.split_folder_param[fn]
             else:
                 raise ValueError('Unrecognized folder split mode {}'.format(options.split_folder_mode))
             folders_to_images.setdefault(dirname,[]).append(im)
@@ -389,7 +398,7 @@ def subset_json_detector_output(input_filename,output_filename,options,data=None
                 # im = folders_to_images[dirname][0]
                 for im in folders_to_images[dirname]:
                     fn = im['file']
-                    relfn = os.path.relpath(fn,dirname)
+                    relfn = os.path.relpath(fn,dirname).replace('\\','/')
                     im['file'] = relfn
                     
         print('Finished converting to json-relative paths, writing output')
