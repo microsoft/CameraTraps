@@ -67,28 +67,30 @@ Our camera trap work is part of our larger efforts in using machine learning for
 
 These questions help us assess how we can best help a new collaborator, and which of our tools will be most applicable to a particular project.
 
-1. About how many images do you have that you&rsquo;ve already annotated, from roughly the same environments as the photos you need to process in the future?
+1. Can you provide a short overview of your project?  What ecosystem are you working in, and what are the key species of interest?
 
-2. If you have some images you&rsquo;ve already annotated:
+2. About how many images do you have that you&rsquo;ve already annotated, from roughly the same environments as the photos you need to process in the future?
+
+3. If you have some images you&rsquo;ve already annotated:
 
   - Did you keep all the empty images, or only the images with animals?
   - Are they from exactly the same camera locations that you need to process in the future (as in, cameras literally bolted in place), or from similar locations?
 
-3. About how many images do you have waiting for processing right now?
+4. About how many images do you have waiting for processing right now?
 
-4. About how many images do you expect to process in the next, e.g., 1 year?
+5. About how many images do you expect to process in the next, e.g., 1 year?
 
-5. What tools do you use to process and annotate images?  For example, do you:
+6. What tools do you use to process and annotate images?  For example, do you:
 
   - Move images to folders named by species
   - Keep an Excel spreadsheet open and fill it with filenames and species IDs
   - Use a tool like Timelapse or Reconyx MapView that&rsquo;s specifically for camera traps
   - Use a tool like Adobe Bridge or digiKam that&rsquo;s for general-purpose image management
 	
-6. About what percentage of your images are empty?
+7. About what percentage of your images are empty?
 
-7. About what percentage of your images typically contain vehicles or people, and what do you want to do with those images?  I.e., do you consider those &ldquo;noise&rdquo; (the same as empty images), or do you need those labeled as well?
+8. About what percentage of your images typically contain vehicles or people, and what do you want to do with those images?  I.e., do you consider those &ldquo;noise&rdquo; (the same as empty images), or do you need those labeled as well?
 
-8. What is your level of fluency in Python?  
+9. What is your level of fluency in Python?  
 
-9. Do you have a GPU available (or access to cloud-based GPUs)?
+10. Do you have a GPU available (or access to cloud-based GPUs)?
