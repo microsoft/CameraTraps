@@ -94,7 +94,10 @@ def main(unused_argv):
         f.write(new_config_file)
     print('model_main.py, main(), finished substituting mount points.')
 
-    config = tf.estimator.RunConfig(model_dir=FLAGS.model_dir)
+    config = tf.estimator.RunConfig(
+        model_dir=FLAGS.model_dir,
+        save_checkpoints_steps= 20000  # save less often than default
+    )
 
     train_and_eval_dict = model_lib.create_estimator_and_inputs(
         run_config=config,
