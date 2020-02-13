@@ -175,7 +175,8 @@ def main():
         print('{} image files found in the input directory'.format(len(image_file_names)))
     # a json list of image paths
     elif os.path.isfile(args.image_file) and args.image_file.endswith('.json'):
-        image_file_names = json.load(args.image_file)
+        with open(args.image_file) as f:
+            image_file_names = json.load(f)
         print('{} image files found in the json list'.format(len(image_file_names)))
     # a single image file
     elif os.path.isfile(args.image_file) and ImagePathUtils.is_image_file(args.image_file):
