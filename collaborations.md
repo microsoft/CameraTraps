@@ -93,4 +93,4 @@ These questions help us assess how we can best help a new collaborator, and whic
 
 9. What is your level of fluency in Python?  
 
-10. Do you have a GPU available (or access to cloud-based GPUs)?  &ldquo;I don't know what a GPU is&rqduo; is a perfectly good answer.
+10. Do you have a GPU available (or access to cloud-based GPUs)?  &ldquo;I don't know what a GPU is&rdquo; is a perfectly good answer.
