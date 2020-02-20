@@ -468,7 +468,7 @@ def update_detection_table(RepeatDetectionResults, options, outputFilename=None)
 
             locationBbox = detectionEvent.bbox
 
-            # For each instance othis suspicious detection
+            # For each instance of this suspicious detection
             for iInstance, instance in enumerate(detectionEvent.instances):
 
                 instanceBbox = instance.bbox
@@ -480,6 +480,8 @@ def update_detection_table(RepeatDetectionResults, options, outputFilename=None)
                 # for this detection group, where "almost" is defined by the IOU
                 # threshold.
                 assert iou >= options.iouThreshold
+                # if iou < options.iouThreshold:
+                #    print('IOU warning: {},{}'.format(iou,options.iouThreshold))
 
                 assert instance.filename in RepeatDetectionResults.filenameToRow
                 iRow = RepeatDetectionResults.filenameToRow[instance.filename]
