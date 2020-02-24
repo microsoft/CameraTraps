@@ -53,8 +53,9 @@ print('Is GPU available? tf.test.is_gpu_available:', tf.test.is_gpu_available())
 
 #%% Main function
 
-def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path,
-                                confidence_threshold, checkpoint_frequency, results):
+def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=None,
+                                confidence_threshold=0, checkpoint_frequency=-1, results=[]):
+    
     already_processed = set([i['file'] for i in results])
 
     # load the detector
@@ -168,8 +169,7 @@ def main():
     else:
         results = []
 
-    # find the images to score; images can be:
-    # a directory, may need to recurse
+    # Find the images to score; images can be a directory, may need to recurse
     if os.path.isdir(args.image_file):
         image_file_names = ImagePathUtils.find_images(args.image_file, args.recursive)
         print('{} image files found in the input directory'.format(len(image_file_names)))
