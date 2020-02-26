@@ -54,10 +54,13 @@ print('Is GPU available? tf.test.is_gpu_available:', tf.test.is_gpu_available())
 #%% Main function
 
 def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=None,
-                                confidence_threshold=0, checkpoint_frequency=-1, results=[]):
+                                confidence_threshold=0, checkpoint_frequency=-1, results=None):
     
+    if results is None:
+        results = []
+        
     already_processed = set([i['file'] for i in results])
-
+    
     # load the detector
     start_time = time.time()
     tf_detector = TFDetector(model_file)
@@ -66,7 +69,9 @@ def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=No
 
     count = 0  # does not count those already processed
     for im_file in tqdm(image_file_names):
+        
         if im_file in already_processed:  # will not add additional entries not in the starter checkpoint
+            print('Bypassing image {}'.format(im_file))
             continue
 
         count += 1
