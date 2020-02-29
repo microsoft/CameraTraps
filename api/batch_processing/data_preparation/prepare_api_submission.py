@@ -257,13 +257,16 @@ def clean_request_name(request_name, whitelist=valid_request_name_chars):
 
 
 def generate_api_queries(input_container_sas_url,file_list_sas_urls,request_name_base,
-                         caller,image_path_prefixes=None):
+                         caller,additional_args={},image_path_prefixes=None):
     """
     Generate .json-formatted API input from input parameters.  file_list_sas_urls is
     a list of SAS URLs to individual file lists (all relative to the same container).
     
     request_name_base is a request name for the set; if the base name is 'blah', individual
     requests will get request names of 'blah_chunk000', 'blah_chunk001', etc.
+    
+    additional_args is a dictionary of custom arguments to be added to each query (to specify
+    different custom args per query, use multiple calls to generate_api_query())
     
     image_path_prefixes, if supplied, can be a single string or a list of strings 
     (one per request)
@@ -295,6 +298,10 @@ def generate_api_queries(input_container_sas_url,file_list_sas_urls,request_name
             request_name = request_name_base
         d['request_name'] = request_name
         d['caller'] = caller
+        
+        for k in additional_args.keys():
+            d[k] = additional_args[k]
+            
         if image_path_prefixes is not None:
             if not isinstance(image_path_prefixes,list):
                 d['image_path_prefix'] = image_path_prefixes
@@ -306,7 +313,8 @@ def generate_api_queries(input_container_sas_url,file_list_sas_urls,request_name
     return request_strings,request_dicts
 
 
-def generate_api_query(input_container_sas_url,file_list_sas_url,request_name,caller,image_path_prefix=None):
+def generate_api_query(input_container_sas_url,file_list_sas_url,request_name,caller,
+                       additional_args={},image_path_prefix=None):
     """
     Convenience function to call generate_api_queries for a single batch.
     
@@ -319,6 +327,7 @@ def generate_api_query(input_container_sas_url,file_list_sas_url,request_name,ca
                                                          file_list_sas_urls,
                                                          request_name,
                                                          caller,
+                                                         additional_args,
                                                          image_path_prefixes)
     return request_strings[0],request_dicts[0]
 
