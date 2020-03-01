@@ -20,7 +20,6 @@ from tqdm import tqdm
 from api.batch_processing.postprocessing.load_api_results import load_api_results_csv
 from data_management.annotations import annotation_constants
 
-
 CONF_DIGITS = 3
 
 #%% Conversion functions
