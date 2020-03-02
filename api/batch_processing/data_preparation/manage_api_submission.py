@@ -537,7 +537,7 @@ for i_folder,folder_name_raw in enumerate(folder_names):
     options.parallelize_rendering = True
     options.include_almost_detections = True
     options.num_images_to_sample = 5000
-    options.confidence_threshold = 0.5
+    options.confidence_threshold = 0.8
     options.almost_detection_confidence_threshold = options.confidence_threshold - 0.05
     options.ground_truth_json_file = None
     
