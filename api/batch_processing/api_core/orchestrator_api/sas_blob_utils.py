@@ -37,7 +37,8 @@ class SasBlob:
     def get_service_from_uri(sas_uri):
         return BlockBlobService(
             account_name=SasBlob.get_account_from_uri(sas_uri),
-            sas_token=SasBlob.get_sas_key_from_uri(sas_uri))
+            sas_token=SasBlob.get_sas_key_from_uri(sas_uri),
+            endpoint_suffix=SasBlob.get_endpoint_suffix(sas_uri))
 
     @staticmethod
     def get_service_from_datastore(datastore):
@@ -152,11 +153,19 @@ class SasBlob:
         return parse.parse_qs(url_parts.query)
 
     @staticmethod
+    def get_endpoint_suffix(sas_uri):
+        """
+        Defaults to core.windows.net for Azure. Use core.chinacloudapi.cn for Azure China.
+        Example sas_uri - https://wildlifeblobssc.blob.core.windows.net/awc?st=201
+        """
+        suffix = sas_uri.split('.blob.')[1].split('/')[0]
+        return suffix
+
+
+    @staticmethod
     def check_blob_exists_in_container(blob_name, container_sas_uri=None, datastore=None):
         if container_sas_uri:
-            blob_service = BlockBlobService(
-                account_name=SasBlob.get_account_from_uri(container_sas_uri),
-                sas_token=SasBlob.get_sas_key_from_uri(container_sas_uri))
+            blob_service = SasBlob.get_service_from_uri(container_sas_uri)
             container_name = SasBlob.get_container_from_uri(container_sas_uri)
         elif datastore:
             blob_service = SasBlob.get_service_from_datastore(datastore)
@@ -203,8 +212,7 @@ class SasBlob:
         elif datastore:
             try:
                 container_name = datastore['container_name']
-                blob_service = BlockBlobService(account_name=datastore['account_name'],
-                                                account_key=datastore['account_key'])
+                blob_service = SasBlob.get_service_from_datastore(datastore)
             except Exception as e:
                 raise RuntimeError(
                     'Error occurred while connecting to blob via info provided in a datastore object: {}'.format(str(e)))
@@ -249,56 +257,35 @@ class SasBlob:
     @staticmethod
     def generate_blob_sas_uri(container_sas_uri, blob_name):
         container_name = SasBlob.get_container_from_uri(container_sas_uri)
-        sas_service = BlockBlobService(
-            account_name=SasBlob.get_account_from_uri(container_sas_uri),
-            sas_token=SasBlob.get_sas_key_from_uri(container_sas_uri))
+        sas_service = SasBlob.get_service_from_uri(container_sas_uri)
         blob_uri = sas_service.make_blob_url(container_name, blob_name,
                                              sas_token=SasBlob.get_sas_key_from_uri(container_sas_uri))
-
         return blob_uri
 
     @staticmethod
     def create_blob_from_bytes(sas_uri, blob_name, input_bytes):
-        sas_service = BlockBlobService(
-            account_name = SasBlob.get_account_from_uri(sas_uri),
-            sas_token = SasBlob.get_sas_key_from_uri(sas_uri))
-
+        sas_service = SasBlob.get_service_from_uri(sas_uri)
         container_name = SasBlob.get_container_from_uri(sas_uri)
-
         sas_service.create_blob_from_bytes(container_name, blob_name, input_bytes)
-
         return sas_service.make_blob_url(container_name, blob_name, sas_token=SasBlob.get_sas_key_from_uri(sas_uri))
 
     @staticmethod
     def create_blob_from_text(sas_uri, blob_name, text):
-        sas_service = BlockBlobService(
-            account_name=SasBlob.get_account_from_uri(sas_uri),
-            sas_token=SasBlob.get_sas_key_from_uri(sas_uri))
-
+        sas_service = SasBlob.get_service_from_uri(sas_uri)
         container_name = SasBlob.get_container_from_uri(sas_uri)
-
         sas_service.create_blob_from_text(container_name, blob_name, text, 'utf-8')
-
         return sas_service.make_blob_url(container_name, blob_name, sas_token=SasBlob.get_sas_key_from_uri(sas_uri))
 
     @staticmethod
     def create_blob_from_stream(sas_uri, blob_name, input_stream):
-        sas_service = BlockBlobService(
-            account_name=SasBlob.get_account_from_uri(sas_uri),
-            sas_token=SasBlob.get_sas_key_from_uri(sas_uri))
-
+        sas_service = SasBlob.get_service_from_uri(sas_uri)
         container_name = SasBlob.get_container_from_uri(sas_uri)
-
         sas_service.create_blob_from_stream(container_name, blob_name, input_stream)
-
         return sas_service.make_blob_url(container_name, blob_name, sas_token=SasBlob.get_sas_key_from_uri(sas_uri))
 
     @staticmethod
     def download_blob_to_stream(sas_uri):
-        sas_service = BlockBlobService(
-            account_name=SasBlob.get_account_from_uri(sas_uri),
-            sas_token=SasBlob.get_sas_key_from_uri(sas_uri))
-
+        sas_service = SasBlob.get_service_from_uri(sas_uri)
         with io.BytesIO() as output_stream:
             blob = sas_service.get_blob_to_stream(SasBlob.get_container_from_uri(sas_uri),
                                                   SasBlob.get_blob_path_from_uri(sas_uri),
@@ -307,10 +294,7 @@ class SasBlob:
 
     @staticmethod
     def download_blob_to_text(sas_uri):
-        sas_service = BlockBlobService(
-            account_name=SasBlob.get_account_from_uri(sas_uri),
-            sas_token=SasBlob.get_sas_key_from_uri(sas_uri))
-
+        sas_service = SasBlob.get_service_from_uri(sas_uri)
         blob = sas_service.get_blob_to_text(SasBlob.get_container_from_uri(sas_uri),
                                               SasBlob.get_blob_path_from_uri(sas_uri))
         return blob.content

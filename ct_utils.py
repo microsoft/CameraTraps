@@ -1,14 +1,15 @@
-##############################################################
-# ct_utils.py
-#
-# Script with shared utility functions, such as truncating floats
-##############################################################
+"""
+ct_utils.py
+
+Script with shared utility functions, such as truncating floats
+"""
 
 import inspect
-import jsonpickle
+import json
 import math
 import os
 
+import jsonpickle
 import numpy as np
 
 
@@ -81,6 +82,11 @@ def pretty_print_object(obj, b_print=True):
     if b_print:
         print(s)
     return s
+
+
+def write_json(path, content, indent=1):
+    with open(path, 'w') as f:
+        json.dump(content, f, indent=indent)
 
 
 image_extensions = ['.jpg', '.jpeg', '.gif', '.png']
