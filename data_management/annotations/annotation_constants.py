@@ -1,14 +1,18 @@
-#
-# annotation_constants.py
-#
-# Shared constants used to interpret annotation output
-#
+"""
+annotation_constants.py
 
-# Categories assigned to bounding boxes.  Used throughout our repo; do not change unless
-# you are Dan or Siyu.  In fact, do not change unless you are both Dan *and* Siyu.
-#
-# We use integer indices here; this is different than the API output .json file, 
-# where indices are string integers.
+Shared constants used to interpret annotation output
+
+
+Categories assigned to bounding boxes.  Used throughout our repo; do not change unless
+you are Dan or Siyu.  In fact, do not change unless you are both Dan *and* Siyu.
+
+We use integer indices here; this is different than the API output .json file,
+where indices are string integers.
+"""
+
+NUM_DETECTOR_CATEGORIES = 4  # this is for choosing colors, so ignoring the "empty" class
+
 bbox_categories = [
     {'id': 0, 'name': 'empty'},
     {'id': 1, 'name': 'animal'},

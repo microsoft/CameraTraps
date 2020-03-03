@@ -20,11 +20,12 @@ from api.batch_processing.postprocessing import repeat_detections_core
 
 #%% Main function
 
-def remove_repeat_detections(inputFile,outputFile,filteringDir):
+def remove_repeat_detections(inputFile,outputFile,filteringDir,options=None):
 
     assert os.path.isfile(inputFile), "Can't find file {}".format(inputFile)
     assert os.path.isdir(filteringDir), "Can't find folder {}".format(filteringDir)
-    options = repeat_detections_core.RepeatDetectionOptions()
+    if options is None:
+        options = repeat_detections_core.RepeatDetectionOptions()
     options.filterFileToLoad = os.path.join(filteringDir,repeat_detections_core.DETECTION_INDEX_FILE_NAME)
     options.bWriteFilteringFolder = False
     repeat_detections_core.find_repeat_detections(inputFile, outputFile, options)
@@ -37,9 +38,9 @@ if False:
     #%%
     
     # python remove_repeat_detections.py "F:\wpz\6714_detections_wpz_all_20191015233705.SUCP_subset.json" "F:\wpz\6714_detections_wpz_all_20191015233705.SUCP_subset_filtered.json" "F:\wpz\rde\filtering_2019.10.24.16.52.54"
-    inputFile = r"F:\wpz\6714_detections_wpz_all_20191015233705.SUCP_subset.json"
-    outputFile = r"F:\wpz\6714_detections_wpz_all_20191015233705.SUCP_subset_filtered.json"
-    filteringDir = r"F:\wpz\rde\filtering_2019.10.24.16.52.54"
+    inputFile = r''
+    outputFile = r''
+    filteringDir = r''
     remove_repeat_detections(inputFile,outputFile,filteringDir)
 
 
