@@ -11,18 +11,16 @@ import pandas as pd
 import os
 import glob
 import json
-import re
 import uuid
 import time
 import ntpath
 import humanfriendly
-import PIL
 from PIL import Image
 import numpy as np
 
 input_metadata_file = r'C:\Users\Gramener\Desktop\Projects\Microsoft\Camera Traps\shrub-free 2018.csv'
 output_json_file = r'C:\Users\Gramener\Desktop\Projects\Microsoft\Camera Traps\carrizo_camera_traps.json'
-image_directory = r'C:\Users\Gramener\Desktop\Projects\Microsoft\Camera Traps\Shrub-free zone Carrizo 2018'
+image_directory = r'Z:\Shrub-free zone Carrizo 2018'
 
 assert(os.path.isdir(image_directory))
 
