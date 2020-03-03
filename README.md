@@ -106,15 +106,15 @@ The required Python packages for running utility and visualization scripts in th
 conda env create --file environment.yml
 ```
 
-### TensorFlow-based scripts
+### Machine learning scripts
 
-Scripts that execute machine learning code &ndash; specifically, scripts in the folders `api`,`detection`, and `classification` &ndash; require additional depdendencies.  In particular, the `detection/run_tf_detector*.py` scripts should use [environment-detector.yml](environment-detector.yml) to set up the environment, as follows:
+Scripts that execute machine learning code &ndash; specifically, scripts in the folders `api`, `detection`, and `classification` &ndash; require additional depdendencies.  In particular, the `detection/run_tf_detector*.py` scripts should use [environment-detector.yml](environment-detector.yml) to set up the environment, as follows:
 
 ```
 conda env create --file environment-detector.yml
 ```
 
-This environment file allows any TensorFlow version from 1.9 to 1.15 to be installed, but you may need to adjust that version for your environment.  Specifically, if you are running on an Azure Data Science Virtual Machine (which has CUDA 10.1 as of the time I&rsquo; writing this), you should change the line:
+This environment file allows any TensorFlow version from 1.9 to 1.15 to be installed, but you may need to adjust that version for your environment.  Specifically, if you are running on an Azure Data Science Virtual Machine (which has CUDA 10.1 as of the time I&rsquo;m writing this), you should change the line:
 
 `- tensorflow-gpu>=1.9.0, <1.15.0`
 
