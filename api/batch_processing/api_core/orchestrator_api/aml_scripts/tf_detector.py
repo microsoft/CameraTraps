@@ -5,8 +5,8 @@ import tensorflow as tf
 print('tensorflow tf version:', tf.__version__)
 print('tf_detector.py, tf.test.is_gpu_available:', tf.test.is_gpu_available())
 
-MIN_DIM = 600
-MAX_DIM = 1024
+
+batch_size = 1
 
 # Number of decimal places to round to for confidence and bbox coordinates
 CONF_DIGITS = 3
@@ -15,8 +15,6 @@ COORD_DIGITS = 4
 
 class TFDetector:
 
-    detection_graph = None
-    
     def __init__(self, model_path):
         self.detection_graph = self.load_model(model_path)
 
@@ -61,12 +59,6 @@ class TFDetector:
         return image
 
     @staticmethod
-    def resize_image(image):
-        # resize the images since the client side renders them as small images too
-        height, width = MIN_DIM, MAX_DIM
-        return image.resize((width, height))  # PIL is lazy, so image only loaded here, not in open_image()
-
-    @staticmethod
     def round_and_make_float(d):
         return round(float(d), COORD_DIGITS)
 
@@ -95,7 +87,8 @@ class TFDetector:
     def _generate_detections_batch(self, images, sess, image_tensor, box_tensor, score_tensor, class_tensor):
         print('_generate_detections_batch')
         np_images = [np.asarray(image, np.uint8) for image in images]
-        images_stacked = np.stack(np_images, axis=0) if len(images) > 1 else np.expand_dims(np_images[0], axis=0)
+        images_stacked = np.expand_dims(np_images[0], axis=0)
+
         print('images_stacked shape: ', images_stacked.shape)
 
         # performs inference
@@ -106,13 +99,12 @@ class TFDetector:
         print('box_tensor shape: ', box_tensor.shape)
         return box_tensor, score_tensor, class_tensor
 
-    def generate_detections_batch(self, images, image_ids, batch_size, detection_threshold,
+    def generate_detections_batch(self, images, image_ids, detection_threshold,
                                   image_metas=None, metadata_available=False):
         """
         Args:
             images: resized images to be processed by the detector
             image_ids: list of strings, IDs for the images
-            batch_size: mini-bath size to use during inference
             detection_threshold: detection confidence above which to record the detection result
             image_metas: list of strings, same length as image_ids
             metadata_available: is image_metas actually available (if not, image_metas can be a list of None)
