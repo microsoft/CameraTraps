@@ -1,7 +1,7 @@
 import copy
 import io
 import os
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 from datetime import datetime, timedelta
 import json
 
@@ -138,7 +138,7 @@ class AMLCompute:
                                                                   'pillow',
                                                                   'numpy',
                                                                   'azure',
-                                                                  'azure-storage-blob',
+                                                                  'azure-storage-blob==2.1.0',
                                                                   'azureml-defaults==1.0.41'])
 
             amlcompute_run_config = RunConfiguration(conda_dependencies=dependencies)
@@ -154,7 +154,6 @@ class AMLCompute:
             param_end_index = PipelineParameter(name='param_end_index', default_value=0)
 
             param_detection_threshold = PipelineParameter(name='param_detection_threshold', default_value=0.05)
-            param_batch_size = PipelineParameter(name='param_batch_size', default_value=8)
 
             batch_score_step = PythonScriptStep(aml_config['script_name'],
                                                 source_directory=aml_config['source_dir'],
@@ -168,8 +167,7 @@ class AMLCompute:
                                                            '--begin_index', param_begin_index,  # inclusive
                                                            '--end_index', param_end_index,  # exclusive
                                                            '--output_dir', output_dir,
-                                                           '--detection_threshold', param_detection_threshold,
-                                                           '--batch_size', param_batch_size],
+                                                           '--detection_threshold', param_detection_threshold],
                                                 compute_target=compute_target,
                                                 inputs=[internal_dir],
                                                 outputs=[output_dir],
@@ -236,7 +234,6 @@ class AMLCompute:
                     'param_begin_index': job['begin'],
                     'param_end_index': job['end'],
                     'param_detection_threshold': self.aml_config['param_detection_threshold'],
-                    'param_batch_size': self.aml_config['param_batch_size']
                 })
                 list_jobs_active[job_id]['pipeline_run'] = pipeline_run
 
@@ -387,6 +384,12 @@ class AMLMonitor:
             'detection_categories': api_config.DETECTION_CATEGORIES,
             'images': all_detections
         }
+        # order the json output keys
+        detection_output_content = OrderedDict([
+                                                ('info', detection_output_content['info']),
+                                                ('detection_categories', detection_output_content['detection_categories']),
+                                                ('images', detection_output_content['images'])])
+
         detection_output_str = json.dumps(detection_output_content, indent=1)
 
         # upload aggregated results to output_store

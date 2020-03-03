@@ -14,12 +14,19 @@ import io
 import json
 import os
 import random
-from urllib import parse
+import urllib.parse as parse
 
 from azure.storage.blob import BlockBlobService
 from tqdm import tqdm
 
-import visualization_utils as vis_utils
+from data_management.annotations.annotation_constants import  bbox_category_id_to_name  # here id is int
+from visualization import visualization_utils as vis_utils
+
+
+#%% Constants
+
+# convert category ID from int to str
+DEFAULT_DETECTOR_LABEL_MAP = {str(k): v for k, v in bbox_category_id_to_name.items()}
 
 
 #%% Settings and user-supplied arguments
@@ -88,12 +95,6 @@ os.makedirs(args.out_dir, exist_ok=True)
 
 
 #%% Helper functions and constants
-
-DEFAULT_DETECTOR_LABEL_MAP = {
-    '1': 'animal',
-    '2': 'person',
-    '4': 'vehicle' # will be available in megadetector v4
-}
 
 def get_sas_key_from_uri(sas_uri):
     """
@@ -172,6 +173,10 @@ print('Starting to annotate the images...')
 num_saved = 0
 
 for entry in tqdm(images):
+    if 'failure' in entry:
+        print('Skipping {}, which failed because of "{}"'.format(entry['file'], entry['failure']))
+        continue
+
     image_id = entry['file']
     max_conf = entry['max_detection_conf']
     detections = entry['detections']
