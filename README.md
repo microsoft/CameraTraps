@@ -94,20 +94,39 @@ Random things that don&rsquo;t fit in any other directory.  Currently contains a
 
 # Installation
 
-We use [conda](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html) to manage our Python package dependencies. Conda is a package and environment management system. You can install a lightweight distribution of conda (Miniconda) for your OS via installers at [https://docs.conda.io/en/latest/miniconda.html](https://docs.conda.io/en/latest/miniconda.html). Installing packages with conda may be slower as it optimizes package version compatibility.
-
-Some Azure SDKs are only available on PyPI; we install them using pip as a part of the conda installation step.
+We use [conda](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html) to manage our Python package dependencies. Conda is a package and environment management system. You can install a lightweight distribution of conda (Miniconda) for your OS via installers at [https://docs.conda.io/en/latest/miniconda.html](https://docs.conda.io/en/latest/miniconda.html).
 
 ## Initial setup
 
-The required Python packages for running utility and visualization scripts in this repo are listed in [environment.yml](environment.yml). Scripts in some folders including `api`,`detection` and `classification` may require additional setup. In particular, the `detection/run_tf_detector*.py` scripts should use [environment-detector.yml](environment-detector.yml) to set up the environment.
+### Utility and visualization scripts
 
-In your shell, navigate to the root directory of this repo and issue the following command to create a virtual environment via conda called `cameratraps` (specified in the environment file) and install the required packages:
+The required Python packages for running utility and visualization scripts in this repo are listed in [environment.yml](environment.yml).  To set up your environment for these scripts, in your shell, navigate to the root directory of this repo and issue the following command to create a virtual environment via conda called `cameratraps` (specified in the environment file) and install the required packages:
+
 ```
 conda env create --file environment.yml
 ```
 
-If you run into an error while creating the environment, try updating conda to version 4.5.11 or above. Check the version of conda using `conda --version`.
+### TensorFlow-based scripts
+
+Scripts that execute machine learning code &ndash; specifically, scripts in the folders `api`,`detection`, and `classification` &ndash; require additional depdendencies.  In particular, the `detection/run_tf_detector*.py` scripts should use [environment-detector.yml](environment-detector.yml) to set up the environment, as follows:
+
+```
+conda env create --file environment-detector.yml
+```
+
+This environment file allows any TensorFlow version from 1.9 to 1.15 to be installed, but you may need to adjust that version for your environment.  Specifically, if you are running on an Azure Data Science Virtual Machine (which has CUDA 10.1 as of the time I&rsquo; writing this), you should change the line:
+
+`- tensorflow-gpu>=1.9.0, <1.15.0`
+
+...to:
+
+`- tensorflow-gpu=1.13.1`
+
+...before creating your environment.
+
+### Troubleshooting
+
+If you run into an error while creating either of the above environments, try updating conda to version 4.5.11 or above. Check the version of conda using `conda --version`.
 
 ## Usage
 
