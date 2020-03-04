@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -38,6 +38,7 @@ namespace CameraTrapJsonManagerApp
         public JsonData SubsetJsonDetectorOutputMain(string inputFileName, string outputFilename,
         SubsetJsonDetectorOutputOptions options, JsonData data = null)
         {
+
             try
             {
                 string progressMsg = string.Empty;
@@ -71,17 +72,11 @@ namespace CameraTrapJsonManagerApp
 
                 }
                 else
-                {
                     data = DeepClone(data);
-                }
                 if (!string.IsNullOrEmpty(options.Query))
-                {
                     data = SubsetJsonDetectorOutputbyQuery(data, options);
-                }
                 if (options.ConfidenceThreshold != -1)
-                {
                     data = SubsetJsonDetectorOutputbyConfidence(data, options);
-                }
                 if (!options.SplitFolders)
                 {
                     SetLabelProgressMsg("Writing to file...", ProgressBarStyle.Marquee);
@@ -136,28 +131,20 @@ namespace CameraTrapJsonManagerApp
                         dirData.info = data.info;
                         dirData.images = foldersToImages[directoryName];
 
-                        string jsonFileName = directoryName.Replace('/', '_').Replace('\\', '_') + ".json";
-                        directoryName = directoryName.Replace("\\", "/");
-                        if (directoryName.Contains("/"))
+                        if (Path.IsPathRooted(directoryName))
                         {
-                            var directories = directoryName.Split('/');
-                            if (directories.Length > 2)
-                            {
-                                directoryName = directories[directories.Length - 2];
-                                jsonFileName = directories[directories.Length - 1] + ".json";
-                            }
-                            else
-                                directoryName = directoryName.Substring(directoryName.LastIndexOf("/") + 1);
+                            string rootPath = Path.GetPathRoot(directoryName);
+                            directoryName = directoryName.Replace(rootPath, "");
                         }
-
-                       
-
+                        
+                        string jsonFileName = directoryName.Replace('/', '_').Replace('\\', '_') + ".json";
+                        
                         if (options.CopyJsonstoFolders)
                             jsonFileName = Path.Combine(outputFilename, directoryName, jsonFileName);
                         else
                             jsonFileName = Path.Combine(outputFilename, jsonFileName);
 
-                       
+
                         bool result = WriteDetectionResults(dirData, jsonFileName, options);
                         if (!result)
                             return null;
@@ -194,7 +181,7 @@ namespace CameraTrapJsonManagerApp
             long count = 0;
             int percentage = 0;
             long totalCount = imagesIn.Count();
-            int[] progressPercentagesForDisplay = { 10, 20, 40, 80, 100 };
+            int[] progressPercentagesForDisplay = { 10, 20, 40, 80, 90, 100 };
 
             progressMsg = string.Format("Subsetting by query {0}, replacement {1} ...", options.Query, options.Replacement);
 
@@ -265,14 +252,11 @@ namespace CameraTrapJsonManagerApp
 
             foreach (var item in imagesIn)
             {
-
                 count++;
 
                 int percentage = SharedFunctions.GetProgressPercentage(count, totalCount);
                 if (progressPercentagesForDisplay.Contains(percentage))
-                {
                     SetLabelProgressMsg(progressMsg, count, totalCount, ProgressBarStyle.Blocks);
-                }
 
                 dynamic p;
                 dynamic pOrig = item.max_detection_conf;
@@ -307,7 +291,7 @@ namespace CameraTrapJsonManagerApp
                         dynamic confidence = c.conf;
                         if (confidence > p)
                             p = confidence;
-                    }
+                    }                    
                 }
 
                 item.detections = detections.ToArray();
@@ -321,7 +305,7 @@ namespace CameraTrapJsonManagerApp
                         string errmsg = string.Format("Confidence changed from {0} to {1}", pOrig, p);
 
                         // This will get handled by the UI
-                        throw new Exception(errmsg);
+                        throw new Exception(errmsg);                        
                     }
                     maxChanges += 1;
                 }
@@ -342,17 +326,9 @@ namespace CameraTrapJsonManagerApp
 
         private JsonData LoadJson(string inputFileName)
         {
-            try
-            {
-                string json = File.ReadAllText(inputFileName);
-                var data = JsonConvert.DeserializeObject<JsonData>(json);
-                return data;
-            }
-            catch(Exception ex)
-            {
-                throw new System.InvalidOperationException("Could not read Json file, please check that the file is a valid json file"); ;
-            }
-
+            string json = File.ReadAllText(inputFileName);
+            var data = JsonConvert.DeserializeObject<JsonData>(json);
+            return data;
         }
 
         /*
@@ -363,6 +339,7 @@ namespace CameraTrapJsonManagerApp
          Returns a relative path string from a full path based on a base path
          provided.         
         */
+
         public static string GetRelativePath(string targetPath, string basePath)
         {
             bool useBackslash = (targetPath.Contains("\\") || basePath.Contains("\\"));
@@ -371,7 +348,7 @@ namespace CameraTrapJsonManagerApp
             basePath = basePath.Replace("/", "\\");
 
             if (!(basePath.EndsWith("\\"))) basePath += "\\";
-
+            
             bool bpRooted = System.IO.Path.IsPathRooted(basePath);
             bool tpRooted = System.IO.Path.IsPathRooted(targetPath);
             if (bpRooted != tpRooted)
@@ -413,7 +390,7 @@ namespace CameraTrapJsonManagerApp
                 bp = "a/b/c/"; tp = "a/b/c/d/e.jpg"; relPath = GetRelativePath(tp, bp); Console.WriteLine(relPath); Debug.Assert(0 == String.Compare(relPath, "e.jpg"));
                 bp = "c:\\a/b/c/"; tp = "c:\\a/b/c/d/e.jpg"; relPath = GetRelativePath(tp, bp); Console.WriteLine(relPath); Debug.Assert(0 == String.Compare(relPath, "e.jpg"));
                 bp = "/b"; tp = "/b/c/d/e.jpg"; relPath = GetRelativePath(tp, bp); Console.WriteLine(relPath); Debug.Assert(0 == String.Compare(relPath, "b/c/d/e.jpg"));
-                bp = "c:\\a\\b\\c"; tp = "c:\\a\\b\\c.jpg"; relPath = GetRelativePath(tp, bp); Console.WriteLine(relPath); Debug.Assert(0 == String.Compare(relPath, "..\\c.jpg"));
+                bp = "c:\\a\\b\\c"; tp = "c:\\a\\b\\c.jpg"; relPath = GetRelativePath(tp, bp); Console.WriteLine(relPath);  Debug.Assert(0 == String.Compare(relPath, "..\\c.jpg"));
             }
         }
 
@@ -438,7 +415,7 @@ namespace CameraTrapJsonManagerApp
                 }
             }
 
-            SetLabelProgressMsg("Done", ProgressBarStyle.Marquee);
+            SetLabelProgressMsg("Done",ProgressBarStyle.Marquee);
             return folderstoImages;
         }
 
@@ -491,16 +468,16 @@ namespace CameraTrapJsonManagerApp
                 String p;
                 String s;
                 p = "blah/foo/bar"; s = TopLevelFolder(p); Console.WriteLine(s); Debug.Assert(StringEquals(s, "blah"));
-                p = "/blah/foo/bar"; s = TopLevelFolder(p); Console.WriteLine(s); Debug.Assert(StringEquals(s, "/blah"));
-                p = "bar"; s = TopLevelFolder(p); Console.WriteLine(s); Debug.Assert(StringEquals(s, "bar"));
-                p = ""; s = TopLevelFolder(p); Console.WriteLine(s); Debug.Assert(StringEquals(s, ""));
-                p = "c:\\"; s = TopLevelFolder(p); Console.WriteLine(s); Debug.Assert(StringEquals(s, "c:\\"));
-                p = @"c:\blah"; s = TopLevelFolder(p); Console.WriteLine(s); Debug.Assert(StringEquals(s, "c:\\blah"));
-                p = @"c:\foo"; s = TopLevelFolder(p); Console.WriteLine(s); Debug.Assert(StringEquals(s, "c:\\foo"));
-                p = "c:/foo"; s = TopLevelFolder(p); Console.WriteLine(s); Debug.Assert(StringEquals(s, "c:/foo"));
-                p = @"c:\foo/bar"; s = TopLevelFolder(p); Console.WriteLine(s); Debug.Assert(StringEquals(s, "c:\\foo"));
+                p = "/blah/foo/bar"; s = TopLevelFolder(p); Console.WriteLine(s); Debug.Assert(StringEquals(s,"/blah"));
+                p = "bar"; s = TopLevelFolder(p); Console.WriteLine(s); Debug.Assert(StringEquals(s,"bar"));
+                p = ""; s = TopLevelFolder(p); Console.WriteLine(s); Debug.Assert(StringEquals(s,""));
+                p = "c:\\"; s = TopLevelFolder(p); Console.WriteLine(s); Debug.Assert(StringEquals(s,"c:\\"));
+                p = @"c:\blah"; s = TopLevelFolder(p); Console.WriteLine(s); Debug.Assert(StringEquals(s,"c:\\blah"));
+                p = @"c:\foo"; s = TopLevelFolder(p); Console.WriteLine(s); Debug.Assert(StringEquals(s,"c:\\foo"));
+                p = "c:/foo"; s = TopLevelFolder(p); Console.WriteLine(s); Debug.Assert(StringEquals(s,"c:/foo"));
+                p = @"c:\foo/bar"; s = TopLevelFolder(p); Console.WriteLine(s); Debug.Assert(StringEquals(s,"c:\\foo"));
             }
-        }
+       }
 
         private Dictionary<string, List<Image>> FindUniqueFolders(SubsetJsonDetectorOutputOptions options, JsonData data)
         {
@@ -514,9 +491,8 @@ namespace CameraTrapJsonManagerApp
                 List<Image> imageList = new List<Image>();
 
                 if (options.SplitFolderMode.ToLower() == "bottom")
-                {
                     directoryName = Path.GetDirectoryName(filePath);
-                }
+
                 else if (options.SplitFolderMode.ToLower() == "nfrombottom")
                 {
                     directoryName = Path.GetDirectoryName(filePath);
@@ -544,7 +520,7 @@ namespace CameraTrapJsonManagerApp
 
             SetLabelProgressMsg(string.Format("Found {0} unique folders", folderstoImages.Count.ToString(),
                folderstoImages.Count.ToString()), ProgressBarStyle.Marquee);
-
+           
             return folderstoImages;
         }
 
@@ -559,7 +535,7 @@ namespace CameraTrapJsonManagerApp
             if (!options.OverwriteJsonFiles && File.Exists(outputFileName))
             {
                 string msg = string.Format("File {0} exists", outputFileName);
-                SetStatusMessage(msg);
+                SetStatusMessage(msg);               
                 return false;
             }
 
@@ -571,29 +547,13 @@ namespace CameraTrapJsonManagerApp
                 if (!Directory.Exists(directoryPath))
                 {
                     string msg = String.Format("Directory {0} does not exist", outputFileName);
-                    SetStatusMessage(msg);
+                    SetStatusMessage(msg);                  
                     return false;
                 }
             }
             else
             {
-                if (directoryPath.Contains("\\"))
-                {
-                    string topDirectories = directoryPath.Substring(0, directoryPath.LastIndexOf("\\"));
-                    if(!Directory.Exists(topDirectories))
-                    {
-                        var temp = directoryPath.Split('\\');
-                        if(temp.Length >= 2)
-                        {
-                            directoryPath = temp[temp.Length - 2];
-                        }
-                        else
-                        {
-                            directoryPath = temp[temp.Length - 1];
-                        }
-                    }
-                }
-                Directory.CreateDirectory(directoryPath);
+              Directory.CreateDirectory(directoryPath);
             }
             try
             {
@@ -636,26 +596,20 @@ namespace CameraTrapJsonManagerApp
             }
         }
 
-        private void ShowError(Exception ex, string additionalInfo="")
+        private void ShowError(Exception ex)
         {
-            string message;
-            if (!string.IsNullOrEmpty(additionalInfo))
-                message = additionalInfo + "\n" + ex.ToString();
-            else
-                message = ex.ToString();
-
-             progressReporter.ReportProgress(0, new ProgressDetails
-             {
+            progressReporter.ReportProgress(0, new ProgressDetails
+            {
                 ShowProgressBar = false,
                 SetStatusTextBoxMessage = true,
-                Message = message
-             });
+                Message = ex.ToString()
+            });
         }
 
         private void SetStatusMessage(string message)
         {
-            progressReporter.ReportProgress(0, new ProgressDetails
-            { SetStatusTextBoxMessage = true, Message = message });
+            progressReporter.ReportProgress(0,new ProgressDetails 
+                { SetStatusTextBoxMessage = true, Message = message });
         }
 
         private void SetStatusMessage(string message, int count, int totalCount)
