@@ -40,6 +40,9 @@ caller = 'caller'
 task_status_endpoint_url = 'http://blah.endpoint.com:6022/v2/camera-trap/detection-batch/task'
 submission_endpoint_url = 'http://blah.endpoint.com:6022/v2/camera-trap/detection-batch/request_detections'
 
+additional_job_args = {}
+# additional_job_args = {"model_version":"4_prelim"}
+
 
 #%% Derived variables, path setup
 
@@ -194,6 +197,7 @@ for task_group_job_names in job_names_by_task_group:
                                                   list_url,
                                                   job_name,
                                                   caller,
+                                                  additional_args=additional_job_args,
                                                   image_path_prefix=None)
         request_strings_this_task_group.append(s)
         
@@ -533,7 +537,7 @@ for i_folder,folder_name_raw in enumerate(folder_names):
     options.parallelize_rendering = True
     options.include_almost_detections = True
     options.num_images_to_sample = 5000
-    options.confidence_threshold = 0.5
+    options.confidence_threshold = 0.8
     options.almost_detection_confidence_threshold = options.confidence_threshold - 0.05
     options.ground_truth_json_file = None
     
