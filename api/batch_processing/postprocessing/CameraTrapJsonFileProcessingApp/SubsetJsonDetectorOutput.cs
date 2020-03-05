@@ -85,7 +85,7 @@ namespace CameraTrapJsonManagerApp
                     if (!result)
                         return null;
 
-                    SetStatusMessage("File written to " + Path.GetTempPath() + outputFilename.Replace("/", "\\"));
+                    SetStatusMessage("File written to " + outputFilename.Replace("/", "\\"));
 
                     return data;
                 }
@@ -530,8 +530,11 @@ namespace CameraTrapJsonManagerApp
             // Write the detector ouput *data* to *output_filename*
             if (!Path.IsPathRooted(outputFileName))
             {
-                outputFileName = Path.GetTempPath() + outputFileName;
+                string msg = string.Format("Must specify an absolute output path");
+                SetStatusMessage(msg);
+                return false;
             }
+
             if (!options.OverwriteJsonFiles && File.Exists(outputFileName))
             {
                 string msg = string.Format("File {0} exists", outputFileName);
@@ -557,10 +560,10 @@ namespace CameraTrapJsonManagerApp
             }
             try
             {
-                var ext = System.IO.Path.GetExtension(outputFileName);
-                if (ext == String.Empty)
+                String ext = System.IO.Path.GetExtension(outputFileName);
+                if (!(ext.Equals(".json")))
                 {
-                    string msg = "Please enter a valid output file name";
+                    string msg = "Output file name must end in .json";
                     SetStatusMessage(msg);
                     return false;
                 }
