@@ -1,6 +1,6 @@
 # Downloading the Camera Trap API Output Manager App
 
-Download it <a href="https://lilablobssc.blob.core.windows.net/models/apps/CameraTrapApiOutputManager.1.0.zip">here</a>.  If you don&rsquo;t already know what this app does, it&rsquo;s probably not super-useful to you, but...
+Download it <a href="https://lilablobssc.blob.core.windows.net/models/apps/CameraTrapApiOutputManager.1.1.zip">here</a>.  If you don&rsquo;t already know what this app does, it&rsquo;s probably not super-useful to you, but...
 
 
 # Documentation for the Camera Trap API Output Manager App

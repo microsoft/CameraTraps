@@ -72,17 +72,11 @@ namespace CameraTrapJsonManagerApp
 
                 }
                 else
-                {
                     data = DeepClone(data);
-                }
                 if (!string.IsNullOrEmpty(options.Query))
-                {
                     data = SubsetJsonDetectorOutputbyQuery(data, options);
-                }
                 if (options.ConfidenceThreshold != -1)
-                {
                     data = SubsetJsonDetectorOutputbyConfidence(data, options);
-                }
                 if (!options.SplitFolders)
                 {
                     SetLabelProgressMsg("Writing to file...", ProgressBarStyle.Marquee);
@@ -91,7 +85,7 @@ namespace CameraTrapJsonManagerApp
                     if (!result)
                         return null;
 
-                    SetStatusMessage("File written to " + Path.GetTempPath() + outputFilename.Replace("/", "\\"));
+                    SetStatusMessage("File written to " + outputFilename.Replace("/", "\\"));
 
                     return data;
                 }
@@ -131,18 +125,25 @@ namespace CameraTrapJsonManagerApp
                         if (directoryName.Length == 0)
                             directoryName = "base";
 
-                        string jsonFileName = directoryName.Replace('/', '_').Replace('\\', '_') + ".json";
-
-                        if (options.CopyJsonstoFolders)
-                            jsonFileName = Path.Combine(outputFilename, directoryName, jsonFileName);
-                        else
-                            jsonFileName = Path.Combine(outputFilename, jsonFileName);
-
                         var dirData = new JsonData();
                         dirData.classification_categories = data.classification_categories;
                         dirData.detection_categories = data.detection_categories;
                         dirData.info = data.info;
                         dirData.images = foldersToImages[directoryName];
+
+                        if (Path.IsPathRooted(directoryName))
+                        {
+                            string rootPath = Path.GetPathRoot(directoryName);
+                            directoryName = directoryName.Replace(rootPath, "");
+                        }
+                        
+                        string jsonFileName = directoryName.Replace('/', '_').Replace('\\', '_') + ".json";
+                        
+                        if (options.CopyJsonstoFolders)
+                            jsonFileName = Path.Combine(outputFilename, directoryName, jsonFileName);
+                        else
+                            jsonFileName = Path.Combine(outputFilename, jsonFileName);
+
 
                         bool result = WriteDetectionResults(dirData, jsonFileName, options);
                         if (!result)
@@ -180,7 +181,7 @@ namespace CameraTrapJsonManagerApp
             long count = 0;
             int percentage = 0;
             long totalCount = imagesIn.Count();
-            int[] progressPercentagesForDisplay = { 10, 20, 40, 80, 100 };
+            int[] progressPercentagesForDisplay = { 10, 20, 40, 80, 90, 100 };
 
             progressMsg = string.Format("Subsetting by query {0}, replacement {1} ...", options.Query, options.Replacement);
 
@@ -251,14 +252,11 @@ namespace CameraTrapJsonManagerApp
 
             foreach (var item in imagesIn)
             {
-
                 count++;
 
                 int percentage = SharedFunctions.GetProgressPercentage(count, totalCount);
                 if (progressPercentagesForDisplay.Contains(percentage))
-                {
                     SetLabelProgressMsg(progressMsg, count, totalCount, ProgressBarStyle.Blocks);
-                }
 
                 dynamic p;
                 dynamic pOrig = item.max_detection_conf;
@@ -341,6 +339,7 @@ namespace CameraTrapJsonManagerApp
          Returns a relative path string from a full path based on a base path
          provided.         
         */
+
         public static string GetRelativePath(string targetPath, string basePath)
         {
             bool useBackslash = (targetPath.Contains("\\") || basePath.Contains("\\"));
@@ -492,9 +491,8 @@ namespace CameraTrapJsonManagerApp
                 List<Image> imageList = new List<Image>();
 
                 if (options.SplitFolderMode.ToLower() == "bottom")
-                {
                     directoryName = Path.GetDirectoryName(filePath);
-                }
+
                 else if (options.SplitFolderMode.ToLower() == "nfrombottom")
                 {
                     directoryName = Path.GetDirectoryName(filePath);
@@ -532,8 +530,11 @@ namespace CameraTrapJsonManagerApp
             // Write the detector ouput *data* to *output_filename*
             if (!Path.IsPathRooted(outputFileName))
             {
-                outputFileName = Path.GetTempPath() + outputFileName;
+                string msg = string.Format("Must specify an absolute output path");
+                SetStatusMessage(msg);
+                return false;
             }
+
             if (!options.OverwriteJsonFiles && File.Exists(outputFileName))
             {
                 string msg = string.Format("File {0} exists", outputFileName);
@@ -559,10 +560,10 @@ namespace CameraTrapJsonManagerApp
             }
             try
             {
-                var ext = System.IO.Path.GetExtension(outputFileName);
-                if (ext == String.Empty)
+                String ext = System.IO.Path.GetExtension(outputFileName);
+                if (!(ext.Equals(".json")))
                 {
-                    string msg = "Please enter a valid output file name";
+                    string msg = "Output file name must end in .json";
                     SetStatusMessage(msg);
                     return false;
                 }
