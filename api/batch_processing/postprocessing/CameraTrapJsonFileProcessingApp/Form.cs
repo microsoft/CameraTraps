@@ -489,5 +489,11 @@ namespace CameraTrapJsonManagerApp
         {
             System.Diagnostics.Process.Start("https://github.com/microsoft/CameraTraps/blob/master/api/batch_processing/postprocessing/CameraTrapJsonManagerApp.md");
         }
+
+        private void buttonBrowseFolder_Click(object sender, EventArgs e)
+        {
+            if (folderBrowserDialog.ShowDialog() == DialogResult.OK)
+                textboxOutputFolderFile.Text = folderBrowserDialog.SelectedPath;
+        }
     }
 }
