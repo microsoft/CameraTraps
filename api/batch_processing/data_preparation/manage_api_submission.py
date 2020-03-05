@@ -10,8 +10,11 @@
 import os
 import ntpath
 import posixpath
+import json
+import humanfriendly
 
 from urllib.parse import urlsplit, unquote
+
 import path_utils
 
 from api.batch_processing.data_preparation import prepare_api_submission
@@ -214,8 +217,6 @@ clipboard.copy('\n\n'.join(request_strings))
 
 #%% Estimate total time
 
-import json
-import humanfriendly
 n_images = 0
 for fn in list_files:
     images = json.load(open(fn))
@@ -520,7 +521,7 @@ from api.batch_processing.postprocessing import remove_repeat_detections
 remove_repeat_detections.remove_repeat_detections(
     inputFile=api_output_filename,
     outputFile=filtered_output_filename,
-    filteringDir=r"Q:\blah",
+    filteringDir=os.path.dirname(suspiciousDetectionResults.filterFile),
     options=options
     )
 
