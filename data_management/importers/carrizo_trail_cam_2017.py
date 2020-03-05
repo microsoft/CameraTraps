@@ -24,7 +24,7 @@ open_metadata_file = os.path.join(input_base, 'Carrizo open 2017.csv')
 shrub_metadata_file = os.path.join(input_base, 'Carrizo Shrub 2017.csv')
 
 output_base = r'G:\carrizo-mojave'
-output_json_file = os.path.join(output_base, 'Trail Cam Carrizo 2017.json')
+output_json_file = os.path.join(output_base, 'carrizo trail cam 2017.json')
 image_directory = input_base
 input_metadata_files = [open_metadata_file, shrub_metadata_file]
 
@@ -52,7 +52,6 @@ for inp_file in input_metadata_files:
     # Removing the empty records
     input_metadata = input_metadata[~np.isnan(input_metadata['rep'])]
     
-    # Filenames were provided as numbers, but images were *.JPG, converting here
     input_metadata['file'] = input_metadata.groupby(["rep", "week"]).cumcount()
     week_folder_format = {1: 'week 1- 2017', 2: 'week2- 2017', 3: 'week3-2017'}
     
@@ -89,9 +88,13 @@ for iFile, fn in tqdm(enumerate(image_filenames),total=len(image_filenames)):
 
 elapsed = time.time() - start_time
 
-print('Finished verifying image existence in {}, found {} missing files'.format(
+print('Finished verifying image existence in {}, found {} missing files (of {})'.format(
     humanfriendly.format_timespan(elapsed), 
-    len(missing_files)))
+    len(missing_files),len(image_filenames)))
+
+assert len(duplicate_rows) == 0
+
+# 908 missing files (of 60562)
 
 
 #%% Check for images that aren't included in the metadata file
@@ -107,20 +110,24 @@ for iImage, image_path in tqdm(enumerate(image_full_paths),total=len(image_full_
     
 print('{} of {} files are not in metadata'.format(len(images_missing_from_metadata),len(image_full_paths)))
 
+# 105329 of 164983 files are not in metadata
+
 
 #%% Create CCT dictionaries
-
-# Also gets image sizes, so this takes ~6 minutes
-#
-# Implicitly checks images for overt corruptness, i.e. by not crashing.
 
 images = []
 annotations = []
 
-# Map categories to integer IDs (that's what COCO likes)
-next_category_id = 0
+# Map categories to integer IDs
+#
+# The category '0' is reserved for 'empty'
+
 categories_to_category_id = {}
 categories_to_counts = {}
+categories_to_category_id['empty'] = 0
+categories_to_counts['empty'] = 0
+
+next_category_id = 1
 
 # For each image
 #
@@ -166,7 +173,6 @@ for image_name in tqdm(image_filenames):
     
     is_image = row['animal.capture']
     
-    # Use 'empty', to be consistent with other data on lila    
     if (is_image == 0):
         category = 'empty'
     else:
@@ -185,7 +191,7 @@ for image_name in tqdm(image_filenames):
     else:
         categoryID = next_category_id
         categories_to_category_id[category] = categoryID
-        categories_to_counts[category] = 0
+        categories_to_counts[category] = 1
         next_category_id += 1
     
     # Create an annotation
@@ -264,7 +270,7 @@ from visualization import visualize_db
 from data_management.databases import sanity_check_json_db
 
 viz_options = visualize_db.DbVizOptions()
-viz_options.num_to_visualize = 80
+viz_options.num_to_visualize = None
 viz_options.trim_to_images_with_bboxes = False
 viz_options.add_search_links = False
 viz_options.sort_by_filename = False
@@ -272,7 +278,7 @@ viz_options.parallelize_rendering = True
 viz_options.classes_to_exclude = ['empty']
 html_output_file,image_db = visualize_db.process_images(db_path=output_json_file,
                                                         output_dir=os.path.join(
-                                                        output_base, 'Trail Cam Carrizo 2017/preview'),
+                                                        output_base, 'carrizo trail cam 2017/preview'),
                                                         image_base_dir=image_directory,
                                                         options=viz_options)
 os.startfile(html_output_file)
