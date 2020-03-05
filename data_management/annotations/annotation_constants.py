@@ -11,7 +11,6 @@ We use integer indices here; this is different than the API output .json file,
 where indices are string integers.
 """
 
-
 NUM_DETECTOR_CATEGORIES = 4  # this is for choosing colors, so ignoring the "empty" class
 
 bbox_categories = [
