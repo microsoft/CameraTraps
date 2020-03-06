@@ -57,8 +57,6 @@ We provide three ways to apply this model to new images - see below. For the two
 
 ### 0. prerequisites
 
-# Prerequisites
-
 When we describe how to run our two inference scripts below, we assume the following:
 
 1. You have Python installed.  If you&rsquo;re working on Windows, we recommend installing <a href="anaconda.com/distribution/">Anaconda</a>, which is Python plus a zillion useful packages.  You will also need the &ldquo;jsonpickle&rdquo; package.
