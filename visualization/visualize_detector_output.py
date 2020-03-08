@@ -200,7 +200,7 @@ for entry in tqdm(images):
     vis_utils.render_detection_bounding_boxes(detections, image, label_map=detector_label_map,
                                               confidence_threshold=args.confidence)
 
-    annotated_img_name = 'anno_' + image_id.replace('/', '~').replace('\\', '~')
+    annotated_img_name = 'anno_' + image_id.replace('/', '~').replace('\\', '~').replace(':','~')
     annotated_img_path = os.path.join(args.out_dir, annotated_img_name)
     image.save(annotated_img_path)
     num_saved += 1
