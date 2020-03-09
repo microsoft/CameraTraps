@@ -47,7 +47,8 @@ from visualization import visualize_db
 
 #%% Constants
 
-project_name = 'XXX'; season_name = 'S1'; project_friendly_name = 'Snapshot Unknown'
+# project_name = 'XXX'; season_name = 'S1'; project_friendly_name = 'Snapshot Unknown'
+project_name = 'SER'; season_name = 'S1-11'; project_friendly_name = 'Snapshot Serengeti'
 # project_name = 'KRU'; season_name = 'S1'; project_friendly_name = 'Snapshot Kruger'
 # project_name = 'CDB'; season_name = 'S1'; project_friendly_name = 'Snapshot Camdeboo'
 # project_name = 'MTZ'; season_name = 'S1'; project_friendly_name = 'Snapshot Mountain Zebra'
@@ -55,10 +56,10 @@ project_name = 'XXX'; season_name = 'S1'; project_friendly_name = 'Snapshot Unkn
 # project_name = 'KAR'; season_name = 'S1'; project_friendly_name = 'Snapshot Karoo'
 # project_name = 'KGA'; season_name = 'S1'; project_friendly_name = 'Snapshot Kgalagadi'
 
-json_version = '1.0'
+json_version = '2.1'
 
-snapshot_safari_input_base = r'e:\snapshot-safari-in'
-snapshot_safari_output_base = r'e:\snapshot-safari-out'
+snapshot_safari_input_base = r'd:\temp\snapshot-safari-in'
+snapshot_safari_output_base = r'd:\temp\snapshot-safari-out'
 
 category_mappings = {'blank':'empty'}
 
@@ -622,6 +623,29 @@ zip_single_file(json_filename)
 zip_files_to_flat([annotation_file,image_inventory_file],os.path.join(output_base,project_season_name + '.csv.zip'))
 
 print('Finished zipping .csv and .json files')
+
+
+#%% When I skip to this part (using a pre-rendered .json file)
+
+if False:
+
+    #%%
+
+    species_to_category = {}
+    for cat in categories:
+        species_to_category[cat['name']] = cat
+        
+    #%%
+    
+    human_image_ids = set()
+    human_id = species_to_category['human']['id']
+    
+    # ann = annotations[0]
+    for ann in tqdm(annotations):
+        if ann['category_id'] == human_id:
+            human_image_ids.add(ann['image_id'])
+    
+    print('Found {} images with humans'.format(len(human_image_ids)))
 
  
 #%% Summary prep for LILA
