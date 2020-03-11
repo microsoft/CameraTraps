@@ -35,9 +35,11 @@ import sys
 import time
 import warnings
 from datetime import datetime
+from functools import partial
 
 import humanfriendly
 from tqdm import tqdm
+from multiprocessing.pool import ThreadPool    
 
 from detection.run_tf_detector import ImagePathUtils, TFDetector
 import visualization.visualization_utils as viz_utils
@@ -53,8 +55,37 @@ print('Is GPU available? tf.test.is_gpu_available:', tf.test.is_gpu_available())
 
 #%% Main function
 
+def process_image(im_file, tf_detector, confidence_threshold):
+    
+    print('Processing image {}'.format(im_file))
+    image = None
+    try:
+        image = viz_utils.load_image(im_file)
+    except Exception as e:
+        print('Image {} cannot be loaded. Exception: {}'.format(im_file, e))
+        result = {
+            'file': im_file,
+            'failure': TFDetector.FAILURE_IMAGE_OPEN
+        }            
+        return result
+    
+    try:
+        result = tf_detector.generate_detections_one_image(image, im_file, 
+                                                           detection_threshold=confidence_threshold)
+    except Exception as e:
+        print('Image {} cannot be processed. Exception: {}'.format(im_file, e))
+        result = {
+            'file': im_file,
+            'failure': TFDetector.FAILURE_TF_INFER
+        }            
+        return result
+    
+    return result
+
+            
 def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=None,
-                                confidence_threshold=0, checkpoint_frequency=-1, results=None):
+                                confidence_threshold=0, checkpoint_frequency=-1, results=None,
+                                n_cores=0):
     
     if results is None:
         results = []
@@ -67,41 +98,55 @@ def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=No
     elapsed = time.time() - start_time
     print('Loaded model in {}'.format(humanfriendly.format_timespan(elapsed)))
 
-    count = 0  # does not count those already processed
-    for im_file in tqdm(image_file_names):
+    if n_cores > 1 and tf.test.is_gpu_available():
+        print('Warning: multiple cores requested, but a GPU is available; parallelization across GPUs is not currently supported, defaulting to one GPU')
         
-        if im_file in already_processed:  # will not add additional entries not in the starter checkpoint
-            print('Bypassing image {}'.format(im_file))
-            continue
+    if n_cores <= 1 or tf.test.is_gpu_available():
+        count = 0  # does not count those already processed
+        for im_file in tqdm(image_file_names):
+            
+            if im_file in already_processed:  # will not add additional entries not in the starter checkpoint
+                print('Bypassing image {}'.format(im_file))
+                continue
+    
+            count += 1
+    
+            try:
+                image = viz_utils.load_image(im_file)
+            except Exception as e:
+                print('Image {} cannot be loaded. Exception: {}'.format(im_file, e))
+                result = {
+                    'file': im_file,
+                    'failure': TFDetector.FAILURE_IMAGE_OPEN
+                }
+                results.append(result)
+                continue
+    
+            try:
+                result = tf_detector.generate_detections_one_image(image, im_file, detection_threshold=confidence_threshold)
+                results.append(result)
+    
+            except Exception as e:
+                print('An error occurred while running the detector on image {}. Exception: {}'.format(im_file, e))
+                result = {
+                    'file': im_file,
+                    'failure': TFDetector.FAILURE_IMAGE_INFER
+                }
+                results.append(result)
+                continue
+    
+            # checkpoint
+            if checkpoint_frequency != -1 and count % checkpoint_frequency == 0:
+                print('Writing a new checkpoint after having processed {} images since last restart'.format(count))
+                with open(checkpoint_path, 'w') as f:
+                    json.dump({'images': results}, f)
+    else:
+        print('Creating pool with {} cores'.format(n_cores))
+        pool = ThreadPool(n_cores)
+        results = pool.map(partial(process_image, tf_detector=tf_detector, 
+                                   confidence_threshold=confidence_threshold), image_file_names)
 
-        count += 1
-
-        try:
-            image = viz_utils.load_image(im_file)
-        except Exception as e:
-            print('Image {} cannot be loaded. Exception: {}'.format(im_file, e))
-            result = {
-                'file': im_file,
-                'failure': TFDetector.FAILURE_IMAGE_OPEN
-            }
-            results.append(result)
-            continue
-
-        try:
-            result = tf_detector.generate_detections_one_image(image, im_file, detection_threshold=confidence_threshold)
-            results.append(result)
-
-        except Exception as e:
-            print('An error occurred while running the detector on image {}. Exception: {}'.format(im_file, e))
-            continue
-
-        # checkpoint
-        if checkpoint_frequency != -1 and count % checkpoint_frequency == 0:
-            print('Writing a new checkpoint after having processed {} images since last restart'.format(count))
-            with open(checkpoint_path, 'w') as f:
-                json.dump({'images': results}, f)
-
-    return results  # actually modified in place
+    return results # actually modified in place
 
 
 #%% Command-line driver
@@ -143,7 +188,12 @@ def main():
     parser.add_argument(
         '--resume_from_checkpoint',
         help='Initiate from the specified checkpoint, which is in the same directory as the output_file specified')
-
+    parser.add_argument(
+        '--ncores',
+        type=int,
+        default=0,
+        help='Number of cores to use; only applies to CPU-based inference')
+    
     if len(sys.argv[1:]) == 0:
         parser.print_help()
         parser.exit()
@@ -204,12 +254,18 @@ def main():
     else:
         checkpoint_path = None
 
+    start_time = time.time()
+
     results = load_and_run_detector_batch(model_file=args.detector_file,
                                           image_file_names=image_file_names,
                                           checkpoint_path=checkpoint_path,
                                           confidence_threshold=args.threshold,
                                           checkpoint_frequency=args.checkpoint_frequency,
-                                          results=results)
+                                          results=results,
+                                          n_cores=args.ncores)
+
+    elapsed = time.time() - start_time
+    print('Finished inference in {}'.format(humanfriendly.format_timespan(elapsed)))
 
     if args.output_relative_filenames:
         for r in results:
@@ -231,6 +287,7 @@ def main():
     if checkpoint_path:
         os.remove(checkpoint_path)
         print('Deleted checkpoint file')
+        
     print('Done!')
 
 
