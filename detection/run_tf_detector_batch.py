@@ -39,7 +39,8 @@ from functools import partial
 
 import humanfriendly
 from tqdm import tqdm
-from multiprocessing.pool import ThreadPool    
+# from multiprocessing.pool import ThreadPool as workerpool
+from multiprocessing.pool import Pool as workerpool
 
 from detection.run_tf_detector import ImagePathUtils, TFDetector
 import visualization.visualization_utils as viz_utils
@@ -55,7 +56,27 @@ print('Is GPU available? tf.test.is_gpu_available:', tf.test.is_gpu_available())
 
 #%% Main function
 
+def process_images(im_files, tf_detector, confidence_threshold):
+    
+    if isinstance(tf_detector,str):
+        start_time = time.time()
+        tf_detector = TFDetector(tf_detector)
+        elapsed = time.time() - start_time
+        print('Loaded model (batch level) in {}'.format(humanfriendly.format_timespan(elapsed)))       
+    
+    results = []
+    for im_file in im_files:
+        results.append(process_image(im_file, tf_detector, confidence_threshold))
+    return results
+        
+
 def process_image(im_file, tf_detector, confidence_threshold):
+    
+    if isinstance(tf_detector,str):
+        start_time = time.time()
+        tf_detector = TFDetector(tf_detector)
+        elapsed = time.time() - start_time
+        print('Loaded model (worker level) in {}'.format(humanfriendly.format_timespan(elapsed)))       
     
     print('Processing image {}'.format(im_file))
     image = None
@@ -82,7 +103,15 @@ def process_image(im_file, tf_detector, confidence_threshold):
     
     return result
 
-            
+# Split a list into chunks of size n
+def chunks_by_size(l, n):
+    return [l[i:i+n] for i in range(0, len(l), n)]
+
+# Split a list into n even chunks 
+def chunks_by_number_of_chunks(l, n):
+    for i in range(0, n):
+        yield l[i::n]
+        
 def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=None,
                                 confidence_threshold=0, checkpoint_frequency=-1, results=None,
                                 n_cores=0):
@@ -92,11 +121,15 @@ def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=No
         
     already_processed = set([i['file'] for i in results])
     
-    # load the detector
-    start_time = time.time()
-    tf_detector = TFDetector(model_file)
-    elapsed = time.time() - start_time
-    print('Loaded model in {}'.format(humanfriendly.format_timespan(elapsed)))
+    
+    if n_cores <= 1 or tf.test.is_gpu_available():
+        # load the detector
+        start_time = time.time()
+        tf_detector = TFDetector(model_file)
+        elapsed = time.time() - start_time
+        print('Loaded model in {}'.format(humanfriendly.format_timespan(elapsed)))
+    else:
+        tf_detector = model_file
 
     if n_cores > 1 and tf.test.is_gpu_available():
         print('Warning: multiple cores requested, but a GPU is available; parallelization across GPUs is not currently supported, defaulting to one GPU')
@@ -142,10 +175,18 @@ def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=No
                     json.dump({'images': results}, f)
     else:
         print('Creating pool with {} cores'.format(n_cores))
-        pool = ThreadPool(n_cores)
-        results = pool.map(partial(process_image, tf_detector=tf_detector, 
-                                   confidence_threshold=confidence_threshold), image_file_names)
+        pool = workerpool(n_cores)
+        
+        # results = pool.map(partial(process_image, tf_detector=tf_detector, 
+        #                           confidence_threshold=confidence_threshold), image_file_names)
+        
+        image_batches = list(chunks_by_number_of_chunks(image_file_names,n_cores))
+        results = pool.map(partial(process_images, tf_detector=tf_detector, 
+                                    confidence_threshold=confidence_threshold), image_batches)
 
+        import itertools
+        results = list(itertools.chain.from_iterable(results))
+        
     return results # actually modified in place
 
 
