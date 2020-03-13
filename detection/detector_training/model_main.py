@@ -96,7 +96,7 @@ def main(unused_argv):
 
     config = tf.estimator.RunConfig(
         model_dir=FLAGS.model_dir,
-        save_checkpoints_steps= 20000  # save less often than default
+        save_checkpoints_steps= 10000  # save less often than default
     )
 
     train_and_eval_dict = model_lib.create_estimator_and_inputs(
