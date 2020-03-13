@@ -100,7 +100,7 @@ wget https://lilablobssc.blob.core.windows.net/models/camera_traps/megadetector/
 pip install tensorflow==1.13.1
 
 # Install other dependencies
-pip install Pillow humanfriendly matplotlib tqdm
+pip install Pillow humanfriendly matplotlib tqdm jsonpickle
 
 # Run MegaDetector
 python run_tf_detector.py megadetector_v3.pb --image_file some_image_file.jpg
