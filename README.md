@@ -150,8 +150,7 @@ In some scripts, we also assume that you have the [AI for Earth utilities repo](
 
 You can do this with the following on Linux:
 
-```export PYTHONPATH="$PYTHONPATH:/absolute/path/to/repo/ai4eutils"
-```
+```export PYTHONPATH="$PYTHONPATH:/absolute/path/to/repo/ai4eutils"```
 
 Adding this line to your `~/.bashrc` (on Linux) modifies `PYTHONPATH` permanently.
 
