@@ -146,7 +146,7 @@ conda env update --file environment.yml
 
 In some scripts, we also assume that you have the [AI for Earth utilities repo](https://github.com/Microsoft/ai4eutils) (`ai4eutils`) cloned and its path appended to `PYTHONPATH`. You can append a path to `PYTHONPATH` for the current shell session by executing the following on Windows:
 
-```export PYTHONPATH="$PYTHONPATH:c:\wherever_you_put_the_ai4eutils_repo"```
+```set PYTHONPATH="%PYTHONPATH%;c:\wherever_you_put_the_ai4eutils_repo"```
 
 You can do this with the following on Linux:
 
