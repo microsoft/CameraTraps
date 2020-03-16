@@ -16,13 +16,20 @@
 # a/b/c/1.jpg
 # a/b/d/2.jpg
 # a/b/e/3.jpg
+# a/b/f/4.jpg
 #
-# And the results say that those images are empty/person/vehicle, respectively, and
-# you specify an output base folder of c:\out, you will get the following files:
+# And let's say:
+#
+# * The results say that the first three images are empty/person/vehicle, respectively
+# * The fourth image is above threshold for "animal" and "person"
+# * You specify an output base folder of c:\out
+#
+# You will get the following files:
 #
 # c:\out\empty\a\b\c\1.jpg
 # c:\out\people\a\b\d\2.jpg
 # c:\out\vehicles\a\b\e\3.jpg
+# c:\out\multiple\a\b\f\4.jpg
 #
 # Hard-coded to work with MDv3 and MDv4 output files.  Not currently future-proofed
 # past the classes in MegaDetector v4, not currently ready for species-level classification.  
