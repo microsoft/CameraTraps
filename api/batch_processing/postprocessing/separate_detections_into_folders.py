@@ -11,8 +11,22 @@
 # Preserves relative paths within each of those folders; cannot be used with .json
 # files that have absolute paths in them.
 #
+# For example, if your .json file has these images:
+#
+# a/b/c/1.jpg
+# a/b/d/2.jpg
+# a/b/e/3.jpg
+#
+# And the results say that those images are empty/person/vehicle, respectively, and
+# you specify an output base folder of c:\out, you will get the following files:
+#
+# c:\out\empty\a\b\c\1.jpg
+# c:\out\people\a\b\d\2.jpg
+# c:\out\vehicles\a\b\e\3.jpg
+#
 # Hard-coded to work with MDv3 and MDv4 output files.  Not currently future-proofed
 # past the classes in MegaDetector v4, not currently ready for species-level classification.  
+#
 
 #%% Constants and imports
 
@@ -31,9 +45,11 @@ class SeparateDetectionsIntoFoldersOptions:
     
     # Inputs
     animal_threshold = 0.725
-    person_threshold = 0.725
+    human_threshold = 0.725
     vehicle_threshold = 0.725
     n_threads = 1
+    
+    allow_existing_directory = False
     
     results_file = None
     base_input_folder = None
@@ -75,7 +91,7 @@ def process_detection(d,options):
     target_folder = ''
     
     n_thresholds = 0
-    if (max_person_confidence >= options.person_threshold):
+    if (max_person_confidence >= options.human_threshold):
         n_thresholds += 1
     if (max_animal_confidence >= options.animal_threshold):
         n_thresholds += 1
@@ -87,7 +103,7 @@ def process_detection(d,options):
         target_folder = options.target_folders['multiple']
 
     # Else if this is above threshold for people...
-    elif (max_person_confidence >= options.person_threshold):
+    elif (max_person_confidence >= options.human_threshold):
         target_folder = options.target_folders['people']
         
     # Else if this is above threshold for animals...
@@ -103,7 +119,7 @@ def process_detection(d,options):
         target_folder = options.target_folders['empty']
             
     source_path = os.path.join(options.base_input_folder,relative_filename)
-    assert os.path.isfile(source_path)
+    assert os.path.isfile(source_path), 'Cannot find file {}'.format(source_path)
     
     target_path = os.path.join(target_folder,relative_filename)
     target_dir = os.path.dirname(target_path)
@@ -120,6 +136,12 @@ def path_is_abs(p): return (len(p) > 1) and (p[0] == '/' or p[1] == ':')
 def separate_detections_into_folders(options):
 
     # Create output folder if necessary
+    if (os.path.isdir(options.base_output_folder)) and \
+        (len(os.listdir(options.base_output_folder) ) > 0):
+        if options.allow_existing_directory:
+            print('Warning: target folder exists and is not empty... did you mean to delete an old version?')
+        else:
+            raise ValueError('Target folder exists and is not empty')
     os.makedirs(options.base_output_folder,exist_ok=True)    
     
     # Load detection results    
@@ -128,7 +150,7 @@ def separate_detections_into_folders(options):
     
     for d in detections:
         fn = d['file']
-        assert path_is_abs(fn), 'Cannot process results with absolute image paths'
+        assert not path_is_abs(fn), 'Cannot process results with absolute image paths'
         
     print('Processing {} detections'.format(len(detections)))
     
@@ -143,17 +165,17 @@ def separate_detections_into_folders(options):
         options.vehicle_category = -1
 
     # Separate into folders
-    target_folders = {}
+    options.target_folders = {}
     
     for f in output_folders:
-        target_folders[f] = os.path.join(options.base_output_folder,f)
-        os.makedirs(target_folders[f],exist_ok=True)            
+        options.target_folders[f] = os.path.join(options.base_output_folder,f)
+        os.makedirs(options.target_folders[f],exist_ok=True)            
         
     if options.n_threads <= 1:
     
         # i_image = 0; d = detections_to_process[i_image]
         for d in tqdm(detections):
-            process_detection(d)
+            process_detection(d,options)
         
     else:
         
@@ -170,13 +192,16 @@ if False:
     #%%
     
     options = SeparateDetectionsIntoFoldersOptions()
-    options.results_file = r'd:\temp\rspb_mini.json'
-    options.base_input_folder = r'd:\temp\rspb_mini'
-    options.base_output_folder = r'd:\temp\rspb_mini_out'
+    options.results_file = r'd:\temp\mini.json'
+    options.base_input_folder = r'd:\temp\demo_images\mini'
+    options.base_output_folder = r'd:\temp\mini_out'
     
-    
+    separate_detections_into_folders(options)
+        
     
 #%% Command-line driver   
+
+# python api\batch_processing\postprocessing\separate_detections_into_folders.py "d:\temp\rspb_mini.json" "d:\temp\demo_images\rspb_2018_2019_mini" "d:\temp\separation_test" --nthreads 2
     
 import argparse
 import inspect
@@ -201,12 +226,14 @@ def main():
     options = SeparateDetectionsIntoFoldersOptions()
     parser.add_argument('--animal_threshold', type=float, default=options.animal_threshold, 
                         help='Confidence threshold for the animal category')
-    parser.add_argument('--human_threshold', type=float, default=options.person_threshold, 
+    parser.add_argument('--human_threshold', type=float, default=options.human_threshold, 
                         help='Confidence threshold for the human category')
     parser.add_argument('--vehicle_threshold', type=float, default=options.vehicle_threshold, 
                         help='Confidence threshold for vehicle category')
     parser.add_argument('--nthreads', type=int, default=options.n_threads, 
                         help='Number of threads to use for parallel operation')
+    parser.add_argument('--allow_existing_directory', action='store_true', 
+                        help='Proceed even if the target directory exists and is not empty')
     
     if len(sys.argv[1:])==0:
         parser.print_help()
