@@ -58,7 +58,7 @@ warnings.filterwarnings('ignore', category=FutureWarning)
 import tensorflow as tf
 
 print('TensorFlow version:', tf.__version__)
-print('Is GPU available? tf.test.is_gpu_available:', tf.test.is_gpu_available())
+print('tf.test.is_gpu_available:', tf.test.is_gpu_available())
 
 
 #%% Support functions for multiprocessing
