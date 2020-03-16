@@ -29,11 +29,17 @@ species_of_interest = 'red_fox'
 
 # We will demonstrate two approaches to downloading, one that loops over files
 # and downloads directly in Python, another that uses AzCopy.
-use_azcopy_for_download = True
+#
+# AzCopy will generally be more performant and supports resuming if the 
+# transfers are interrupted.  It assumes that azcopy is on the system path.
+#
+# Using this interface to AzCopy requires enumerating the container, so it
+# can be slower overall if you're just downloading a few files.
+use_azcopy_for_download = False
 
 overwrite_files = False
 
-# Number of concurrent download threads (when not using azcopy)
+# Number of concurrent download threads (when not using AzCopy)
 n_download_threads = 50
 
 
@@ -103,6 +109,7 @@ if use_azcopy_for_download:
     cmd = 'azcopy cp "{0}" "{1}" --list-of-files "{2}"'.format(
             sas_url, output_dir, az_filename)            
     os.system(cmd)
+    
 else:
     
     # Loop over files
