@@ -32,9 +32,6 @@ species_of_interest = 'red_fox'
 #
 # AzCopy will generally be more performant and supports resuming if the 
 # transfers are interrupted.  It assumes that azcopy is on the system path.
-#
-# Using this interface to AzCopy requires enumerating the container, so it
-# can be slower overall if you're just downloading a few files.
 use_azcopy_for_download = False
 
 overwrite_files = False
