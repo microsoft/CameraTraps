@@ -44,6 +44,11 @@ task_status_endpoint_url = 'http://blah.endpoint.com:6022/v2/camera-trap/detecti
 submission_endpoint_url = 'http://blah.endpoint.com:6022/v2/camera-trap/detection-batch/request_detections'
 
 additional_job_args = {}
+
+# Supported model_versions: '4', '3', '4_prelim'
+#
+# Also available at the /supported_model_versions and /default_model_version endpoints
+#
 # additional_job_args = {"model_version":"4_prelim"}
 
 
