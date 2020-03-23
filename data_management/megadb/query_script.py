@@ -17,7 +17,7 @@ from azure.cosmos.cosmos_client import CosmosClient
 query_bbox = '''
 SELECT im.bbox, im.file, seq.dataset, seq.location
 FROM sequences seq JOIN im IN seq.images 
-WHERE ARRAY_LENGTH(im.bbox) > 0
+WHERE ARRAY_LENGTH(im.bbox) >= 0
 '''
 
 query_empty = '''
@@ -29,7 +29,7 @@ OR ARRAY_LENGTH(seq.class) = 1 AND ARRAY_CONTAINS(seq.class, "empty")
 
 #%% Parameters
 
-query = query_empty
+query = query_bbox
 
 output_dir = '/home/marmot/camtrap/data/mdv4_empty'
 assert os.path.isdir(output_dir), 'Please create the output directory first'
