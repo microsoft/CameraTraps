@@ -34,7 +34,7 @@ print('model_main.py, tensorflow version: {}'.format(tf.__version__))
 
 # substitute the AML data reference mount points for relevant parts in the pipeline.config
 actual_path_artifacts = os.environ.get('AZUREML_DATAREFERENCE_artifacts')
-actual_path_tfrecords = os.environ.get('AZUREML_DATAREFERENCE_tfrecords')
+actual_path_tfrecords = os.environ.get('AZUREML_DATAREFERENCE_tfrecords_mdv4_1')
 print('model_main.py, AZUREML_DATAREFERENCE_artifacts is {}'.format(actual_path_artifacts))
 print('model_main.py, AZUREML_DATAREFERENCE_tfrecords is {}'.format(actual_path_tfrecords))
 print('Listing artifacts:')
@@ -96,7 +96,7 @@ def main(unused_argv):
 
     config = tf.estimator.RunConfig(
         model_dir=FLAGS.model_dir,
-        save_checkpoints_steps= 100000  # save less often than default
+        save_checkpoints_steps= 104012  # save less often than default - 1/5 of an epoch
     )
 
     train_and_eval_dict = model_lib.create_estimator_and_inputs(

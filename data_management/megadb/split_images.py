@@ -63,7 +63,7 @@ def main():
     parser.add_argument(
         '--dest_dir',
         required=True,
-        help='Path to an empty directory where the train/val/test folders will live'
+        help='Path to a directory where the train/val/test folders are or will be created'
     )
 
     args = parser.parse_args()

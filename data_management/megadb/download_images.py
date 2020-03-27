@@ -5,6 +5,7 @@ Expect the input JSON to be a list of dicts, where the dicts have fields
 - download_id (usually dataset_name+uuid, uuid doesn't have to be from the database)
 - file (from images)
 - dataset and possibly location (from sequences)
+- new_entry if setting the --only_new_images flag
 
 Example entry:
  {
@@ -17,10 +18,13 @@ Example entry:
   "file": "animals/0467/0962.jpg",
   "dataset": "wcs",
   "location": "3282",
-  "download_id": "wcs+8a066ce6-3f14-11ea-aae7-9801a7a664ab"
+  "download_id": "wcs+8a066ce6-3f14-11ea-aae7-9801a7a664ab",
+  "new_entry": true
  }
 
-The environment variables COSMOS_ENDPOINT and COSMOS_KEY need to be set.
+The environment variables COSMOS_ENDPOINT and COSMOS_KEY need to be set, to access the Datasets table.
+
+The downloading threads may get stuck (request timeouts) and stop downloading. Re-start a couple of times until all are downloaded.
 """
 
 import argparse
@@ -33,7 +37,6 @@ from urllib.parse import quote
 
 import humanfriendly
 import requests
-from tqdm import tqdm
 
 from data_management.megadb.megadb_utils import MegadbUtils
 
@@ -81,6 +84,10 @@ def main():
         '--single_thread',
         action='store_true'
     )
+    parser.add_argument(
+        '--only_new_images',
+        action='store_true'
+    )
 
     args = parser.parse_args()
 
@@ -95,7 +102,13 @@ def main():
 
     existing = os.listdir(args.store_dir)
     existing = set([i.split('.jpg')[0] for i in existing])
+
+
     file_list_to_download = [i for i in file_list if i['download_id'] not in existing]
+
+    if args.only_new_images:
+        print('Only going to download new images.')
+        file_list_to_download = [i for i in file_list_to_download if 'new_entry' in i]
 
     # if need to re-download a dataset's images in case of corruption
     # file_list_to_download = [i for i in file_list_to_download if i['dataset'] == 'rspb_gola']
@@ -118,7 +131,7 @@ def main():
     else:
         print('Starting to download, using ThreadPool...')
         pool = ThreadPool()
-        list(tqdm(pool.starmap(download_file, origin_and_dest), total=len(file_list_to_download)))
+        list(pool.starmap(download_file, origin_and_dest))
 
     elapsed = time.time() - start_time
     print('Time spent on download: {}'.format(humanfriendly.format_timespan(elapsed)))

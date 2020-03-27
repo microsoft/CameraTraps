@@ -1,5 +1,7 @@
 """
 Create TF records with images available locally and a JSON containing entries in the MegaDB.
+
+Need to be run using the `cameratraps-detector` environment specified by `environment-detector.yml`
 """
 
 import json
@@ -12,21 +14,21 @@ from data_management.tfrecords.utils.create_tfrecords import create
 
 #%% Parameters
 
-images_per_record = 500  # image size ranges from 200KB to 900KB
+images_per_record = 1000  # image size ranges from 200KB to 900KB
 num_threads = 10
 
-dataset_name = 'mdv4hardn'  # 'mdv4boxes', 'mdv4hardn', 'mdv4empty'
+dataset_name = 'mdv4box01'  # 'mdv4boxes', 'mdv4hardn'
 assert len(dataset_name) == 9
 
 split_name = 'val__'  # 'train', 'val__' or 'test_'
 assert len(split_name) == 5
 
-image_dir = '/beaver_disk/camtrap/mdv4_hard_neg'
-# assert split_name.replace('_', '') in image_dir
+image_dir = '/beaver_disk/camtrap/mdv4_splitted/val'
+assert split_name.replace('_', '') in image_dir
 
-annotations_path = '/data/home/marmot/camtrap/PyCharm/CameraTraps/temp_data/all_no_uw_hard_neg_2019.json'
+annotations_path = 'temp_data/bboxes_inc_empty_20200325.json'
 
-tfrecord_dir = '/home/marmot/camtrap/mnt/megadetectorv4'
+tfrecord_dir = '/home/marmot/camtrap/mnt/megadetectorv4-1'
 
 label_map = {
     'animal': 1,
@@ -51,10 +53,6 @@ num_im_w_group = 0
 
 for image_file_name in tqdm(os.listdir(image_dir)):
     download_id = image_file_name.split('.jpg')[0]
-
-    # temp for hard negatives
-    if not download_id.startswith('zsl_borneo'):
-        continue  # keep for val set
 
     if download_id not in all_annotations:
         print('{} not in the annotation file, skipping.'.format(download_id))
