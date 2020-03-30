@@ -132,17 +132,16 @@ If you are having protobuf errors, install protocol buffers from binary as descr
 
 - Download appropriate pre-trained model from the [TFODAPI model zoo](https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/detection_model_zoo.md)
     - Our example pre-trained model is at `models/object_detection/faster_rcnn_inception_resnet_v2_atrous/faster_rcnn_inception_resnet_v2_atrous_coco_2018_01_28`
-    - You can also start training from a pre-trained TensorFlow classification model
-    
-    - We have an example of this in the fileshare at `models/object_detection/faster_rcnn_inception_resnet_v2_atrous/train_on_ss_with_ss_pretrained_backbone/`
-    - Note that to start from a classification backbone, you must add `from_detection_checkpoint: false` to the `train_config` section in your config file
-    - To train a classification backbone, we recommend using [this visipedia classification code base](https://github.com/visipedia/tf_classification)
-    
-    - Copy the sample config (typically `pipeline.config`) for that architecture to your experiment folder as a starting point, either from the samples in the TFODAPI repo or from the folder you downloaded containing the pre-trained model
+    - You can also start training from a pre-trained TensorFlow classification model (instructions from a while ago)
+        - We have an example of this in the fileshare at `models/object_detection/faster_rcnn_inception_resnet_v2_atrous/train_on_ss_with_ss_pretrained_backbone/`
+        - Note that to start from a classification backbone, you must add `from_detection_checkpoint: false` to the `train_config` section in your config file
+        - To train a classification backbone, we recommend using [this visipedia classification code base](https://github.com/visipedia/tf_classification)
+        
+        - Copy the sample config (typically `pipeline.config`) for that architecture to your experiment folder as a starting point, either from the samples in the TFODAPI repo or from the folder you downloaded containing the pre-trained model
 
-    - Modify the config file to point to locations of your training and validation tfrecords, and pre-trained model
+- Modify the config file to point to locations of your training and validation tfrecords, and pre-trained model
 
-    - Make any other config changes you want for this experiment (learning rate, data augmentation, etc). Try visualizing few images during evaluation (~20) because visualizing ~200 can result in a 30GB large TensorBoard events file at the end of training a MegaDetector.
+- Make any other config changes you want for this experiment (learning rate, data augmentation, etc). Try visualizing only a handful of images during evaluation (~20) because visualizing ~200 can result in a 30GB large TensorBoard events file at the end of training a MegaDetector.
 
   
 ## Start training
@@ -160,7 +159,7 @@ python model_main.py \
 You can sample more of the validation set (set `sample_1_of_n_eval_examples` to a smaller number); in that case, evaluate less often by changing `save_checkpoints_steps` in `model_main.py` (flags may not work - change the code directly).
 
 
-Alternatively, use Azure Machine Learning (AML) to run the experiment. Example notebook showing how to use the AML Python SDK to run TFODAPI experiments: `detector_training/aml_mdv4.ipynb`.
+Alternatively, use Azure Machine Learning (AML) to run the experiment. Notebook showing how to use the AML Python SDK to run TFODAPI experiments: `detector_training/aml_mdv4.ipynb`.
 
 
 ## Watch training on TensorBoard
@@ -209,4 +208,4 @@ Then you can use `data_management/tfrecords/tools/read_from_tfrecords.py` to rea
 
 ## Evaluation
 
-See `detector_eval`. More features will be added. 
+See `detector_eval`. We usually start a notebook to produce the visualizations, using functions in `detector_eval/detector_eval.py`.
