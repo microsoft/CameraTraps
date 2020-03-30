@@ -101,7 +101,24 @@ def is_image_file(s):
     return ext.lower() in image_extensions
 
 
-def convert_xwyh_to_xyxy(api_bbox):
+def convert_xywh_to_tf(api_box):
+    """
+    Converts an xywh bounding box to an [y_min, x_min, y_max, x_max] box that the TensorFlow
+    Object Detection API uses
+
+    Args:
+        api_box: bbox output by the batch processing API [x_min, y_min, width_of_box, height_of_box]
+
+    Returns:
+        bbox with coordinates represented as [y_min, x_min, y_max, x_max]
+    """
+    x_min, y_min, width_of_box, height_of_box = api_box
+    x_max = x_min + width_of_box
+    y_max = y_min + height_of_box
+    return [y_min, x_min, y_max, x_max]
+
+
+def convert_xywh_to_xyxy(api_bbox):
     """
     Converts an xywh bounding box to an xyxy bounding box.
     
@@ -140,8 +157,8 @@ def get_iou(bb1, bb2):
         intersection_over_union, a float in [0, 1]
     """
     
-    bb1 = convert_xwyh_to_xyxy(bb1)
-    bb2 = convert_xwyh_to_xyxy(bb2)
+    bb1 = convert_xywh_to_xyxy(bb1)
+    bb2 = convert_xywh_to_xyxy(bb2)
 
     assert bb1[0] < bb1[2]
     assert bb1[1] < bb1[3]
