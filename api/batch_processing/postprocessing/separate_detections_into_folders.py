@@ -37,14 +37,18 @@
 # past the classes in MegaDetector v4, not currently ready for species-level classification.  
 #
 
-#%% Constants and imports
 
+# %% Constants and imports
+import argparse
 import json
 import os
 import shutil
+import sys
 from multiprocessing.pool import ThreadPool
 
 from tqdm import tqdm
+
+from ct_utils import args_to_object
 
 output_folders = ['empty','animals','people','vehicles','multiple']
 
@@ -212,19 +216,7 @@ if False:
 #%% Command-line driver   
 
 # python api\batch_processing\postprocessing\separate_detections_into_folders.py "d:\temp\rspb_mini.json" "d:\temp\demo_images\rspb_2018_2019_mini" "d:\temp\separation_test" --nthreads 2
-    
-import argparse
-import inspect
-import sys
 
-# Copy all fields from a Namespace (i.e., the output from parse_args) to an object.  
-#
-# Skips fields starting with _.  Does not check field existence in the target object.
-def argsToObject(args, obj):
-    
-    for n, v in inspect.getmembers(args):
-        if not n.startswith('_'):
-            setattr(obj, n, v);
 
 def main():
     
@@ -252,7 +244,7 @@ def main():
     args = parser.parse_args()    
     
     # Convert to an options object
-    argsToObject(args,options)
+    args_to_object(args, options)
     
     separate_detections_into_folders(options)
     
