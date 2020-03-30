@@ -10,8 +10,11 @@
 import os
 import ntpath
 import posixpath
+import json
+import humanfriendly
 
 from urllib.parse import urlsplit, unquote
+
 import path_utils
 
 from api.batch_processing.data_preparation import prepare_api_submission
@@ -39,6 +42,14 @@ image_base = 'x:\\'
 caller = 'caller'
 task_status_endpoint_url = 'http://blah.endpoint.com:6022/v2/camera-trap/detection-batch/task'
 submission_endpoint_url = 'http://blah.endpoint.com:6022/v2/camera-trap/detection-batch/request_detections'
+
+additional_job_args = {}
+
+# Supported model_versions: '4', '3', '4_prelim'
+#
+# Also available at the /supported_model_versions and /default_model_version endpoints
+#
+# additional_job_args = {"model_version":"4_prelim"}
 
 
 #%% Derived variables, path setup
@@ -194,6 +205,7 @@ for task_group_job_names in job_names_by_task_group:
                                                   list_url,
                                                   job_name,
                                                   caller,
+                                                  additional_args=additional_job_args,
                                                   image_path_prefix=None)
         request_strings_this_task_group.append(s)
         
@@ -210,8 +222,6 @@ clipboard.copy('\n\n'.join(request_strings))
 
 #%% Estimate total time
 
-import json
-import humanfriendly
 n_images = 0
 for fn in list_files:
     images = json.load(open(fn))
@@ -303,7 +313,7 @@ for i_task_group,task_group in enumerate(task_groups):
 
         print('Warning: {} missing images for task {}'.format(len(missing_images),task_id))
         
-        job_name = folder_names[i_task_group] + '_' + str(task_id) + '_missing_images'
+        job_name = job_set_name + '_' + folder_names[i_task_group] + '_' + str(task_id) + '_missing_images'
         remote_path = 'api_inputs/' + job_set_name + '/' + job_name + '.json'
         print('Job {}: uploading {} to {}'.format(
             job_name,missing_images_fn,remote_path))
@@ -431,23 +441,29 @@ for i_folder,folder_name_raw in enumerate(folder_names):
 
 html_output_files = []
 
+# i_folder = 0; folder_name_raw = folder_names[i_folder]
 for i_folder,folder_name_raw in enumerate(folder_names):
     
-    folder_name = path_utils.clean_filename(folder_name_raw)
-    output_base = os.path.join(postprocessing_output_folder,folder_name)
-    os.makedirs(output_base,exist_ok=True)
-    print('Processing {} to {}'.format(folder_name,output_base))
-    api_output_file = folder_name_to_combined_output_file[folder_name]
-
     options = PostProcessingOptions()
     options.image_base_dir = image_base
     options.parallelize_rendering = True
     options.include_almost_detections = True
     options.num_images_to_sample = 5000
     options.confidence_threshold = 0.8
-    options.almost_detection_confidence_threshold = 0.75
+    options.almost_detection_confidence_threshold = options.confidence_threshold - 0.05
     options.ground_truth_json_file = None
     
+    folder_name = path_utils.clean_filename(folder_name_raw)
+    if len(folder_name) == 0:
+        folder_token = ''
+    else:
+        folder_token = folder_name + '_'
+    output_base = os.path.join(postprocessing_output_folder,folder_token + \
+        job_set_name + '_{:.3f}'.format(options.confidence_threshold))
+    os.makedirs(output_base,exist_ok=True)
+    print('Processing {} to {}'.format(folder_name,output_base))
+    api_output_file = folder_name_to_combined_output_file[folder_name]
+
     options.api_output_file = api_output_file
     options.output_dir = output_base
     ppresults = process_batch_results(options)
@@ -455,8 +471,8 @@ for i_folder,folder_name_raw in enumerate(folder_names):
     
 for fn in html_output_files:
     os.startfile(fn)
-
-
+    
+    
 #%% Manual processing follows
     
 #
@@ -471,10 +487,6 @@ from api.batch_processing.postprocessing import repeat_detections_core
 import path_utils
 
 options = repeat_detections_core.RepeatDetectionOptions()
-options.bRenderHtml = False
-options.imageBase = image_base
-options.outputBase = os.path.join(filename_base,'rde_0.6_0.85_10_0.2')
-options.filenameReplacements = {'':''}
 
 options.confidenceMin = 0.6
 options.confidenceMax = 1.01 
@@ -482,13 +494,20 @@ options.iouThreshold = 0.85
 options.occurrenceThreshold = 10
 options.maxSuspiciousDetectionSize = 0.2
 
+options.bRenderHtml = False
+options.imageBase = image_base
+rde_string = 'rde_{:.2f}_{:.2f}_{}_{:.1f}'.format(
+    options.confidenceMin,options.iouThreshold,options.occurrenceThreshold,options.maxSuspiciousDetectionSize)
+options.outputBase = os.path.join(filename_base,rde_string)
+options.filenameReplacements = {'':''}
+
 options.debugMaxDir = -1
 options.debugMaxRenderDir = -1
 options.debugMaxRenderDetection = -1
 options.debugMaxRenderInstance = -1
 
 api_output_filename = list(folder_name_to_combined_output_file.values())[0]
-filtered_output_filename = path_utils.insert_before_extension(api_output_filename,'filtered')
+filtered_output_filename = path_utils.insert_before_extension(api_output_filename,'filtered_{}'.format(rde_string))
 
 suspiciousDetectionResults = repeat_detections_core.find_repeat_detections(api_output_filename,
                                                                            None,
@@ -507,9 +526,46 @@ from api.batch_processing.postprocessing import remove_repeat_detections
 remove_repeat_detections.remove_repeat_detections(
     inputFile=api_output_filename,
     outputFile=filtered_output_filename,
-    filteringDir=r"Q:\uidaho.nelson_2019.10.drop\repeat_detections\filtering_2019.10.26.19.55.02"
+    filteringDir=os.path.dirname(suspiciousDetectionResults.filterFile),
+    options=options
     )
 
+
+#%% Post-processing (post-RDE)
+
+html_output_files = []
+
+# i_folder = 0; folder_name_raw = folder_names[i_folder]
+for i_folder,folder_name_raw in enumerate(folder_names):
+    
+    options = PostProcessingOptions()
+    options.image_base_dir = image_base
+    options.parallelize_rendering = True
+    options.include_almost_detections = True
+    options.num_images_to_sample = 5000
+    options.confidence_threshold = 0.8
+    options.almost_detection_confidence_threshold = options.confidence_threshold - 0.05
+    options.ground_truth_json_file = None
+    
+    folder_name = path_utils.clean_filename(folder_name_raw)
+    if len(folder_name) == 0:
+        folder_token = ''
+    else:
+        folder_token = folder_name + '_'
+    output_base = os.path.join(postprocessing_output_folder,folder_token + \
+        job_set_name + '_{}_{:.3f}'.format(rde_string,options.confidence_threshold))
+    os.makedirs(output_base,exist_ok=True)
+    print('Processing {} to {}'.format(folder_name,output_base))
+    api_output_file = folder_name_to_combined_output_file[folder_name]
+
+    options.api_output_file = filtered_output_filename
+    options.output_dir = output_base
+    ppresults = process_batch_results(options)
+    html_output_files.append(ppresults.output_html_file)
+    
+for fn in html_output_files:
+    os.startfile(fn)
+    
 
 #%% Subsetting
 

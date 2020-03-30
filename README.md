@@ -13,7 +13,11 @@ Classifiers and detectors are trained using TensorFlow.
 
 This repo is maintained by folks in the [Microsoft AI for Earth](http://aka.ms/aiforearth) program who like looking at pictures of animals.  I mean, we want to use machine learning to support conservation too, but we also really like looking at pictures of animals.
 
-You can read more about what we do to support camera trap researchers in our recent [blog post](https://medium.com/microsoftazure/accelerating-biodiversity-surveys-with-azure-machine-learning-9be53f41e674).
+# How we work with ecologists
+
+We work with ecologists all over the world to help them spend less time annotating images and more time thinking about conservation.  You can read a little more about how this works on our [AI for Earth camera trap collaborations page](collaborations.md).
+
+You can also read about what we do to support camera trap researchers in our recent [blog post](https://medium.com/microsoftazure/accelerating-biodiversity-surveys-with-azure-machine-learning-9be53f41e674).
 
 
 # Data
@@ -23,7 +27,7 @@ This repo does not directly host camera trap data, but we work with our collabor
 
 # Models
 
-This repo does not extensively host models, though we will release models when they are at a level of generality that they might be useful to other people.  
+This repo does not extensively host species classification models, though we will release models when they are at a level of generality that they might be useful to other people.  But...
 
 
 ## MegaDetector
@@ -35,6 +39,7 @@ Here&rsquo;s a &ldquo;teaser&rdquo; image of what detector output looks like:
 ![alt text](images/detector_example.jpg "Red bounding box on fox")
 
 Image credit University of Washington.
+
 
 # Contact
 
@@ -89,20 +94,39 @@ Random things that don&rsquo;t fit in any other directory.  Currently contains a
 
 # Installation
 
-We use [conda](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html) to manage our Python package dependencies. Conda is a package and environment management system. You can install a lightweight distribution of conda (Miniconda) for your OS via installers at [https://docs.conda.io/en/latest/miniconda.html](https://docs.conda.io/en/latest/miniconda.html). Installing packages with conda may be slower as it optimizes package version compatibility.
-
-Some Azure SDKs are only available on PyPI; we install them using pip as a part of the conda installation step.
+We use [conda](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html) to manage our Python package dependencies. Conda is a package and environment management system. You can install a lightweight distribution of conda (Miniconda) for your OS via installers at [https://docs.conda.io/en/latest/miniconda.html](https://docs.conda.io/en/latest/miniconda.html).
 
 ## Initial setup
 
-The required Python packages for running utility and visualization scripts in this repo are listed in [environment.yml](environment.yml). Scripts in some folders including `api`,`detection` and `classification` may require additional setup. In particular, the `detection/run_tf_detector*.py` scripts should use [environment-detector.yml](environment-detector.yml) to set up the environment.
+### Utility and visualization scripts
 
-In your shell, navigate to the root directory of this repo and issue the following command to create a virtual environment via conda called `cameratraps` (specified in the environment file) and install the required packages:
+The required Python packages for running utility and visualization scripts in this repo are listed in [environment.yml](environment.yml).  To set up your environment for these scripts, in your shell, navigate to the root directory of this repo and issue the following command to create a virtual environment via conda called `cameratraps` (specified in the environment file) and install the required packages:
+
 ```
 conda env create --file environment.yml
 ```
 
-If you run into an error while creating the environment, try updating conda to version 4.5.11 or above. Check the version of conda using `conda --version`.
+### Machine learning scripts
+
+Scripts that execute machine learning code &ndash; specifically, scripts in the folders `api`, `detection`, and `classification` &ndash; require additional depdendencies.  In particular, the `detection/run_tf_detector*.py` scripts should use [environment-detector.yml](environment-detector.yml) to set up the environment, as follows:
+
+```
+conda env create --file environment-detector.yml
+```
+
+This environment file allows any TensorFlow version from 1.9 to 1.15 to be installed, but you may need to adjust that version for your environment.  Specifically, if you are running on an Azure Data Science Virtual Machine (which has CUDA 10.1 as of the time I&rsquo;m writing this), you may receive a CUDA error, in which ase you should change the line:
+
+`- tensorflow-gpu>=1.9.0, <1.15.0`
+
+...to:
+
+`- tensorflow-gpu=1.13.1`
+
+...before creating your environment.
+
+### Troubleshooting
+
+If you run into an error while creating either of the above environments, try updating conda to version 4.5.11 or above. Check the version of conda using `conda --version`.
 
 ## Usage
 
@@ -120,13 +144,15 @@ conda env update --file environment.yml
 
 ## Other notes
 
-In some scripts, we also assume that you have the [AI for Earth utilities repo](https://github.com/Microsoft/ai4eutils) (`ai4eutils`) cloned and its path appended to `PYTHONPATH`. You can append a path to `PYTHONPATH` for the current shell session by executing
+In some scripts, we also assume that you have the [AI for Earth utilities repo](https://github.com/Microsoft/ai4eutils) (`ai4eutils`) cloned and its path appended to `PYTHONPATH`. You can append a path to `PYTHONPATH` for the current shell session by executing the following on Windows:
 
-```bash
-export PYTHONPATH="$PYTHONPATH:/absolute/path/to/repo/ai4eutils"
-```
+```set PYTHONPATH="%PYTHONPATH%;c:\wherever_you_put_the_ai4eutils_repo"```
 
-Adding this line to your `~/.bashrc` modifies `PYTHONPATH` permanently.
+You can do this with the following on Linux:
+
+```export PYTHONPATH="$PYTHONPATH:/absolute/path/to/repo/ai4eutils"```
+
+Adding this line to your `~/.bashrc` (on Linux) modifies `PYTHONPATH` permanently.
 
 
 # Gratuitous pretty camera trap picture

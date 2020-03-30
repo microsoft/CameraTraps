@@ -1,15 +1,15 @@
-##############################################################
-# ct_utils.py
-#
-# Script with shared utility functions, such as truncating floats
-##############################################################
+"""
+ct_utils.py
+
+Script with shared utility functions, such as truncating floats
+"""
 
 import inspect
 import json
-import jsonpickle
 import math
 import os
 
+import jsonpickle
 import numpy as np
 
 
