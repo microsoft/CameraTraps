@@ -15,7 +15,6 @@ import json
 import os
 import uuid
 from datetime import datetime
-import sys
 
 from tqdm import tqdm
 
