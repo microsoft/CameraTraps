@@ -2,11 +2,15 @@ from collections import defaultdict
 import math
 
 import numpy as np
-from object_detection.utils import per_image_evaluation, metrics
+from object_detection.utils import per_image_evaluation, metrics  # TF Object Detection API needs to be installed
 from tqdm import tqdm
 
-# This file contains functions for evaluating detectors on detection tasks.
-# See benchmark/model_eval_utils.py for functions to evaluate on more generic tasks.
+from ct_utils import convert_xywh_to_tf
+
+"""
+This file contains functions for evaluating detectors on detection tasks.
+See benchmark/model_eval_utils.py for functions to evaluate on more generic tasks.
+"""
 
 
 def compute_precision_recall_bbox(per_image_detections, per_image_gts, num_gt_classes,
@@ -38,7 +42,6 @@ def compute_precision_recall_bbox(per_image_detections, per_image_gts, num_gt_cl
     num_total_gt = defaultdict(int)
 
     for image_id, dets in tqdm(per_image_detections.items()):
-
         detected_boxes = np.array(dets['boxes'], dtype=np.float32)
         detected_scores = np.array(dets['scores'], dtype=np.float32)
         # labels input to compute_object_detection_metrics() needs to start at 0, not 1
@@ -128,20 +131,71 @@ def compute_precision_recall_bbox(per_image_detections, per_image_gts, num_gt_cl
     return per_cat_metrics
 
 
-def get_per_image_gts_and_detections(gt_db_indexed, detection_res):
+def get_per_image_gts_and_detections(gt_db_dict, detection_res, label_map_name_to_id):
     """
-    Group the detected and ground truth bounding boxes by image_id.
+        Group the detected and ground truth bounding boxes by image_id.
+        For use when the gt_db_dict is from the MegaDB
 
     Args:
-        gt_db_indexed: IndexedJsonDb of the ground truth bbox json.
+        gt_db_dict: ground truth bbox json; usually query result from megaDB.
         detection_res: dict of image_id to image entry in the API output file's `images` field. The key needs to be
         the same image_id as those in the ground truth json db.
+        label_map_name_to_id: dict with pairs e.g. 'animal': 1
 
     Returns:
         per_image_gts: dict where the image_id is the key, corresponding to a dict with `gt_boxes` and
             `gt_labels` for that image
         per_image_detections: dict where the image_id is the key, corresponding to a dict with the detections'
             `boxes`, `scores` and `labels` for that image
+    """
+    per_image_gts = {}
+    per_image_detections = {}
+
+    for det_image_obj in detection_res:
+        image_id = det_image_obj['file'].split('/')[-1].split('.jpg')[0]
+
+        gt_boxes = []
+        gt_labels = []
+
+        gt_entry = gt_db_dict[image_id]
+        for b in gt_entry['bbox']:
+            if b['category'] not in label_map_name_to_id:
+                continue
+            gt_boxes.append(convert_xywh_to_tf(b['bbox']))
+            gt_labels.append(label_map_name_to_id[b['category']])
+
+        per_image_gts[image_id] = {
+            'gt_boxes': gt_boxes,
+            'gt_labels': gt_labels
+        }
+
+        detection_boxes = []
+        detection_scores = []
+        detection_labels = []
+
+        for det in det_image_obj['detections']:
+            detection_boxes.append(convert_xywh_to_tf(det['bbox']))
+            detection_scores.append(det['conf'])
+            detection_labels.append(int(det['category']))
+
+        if len(detection_boxes) > 0:
+            per_image_detections[image_id] = {
+                'boxes': detection_boxes,
+                'scores': detection_scores,
+                'labels': detection_labels
+            }
+        else:
+            per_image_detections[image_id] = {
+                'boxes': [[0.0, 0.0, 0.0, 0.0]],
+                'scores': [0.0],
+                'labels': [0]
+            }
+    return per_image_gts, per_image_detections
+
+
+def get_per_image_gts_and_detections_deprecated(gt_db_indexed, detection_res):
+    """
+    Deprecated - used when ground truth labels are in a CCT JSON DB.
     """
     per_image_gts = {}
     per_image_detections = {}
