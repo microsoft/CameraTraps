@@ -3,9 +3,10 @@
 # combine_api_outputs.py
 #
 # Merges two or more .json files in batch API output format, optionally
-# writing the results to another .json file.  Concatenates image lists,
-# erroring if images are not unique.  Errors if class lists are conflicting, errors 
-# on unrecognized fields.  Checks compatibility in info structs, within reason.
+# writing the results to another .json file.
+# - Concatenates image lists, erroring if images are not unique.
+# - Errors if class lists are conflicting; errors on unrecognized fields.
+# - Checks compatibility in info structs, within reason.
 #
 # File format:
 #
