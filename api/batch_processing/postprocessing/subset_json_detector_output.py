@@ -6,7 +6,7 @@
 #
 # 1) Retrieve all elements where filenames contain a specified query string, 
 #    optionally replacing that query with a replacement token. If the query is blank, 
-#    can also be  used to prepend content to all filenames.
+#    can also be used to prepend content to all filenames.
 #
 # 2) Create separate .jsons for each unique path, optionally making the filenames 
 #    in those .json's relative paths.  In this case, you specify an output directory, 
@@ -49,10 +49,11 @@
 
 #%% Constants and imports
 
-import json
-from tqdm import tqdm
-import os
 import copy
+import json
+import os
+
+from tqdm import tqdm
 
 from data_management.annotations import annotation_constants
 
