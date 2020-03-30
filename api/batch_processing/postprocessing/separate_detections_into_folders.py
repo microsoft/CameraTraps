@@ -8,6 +8,8 @@
 # Places images that are above threshold for multiple classes into 'multiple'
 # folder.
 #
+# Image files are copied, not moved.
+#
 # Preserves relative paths within each of those folders; cannot be used with .json
 # files that have absolute paths in them.
 #
@@ -37,11 +39,12 @@
 
 #%% Constants and imports
 
-import os
 import json
+import os
 import shutil
-from tqdm import tqdm
 from multiprocessing.pool import ThreadPool
+
+from tqdm import tqdm
 
 output_folders = ['empty','animals','people','vehicles','multiple']
 
