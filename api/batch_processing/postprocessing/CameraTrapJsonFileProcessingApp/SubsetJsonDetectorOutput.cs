@@ -9,6 +9,7 @@ using System.IO;
 using Newtonsoft.Json;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Diagnostics;
+using System.Text.RegularExpressions;
 
 namespace CameraTrapJsonManagerApp
 {
@@ -93,6 +94,7 @@ namespace CameraTrapJsonManagerApp
                 {
                     SetLabelProgressMsg("Finding unique folders...", ProgressBarStyle.Marquee);
                     Dictionary<string, List<Image>> foldersToImages = FindUniqueFolders(options, data);
+                    if (foldersToImages == null) return null;                    
 
                     if (options.MakeFolderRelative)
                         foldersToImages = MakeFoldersRelative(foldersToImages);
@@ -125,7 +127,7 @@ namespace CameraTrapJsonManagerApp
                         if (directoryName.Length == 0)
                             directoryName = "base";
 
-                        var dirData = new JsonData();
+                        JsonData dirData = new JsonData();
                         dirData.classification_categories = data.classification_categories;
                         dirData.detection_categories = data.detection_categories;
                         dirData.info = data.info;
@@ -223,7 +225,7 @@ namespace CameraTrapJsonManagerApp
 
             data.images = imagesOut;
 
-            SetStatusMessage(string.Format("done, found {0} matches (of {1})", data.images.Count(), imagesIn.Count()));
+            SetStatusMessage(string.Format("Finished query search, found {0} matches (of {1})", data.images.Count(), imagesIn.Count()));
 
             stopwatch.Stop();
             Console.WriteLine(stopwatch.Elapsed.TotalSeconds.ToString());
@@ -317,7 +319,7 @@ namespace CameraTrapJsonManagerApp
 
             data.images = imagesOut;
 
-            SetStatusMessage(string.Format("done, found {0} matches (of {1}), {2} max conf changes", data.images.Count().ToString(),
+            SetStatusMessage(string.Format("Finished confidence search, found {0} matches (of {1}), {2} max conf changes", data.images.Count().ToString(),
                               imagesIn.Count().ToString(), maxChanges.ToString()));
 
             return data;
@@ -403,7 +405,7 @@ namespace CameraTrapJsonManagerApp
             foreach (KeyValuePair<string, List<Image>> item in folderstoImages)
             {
                 string dirname = item.Key;
-                foreach (var image in item.Value)
+                foreach (Image image in item.Value)
                 {
                     // Gets the path of [image.file] relative to [dirname]
                     //
@@ -411,6 +413,7 @@ namespace CameraTrapJsonManagerApp
                     //
                     // GetRelativePath("a/b/c/d/e.jpg","a/b/c") == "d/e.jpg"
                     string relativePath = GetRelativePath(image.file, dirname);
+                    Debug.Assert(!(relativePath.Contains(@"\\")));
                     image.file = relativePath;
                 }
             }
@@ -497,7 +500,34 @@ namespace CameraTrapJsonManagerApp
                 {
                     directoryName = Path.GetDirectoryName(filePath);
                     for (int n = 0; n < options.nDirectoryParam; n++)
+                    {
+                        if (directoryName.Length == 0)
+                        {
+                            string msg = string.Format("Error: cannot walk {0} folders from the bottom in path {1}",
+                                options.nDirectoryParam, filePath);
+                            SetStatusMessage(msg);
+                            return null;
+                        }
                         directoryName = Path.GetDirectoryName(directoryName);
+                    }
+                }
+                else if (options.SplitFolderMode.ToLower() == "nfromtop")
+                {
+                    directoryName = Path.GetDirectoryName(filePath);
+
+                    // Split string into folders, keeping delimiters
+                    String delimiter = @"([\\/])";
+                    String[] tokens = Regex.Split(directoryName, delimiter);
+                    int nTokensToKeep = ((options.nDirectoryParam + 1) * 2) - 1;
+                    if (nTokensToKeep > tokens.Length)
+                    {
+                        string msg = string.Format("Error: cannot walk {0} folders from the top in path {1}",
+                                options.nDirectoryParam, filePath);
+                        SetStatusMessage(msg);
+                        return null;
+                    }
+                    tokens = tokens.Take(nTokensToKeep).ToArray();
+                    directoryName = String.Join("",tokens);
                 }
                 else if (options.SplitFolderMode.ToLower() == "top")
                 {
@@ -526,6 +556,17 @@ namespace CameraTrapJsonManagerApp
 
         private bool WriteDetectionResults(JsonData data, string outputFileName, SubsetJsonDetectorOutputOptions options)
         {
+            // Convert all paths to forward slashes unless they're absolute
+            if (options.UseForwardSlashesWhenPossible)
+            {
+                foreach (Image im in data.images)
+                {
+                    if ((im.file.Contains("\\")) && (!(im.file.Contains("/"))) && (!Path.IsPathRooted(im.file)))
+                    {
+                        im.file = im.file.Replace('\\', '/');
+                    }
+                }
+            }
 
             // Write the detector ouput *data* to *output_filename*
             if (!Path.IsPathRooted(outputFileName))
@@ -568,9 +609,9 @@ namespace CameraTrapJsonManagerApp
                     return false;
                 }
 
-                using (var fs = File.Create(outputFileName))
-                using (var sw = new StreamWriter(fs))
-                using (var jtw = new JsonTextWriter(sw)
+                using (FileStream fs = File.Create(outputFileName))
+                using (StreamWriter sw = new StreamWriter(fs))
+                using (JsonTextWriter jtw = new JsonTextWriter(sw)
                 {
                     Formatting = Formatting.Indented,
                     Indentation = 1,
