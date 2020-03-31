@@ -53,5 +53,7 @@ namespace CameraTrapJsonManagerApp
         public double ConfidenceThreshold { get; set; } = -1;
         public int DebugMaxImages { get; set; }
 
+        // Not exposed through the UI
+        public bool UseForwardSlashesWhenPossible { get; set; } = true;
     }
 }
