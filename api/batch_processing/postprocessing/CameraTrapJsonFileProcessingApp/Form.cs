@@ -15,6 +15,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
+using System.Runtime.InteropServices;
+
 namespace CameraTrapJsonManagerApp
 {
     #region ProgressBar delegate declarations
@@ -71,12 +73,13 @@ namespace CameraTrapJsonManagerApp
             textboxOutputFolderFile.Text = string.Empty;
             this.Text += " (version " + System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString() + ")";
 
-#if DEBUG
-            textboxInputFile.Text = @"D:\temp\json_test\5431_detections_uw_labeled_20190817_20190817234450.refiltered.json";
-            textboxOutputFolderFile.Text = @"D:\temp\json_test\cs";
+#if DEBUG            
+            // textboxInputFile.Text = @"C:\temp\980_detections_uw_gardner_mar2020_20200325233026.json";
+            textboxInputFile.Text = @"C:\temp\json_test.json";
+            textboxOutputFolderFile.Text = @"c:\temp\out";
             textboxConfidenceThreshold.Text = "0.5";
-            textBoxSplitParameter.Text = "1";
-            comboBoxSplitFolderMode.SelectedItem = "NFromBottom";
+            textBoxSplitParameter.Text = "10";
+            comboBoxSplitFolderMode.SelectedItem = "NFromTop";
             checkBoxMakeFolderRelative.Checked = true;
             checkBoxOverwriteJsonFiles.Checked = true;
             checkBoxSplitFolders.Checked = true;            
