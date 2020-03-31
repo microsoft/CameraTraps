@@ -1,7 +1,10 @@
-# Postprocessing scripts
+# Postprocessing tools
 
 
-This folder collects scripts to further process the output JSON file of the batch processing API.
+For documentation on using the Output Manager app to split the batch processing API's output file into more manageable bites, see [here](./CameraTrapJsonManagerApp.md). 
+
+
+The rest of thisi folder collects scripts to further process the output JSON file of the batch processing API.
 
 -  `load_api_results.py` loads the output file into a Pandas dataframe and have functions to group entries by `seq_id` if ground truth JSON is provided as an instance of `IndexedJsonDb` (`data_management/cct_json_utils.py`) from a CCT format file. 
 
