@@ -203,7 +203,8 @@ namespace CameraTrapJsonManagerApp
             this.comboBoxSplitFolderMode.Items.AddRange(new object[] {
             "Top",
             "Bottom",
-            "NFromBottom"});
+            "NFromBottom",
+            "NFromTop"});
             this.comboBoxSplitFolderMode.Location = new System.Drawing.Point(373, 15);
             this.comboBoxSplitFolderMode.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
             this.comboBoxSplitFolderMode.Name = "comboBoxSplitFolderMode";
@@ -539,7 +540,6 @@ namespace CameraTrapJsonManagerApp
             this.statusGroupBox.ResumeLayout(false);
             this.statusGroupBox.PerformLayout();
             this.ResumeLayout(false);
-
         }
 
         #endregion
