@@ -6,7 +6,7 @@
 #
 # 1) Retrieve all elements where filenames contain a specified query string, 
 #    optionally replacing that query with a replacement token. If the query is blank, 
-#    can also be  used to prepend content to all filenames.
+#    can also be used to prepend content to all filenames.
 #
 # 2) Create separate .jsons for each unique path, optionally making the filenames 
 #    in those .json's relative paths.  In this case, you specify an output directory, 
@@ -48,12 +48,15 @@
 #
 
 #%% Constants and imports
-
-import json
-from tqdm import tqdm
-import os
+import argparse
+import sys
 import copy
+import json
+import os
 
+from tqdm import tqdm
+
+from ct_utils import args_to_object
 from data_management.annotations import annotation_constants
 
 
@@ -75,7 +78,7 @@ class SubsetJsonDetectorOutputOptions:
     #
     # 'dict' requires 'split_folder_param' to be a dictionary mapping each filename
     # to a token.
-    split_folder_mode = 'bottom' # 'top'
+    split_folder_mode = 'bottom'  # 'top'
     
     # When using the 'n_from_bottom' parameter to define folder splitting, this
     # defines the number of directories from the bottom.  'n_from_bottom' with
@@ -127,7 +130,7 @@ def add_missing_detection_results_fields(data):
         print('Adding "info" field to .json')
         info = {
             "detector": "unknown",
-            "detection_completion_time" : "unknown",
+            "detection_completion_time": "unknown",
             "classifier": "unknown",
             "classification_completion_time": "unknown"
         }
@@ -144,7 +147,7 @@ def add_missing_detection_results_fields(data):
     return data
     
 
-def write_detection_results(data,output_filename,options):
+def write_detection_results(data, output_filename, options):
     """
     Write the detector-output-formatted dict *data* to *output_filename*.
     """
@@ -158,18 +161,18 @@ def write_detection_results(data,output_filename,options):
         if not os.path.isdir(basedir):
             raise ValueError('Directory {} does not exist'.format(basedir))
     else:
-        os.makedirs(basedir,exist_ok=True)
+        os.makedirs(basedir, exist_ok=True)
     
-    print('Serializing to {}...'.format(output_filename), end = '')    
+    print('Serializing to {}...'.format(output_filename), end='')
     s = json.dumps(data, indent=1)
     print(' ...done')
-    print('Writing output file...', end = '')    
+    print('Writing output file...', end='')
     with open(output_filename, "w") as f:
         f.write(s)
     print(' ...done')
 
 
-def subset_json_detector_output_by_confidence(data,options):
+def subset_json_detector_output_by_confidence(data, options):
     """
     Remove all detections below options.confidence_threshold, update max confidences accordingly.
     """
@@ -185,7 +188,7 @@ def subset_json_detector_output_by_confidence(data,options):
     n_max_changes = 0
     
     # iImage = 0; im = images_in[0]
-    for iImage,im in tqdm(enumerate(images_in),total=len(images_in)):
+    for iImage, im in tqdm(enumerate(images_in), total=len(images_in)):
         
         p_orig = im['max_detection_conf']
 
@@ -210,7 +213,7 @@ def subset_json_detector_output_by_confidence(data,options):
         if abs(p_orig - p) > 0.00001:
 
             # We should only be *lowering* max confidence values (i.e., making them negative)
-            assert (p_orig <= 0) or (p < p_orig), 'Confidence changed from {} to {}'.format(p_orig,p)
+            assert (p_orig <= 0) or (p < p_orig), 'Confidence changed from {} to {}'.format(p_orig, p)
             n_max_changes += 1
         im['max_detection_conf'] = p
         images_out.append(im)
@@ -224,7 +227,7 @@ def subset_json_detector_output_by_confidence(data,options):
     return data
 
 
-def subset_json_detector_output_by_query(data,options):
+def subset_json_detector_output_by_query(data, options):
     """
     Subset to images whose filename matches options.query; replace all instances of 
     options.query with options.replacement.
@@ -233,10 +236,10 @@ def subset_json_detector_output_by_query(data,options):
     images_in = data['images']
     images_out = []    
     
-    print('Subsetting by query {}, replacement {}...'.format(options.query,options.replacement),end='')
+    print('Subsetting by query {}, replacement {}...'.format(options.query, options.replacement), end='')
     
-    # iImage = 0; im = images_in[0]
-    for iImage,im in tqdm(enumerate(images_in),total=len(images_in)):
+    # i_image = 0; im = images_in[0]
+    for i_image, im in tqdm(enumerate(images_in), total=len(images_in)):
         
         fn = im['file']
         
@@ -246,7 +249,7 @@ def subset_json_detector_output_by_query(data,options):
         
         if options.replacement is not None:
             if options.query is not None:
-                fn = fn.replace(options.query,options.replacement)
+                fn = fn.replace(options.query, options.replacement)
             else:
                 fn = options.replacement + fn
             
@@ -257,7 +260,7 @@ def subset_json_detector_output_by_query(data,options):
     # ...for each image        
     
     data['images'] = images_out    
-    print('done, found {} matches (of {})'.format(len(data['images']),len(images_in)))
+    print('done, found {} matches (of {})'.format(len(data['images']), len(images_in)))
     
     return data
 
@@ -274,10 +277,10 @@ def split_path(path, maxdepth=100):
     
     http://nicks-liquid-soapbox.blogspot.com/2011/03/splitting-path-to-list-in-python.html
     """
-    ( head, tail ) = os.path.split(path)
-    return split_path(head, maxdepth - 1) + [ tail ] \
+    (head, tail) = os.path.split(path)
+    return split_path(head, maxdepth - 1) + [tail] \
         if maxdepth and head and head != path \
-        else [ head or tail ]
+        else [head or tail]
 
     
 def top_level_folder(p):
@@ -299,8 +302,8 @@ def top_level_folder(p):
     #
     # /, \, /stuff, c:, c:\stuff
     drive = os.path.splitdrive(p)[0]
-    if parts[0] == drive or parts[0] == drive + '/' or parts[0] == drive + '\\' or parts[0] in ['\\','/']: 
-        return os.path.join(parts[0],parts[1])    
+    if parts[0] == drive or parts[0] == drive + '/' or parts[0] == drive + '\\' or parts[0] in ['\\', '/']:
+        return os.path.join(parts[0], parts[1])
     else:
         return parts[0]
     
@@ -316,7 +319,7 @@ if False:
     p = r'c:\foo/bar'; s = top_level_folder(p); print(s); assert s == 'c:\\foo'
     
     
-def subset_json_detector_output(input_filename,output_filename,options,data=None):
+def subset_json_detector_output(input_filename, output_filename, options, data=None):
     """
     Main internal entry point
         
@@ -329,14 +332,14 @@ def subset_json_detector_output(input_filename,output_filename,options,data=None
     # Input validation        
     if options.copy_jsons_to_folders:
         assert options.split_folders and options.make_folder_relative, \
-        'copy_jsons_to_folders set without make_folder_relative and split_folders'
+            'copy_jsons_to_folders set without make_folder_relative and split_folders'
                 
     if options.split_folders:
         if os.path.isfile(output_filename):
             raise ValueError('When splitting by folders, output must be a valid directory name, you specified an existing file')
             
     if data is None:
-        print('Reading json...',end='')
+        print('Reading json...', end='')
         with open(input_filename) as f:
             data = json.load(f)
         print(' ...done, read {} images'.format(len(data['images'])))
@@ -350,15 +353,15 @@ def subset_json_detector_output(input_filename,output_filename,options,data=None
     
     if options.query is not None:
         
-        data = subset_json_detector_output_by_query(data,options)
+        data = subset_json_detector_output_by_query(data, options)
     
     if options.confidence_threshold is not None:
         
-        data = subset_json_detector_output_by_confidence(data,options)
+        data = subset_json_detector_output_by_confidence(data, options)
         
     if not options.split_folders:
         
-        write_detection_results(data,output_filename,options)
+        write_detection_results(data, output_filename, options)
         return data
     
     else:
@@ -375,16 +378,16 @@ def subset_json_detector_output(input_filename,output_filename,options,data=None
                 dirname = os.path.dirname(fn)
             elif options.split_folder_mode == 'n_from_bottom':
                 dirname = os.path.dirname(fn)
-                for n in range(0,options.split_folder_param):
+                for n in range(0, options.split_folder_param):
                     dirname = os.path.dirname(dirname)
             elif options.split_folder_mode == 'top':
                 dirname = top_level_folder(fn)                
             elif options.split_folder_mode == 'dict':
-                assert isinstance(options.split_folder_param,dict)
+                assert isinstance(options.split_folder_param, dict)
                 dirname = options.split_folder_param[fn]
             else:
                 raise ValueError('Unrecognized folder split mode {}'.format(options.split_folder_mode))
-            folders_to_images.setdefault(dirname,[]).append(im)
+            folders_to_images.setdefault(dirname, []).append(im)
         
         print('Found {} unique folders'.format(len(folders_to_images)))
         
@@ -398,30 +401,30 @@ def subset_json_detector_output(input_filename,output_filename,options,data=None
                 # im = folders_to_images[dirname][0]
                 for im in folders_to_images[dirname]:
                     fn = im['file']
-                    relfn = os.path.relpath(fn,dirname).replace('\\','/')
+                    relfn = os.path.relpath(fn, dirname).replace('\\', '/')
                     im['file'] = relfn
                     
         print('Finished converting to json-relative paths, writing output')
                        
-        os.makedirs(output_filename,exist_ok=True)
+        os.makedirs(output_filename, exist_ok=True)
         all_images = data['images']
         
         # dirname = list(folders_to_images.keys())[0]
         for dirname in tqdm(folders_to_images):
                         
-            json_fn = dirname.replace('/','_').replace('\\','_') + '.json'
+            json_fn = dirname.replace('/', '_').replace('\\', '_') + '.json'
             
             if options.copy_jsons_to_folders:
-                json_fn = os.path.join(output_filename,dirname,json_fn)            
+                json_fn = os.path.join(output_filename, dirname, json_fn)
             else:
-                json_fn = os.path.join(output_filename,json_fn)
+                json_fn = os.path.join(output_filename, json_fn)
             
             # Recycle the 'data' struct, replacing 'images' every time... medium-hacky, but 
             # forward-compatible in that I don't take dependencies on the other fields
             dir_data = data
             dir_data['images'] = folders_to_images[dirname]
             write_detection_results(dir_data, json_fn, options)
-            print('Wrote {} images to {}'.format(len(dir_data['images']),json_fn))
+            print('Wrote {} images to {}'.format(len(dir_data['images']), json_fn))
             
         # ...for each directory
         
@@ -487,18 +490,6 @@ if False:
 
 #%% Command-line driver
 
-import argparse
-import inspect
-import sys
-
-# Copy all fields from a Namespace (i.e., the output from parse_args) to an object.  
-#
-# Skips fields starting with _.  Does not check field existence in the target object.
-def argsToObject(args, obj):
-    
-    for n, v in inspect.getmembers(args):
-        if not n.startswith('_'):
-            setattr(obj, n, v);
 
 def main():
     
@@ -513,10 +504,10 @@ def main():
     parser.add_argument('--split_folder_mode', type=str, help='Folder level to use for splitting ("top" or "bottom")')
     parser.add_argument('--make_folder_relative', action='store_true', help='Make image paths relative to their containing folder (only meaningful with split_folders)')
     parser.add_argument('--overwrite_json_files', action='store_true', help='Overwrite output files')
-    parser.add_argument('--copy_jsons_to_folders', action='store_true', help='When using split_folders and make_folder relative, copy jsons to their corresponding folders (relative to output_file)')    
+    parser.add_argument('--copy_jsons_to_folders', action='store_true', help='When using split_folders and make_folder_relative, copy jsons to their corresponding folders (relative to output_file)')
     parser.add_argument('--create_folders', action='store_true', help='When using copy_jsons_to_folders, create folders that don''t exist')    
     
-    if len(sys.argv[1:])==0:
+    if len(sys.argv[1:]) == 0:
         parser.print_help()
         parser.exit()
         
@@ -527,10 +518,11 @@ def main():
     if args.create_folders:
         options.copy_jsons_to_folders_directories_must_exist = False
         
-    argsToObject(args,options)
+    args_to_object(args, options)
     
-    subset_json_detector_output(args.input_file,args.output_file,options)
+    subset_json_detector_output(args.input_file, args.output_file, options)
     
+
 if __name__ == '__main__':
     
     main()
