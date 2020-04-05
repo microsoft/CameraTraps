@@ -560,7 +560,7 @@ for i_folder,folder_name_raw in enumerate(folder_names):
         job_set_name + '_{}_{:.3f}'.format(rde_string,options.confidence_threshold))
     os.makedirs(output_base,exist_ok=True)
     print('Processing {} to {}'.format(folder_name,output_base))
-    api_output_file = folder_name_to_combined_output_file[folder_name]
+    # api_output_file = folder_name_to_combined_output_file[folder_name]
 
     options.api_output_file = filtered_output_filename
     options.output_dir = output_base
