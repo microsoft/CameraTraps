@@ -1,4 +1,5 @@
 """
+
 postprocess_batch_results.py
 
 Given a .json or .csv file representing the output from the batch API, do one or more of
@@ -19,6 +20,7 @@ Upcoming improvements:
 * Support for accessing blob storage directly (currently images are accessed by
   file paths, so images in Azure blobs should be accessed by mounting the
   containers).
+
 """
 
 
@@ -59,6 +61,7 @@ from ct_utils import args_to_object
 
 warnings.filterwarnings("ignore", "(Possibly )?corrupt EXIF data", UserWarning)
 
+MULTIPLE_CATEGORIES_TOKEN = 'multiple'
 
 #%% Options
 
@@ -111,6 +114,9 @@ class PostProcessingOptions:
     
     sort_html_by_filename = True
     
+    # Optionally separate detections into categories (animal/vehicle/human)
+    separate_detections_by_category = False
+    
     # Optionally replace one or more strings in filenames with other strings;
     # this is useful for taking a set of results generated for one folder structure
     # and applying them to a slightly different folder structure.
@@ -134,6 +140,9 @@ class PostProcessingOptions:
     
     # Determines whether missing images force an error
     allow_missing_images = False
+
+# ...PostProcessingOptions
+
     
 class PostProcessingResults:
 
@@ -262,6 +271,8 @@ def mark_detection_status(indexed_db, negative_classes=DEFAULT_NEGATIVE_CLASSES,
             
     return n_negative, n_positive, n_unknown, n_ambiguous
 
+# ...mark_detection_status()
+    
 
 def render_bounding_boxes(image_base_dir, image_relative_path, display_name, detections, res,
                           detection_categories_map=None, classification_categories_map=None, options=None):
@@ -340,6 +351,8 @@ def render_bounding_boxes(image_base_dir, image_relative_path, display_name, det
             'textStyle': 'font-family:verdana,arial,calibri;font-size:80%;text-align:left;margin-top:20;margin-bottom:5'
         }
 
+# ...render_bounding_boxes
+        
 
 def prepare_html_subpages(images_html, output_dir, options=None):
     """
@@ -375,6 +388,8 @@ def prepare_html_subpages(images_html, output_dir, options=None):
 
     return image_counts
 
+# ...prepare_html_subpages()
+    
 
 #%% Main function
 
@@ -398,6 +413,8 @@ def process_batch_results(options):
     
     if options.ground_truth_json_file and len(options.ground_truth_json_file) > 0:
 
+        assert (not options.separate_detections_by_category), 'I don''t know how to separate categories yet when doing a P/R analysis'
+        
         ground_truth_indexed_db = IndexedJsonDb(options.ground_truth_json_file, b_normalize_paths=True,
                                                 filename_replacements=options.ground_truth_filename_replacements)
 
@@ -950,9 +967,27 @@ def process_batch_results(options):
         # Accumulate html image structs (in the format expected by write_html_image_list)
         # for each category
         images_html = collections.defaultdict(lambda: [])        
-        
+        images_html['non_detections']
+                
         # Add default entries by accessing them for the first time
-        [images_html[res] for res in ['detections', 'non_detections']]
+        
+        # Maps detection categories - e.g. "human" - to result set names, e.g.
+        # "detections_human"
+        detection_category_to_results_name = {}
+        
+        if not options.separate_detections_by_category:
+            images_html['detections']        
+        else:
+            # Add a set of results for each category
+            for category_id in detection_categories_map.keys():
+                category_name = detection_categories_map[category_id]
+                results_name = 'detections_' + category_name
+                detection_category_to_results_name[category_id] = results_name
+                images_html[results_name]
+            
+            # Add a set of results for images with multiple above-threshold categories
+            images_html[MULTIPLE_CATEGORIES_TOKEN]
+        
         if options.include_almost_detections:
             images_html['almost_detections']
             
@@ -979,6 +1014,14 @@ def process_batch_results(options):
                                     row['max_detection_conf'],
                                     row['detections']])
             
+        # Get unique categories above the threshold for this image
+        def get_positive_categories(detections):
+            positive_categories = set()
+            for d in detections:
+                if d['conf'] >= options.confidence_threshold:
+                    positive_categories.add(d['category'])
+            return positive_categories
+        
         # Local function for parallelization
         def render_image_no_gt(file_info):
             
@@ -999,7 +1042,17 @@ def process_batch_results(options):
                     detection_status = DetectionStatus.DS_NEGATIVE
             
             if detection_status == DetectionStatus.DS_POSITIVE:
-                res = 'detections'
+                if options.separate_detections_by_category:
+                    positive_categories = get_positive_categories(detections)
+                    assert len(positive_categories) > 0
+                    if len(positive_categories) > 1:
+                        res = MULTIPLE_CATEGORIES_TOKEN
+                    else:
+                        detection_category_id = (list(positive_categories))[0]
+                        res = detection_category_to_results_name[detection_category_id]
+                else:
+                    res = 'detections'                
+                
             elif detection_status == DetectionStatus.DS_NEGATIVE:
                 res = 'non_detections'
             else:
@@ -1071,9 +1124,7 @@ def process_batch_results(options):
               humanfriendly.format_timespan(seconds_per_image)))
 
         # Write index.HTML
-        total_images = image_counts['detections'] + image_counts['non_detections']
-        if options.include_almost_detections:
-            total_images += image_counts['almost_detections']
+        total_images = sum(image_counts.values())
             
         if options.allow_missing_images:
             if total_images != image_count:
@@ -1086,22 +1137,32 @@ def process_batch_results(options):
         if options.include_almost_detections:
             almost_detection_string = ' (&ldquo;almost detection&rdquo; threshold at {:.1%})'.format(options.almost_detection_confidence_threshold)
             
-        index_page = """<html>{}<body>
-        <h2>Visualization of results</h2>
-        <p>A sample of {} images, annotated with detections above {:.1%} confidence{}.</p>
-        <h3>Sample images</h3>
-        <div class="contentdiv">
-        <a href="detections.html">detections</a> ({}, {:.1%})<br/>
-        <a href="non_detections.html">non-detections</a> ({}, {:.1%})<br/>""".format(
-            style_header,image_count, options.confidence_threshold, almost_detection_string,
-            image_counts['detections'], image_counts['detections']/total_images,
-            image_counts['non_detections'], image_counts['non_detections']/total_images
-        )
+        index_page = """<html>\n{}\n<body>\n
+        <h2>Visualization of results</h2>\n
+        <p>A sample of {} images (of {} total), annotated with detections above {:.1%} confidence{}.</p>\n
+        <h3>Sample images</h3>\n
+        <div class="contentdiv">\n""".format(
+            style_header, image_count, len(detection_results), options.confidence_threshold, 
+            almost_detection_string)
         
-        if options.include_almost_detections:
-            index_page += """<a href="almost_detections.html">almost-detections</a> ({}, {:.1%})<br/>""".format( 
-                    image_counts['almost_detections'], image_counts['almost_detections']/total_images)
+        def result_set_name_to_friendly_name(result_set_name):
+            friendly_name = ''
+            friendly_name = result_set_name.replace('_','-')
+            if friendly_name.startswith('detections-'):
+                friendly_name = friendly_name.replace('detections-','detections: ')
+            elif friendly_name == 'multiple':
+                friendly_name = 'multiple categories: '
+            friendly_name = friendly_name.capitalize()
+            return friendly_name
         
+        for result_set_name in images_html.keys():
+            filename = result_set_name + '.html'
+            label = result_set_name_to_friendly_name(result_set_name)
+            image_count = image_counts[result_set_name]
+            image_fraction = image_count / total_images
+            index_page += '<a href="{}">{}</a> ({}, {:.1%})<br/>\n'.format(
+                filename,label,image_count,image_fraction)
+                    
         index_page += '</div>\n'
         
         if has_classification_info:
