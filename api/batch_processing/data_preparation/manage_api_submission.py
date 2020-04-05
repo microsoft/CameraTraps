@@ -483,8 +483,9 @@ for fn in html_output_files:
     
 #%% Repeat detection eleimination, phase 1
 
-from api.batch_processing.postprocessing import repeat_detections_core
+from api.batch_processing.postprocessing.repeat_detection_elimination
 import path_utils
+import clipboard
 
 options = repeat_detections_core.RepeatDetectionOptions()
 
@@ -496,8 +497,9 @@ options.maxSuspiciousDetectionSize = 0.2
 
 options.bRenderHtml = False
 options.imageBase = image_base
-rde_string = 'rde_{:.2f}_{:.2f}_{}_{:.1f}'.format(
-    options.confidenceMin,options.iouThreshold,options.occurrenceThreshold,options.maxSuspiciousDetectionSize)
+rde_string = 'rde_{:.2f}_{:.2f}_{}_{:.2f}'.format(
+    options.confidenceMin,options.iouThreshold,
+    options.occurrenceThreshold,options.maxSuspiciousDetectionSize)
 options.outputBase = os.path.join(filename_base,rde_string)
 options.filenameReplacements = {'':''}
 
@@ -513,6 +515,8 @@ suspiciousDetectionResults = repeat_detections_core.find_repeat_detections(api_o
                                                                            None,
                                                                            options)
 
+clipboard.copy(os.path.dirname(suspiciousDetectionResults.filterFile))
+
 
 #%% Manual RDE step
 
@@ -521,7 +525,7 @@ suspiciousDetectionResults = repeat_detections_core.find_repeat_detections(api_o
 
 #%% Re-filtering
 
-from api.batch_processing.postprocessing import remove_repeat_detections
+from api.batch_processing.postprocessing.repeat_detection_elimination import remove_repeat_detections
 
 remove_repeat_detections.remove_repeat_detections(
     inputFile=api_output_filename,
