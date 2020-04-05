@@ -1145,9 +1145,19 @@ def process_batch_results(options):
             style_header, image_count, len(detection_results), options.confidence_threshold, 
             almost_detection_string)
         
+        def result_set_name_to_friendly_name(result_set_name):
+            friendly_name = ''
+            friendly_name = result_set_name.replace('_','-')
+            if friendly_name.startswith('detections-'):
+                friendly_name = friendly_name.replace('detections-','detections: ')
+            elif friendly_name == 'multiple':
+                friendly_name = 'multiple categories: '
+            friendly_name = friendly_name.capitalize()
+            return friendly_name
+        
         for result_set_name in images_html.keys():
             filename = result_set_name + '.html'
-            label = result_set_name
+            label = result_set_name_to_friendly_name(result_set_name)
             image_count = image_counts[result_set_name]
             image_fraction = image_count / total_images
             index_page += '<a href="{}">{}</a> ({}, {:.1%})<br/>\n'.format(
