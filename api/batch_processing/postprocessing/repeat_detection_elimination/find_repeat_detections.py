@@ -27,7 +27,7 @@ import os
 import sys
 
 import ct_utils
-from api.batch_processing.postprocessing import repeat_detections_core
+from api.batch_processing.postprocessing.repeat_detection_elimination import repeat_detections_core
 
 
 #%% Interactive driver
