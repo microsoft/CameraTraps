@@ -9,47 +9,13 @@ from functools import partial
 import io
 
 from tqdm import tqdm
-from azure.storage.blob import BlockBlobService
 
 # Assumes ai4eutils is on the path (github.com/Microsoft/ai4eutils)
 from write_html_image_list import write_html_image_list
 
-from data_management.megadb.schema import sequences_schema_check
+#from data_management.megadb.schema import sequences_schema_check
+from data_management.megadb.megadb_utils import MegadbUtils
 from visualization import visualization_utils as vis_utils
-
-
-def get_blob_service(datasets_table, dataset_name):
-    """
-    Return the azure.storage.blob BlockBlobService object corresponding to the dataset
-
-    datasets_table is updated (no new copy) if a new BlockBlobService is created for a dataset
-    """
-    if dataset_name not in datasets_table:
-        raise KeyError('Dataset {} is not in the datasets table.'.format(dataset_name))
-
-    entry = datasets_table[dataset_name]
-
-    if 'blob_service' in entry:
-        return entry['blob_service']
-
-    # need to create a new blob service for this dataset
-    if 'container_sas_key' not in entry:
-        raise KeyError('Dataset {} does not have the container_sas_key field in the datasets table.'.format(dataset_name))
-
-    # the SAS token can be just for the container, not the storage account
-    # - will be fine for accessing files in that container later
-    blob_service = BlockBlobService(account_name=entry['storage_account'],
-                                    sas_token=entry['container_sas_key'])
-    datasets_table[dataset_name]['blob_service'] = blob_service  # in-place update
-    return blob_service
-
-
-def get_full_path(datasets_table, dataset_name, img_path):
-    entry = datasets_table[dataset_name]
-    if 'path_prefix' not in entry or entry['path_prefix'] == '':
-        return img_path
-    else:
-        return os.path.join(entry['path_prefix'], img_path)
 
 
 def render_image_info(rendering, args):
@@ -90,14 +56,14 @@ def visualize_sequences(datasets_table, sequences, args):
 
             num_images += 1
 
-            blob_path = get_full_path(datasets_table, dataset_name, im['file'])
+            blob_path = MegadbUtils.get_full_path(datasets_table, dataset_name, im['file'])
             frame_num = im.get('frame_num', -1)
             im_class = im.get('class', None)
             if im_class is None:  # if no class label on the image, show the class label on the sequence
                 im_class = seq.get('class', [])
 
             rendering = {}
-            rendering['blob_service'] = get_blob_service(datasets_table, dataset_name)
+            rendering['blob_service'] = MegadbUtils.get_blob_service(datasets_table, dataset_name)
             rendering['container_name'] = datasets_table[dataset_name]['container']
             rendering['blob_path'] = blob_path
             rendering['bbox'] = im.get('bbox', [])
@@ -138,7 +104,6 @@ def visualize_sequences(datasets_table, sequences, args):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('datasets_table', type=str, help='Path to a json equivalent of the datasets table in MegaDB')
     parser.add_argument('megadb_entries', type=str, help='Path to a json list of MegaDB entries')
     parser.add_argument('output_dir', action='store', type=str,
                         help='Output directory for html and rendered images')
@@ -160,13 +125,13 @@ def main():
 
     args = parser.parse_args()
 
+    assert 'COSMOS_ENDPOINT' in os.environ and 'COSMOS_KEY' in os.environ
+
     os.makedirs(args.output_dir, exist_ok=True)
     os.makedirs(os.path.join(args.output_dir, 'rendered_images'))
 
-    with open(args.datasets_table) as f:
-        datasets_table = json.load(f)
-
-    datasets_table = {i['dataset_name']: {k: v for k, v in i.items() if not k.startswith('_')} for i in datasets_table}
+    megadb_utils = MegadbUtils()
+    datasets_table = megadb_utils.get_datasets_table()
 
     print('Loading the MegaDB entries...')
     with open(args.megadb_entries) as f:
