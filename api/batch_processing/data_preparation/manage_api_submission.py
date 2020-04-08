@@ -452,6 +452,7 @@ for i_folder,folder_name_raw in enumerate(folder_names):
     options.confidence_threshold = 0.8
     options.almost_detection_confidence_threshold = options.confidence_threshold - 0.05
     options.ground_truth_json_file = None
+    options.separate_detections_by_category = True
     
     folder_name = path_utils.clean_filename(folder_name_raw)
     if len(folder_name) == 0:
@@ -483,7 +484,7 @@ for fn in html_output_files:
     
 #%% Repeat detection eleimination, phase 1
 
-from api.batch_processing.postprocessing.repeat_detection_elimination
+from api.batch_processing.postprocessing.repeat_detection_elimination import repeat_detections_core
 import path_utils
 import clipboard
 
@@ -550,6 +551,7 @@ for i_folder,folder_name_raw in enumerate(folder_names):
     options.confidence_threshold = 0.8
     options.almost_detection_confidence_threshold = options.confidence_threshold - 0.05
     options.ground_truth_json_file = None
+    options.separate_detections_by_category = True
     
     folder_name = path_utils.clean_filename(folder_name_raw)
     if len(folder_name) == 0:
