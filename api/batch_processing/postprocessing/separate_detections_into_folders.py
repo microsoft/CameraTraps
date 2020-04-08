@@ -105,8 +105,9 @@ def process_detection(d,options):
         # For zero-confidence detections, we occasionally have leftover goop
         # from COCO classes
         if category_id not in options.category_id_to_category_name:
-            print('Warning: unrecognized category {}'.format(category_id))
-            assert det['conf'] < invalid_category_epsilon
+            print('Warning: unrecognized category {} in file {}'.format(
+                category_id,relative_filename))
+            # assert det['conf'] < invalid_category_epsilon
             continue
             
         category_name = options.category_id_to_category_name[category_id]
@@ -194,7 +195,7 @@ def separate_detections_into_folders(options):
         
     if options.n_threads <= 1:
     
-        # i_image = 10; d = detections[i_image]; print(d)
+        # i_image = 7600; d = detections[i_image]; print(d)
         for d in tqdm(detections):
             process_detection(d,options)
         
@@ -214,14 +215,26 @@ if False:
 
     #%%
     
-    options = SeparateDetectionsIntoFoldersOptions()
-    options.results_file = r"G:\smithsonian\smithsonian-20200407\combined_api_outputs\smithsonian-20200407_detections.filtered_rde_0.60_0.85_5_0.05.json"
+    options = SeparateDetectionsIntoFoldersOptions()    
+    options.results_file = r"G:\x\x-20200407\combined_api_outputs\x-20200407_detections.filtered_rde_0.60_0.85_5_0.05.json"
     options.base_input_folder = "z:\\"
-    options.base_output_folder = r"E:\smithsonian-out"
+    options.base_output_folder = r"E:\x-out"
     options.n_threads = 100
+    options.default_threshold = 0.8
+    options.allow_existing_directory = False
     
-    # separate_detections_into_folders(options)
-        
+    #%%
+    
+    separate_detections_into_folders(options)
+    
+    
+    #%% Find a particular file
+    
+    results = json.load(open(options.results_file))
+    detections = results['images']    
+    filenames = [d['file'] for d in detections]
+    i_image = filenames.index('for_Azure\HL0913\RCNX1896.JPG')
+    
     
 #%% Command-line driver   
 
