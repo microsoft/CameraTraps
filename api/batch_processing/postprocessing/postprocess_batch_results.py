@@ -81,7 +81,9 @@ class PostProcessingOptions:
 
     ### Options
 
+    # Can be a folder or a SAS URL
     image_base_dir = '.'
+    
     ground_truth_json_file = ''
 
     negative_classes = DEFAULT_NEGATIVE_CLASSES
