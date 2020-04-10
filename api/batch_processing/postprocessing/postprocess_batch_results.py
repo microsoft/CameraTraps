@@ -11,16 +11,6 @@ the following:
 
 * Sample detections/non-detections and render to html (when ground truth isn't available)
 
-Upcoming improvements:
-
-* Elimination of "suspicious detections", i.e. detections repeated numerous times with
-  unrealistically limited movement... this is implemented, but currently as a step that
-  runs *before* this script.  See find_problematic_detections.py.
-
-* Support for accessing blob storage directly (currently images are accessed by
-  file paths, so images in Azure blobs should be accessed by mounting the
-  containers).
-
 """
 
 
@@ -51,6 +41,7 @@ import pandas as pd
 # Assumes ai4eutils is on the python path
 # https://github.com/Microsoft/ai4eutils
 from write_html_image_list import write_html_image_list
+
 import path_utils
 
 # Assumes the cameratraps repo root is on the path
@@ -274,6 +265,32 @@ def mark_detection_status(indexed_db, negative_classes=DEFAULT_NEGATIVE_CLASSES,
 # ...mark_detection_status()
     
 
+def is_sas_url(s):
+    """
+    Placeholder for a more robust way to verify that a link is a SAS URL.  99.999% of the 
+    time this will be fine for what we're using it for right now.
+    """
+    
+    return (s.startswith('http://') or s.startswith('https://')) and \
+        ('core.windows.net' in s) and ('?' in s)
+
+
+def relative_sas_url(folder_url,relative_path):
+    """
+    Given a container-level or folder-level SAS URL, create a SAS URL to the specified relative path.
+    """
+    
+    if not is_sas_url(folder_url):
+        return None
+    tokens = folder_url.split('?')
+    assert len(tokens) == 2
+    if not tokens[0].endswith('/'):
+        tokens[0] = tokens[0] + '/'
+    if relative_path.startswith('/'):
+        relative_path = relative_path[1:]
+    return tokens[0] + relative_path + '?' + tokens[1]
+
+
 def render_bounding_boxes(image_base_dir, image_relative_path, display_name, detections, res,
                           detection_categories_map=None, classification_categories_map=None, options=None):
         """
@@ -302,7 +319,10 @@ def render_bounding_boxes(image_base_dir, image_relative_path, display_name, det
         image = Image.open(stream).resize(viz_size)  # resize is to display them in this notebook or in the HTML more quickly
         """
 
-        image_full_path = os.path.join(image_base_dir, image_relative_path)
+        if is_sas_url(image_base_dir):
+            image_full_path = relative_sas_url(image_base_dir, image_relative_path)
+        else:
+            image_full_path = os.path.join(image_base_dir, image_relative_path)
         
         # isfile() is slow when mounting remote directories; much faster to just try/except
         # on the image open.
