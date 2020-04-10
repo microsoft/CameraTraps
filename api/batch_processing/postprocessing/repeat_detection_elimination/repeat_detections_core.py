@@ -23,6 +23,9 @@ import write_html_image_list
 import path_utils
 
 from api.batch_processing.postprocessing.load_api_results import load_api_results, write_api_results
+from api.batch_processing.postprocessing.postprocess_batch_results import is_sas_url
+from api.batch_processing.postprocessing.postprocess_batch_results import relative_sas_url
+
 from visualization.visualization_utils import open_image, render_detection_bounding_boxes
 import ct_utils
 
@@ -50,6 +53,9 @@ class RepeatDetectionOptions:
     # inputFlename = r'D:\temp\tigers_20190308_all_output.csv'
 
     # Relevant for rendering HTML or filtering folder of images
+    #
+    # imageBase can also be a SAS URL, in which case some error-checking is
+    # disabled.
     imageBase = ''
     outputBase = ''
 
@@ -401,14 +407,17 @@ def render_images_for_directory(iDir, directoryHtmlFiles, suspiciousDetections, 
             thisImageInfo['title'] = t
             imageInfo.append(thisImageInfo)
 
-            inputFileName = os.path.join(options.imageBase, instance.filename)
-            if not os.path.isfile(inputFileName):
-                if options.bPrintMissingImageWarnings:
-                    if (options.missingImageWarningType == 'all') or (not bPrintedMissingImageWarning):
-                        print('Warning: could not find file {}'.format(inputFileName))
-                        bPrintedMissingImageWarning = True
+            if not is_sas_url(options.imageBase):
+                inputFileName = os.path.join(options.imageBase, instance.filename)
+                if not os.path.isfile(inputFileName):
+                    if options.bPrintMissingImageWarnings:
+                        if (options.missingImageWarningType == 'all') or (not bPrintedMissingImageWarning):
+                            print('Warning: could not find file {}'.format(inputFileName))
+                            bPrintedMissingImageWarning = True
+                    continue
             else:
-                render_bounding_box(detection, inputFileName, imageOutputFilename, 15)
+                inputFileName = relative_sas_url(options.imageBase, instance.filename)
+            render_bounding_box(detection, inputFileName, imageOutputFilename, 15)
 
         # ...for each instance
 
@@ -600,11 +609,12 @@ def find_repeat_detections(inputFilename, outputFilename=None, options=None):
     # problems related to incorrect mount points, etc.  Better to do this before
     # spending 20 minutes finding repeat detections.  
     if options.bWriteFilteringFolder or options.bRenderHtml:
-        row = detectionResults.iloc[0]
-        relativePath = row['file']
-        for s in options.filenameReplacements.keys():
-            relativePath = relativePath.replace(s,options.filenameReplacements[s])
-        assert os.path.isfile(os.path.join(options.imageBase,relativePath))
+        if not is_sas_url(options.imageBase):
+            row = detectionResults.iloc[0]
+            relativePath = row['file']
+            for s in options.filenameReplacements.keys():
+                relativePath = relativePath.replace(s,options.filenameReplacements[s])
+            assert os.path.isfile(os.path.join(options.imageBase,relativePath))
         
         
     ##%% Separate files into directories
@@ -882,10 +892,15 @@ def find_repeat_detections(inputFilename, outputFilename=None, options=None):
                 
                 instance = detection.instances[0]
                 relativePath = instance.filename
-                inputFullPath = os.path.join(options.imageBase, relativePath)
-                assert (os.path.isfile(inputFullPath)), 'Not a file: {}'.format(inputFullPath)
                 outputRelativePath = 'dir{:0>4d}_det{:0>4d}.jpg'.format(iDir, iDetection)
                 outputFullPath = os.path.join(filteringDir, outputRelativePath)
+                
+                if is_sas_url(options.imageBase):
+                    inputFullPath = relative_sas_url(options.imageBase, relativePath)
+                else:
+                    inputFullPath = os.path.join(options.imageBase, relativePath)
+                    assert (os.path.isfile(inputFullPath)), 'Not a file: {}'.format(inputFullPath)
+                    
                 render_bounding_box(detection, inputFullPath, outputFullPath, 15)
                 detection.sampleImageRelativeFileName = outputRelativePath
 
