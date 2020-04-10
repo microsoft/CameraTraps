@@ -497,7 +497,7 @@ options.occurrenceThreshold = 10
 options.maxSuspiciousDetectionSize = 0.2
 
 options.bRenderHtml = False
-options.imageBase = image_base
+options.imageBase = read_only_sas_url
 rde_string = 'rde_{:.2f}_{:.2f}_{}_{:.2f}'.format(
     options.confidenceMin,options.iouThreshold,
     options.occurrenceThreshold,options.maxSuspiciousDetectionSize)
