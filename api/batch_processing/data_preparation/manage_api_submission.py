@@ -445,7 +445,7 @@ html_output_files = []
 for i_folder,folder_name_raw in enumerate(folder_names):
     
     options = PostProcessingOptions()
-    options.image_base_dir = image_base
+    options.image_base_dir = read_only_sas_url
     options.parallelize_rendering = True
     options.include_almost_detections = True
     options.num_images_to_sample = 5000
@@ -544,7 +544,7 @@ html_output_files = []
 for i_folder,folder_name_raw in enumerate(folder_names):
     
     options = PostProcessingOptions()
-    options.image_base_dir = image_base
+    options.image_base_dir = read_only_sas_url
     options.parallelize_rendering = True
     options.include_almost_detections = True
     options.num_images_to_sample = 5000
