@@ -43,7 +43,7 @@ Image credit University of Washington.
 
 # Contact
 
-For questions about this repo, contact [`cameratraps@microsoft.com`](mailto:cameratraps@microsoft.com?subject=camera%20traps).
+For questions about this repo, contact [cameratraps@microsoft.com](mailto:cameratraps@microsoft.com).
 
 
 # Contents
