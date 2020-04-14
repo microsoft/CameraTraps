@@ -445,13 +445,14 @@ html_output_files = []
 for i_folder,folder_name_raw in enumerate(folder_names):
     
     options = PostProcessingOptions()
-    options.image_base_dir = image_base
+    options.image_base_dir = read_only_sas_url
     options.parallelize_rendering = True
     options.include_almost_detections = True
     options.num_images_to_sample = 5000
     options.confidence_threshold = 0.8
     options.almost_detection_confidence_threshold = options.confidence_threshold - 0.05
     options.ground_truth_json_file = None
+    options.separate_detections_by_category = True
     
     folder_name = path_utils.clean_filename(folder_name_raw)
     if len(folder_name) == 0:
@@ -483,8 +484,9 @@ for fn in html_output_files:
     
 #%% Repeat detection elimination, phase 1
 
-from api.batch_processing.postprocessing import repeat_detections_core
+from api.batch_processing.postprocessing.repeat_detection_elimination import repeat_detections_core
 import path_utils
+import clipboard
 
 options = repeat_detections_core.RepeatDetectionOptions()
 
@@ -495,9 +497,10 @@ options.occurrenceThreshold = 10
 options.maxSuspiciousDetectionSize = 0.2
 
 options.bRenderHtml = False
-options.imageBase = image_base
-rde_string = 'rde_{:.2f}_{:.2f}_{}_{:.1f}'.format(
-    options.confidenceMin,options.iouThreshold,options.occurrenceThreshold,options.maxSuspiciousDetectionSize)
+options.imageBase = read_only_sas_url
+rde_string = 'rde_{:.2f}_{:.2f}_{}_{:.2f}'.format(
+    options.confidenceMin,options.iouThreshold,
+    options.occurrenceThreshold,options.maxSuspiciousDetectionSize)
 options.outputBase = os.path.join(filename_base,rde_string)
 options.filenameReplacements = {'':''}
 
@@ -513,6 +516,8 @@ suspiciousDetectionResults = repeat_detections_core.find_repeat_detections(api_o
                                                                            None,
                                                                            options)
 
+clipboard.copy(os.path.dirname(suspiciousDetectionResults.filterFile))
+
 
 #%% Manual RDE step
 
@@ -521,7 +526,7 @@ suspiciousDetectionResults = repeat_detections_core.find_repeat_detections(api_o
 
 #%% Re-filtering
 
-from api.batch_processing.postprocessing import remove_repeat_detections
+from api.batch_processing.postprocessing.repeat_detection_elimination import remove_repeat_detections
 
 remove_repeat_detections.remove_repeat_detections(
     inputFile=api_output_filename,
@@ -539,13 +544,14 @@ html_output_files = []
 for i_folder,folder_name_raw in enumerate(folder_names):
     
     options = PostProcessingOptions()
-    options.image_base_dir = image_base
+    options.image_base_dir = read_only_sas_url
     options.parallelize_rendering = True
     options.include_almost_detections = True
     options.num_images_to_sample = 5000
     options.confidence_threshold = 0.8
     options.almost_detection_confidence_threshold = options.confidence_threshold - 0.05
     options.ground_truth_json_file = None
+    options.separate_detections_by_category = True
     
     folder_name = path_utils.clean_filename(folder_name_raw)
     if len(folder_name) == 0:
@@ -556,7 +562,7 @@ for i_folder,folder_name_raw in enumerate(folder_names):
         job_set_name + '_{}_{:.3f}'.format(rde_string,options.confidence_threshold))
     os.makedirs(output_base,exist_ok=True)
     print('Processing {} to {}'.format(folder_name,output_base))
-    api_output_file = folder_name_to_combined_output_file[folder_name]
+    # api_output_file = folder_name_to_combined_output_file[folder_name]
 
     options.api_output_file = filtered_output_filename
     options.output_dir = output_base
