@@ -8,6 +8,8 @@
 # Places images that are above threshold for multiple classes into 'multiple'
 # folder.
 #
+# Image files are copied, not moved.
+#
 # Preserves relative paths within each of those folders; cannot be used with .json
 # files that have absolute paths in them.
 #
@@ -35,15 +37,27 @@
 # past the classes in MegaDetector v4, not currently ready for species-level classification.  
 #
 
+
 #%% Constants and imports
 
-import os
+import argparse
 import json
+import os
 import shutil
-from tqdm import tqdm
+import sys
 from multiprocessing.pool import ThreadPool
+from functools import partial
+        
+from tqdm import tqdm
 
-output_folders = ['empty','animals','people','vehicles','multiple']
+from ct_utils import args_to_object
+
+friendly_folder_names = {'animal':'animals','person':'people','vehicle':'vehicles'}
+
+# Occasionally we have near-zero confidence detections associated with COCO classes that
+# didn't quite get squeezed out of the model in training.  As long as they're near zero
+# confidence, we just ignore them.
+invalid_category_epsilon = 0.00001
 
 
 #%% Options class
@@ -51,9 +65,9 @@ output_folders = ['empty','animals','people','vehicles','multiple']
 class SeparateDetectionsIntoFoldersOptions:
     
     # Inputs
-    animal_threshold = 0.725
-    human_threshold = 0.725
-    vehicle_threshold = 0.725
+    default_threshold = 0.725
+    category_name_to_threshold = {} # {'animal':0.5}
+    
     n_threads = 1
     
     allow_existing_directory = False
@@ -61,69 +75,71 @@ class SeparateDetectionsIntoFoldersOptions:
     results_file = None
     base_input_folder = None
     base_output_folder = None
-    
-    # Populated later
-    animal_category = -1
-    person_category = -1
-    vehicle_category = -1
-    target_folders = None
+        
+    # Dictionary mapping categories (plus 'multiple' and 'empty') to output folders
+    category_name_to_folder = None
+    category_id_to_category_name = None
     
     
-#%% Function used to process each image
+#%% Support functions
+    
+def path_is_abs(p): return (len(p) > 1) and (p[0] == '/' or p[1] == ':')
     
 def process_detection(d,options):
 
     relative_filename = d['file']
     detections = d['detections']
     
-    max_animal_confidence = -1
-    max_person_confidence = -1
-    max_vehicle_confidence = -1
-    
+    category_name_to_max_confidence = {}
+    category_names = options.category_id_to_category_name.values()
+    for category_name in category_names:
+        category_name_to_max_confidence[category_name] = 0.0
+        
+    # Find the maximum confidence for each category
+    #
     # det = detections[0]
     for det in detections:
-        assert det['category'] == options.animal_category or \
-          det['category'] == options.person_category or \
-          det['category'] == options.vehicle_category
-          
-        if det['category'] == options.animal_category:
-            max_animal_confidence = max([det['conf'],max_animal_confidence])
-        elif det['category'] == options.person_category:
-            max_person_confidence = max([det['conf'],max_person_confidence])
-        elif det['category'] == options.vehicle_category:
-            max_vehicle_confidence = max([det['conf'],max_vehicle_confidence])
-        else:
-            raise ValueError('Unrecognized detection category')
+        
+        category_id = det['category']
+        
+        # For zero-confidence detections, we occasionally have leftover goop
+        # from COCO classes
+        if category_id not in options.category_id_to_category_name:
+            print('Warning: unrecognized category {} in file {}'.format(
+                category_id,relative_filename))
+            # assert det['conf'] < invalid_category_epsilon
+            continue
+            
+        category_name = options.category_id_to_category_name[category_id]
+        if det['conf'] > category_name_to_max_confidence[category_name]:
+            category_name_to_max_confidence[category_name] = det['conf']
+    
+    # Count the number of thresholds exceeded
+    categories_above_threshold = []
+    for category_name in category_names:
+        
+        threshold = options.default_threshold
+        
+        # Do we have a custom threshold for this category?
+        if category_name in options.category_name_to_threshold:
+            threshold = options.category_name_to_threshold[threshold]
+            
+        max_confidence_this_category = category_name_to_max_confidence[category_name]
+        if max_confidence_this_category > threshold:
+            categories_above_threshold.append(category_name)
     
     target_folder = ''
     
-    n_thresholds = 0
-    if (max_person_confidence >= options.human_threshold):
-        n_thresholds += 1
-    if (max_animal_confidence >= options.animal_threshold):
-        n_thresholds += 1
-    if (max_vehicle_confidence >= options.vehicle_threshold):
-        n_thresholds += 1
-    
     # If this is above multiple thresholds
-    if n_thresholds > 1:
-        target_folder = options.target_folders['multiple']
+    if len(categories_above_threshold) > 1:
+        target_folder = options.category_name_to_folder['multiple']
 
-    # Else if this is above threshold for people...
-    elif (max_person_confidence >= options.human_threshold):
-        target_folder = options.target_folders['people']
+    elif len(categories_above_threshold) == 0:
+        target_folder = options.category_name_to_folder['empty']
         
-    # Else if this is above threshold for animals...
-    elif (max_animal_confidence >= options.animal_threshold):
-        target_folder = options.target_folders['animals']
-    
-    # Else if this is above threshold for vechicles...
-    elif (max_vehicle_confidence >= options.vehicle_threshold):
-        target_folder = options.target_folders['vehicles']
-    
-    # Else this is empty
     else:
-        target_folder = options.target_folders['empty']
+        target_folder = options.category_name_to_folder[categories_above_threshold[0]]
+        
             
     source_path = os.path.join(options.base_input_folder,relative_filename)
     assert os.path.isfile(source_path), 'Cannot find file {}'.format(source_path)
@@ -137,8 +153,6 @@ def process_detection(d,options):
     
     
 #%% Main function
-    
-def path_is_abs(p): return (len(p) > 1) and (p[0] == '/' or p[1] == ':')
     
 def separate_detections_into_folders(options):
 
@@ -162,32 +176,35 @@ def separate_detections_into_folders(options):
     print('Processing {} detections'.format(len(detections)))
     
     detection_categories = results['detection_categories']
-    category_mappings = {value: key for key, value in detection_categories.items()}
-    options.animal_category = category_mappings['animal']
-    options.person_category = category_mappings['person']
+    options.category_id_to_category_name = detection_categories
     
-    if 'vehicle' in category_mappings:
-        options.vehicle_category = category_mappings['vehicle']
-    else:
-        options.vehicle_category = -1
-
-    # Separate into folders
-    options.target_folders = {}
+    # Map class names to output folders
+    options.category_name_to_folder = {}
+    options.category_name_to_folder['empty'] = os.path.join(options.base_output_folder,'empty')
+    options.category_name_to_folder['multiple'] = os.path.join(options.base_output_folder,'multiple')
     
-    for f in output_folders:
-        options.target_folders[f] = os.path.join(options.base_output_folder,f)
-        os.makedirs(options.target_folders[f],exist_ok=True)            
+    for category_name in detection_categories.values():
+        folder_name = category_name
+        if category_name in friendly_folder_names:
+            folder_name = friendly_folder_names[category_name]
+        options.category_name_to_folder[category_name] = \
+            os.path.join(options.base_output_folder,folder_name)
+    
+    for folder in options.category_name_to_folder.values():
+        os.makedirs(folder,exist_ok=True)            
         
     if options.n_threads <= 1:
     
-        # i_image = 0; d = detections_to_process[i_image]
+        # i_image = 7600; d = detections[i_image]; print(d)
         for d in tqdm(detections):
             process_detection(d,options)
         
     else:
         
         pool = ThreadPool(options.n_threads)        
-        results = list(tqdm(pool.imap(process_detection, detections), total=len(detections)))
+        
+        process_detection_with_optios = partial(process_detection, options=options)
+        results = list(tqdm(pool.imap(process_detection_with_optios, detections), total=len(detections)))
         
         
 #%% Interactive driver
@@ -198,30 +215,31 @@ if False:
 
     #%%
     
-    options = SeparateDetectionsIntoFoldersOptions()
-    options.results_file = r'd:\temp\mini.json'
-    options.base_input_folder = r'd:\temp\demo_images\mini'
-    options.base_output_folder = r'd:\temp\mini_out'
+    options = SeparateDetectionsIntoFoldersOptions()    
+    options.results_file = r"G:\x\x-20200407\combined_api_outputs\x-20200407_detections.filtered_rde_0.60_0.85_5_0.05.json"
+    options.base_input_folder = "z:\\"
+    options.base_output_folder = r"E:\x-out"
+    options.n_threads = 100
+    options.default_threshold = 0.8
+    options.allow_existing_directory = False
+    
+    #%%
     
     separate_detections_into_folders(options)
-        
+    
+    
+    #%% Find a particular file
+    
+    results = json.load(open(options.results_file))
+    detections = results['images']    
+    filenames = [d['file'] for d in detections]
+    i_image = filenames.index('for_Azure\HL0913\RCNX1896.JPG')
+    
     
 #%% Command-line driver   
 
 # python api\batch_processing\postprocessing\separate_detections_into_folders.py "d:\temp\rspb_mini.json" "d:\temp\demo_images\rspb_2018_2019_mini" "d:\temp\separation_test" --nthreads 2
-    
-import argparse
-import inspect
-import sys
 
-# Copy all fields from a Namespace (i.e., the output from parse_args) to an object.  
-#
-# Skips fields starting with _.  Does not check field existence in the target object.
-def argsToObject(args, obj):
-    
-    for n, v in inspect.getmembers(args):
-        if not n.startswith('_'):
-            setattr(obj, n, v);
 
 def main():
     
@@ -249,7 +267,7 @@ def main():
     args = parser.parse_args()    
     
     # Convert to an options object
-    argsToObject(args,options)
+    args_to_object(args, options)
     
     separate_detections_into_folders(options)
     
