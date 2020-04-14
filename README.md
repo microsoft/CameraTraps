@@ -114,7 +114,7 @@ Scripts that execute machine learning code &ndash; specifically, scripts in the 
 conda env create --file environment-detector.yml
 ```
 
-This environment file allows any TensorFlow version from 1.9 to 1.15 to be installed, but you may need to adjust that version for your environment.  Specifically, if you are running on an Azure Data Science Virtual Machine (which has CUDA 10.1 as of the time I&rsquo;m writing this), you may receive a CUDA error, in which ase you should change the line:
+This environment file allows any TensorFlow version from 1.9 to 1.15 to be installed, but you may need to adjust that version for your environment.  Specifically, if you are running on an Azure Data Science Virtual Machine (which has CUDA 10.1 as of the time I&rsquo;m writing this), you may receive a CUDA error, in which case you should change the line:
 
 `- tensorflow-gpu>=1.9.0, <1.15.0`
 
