@@ -17,7 +17,7 @@ All images are stored (unzipped) in blob storage, so we can download individual 
 
 ## Format
 
-The following illustrates what items in the `sequences` and `datasets` tables look like. The formal schema, required fields, and constraints on allowed values are specified in `schema/sequences_schema.json` and `schema/datasets_schema.json` and the associated `schema_check.py` scripts.
+The following illustrates what items in the `sequences`, `datasets` and `splits` tables look like. The formal schema, required fields, and constraints on allowed values are specified in `schema/sequences_schema.json` and `schema/datasets_schema.json` and the associated `schema_check.py` scripts.
 
 `sequences` table
 
@@ -82,10 +82,23 @@ The following illustrates what items in the `sequences` and `datasets` tables lo
 ]
 ```
 
+`splits` table
+
+```
+[
+    {
+        "dataset": str,
+        "train": list of str or int or other hashable obj,
+        "val": same,
+        "test": same
+    }
+]
+```
+
 
 ## Structure
 
-There are two tables in this database: 
+There are three tables in this database: 
 
 - `sequences`
 Each item in this list is a `sequence` object. 
@@ -93,6 +106,8 @@ Each item in this list is a `sequence` object.
 - `datasets`
 This table stores information about each dataset in the database. Each dataset object contains information on where in blob storage its images are stored, including any path prefix, its public access status, and any other dataset-level properties.
 
+- `splits`
+Each item in this list stores the train/val/test split over location for a dataset. This split is used from MDv4 onwards. 
 
 
 ## Conventions

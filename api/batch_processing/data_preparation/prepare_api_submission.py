@@ -44,7 +44,7 @@ import re
 import string
 import unicodedata
 
-from azure.storage.blob import BlockBlobService
+from azure.storage.blob import BlobServiceClient
 
 # assumes ai4eutils is on the path
 import path_utils
@@ -98,22 +98,24 @@ def read_list_from_file(filename):
     return file_list
     
 
+def account_name_to_url(account_name):
+    storage_account_url_blob = 'https://' + account_name + '.blob.core.windows.net'
+    return storage_account_url_blob
+
+
 def copy_file_to_blob(account_name,sas_token,container_name,
                       local_path,remote_path):
     """
     Copies a local file to blob storage
     """
-    block_blob_service = BlockBlobService(account_name=account_name,
-                                          sas_token=sas_token)
-    block_blob_service.create_blob_from_path(container_name, remote_path, local_path, 
-                          content_settings=None, metadata=None, 
-                          validate_content=False, progress_callback=None, 
-                          max_connections=2, lease_id=None, if_modified_since=None, 
-                          if_unmodified_since=None, if_match=None, 
-                          if_none_match=None, timeout=None)
-    # print('Finished copying {} to {}/{}/{}'.format(
-    #     local_path,account_name,container_name,remote_path))
-        
+    blob_service_client = BlobServiceClient(account_url=account_name_to_url(account_name), 
+                                            credential=sas_token)
+    
+    container_client = blob_service_client.get_container_client(container_name)
+
+    with open(local_path, 'rb') as data:
+        container_client.upload_blob(remote_path, data)
+    
     
 def enumerate_blobs(account_name,sas_token,container_name,rmatch=None,prefix=None):
     """
@@ -131,9 +133,12 @@ def enumerate_blobs(account_name,sas_token,container_name,rmatch=None,prefix=Non
         folder_string += ' (matching {})'.format(rmatch)
     print('Enumerating blobs from {}'.format(folder_string))
         
-    block_blob_service = BlockBlobService(account_name=account_name, sas_token=sas_token)
+    blob_service_client = BlobServiceClient(account_url=account_name_to_url(account_name), 
+                                            credential=sas_token)
     
-    generator = block_blob_service.list_blobs(container_name=container_name,prefix=prefix)
+    container_client = blob_service_client.get_container_client(container_name)
+    
+    generator = container_client.list_blobs(name_starts_with=prefix)
     matched_blobs = []
 
     i_blob = 0
