@@ -9,8 +9,9 @@ Core rendering functions shared across visualization scripts
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import numpy as np
+import requests
 from PIL import Image, ImageFile, ImageFont, ImageDraw
-
+from io import BytesIO
 from data_management.annotations import annotation_constants
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
@@ -32,7 +33,11 @@ def open_image(input_file):
         an PIL image object in RGB mode
     """
 
-    image = Image.open(input_file)
+    if input_file.startswith('http://') or input_file.startswith('https://'):
+        response = requests.get(input_file)
+        image = Image.open(BytesIO(response.content))
+    else:
+        image = Image.open(input_file)
     if image.mode not in ('RGBA', 'RGB', 'L'):
         raise AttributeError('Input image {} uses unsupported mode {}'.format(input_file, image.mode))
     if image.mode == 'RGBA' or image.mode == 'L':
