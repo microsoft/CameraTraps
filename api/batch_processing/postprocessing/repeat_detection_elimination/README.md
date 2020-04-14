@@ -87,21 +87,21 @@ This directory will have lots of pictures with bounding boxes on them.  Importan
 
 Most of these images indeed correspond to repeated false positives:
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<img src="images/false_positive.jpg" width="500"><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<img src="../images/false_positive.jpg" width="500"><br/>
 
 But some are just animals that aren&rsquo;t moving much:
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<img src="images/true_positive.jpg" width="500"><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<img src="../images/true_positive.jpg" width="500"><br/>
 
 Anything left in this folder will be considered a false positive and removed from your results in subsequent steps, so the next task is to <i>delete all the images in this folder that have bounding boxes on actual objects of interest</i>.
 
 Note that it&rsquo;s common to have a false positive in an image that also has an animal in it; you can safely leave these in the folder (telling the scripts that this is indeed a false positive), because these scripts operate on individual <i>detections</i>, not <i>images</i>.  So the following image is safe to leave in place, and you&rsquo;ll be telling the script that the box is a false positive, but you <i>won&rsquo;t</i> be telling it that the deer is a false positive:
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<img src="images/mixed_positive.jpg" width="500"><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<img src="../images/mixed_positive.jpg" width="500"><br/>
 
 Every once in a while you'll see a box that&rsquo;s <i>partially</i> on an animal.  This is <i>probably</i> a false positive that happened to also include an animal, but if it&rsquo;s a close call, the conservative thing to do is always to <i>not</i> delete this image, i.e. leave it in the folder.  Example:
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<img src="images/possible_positive.jpg" width="500"><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<img src="../images/possible_positive.jpg" width="500"><br/>
 
 You can do this step (deleting images) using any tool you like, but for the author&rsquo;s two cents, I really like having two windows open:
 
