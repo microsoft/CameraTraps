@@ -481,7 +481,7 @@ for fn in html_output_files:
 #
     
     
-#%% Repeat detection eleimination, phase 1
+#%% Repeat detection elimination, phase 1
 
 from api.batch_processing.postprocessing import repeat_detections_core
 import path_utils
