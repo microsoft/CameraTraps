@@ -140,11 +140,13 @@ class TFDetector:
 
     NUM_DETECTOR_CATEGORIES = 4  # animal, person, group, vehicle - for color assignment
 
-    def __init__(self, model_path):
+    def __init__(self, model_path, tf_config=None):
         """Loads the model at model_path and start a tf.Session with this graph. The necessary
         input and output tensor handles are obtained also."""
         detection_graph = TFDetector.__load_model(model_path)
-        self.tf_session = tf.Session(graph=detection_graph)
+        if tf_config is not None:
+            print('Using custom TF config: {}'.format(str(tf_config)))            
+        self.tf_session = tf.Session(graph=detection_graph,config=tf_config)
 
         self.image_tensor = detection_graph.get_tensor_by_name('image_tensor:0')
         self.box_tensor = detection_graph.get_tensor_by_name('detection_boxes:0')
