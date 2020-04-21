@@ -62,16 +62,13 @@ print('TensorFlow version:', tf.__version__)
 print('tf.test.is_gpu_available:', tf.test.is_gpu_available())
 
 
-tf_config = tf.ConfigProto()
-
-
 #%% Support functions for multiprocessing
 
 def process_images(im_files, tf_detector, confidence_threshold):
     
     if isinstance(tf_detector,str):
         start_time = time.time()
-        tf_detector = TFDetector(tf_detector,tf_config=tf_config)
+        tf_detector = TFDetector(tf_detector)
         elapsed = time.time() - start_time
         print('Loaded model (batch level) in {}'.format(humanfriendly.format_timespan(elapsed)))       
     
@@ -85,7 +82,7 @@ def process_image(im_file, tf_detector, confidence_threshold):
     
     if isinstance(tf_detector,str):
         start_time = time.time()
-        tf_detector = TFDetector(tf_detector,tf_config=tf_config)
+        tf_detector = TFDetector(tf_detector)
         elapsed = time.time() - start_time
         print('Loaded model (worker level) in {}'.format(humanfriendly.format_timespan(elapsed)))       
     
@@ -142,7 +139,7 @@ def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=No
     if n_cores <= 1 or tf.test.is_gpu_available():
         # Load the detector
         start_time = time.time()
-        tf_detector = TFDetector(model_file,tf_config=tf_config)
+        tf_detector = TFDetector(model_file)
         elapsed = time.time() - start_time
         print('Loaded model in {}'.format(humanfriendly.format_timespan(elapsed)))    
     else:
