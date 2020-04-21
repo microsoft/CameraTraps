@@ -20,6 +20,7 @@ dependencies:
 - matplotlib
 - nb_conda_kernels
 - ipykernel
+- opencv
 
 # the `nb_conda_kernels` and `ipykernel` packages are installed so that we
 # can use Jupyter Notebooks with this environment as a kernel
