@@ -97,8 +97,8 @@ if use_azcopy_for_download:
     
     print('Downloading images for {0} with azcopy'.format(species_of_interest))
     
-    # Write out a list of files, and use the azcopy "list-of-files" option
-    # to download those files
+    # Write out a list of files, and use the azcopy "list-of-files" option to download those files
+    # this azcopy feature is unofficially documented at https://github.com/Azure/azure-storage-azcopy/wiki/Listing-specific-files-to-transfer
     az_filename = os.path.join(output_dir, 'filenames.txt')
     with open(az_filename, 'w') as f:
         for fn in filenames:
