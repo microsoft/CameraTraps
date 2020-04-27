@@ -28,7 +28,7 @@ MegaDetector is free, and it makes us super-happy when people use it, so we put 
 
 #### Release notes
 
-This release incorporates additional training data from Borneo, Australia and the [WCS Camera Traps](http://lila.science/datasets/wcscameratraps) dataset, as well as images of humans in both daytime and nightime. We also have a preliminary "vehicle" class for cars, trucks and bicycles. 
+This release incorporates additional training data from Borneo, Australia and the [WCS Camera Traps](http://lila.science/datasets/wcscameratraps) dataset, as well as images of humans in both daytime and nighttime. We also have a preliminary "vehicle" class for cars, trucks and bicycles. 
 
 #### Download links
 
