@@ -24,6 +24,19 @@ MegaDetector is free, and it makes us super-happy when people use it, so we put 
 
 ## Downloading the model(s)
 
+### MegaDetector v4.1, 2020.04.27
+
+#### Release notes
+
+This release incorporates additional training data from Borneo, Australia and the [WCS Camera Traps](http://lila.science/datasets/wcscameratraps) dataset, as well as images of humans in both daytime and nightime. We also have a preliminary "vehicle" class for cars, trucks and bicycles. 
+
+#### Download links
+
+- [Frozen model (.pb)](https://lilablobssc.blob.core.windows.net/models/camera_traps/megadetector/md_v4.1.0/md_v4.1.0.pb)
+- [TFODAPI config file](https://lilablobssc.blob.core.windows.net/models/camera_traps/megadetector/md_v4.1.0/md_v4.1.0.config)
+- [Last checkpoint (for resuming training)](https://lilablobssc.blob.core.windows.net/models/camera_traps/megadetector/md_v4.1.0/md_v4.1.0_checkpoint.zip)
+- [Tensorflow SavedModel for TFServing](https://lilablobssc.blob.core.windows.net/models/camera_traps/megadetector/md_v4.1.0/md_v4.1.0_saved_model.zip) (inputs in uint8 format, `serving_default` output signature)
+
 ### MegaDetector v3, 2019.05.30
 
 #### Release notes
