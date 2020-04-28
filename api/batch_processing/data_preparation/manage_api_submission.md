@@ -20,10 +20,12 @@ This document is written 98% for internal use, so you will see some instructions
 
 ## Magic strings you need before following this guide
 
+* Storage account and container name for the data container
 * API endpoint URL and required "caller" token... for this document, we'll use "blah.endpoint.com" and "caller", respectively.
-* Read-only and read-write SAS tokens for the data container... for this document, we'll use ?st=sas_token
-* Credentials for the VM where we host previews and output data... for this document, we'll use datavm.com.
+* Read-only and read-write SAS tokens for the data container... for this document, we'll use "?st=sas_token"
+* Credentials for the VM where we host previews and output data... for this document, we'll use "datavm.com".
 * A password for the specific folder you will post the results to on that VM
+* Possibly a set of specific folders to process as separate jobs within the target container
 
 
 ## Setting up your environment (one time only)
