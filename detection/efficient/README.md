@@ -3,9 +3,10 @@
     1st commit - Folder structure setup i.e submodule added and empty files created.
     2nd commit - Environment called `efficiendet` is setup with required packages and exported as `environment-efficient.yml`. Ran training and inference script with a sample dataset. Used `Python-3.7` in the environment. Works fine with `Python-3.6` too. PyCocoTools had issues with Python 3.8 and numpy.
     3rd commit - Updating submodule `Yet-Another-EfficientDet-Pytorch` to latest.
-    
 
     Submodule 1st commit - Scripts for camera trap are added. `convert_annotations.py` will convert the whole `bboxes_inc_empty_20200325.json` to COCO format json file, whereas `create_jsonsplits.py` will create `annotations/train.json` etc.  Project yml configuration is setup for training.
+
+    4th commit - Training done on the converted cameratrap dataset. Changes involve changing `bbox` range from `0to1` to that of `pixel coordinates`(by multiplying with width and height). Scripts for COCO camera trap format conversion are added. `submodule/datasets/camtrap/convert_annotations.py` will convert the whole `bboxes_inc_empty_20200325.json` to COCO format json file, whereas `submodule/datasets/camtrap/create_jsonsplits.py` will create `annotations/train.json` etc.  Project `submodule/projects/camtrap.yml` configuration file is setup for training.
 
 #### install requirements
     pip install numpy Cython
@@ -39,11 +40,12 @@ OR
 
 ### Camera Trap progress:
 1. Add the [submodule](https://github.com/gitlost-murali/Yet-Another-EfficientDet-Pytorch.git)
-2. Get dataset from `marmot` and place it under `Yet-Another-EfficientDet-Pytorch/datasets/camtrap/`.
+2. Get a small portion of the dataset from `marmot` and place it under `Yet-Another-EfficientDet-Pytorch/datasets/camtrap/`.
 3. Convert the dataset to that of [COCO cameratrap format](https://github.com/Microsoft/CameraTraps/blob/master/data_management/README.md#coco-cameratraps-format). This includes changing `bbox` range from `0to1` to that of `pixel coordinates`(by multiplying with width and height).
 4. Run the training script
 `
 python train.py -c 0 -p camtrap --batch_size 8 --lr 1e-5 --num_epochs 10 --load_weights weights/efficientdet-d0.pth
 `
 ### ToDo: ->
-5. Understand what different weights like efficientdet-d0,efficientdet-d1 stand for. Revise obj-detection concepts.
+5. `debug` flag saves predictions on the images in `test` folder. Can modify this for visualizing images.
+6. Understand what different weights like efficientdet-d0,efficientdet-d1 stand for. Revise obj-detection concepts.
