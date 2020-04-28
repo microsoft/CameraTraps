@@ -30,6 +30,8 @@ This document is written 98% for internal use, so you will see some instructions
 
 ## Setting up your environment (one time only)
 
+* Unless otherwise stated, you will want to work on a VM in South Central US.  You will not be moving substantial volumes of images, so it's OK to work outside of Azure, but a few steps will be slightly faster with low-latency access.  These instructions will also assume you have a graphical/interactive IDE (Spyder, PyCharm, or VS Code) and that you can run a browser on the same machine where you're running Python.
+
 * Probably install <a href="https://www.postman.com/">Postman</a> for job submission
 
 * If you're working on Windows, probably install <a href="https://www.irfanview.com/">IrfanView</a> for repeat detection elimination (the semi-automated step that will require you to look at lots of images).
