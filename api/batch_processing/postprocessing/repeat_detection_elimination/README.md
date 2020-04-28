@@ -106,7 +106,7 @@ Every once in a while you'll see a box that&rsquo;s <i>partially</i> on an anima
 You can do this step (deleting images) using any tool you like, but for the author&rsquo;s two cents, I really like having two windows open:
 
 1. The regular Windows explorer with &ldquo;view&rdquo; set to &ldquo;extra large icons&rdquo;.
-2. <a href="https://www.irfanview.com">IrfanView</a>, which is a simple, fast image viewer that makes it very quick to page through lots and lots of images in a row that are all just branches and leaves (by pressing or holding down the &ldquo;right&rdquo; key), and you can just press the &ldquo;delete&rdquo; key in IrfanView to delete an image when you see an animal/person.  This makes things very fast!
+2. <a href="https://www.irfanview.com">IrfanView</a>, which is a simple, fast image viewer that makes it very quick to page through lots and lots of images in a row that are all just branches and leaves (by pressing or holding down the &ldquo;right&rdquo; key), and you can just press the &ldquo;delete&rdquo; key in IrfanView to delete an image when you see an animal/person.  This makes things very fast!  I recommend literally having one hand on &ldquo;page down&rdquo; and the other on &ldquo;delete&rdquo;.
 
 Pro tip: this directory (starting with &ldquo;filtering&rdquo;) is entirely self-contained, so you can zip it up and take it to a different computer to do the actual deletion.  This is useful, for example, if you&rsquo;re working on a remote machine but you want the super-duper-low-latency experience of working on your local machine for the actual image deletion.  When you&rsquo;re done, you can just zip up the folder (now smaller, because you deleted a bunch of images) and ship it back to the other machine.
 
