@@ -12,6 +12,8 @@ import ntpath
 import posixpath
 import json
 import humanfriendly
+import itertools
+import clipboard
 
 from urllib.parse import urlsplit, unquote
 
@@ -26,22 +28,39 @@ from api.batch_processing.postprocessing.postprocess_batch_results import proces
 
 #%% Constants I set per job
 
-account_name = 'blah'
+### Required
+
+storage_account_name = 'blah'
 container_name = 'blah'
 job_set_name = 'institution-20191215'
-container_prefix = ''
-base_output_folder_name = r'f:\institution\20191215'
-folder_names = ['folder1','folder2','folder3']
+base_output_folder_name = r'f:\institution'
 
 # These point to the same container; the read-only token is used for
 # accessing images; the write-enabled token is used for writing file lists
 read_only_sas_token = '?st=2019-12...'
-write_sas_token = '?st=2019-12...'
-image_base = 'x:\\'
+read_write_sas_token = '?st=2019-12...'
 
 caller = 'caller'
-task_status_endpoint_url = 'http://blah.endpoint.com:6022/v2/camera-trap/detection-batch/task'
-submission_endpoint_url = 'http://blah.endpoint.com:6022/v2/camera-trap/detection-batch/request_detections'
+endpoint_base = 'http://blah.endpoint.com:6022/v2/camera-trap/detection-batch/'
+
+### Typically left as default
+
+container_prefix = ''
+
+# This is how we break the container up into multiple jobs, e.g. for separate
+# surveys.  The typical case is to do the whole container as a single job.
+folder_names = [''] # ['folder1','folder2','folder3']
+
+# This is only necessary if you will be performing postprocessing steps that
+# don't yet support SAS URLs, specifically the "subsetting" step, or in some cases
+# the splitting of files into multiple output directories for empty/animal/vehicle/people.
+#
+# For those applications, you will need to mount the container to a local drive.  For
+# this case I recommend using rclone whether you are on Windows or Linux; rclone is much easier
+# than blobfuse for transient mounting.
+#
+# But most of the time, you can ignore this.
+image_base = 'x:\\'
 
 additional_job_args = {}
 
@@ -49,14 +68,23 @@ additional_job_args = {}
 #
 # Also available at the /supported_model_versions and /default_model_version endpoints
 #
+# Unless you have any specific reason to set this to a non-default value, leave 
+# it at the default, which as of 2020.04.28 is MegaDetector 4.1
+#
 # additional_job_args = {"model_version":"4_prelim"}
+#
 
 
 #%% Derived variables, path setup
 
-container_base_url = 'https://' + account_name + '.blob.core.windows.net/' + container_name
+assert not (len(folder_names) == 0)
+
+task_status_endpoint_url = endpoint_base + 'task'
+submission_endpoint_url = endpoint_base + 'request_detections'
+
+container_base_url = 'https://' + storage_account_name + '.blob.core.windows.net/' + container_name
 read_only_sas_url = container_base_url + read_only_sas_token
-write_sas_url = container_base_url + write_sas_token
+write_sas_url = container_base_url + read_write_sas_token
 
 filename_base = os.path.join(base_output_folder_name,job_set_name)
 os.makedirs(filename_base,exist_ok=True)
@@ -122,7 +150,7 @@ for folder_name in folder_names:
         folder_name_suffix = folder_name_suffix + '/'
     prefix = container_prefix + folder_name_suffix
     file_list = prepare_api_submission.enumerate_blobs_to_file(output_file=list_file,
-                                    account_name=account_name,sas_token=read_only_sas_token,
+                                    storage_account_name=storage_account_name,sas_token=read_only_sas_token,
                                     container_name=container_name,
                                     account_key=None,
                                     rmatch=None,prefix=prefix)
@@ -172,7 +200,7 @@ for chunked_folder_files in folder_chunks:
         remote_path = 'api_inputs/' + job_set_name + '/' + ntpath.basename(chunk_file)
         print('Job {}: uploading {} to {}'.format(
             job_name,chunk_file,remote_path))
-        prepare_api_submission.copy_file_to_blob(account_name,write_sas_token,
+        prepare_api_submission.copy_file_to_blob(storage_account_name,read_write_sas_token,
                                                      container_name,chunk_file,
                                                      remote_path)
         assert job_name not in job_name_to_list_url
@@ -188,9 +216,6 @@ for chunked_folder_files in folder_chunks:
 
 
 #%% Generate API calls for each job
-
-import itertools
-from api.batch_processing.data_preparation import prepare_api_submission
 
 request_strings_by_task_group = []
 
@@ -216,28 +241,12 @@ request_strings = list(itertools.chain.from_iterable(request_strings_by_task_gro
 for s in request_strings:
     print(s)
 
-import clipboard
 clipboard.copy('\n\n'.join(request_strings))
-
-
-#%% Estimate total time
-
-n_images = 0
-for fn in list_files:
-    images = json.load(open(fn))
-    n_images += len(images)
-    
-print('Processing a total of {} images'.format(n_images))
-
-expected_seconds = (0.8 / 16) * n_images
-print('Expected time: {}'.format(humanfriendly.format_timespan(expected_seconds)))
 
 
 #%% Run the jobs (still in progress, doesn't actually work yet)
 
 # Not working yet, something is wrong with my post call
-
-# import requests
 
 task_ids_by_task_group = []
 
@@ -255,14 +264,37 @@ for task_group_request_strings in request_strings_by_task_group:
     
     task_ids_by_task_group.append(task_ids_this_task_group)
     
-        
+  # for each string in this task group
+
+# for each task group
+    
 # List of task IDs, grouped by logical job
 task_groups = task_ids_by_task_group
 
 
 #%% Manually define task groups if we ran the jobs manually
 
-task_groups = [[2407]]
+# The nested lists will make sense below, I promise.
+
+# For just one job...
+task_groups = [[9999]]
+
+# For multiple jobs...
+task_groups = [[1111],[2222],[3333]]
+
+
+#%% Estimate total time
+
+n_images = 0
+for fn in list_files:
+    images = json.load(open(fn))
+    n_images += len(images)
+    
+print('Processing a total of {} images'.format(n_images))
+
+# Around 0.8s/image on 16 GPUs
+expected_seconds = (0.8 / 16) * n_images
+print('Expected time: {}'.format(humanfriendly.format_timespan(expected_seconds)))
 
 
 #%% Status check
@@ -317,7 +349,7 @@ for i_task_group,task_group in enumerate(task_groups):
         remote_path = 'api_inputs/' + job_set_name + '/' + job_name + '.json'
         print('Job {}: uploading {} to {}'.format(
             job_name,missing_images_fn,remote_path))
-        prepare_api_submission.copy_file_to_blob(account_name,write_sas_token,
+        prepare_api_submission.copy_file_to_blob(storage_account_name,read_write_sas_token,
                                                      container_name,missing_images_fn,
                                                      remote_path)
         list_url = read_only_sas_url.replace('?','/' + remote_path + '?')                
@@ -484,9 +516,10 @@ for fn in html_output_files:
     
 #%% Repeat detection elimination, phase 1
 
+# Deliberately leaving these imports here, rather than at the top, because this cell is not 
+# typically executed
 from api.batch_processing.postprocessing.repeat_detection_elimination import repeat_detections_core
 import path_utils
-import clipboard
 
 options = repeat_detections_core.RepeatDetectionOptions()
 
