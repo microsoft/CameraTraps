@@ -6,7 +6,12 @@
 
     Submodule 1st commit - Scripts for camera trap are added. `convert_annotations.py` will convert the whole `bboxes_inc_empty_20200325.json` to COCO format json file, whereas `create_jsonsplits.py` will create `annotations/train.json` etc.  Project yml configuration is setup for training.
 
+
     4th commit - Training done on the converted cameratrap dataset. Changes involve changing `bbox` range from `0to1` to that of `pixel coordinates`(by multiplying with width and height). Scripts for COCO camera trap format conversion are added. `submodule/datasets/camtrap/convert_annotations.py` will convert the whole `bboxes_inc_empty_20200325.json` to COCO format json file, whereas `submodule/datasets/camtrap/create_jsonsplits.py` will create `annotations/train.json` etc.  Project `submodule/projects/camtrap.yml` configuration file is setup for training.
+
+    Submodule 2nd commit - Training works on the dataset without any errors. When tried on 1600 images, loss came down i.e model converged. Image visualization added to the Tensorboard. Restriction on Image visualization is that the number of images visualized will be equal to the batch size. This is done to minimize the code changes. `Utils/tensorboard_logger.py` is an extra file. Noticed that training speed is a little faster when image visualization is done from this file than from `train.py`. Maybe related to other issues of my laptop. Using `train.py` for visualizing images for minimal code changes. However, images are flipped and are looking ugly. Need to look into it. Also need to check the `anchor scales&ratios, mean&std` of the dataset. Currently, using the stats of COCO dataset.
+
+    5th commit - Submodule updated till its latest commit (submodule 2nd commit).
 
 #### install requirements
     pip install numpy Cython
@@ -46,6 +51,7 @@ OR
 `
 python train.py -c 0 -p camtrap --batch_size 8 --lr 1e-5 --num_epochs 10 --load_weights weights/efficientdet-d0.pth
 `
-### ToDo: ->
 5. `debug` flag saves predictions on the images in `test` folder. Can modify this for visualizing images.
+### ToDo: ->
 6. Understand what different weights like efficientdet-d0,efficientdet-d1 stand for. Revise obj-detection concepts.
+7. Focus on `anchor scales&ratios` of the dataset. Currently using COCO stats.
