@@ -150,7 +150,7 @@ for folder_name in folder_names:
         folder_name_suffix = folder_name_suffix + '/'
     prefix = container_prefix + folder_name_suffix
     file_list = prepare_api_submission.enumerate_blobs_to_file(output_file=list_file,
-                                    storage_account_name=storage_account_name,sas_token=read_only_sas_token,
+                                    account_name=storage_account_name,sas_token=read_only_sas_token,
                                     container_name=container_name,
                                     account_key=None,
                                     rmatch=None,prefix=prefix)
