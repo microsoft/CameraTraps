@@ -520,6 +520,7 @@ for fn in html_output_files:
 # typically executed
 from api.batch_processing.postprocessing.repeat_detection_elimination import repeat_detections_core
 import path_utils
+job_index = 0
 
 options = repeat_detections_core.RepeatDetectionOptions()
 
@@ -542,7 +543,7 @@ options.debugMaxRenderDir = -1
 options.debugMaxRenderDetection = -1
 options.debugMaxRenderInstance = -1
 
-api_output_filename = list(folder_name_to_combined_output_file.values())[0]
+api_output_filename = list(folder_name_to_combined_output_file.values())[job_index]
 filtered_output_filename = path_utils.insert_before_extension(api_output_filename,'filtered_{}'.format(rde_string))
 
 suspiciousDetectionResults = repeat_detections_core.find_repeat_detections(api_output_filename,
