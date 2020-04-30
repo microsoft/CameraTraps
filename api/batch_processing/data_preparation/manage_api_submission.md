@@ -154,3 +154,6 @@ This will be externally visible (though password-protected) at:
 `http://datavm.com/data/university_of_arendelle/university_of_arendelle-20200409_0.800`
 
 
+### Uploading results to our file share
+
+The .json results files - including the results before and after repeat detection elimination, if applicable - are generally uploaded to our AI for Earth file share when anything somewhat stable is uploaded to the Web server.  This is just a placeholder to add instructions later.  Note to self: we generally zip .json files if they're larger than ~50MB.
