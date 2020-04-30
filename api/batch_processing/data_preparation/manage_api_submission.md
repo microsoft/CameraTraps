@@ -84,7 +84,7 @@ At this point, the json-formatted API string for all jobs (typically just one, u
 
 The next cell is called "run the jobs", and though it doesn't actually work, I don't recommend programmatic submission anyway.  You are about to spin up sixteen expensive and power-hungry GPUs, and IMO it's better to do this manually so you can triple-quadruple check that you really want to start a job.  I do this through Postman; see <a href="https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing#other-notes-and-example">here</a> for an example.    If you are running multiple jobs, you should run them separately in Postman.  
 
-You will get back a job ID for each job, enter these in the "manually define task groups" cell in the format indicated in the template code.  A "task group" is a logical job; the reason we use a <i>list</i> of job IDs for each task group is that sometimes shards fail and we resubmit some images later as part of the same job, so we will extend those lists as necessary.
+You will get back a job ID for each job, enter these in the "manually define task groups" cell in the format indicated in the template code.  A "task group" is a logical job; the reason we use a <i>list</i> of job IDs for each task group is that (1) we split tasks over 1M images into multiple jobs, and (2) sometimes shards fail and we resubmit some images later as part of the same job, so we will extend those lists as necessary.
 
 I then typically run the "estimate total time" cell.  For very small jobs, this isn't meaningful, since it doesn't include spin-up time.  This tells me when I should check back again.  I then typically run the "status check" cell to confirm the job is in progress.
 
