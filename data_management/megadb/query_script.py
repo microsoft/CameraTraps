@@ -62,7 +62,7 @@ consolidate_results = True
 time_stamp = datetime.utcnow().strftime('%Y%m%d%H%M%S')
 
 # initialize Cosmos DB client
-url = os.environ['COSMOS_ENDPOINT']
+url = os.environ['COSMOS_ENDPOINT']  # TODO use megadb_utils instead
 key = os.environ['COSMOS_KEY']
 client = CosmosClient(url, credential=key)
 
