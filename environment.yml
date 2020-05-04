@@ -1,7 +1,7 @@
 name: cameratraps
 
 dependencies:
-- python>=3.5
+- python>=3.6
 - nb_conda_kernels
 - ipykernel
 - humanfriendly
@@ -10,6 +10,7 @@ dependencies:
 - numpy
 - matplotlib
 - pandas
+- openpyxl
 - Pillow>=5.3.0
 - tqdm<4.21.0
 - scikit-image>=0.13.1
@@ -20,7 +21,7 @@ dependencies:
 - pip  # good to add pip as an explicit dependency
 - pip:                            # Some Azure packages or versions are only available from PyPI, see https://azure.github.io/azure-sdk/releases/latest/
   - azure-storage-blob>=1.5.0, <=2.1.0   # doc: https://azure-storage.readthedocs.io - this will go to versions prior to v12 update
-  - azure-cosmos==4.0.0b5  # doc: https://azuresdkdocs.blob.core.windows.net/$web/python/azure-cosmos/4.0.0b5/index.html
+  - azure-cosmos==4.0.0b6  # doc: https://azuresdkdocs.blob.core.windows.net/$web/python/azure-cosmos/4.0.0b5/index.html
   - azureml-sdk[tensorboard]==1.0.83
 
 # the `nb_conda_kernels` and `ipykernel` packages are installed so that we
