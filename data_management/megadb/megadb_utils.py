@@ -6,6 +6,8 @@ or passed in to the initializer.
 """
 
 import os
+import humanfriendly
+from datetime import datetime
 
 from azure.cosmos.cosmos_client import CosmosClient
 from azure.storage.blob import BlockBlobService
@@ -20,6 +22,7 @@ class MegadbUtils:
             key = os.environ['COSMOS_KEY']
         client = CosmosClient(url, credential=key)
         self.database = client.get_database_client('camera-trap')
+        self.container_sequences = self.database.get_container_client('sequences')
 
 
     def get_datasets_table(self):
@@ -54,6 +57,26 @@ class MegadbUtils:
         splits = {i['dataset']: {k: set(v) for k, v in i.items() if not k.startswith('_')} for i in
                     iter(result_iterable)}
         return splits
+
+
+    def query_sequences_table(self, query, partition_key=None):
+        startTime = datetime.now()
+
+        if partition_key:
+            result_iterable = self.container_sequences.query_items(query=query,
+                                                                    partition_key=partition_key)
+        else:
+            result_iterable = self.container_sequences.query_items(query=query,
+                                                                    enable_cross_partition_query=True)
+
+        duration = datetime.now() - startTime
+        results = [item for item in iter(result_iterable)]  # TODO could return the iterable instead
+
+        # print('Query took {}. Number of entries in result: {}'.format(
+        #     humanfriendly.format_timespan(duration), len(results)
+        # ))
+
+        return results
 
 
     @staticmethod
