@@ -136,7 +136,7 @@ def url_to_filename(url):
 
 #%% Enumerate blobs to files
 
-list_files = []
+file_lists_by_folder = []
 
 # folder_name = folder_names[0]
 for folder_name in folder_names:
@@ -154,9 +154,9 @@ for folder_name in folder_names:
                                     container_name=container_name,
                                     account_key=None,
                                     rmatch=None,prefix=prefix)
-    list_files.append(list_file)
+    file_lists_by_folder.append(list_file)
 
-assert len(list_files) == len(folder_names)
+assert len(file_lists_by_folder) == len(folder_names)
 
 
 #%% Divide images into chunks for each folder
@@ -164,8 +164,8 @@ assert len(list_files) == len(folder_names)
 # This will be a list of lists
 folder_chunks = []
 
-# list_file = list_files[0]
-for list_file in list_files:
+# list_file = file_lists_by_folder[0]
+for list_file in file_lists_by_folder:
     
     chunked_files,chunks = prepare_api_submission.divide_files_into_tasks(list_file)
     print('Divided images into files:')
@@ -181,7 +181,7 @@ assert len(folder_chunks) == len(folder_names)
 
 #%% Copy image lists to blob storage for each job
 
-# Maps  job name to a remote path
+# Maps job name to a remote path
 job_name_to_list_url = {}
 job_names_by_task_group = []
 
@@ -286,7 +286,7 @@ task_groups = [[1111],[2222],[3333]]
 #%% Estimate total time
 
 n_images = 0
-for fn in list_files:
+for fn in file_lists_by_folder:
     images = json.load(open(fn))
     n_images += len(images)
     
@@ -449,7 +449,7 @@ for i_folder,folder_name_raw in enumerate(folder_names):
     folder_name_to_combined_output_file[folder_name] = combined_api_output_file
 
     # Check that we have (almost) all the images    
-    list_file = list_files[i_folder]
+    list_file = file_lists_by_folder[i_folder]
     requested_images = json.load(open(list_file,'r'))
     results = json.load(open(combined_api_output_file,'r'))
     result_images = [im['file'] for im in results['images']]
