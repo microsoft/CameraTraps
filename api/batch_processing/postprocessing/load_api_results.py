@@ -97,6 +97,7 @@ def load_api_results(api_output_path, normalize_paths=True, filename_replacement
     if normalize_paths:
         for image in detection_results['images']:
             image['file'] = os.path.normpath(image['file'])
+            # image['file'] = image['file'].replace('\\','/')
 
     # Pack the json output into a Pandas DataFrame
     detection_results = pd.DataFrame(detection_results['images'])
