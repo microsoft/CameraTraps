@@ -291,6 +291,9 @@ def relative_sas_url(folder_url,relative_path):
     Given a container-level or folder-level SAS URL, create a SAS URL to the specified relative path.
     """
     
+    relative_path = relative_path.replace('%','%25')
+    relative_path = relative_path.replace(' ','%20')
+                
     if not is_sas_url(folder_url):
         return None
     tokens = folder_url.split('?')
