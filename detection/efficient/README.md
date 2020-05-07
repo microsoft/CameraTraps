@@ -15,8 +15,7 @@
 
     Submodule 3rd commit - Pulled `Yet-Another-Efficientdet` repo, which updated utils/utils.py and `efficientdet/` folder.
     
-    6th commit - Submodule updated to its latest commit (submodule 3rd commit). Minor README changes
-    `environment-efficient.yml` updated with `webcolors` library.
+    6th commit - Submodule updated to its latest commit (submodule 3rd commit). Minor README changes `environment-efficient.yml` updated with `webcolors` library.
 
 #### install requirements
     pip install numpy Cython
