@@ -11,11 +11,16 @@
 
     Submodule 2nd commit - Training works on the dataset without any errors. When tried on 1600 images, loss came down i.e model converged. Image visualization added to the Tensorboard. Restriction on Image visualization is that the number of images visualized will be equal to the batch size. This is done to minimize the code changes. `Utils/tensorboard_logger.py` is an extra file. Noticed that training speed is a little faster when image visualization is done from this file than from `train.py`. Maybe related to other issues of my laptop. Using `train.py` for visualizing images for minimal code changes. However, images are flipped and are looking ugly. Need to look into it. Also need to check the `anchor scales&ratios, mean&std` of the dataset. Currently, using the stats of COCO dataset.
 
-    5th commit - Submodule updated till its latest commit (submodule 2nd commit).
+    5th commit - Submodule updated to its latest commit (submodule 2nd commit). Minor README changes.
+
+    Submodule 3rd commit - Pulled `Yet-Another-Efficientdet` repo, which updated utils/utils.py and `efficientdet/` folder.
+    
+    6th commit - Submodule updated to its latest commit (submodule 3rd commit). Minor README changes
+    `environment-efficient.yml` updated with `webcolors` library.
 
 #### install requirements
     pip install numpy Cython
-    pip install pycocotools opencv-python tqdm tensorboard tensorboardX pyyaml matplotlib
+    pip install pycocotools opencv-python tqdm tensorboard tensorboardX pyyaml matplotlib webcolors
     pip install torch==1.4.0
     pip install torchvision==0.5.0
 
