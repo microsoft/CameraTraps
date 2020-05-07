@@ -46,7 +46,7 @@ This document is written 98% for internal use, so you will see some instructions
 
 * If you're into using conda environments, cd to the root of the CameraTraps repo and run:
 
-  `conda env create --file environment-cameratraps-api-job-management.yml`
+  `conda env create --file environment-api-job-management.yml`
 
 
 ## Stuff you do for each job
