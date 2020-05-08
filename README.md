@@ -130,7 +130,15 @@ If you run into an error while creating either of the above environments, try up
 
 ## Usage
 
-To enter the conda virtual environment at your current shell, issue `conda activate cameratraps`. You should see `(cameratraps)` prepended to the command line prompt. Invoking `python` or `jupyter notebook` will now be using the interpreter and packages available in this virtual env.
+To enter the conda virtual environment at your current shell, run:
+
+`conda activate cameratraps`
+
+...or, if you used the environment-detector.yml file above:
+
+`conda activate cameratraps-detector`
+
+You should see `(cameratraps)` prepended to the command line prompt. Invoking `python` or `jupyter notebook` will now be using the interpreter and packages available in this virtual env.
 
 To exit the virtual env, issue `conda deactivate`.
 
