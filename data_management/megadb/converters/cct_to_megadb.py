@@ -185,9 +185,9 @@ def process_sequences(embedded_image_objects, dataset_name, deepcopy_embedded=Tr
 
     # check which fields are really dataset-level and should be included in the dataset table instead.
     seq_level_prop_values = defaultdict(set)
-    for seq in sequences:
+    for seq in sequences: 
         for prop_name in seq:
-            if prop_name not in ['dataset', 'seq_id', 'class', 'images', 'location']:
+            if prop_name not in ['dataset', 'seq_id', 'class', 'images', 'location', 'bbox']:
                 seq_level_prop_values[prop_name].add(seq[prop_name])
     dataset_props = []
     for prop_name, values in seq_level_prop_values.items():
@@ -205,11 +205,11 @@ def process_sequences(embedded_image_objects, dataset_name, deepcopy_embedded=Tr
         seq['seq_id'] = str(seq['seq_id'])
 
         if 'class' in seq:
-            seq['class'] = [c.lower() for c in seq['class']]
+            seq['class'] = [c.lower() for c in set(seq['class'])]
         if 'images' in seq:
             for im in seq['images']:
                 if 'class' in im:
-                    im['class'] = [c.lower() for c in im['class']]
+                    im['class'] = [c.lower() for c in set(im['class'])]
         sequences_neat.append(sequences_schema_check.order_seq_properties(seq))
 
     print('Finished processing sequences.')
