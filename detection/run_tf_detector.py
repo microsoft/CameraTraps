@@ -39,6 +39,9 @@ https://github.com/tensorflow/models/blob/master/research/object_detection/infer
 
 #%% Constants, imports, environment
 
+import sys, os
+sys.path.append('/content/drive/My Drive/OD/CameraTraps')
+
 import argparse
 import glob
 import os
@@ -63,7 +66,9 @@ warnings.filterwarnings('ignore', 'Metadata warning', UserWarning)
 # Numpy FutureWarnings from tensorflow import
 warnings.filterwarnings('ignore', category=FutureWarning)
 
-import tensorflow as tf
+#import tensorflow as tf
+import tensorflow.compat.v1 as tf
+tf.disable_v2_behavior()
 
 print('TensorFlow version:', tf.__version__)
 print('Is GPU available? tf.test.is_gpu_available:', tf.test.is_gpu_available())
@@ -267,7 +272,8 @@ class TFDetector:
 #%% Main function
 
 def load_and_run_detector(model_file, image_file_names, output_dir,
-                          render_confidence_threshold=TFDetector.DEFAULT_RENDERING_CONFIDENCE_THRESHOLD):
+                          render_confidence_threshold=TFDetector.DEFAULT_RENDERING_CONFIDENCE_THRESHOLD, 
+                          crop_image=False):
     if len(image_file_names) == 0:
         print('Warning: no files available')
         return
@@ -308,7 +314,7 @@ def load_and_run_detector(model_file, image_file_names, output_dir,
 
             result = tf_detector.generate_detections_one_image(image, im_file)
             detection_results.append(result)
-
+          
             elapsed = time.time() - start_time
             time_infer.append(elapsed)
         except Exception as e:
@@ -316,8 +322,28 @@ def load_and_run_detector(model_file, image_file_names, output_dir,
             # the error code and message is written by generate_detections_one_image,
             # which is wrapped in a big try catch
             continue
-
+        
         try:
+          if crop_image:
+            images_cropped=viz_utils.cropImage(result['detections'], image)
+        
+            fn = os.path.basename(im_file).lower()
+            name, ext = os.path.splitext(fn)
+            fn = '{}{}{}'.format(name, ImagePathUtils.DETECTION_FILENAME_INSERT, '.jpg')  # save all as JPG
+            if fn in output_file_names:
+                n_collisions = output_file_names[fn]  # if there were a collision, the count is at least 1
+                fn = str(n_collisions) + '_' + fn
+                output_file_names[fn] = n_collisions + 1
+            else:
+                output_file_names[fn] = 0
+
+            prefix=0 
+           
+            for i in images_cropped:
+              output_full_path = os.path.join(output_dir, str(prefix)+'_'+fn)
+              i.save(output_full_path)
+              prefix+=1 
+          else:
             # image is modified in place
             viz_utils.render_detection_bounding_boxes(result['detections'], image,
                                                       label_map=TFDetector.DEFAULT_DETECTOR_LABEL_MAP,
@@ -334,10 +360,11 @@ def load_and_run_detector(model_file, image_file_names, output_dir,
 
             output_full_path = os.path.join(output_dir, fn)
             image.save(output_full_path)
-
+            
         except Exception as e:
             print('Visualizing results on the image {} failed. Exception: {}'.format(im_file, e))
             continue
+           
 
     ave_time_load = statistics.mean(time_load)
     ave_time_infer = statistics.mean(time_infer)
@@ -388,7 +415,12 @@ def main():
         help=('Confidence threshold between 0 and 1.0; only render boxes above this confidence'
               ' (but only boxes above 0.1 confidence will be considered at all)')
     )
-
+    parser.add_argument(
+        '--crop',
+        default=False, 
+        action="store_true",
+        help='Whether to crop image before saving'
+    )
     if len(sys.argv[1:]) == 0:
         parser.print_help()
         parser.exit()
@@ -413,11 +445,17 @@ def main():
         else:
             # but for a single image, args.image_dir is also None
             args.output_dir = os.path.dirname(args.image_file)
-
+    
+    if args.crop:
+      crop_image=True
+    else:
+      crop_image=False  
+   
     load_and_run_detector(model_file=args.detector_file,
                           image_file_names=image_file_names,
                           output_dir=args.output_dir,
-                          render_confidence_threshold=args.threshold)
+                          render_confidence_threshold=args.threshold,
+                          crop_image=crop_image)
 
 
 if __name__ == '__main__':
