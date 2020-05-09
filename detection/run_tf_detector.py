@@ -39,9 +39,6 @@ https://github.com/tensorflow/models/blob/master/research/object_detection/infer
 
 #%% Constants, imports, environment
 
-import sys, os
-sys.path.append('/content/drive/My Drive/OD/CameraTraps')
-
 import argparse
 import glob
 import os
@@ -67,8 +64,6 @@ warnings.filterwarnings('ignore', 'Metadata warning', UserWarning)
 warnings.filterwarnings('ignore', category=FutureWarning)
 
 #import tensorflow as tf
-import tensorflow.compat.v1 as tf
-tf.disable_v2_behavior()
 
 print('TensorFlow version:', tf.__version__)
 print('Is GPU available? tf.test.is_gpu_available:', tf.test.is_gpu_available())
