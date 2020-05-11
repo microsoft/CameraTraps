@@ -17,6 +17,10 @@
     
     6th commit - Submodule updated to its latest commit (submodule 3rd commit). Minor README changes `environment-efficient.yml` updated with `webcolors` library.
 
+    Submodule 4th commit - COCO evaluation metric mAP added to training script. Currently, prints the mAP scores in the terminal. Will have to log them in TensorBoard. `Efficientdet/dataset.py` is changed to accomodate evaluation in training, mainly including image id, aspect ratios in dataloader.
+
+    7th commit - Submodule updated to its latest commit (submodule 4th commit). Minor README changes and Numpy is downgraded to 1.17.0 to avoid `pycocotools` error. `environment-efficient.yml` is updated accordingly.
+
 #### install requirements
     pip install numpy Cython
     pip install pycocotools opencv-python tqdm tensorboard tensorboardX pyyaml matplotlib webcolors

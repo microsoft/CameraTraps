@@ -34,7 +34,7 @@ dependencies:
     - kiwisolver==1.2.0
     - markdown==3.2.1
     - matplotlib==3.2.1
-    - numpy==1.18.3
+    - numpy==1.17.0
     - oauthlib==3.1.0
     - opencv-python==4.2.0.34
     - pillow==7.1.1
