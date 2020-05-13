@@ -21,6 +21,10 @@
 
     7th commit - Submodule updated to its latest commit (submodule 4th commit). Minor README changes and Numpy is downgraded to 1.17.0 to avoid `pycocotools` error. `environment-efficient.yml` is updated accordingly.
 
+    Submodule 5th commit - Validation metric is calculated for each category and added to Tensorboard. In utils/utils.py, replace nms with batched_nms to further improve mAP by 0.5~0.7. Updated changes in efficientnet/utils_extra.py: fix static padding. utils_extra is not used but still updated.
+
+    8th commit - Submodule updated to its latest commit (submodule 5th commit).
+
 #### install requirements
     pip install numpy Cython
     pip install pycocotools opencv-python tqdm tensorboard tensorboardX pyyaml matplotlib webcolors
