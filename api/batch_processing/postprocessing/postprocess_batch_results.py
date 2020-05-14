@@ -24,19 +24,21 @@ import io
 import warnings
 import copy
 import time
-from multiprocessing.pool import ThreadPool    
-from enum import IntEnum
+import itertools            
 import errno
 import uuid
+
+from multiprocessing.pool import ThreadPool    
+from enum import IntEnum
             
 import matplotlib
 matplotlib.use('agg')
 import matplotlib.pyplot as plt
 import numpy as np
-from sklearn.metrics import precision_recall_curve, confusion_matrix, average_precision_score
-from tqdm import tqdm
 import humanfriendly
 import pandas as pd
+from sklearn.metrics import precision_recall_curve, confusion_matrix, average_precision_score
+from tqdm import tqdm
 
 # Assumes ai4eutils is on the python path
 # https://github.com/Microsoft/ai4eutils
@@ -99,6 +101,7 @@ class PostProcessingOptions:
     rendering_bypass_sets = []
     
     confidence_threshold = 0.85
+    classification_confidence_threshold = 0.5
 
     # Used for summary statistics only
     target_recall = 0.9
@@ -1007,7 +1010,7 @@ def process_batch_results(options):
     else:
 
         ##%% Sample detections/non-detections
-
+        
         # Accumulate html image structs (in the format expected by write_html_image_list)
         # for each category
         images_html = collections.defaultdict(lambda: [])        
@@ -1022,7 +1025,6 @@ def process_batch_results(options):
         if not options.separate_detections_by_category:
             images_html['detections']        
         else:
-            import itertools
             # Add a set of results for each category and combination of categories
             keys = detection_categories_map.keys()
             subsets = []
@@ -1119,13 +1121,35 @@ def process_batch_results(options):
                                                                 rendering_options)
             
             image_result = None
-            if len(rendered_image_html_info) > 0:
-                image_result = [[res,rendered_image_html_info]]
-                for det in detections:
-                    if 'classifications' in det:
-                        top1_class = classification_categories_map[det['classifications'][0][0]]
-                        image_result.append(['class_{}'.format(top1_class),rendered_image_html_info])
             
+            if len(rendered_image_html_info) > 0:
+                
+                image_result = [[res,rendered_image_html_info]]
+                
+                for det in detections:
+                    
+                    if 'classifications' in det:
+                        
+                        # This is a list of [class,confidence] pairs, sorted by confidence
+                        classifications = det['classifications']
+                        top1_class_id = classifications[0][0]
+                        top1_class_name = classification_categories_map[top1_class_id]                            
+                        top1_class_score = classifications[0][1]
+                        
+                        # If we either don't have a confidence threshold, or we've met our
+                        # confidence threshold
+                        if (options.classification_confidence_threshold < 0) or \
+                            (top1_class_score >= options.classification_confidence_threshold):
+                            image_result.append(['class_{}'.format(top1_class_name),
+                                                 rendered_image_html_info])
+                        else:
+                            image_result.append(['class_unreliable',
+                                                 rendered_image_html_info])
+                            
+                    # ...if this detection has classification info
+                            
+                # ...for each detection
+                                        
             return image_result
         
         # ...def render_image_no_gt(file_info):
@@ -1167,8 +1191,17 @@ def process_batch_results(options):
               image_count,humanfriendly.format_timespan(elapsed),
               humanfriendly.format_timespan(seconds_per_image)))
 
-        # Write index.HTML
-        total_images = sum(image_counts.values())
+        # Write index.html
+        
+        # We can't just sum these, because image_counts includes images in both their
+        # detection and classification classes
+        # total_images = sum(image_counts.values())
+        total_images = 0
+        for k in image_counts.keys():
+            v = image_counts[k]
+            if has_classification_info and k.startswith('class_'):
+                continue
+            total_images += v
             
         if options.allow_missing_images:
             if total_images != image_count:
@@ -1198,6 +1231,12 @@ def process_batch_results(options):
             return friendly_name
         
         for result_set_name in images_html.keys():
+            
+            # Don't print classification classes here; we'll do that later with a slightly
+            # different structure
+            if has_classification_info and result_set_name.lower().startswith('class_'):
+                continue
+            
             filename = result_set_name + '.html'
             label = result_set_name_to_friendly_name(result_set_name)
             image_count = image_counts[result_set_name]
@@ -1212,10 +1251,15 @@ def process_batch_results(options):
             index_page += "<p>The same image might appear under multiple classes if multiple species were detected.</p>\n<div class='contentdiv'>\n"
         
             # Add links to all available classes
-            for cname in sorted(classification_categories_map.values()):
+            class_names = list(sorted(classification_categories_map.values()))
+            if 'class_unreliable' in images_html.keys():
+                class_names.append('unreliable')
+                
+            for cname in class_names:
                 ccount = len(images_html['class_{}'.format(cname)])
                 if ccount > 0:
-                    index_page += "<a href='class_{}.html'>{}</a> ({})<br/>\n".format(cname, cname.lower(), ccount)
+                    index_page += "<a href='class_{}.html'>{}</a> ({})<br/>\n".format(
+                        cname, cname.lower(), ccount)
             index_page += "</div>\n"
             
         index_page += "</body></html>"
