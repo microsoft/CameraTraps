@@ -25,6 +25,8 @@
 
     8th commit - Submodule updated to its latest commit (submodule 5th commit).
 
+    9th commit - Use HTTPS instead of SSH for submodule. Updated this in .gitmodules
+
 #### install requirements
     pip install numpy Cython
     pip install pycocotools opencv-python tqdm tensorboard tensorboardX pyyaml matplotlib webcolors
@@ -32,7 +34,7 @@
     pip install torchvision==0.5.0
 
 OR
-
+    conda install gxx_linux-64 # To avoid Pycoco installation errors.
     conda env create --file environment-efficient.yml
 
 #### download and unzip dataset
