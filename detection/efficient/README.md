@@ -27,6 +27,10 @@
 
     9th commit - Use HTTPS instead of SSH for submodule. Updated this in .gitmodules
 
+    Submodule 6th commit - Limiting the Validation metrics to `Average Precision  (AP) @[ IoU = 0.50      | area =    all | maxDets = 100 ]`. 
+
+    10th commit - Submodule updated to its latest commit (submodule 6th commit).
+
 #### install requirements
     pip install numpy Cython
     pip install pycocotools opencv-python tqdm tensorboard tensorboardX pyyaml matplotlib webcolors
