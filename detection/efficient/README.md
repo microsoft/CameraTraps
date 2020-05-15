@@ -69,7 +69,3 @@ OR
 `
 python train.py -c 0 -p camtrap --batch_size 8 --lr 1e-5 --num_epochs 10 --load_weights weights/efficientdet-d0.pth
 `
-5. `debug` flag saves predictions on the images in `test` folder. Can modify this for visualizing images.
-### ToDo: ->
-6. Understand what different weights like efficientdet-d0,efficientdet-d1 stand for. Revise obj-detection concepts.
-7. Focus on `anchor scales&ratios` of the dataset. Currently using COCO stats.
