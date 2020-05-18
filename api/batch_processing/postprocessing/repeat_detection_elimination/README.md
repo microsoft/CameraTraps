@@ -89,9 +89,13 @@ Most of these images indeed correspond to repeated false positives:
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<img src="../images/false_positive.jpg" width="500"><br/>
 
+<b>You don't need to delete the above image; just leave it in the folder.</b>
+
 But some are just animals that aren&rsquo;t moving much:
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<img src="../images/true_positive.jpg" width="500"><br/>
+
+</b>You should delete the above image.</b>
 
 Anything left in this folder will be considered a false positive and removed from your results in subsequent steps, so the next task is to <i>delete all the images in this folder that have bounding boxes on actual objects of interest</i>.
 
@@ -99,9 +103,13 @@ Note that it&rsquo;s common to have a false positive in an image that also has a
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<img src="../images/mixed_positive.jpg" width="500"><br/>
 
-Every once in a while you'll see a box that&rsquo;s <i>partially</i> on an animal.  This is <i>probably</i> a false positive that happened to also include an animal, but if it&rsquo;s a close call, the conservative thing to do is always to <i>not</i> delete this image, i.e. leave it in the folder.  Example:
+<b>You don't need to delete the above image; just leave it in the folder.</b>
+
+Every once in a while you'll see a box that&rsquo;s <i>partially</i> on an animal.  This is <i>probably</i> a false positive that happened to also include an animal, but if it&rsquo;s a close call, the conservative thing to do is always to delete this image, rather than leaving it in the folder.  This will tell the next set of scripts that this box was a real animal. Example:
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<img src="../images/possible_positive.jpg" width="500"><br/>
+
+<b>This is a gray area, but the safe thing to do is to delete this image.</b>
 
 You can do this step (deleting images) using any tool you like, but for the author&rsquo;s two cents, I really like having two windows open:
 
