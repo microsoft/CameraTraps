@@ -95,7 +95,7 @@ But some are just animals that aren&rsquo;t moving much:
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<img src="../images/true_positive.jpg" width="500"><br/>
 
-</b>You should delete the above image.</b>
+<b>You should delete the above image.</b>
 
 Anything left in this folder will be considered a false positive and removed from your results in subsequent steps, so the next task is to <i>delete all the images in this folder that have bounding boxes on actual objects of interest</i>.
 
