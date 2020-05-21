@@ -31,6 +31,10 @@
 
     10th commit - Submodule updated to its latest commit (submodule 6th commit).
 
+    Submodule 7th commit - Since  the initial stages produce a lot of annotations, there's a computational overhead to compute mAP. So, kept a max limit on the predictions, which will be `opt.max_preds_toeval = len(val_generator)*opt.batch_size* 5`. Here, I averaged the #obj per image to 5 for computational efficacy. Tensorboard image visualization added to the evaluation dataset too. Original author updated `efficientdet/model.py` with comments.
+
+    11th commit - Submodule updated to its latest commit (submodule 7th commit).
+
 #### install requirements
     pip install numpy Cython
     pip install pycocotools opencv-python tqdm tensorboard tensorboardX pyyaml matplotlib webcolors
