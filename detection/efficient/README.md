@@ -39,6 +39,10 @@
 
     12th commit - Submodule updated to its latest commit (submodule 8th commit).
 
+    Submodule 9th commit - `datasets/camtrap/create_jsonsplits.py` is updated to access images from a different location.
+    
+    13th commit - Submodule updated to its latest commit (submodule 9th commit) and conda yml file is updated along with its installation details in README.
+
 #### install requirements
     pip install numpy Cython
     pip install pycocotools opencv-python tqdm tensorboard tensorboardX pyyaml matplotlib webcolors
@@ -46,8 +50,10 @@
     pip install torchvision==0.5.0
 
 OR
-    conda install gxx_linux-64 # To avoid Pycoco installation errors.
     conda env create --file environment-efficient.yml
+    conda activate efficientdet
+    conda install gxx_linux-64 # To avoid Pycoco installation errors.
+    pip install pycocotools
 
 #### download and unzip dataset
     mkdir datasets
