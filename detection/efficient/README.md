@@ -35,6 +35,10 @@
 
     11th commit - Submodule updated to its latest commit (submodule 7th commit).
 
+    Submodule 8th commit - Pylinting on some scripts: `train.py`, `utils/calc_eval.py`, `utils/utils.py`, `utils/tensorboard_logger.py`.
+
+    12th commit - Submodule updated to its latest commit (submodule 8th commit).
+
 #### install requirements
     pip install numpy Cython
     pip install pycocotools opencv-python tqdm tensorboard tensorboardX pyyaml matplotlib webcolors
