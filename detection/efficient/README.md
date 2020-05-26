@@ -43,6 +43,10 @@
     
     13th commit - Submodule updated to its latest commit (submodule 9th commit) and conda yml file is updated along with its installation details in README.
 
+    Submodule 10th commit - Added percentage of validation images to be validated in each epoch in `train.py`.
+
+    14th commit - Submodule updated to its latest commit (Submodule 10th commit).
+
 #### install requirements
     pip install numpy Cython
     pip install pycocotools opencv-python tqdm tensorboard tensorboardX pyyaml matplotlib webcolors
