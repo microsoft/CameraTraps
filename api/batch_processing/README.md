@@ -226,7 +226,7 @@ The output of the detector is saved in `requestID_detections_requestName_timesta
     "detection_categories": {
         "1": "animal",
         "2": "person",
-        "4": "vehicle"
+        "3": "vehicle"
     },
     "classification_categories": {
         "0": "fox",
@@ -283,7 +283,7 @@ where `(x_min, y_min)` is the upper-left corner of the detection bounding box, w
 
 The detection category `category` can be interpreted using the `detection_categories` dictionary. 
 
-Note that the `vehicle` detection class (available in MegaDetector version 4 or later) is &ldquo;4&rdquo;. Detection categories not listed here (including "0" and "3") are used for intermediate processing and are allowable by this format specification, but should be treated as "no detection".
+Detection categories not listed here are allowed by this format specification, but should be treated as "no detection".
 
 When the detector model detects no animal (or person or vehicle), the confidence `conf` is shown as 0.0 (not confident that there is an object of interest) and the `detections` field is an empty list.
 
