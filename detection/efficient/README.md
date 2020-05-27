@@ -47,6 +47,10 @@
 
     14th commit - Submodule updated to its latest commit (Submodule 10th commit).
 
+    Submodule 11th commit - Added a feature to increase num of images visualized in `train.py`. Validation frequency parameters are added to `train.py`. Variable name changes to avoid confusion. `calc_eval` is updated to avoid path related issues.
+
+    15th commit - Submodule updated to its latest commit (Submodule 11th commit).
+
 #### install requirements
     pip install numpy Cython
     pip install pycocotools opencv-python tqdm tensorboard tensorboardX pyyaml matplotlib webcolors
