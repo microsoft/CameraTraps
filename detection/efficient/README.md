@@ -51,6 +51,10 @@
 
     15th commit - Submodule updated to its latest commit (Submodule 11th commit).
 
+    Submodule 12th commit - In `utils/calc_eval.py`, we skip the instances where there is a negative bbox prediction. Minor changes in `train.py`, which include changing param types from `int` to `float`.
+
+    16th commit - Submodule updated to its latest commit (Submodule 12th commit).
+
 #### install requirements
     pip install numpy Cython
     pip install pycocotools opencv-python tqdm tensorboard tensorboardX pyyaml matplotlib webcolors
