@@ -66,7 +66,11 @@ class SeparateDetectionsIntoFoldersOptions:
     
     # Inputs
     default_threshold = 0.725
-    category_name_to_threshold = {} # {'animal':0.5}
+    category_name_to_threshold = {
+        'animal': default_threshold,
+        'person': default_threshold,
+        'vehicle': default_threshold
+    }
     
     n_threads = 1
     
@@ -247,15 +251,14 @@ def main():
     parser.add_argument('results_file', type=str, help='Input .json filename')
     parser.add_argument('base_input_folder', type=str, help='Input image folder')
     parser.add_argument('base_output_folder', type=str, help='Output image folder')
-    
-    options = SeparateDetectionsIntoFoldersOptions()
-    parser.add_argument('--animal_threshold', type=float, default=options.animal_threshold, 
+
+    parser.add_argument('--animal_threshold', type=float,
                         help='Confidence threshold for the animal category')
-    parser.add_argument('--human_threshold', type=float, default=options.human_threshold, 
+    parser.add_argument('--human_threshold', type=float,
                         help='Confidence threshold for the human category')
-    parser.add_argument('--vehicle_threshold', type=float, default=options.vehicle_threshold, 
+    parser.add_argument('--vehicle_threshold', type=float,
                         help='Confidence threshold for vehicle category')
-    parser.add_argument('--nthreads', type=int, default=options.n_threads, 
+    parser.add_argument('--n_threads', type=int,
                         help='Number of threads to use for parallel operation')
     parser.add_argument('--allow_existing_directory', action='store_true', 
                         help='Proceed even if the target directory exists and is not empty')
@@ -267,7 +270,17 @@ def main():
     args = parser.parse_args()    
     
     # Convert to an options object
+    options = SeparateDetectionsIntoFoldersOptions()
     args_to_object(args, options)
+
+    if args.animal_threshold:
+        options.category_name_to_threshold['animal'] = args.animal_threshold
+
+    if args.human_threshold:
+        options.category_name_to_threshold['person'] = args.human_threshold
+
+    if args.vehicle_threshold:
+        options.category_name_to_threshold['vehicle'] = args.vehicle_threshold
     
     separate_detections_into_folders(options)
     
