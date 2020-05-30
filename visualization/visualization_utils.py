@@ -96,6 +96,7 @@ def resize_image(image, target_width, target_height=-1):
 
 
 def show_images_in_a_row(images):
+    
     num = len(images)
     assert num > 0
 
@@ -139,39 +140,56 @@ COLORS = [
         'WhiteSmoke', 'Yellow', 'YellowGreen'
     ]
 
-def cropImage(detections, 
-              image,
-              confidence_threshold=0.8,
-              expansion=0,
-              use_normalized_coordinates=True):
 
- ret_images=[]
+def crop_image(detections, image, confidence_threshold=0.8, expansion=0):
+    """
+    Crops detections above *confidence_threshold* from the PIL image *image*, 
+    returning a list of PIL images.
+    
+    *detections* should be a list of dictionaries with keys 'conf' and 'bbox'; 
+    see bbox format description below.  Normalized, [x,y,w,h], upper-left-origin.
+    
+    *expansion* specifies a number of pixels to include on each side of the box.
+    """
+        
+    ret_images = []
+    
+    for detection in detections:
+    
+        score = float(detection['conf'])
+        
+        if score >= confidence_threshold: 
+            
+            x1, y1, w_box, h_box = detection['bbox']
+            ymin,xmin,ymax,xmax = y1, x1, y1 + h_box, x1 + w_box
+    
+            # Convert to pixels so we can use the PIL crop() function
+            im_width, im_height = image.size
+            (left, right, top, bottom) = (xmin * im_width, xmax * im_width,
+                                          ymin * im_height, ymax * im_height)
+            
+            if expansion > 0:
+                left -= expansion
+                right += expansion
+                top -= expansion
+                bottom += expansion
 
- for detection in detections:
-
-  score = float(detection['conf'])
-  if score >= confidence_threshold: 
-      
-
-   x1, y1, w_box, h_box=detection['bbox']
-   ymin,xmin,ymax,xmax=y1, x1, y1 + h_box, x1 + w_box
-
-   im_width, im_height = image.size
-   if use_normalized_coordinates:
-          (left, right, top, bottom) = (xmin * im_width, xmax * im_width,
-                                        ymin * im_height, ymax * im_height)
-   else:
-          (left, right, top, bottom) = (xmin, xmax, ymin, ymax)
-
-   if expansion > 0:
-          left -= expansion
-          right += expansion
-          top -= expansion
-          bottom += expansion
-
-   ret_images.append(image.crop((left, top, right, bottom))) 
- return ret_images
-         
+            # PIL's crop() does surprising things if you provide values outside of
+            # the image, clip inputs
+            left = max(left,0); right = max(right,0); 
+            top = max(top,0); bottom = max(bottom,0)
+            
+            left = min(left,im_width-1); right = min(right,im_width-1)
+            top = min(top,im_height-1); bottom = min(bottom,im_height-1)
+            
+            ret_images.append(image.crop((left, top, right, bottom))) 
+           
+        # ...if this detection is above threshold
+    
+    # ...for each detection
+            
+    return ret_images
+        
 
 def render_detection_bounding_boxes(detections, image,
                                     label_map={},
