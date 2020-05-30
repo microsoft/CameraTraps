@@ -6,6 +6,7 @@ Core rendering functions shared across visualization scripts
 
 #%% Constants and imports
 
+
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import numpy as np
@@ -138,6 +139,39 @@ COLORS = [
         'WhiteSmoke', 'Yellow', 'YellowGreen'
     ]
 
+def cropImage(detections, 
+              image,
+              confidence_threshold=0.8,
+              expansion=0,
+              use_normalized_coordinates=True):
+
+ ret_images=[]
+
+ for detection in detections:
+
+  score = float(detection['conf'])
+  if score >= confidence_threshold: 
+      
+
+   x1, y1, w_box, h_box=detection['bbox']
+   ymin,xmin,ymax,xmax=y1, x1, y1 + h_box, x1 + w_box
+
+   im_width, im_height = image.size
+   if use_normalized_coordinates:
+          (left, right, top, bottom) = (xmin * im_width, xmax * im_width,
+                                        ymin * im_height, ymax * im_height)
+   else:
+          (left, right, top, bottom) = (xmin, xmax, ymin, ymax)
+
+   if expansion > 0:
+          left -= expansion
+          right += expansion
+          top -= expansion
+          bottom += expansion
+
+   ret_images.append(image.crop((left, top, right, bottom))) 
+ return ret_images
+         
 
 def render_detection_bounding_boxes(detections, image,
                                     label_map={},
