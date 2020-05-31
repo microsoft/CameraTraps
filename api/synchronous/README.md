@@ -1,16 +1,43 @@
 # Camera trap real-time API
 
 
-We also expose our animal detection and species classification models through a synchronous API to support real-time use cases and our demo web app.
+We also expose our animal detection and species classification (the later is to come!) models through a synchronous API to support real-time use cases and our demo web app.
 
 
 ## Set-up
+
+(Do not need `sudo` if you added the user to the Docker group)
 
 - Download the MegaDetector model files (the `.pb` files) to `api_core/animal_detection_classification_api/model`
 
 - Download the classification models to TBD
 
 - Download the class names lists to `api_core/animal_detection_classification_api/class_names`
+
+- Clone the API Framework repo
+
+- Build our custom base Docker image to solve TensorFlow version and GPU finding issues. From the Framework repo's `Containers` directory,
+```bash
+sudo docker build . -f base-py/Dockerfile --build-arg BASE_IMAGE=tensorflow/tensorflow:1.14.0-gpu-py3 -t yasiyu.azurecr.io/aiforearth/tensorflow:1.14.0-gpu-py3
+```
+
+We call our base image `yasiyu.azurecr.io/aiforearth/tensorflow:1.14.0-gpu-py3` and it's used as the base image in the API's Dockerfile.
+
+- Name the API's Docker image; modify its version and build number as needed:
+```bash
+export API_DOCKER_IMAGE=yasiyu.azurecr.io/camera-trap/2.0-detection-sync:1
+```
+
+- Modify the Docker image's version and build number (as well as registry name) in `api_core/build_docker.sh` and run it to build the API's Docker image:
+```bash
+sudo sh build_docker.sh $API_DOCKER_IMAGE
+```
+
+- Start the Docker container to host the API locally
+```bash
+sudo docker run --gpus all -p 6002:1212 $API_DOCKER_IMAGE
+```
+
 
 
 ## Deployment

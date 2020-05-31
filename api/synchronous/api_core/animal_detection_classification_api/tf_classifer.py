@@ -1,13 +1,15 @@
-import os
-import time
-import argparse
-import json
-import tensorflow as tf
-import numpy as np
-import PIL
-import tqdm
+"""
+TODO - Copy this module from the classification folder once it has been refactored so that we do not keep
+duplicated functions
+"""
+
 import math
+
+import numpy as np
+import tensorflow as tf
+import tqdm
 from animal_detection_classification_api import api_config
+
 
 class TFClassifier(object):
     def __init__(self, checkpoints, class_names):
