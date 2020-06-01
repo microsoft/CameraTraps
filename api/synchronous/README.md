@@ -45,7 +45,15 @@ sudo docker run --gpus all -p 6002:1212 $API_DOCKER_IMAGE
 
 ## Testing
 
-### Testing locally
+From this directory (`synchronous`),
 
+```bash
+python synchronous_api_test.py "url_of_api"
+```
 
-### Testing the deployed API
+Also need to provide an API key to test the API in production:
+
+```bash
+python synchronous_api_test.py "url_of_api" "api_key"
+```
+
