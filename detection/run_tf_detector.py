@@ -178,6 +178,13 @@ class TFDetector:
         return new
 
     @staticmethod
+    def convert_to_tf_coords(array):
+        """ From [x1, y1, width_box, height_box] to [y1, x1, y2, x2]"""
+        x2 = array[0] + array[2]
+        y2 = array[1] + array[3]
+        return [array[0], array[1], x2, y2]
+
+    @staticmethod
     def __load_model(model_path):
         """Loads a detection model (i.e., create a graph) from a .pb file.
 
