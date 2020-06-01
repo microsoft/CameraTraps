@@ -62,27 +62,29 @@ invalid_category_epsilon = 0.00001
 
 #%% Options class
 
+default_threshold = 0.725
+        
 class SeparateDetectionsIntoFoldersOptions:
     
-    # Inputs
-    default_threshold = 0.725
-    category_name_to_threshold = {
-        'animal': default_threshold,
-        'person': default_threshold,
-        'vehicle': default_threshold
-    }
-    
-    n_threads = 1
-    
-    allow_existing_directory = False
-    
-    results_file = None
-    base_input_folder = None
-    base_output_folder = None
+    def __init__(self):
         
-    # Dictionary mapping categories (plus 'multiple' and 'empty') to output folders
-    category_name_to_folder = None
-    category_id_to_category_name = None
+        self.category_name_to_threshold = {
+            'animal': default_threshold,
+            'person': default_threshold,
+            'vehicle': default_threshold
+        }
+        
+        self.n_threads = 1
+        
+        self.allow_existing_directory = False
+        
+        self.results_file = None
+        self.base_input_folder = None
+        self.base_output_folder = None
+            
+        # Dictionary mapping categories (plus 'multiple' and 'empty') to output folders
+        self.category_name_to_folder = None
+        self.category_id_to_category_name = None
     
     
 #%% Support functions
@@ -122,11 +124,11 @@ def process_detection(d,options):
     categories_above_threshold = []
     for category_name in category_names:
         
-        threshold = options.default_threshold
+        threshold = default_threshold
         
         # Do we have a custom threshold for this category?
         if category_name in options.category_name_to_threshold:
-            threshold = options.category_name_to_threshold[threshold]
+            threshold = options.category_name_to_threshold[category_name]
             
         max_confidence_this_category = category_name_to_max_confidence[category_name]
         if max_confidence_this_category > threshold:
@@ -219,12 +221,13 @@ if False:
 
     #%%
     
+    default_threshold = 0.8
     options = SeparateDetectionsIntoFoldersOptions()    
+    
     options.results_file = r"G:\x\x-20200407\combined_api_outputs\x-20200407_detections.filtered_rde_0.60_0.85_5_0.05.json"
     options.base_input_folder = "z:\\"
     options.base_output_folder = r"E:\x-out"
     options.n_threads = 100
-    options.default_threshold = 0.8
     options.allow_existing_directory = False
     
     #%%
@@ -252,13 +255,13 @@ def main():
     parser.add_argument('base_input_folder', type=str, help='Input image folder')
     parser.add_argument('base_output_folder', type=str, help='Output image folder')
 
-    parser.add_argument('--animal_threshold', type=float,
+    parser.add_argument('--animal_threshold', type=float, default=default_threshold,
                         help='Confidence threshold for the animal category')
-    parser.add_argument('--human_threshold', type=float,
+    parser.add_argument('--human_threshold', type=float, default=default_threshold,
                         help='Confidence threshold for the human category')
-    parser.add_argument('--vehicle_threshold', type=float,
+    parser.add_argument('--vehicle_threshold', type=float, default=default_threshold,
                         help='Confidence threshold for vehicle category')
-    parser.add_argument('--n_threads', type=int,
+    parser.add_argument('--n_threads', type=int, default=1,
                         help='Number of threads to use for parallel operation')
     parser.add_argument('--allow_existing_directory', action='store_true', 
                         help='Proceed even if the target directory exists and is not empty')
@@ -271,6 +274,7 @@ def main():
     
     # Convert to an options object
     options = SeparateDetectionsIntoFoldersOptions()
+    
     args_to_object(args, options)
 
     if args.animal_threshold:
