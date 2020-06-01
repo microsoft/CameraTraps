@@ -77,7 +77,7 @@ class RepeatDetectionOptions:
     maxSuspiciousDetectionSize = 0.2
 
     # A list of classes we don't want to treat as suspicious. Each element is an int.
-    excludeClasses = []  # [annotation_constants.bbox_category_name_to_id['person']]
+    excludeClasses = []  # [annotation_constants.detector_bbox_category_name_to_id['person']]
 
     # Set to zero to disable parallelism
     nWorkers = 10  # joblib.cpu_count()

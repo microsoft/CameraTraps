@@ -32,3 +32,6 @@ api/batch_processing/postprocessing/CameraTrapJsonFileProcessingApp/bin/
 api/batch_processing/postprocessing/CameraTrapJsonFileProcessingApp/obj/
 api/batch_processing/postprocessing/CameraTrapJsonFileProcessingApp/packages/
 /.project
+
+# TF model files
+*.pb
