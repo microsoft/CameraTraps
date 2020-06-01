@@ -8,13 +8,21 @@ We also expose our animal detection and species classification (the later is to 
 
 (Do not need `sudo` if you added the user to the Docker group)
 
+Prepare the model files and configuration
+
 - Download the MegaDetector model files (the `.pb` files) to `api_core/animal_detection_classification_api/model`
 
 - Download the classification models to TBD
 
 - Download the class names lists to `api_core/animal_detection_classification_api/class_names`
 
+- Modify `api_core/animal_detection_classification_api/api_config.py` to point to the desired model files.
+
+Build the Docker image
+
 - Clone the API Framework repo
+
+- In `Containers/base-py/Dockerfile`, remove `RUN easy_install3 pip` and add `python3-pip` to the list of packages installed in the `RUN apt-get` command.
 
 - Build our custom base Docker image to solve TensorFlow version and GPU finding issues. From the Framework repo's `Containers` directory,
 ```bash

@@ -147,11 +147,11 @@ To exit the virtual env, issue `conda deactivate`.
 If you need to use additional packages, add them to the environment file and run
 
 ```bash
-conda env update --name cameratraps --file environment.yml
+conda env update --name cameratraps --file environment.yml --prune
 ```
 or
 ```bash
-conda env update --name cameratraps-detector --file environment-detector.yml
+conda env update --name cameratraps-detector --file environment-detector.yml --prune
 ```
 
 ## Other notes

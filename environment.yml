@@ -33,4 +33,5 @@ dependencies:
   - azure-cosmos==4.0.0b6  
   - azureml-sdk[tensorboard]==1.0.83
   - requests_toolbelt  # required to call the sync API
+  - locust  # load testing of sync API
 
