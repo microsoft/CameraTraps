@@ -390,6 +390,7 @@ def load_and_run_detector(model_file, image_file_names, output_dir,
 #%% Command-line driver
 
 def main():
+    
     parser = argparse.ArgumentParser(
         description='Module to run a TF animal detection model on images'
     )
