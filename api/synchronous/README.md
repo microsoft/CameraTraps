@@ -1,10 +1,12 @@
 # Camera trap real-time API
 
 
-We also expose our animal detection and species classification (the later is to come!) models through a synchronous API to support real-time use cases and our demo web app.
+We also expose our animal detection and species classification (the latter is to come!) models through a synchronous API to support real-time use cases and our demo web app.
 
 
 ## Set-up
+
+All paths are relative to this directory `api/synchronous`
 
 (Do not need `sudo` if you added the user to the Docker group)
 
@@ -20,9 +22,7 @@ Prepare the model files and configuration
 
 Build the Docker image
 
-- Clone the API Framework repo
-
-- In `Containers/base-py/Dockerfile`, remove `RUN easy_install3 pip` and add `python3-pip` to the list of packages installed in the `RUN apt-get` command.
+- Clone the API Framework repo, and there, in `Containers/base-py/Dockerfile`, remove `RUN easy_install3 pip` and add `python3-pip` to the list of packages installed in the `RUN apt-get` command.
 
 - Build our custom base Docker image to solve TensorFlow version and GPU finding issues. From the Framework repo's `Containers` directory,
 ```bash
@@ -36,7 +36,10 @@ We call our base image `yasiyu.azurecr.io/aiforearth/tensorflow:1.14.0-gpu-py3` 
 export API_DOCKER_IMAGE=yasiyu.azurecr.io/camera-trap/2.0-detection-sync:1
 ```
 
-- Modify the Docker image's version and build number (as well as registry name) in `api_core/build_docker.sh` and run it to build the API's Docker image:
+- Modify the Docker image's version and build number (as well as registry name) in `api_core/build_docker.sh`
+
+- From `api_core` (Docker context is that directory), run
+
 ```bash
 sudo sh build_docker.sh $API_DOCKER_IMAGE
 ```
@@ -64,4 +67,3 @@ Also need to provide an API key to test the API in production:
 ```bash
 python synchronous_api_test.py "url_of_api" "api_key"
 ```
-
