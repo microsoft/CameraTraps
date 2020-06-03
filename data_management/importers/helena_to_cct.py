@@ -21,13 +21,13 @@ from path_utils import find_images
 
 base_directory = r'/mnt/blobfuse/wildlifeblobssc/'
 output_directory = r'/home/gramener'
-output_file = os.path.join(output_directory,'rspb.json')
+output_json_file = os.path.join(output_directory,'rspb.json')
 input_metadata_file = os.path.join(base_directory, 'StHelena_Detections.xlsx')
 image_directory = os.path.join(base_directory, 'StHELENA_images/')
 mapping_df = ''
 filename_col = 'image_name'
 load_width_and_height = True
-annotation_fields_to_copy = ['Fortnight', 'Detector']
+annotation_fields_to_copy = ['Fortnight', 'Detector', 'datetime', 'site']
 
 assert(os.path.isdir(image_directory))
 
@@ -80,6 +80,7 @@ result = pd.merge(input_metadata, mapping_df, how='left', on=['datetime', "Fortn
 start_time = time.time()
 filenames_to_rows = {}
 image_filenames = result[filename_col]
+image_filenames = list(set(image_filenames))
 
 missing_files = []
 duplicate_rows = []
@@ -141,13 +142,30 @@ next_category_id = 1
 # For each image
 
 start_time = time.time()
-import pdb;pdb.set_trace()
 for image_name in image_filenames:
+
+    if type(image_name) != str:
+        continue
 
     image_path = os.path.join(image_directory, image_name)
     # Don't include images that don't exist on disk
     if not os.path.isfile(image_path):
         continue
+    
+    im = {}
+    im['id'] = image_name.split('.')[0]
+    im['file_name'] = image_name
+
+    if load_width_and_height:
+        pilImage = Image.open(image_path)
+        width, height = pilImage.size
+        im['width'] = width
+        im['height'] = height
+    else:
+        im['width'] = -1
+        im['height'] = -1
+
+    images.append(im)
 
     rows = filenames_to_rows[image_name]
 
@@ -156,23 +174,7 @@ for image_name in image_filenames:
 
     # iRow = rows[0]
     for iRow in rows:
-        row = input_metadata.iloc[iRow]
-        im = {}
-        im['id'] = image_name.split('.')[0]
-        im['file_name'] = image_name
-        im['datetime'] = row['datetime']
-        im['site'] = row['site']
-
-        if load_width_and_height:
-            pilImage = Image.open(image_path)
-            width, height = pilImage.size
-            im['width'] = width
-            im['height'] = height
-        else:
-            im['width'] = -1
-            im['height'] = -1
-
-        images.append(im)
+        row = result.iloc[iRow]
 
         category = row['Species']
 
@@ -194,6 +196,8 @@ for image_name in image_filenames:
         ann['id'] = str(uuid.uuid1())
         ann['image_id'] = im['id']
         ann['category_id'] = categoryID
+        # ann['datetime'] = row['datetime']
+        # ann['site'] = row['site']
 
         for fieldname in annotation_fields_to_copy:
             ann[fieldname] = row[fieldname]
@@ -242,3 +246,35 @@ json.dump(json_data, open(output_json_file, 'w'), indent=4)
 
 print('Finished writing .json file with {} images, {} annotations, and {} categories'.format(
     len(images), len(annotations), len(categories)))
+
+#%% Validate output
+
+from data_management.databases import sanity_check_json_db
+
+options = sanity_check_json_db.SanityCheckOptions()
+options.baseDir = image_directory
+options.bCheckImageSizes = False
+options.bCheckImageExistence = False
+options.bFindUnusedImages = False
+data = sanity_check_json_db.sanity_check_json_db(output_json_file,options)
+
+
+#%% Preview labels
+
+from visualization import visualize_db
+from data_management.databases import sanity_check_json_db
+
+viz_options = visualize_db.DbVizOptions()
+viz_options.num_to_visualize = None
+viz_options.trim_to_images_with_bboxes = False
+viz_options.add_search_links = True
+viz_options.sort_by_filename = False
+viz_options.parallelize_rendering = True
+viz_options.classes_to_exclude = ['empty']
+html_output_file,image_db = visualize_db.process_images(db_path=output_json_file,
+                                                        output_dir=os.path.join(
+                                                        output_directory, 'RSPB/preview'),
+                                                        image_base_dir=image_directory,
+                                                        options=viz_options)
+os.startfile(html_output_file))
+
