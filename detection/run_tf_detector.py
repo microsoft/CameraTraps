@@ -135,7 +135,7 @@ class TFDetector:
     DEFAULT_DETECTOR_LABEL_MAP = {
         '1': 'animal',
         '2': 'person',
-        '4': 'vehicle'  # will be available in megadetector v4
+        '3': 'vehicle'  # available in megadetector v4+
     }
 
     NUM_DETECTOR_CATEGORIES = 4  # animal, person, group, vehicle - for color assignment
