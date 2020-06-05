@@ -36,15 +36,13 @@ We call our base image `yasiyu.azurecr.io/aiforearth/tensorflow:1.14.0-gpu-py3` 
 export API_DOCKER_IMAGE=yasiyu.azurecr.io/camera-trap/2.0-detection-sync:1
 ```
 
-- Modify the Docker image's version and build number (as well as registry name) in `api_core/build_docker.sh`
-
 - From `api_core` (Docker context is that directory), run
 
 ```bash
 sudo sh build_docker.sh $API_DOCKER_IMAGE
 ```
 
-- Start the Docker container to host the API locally
+- Start the Docker container to host the API locally at port 6002 of the VM:
 ```bash
 sudo docker run --gpus all -p 6002:1212 $API_DOCKER_IMAGE
 ```
@@ -61,6 +59,8 @@ From this directory (`synchronous`),
 ```bash
 python synchronous_api_test.py "url_of_api"
 ```
+
+The URL looks like `http://vm-name.eastus.cloudapp.azure.com:6002/v1/camera-trap/sync/`
 
 Also need to provide an API key to test the API in production:
 

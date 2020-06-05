@@ -447,7 +447,7 @@ def draw_bounding_box_on_image(image,
 
 
 def render_iMerit_boxes(boxes, classes, image,
-                        label_map=annotation_constants.detector_bbox_category_id_to_name):
+                        label_map=annotation_constants.annotation_bbox_category_id_to_name):
     """
     Renders bounding boxes and their category labels on a PIL image.
 
