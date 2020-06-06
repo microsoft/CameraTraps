@@ -1,0 +1,12 @@
+apiVersion: v1
+description: camera trap API.
+name: cameratrap-detection-sync
+version: 1.0.0
+keywords:
+- sync
+home: "https://www.microsoft.com/en-us/aiforearth"
+sources: 
+  - "https://github.com/microsoft/AIforEarth-API-Platform"
+maintainers:
+  - name: AI for Earth Engineering
+  - email: aiforearthteam@microsoft.com

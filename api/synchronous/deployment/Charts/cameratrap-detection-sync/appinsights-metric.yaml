@@ -1,0 +1,7 @@
+apiVersion: azure.com/v1alpha2
+kind: CustomMetric
+metadata:
+  name: service-name-appinsights-metric-endpointname
+spec:
+  metric:
+    metricName: customMetrics//CURRENT_REQUESTS/service-name/endpointname

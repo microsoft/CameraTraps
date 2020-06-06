@@ -1,0 +1,32 @@
+global:
+  registry_location: "off-cluster"
+replicaCount: 1
+image:
+  repository: ai4eapicameratrap.azurecr.io/cameratrap-detection-sync/2.0-detection-sync
+  name: cameratrap-detection-sync
+  tag: 1
+  version: v1
+  pullPolicy: Always
+  secret: registrysecretname
+service:
+  internalPort: 1212
+  type: ClusterIP
+resources:
+  limits:
+    cpu: 2000m
+    memory: 100Gi
+  requests:
+    cpu: 1001m
+    memory: 50Gi
+env:
+  APPINSIGHTS_INSTRUMENTATIONKEY: "e94aa591-3e5d-48f7-a30b-c547a0402fc2"
+  SERVICE_CLUSTER: ""
+  SERVICE_MODEL_NAME: ""
+  SERVICE_MODEL_FRAMEWORK: ""
+  SERVICE_MODEL_FRAMEOWRK_VERSION: ""
+  SERVICE_MODEL_VERSION: "1.0"
+  SERVICE_NAME: ""
+  SERVICE_VERSION: "1.0"
+  SERVICE_CONTAINER_VERSION: ""
+  SERVICE_CONTAINER_NAME: ""
+  DEBUG: "FALSE"
