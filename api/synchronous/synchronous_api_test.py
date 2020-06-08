@@ -1,12 +1,13 @@
+import io
 import json
 import os
 import sys
 import unittest
 
 import requests
-from requests_toolbelt.multipart import decoder
+from PIL import Image
 from requests_toolbelt import MultipartEncoder
-
+from requests_toolbelt.multipart import decoder
 
 # get rid of formatting differences
 API_RESULT = json.dumps(json.loads('''
@@ -94,9 +95,66 @@ class TestSynchronousAPI(unittest.TestCase):
 
         # compare result
         res = decoder.MultipartDecoder.from_response(r)
-
         results = {}
-        # images = {}
+        for part in res.parts:
+            # part is a BodyPart object with b'Content-Type', and b'Content-Disposition', the later
+            # includes 'name' and 'filename' info
+            headers = {}
+            for k, v in part.headers.items():
+                headers[k.decode(part.encoding)] = v.decode(part.encoding)
+
+            if headers.get('Content-Type', None) == 'application/json':
+                content_disposition = headers.get('Content-Disposition', '')
+                # the filename and name info is all in one string with no obvious format
+                if 'detection_result' in content_disposition:
+                    results['detection_result'] = json.loads(part.content.decode())
+                elif 'classification_result' in content_disposition:
+                    results['classification_result'] = json.loads(part.content.decode())
+        results_string = json.dumps(results)
+        self.assertEqual(results_string, API_RESULT)
+
+    def test_detect_and_render(self):
+        """Actually do not check the rendered image, just that images were sent back."""
+        params = {
+            'confidence': 0.8,
+            'render': True
+        }
+
+        num_images_to_upload = 2
+
+        files = {}
+        open_files = []
+        test_images_dir = os.path.join(self.sample_input_dir, 'test_images')
+        for i, image_name in enumerate(sorted(os.listdir(test_images_dir))):
+            if not image_name.lower().endswith('.jpg'):
+                continue
+
+            if len(open_files) >= num_images_to_upload:
+                break
+
+            fd = open(os.path.join(test_images_dir, image_name), 'rb')
+            open_files.append(fd)
+            files[image_name] = (image_name, fd, 'image/jpeg')
+
+        r = requests.post(self.api_url + 'detect',
+                          params=params,
+                          files=files, headers=self.headers)
+
+        if not r.ok:
+            print('Response not okay, reason and text:')
+            print(r.reason)
+            print(r.text)
+
+        self.assertEqual(r.status_code, 200)
+        print(f'\nTime spent on the call in seconds: {r.elapsed.total_seconds()}')
+
+        for fd in open_files:
+            fd.close()
+
+        # compare result
+        res = decoder.MultipartDecoder.from_response(r)
+        results = {}
+        images = {}
 
         for part in res.parts:
             # part is a BodyPart object with b'Content-Type', and b'Content-Disposition', the later
@@ -105,12 +163,12 @@ class TestSynchronousAPI(unittest.TestCase):
             for k, v in part.headers.items():
                 headers[k.decode(part.encoding)] = v.decode(part.encoding)
 
-            # if headers.get('Content-Type', None) == 'image/jpeg':
-            #     # images[part.headers['filename']] = part.content
-            #     c = headers.get('Content-Disposition')
-            #     image_name = c.split('name="')[1].split('"')[0]
-            #     image = Image.open(io.BytesIO(part.content))
-            #     images[image_name] = image
+            if headers.get('Content-Type', None) == 'image/jpeg':
+                # images[part.headers['filename']] = part.content
+                c = headers.get('Content-Disposition')
+                image_name = c.split('name="')[1].split('"')[0]
+                image = Image.open(io.BytesIO(part.content))
+                images[image_name] = image
             if headers.get('Content-Type', None) == 'application/json':
                 content_disposition = headers.get('Content-Disposition', '')
                 # the filename and name info is all in one string with no obvious format
