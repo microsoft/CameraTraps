@@ -1,3 +1,6 @@
 [submodule "demo/CameraTrapAssets"]
 	path = demo/CameraTrapAssets
 	url = https://ai4evisionexternal.visualstudio.com/gramener/_git/camera-trap-app-assets
+[submodule "detection/efficient/Yet-Another-EfficientDet-Pytorch"]
+	path = detection/efficient/Yet-Another-EfficientDet-Pytorch
+	url = https://github.com/zylo117/Yet-Another-EfficientDet-Pytorch.git
