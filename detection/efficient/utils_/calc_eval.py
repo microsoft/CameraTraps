@@ -8,6 +8,8 @@ change compound_coef
 """
 import io
 import sys
+from typing import Union, Text, Dict, List, Tuple
+
 import torch
 
 from pycocotools.coco import COCO
@@ -16,8 +18,8 @@ from pycocotools.cocoeval import COCOeval
 from efficientdet.utils import BBoxTransform, ClipBoxes
 from utils.utils import invert_affine, postprocess
 
-def evaluate_mAP(imgs, imgs_ids, framed_metas, regressions, \
-                 classifications, anchors, threshold=0.05, nms_threshold=0.5):
+def evaluate_mAP(imgs: List[float], imgs_ids: List[int], framed_metas: List[Tuple], regressions, \
+                 classifications: List[float], anchors: List[float], threshold=0.05, nms_threshold=0.5) -> List[Dict]:
     '''
     Inputs: Images, Image IDs, Framed Metas (Resizing stats), prredictions
     Output: results
@@ -64,7 +66,7 @@ def evaluate_mAP(imgs, imgs_ids, framed_metas, regressions, \
                 results.append(image_result)
     return results
 
-def _eval(coco_gt, image_ids, pred_json_path):
+def _eval(coco_gt: bytes, image_ids: List, pred_json_path: Text) -> Dict[str,float]:
     # load results in COCO evaluation tool
     coco_pred = coco_gt.loadRes(pred_json_path)
 
@@ -96,11 +98,9 @@ def _eval(coco_gt, image_ids, pred_json_path):
             category_results[catgry['name']][metric] = score
     return category_results
 
-def calc_mAP_fin(project_name='shape',
-                 set_name='val',
-                 evaluation_pred_file='datasets/shape/predictions/instances_bbox_results.json',
-                 val_gt = 'datasets/shape/annotations/instances_val.json',
-                 max_images = 100000):
+def calc_mAP_fin(evaluation_pred_file='datasets/shape/predictions/instances_bbox_results.json',
+                 val_gt='datasets/shape/annotations/instances_val.json',
+                 max_images=100000):
     coco_gt = COCO(val_gt)
     image_ids = coco_gt.getImgIds()[:max_images]
     return _eval(coco_gt, image_ids, evaluation_pred_file)

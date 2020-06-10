@@ -1,14 +1,22 @@
+"""
+Part of efficientdet for loss computation and
+partly used for visualization.
+Returns losses and images(for viz).
+"""
 import cv2
 import numpy as np
 import torch
 import torch.nn as nn
 from efficientdet.utils import BBoxTransform, ClipBoxes
 from utils.utils import postprocess
+from typing import Text, Union, List
 
-def calc_iou(a, b):
+
+def calc_iou(a: List, b: List):
+    """
     # a(anchor) [boxes, (y1, x1, y2, x2)]
     # b(gt, coco-style) [boxes, (x1, y1, x2, y2)]
-
+    """
     area = (b[:, 2] - b[:, 0]) * (b[:, 3] - b[:, 1])
     iw = torch.min(torch.unsqueeze(a[:, 3], dim=1), b[:, 2]) - torch.max(torch.unsqueeze(a[:, 1], 1), b[:, 0])
     ih = torch.min(torch.unsqueeze(a[:, 2], dim=1), b[:, 3]) - torch.max(torch.unsqueeze(a[:, 0], 1), b[:, 1])
@@ -23,6 +31,11 @@ def calc_iou(a, b):
 
 
 class FocalLoss(nn.Module):
+    """
+    For loss computation and
+    partly used for visualization.
+    Returns losses and images(for viz).
+    """
     def __init__(self):
         super(FocalLoss, self).__init__()
 
@@ -50,33 +63,33 @@ class FocalLoss(nn.Module):
             bbox_annotation = bbox_annotation[bbox_annotation[:, 4] != -1]
 
             classification = torch.clamp(classification, 1e-4, 1.0 - 1e-4)
-            
+
             if bbox_annotation.shape[0] == 0:
                 if torch.cuda.is_available():
-                    
+
                     alpha_factor = torch.ones_like(classification) * alpha
                     alpha_factor = alpha_factor.cuda()
                     alpha_factor = 1. - alpha_factor
                     focal_weight = classification
                     focal_weight = alpha_factor * torch.pow(focal_weight, gamma)
-                    
+
                     bce = -(torch.log(1.0 - classification))
-                    
+
                     cls_loss = focal_weight * bce
-                    
+
                     regression_losses.append(torch.tensor(0).to(dtype).cuda())
                     classification_losses.append(cls_loss.sum())
                 else:
-                    
+
                     alpha_factor = torch.ones_like(classification) * alpha
                     alpha_factor = 1. - alpha_factor
                     focal_weight = classification
                     focal_weight = alpha_factor * torch.pow(focal_weight, gamma)
-                    
+
                     bce = -(torch.log(1.0 - classification))
-                    
+
                     cls_loss = focal_weight * bce
-                    
+
                     regression_losses.append(torch.tensor(0).to(dtype))
                     classification_losses.append(cls_loss.sum())
 
@@ -172,7 +185,7 @@ class FocalLoss(nn.Module):
                               0.5, 0.3)
             imgs = imgs.permute(0, 2, 3, 1).cpu().numpy()
             imgs = ((imgs * [0.229, 0.224, 0.225] + [0.485, 0.456, 0.406]) * 255).astype(np.uint8)
-            # imgs = [cv2.cvtColor(img, cv2.COLOR_RGB2BGR) for img in imgs] 
+            # imgs = [cv2.cvtColor(img, cv2.COLOR_RGB2BGR) for img in imgs]
             # Uncomment the above line if you're storing the images using opencv.
 
             for i, _ in enumerate(imgs):

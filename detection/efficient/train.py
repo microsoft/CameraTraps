@@ -11,6 +11,7 @@ import traceback
 import yaml
 import numpy as np
 from tqdm.autonotebook import tqdm
+from typing import Union
 
 import torch
 from torch import nn
@@ -31,11 +32,11 @@ from utils.utils import replace_w_sync_bn, CustomDataParallel, get_last_weights,
 
 
 class Params:
-    '''
+    """
     Docstring:
     Load the project settings from projects/file.yml
     into self.params
-    '''
+    """
     def __init__(self, project_file):
         self.params = yaml.safe_load(open(project_file).read())
 
@@ -44,9 +45,9 @@ class Params:
 
 
 def get_args():
-    '''
+    """
     Argument parser
-    '''
+    """
     parser = argparse.ArgumentParser('Yet Another EfficientDet Pytorch:' \
                 'SOTA object detection network - Zylo117')
     parser.add_argument('-p', '--project', type=str, default='coco', \
@@ -91,7 +92,7 @@ def get_args():
     parser.add_argument('--eval_percent_epoch', type=float, default=10,\
                 help=' To determine, at what part of an epoch you want to evaluate.'\
                      'An entry of 10 would mean, for every 1/10th of a training epoch, we evaluate.')
-    parser.add_argument('--max_preds_toeval', type=int, default=20000,\
+    parser.add_argument('--max_preds_toeval', type=int, default=100000,\
                 help=' In the initial phases of training, model produces a lot of'\
                      'bounding boxes for a single image. So, limit the preds '\
                     ' to a certain number to avoid overburning CPU.')
@@ -99,19 +100,19 @@ def get_args():
                 help=' How much percentage of validation images do you'\
                      ' intend to validate in each epoch.')
     parser.add_argument('--num_visualize_images', type=int, default=10,\
-                help=' How much percentage of validation images do you'\
-                     ' intend to validate in each epoch.')
+                help=' Number of validation images you'\
+                     ' intend to visualize in each epoch.')
 
     args = parser.parse_args()
     return args
 
 
 class ModelWithLoss(nn.Module):
-    '''
+    """
     Input : EfficientDet model
     Along with forward function,
     model is mapped with the criterion() here.
-    '''
+    """
     def __init__(self, model, debug=False):
         super().__init__()
         self.criterion = FocalLoss()
@@ -145,322 +146,350 @@ class ModelWithLoss(nn.Module):
             cls_loss, reg_loss = self.criterion(classification, regression, anchors, annotations)
         return cls_loss, reg_loss, imgs_labelled
 
-def train(opt):
-    '''
-    Input: get_args()
-    Function: Train the model.
-    '''
-    params = Params(f'projects/{opt.project}.yml')
 
-    if params.num_gpus == 0:
-        os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+class Efficient_camtrap:
+    def __init__(self, opt):
+        """
+        Input: get_args()
+        Function: Train the model.
+        """
+        params = Params(f'projects/{opt.project}.yml')
 
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed(42)
-    else:
-        torch.manual_seed(42)
+        if params.num_gpus == 0:
+            os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
-    opt.saved_path = opt.saved_path + f'/{params.project_name}/'
-    opt.log_path = opt.log_path + f'/{params.project_name}/tensorboard/'
-    os.makedirs(opt.log_path, exist_ok=True)
-    os.makedirs(opt.saved_path, exist_ok=True)
-
-    # evaluation json file
-    pred_folder = f'{OPT.data_path}/{OPT.project}/predictions'
-    os.makedirs(pred_folder, exist_ok=True)
-    evaluation_pred_file = f'{pred_folder}/instances_bbox_results.json'
-
-    training_params = {'batch_size': opt.batch_size,
-                       'shuffle': True,
-                       'drop_last': True,
-                       'collate_fn': collater,
-                       'num_workers': opt.num_workers}
-
-    val_params = {'batch_size': opt.batch_size,
-                  'shuffle': True,
-                  'drop_last': True,
-                  'collate_fn': collater,
-                  'num_workers': opt.num_workers}
-
-    input_sizes = [512, 640, 768, 896, 1024, 1280, 1280, 1536]
-    training_set = CocoDataset(root_dir=os.path.join(opt.data_path, params.project_name),
-                               set=params.train_set,
-                               transform=torchvision.transforms.Compose([Normalizer(mean=params.mean, std=params.std),
-                                         Augmenter(),
-                                         Resizer(input_sizes[opt.compound_coef])]))
-    training_generator = DataLoader(training_set, **training_params)
-
-    val_set = CocoDataset(root_dir=os.path.join(opt.data_path, params.project_name),
-                          set=params.val_set,
-                          transform=torchvision.transforms.Compose([Normalizer(mean=params.mean, std=params.std),
-                          Resizer(input_sizes[opt.compound_coef])]))
-    val_generator = DataLoader(val_set, **val_params)
-
-    model = EfficientDetBackbone(num_classes=len(params.obj_list),
-                                 compound_coef=opt.compound_coef,
-                                 ratios=eval(params.anchors_ratios),
-                                 scales=eval(params.anchors_scales))
-
-    # load last weights
-    if opt.load_weights is not None:
-        if opt.load_weights.endswith('.pth'):
-            weights_path = opt.load_weights
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed(42)
         else:
-            weights_path = get_last_weights(opt.saved_path)
-        try:
-            last_step = int(os.path.basename(weights_path).split('_')[-1].split('.')[0])
-        except Exception as exception:
+            torch.manual_seed(42)
+
+        opt.saved_path = opt.saved_path + f'/{params.project_name}/'
+        opt.log_path = opt.log_path + f'/{params.project_name}/tensorboard/'
+        os.makedirs(opt.log_path, exist_ok=True)
+        os.makedirs(opt.saved_path, exist_ok=True)
+
+        # evaluation json file
+        self.pred_folder = f'{opt.data_path}/{opt.project}/predictions'
+        os.makedirs(self.pred_folder, exist_ok=True)
+        self.evaluation_pred_file = f'{self.pred_folder}/instances_bbox_results.json'
+
+        self.training_params = {'batch_size': opt.batch_size,
+                                'shuffle': True,
+                                'drop_last': True,
+                                'collate_fn': collater,
+                                'num_workers': opt.num_workers}
+
+        self.val_params = {'batch_size': opt.batch_size,
+                           'shuffle': True,
+                           'drop_last': True,
+                           'collate_fn': collater,
+                           'num_workers': opt.num_workers}
+
+        self.input_sizes = [512, 640, 768, 896, 1024, 1280, 1280, 1536]
+        self.training_set = CocoDataset(root_dir=os.path.join(opt.data_path, params.project_name),
+                                        set=params.train_set,
+                                        transform=torchvision.transforms.Compose([Normalizer(mean=params.mean, std=params.std),\
+                                                  Augmenter(),\
+                                                  Resizer(self.input_sizes[opt.compound_coef])]))
+
+        self.training_generator = DataLoader(self.training_set, **self.training_params)
+
+        self.val_set = CocoDataset(root_dir=os.path.join(opt.data_path, params.project_name),
+                                   set=params.val_set,
+                                   transform=torchvision.transforms.Compose([Normalizer(mean=params.mean, std=params.std),
+                                                                             Resizer(self.input_sizes[opt.compound_coef])]))
+        self.val_generator = DataLoader(self.val_set, **self.val_params)
+
+        model = EfficientDetBackbone(num_classes=len(params.obj_list),
+                                     compound_coef=opt.compound_coef,
+                                     ratios=eval(params.anchors_ratios),
+                                     scales=eval(params.anchors_scales))
+
+        # load last weights
+        if opt.load_weights is not None:
+            if opt.load_weights.endswith('.pth'):
+                weights_path = opt.load_weights
+            else:
+                weights_path = get_last_weights(opt.saved_path)
+            try:
+                last_step = int(os.path.basename(weights_path).split('_')[-1].split('.')[0])
+            except Exception as exception:
+                last_step = 0
+
+            try:
+                _ = model.load_state_dict(torch.load(weights_path), strict=False)
+            except RuntimeError as rerror:
+                print(f'[Warning] Ignoring {rerror}')
+                print('[Warning] Don\'t panic if you see this, '\
+                    'this might be because '\
+                    'you load a pretrained weights with different number of classes.'\
+                    ' The rest of the weights should be loaded already.')
+
+            print(f'[Info] loaded weights: {os.path.basename(weights_path)}, '\
+                    f'resuming checkpoint from step: {last_step}')
+        else:
             last_step = 0
+            print('[Info] initializing weights...')
+            init_weights(model)
 
+        # freeze backbone if train head_only
+        if opt.head_only:
+            def freeze_backbone(mdl):
+                classname = mdl.__class__.__name__
+                for ntl in ['EfficientNet', 'BiFPN']:
+                    if ntl in classname:
+                        for param in mdl.parameters():
+                            param.requires_grad = False
+
+            model.apply(freeze_backbone)
+            print('[Info] freezed backbone')
+
+        # https://github.com/vacancy/Synchronized-BatchNorm-PyTorch
+        # apply sync_bn when using multiple gpu and
+        # batch_size per gpu is lower than 4,
+        # useful when gpu memory is limited.
+        # because when bn is disable, the training will be very unstable or slow to converge,
+        # apply sync_bn can solve it,
+        # by packing all mini-batch across all gpus as one batch and normalize,
+        # then send it back to all gpus.
+        # but it would also slow down the training by a little bit.
+        if params.num_gpus > 1 and opt.batch_size // params.num_gpus < 4:
+            model.apply(replace_w_sync_bn)
+            use_sync_bn = True
+        else:
+            use_sync_bn = False
+
+        self.writer = SummaryWriter(opt.log_path + f'/{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}/')
+
+        # warp the model with loss function, to reduce the memory usage on gpu0 and speedup
+        model = ModelWithLoss(model, debug=opt.debug)
+
+        if params.num_gpus > 0:
+            model = model.cuda()
+            if params.num_gpus > 1:
+                model = CustomDataParallel(model, params.num_gpus)
+                if use_sync_bn:
+                    patch_replication_callback(model)
+
+        if opt.optim == 'adamw':
+            self.optimizer = torch.optim.AdamW(model.parameters(), opt.lr)
+        else:
+            self.optimizer = torch.optim.SGD(model.parameters(), \
+                                             opt.lr, momentum=0.9, nesterov=True)
+
+        self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, patience=3, verbose=True)
+
+        self.epoch = 0
+        self.best_loss = 1e5
+        self.best_epoch = 0
+        self.step = max(0, last_step)
+
+        self.num_iter_per_epoch = len(self.training_generator)
+        self.num_val_iter_per_epoch = len(self.val_generator)
+        # Limit the no.of preds to #images in val.
+        # Here, I averaged the #obj to 5 for computational efficacy
+        if opt.max_preds_toeval > 0:
+            opt.max_preds_toeval = len(self.val_generator)*opt.batch_size* 5
+
+        self.opt = opt
+        self.params = params
+        self.model = model
+
+    def train(self):
+        """
+        Training takes place here.
+        """
+        opt = self.opt
+        params = self.params
+        self.model.train()
         try:
-            _ = model.load_state_dict(torch.load(weights_path), strict=False)
-        except RuntimeError as rerror:
-            print(f'[Warning] Ignoring {rerror}')
-            print('[Warning] Don\'t panic if you see this, '\
-                  'this might be because you load a pretrained weights with different number of classes.'\
-                  ' The rest of the weights should be loaded already.')
-
-        print(f'[Info] loaded weights: {os.path.basename(weights_path)}, resuming checkpoint from step: {last_step}')
-    else:
-        last_step = 0
-        print('[Info] initializing weights...')
-        init_weights(model)
-
-    # freeze backbone if train head_only
-    if opt.head_only:
-        def freeze_backbone(mdl):
-            classname = mdl.__class__.__name__
-            for ntl in ['EfficientNet', 'BiFPN']:
-                if ntl in classname:
-                    for param in mdl.parameters():
-                        param.requires_grad = False
-
-        model.apply(freeze_backbone)
-        print('[Info] freezed backbone')
-
-    # https://github.com/vacancy/Synchronized-BatchNorm-PyTorch
-    # apply sync_bn when using multiple gpu and batch_size per gpu is lower than 4
-    #  useful when gpu memory is limited.
-    # because when bn is disable, the training will be very unstable or slow to converge,
-    # apply sync_bn can solve it,
-    # by packing all mini-batch across all gpus as one batch and normalize, then send it back to all gpus.
-    # but it would also slow down the training by a little bit.
-    if params.num_gpus > 1 and opt.batch_size // params.num_gpus < 4:
-        model.apply(replace_w_sync_bn)
-        use_sync_bn = True
-    else:
-        use_sync_bn = False
-
-    writer = SummaryWriter(opt.log_path + f'/{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}/')
-
-    # warp the model with loss function, to reduce the memory usage on gpu0 and speedup
-    model = ModelWithLoss(model, debug=opt.debug)
-
-    if params.num_gpus > 0:
-        model = model.cuda()
-        if params.num_gpus > 1:
-            model = CustomDataParallel(model, params.num_gpus)
-            if use_sync_bn:
-                patch_replication_callback(model)
-
-    if opt.optim == 'adamw':
-        optimizer = torch.optim.AdamW(model.parameters(), opt.lr)
-    else:
-        optimizer = torch.optim.SGD(model.parameters(), opt.lr, momentum=0.9, nesterov=True)
-
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=3, verbose=True)
-
-    epoch = 0
-    best_loss = 1e5
-    best_epoch = 0
-    step = max(0, last_step)
-    model.train()
-
-    num_iter_per_epoch = len(training_generator)
-    num_val_iter_per_epoch = len(val_generator)
-    # Limit the no.of preds to #images in val. 
-    # Here, I averaged the #obj to 5 for computational efficacy
-    if opt.max_preds_toeval > 0: 
-        opt.max_preds_toeval = len(val_generator)*opt.batch_size* 5 
-
-    try:
-        for epoch in range(opt.num_epochs):
-            last_epoch = step // num_iter_per_epoch
-            if epoch < last_epoch:
-                continue
-
-            epoch_loss = []
-            progress_bar = tqdm(training_generator)
-            for iternum, data in enumerate(progress_bar):
-                if iternum < step - last_epoch * num_iter_per_epoch:
-                    progress_bar.update()
+            for epoch in range(opt.num_epochs):
+                last_epoch = self.step // self.num_iter_per_epoch
+                if epoch < last_epoch:
                     continue
-                try:
-                    imgs = data['img']
-                    annot = data['annot']
-                    if params.num_gpus == 1:
-                        # if only one gpu, just send it to cuda:0
-                        # elif multiple gpus, send it to multiple gpus in CustomDataParallel, not here
-                        imgs = imgs.cuda()
-                        annot = annot.cuda()
 
-                    optimizer.zero_grad()
-                    if iternum%int(num_iter_per_epoch*(opt.eval_percent_epoch/100)) != 0:
-                        model.debug = False
-                        cls_loss, reg_loss, _ = model(imgs, annot, obj_list=params.obj_list)
-                    else:
-                        model.debug = True
-                        cls_loss, reg_loss, imgs_labelled = model(imgs, annot, obj_list=params.obj_list)
-
-                    cls_loss = cls_loss.mean()
-                    reg_loss = reg_loss.mean()
-
-                    loss = cls_loss + reg_loss
-                    if loss == 0 or not torch.isfinite(loss):
+                epoch_loss = []
+                progress_bar = tqdm(self.training_generator)
+                for iternum, data in enumerate(progress_bar):
+                    if iternum < self.step - last_epoch * self.num_iter_per_epoch:
+                        progress_bar.update()
                         continue
+                    try:
+                        imgs = data['img']
+                        annot = data['annot']
+                        if params.num_gpus == 1:
+                            # if only one gpu, just send it to cuda:0
+                            # elif multiple gpus, send it to multiple gpus in CustomDataParallel, not here
+                            imgs = imgs.cuda()
+                            annot = annot.cuda()
 
-                    loss.backward()
-                    # torch.nn.utils.clip_grad_norm_(model.parameters(), 0.1)
-                    optimizer.step()
+                        self.optimizer.zero_grad()
+                        if iternum%int(self.num_iter_per_epoch*(opt.eval_percent_epoch/100)) != 0:
+                            self.model.debug = False
+                            cls_loss, reg_loss, _ = self.model(imgs, annot, obj_list=params.obj_list)
+                        else:
+                            self.model.debug = True
+                            cls_loss, reg_loss, imgs_labelled = self.model(imgs, annot, obj_list=params.obj_list)
 
-                    epoch_loss.append(float(loss))
+                        cls_loss = cls_loss.mean()
+                        reg_loss = reg_loss.mean()
 
-                    progress_bar.set_description(
-                        'Step: {}. Epoch: {}/{}. Iteration: {}/{}. Cls loss: {:.5f}. Reg loss: {:.5f}. Total loss: {:.5f}'.format(
-                            step, epoch, opt.num_epochs, iternum + 1, num_iter_per_epoch, cls_loss.item(),
-                            reg_loss.item(), loss.item()))
-                    writer.add_scalars('Loss', {'train': loss}, step)
-                    writer.add_scalars('Regression_loss', {'train': reg_loss}, step)
-                    writer.add_scalars('Classfication_loss', {'train': cls_loss}, step)
-
-                    if iternum%int(num_iter_per_epoch*(opt.eval_percent_epoch/100)) == 0 and step > 0:
-                        # create grid of images
-                        imgs_labelled = np.asarray(imgs_labelled)
-                        imgs_labelled = torch.from_numpy(imgs_labelled)   # (N, H, W, C)
-                        imgs_labelled.transpose_(1, 3) # (N, C, H, W)
-                        imgs_labelled.transpose_(2, 3)
-                        img_grid = torchvision.utils.make_grid(imgs_labelled)
-                        # write to tensorboard
-                        writer.add_image('Training_images', img_grid, global_step=step)
-#########################################################start EVAL#####################################################
-                        model.eval()
-                        model.debug = False # Don't print images in tensorboard now.
-                        
-                        # remove json
-                        if os.path.exists(evaluation_pred_file):
-                            os.remove(evaluation_pred_file)
-
-                        loss_regression_ls = []
-                        loss_classification_ls = []
-                        model.evalresults = [] # Empty the results for next evaluation.
-                        imgs_to_viz = []
-                        num_validation_steps = int(num_val_iter_per_epoch*(opt.eval_sampling_percent/100))
-                        for valiternum, valdata in enumerate(val_generator):
-                            with torch.no_grad():
-                                imgs = valdata['img']
-                                annot = valdata['annot']
-                                resizing_imgs_scales = valdata['scale']
-                                new_ws = valdata['new_w'] 
-                                new_hs = valdata['new_h'] 
-                                imgs_ids = valdata['img_id']
-
-                                if params.num_gpus >= 1:
-                                    imgs = imgs.cuda()
-                                    annot = annot.cuda()
-
-                                if valiternum%(num_validation_steps//(opt.num_visualize_images//opt.batch_size)) != 0:
-                                    model.debug = False
-                                    cls_loss, reg_loss, _ = model(imgs, annot, obj_list=params.obj_list,
-                                                                resizing_imgs_scales=resizing_imgs_scales,
-                                                                new_ws=new_ws, new_hs=new_hs, imgs_ids=imgs_ids)
-                                else:
-                                    model.debug = True
-                                    cls_loss, reg_loss, val_imgs_labelled = model(imgs, annot, obj_list=params.obj_list,
-                                                                            resizing_imgs_scales=resizing_imgs_scales,
-                                                                            new_ws=new_ws, new_hs=new_hs, imgs_ids=imgs_ids)
-                                    
-                                    imgs_to_viz += list(val_imgs_labelled)
-
-                                loss_classification_ls.append(cls_loss.item())
-                                loss_regression_ls.append(reg_loss.item())
-
-                            if valiternum > (num_validation_steps):
-                                break
-
-                        cls_loss = np.mean(loss_classification_ls)
-                        reg_loss = np.mean(loss_regression_ls)
                         loss = cls_loss + reg_loss
+                        if loss == 0 or not torch.isfinite(loss):
+                            continue
 
-                        print(
-                            'Val. Epoch: {}/{}. Classification loss: {:1.5f}. Regression loss: {:1.5f}. Total loss: {:1.5f}'.format(
-                                epoch, opt.num_epochs, cls_loss, reg_loss, loss))
-                        writer.add_scalars('Loss', {'val': loss}, step)
-                        writer.add_scalars('Regression_loss', {'val': reg_loss}, step)
-                        writer.add_scalars('Classfication_loss', {'val': cls_loss}, step)
-                        # create grid of images
-                        val_imgs_labelled = np.asarray(imgs_to_viz)
-                        val_imgs_labelled = torch.from_numpy(val_imgs_labelled)   # (N, H, W, C)
-                        val_imgs_labelled.transpose_(1, 3) # (N, C, H, W)
-                        val_imgs_labelled.transpose_(2, 3)
-                        val_img_grid = torchvision.utils.make_grid(val_imgs_labelled,nrow=2)
-                        # write to tensorboard
-                        writer.add_image('Eval_Images', val_img_grid, \
-                                         global_step=(step))
+                        loss.backward()
+                        # torch.nn.utils.clip_grad_norm_(model.parameters(), 0.1)
+                        self.optimizer.step()
 
-                        if opt.max_preds_toeval > 0:
-                            json.dump(model.evalresults, open(evaluation_pred_file, 'w'), indent=4)
-                            try:
-                                val_results = calc_mAP_fin(params.project_name,\
-                                                        params.val_set, evaluation_pred_file, \
-                                                        val_gt=f'{OPT.data_path}/{OPT.project}/annotations/instances_{params.val_set}.json')
+                        epoch_loss.append(float(loss))
 
-                                for catgname in val_results:
-                                    metricname = 'Average Precision  (AP) @[ IoU = 0.50      | area =    all | maxDets = 100 ]'
-                                    evalscore = val_results[catgname][metricname]
-                                    writer.add_scalars(f'mAP@IoU=0.5 and area=all', {f'{catgname}': evalscore}, step)
-                            except Exception as exption:
-                                print("Unable to perform evaluation", exption)
+                        progress_bar.set_description(
+                            'Step: {}. Epoch: {}/{}. Iteration: {}/{}. Cls loss: {:.5f}. Reg loss: {:.5f}. Total loss: {:.5f}'.format(
+                                self.step, epoch, opt.num_epochs, iternum + 1, self.num_iter_per_epoch, cls_loss.item(),
+                                reg_loss.item(), loss.item()))
+                        self.writer.add_scalars('Loss', {'train': loss}, self.step)
+                        self.writer.add_scalars('Regression_loss', {'train': reg_loss}, self.step)
+                        self.writer.add_scalars('Classfication_loss', {'train': cls_loss}, self.step)
 
-                        if loss + opt.es_min_delta < best_loss:
-                            best_loss = loss
-                            best_epoch = epoch
+                        if iternum%int(self.num_iter_per_epoch*(opt.eval_percent_epoch/100)) == 0 and self.step > 0:
+                            # create grid of images
+                            imgs_labelled = np.asarray(imgs_labelled)
+                            imgs_labelled = torch.from_numpy(imgs_labelled)   # (N, H, W, C)
+                            imgs_labelled.transpose_(1, 3) # (N, C, H, W)
+                            imgs_labelled.transpose_(2, 3)
+                            img_grid = torchvision.utils.make_grid(imgs_labelled)
+                            # write to tensorboard
+                            self.writer.add_image('Training_images', img_grid, global_step=self.step)
 
-                            save_checkpoint(model, f'efficientdet-d{opt.compound_coef}_{epoch}_{step}.pth')
+                            #Evaluation
+                            self.model.eval()
+                            stopflag = self.validate(params, opt, epoch, self.step)
+                            self.model.train()
+                            #Evaluation done
+                            if stopflag:
+                                print('[Info] Stop training at epoch {}. The lowest loss achieved is {}'.format(epoch, self.best_loss))
+                                raise(KeyboardInterrupt)
 
-                        model.train()
+                        # log learning_rate
+                        current_lr = self.optimizer.param_groups[0]['lr']
+                        self.writer.add_scalar('learning_rate', current_lr, self.step)
 
-                        # Early stopping
-                        if epoch - best_epoch > opt.es_patience > 0:
-                            print('[Info] Stop training at epoch {}. The lowest loss achieved is {}'.format(epoch, best_loss))
-                            break
-#########################################################EVAL#####################################################
+                        self.step += 1
 
+                        if self.step % opt.save_interval == 0 and self.step > 0:
+                            save_checkpoint(self.model, f'efficientdet-d{opt.compound_coef}_{epoch}_{self.step}.pth')
+                            print('checkpoint...')
 
-                    # log learning_rate
-                    current_lr = optimizer.param_groups[0]['lr']
-                    writer.add_scalar('learning_rate', current_lr, step)
+                    except Exception as exception:
+                        print('[Error]', traceback.format_exc())
+                        print(exception)
+                        continue
+                self.scheduler.step(np.mean(epoch_loss))
+        except KeyboardInterrupt:
+            save_checkpoint(self.model, f'efficientdet-d{opt.compound_coef}_{epoch}_{self.step}.pth')
+            self.writer.close()
+        self.writer.close()
 
-                    step += 1
+    def validate(self, params: bytes, opt: bytes, epoch: int, step: int) -> bool:
+        """
+        Validation takes place here.
+        Returns True/False.
+        True - Stop training
+        """
+        self.model.debug = False # Don't print images in tensorboard now.
 
-                    if step % opt.save_interval == 0 and step > 0:
-                        save_checkpoint(model, f'efficientdet-d{opt.compound_coef}_{epoch}_{step}.pth')
-                        print('checkpoint...')
+        # remove json
+        if os.path.exists(self.evaluation_pred_file):
+            os.remove(self.evaluation_pred_file)
 
-                except Exception as exception:
-                    print('[Error]', traceback.format_exc())
-                    print(exception)
-                    continue
-            scheduler.step(np.mean(epoch_loss))
-    except KeyboardInterrupt:
-        save_checkpoint(model, f'efficientdet-d{opt.compound_coef}_{epoch}_{step}.pth')
-        writer.close()
-    writer.close()
+        loss_regression_ls = []
+        loss_classification_ls = []
+        self.model.evalresults = [] # Empty the results for next evaluation.
+        imgs_to_viz = []
+        num_validation_steps = int(self.num_val_iter_per_epoch*(opt.eval_sampling_percent/100))
+        for valiternum, valdata in enumerate(self.val_generator):
+            with torch.no_grad():
+                imgs = valdata['img']
+                annot = valdata['annot']
+                resizing_imgs_scales = valdata['scale']
+                new_ws = valdata['new_w']
+                new_hs = valdata['new_h']
+                imgs_ids = valdata['img_id']
 
+                if params.num_gpus >= 1:
+                    imgs = imgs.cuda()
+                    annot = annot.cuda()
 
-def save_checkpoint(model, name):
-    '''
+                if valiternum%(num_validation_steps//(opt.num_visualize_images//opt.batch_size)) != 0:
+                    self.model.debug = False
+                    cls_loss, reg_loss, _ = self.model(imgs, annot, obj_list=params.obj_list,
+                                                       resizing_imgs_scales=resizing_imgs_scales,
+                                                       new_ws=new_ws, new_hs=new_hs, imgs_ids=imgs_ids)
+                else:
+                    self.model.debug = True
+                    cls_loss, reg_loss, val_imgs_labelled = self.model(imgs, annot, obj_list=params.obj_list,
+                                                                       resizing_imgs_scales=resizing_imgs_scales,
+                                                                       new_ws=new_ws, new_hs=new_hs, imgs_ids=imgs_ids)
+
+                    imgs_to_viz += list(val_imgs_labelled)
+
+                loss_classification_ls.append(cls_loss.item())
+                loss_regression_ls.append(reg_loss.item())
+
+            if valiternum > (num_validation_steps):
+                break
+
+        cls_loss = np.mean(loss_classification_ls)
+        reg_loss = np.mean(loss_regression_ls)
+        loss = cls_loss + reg_loss
+
+        print(
+            'Val. Epoch: {}/{}. Classification loss: {:1.5f}. Regression loss: {:1.5f}. Total loss: {:1.5f}'.format(
+                epoch, opt.num_epochs, cls_loss, reg_loss, loss))
+        self.writer.add_scalars('Loss', {'val': loss}, step)
+        self.writer.add_scalars('Regression_loss', {'val': reg_loss}, step)
+        self.writer.add_scalars('Classfication_loss', {'val': cls_loss}, step)
+        # create grid of images
+        val_imgs_labelled = np.asarray(imgs_to_viz)
+        val_imgs_labelled = torch.from_numpy(val_imgs_labelled)   # (N, H, W, C)
+        val_imgs_labelled.transpose_(1, 3) # (N, C, H, W)
+        val_imgs_labelled.transpose_(2, 3)
+        val_img_grid = torchvision.utils.make_grid(val_imgs_labelled, nrow=2)
+        # write to tensorboard
+        self.writer.add_image('Eval_Images', val_img_grid, \
+                            global_step=(step))
+
+        if opt.max_preds_toeval > 0:
+            json.dump(self.model.evalresults, open(self.evaluation_pred_file, 'w'), indent=4)
+            try:
+                val_results = calc_mAP_fin(self.evaluation_pred_file, \
+                                        val_gt=f'{opt.data_path}/{opt.project}/annotations/instances_{params.val_set}.json')
+
+                for catgname in val_results:
+                    metricname = 'Average Precision  (AP) @[ IoU = 0.50      | area =    all | maxDets = 100 ]'
+                    evalscore = val_results[catgname][metricname]
+                    self.writer.add_scalars(f'mAP@IoU=0.5 and area=all', {f'{catgname}': evalscore}, step)
+            except Exception as exption:
+                print("Unable to perform evaluation", exption)
+
+        if loss + opt.es_min_delta < self.best_loss:
+            self.best_loss = loss
+            self.best_epoch = epoch
+
+            save_checkpoint(self.model, f'efficientdet-d{opt.compound_coef}_{epoch}_{step}.pth')
+
+        # Early stopping
+        if epoch - self.best_epoch > opt.es_patience > 0:
+            print('[Info] Stop training at epoch {}. The lowest loss achieved is {}'.format(epoch, self.best_loss))
+            return True
+        else:
+            return False
+
+def save_checkpoint(model:bytes, name:str):
+    """
     Save the model
-    '''
+    """
     if isinstance(model, CustomDataParallel):
         torch.save(model.module.model.state_dict(), os.path.join(OPT.saved_path, name))
     else:
@@ -469,4 +498,5 @@ def save_checkpoint(model, name):
 
 if __name__ == '__main__':
     OPT = get_args()
-    train(OPT)
+    efficient = Efficient_camtrap(OPT)
+    efficient.train()
