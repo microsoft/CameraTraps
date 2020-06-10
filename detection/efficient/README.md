@@ -59,6 +59,8 @@
     
     17th commit - Submodule updated to its latest commit (Submodule 13th commit).
 
+    18th commit - Project structure changed. Submodule only as dependency. Training scripts added to CameraTrap/.
+
 #### install requirements
     pip install numpy Cython
     pip install pycocotools opencv-python tqdm tensorboard tensorboardX pyyaml matplotlib webcolors
