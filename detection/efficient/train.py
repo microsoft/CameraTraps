@@ -11,7 +11,7 @@ import traceback
 import yaml
 import numpy as np
 from tqdm.autonotebook import tqdm
-from typing import Union
+
 
 import torch
 from torch import nn
@@ -37,7 +37,7 @@ class Params:
     Load the project settings from projects/file.yml
     into self.params
     """
-    def __init__(self, project_file):
+    def __init__(self, project_file: str):
         self.params = yaml.safe_load(open(project_file).read())
 
     def __getattr__(self, item):
@@ -113,7 +113,7 @@ class ModelWithLoss(nn.Module):
     Along with forward function,
     model is mapped with the criterion() here.
     """
-    def __init__(self, model, debug=False):
+    def __init__(self, model: bytes, debug=False):
         super().__init__()
         self.criterion = FocalLoss()
         self.model = model
@@ -148,7 +148,7 @@ class ModelWithLoss(nn.Module):
 
 
 class Efficient_camtrap:
-    def __init__(self, opt):
+    def __init__(self, opt: bytes):
         """
         Input: get_args()
         Function: Train the model.
