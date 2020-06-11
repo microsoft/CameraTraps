@@ -48,6 +48,8 @@ OR
 
 #### Commit histories
 
+    20th commit - `environment-efficient.yml` is cleaned.
+
     19th commit - Wrapped `train.py` code into a class. Made separate functions for train and validate. Added Python `typing` hints for functions. README updated with instructions.
 
     18th commit - Project structure changed. Submodule only as dependency. Training scripts added to CameraTrap/.
