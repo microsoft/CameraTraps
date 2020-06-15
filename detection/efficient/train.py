@@ -11,7 +11,7 @@ import traceback
 import yaml
 import numpy as np
 from tqdm.autonotebook import tqdm
-
+from typing import List
 
 import torch
 from torch import nn
@@ -353,12 +353,8 @@ class Efficient_camtrap:
                         self.writer.add_scalars('Classfication_loss', {'train': cls_loss}, self.step)
 
                         if iternum%int(self.num_iter_per_epoch*(opt.eval_percent_epoch/100)) == 0 and self.step > 0:
-                            # create grid of images
-                            imgs_labelled = np.asarray(imgs_labelled)
-                            imgs_labelled = torch.from_numpy(imgs_labelled)   # (N, H, W, C)
-                            imgs_labelled.transpose_(1, 3) # (N, C, H, W)
-                            imgs_labelled.transpose_(2, 3)
-                            img_grid = torchvision.utils.make_grid(imgs_labelled)
+                            # create grid of images for tensorboard
+                            img_grid = self.plot_images(imgs_labelled, nrow=2)
                             # write to tensorboard
                             self.writer.add_image('Training_images', img_grid, global_step=self.step)
 
@@ -390,6 +386,16 @@ class Efficient_camtrap:
             save_checkpoint(self.model, f'efficientdet-d{opt.compound_coef}_{epoch}_{self.step}.pth')
             self.writer.close()
         self.writer.close()
+
+    def plot_images(self,imgs_labelled : List[float], nrow=2):
+        # create grid of images
+        imgs_labelled = np.asarray(imgs_labelled)
+        imgs_labelled = torch.from_numpy(imgs_labelled)   # (N, H, W, C)
+        imgs_labelled.transpose_(1, 3) # (N, C, H, W)
+        imgs_labelled.transpose_(2, 3)
+        img_grid = torchvision.utils.make_grid(imgs_labelled, nrow = nrow)
+        # return to tensorboard
+        return img_grid
 
     def validate(self, params: bytes, opt: bytes, epoch: int, step: int) -> bool:
         """
@@ -450,12 +456,8 @@ class Efficient_camtrap:
         self.writer.add_scalars('Loss', {'val': loss}, step)
         self.writer.add_scalars('Regression_loss', {'val': reg_loss}, step)
         self.writer.add_scalars('Classfication_loss', {'val': cls_loss}, step)
-        # create grid of images
-        val_imgs_labelled = np.asarray(imgs_to_viz)
-        val_imgs_labelled = torch.from_numpy(val_imgs_labelled)   # (N, H, W, C)
-        val_imgs_labelled.transpose_(1, 3) # (N, C, H, W)
-        val_imgs_labelled.transpose_(2, 3)
-        val_img_grid = torchvision.utils.make_grid(val_imgs_labelled, nrow=2)
+        # create grid of images for tensorboard
+        val_img_grid = self.plot_images(imgs_to_viz, nrow=2)
         # write to tensorboard
         self.writer.add_image('Eval_Images', val_img_grid, \
                             global_step=(step))
