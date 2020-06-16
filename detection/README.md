@@ -2,7 +2,7 @@
 
 This folder contains scripts and configuration files for training and evaluating a detector for objects of classes `animal`, `person` and `vehicle`, and two scripts to use the model to perform inference on incoming images. 
 
-We use the TensorFlow Object Detection API ([TFODAPI](https://github.com/tensorflow/models/tree/master/research/object_detection)) for model training with TensorFlow 1.12.0.
+We use the TensorFlow Object Detection API ([TFODAPI](https://github.com/tensorflow/models/tree/master/research/object_detection)) for model training with TensorFlow 1.13.1.
 
 Bounding boxes predicted by the detector are in normalized coordinates, as `[ymin, xmin, ymax, xmax]`, with the origin in the upper-left of the image. This is different from 
 - the COCO Camera Trap format, which uses absolute coordinates in `[x, y, width_of_box, height_of_box]` (see [data_management](api/detector_batch_processing/README.md))
@@ -33,23 +33,22 @@ To get labels for training the MegaDetector, use the query `query_bbox`. Note th
 Running this query will take about 10+ minutes; this is a relatively small query so no need to increase the throughput of the database. The output is a JSON file containing a list, where each entry is the label for an image:
  
 ```json
- {
-  "bbox": [
-   {
-    "category": "person",
-    "bbox": [
-     0.3023,
-     0.487,
-     0.5894,
-     0.4792
-    ]
-   }
-  ],
-  "file": "Day/1/IMAG0773 (4).JPG",
-  "dataset": "dataset_name",
-  "location": "location_designation"
- }
-
+{
+ "bbox": [
+  {
+   "category": "person",
+   "bbox": [
+    0.3023,
+    0.487,
+    0.5894,
+    0.4792
+   ]
+  }
+ ],
+ "file": "Day/1/IMAG0773 (4).JPG",
+ "dataset": "dataset_name",
+ "location": "location_designation"
+}
 ```
 
 ### Assign each image a `download_id`
@@ -63,7 +62,6 @@ import uuid
 
 for i in entries:
     i['download_id'] = '{}+{}'.format(i['dataset'], uuid.uuid4())
-
 ```
 
 If you are preparing data to add to an existing, already downloaded collection, add a field `new_entry` to the entry.
@@ -71,24 +69,24 @@ If you are preparing data to add to an existing, already downloaded collection, 
 Save this version of the JSON list:
 
 ```json
- {
-  "bbox": [
-   {
-    "category": "person",
-    "bbox": [
-     0.3023,
-     0.487,
-     0.5894,
-     0.4792
-    ]
-   }
-  ],
-  "file": "Day/1/IMAG0773 (4).JPG",
-  "dataset": "dataset_name",
-  "location": "location_designation",
-  "download_id": "dataset_name+8896d576-3f14-11ea-b3bb-9801a5a664ab",
-  "new_entry": true
- }
+{
+ "bbox": [
+  {
+   "category": "person",
+   "bbox": [
+    0.3023,
+    0.487,
+    0.5894,
+    0.4792
+   ]
+  }
+ ],
+ "file": "Day/1/IMAG0773 (4).JPG",
+ "dataset": "dataset_name",
+ "location": "location_designation",
+ "download_id": "dataset_name+8896d576-3f14-11ea-b3bb-9801a5a664ab",
+ "new_entry": true
+}
 ```
 
 ### Download the images
@@ -109,7 +107,6 @@ Use `data_management/tfrecords/make_tf_records_megadb.py`. The class mappings ar
 Deprecated: `data_management/tfrecords/make_tfrecords.py` takes in your CCT format json database, creates an intermediate json conforming to the format that the resulting tfrecords require, and then creates the tfrecords. Images are split by `location` according to `split_frac` that you specify in the `Configurations` section of the script.
 
 If you run into issues with corrupted .jpg files, you can use `database_tools/remove_corrupted_images_from_database.py` to create a copy of your database without the images that TensorFlow cannot read. You don't need this step; `make_tfrecords.py` will ignore any images it cannot read.
-
 
 
 ### Install TFODAPI
@@ -149,7 +146,8 @@ If you are having protobuf errors, install protocol buffers from binary as descr
 On a VM with TFODAPI set-up, run training in a tmux session (inside a Docker container or otherwise). 
 
 Example command to start training:
-```
+
+```bash
 python model_main.py \
 --pipeline_config_path=/experiment1/run1/pipeline.config \
 --model_dir=/experiment1/run1_out/ \
@@ -158,7 +156,6 @@ python model_main.py \
 
 You can sample more of the validation set (set `sample_1_of_n_eval_examples` to a smaller number); in that case, evaluate less often by changing `save_checkpoints_steps` in `model_main.py` (flags may not work - change the code directly).
 
-
 Alternatively, use Azure Machine Learning (AML) to run the experiment. Notebook showing how to use the AML Python SDK to run TFODAPI experiments: `detector_training/aml_mdv4.ipynb`.
 
 
@@ -166,7 +163,8 @@ Alternatively, use Azure Machine Learning (AML) to run the experiment. Notebook 
 Make sure that the desired port (port `6006` in this example) is open on the VM, and that you're in a tmux session.
 
 Example command:
-```
+
+```bash
 tensorboard --logdir run1:/experiment1/run1_out/,run2:/experiment1/run1_out_continued/ --port 6006 --window_title "experiment1 both runs"
 ```
 
@@ -175,7 +173,8 @@ tensorboard --logdir run1:/experiment1/run1_out/,run2:/experiment1/run1_out_cont
 Use the TFODAPI's `export_inference_graph.py` ([documentation](https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/exporting_models.md)) to export a model based on a checkpoint of your choice (e.g. best one according to validation set mAP@0.5IoU).
 
 Example call:
-```
+
+```bash
 python models/research/object_detection/export_inference_graph.py \
     --input_type=image_tensor \
     --pipeline_config_path=/experiment1/run1/pipeline.config \
@@ -191,7 +190,8 @@ python models/research/object_detection/export_inference_graph.py \
 Run TFODAPI's `inference/infer_detections.py` using the exported model, on tfrecords of the (test) set
 
 Example call:
-```
+
+```bash
 cd /lib/tf/models/research/object_detection/inference/
 
 TF_RECORD_ROOT=/ai4edevshare/tfrecords/megadetector_v3
