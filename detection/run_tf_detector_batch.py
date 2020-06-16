@@ -1,5 +1,4 @@
 """
-
 Module to run a TensorFlow animal detection model on lots of images, writing the results
 to a file in the same format produced by our batch API:
 
@@ -241,27 +240,24 @@ def write_results_to_file(results, output_file, relative_path_base=None):
 def main():
 
     parser = argparse.ArgumentParser(
-        description='Module to run a TF animal detection model on lots of images'
-    )
+        description='Module to run a TF animal detection model on lots of images')
     parser.add_argument(
         'detector_file',
-        help='Path to .pb TensorFlow detector model file'
-    )
+        help='Path to .pb TensorFlow detector model file')
     parser.add_argument(
         'image_file',
-        help='Can be a single image file, a json file containing a list of paths to images, or a directory'
-    )
+        help='Can be a single image file, a json file containing a list of paths to images, or a directory')
     parser.add_argument(
         'output_file',
         help='Output results file, should end with a .json extension')
     parser.add_argument(
         '--recursive',
         action='store_true',
-        help='Recurse into directories, only meaningful if --image_file points to a directory')
+        help='Recurse into directories, only meaningful if image_file points to a directory')
     parser.add_argument(
         '--output_relative_filenames',
         action='store_true',
-        help='Output relative file names, only meaningful if --image_file points to a directory')
+        help='Output relative file names, only meaningful if image_file points to a directory')
     parser.add_argument(
         '--threshold',
         type=float,

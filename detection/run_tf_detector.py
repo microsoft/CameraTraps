@@ -157,14 +157,13 @@ class TFDetector:
 
     @staticmethod
     def __convert_coords(np_array):
-        """ Two effects: convert the numpy floats to Python floats, and also change the coordinates from
+        """Two effects: convert the numpy floats to Python floats, and also change the coordinates from
         [y1, x1, y2, x2] to [x1, y1, width_box, height_box] (in relative coordinates still).
 
         Args:
             np_array: array of predicted bounding box coordinates from the TF detector
 
-        Returns: array of predicted bounding box coordinates as Python floats and in [x1, y1, width_box, height_box]
-
+        Returns: list of predicted bounding box coordinates as Python floats and in [x1, y1, width_box, height_box]
         """
         # change from [y1, x1, y2, x2] to [x1, y1, width_box, height_box]
         width_box = np_array[3] - np_array[1]
@@ -179,7 +178,7 @@ class TFDetector:
 
     @staticmethod
     def convert_to_tf_coords(array):
-        """ From [x1, y1, width_box, height_box] to [y1, x1, y2, x2]"""
+        """From [x1, y1, width_box, height_box] to [y1, x1, y2, x2]"""
         x2 = array[0] + array[2]
         y2 = array[1] + array[3]
         return [array[0], array[1], x2, y2]
@@ -192,7 +191,6 @@ class TFDetector:
             model_path: .pb file of the model.
 
         Returns: the loaded graph.
-
         """
         print('TFDetector: Loading graph...')
         detection_graph = tf.Graph()
@@ -227,15 +225,15 @@ class TFDetector:
 
         Args:
             image: the PIL Image object
-            image_id: a path to identify the image; will be in the `file` field of the output object
+            image_id: a path to identify the image; will be in the "file" field of the output object
             detection_threshold: confidence above which to include the detection proposal
 
         Returns:
-        A dict with the following fields, see https://github.com/microsoft/CameraTraps/tree/siyu/inference_refactor/api/batch_processing#batch-processing-api-output-format
-            - image_id (always present)
-            - max_detection_conf
-            - detections, which is a list of detection objects containing `category`, `conf` and `bbox`
-            - failure
+        A dict with the following fields, see the "images" key in https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing#batch-processing-api-output-format
+            - "file" (always present)
+            - "max_detection_conf"
+            - "detections", which is a list of detection objects containing keys "category", "conf" and "bbox"
+            - "failure"
         """
         result = {
             'file': image_id
@@ -274,14 +272,13 @@ class TFDetector:
 #%% Main function
 
 def load_and_run_detector(model_file, image_file_names, output_dir,
-                          render_confidence_threshold=TFDetector.DEFAULT_RENDERING_CONFIDENCE_THRESHOLD, 
+                          render_confidence_threshold=TFDetector.DEFAULT_RENDERING_CONFIDENCE_THRESHOLD,
                           crop_images=False):
-    
+    """Load and run detector on target images, and visualize the results."""
     if len(image_file_names) == 0:
         print('Warning: no files available')
         return
 
-    # load and run detector on target images, and visualize the results
     start_time = time.time()
     tf_detector = TFDetector(model_file)
     elapsed = time.time() - start_time
@@ -297,14 +294,22 @@ def load_and_run_detector(model_file, image_file_names, output_dir,
     # as necessary to avoid collisions.
     output_filename_collision_counts = {}
 
-    def input_file_to_detection_file(fn,crop_index=-1):        
+    def input_file_to_detection_file(fn, crop_index=-1):
         """
-        Append "_detctions" to fn, prepend the output folder.
-        
+        Append "_detections" to fn, prepend the output folder.
+
         Because we may be mapping many directories to one, we can have filename
         collisions.  Resolve by adding integer suffixes for duplicate filenames.
+
+        For example, if foo.jpg has 3 detections, then this function will get called
+        3 times to produce 3 unique filenames
+            foo_crop1_detection
+
+        Args
+            fn: str, filename
+            crop_index: int, the crop
         """
-        fn = os.path.basename(fn).lower()                
+        fn = os.path.basename(fn).lower()
         name, ext = os.path.splitext(fn)
         if crop_index >= 0:
             name += '_crop{:0>2d}'.format(crop_index)
@@ -315,22 +320,20 @@ def load_and_run_detector(model_file, image_file_names, output_dir,
             output_filename_collision_counts[fn] = n_collisions + 1
         else:
             output_filename_collision_counts[fn] = 0
-        fn = os.path.join(output_dir, fn)                
+        fn = os.path.join(output_dir, fn)
         return fn
-    
+
     for im_file in tqdm(image_file_names):
-        
+
         try:
-            
             start_time = time.time()
 
             image = viz_utils.load_image(im_file)
 
             elapsed = time.time() - start_time
             time_load.append(elapsed)
-            
+
         except Exception as e:
-            
             print('Image {} cannot be loaded. Exception: {}'.format(im_file, e))
             result = {
                 'file': im_file,
@@ -340,45 +343,42 @@ def load_and_run_detector(model_file, image_file_names, output_dir,
             continue
 
         try:
-            
             start_time = time.time()
 
             result = tf_detector.generate_detections_one_image(image, im_file)
             detection_results.append(result)
-          
+
             elapsed = time.time() - start_time
             time_infer.append(elapsed)
-            
+
         except Exception as e:
-            
             print('An error occurred while running the detector on image {}. Exception: {}'.format(im_file, e))
             continue
-        
+
         try:
-            
             if crop_images:
-                              
+
                 images_cropped = viz_utils.crop_image(result['detections'], image)
-        
-                for i_crop,cropped_image in enumerate(images_cropped):
-                    output_full_path = input_file_to_detection_file(im_file,i_crop)
-                    cropped_image.save(output_full_path)                    
-                  
+
+                for i_crop, cropped_image in enumerate(images_cropped):
+                    output_full_path = input_file_to_detection_file(im_file, i_crop)
+                    cropped_image.save(output_full_path)
+
             else:
-                
+
                 # image is modified in place
                 viz_utils.render_detection_bounding_boxes(result['detections'], image,
                                                           label_map=TFDetector.DEFAULT_DETECTOR_LABEL_MAP,
                                                           confidence_threshold=render_confidence_threshold)
                 output_full_path = input_file_to_detection_file(im_file)
                 image.save(output_full_path)
-                
+
         except Exception as e:
             print('Visualizing results on the image {} failed. Exception: {}'.format(im_file, e))
             continue
-           
+
     # ...for each image
-        
+
     ave_time_load = statistics.mean(time_load)
     ave_time_infer = statistics.mean(time_infer)
     if len(time_load) > 1 and len(time_infer) > 1:
@@ -397,44 +397,38 @@ def load_and_run_detector(model_file, image_file_names, output_dir,
 #%% Command-line driver
 
 def main():
-    
+
     parser = argparse.ArgumentParser(
-        description='Module to run a TF animal detection model on images'
-    )
+        description='Module to run a TF animal detection model on images')
     parser.add_argument(
         'detector_file',
-        help='Path to .pb TensorFlow detector model file'
-    )
+        help='Path to .pb TensorFlow detector model file')
     group = parser.add_mutually_exclusive_group(required=True)  # must specify either an image file or a directory
     group.add_argument(
         '--image_file',
         help='Single file to process, mutually exclusive with --image_dir')
     group.add_argument(
         '--image_dir',
-        help='Directory to search for images, with optional recursion by adding --recursive'
-    )
+        help='Directory to search for images, with optional recursion by adding --recursive')
     parser.add_argument(
         '--recursive',
         action='store_true',
-        help='Recurse into directories, only meaningful if using --image_dir'
-    )
+        help='Recurse into directories, only meaningful if using --image_dir')
     parser.add_argument(
         '--output_dir',
-        help='Directory for output images (defaults to same as input)'
-    )
+        help='Directory for output images (defaults to same as input)')
     parser.add_argument(
         '--threshold',
         type=float,
         default=TFDetector.DEFAULT_RENDERING_CONFIDENCE_THRESHOLD,
         help=('Confidence threshold between 0 and 1.0; only render boxes above this confidence'
-              ' (but only boxes above 0.1 confidence will be considered at all)')
-    )
+              ' (but only boxes above 0.1 confidence will be considered at all)'))
     parser.add_argument(
         '--crop',
-        default=False, 
+        default=False,
         action="store_true",
-        help='If set, produces separate output images for each crop, rather than adding bounding boxes to the original image'
-    )
+        help=('If set, produces separate output images for each crop, '
+              'rather than adding bounding boxes to the original image'))
     if len(sys.argv[1:]) == 0:
         parser.print_help()
         parser.exit()
@@ -459,29 +453,29 @@ def main():
         else:
             # but for a single image, args.image_dir is also None
             args.output_dir = os.path.dirname(args.image_file)
-    
+
     load_and_run_detector(model_file=args.detector_file,
                           image_file_names=image_file_names,
                           output_dir=args.output_dir,
                           render_confidence_threshold=args.threshold,
                           crop_images=args.crop)
 
+
 if __name__ == '__main__':
-    
     main()
 
 
 #%% Interactive driver
-    
+
 if False:
-    
+
     #%%
     model_file = r'c:\temp\models\md_v4.1.0.pb'
     image_file_names = ImagePathUtils.find_images(r'c:\temp\demo_images\ssverymini')
     output_dir = r'c:\temp\demo_images\ssverymini'
     render_confidence_threshold = 0.8
     crop_images=True
-    
+
     load_and_run_detector(model_file=model_file,
                           image_file_names=image_file_names,
                           output_dir=output_dir,
