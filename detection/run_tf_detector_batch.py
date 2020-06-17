@@ -61,7 +61,7 @@ print('tf.test.is_gpu_available:', tf.test.is_gpu_available())
 # %% Support functions for multiprocessing
 
 def process_images(im_files, tf_detector, confidence_threshold):
-    '''Runs the MegaDetector over a list of image files.
+    """Runs the MegaDetector over a list of image files.
 
     Args
     - im_files: list of str, paths to image files
@@ -71,7 +71,7 @@ def process_images(im_files, tf_detector, confidence_threshold):
     Returns
     - results: list of dict, each dict represents detections on one image
         see the 'images' key in https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing#batch-processing-api-output-format
-    '''
+    """
     if isinstance(tf_detector, str):
         start_time = time.time()
         tf_detector = TFDetector(tf_detector)
@@ -85,7 +85,7 @@ def process_images(im_files, tf_detector, confidence_threshold):
 
 
 def process_image(im_file, tf_detector, confidence_threshold):
-    '''Runs the MegaDetector over a single image file.
+    """Runs the MegaDetector over a single image file.
 
     Args
     - im_file: str, path to image file
@@ -95,7 +95,7 @@ def process_image(im_file, tf_detector, confidence_threshold):
     Returns:
     - result: dict representing detections on one image
         see the 'images' key in https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing#batch-processing-api-output-format
-    '''
+    """
     print('Processing image {}'.format(im_file))
     try:
         image = viz_utils.load_image(im_file)
@@ -122,12 +122,12 @@ def process_image(im_file, tf_detector, confidence_threshold):
 
 
 def chunks_by_number_of_chunks(ls, n):
-    '''Splits a list into n even chunks.
+    """Splits a list into n even chunks.
 
     Args
     - ls: list
     - n: int, # of chunks
-    '''
+    """
     for i in range(0, n):
         yield ls[i::n]
 
@@ -137,7 +137,7 @@ def chunks_by_number_of_chunks(ls, n):
 def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=None,
                                 confidence_threshold=0, checkpoint_frequency=-1,
                                 results=None, n_cores=0):
-    '''
+    """
     Args
     - model_file: str, path to .pb model file
     - image_file_names: list of str, paths to image files
@@ -149,7 +149,7 @@ def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=No
 
     Returns
     - results: list of dict, each dict represents detections on one image
-    '''
+    """
     if results is None:
         results = []
 
@@ -210,14 +210,14 @@ def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=No
 
 
 def write_results_to_file(results, output_file, relative_path_base=None):
-    '''Writes list of detection results to JSON output file. Format matches
+    """Writes list of detection results to JSON output file. Format matches
     https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing#batch-processing-api-output-format
 
     Args
     - results: list of dict, each dict represents detections on one image
     - output_file: str, path to JSON output file, should end in '.json'
     - relative_path_base: str, path to a directory as the base for relative paths
-    '''
+    """
     if relative_path_base is not None:
         results_relative = []
         for r in results:
