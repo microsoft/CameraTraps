@@ -37,7 +37,7 @@ https://github.com/tensorflow/models/blob/master/research/object_detection/infer
 """
 
 
-# %% Constants, imports, environment
+#%% Constants, imports, environment
 
 import argparse
 import glob
@@ -69,7 +69,7 @@ print('TensorFlow version:', tf.__version__)
 print('Is GPU available? tf.test.is_gpu_available:', tf.test.is_gpu_available())
 
 
-# %% Classes
+#%% Classes
 
 class ImagePathUtils:
     """A collection of utility functions supporting this stand-alone script"""
@@ -271,7 +271,7 @@ class TFDetector:
         return result
 
 
-# %% Main function
+#%% Main function
 
 def load_and_run_detector(model_file, image_file_names, output_dir,
                           render_confidence_threshold=TFDetector.DEFAULT_RENDERING_CONFIDENCE_THRESHOLD,
@@ -409,7 +409,7 @@ def load_and_run_detector(model_file, image_file_names, output_dir,
                                                       std_dev_time_infer))
 
 
-# %% Command-line driver
+#%% Command-line driver
 
 def main():
 
@@ -480,11 +480,11 @@ if __name__ == '__main__':
     main()
 
 
-# %% Interactive driver
+#%% Interactive driver
 
 if False:
 
-    # %%
+    #%%
     model_file = r'c:\temp\models\md_v4.1.0.pb'
     image_file_names = ImagePathUtils.find_images(r'c:\temp\demo_images\ssverymini')
     output_dir = r'c:\temp\demo_images\ssverymini'
