@@ -2,11 +2,11 @@
 
 This folder contains scripts and configuration files for training and evaluating a detector for objects of classes `animal`, `person` and `vehicle`, and two scripts to use the model to perform inference on incoming images. 
 
-We use the TensorFlow Object Detection API ([TFODAPI](https://github.com/tensorflow/models/tree/master/research/object_detection)) for model training with TensorFlow 1.13.1.
+We use the TensorFlow Object Detection API ([TFODAPI](https://github.com/tensorflow/models/tree/master/research/object_detection)) for model training with TensorFlow 1.12.0. See the Dockerfile used for training [here](https://github.com/microsoft/ai4eutils/blob/master/TF_OD_API/Dockerfile_TFODAPI).
 
 Bounding boxes predicted by the detector are in normalized coordinates, as `[ymin, xmin, ymax, xmax]`, with the origin in the upper-left of the image. This is different from 
-- the COCO Camera Trap format, which uses absolute coordinates in `[x, y, width_of_box, height_of_box]` (see [data_management](api/detector_batch_processing/README.md))
-- the batch processing API's output and entries in the MegaDB (relative coordinates in `[x, y, width_of_box, height_of_box]`).
+- the COCO Camera Trap format, which uses absolute coordinates in `[xmin, ymin, width_of_box, height_of_box]` (see [data_management](../data_management/README.md))
+- the batch processing API's output and entries in the MegaDB, which use normalized coordinates in `[xmin, ymin, width_of_box, height_of_box]` (see [batch_processing](../api/batch_processing#detector-outputs))
 
 
 ## Content
