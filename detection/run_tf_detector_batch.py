@@ -1,4 +1,4 @@
-"""
+r"""
 Module to run a TensorFlow animal detection model on lots of images, writing the results
 to a file in the same format produced by our batch API:
 
@@ -27,7 +27,7 @@ Sample invocation:
 python run_tf_detector_batch.py "d:\temp\models\md_v4.1.0.pb" "d:\temp\test_images" "d:\temp\out.json" --recursive
 """
 
-# %% Constants, imports, environment
+#%% Constants, imports, environment
 
 import argparse
 import json
@@ -58,7 +58,7 @@ print('TensorFlow version:', tf.__version__)
 print('tf.test.is_gpu_available:', tf.test.is_gpu_available())
 
 
-# %% Support functions for multiprocessing
+#%% Support functions for multiprocessing
 
 def process_images(im_files, tf_detector, confidence_threshold):
     """Runs the MegaDetector over a list of image files.
@@ -132,7 +132,7 @@ def chunks_by_number_of_chunks(ls, n):
         yield ls[i::n]
 
 
-# %% Main function
+#%% Main function
 
 def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=None,
                                 confidence_threshold=0, checkpoint_frequency=-1,
@@ -239,7 +239,7 @@ def write_results_to_file(results, output_file, relative_path_base=None):
     print('Output file saved at {}'.format(output_file))
 
 
-# %% Command-line driver
+#%% Command-line driver
 
 def main():
     parser = argparse.ArgumentParser(
