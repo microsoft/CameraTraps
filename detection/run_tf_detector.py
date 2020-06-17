@@ -37,7 +37,7 @@ https://github.com/tensorflow/models/blob/master/research/object_detection/infer
 """
 
 
-#%% Constants, imports, environment
+# %% Constants, imports, environment
 
 import argparse
 import glob
@@ -69,7 +69,7 @@ print('TensorFlow version:', tf.__version__)
 print('Is GPU available? tf.test.is_gpu_available:', tf.test.is_gpu_available())
 
 
-#%% Classes
+# %% Classes
 
 class ImagePathUtils:
     """A collection of utility functions supporting this stand-alone script"""
@@ -141,8 +141,8 @@ class TFDetector:
     NUM_DETECTOR_CATEGORIES = 4  # animal, person, group, vehicle - for color assignment
 
     def __init__(self, model_path):
-        """Loads the model at model_path and start a tf.Session with this graph. The necessary
-        input and output tensor handles are obtained also."""
+        """Loads model from model_path and starts a tf.Session with this graph. Obtains
+        input and output tensor handles."""
         detection_graph = TFDetector.__load_model(model_path)
         self.tf_session = tf.Session(graph=detection_graph)
 
@@ -156,20 +156,22 @@ class TFDetector:
         return truncate_float(float(d), precision=precision)
 
     @staticmethod
-    def __convert_coords(np_array):
-        """Two effects: convert the numpy floats to Python floats, and also change the coordinates from
-        [y1, x1, y2, x2] to [x1, y1, width_box, height_box] (in relative coordinates still).
+    def __convert_coords(tf_coords):
+        """Converts coordinates from the model's output format [y1, x1, y2, x2] to the
+        format used by our API and MegaDB: [x1, y1, width, height]. All coordinates
+        (including model outputs) are normalized in the range [0, 1].
 
         Args:
-            np_array: array of predicted bounding box coordinates from the TF detector
+            tf_coords: np.array of predicted bounding box coordinates from the TF detector,
+                has format [y1, x1, y2, x2]
 
-        Returns: list of predicted bounding box coordinates as Python floats and in [x1, y1, width_box, height_box]
+        Returns: list of Python float, predicted bounding box coordinates [x1, y1, width, height]
         """
-        # change from [y1, x1, y2, x2] to [x1, y1, width_box, height_box]
-        width_box = np_array[3] - np_array[1]
-        height_box = np_array[2] - np_array[0]
+        # change from [y1, x1, y2, x2] to [x1, y1, width, height]
+        width = tf_coords[3] - tf_coords[1]
+        height = tf_coords[2] - tf_coords[0]
 
-        new = [np_array[1], np_array[0], width_box, height_box]  # cannot be a numpy array; needs to be a list
+        new = [tf_coords[1], tf_coords[0], width, height]  # must be a list instead of np.array
 
         # convert numpy floats to Python floats
         for i, d in enumerate(new):
@@ -178,7 +180,7 @@ class TFDetector:
 
     @staticmethod
     def convert_to_tf_coords(array):
-        """From [x1, y1, width_box, height_box] to [y1, x1, y2, x2]"""
+        """From [x1, y1, width, height] to [y1, x1, y2, x2]"""
         x2 = array[0] + array[2]
         y2 = array[1] + array[3]
         return [array[0], array[1], x2, y2]
@@ -229,11 +231,11 @@ class TFDetector:
             detection_threshold: confidence above which to include the detection proposal
 
         Returns:
-        A dict with the following fields, see the "images" key in https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing#batch-processing-api-output-format
-            - "file" (always present)
-            - "max_detection_conf"
-            - "detections", which is a list of detection objects containing keys "category", "conf" and "bbox"
-            - "failure"
+        A dict with the following fields, see the 'images' key in https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing#batch-processing-api-output-format
+            - 'file' (always present)
+            - 'max_detection_conf'
+            - 'detections', which is a list of detection objects containing keys 'category', 'conf' and 'bbox'
+            - 'failure'
         """
         result = {
             'file': image_id
@@ -269,7 +271,7 @@ class TFDetector:
         return result
 
 
-#%% Main function
+# %% Main function
 
 def load_and_run_detector(model_file, image_file_names, output_dir,
                           render_confidence_threshold=TFDetector.DEFAULT_RENDERING_CONFIDENCE_THRESHOLD,
@@ -295,19 +297,32 @@ def load_and_run_detector(model_file, image_file_names, output_dir,
     output_filename_collision_counts = {}
 
     def input_file_to_detection_file(fn, crop_index=-1):
-        """
-        Append "_detections" to fn, prepend the output folder.
+        """Creates unique file names for output files.
 
-        Because we may be mapping many directories to one, we can have filename
-        collisions.  Resolve by adding integer suffixes for duplicate filenames.
+        This function does 3 things:
+        1) If the --crop flag is used, then each input image may produce several output
+            crops. For example, if foo.jpg has 3 detections, then this function should
+            get called 3 times, with crop_index taking on 0, 1, then 2. Each time, this
+            function appends crop_index to the filename, resulting in
+                foo_crop00_detections.jpg
+                foo_crop01_detections.jpg
+                foo_crop02_detections.jpg
 
-        For example, if foo.jpg has 3 detections, then this function will get called
-        3 times to produce 3 unique filenames
-            foo_crop1_detection
+        2) If the --recursive flag is used, then the same file (base)name may appear
+            multiple times. However, we output into a single flat folder. To avoid
+            filename collisions, we prepend an integer prefix to duplicate filenames:
+                foo_crop00_detections.jpg
+                0000_foo_crop00_detections.jpg
+                0001_foo_crop00_detections.jpg
 
-        Args
+        3) Prepends the output directory:
+                out_dir/foo_crop00_detections.jpg
+
+        Args:
             fn: str, filename
-            crop_index: int, the crop
+            crop_index: int, crop number
+
+        Returns: output file path
         """
         fn = os.path.basename(fn).lower()
         name, ext = os.path.splitext(fn)
@@ -317,7 +332,7 @@ def load_and_run_detector(model_file, image_file_names, output_dir,
         if fn in output_filename_collision_counts:
             n_collisions = output_filename_collision_counts[fn]
             fn = '{:0>4d}'.format(n_collisions) + '_' + fn
-            output_filename_collision_counts[fn] = n_collisions + 1
+            output_filename_collision_counts[fn] += 1
         else:
             output_filename_collision_counts[fn] = 0
         fn = os.path.join(output_dir, fn)
@@ -394,7 +409,7 @@ def load_and_run_detector(model_file, image_file_names, output_dir,
                                                       std_dev_time_infer))
 
 
-#%% Command-line driver
+# %% Command-line driver
 
 def main():
 
@@ -465,20 +480,19 @@ if __name__ == '__main__':
     main()
 
 
-#%% Interactive driver
+# %% Interactive driver
 
 if False:
 
-    #%%
+    # %%
     model_file = r'c:\temp\models\md_v4.1.0.pb'
     image_file_names = ImagePathUtils.find_images(r'c:\temp\demo_images\ssverymini')
     output_dir = r'c:\temp\demo_images\ssverymini'
     render_confidence_threshold = 0.8
-    crop_images=True
+    crop_images = True
 
     load_and_run_detector(model_file=model_file,
                           image_file_names=image_file_names,
                           output_dir=output_dir,
                           render_confidence_threshold=render_confidence_threshold,
                           crop_images=crop_images)
-    
