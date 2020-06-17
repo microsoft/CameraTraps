@@ -67,17 +67,17 @@ First MegaDetector release!
 
 ## Using the models
 
-We provide three ways to apply this model to new images - see below. For the two scripts, we describe how you can get set up if you have Python 3 and pip installed on a Linux computer or if you are on Windows and are starting from scratch. If your computer is also used for other Python projects, we recommend you set up the environment as described in the [Installation](https://github.com/microsoft/CameraTraps#installation) section of our main readme, and use conda to set up a virtual environment in which to run scripts from this repo. This reduces potential version conflict headaches with your other projects. The environment file you should use to run the two scripts below is `environment-detector.yml`. You will still need to add the required repos to `PYTHONPATH`, but don't have to worry about installing Python, pip or any packages yourself. If you do not have a GPU on your computer, change `tensorflow-gpu` to `tensorflow` in `environment-detector.yml`.
+We provide three ways to apply this model to new images - see below. For the two scripts, we describe how you can get set up if you have Python 3 and pip installed on a Linux computer or if you are on Windows and are starting from scratch. If your computer is also used for other Python projects, we recommend you set up the environment as described in the [Installation](https://github.com/microsoft/CameraTraps#installation) section of our main README, and use conda to set up a virtual environment in which to run scripts from this repo. This reduces potential version conflict headaches with your other projects. The environment file you should use to run the two scripts below is `environment-detector.yml`. You will still need to add the required repos to `PYTHONPATH`, but don't have to worry about installing Python, pip or any packages yourself. If you do not have a GPU on your computer, change `tensorflow-gpu` to `tensorflow` in `environment-detector.yml`.
 
 ### 0. prerequisites
 
 When we describe how to run our two inference scripts below, we assume the following:
 
 1. You have Python 3 installed.  We recommend installing [Anaconda](https://www.anaconda.com/products/individual), which is Python plus a zillion useful packages.
-2. You have checked out this git repo, and the [AI for Earth Utilities](http://github.com/microsoft/ai4eutils) repo.  If you're not familiar with git, we recommend installing [Git for Windows](https://git-scm.com/download/win).  Specific instructions for checking out the repo will be rolled into the next step.
-3. You have put the base folder of both repos on your Python path.  You would do this by finding the directory to which you cloned each repo, and adding that directory to your PYTHONPATH environment variable.  Here's a [good page](https://www.computerhope.com/issues/ch000549.htm) about editing environment variables in Windows.  You will need administrative access to your PC to set an environment variable.
+2. You have checked out this git repo, and the [AI for Earth Utilities](http://github.com/microsoft/ai4eutils) repo.  If you're not familiar with git and are on a Windows machine, we recommend installing [Git for Windows](https://git-scm.com/download/win).  Specific instructions for checking out the repo will be rolled into the next step.
+3. You have added both directories where you cloned the two repos to your PYTHONPATH environment variable.  Here's a [good page](https://www.computerhope.com/issues/ch000549.htm) about editing environment variables in Windows.  You will need administrative access to your PC to set an environment variable.
 
-Here are instructions for steps 2 and 3 that assume you *don't* have administrative access to your PC (if you set the environment variable as per above, you can skip the "set PYTHONPATH" step here).  We're going to put things in "c:\git", but you can use any folder you like.
+Here are instructions for steps 2 and 3 that assume you *don't* have administrative access to your PC (if you set the environment variable as per above, you can skip the "set PYTHONPATH" step here).  We're going to clone the repos to "c:\git", but you can use any folder you like.
 
 After installing git and Anaconda, open an Anaconda Prompt, and run:
 
@@ -89,7 +89,7 @@ git clone https://github.com/Microsoft/ai4eutils
 set PYTHONPATH=c:\git\cameratraps;c:\git\ai4eutils
 ```
 
-Subsequent times you open your Anaconda prompt, you'll just need to do:
+On subsequent times you open your Anaconda prompt, you just need to do:
 
 ```batch
 cd c:\git\cameratraps\api\batch_processing\postprocessing
@@ -103,7 +103,7 @@ To "test" this model on small sets of images and get super-satisfying visual out
 
 #### Running run_tf_detector.py on Linux
 
-To try this out (on Linux), assuming you have Python 3 and pip installed, you can do:
+To try this out (on Linux), assuming you have Python 3 and pip installed, you can run the following:
 
 ```bash
 # Download the script and the MegaDetector model file
