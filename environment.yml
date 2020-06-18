@@ -24,6 +24,7 @@ dependencies:
 - pip         # good to add pip as an explicit dependency
 
 # Some Azure packages or versions are only available from PyPI
+# These may require GCC to be installed
 #
 # See https://azure.github.io/azure-sdk/releases/latest/
 - pip:        
@@ -32,6 +33,6 @@ dependencies:
   # doc: https://azuresdkdocs.blob.core.windows.net/$web/python/azure-cosmos/4.0.0b5/index.html
   - azure-cosmos==4.0.0b6  
   - azureml-sdk[tensorboard]==1.0.83
-  - requests_toolbelt  # required to call the sync API
+  - requests-toolbelt  # required to call the sync API
   - locust  # load testing of sync API
 
