@@ -21,7 +21,13 @@ from visualization import visualization_utils as vis_utils
 def render_image_info(rendering, args):
     blob_service = rendering['blob_service']
     image_obj = io.BytesIO()
-    _ = blob_service.get_blob_to_stream(rendering['container_name'], rendering['blob_path'], image_obj)
+
+    try:
+        _ = blob_service.get_blob_to_stream(rendering['container_name'], rendering['blob_path'], image_obj)
+    except Exception as e:
+        print(f'Image not found in blob storage: {rendering["blob_path"]}')
+        print(e)
+        return
 
     # resize is for displaying them more quickly
     image = vis_utils.resize_image(vis_utils.open_image(image_obj), args.output_image_width)
