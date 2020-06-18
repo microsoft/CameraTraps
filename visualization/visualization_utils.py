@@ -406,6 +406,22 @@ def draw_bounding_box_on_image(image,
         top -= expansion
         bottom += expansion
 
+        # Deliberately trimming to the width of the image only in the case where 
+        # box expansion is turned on.  There's not an obvious correct behavior here,
+        # but the thinking is that if the caller provided an out-of-range bounding
+        # box, they meant to do that, but at least in the eyes of the person writing
+        # this comment, if you expand a box for visualization reasons, you don't want
+        # to end up with part of a box.
+        #
+        # A slightly more sophisticated might check whether it was in fact the expansion
+        # that made this box larger than the image, but this is the case 99.999% of the time
+        # here, so that doesn't seem necessary.
+        left = max(left,0); right = max(right,0); 
+        top = max(top,0); bottom = max(bottom,0)
+            
+        left = min(left,im_width-1); right = min(right,im_width-1)
+        top = min(top,im_height-1); bottom = min(bottom,im_height-1)
+            
     draw.line([(left, top), (left, bottom), (right, bottom),
                (right, top), (left, top)], width=thickness, fill=color)
 
