@@ -136,6 +136,7 @@ def main():
     os.makedirs(args.output_dir, exist_ok=True)
     os.makedirs(os.path.join(args.output_dir, 'rendered_images'))
 
+    print('Connecting to MegaDB to get the datasets table...')
     megadb_utils = MegadbUtils()
     datasets_table = megadb_utils.get_datasets_table()
 
