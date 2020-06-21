@@ -34,6 +34,7 @@ import threading
 import numpy as np
 import tensorflow as tf
 
+
 def _int64_feature(value):
     """Wrapper for inserting int64 features into Example proto."""
     if not isinstance(value, list):
@@ -54,6 +55,7 @@ def _bytes_feature(value):
         value = [value]
     return tf.train.Feature(bytes_list=tf.train.BytesList(value=value))
 
+
 def _validate_text(text):
     """If text is not str or unicode, then try to convert it to str."""
 
@@ -62,21 +64,27 @@ def _validate_text(text):
     else:
         return str(text).encode()
 
+
 def _str_and_encode(value):
     return str(value).encode()
 
-def _convert_to_example(image_example, image_buffer, height, width, colorspace='RGB',
-                        channels=3, image_format='JPEG'):
-    """Build an Example proto for an example.
-    Args:
-      image_example: dict, an image example
-      image_buffer: string, JPEG encoding of RGB image
-      height: integer, image height in pixels
-      width: integer, image width in pixels
-    Returns:
-      Example proto
-    """
 
+def _convert_to_example(image_example, image_buffer, height, width,
+                        colorspace='RGB', channels=3, image_format='JPEG'):
+    """Build an Example proto for an example.
+
+    Args:
+        image_example: dict, an image example
+        image_buffer: string, JPEG encoding of RGB image
+        height: integer, image height in pixels
+        width: integer, image width in pixels
+        colorspace: TODO
+        channels: TODO
+        image_format: TODO
+
+    Returns:
+        Example proto
+    """
     # Required
     filename = str(image_example['filename']).encode()  # default encoding='utf-8'
     image_id = str(image_example['id']).encode()
@@ -143,22 +151,21 @@ def _convert_to_example(image_example, image_buffer, height, width, colorspace='
         'image/object/bbox/label': _int64_feature(bbox_labels),
         'image/object/bbox/text': _bytes_feature(bbox_text),
         'image/object/bbox/conf': _float_feature(bbox_label_confs),
-        'image/object/bbox/score' : _float_feature(bbox_scores),
-        'image/object/parts/x' : _float_feature(parts_x),
-        'image/object/parts/y' : _float_feature(parts_y),
-        'image/object/parts/v' : _int64_feature(parts_v),
-        'image/object/parts/score' : _float_feature(parts_s),
-        'image/object/count' : _int64_feature(object_count),
-        'image/object/area' : _float_feature(object_areas),
-        'image/object/id' : _bytes_feature(object_ids),
+        'image/object/bbox/score': _float_feature(bbox_scores),
+        'image/object/parts/x': _float_feature(parts_x),
+        'image/object/parts/y': _float_feature(parts_y),
+        'image/object/parts/v': _int64_feature(parts_v),
+        'image/object/parts/score': _float_feature(parts_s),
+        'image/object/count': _int64_feature(object_count),
+        'image/object/area': _float_feature(object_areas),
+        'image/object/id': _bytes_feature(object_ids),
 
-        # Additional fields for the format needed by the Object Detection repository
+        # Additional fields for format needed by Object Detection repository
         'image/source_id': _bytes_feature(image_id),
         'image/key/sha256': _bytes_feature(key),
         'image/object/class/label': _int64_feature(bbox_labels),
         'image/object/class/text': _bytes_feature(bbox_text),
         'image/object/is_crowd': _int64_feature(is_crowd)
-
     }))
     return example
 
