@@ -4,9 +4,21 @@ This tutorial walks through all steps required to train an animal species classi
 ## Requirements
 
 ### Hardware and software
-We will assume that you have a Linux-based (virtual) machine running. It is also highly recommended to use a GPU for accelerating the animal detection and classifier training. The following steps will assume, that you have already set up the NVIDIA drivers and CUDA.
+We assume that you have a Linux-based (virtual) machine running. It is also highly recommended to use a GPU for accelerating the animal detection and classifier training. The following steps will assume, that you have already set up the NVIDIA drivers and CUDA.
 
-Our code was tested with Python 3.6 and uses the libraries [Tensorflow](https://www.tensorflow.org/), [pycocotools](https://github.com/cocodataset/cocoapi/tree/master/PythonAPI), and the [Tensorflow object detection library](https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/installation.md).
+First, clone this repository ([CameraTraps](https://github.com/Microsoft/CameraTraps)) to a local directory by running
+
+```bash
+CAMERATRAPS_DIR=/data/CameraTraps
+git clone https://github.com/Microsoft/CameraTraps.git $CAMERATRAPS_DIR
+```
+
+Our code was tested with Python 3.6 and uses the libraries [Tensorflow](https://www.tensorflow.org/), [pycocotools](https://github.com/cocodataset/cocoapi/tree/master/PythonAPI), and the [Tensorflow object detection library](https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/installation.md). You can install the necessary libraries by running
+
+```bash
+conda env create -f ${CAMERATRAPS_DIR}/environment-classifier.yml
+# TODO: TFODAPI
+```
 
 ### Data
 The input to our scripts is a dataset with image-level species labels. Please refer to [http://lila.science/faq](http://lila.science/faq) for more details. The scripts will assume that the location of each image is available in the json metadata.
@@ -14,65 +26,87 @@ The input to our scripts is a dataset with image-level species labels. Please re
 This tutorial will use the [Snapshot Serengeti](http://lila.science/datasets/snapshot-serengeti) dataset as an example.
 
 ## Copying data
-First, we will copy the image data from the blob storage to the local machine. All images and the metadata will be placed in the directory `/data/serengeti`. You can run
+First, we will copy the image data from the blob storage to the local machine. As this process might take a while, we highly recommend running this command in a tmux or screen session. All images and the metadata will be placed in the directory `/data/serengeti`. You can run
 
-    DATASET_DIR=/data/serengeti
-
-to assign this path to a variable called `DATASET_DIR`.
-
-Let's first create that directory that directory and change to it using
-
-    mkdir $DATASET_DIR && cd $DATASET_DIR
+```bash
+DATASET_DIR=/data/serengeti
+mkdir $DATASET_DIR && cd $DATASET_DIR
+```
+to assign this path to a variable called `DATASET_DIR`, create that directory, then change to it.
 
 You can copy the image data from blob storage to your local machine, unzip the archives, and delete the zip files using
 
-    BASEURL=https://lilablobssc.blob.core.windows.net/snapshotserengeti
-    for FILE in S1 S2 S3 S4 S5 S6;
-         do azcopy --source $BASEURL/${FILE}_release.zip --destination ${FILE}_release.zip;
-         unzip -q ${FILE}_release.zip;
-    done
+```bash
+BASEURL=https://lilablobssc.blob.core.windows.net/snapshotserengeti-v-2-0
+for SEASON in S01 S02 S03 S04
+do
 
-As this process might take a while, we highly recommend running this command in a tmux or screen session.
+
+
+
+	dest="./${SEASON}.zip"
+	azcopy cp "${BASEURL}/SnapshotSerengeti_${SEASON}_v2_0.zip" "${dest}"
+	unzip -q ${dest}
+	rm ${dest}
+done
+```
+
+```bash
+BASEURL=https://lilablobssc.blob.core.windows.net/snapshotserengeti-unzipped
+SAS="?st=2020-01-01T00%3A00%3A00Z&se=2034-01-01T00%3A00%3A00Z&sp=rl&sv=2019-07-07&sr=c&sig=/DGPd%2B9WGFt6HgkemDFpo2n0M1htEXvTq9WoHlaH7L4%3D"
+for SEASON in S4  # S1 S2 S3 S4 S5 S6
+do
+	mkdir ${SEASON}
+	dest="./${SEASON}"
+	azcopy cp "${BASEURL}/${SEASON}${SAS}" "${dest}" --recursive
+done
+```
 
 The same steps are required for the metadata.
 
-    azcopy --source $BASEURL/SnapshotSerengeti.json.zip --destination SnapshotSerengeti.json.zip
-    unzip -q SnapshotSerengeti.json.zip
+```bash
+dest="SnapshotSerengeti.json.zip"
+azcopy cp "${BASEURL}/SnapshotSerengeti_S1-11_v2_1.json.zip" "${dest}"
+unzip -q ${dest}
+rm ${dest}
+```
 
 Now we are ready to run the code.
 
 ## Running the detector
-The next step is creating a dataset suitable for classification training.
+The next step is creating a dataset suitable for classification training. We change into the `classification` directory:
 
-First, clone this repository ([CameraTraps](https://github.com/Microsoft/CameraTraps)) to a local directory by running
-
-    CAMERATRAPS_DIR=/data/CameraTraps
-    git clone https://github.com/Microsoft/CameraTraps.git $CAMERATRAPS_DIR
-
-and change to the folder with the relevant scripts
-
-    cd $CAMERATRAPS_DIR/data_management/databases/classification
+```bash
+cd $CAMERATRAPS_DIR/data_management/databases/classification
+```
 
 We will now use `make_classification_dataset.py` to generate the dataset. The script will create two output directories, one for a COCO-style classification dataset and one for a tfrecords output. While we actually only need the tfrecords output, it is recommended to create a COCO-style dataset as well. It is necessary for analyzing the created data and also contains the detected bounding boxes for each image. We will define the location of both output folders by running
 
-    COCO_STYLE_OUTPUT=/data/serengeti_cropped_coco_style
-    TFRECORDS_OUTPUT=/data/serengeti_cropped_tfrecords
+```bash
+COCO_STYLE_OUTPUT=/data/serengeti_cropped_coco_style
+TFRECORDS_OUTPUT=/data/serengeti_cropped_tfrecords
+```
 
+We also need a frozen detection model as generated by the TensorFlow object detection API. We will assign the path to this frozen graph to a variable:
 
-We also need a frozen detection model as generated by the Tensorflow object detection API. We will assign the path to this frozen graph to a variable:
-
-    FROZEN_DETECTION_GRAPH=/tmp/frozen_inference_graph.pb
+```bash
+mkdir "${CAMERTRAPS_DIR}/pbs"
+MEGADETECTOR_PB="${CAMERTRAPS_DIR}/pbs/md_v4.1.0.pb"
+wget -O ${MEGADETECTOR_PB} https://lilablobssc.blob.core.windows.net/models/camera_traps/megadetector/md_v4.1.0/md_v4.1.0.pb
+```
 
 Now the detection can be started by running
 
-    python make_classification_dataset.py \
+```bash
+python make_classification_dataset.py \
     $DATASET_DIR/SnapshotSerengeti.json \
     $DATASET_DIR/ \
-    $FROZEN_DETECTION_GRAPH \
+    $MEGADETECTOR_PB \
     --coco_style_output $COCO_STYLE_OUTPUT \
     --tfrecords_output $TFRECORDS_OUTPUT \
     --location_key location \
     --exclude_categories human empty
+```
 
 In addition to detection and cropping of detected animals, the script will also divide the data into training and testing splits based on the locations. If you would like to use a different field name for splitting the data, you can use the `--location_key` flag.
 
