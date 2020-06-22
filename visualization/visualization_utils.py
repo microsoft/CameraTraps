@@ -8,7 +8,6 @@ Core rendering functions shared across visualization scripts
 
 from io import BytesIO
 import matplotlib.pyplot as plt
-import matplotlib.cm as cm
 import numpy as np
 import requests
 from PIL import Image, ImageFile, ImageFont, ImageDraw
