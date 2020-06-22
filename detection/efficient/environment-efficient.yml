@@ -1,0 +1,25 @@
+# Use this environment to run `train.py`
+
+name: efficientdet
+
+dependencies:
+- python>=3.5
+- nb_conda_kernels
+- ipykernel
+- tqdm
+# Numpy specific version for pycoco error
+- numpy==1.17.0 
+- cython
+- matplotlib
+- tensorboard
+- pip
+
+- pip:
+    - webcolors
+    # Depending on the CUDA stack installed in your environment, you might have to specify
+    # a particular version of torch & torchvision
+    - torch==1.4.0
+    - torchvision==0.5.0
+    - pyyaml
+    - opencv-python
+    - pycocotools
