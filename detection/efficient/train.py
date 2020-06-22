@@ -1,7 +1,11 @@
-# original author: signatrix
-# adapted from https://github.com/signatrix/efficientdet/blob/master/train.py
-# modified by Zylo117
+"""
+original author: signatrix
+adapted from https://github.com/signatrix/efficientdet/blob/master/train.py
+modified by Zylo117
 
+Adding images -> https://pytorch.org/tutorials/intermediate/tensorboard_tutorial.html#writing-to-tensorboard
+Dataloader -> https://pytorch.org/docs/stable/data.html
+"""
 import os
 import sys
 import json
@@ -11,7 +15,7 @@ import traceback
 import yaml
 import numpy as np
 from tqdm.autonotebook import tqdm
-from typing import List
+from typing import List # Used for Type Hints
 
 import torch
 from torch import nn
@@ -19,7 +23,7 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 import torchvision
 
-sys.path.append('Yet-Another-EfficientDet-Pytorch/')
+sys.path.append('Yet-Another-EfficientDet-Pytorch/') # Adding submodule
 
 from utils_.efficientdet.dataset import CocoDataset, Resizer, Normalizer, Augmenter, collater
 from utils_.efficientdet.loss import FocalLoss
@@ -109,17 +113,47 @@ def get_args():
 
 class ModelWithLoss(nn.Module):
     """
-    Input : EfficientDet model
-    Along with forward function,
-    model is mapped with the criterion() here.
+    Function:
+        Along with forward function,
+        model is mapped with the criterion() here.
+        In eval mode, we store results in self.evalresults.
+    Input:
+        EfficientDet model
+    Output:
+        Classification loss,
+        Regression loss,
+        Predicted images, # if debug flag is switched on.
     """
     def __init__(self, model: bytes, debug=False):
         super().__init__()
         self.criterion = FocalLoss()
         self.model = model
-        self.debug = debug
-        self.evalresults = []
+        self.debug = debug # Boolean flag. Used for visualizing images
+        self.evalresults = [] #List of predictions, (image_id, category_id, score, bbox)
+
     def forward(self, imgs, annotations, obj_list=None, **kwargs):
+        """
+        Function:
+            Process the images and return losses.
+            If debug mode, # Activated for vizualizing imgs
+                return predicted_images with bboxes on top for visualization.
+            If eval mode,
+                store predictions in model.evalresults for dumping into json later.
+        Input:
+            Images
+            Annotations
+            obj_list-> List of classes. Used for writing names on vizualisation imgs.
+            kwargs-> are used for validation purpose.
+                    For validation, we send additional arguments like,
+                    resizing_imgs_scales -> To scale the image&bboxes back to its original size
+                    new_ws -> To scale the image&bboxes back to its original size
+                    new_hs -> To scale the image&bboxes back to its original size
+                    imgs_ids -> Used for storing the predictions
+        Output:
+            Classification loss,
+            Regression loss,
+            Predicted images, # if debug flag is switched on.
+        """
         _, regression, classification, anchors = self.model(imgs)
         imgs_scales = kwargs.get('resizing_imgs_scales', None)
         new_ws = kwargs.get('new_ws', None)
@@ -315,8 +349,8 @@ class Efficient_camtrap:
                         progress_bar.update()
                         continue
                     try:
-                        imgs = data['img']
-                        annot = data['annot']
+                        imgs = data['img'] # get images
+                        annot = data['annot'] # get annotations
                         if params.num_gpus == 1:
                             # if only one gpu, just send it to cuda:0
                             # elif multiple gpus, send it to multiple gpus in CustomDataParallel, not here
@@ -330,31 +364,13 @@ class Efficient_camtrap:
                         else:
                             self.model.debug = True
                             cls_loss, reg_loss, imgs_labelled = self.model(imgs, annot, obj_list=params.obj_list)
-
-                        cls_loss = cls_loss.mean()
-                        reg_loss = reg_loss.mean()
-
-                        loss = cls_loss + reg_loss
-                        if loss == 0 or not torch.isfinite(loss):
-                            continue
-
-                        loss.backward()
-                        # torch.nn.utils.clip_grad_norm_(model.parameters(), 0.1)
-                        self.optimizer.step()
-
-                        epoch_loss.append(float(loss))
-
-                        progress_bar.set_description(
-                            'Step: {}. Epoch: {}/{}. Iteration: {}/{}. Cls loss: {:.5f}. Reg loss: {:.5f}. Total loss: {:.5f}'.format(
-                                self.step, epoch, opt.num_epochs, iternum + 1, self.num_iter_per_epoch, cls_loss.item(),
-                                reg_loss.item(), loss.item()))
-                        self.writer.add_scalars('Loss', {'train': loss}, self.step)
-                        self.writer.add_scalars('Regression_loss', {'train': reg_loss}, self.step)
-                        self.writer.add_scalars('Classfication_loss', {'train': cls_loss}, self.step)
-
+                        
+                        # For every kth percentage of training iterations, we evaluate our model
                         if iternum%int(self.num_iter_per_epoch*(opt.eval_percent_epoch/100)) == 0 and self.step > 0:
-                            # create grid of images for tensorboard
-                            img_grid = self.plot_images(imgs_labelled, nrow=2)
+                            self.model.debug = True # For printing images
+                            cls_loss, reg_loss, imgs_labelled = self.model(imgs, annot, obj_list=params.obj_list)
+                            # create a grid of training images for tensorboard
+                            img_grid = self.create_plot_images(imgs_labelled, nrow=2)
                             # write to tensorboard
                             self.writer.add_image('Training_images', img_grid, global_step=self.step)
 
@@ -366,6 +382,30 @@ class Efficient_camtrap:
                             if stopflag:
                                 print('[Info] Stop training at epoch {}. The lowest loss achieved is {}'.format(epoch, self.best_loss))
                                 raise(KeyboardInterrupt)
+                        else:
+                            self.model.debug = False
+                            cls_loss, reg_loss, _ = self.model(imgs, annot, obj_list=params.obj_list)
+
+                        cls_loss = cls_loss.mean()
+                        reg_loss = reg_loss.mean()
+
+                        loss = cls_loss + reg_loss
+                        if loss == 0 or not torch.isfinite(loss):
+                            continue
+
+                        loss.backward() # compute gradients
+                        # torch.nn.utils.clip_grad_norm_(model.parameters(), 0.1)
+                        self.optimizer.step() # update parameters
+
+                        epoch_loss.append(float(loss))
+
+                        progress_bar.set_description(
+                            'Step: {}. Epoch: {}/{}. Iteration: {}/{}. Cls loss: {:.5f}. Reg loss: {:.5f}. Total loss: {:.5f}'.format(
+                                self.step, epoch, opt.num_epochs, iternum + 1, self.num_iter_per_epoch, cls_loss.item(),
+                                reg_loss.item(), loss.item()))
+                        self.writer.add_scalars('Loss', {'train': loss}, self.step)
+                        self.writer.add_scalars('Regression_loss', {'train': reg_loss}, self.step)
+                        self.writer.add_scalars('Classfication_loss', {'train': cls_loss}, self.step)
 
                         # log learning_rate
                         current_lr = self.optimizer.param_groups[0]['lr']
@@ -387,7 +427,16 @@ class Efficient_camtrap:
             self.writer.close()
         self.writer.close()
 
-    def plot_images(self,imgs_labelled : List[float], nrow=2):
+    def create_plot_images(self,imgs_labelled : List[float], nrow=2):
+        """
+        Function:
+            Convert the given images into a grid
+        Input:
+            imgs_labelled - List of images
+            nrow          - No of columns in image display
+        Output:
+            img_grid - Grid of images for display
+        """
         # create grid of images
         imgs_labelled = np.asarray(imgs_labelled)
         imgs_labelled = torch.from_numpy(imgs_labelled)   # (N, H, W, C)
@@ -399,13 +448,20 @@ class Efficient_camtrap:
 
     def validate(self, params: bytes, opt: bytes, epoch: int, step: int) -> bool:
         """
-        Validation takes place here.
-        Returns True/False.
-        True - Stop training
+        Function:
+            Validation takes place here.
+        Inputs:
+            params - Project details
+            opt    - Training related details
+            epoch  - Current epoch number
+            step   - Current step number 
+        Outputs:
+            Returns True/False.
+            True - Stop training
         """
         self.model.debug = False # Don't print images in tensorboard now.
 
-        # remove json
+        # remove previous prediction json file
         if os.path.exists(self.evaluation_pred_file):
             os.remove(self.evaluation_pred_file)
 
@@ -416,17 +472,18 @@ class Efficient_camtrap:
         num_validation_steps = int(self.num_val_iter_per_epoch*(opt.eval_sampling_percent/100))
         for valiternum, valdata in enumerate(self.val_generator):
             with torch.no_grad():
-                imgs = valdata['img']
-                annot = valdata['annot']
-                resizing_imgs_scales = valdata['scale']
-                new_ws = valdata['new_w']
-                new_hs = valdata['new_h']
-                imgs_ids = valdata['img_id']
+                imgs = valdata['img'] # get images
+                annot = valdata['annot'] # get annotations
+                resizing_imgs_scales = valdata['scale'] # get resizing scales
+                new_ws = valdata['new_w'] # get new/resized width
+                new_hs = valdata['new_h'] # get new/resized height
+                imgs_ids = valdata['img_id'] # get the image id
 
                 if params.num_gpus >= 1:
                     imgs = imgs.cuda()
                     annot = annot.cuda()
 
+                # Below condition will make sure that we get only required no.of images to plot.
                 if valiternum%(num_validation_steps//(opt.num_visualize_images//opt.batch_size)) != 0:
                     self.model.debug = False
                     cls_loss, reg_loss, _ = self.model(imgs, annot, obj_list=params.obj_list,
@@ -438,7 +495,7 @@ class Efficient_camtrap:
                                                                        resizing_imgs_scales=resizing_imgs_scales,
                                                                        new_ws=new_ws, new_hs=new_hs, imgs_ids=imgs_ids)
 
-                    imgs_to_viz += list(val_imgs_labelled)
+                    imgs_to_viz += list(val_imgs_labelled) #Keep appending the images
 
                 loss_classification_ls.append(cls_loss.item())
                 loss_regression_ls.append(reg_loss.item())
@@ -456,12 +513,15 @@ class Efficient_camtrap:
         self.writer.add_scalars('Loss', {'val': loss}, step)
         self.writer.add_scalars('Regression_loss', {'val': reg_loss}, step)
         self.writer.add_scalars('Classfication_loss', {'val': cls_loss}, step)
+
         # create grid of images for tensorboard
-        val_img_grid = self.plot_images(imgs_to_viz, nrow=2)
+        val_img_grid = self.create_plot_images(imgs_to_viz, nrow=2)
         # write to tensorboard
         self.writer.add_image('Eval_Images', val_img_grid, \
                             global_step=(step))
 
+        # Write all the predictions to a json file for evaluation
+        # with the val.json
         if opt.max_preds_toeval > 0:
             json.dump(self.model.evalresults, open(self.evaluation_pred_file, 'w'), indent=4)
             try:
@@ -471,7 +531,7 @@ class Efficient_camtrap:
                 for catgname in val_results:
                     metricname = 'Average Precision  (AP) @[ IoU = 0.50      | area =    all | maxDets = 100 ]'
                     evalscore = val_results[catgname][metricname]
-                    self.writer.add_scalars(f'mAP@IoU=0.5 and area=all', {f'{catgname}': evalscore}, step)
+                    self.writer.add_scalars(f'mAP@IoU=0.5', {f'{catgname}': evalscore}, step)
             except Exception as exption:
                 print("Unable to perform evaluation", exption)
 

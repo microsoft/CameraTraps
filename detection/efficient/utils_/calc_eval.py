@@ -5,6 +5,9 @@ put annotations here datasets/your_project_name/annotations/instances_{val_set_n
 put weights here /path/to/your/weights/*.pth
 change compound_coef
 
+References:
+    Capturing terminal output of coco evaluate -> https://www.programcreek.com/python/example/88588/pycocotools.cocoeval.COCOeval
+    Getting category wise eval score -> https://stackoverflow.com/a/56442781
 """
 import io
 import sys
