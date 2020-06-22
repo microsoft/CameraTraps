@@ -106,6 +106,13 @@ The required Python packages for running utility and visualization scripts in th
 conda env create --file environment.yml
 ```
 
+For unix users, you need to have gcc installed in order to compile the pip packages. If you do not already have gcc installed, run the following command before creating the conda environment:
+
+```bash
+sudo apt update
+sudo apt install build-essential
+```
+
 ### Machine learning scripts
 
 Scripts that execute machine learning code &ndash; specifically, scripts in the folders `api`, `detection`, and `classification` &ndash; require additional depdendencies.  In particular, the `detection/run_tf_detector*.py` scripts should use [environment-detector.yml](environment-detector.yml) to set up the environment, as follows:

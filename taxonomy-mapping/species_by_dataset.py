@@ -2,7 +2,7 @@
 This program compiles an Excel spreadsheet for manually mapping dataset-specific species names to
 a common taxonomy.
 
-We are currently doing the counting here instead of as a part of the Cosmos DB query
+We are currently doing the counting of species here instead of as a part of the Cosmos DB query
 - see SDK issue in notes.
 
 It first goes through the list of datasets in the `datasets` table to find out which "species" are in each
@@ -12,12 +12,15 @@ This information is saved in a JSON file in the `output_dir` for each dataset.
 
 Once this information is collected, for each "species" in a dataset, it queries the TOP 100 sequences
 where the "species" is in the list of class names at either the sequence or the image level. It samples
-7 of these TOP 100 sequences (sequences returned by TOP may have little variety) and from each sequence
+7 of these TOP 500 sequences (sequences returned by TOP may have little variety) and from each sequence
 samples an image to surface as an example. The spreadsheet is then prepared, adding a Bing search URL
 with the species class name as the query string and fields to filter and fill in Excel.
 
 Because querying for all species present in a dataset may take a long time, a dataset is only queried
 if it does not yet have a JSON file in the `output_dir`.
+
+Also, the spreadsheet creation step is only done for datasets in DATASETS_TO_INCLUDE_IN_SPREADSHEET specified below.
+This is usually the datasets just ingested that need their species names mapped next.
 
 Leave out the flag `--query_species` if you only want to prepare the spreadsheet using previously queried
 species presence result.
@@ -46,7 +49,9 @@ from data_management.megadb.megadb_utils import MegadbUtils
 
 
 NUMBER_EXAMPLES_PER_SPECIES = 7
-NUMBER_SEQUENCES_TO_QUERY = 100
+NUMBER_SEQUENCES_TO_QUERY = 500
+
+DATASETS_TO_INCLUDE_IN_SPREADSHEET = ['ena24', 'sulross_2018', 'sulross_2019_spring', 'sulross_kitfox', 'idfg_swwlf_2019']
 
 
 def query_species_by_dataset(megadb_utils, output_dir):
@@ -134,7 +139,7 @@ def make_spreadsheet(megadb_utils, output_dir):
 
     species_by_dataset = {}
 
-    classes_excluded = ['car', 'vehicle', 'empty', '__label_unavailable', 'error']
+    classes_excluded = ['empty', 'car', 'vehicle', 'unidentified', 'unknown', '__label_unavailable', 'error']
 
     # read species presence info from the JSON files for each dataset
     for file_name in os.listdir(output_dir):
@@ -142,6 +147,10 @@ def make_spreadsheet(megadb_utils, output_dir):
         if not file_name.endswith('.json'):
             continue
         dataset_name = file_name.split('.json')[0]
+
+        if dataset_name not in DATASETS_TO_INCLUDE_IN_SPREADSHEET:
+            continue
+
         print(f'Processing dataset {dataset_name}')
 
         with open(os.path.join(output_dir, file_name)) as f:
