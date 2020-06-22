@@ -1,6 +1,6 @@
 # MegaDB
 
-Internally we store all labels and metadata associated with each image sequence in a NoSQL database for easy querying.
+Internally we store all labels and metadata associated with each image sequence in an Azure Cosmos (NoSQL) database for easy querying.
 
 The database allows for any properties to be associated at the sequence, image, and bounding box levels.
 
