@@ -48,6 +48,8 @@ OR
 
 #### Commit histories
 
+    22nd commit - Documentation: `train.py` & `utils_/calc_eval.py` : Added references & cleaned the files. 
+
     21st commit - Added `plot_images` function in `train.py`.
 
     20th commit - `environment-efficient.yml` is cleaned.
