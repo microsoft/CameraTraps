@@ -14,7 +14,7 @@ The scripts need a data set with image-level class annotations in [COCO Camera T
 purpose of the scripts is to locate the animals using a detector. [This library](https://patrickwasp.com/create-your-own-coco-style-dataset/)
 facilitates the creation of COCO-style data sets.
 
-You can check out [http://lila.science](lila.science) for example data sets. In addition to the standard format, we usually split the camera trap datasets
+You can check out [lila.science](http://lila.science) for example data sets. In addition to the standard format, we usually split the camera trap datasets
 by locations, i.e. into training and testing locations. Hence it is advisable to have a field in your image annotation specifying the location
 as string or integer. This could look like:
 
@@ -59,7 +59,8 @@ relevant paths to your PYTHONPATH variable using:
 ## Animal detection and cropping
 
 The detection, cropping, and dataset generation is done in `data_management/databases/classification/make_classification_dataset.py`. You can run
-`python make_classification_dataset.py -h` for a description of all required parameters.
+```python make_classification_dataset.py -h```
+for a description of all required parameters.
 
     usage: make_classification_dataset.py [-h]
                                           [--coco_style_output COCO_STYLE_OUTPUT]
@@ -115,16 +116,16 @@ The detection, cropping, and dataset generation is done in `data_management/data
 
 A typical command will look like:
 
-~~~
-    python make_classification_dataset.py \
-            /path/to/dataset.json \
-            /path/to/image/root/ \
-            /path/to/frozen/detection/graph.pb \
-            --coco_style_output /path/to/cocostyle/output/ \
-            --tfrecords_output /path/to/tfrecords/output/ \
-            --location_key location \
-            --exclude_categories human empty
-~~~
+```
+python make_classification_dataset.py \
+    /path/to/dataset.json \
+    /path/to/image/root/ \
+    /path/to/frozen/detection/graph.pb \
+    --coco_style_output /path/to/cocostyle/output/ \
+    --tfrecords_output /path/to/tfrecords/output/ \
+    --location_key location \
+    --exclude_categories human empty
+```
 
 It is generally advisable to generate both the COCO-style and TFRecords output, as the former allows to check the
 detection results while the latter is used for classification training. The COCO-style output folder will also contain a
@@ -148,10 +149,7 @@ with two or more detections.
 
 ## Dataset statistics
 
-The file `database_tools/cropped_camera_trap_dataset_statistics.py` can be used to get some statistics about the generated
-datasets, in particular the number of images and classes. This information will be required later on. The input is
-the original json file of the camera-trap dataset as well as the `train.json` and `test.json` files, which are located
-in the generated COCO-style output folder.
+The file `data_management/databases/classification/cropped_camera_trap_dataset_statistics.py` can be used to get some statistics about the generated datasets, in particular the number of images and classes. This information will be required later on. The input is the original json file of the camera-trap dataset as well as the `train.json` and `test.json` files, which are located in the generated COCO-style output folder.
 
 The usage of the script is as follows:
 
@@ -180,11 +178,11 @@ The usage of the script is as follows:
 This prints all statistics to stdout. You can save the output by redirecting it to a file:
 
 ~~~
-    python cropped_camera_trap_dataset_statistics.py \
-        /path/to/dataset.json \
-        /path/to/cocostyle/output/train.json \
-        /path/to/cocostyle/output/test.json \
-        > stats.txt
+python cropped_camera_trap_dataset_statistics.py \
+    /path/to/dataset.json \
+    /path/to/cocostyle/output/train.json \
+    /path/to/cocostyle/output/test.json \
+    > stats.txt
 ~~~
 
 It is also useful to save the list of classes, which allows for associating the output of the classification CNN later with
