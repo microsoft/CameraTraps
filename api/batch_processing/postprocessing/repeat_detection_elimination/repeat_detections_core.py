@@ -50,6 +50,7 @@ DETECTION_INDEX_FILE_NAME = 'detectionIndex.json'
 #%% Classes
 
 class RepeatDetectionOptions:
+
     # inputFlename = r'D:\temp\tigers_20190308_all_output.csv'
 
     # Relevant for rendering HTML or filtering folder of images
@@ -109,6 +110,10 @@ class RepeatDetectionOptions:
     bPrintMissingImageWarnings = True
     missingImageWarningType = 'once'  # 'all'
 
+    # Box rendering options
+    lineThickness = 10
+    boxExpansion = 2
+    
     # State variables
     pbar = None
 
@@ -219,11 +224,11 @@ def enumerate_images(dirName,outputFileName=None):
     return imageList
     
 
-def render_bounding_box(detection, inputFileName, outputFileName, lineWidth):
+def render_bounding_box(detection, inputFileName, outputFileName, lineWidth=5, expansion=0):
     
     im = open_image(inputFileName)
     d = detection.to_api_detection()
-    render_detection_bounding_boxes([d],im,thickness=lineWidth,confidence_threshold=-10)
+    render_detection_bounding_boxes([d],im,thickness=lineWidth,expansion=expansion,confidence_threshold=-10)
     im.save(outputFileName)
 
 
@@ -417,7 +422,8 @@ def render_images_for_directory(iDir, directoryHtmlFiles, suspiciousDetections, 
                     continue
             else:
                 inputFileName = relative_sas_url(options.imageBase, instance.filename)
-            render_bounding_box(detection, inputFileName, imageOutputFilename, 15)
+            render_bounding_box(detection, inputFileName, imageOutputFilename, lineWidth=options.lineWidth, 
+                                expansion=options.boxExpansion)
 
         # ...for each instance
 
@@ -892,7 +898,7 @@ def find_repeat_detections(inputFilename, outputFilename=None, options=None):
                 
                 instance = detection.instances[0]
                 relativePath = instance.filename
-                outputRelativePath = 'dir{:0>4d}_det{:0>4d}.jpg'.format(iDir, iDetection)
+                outputRelativePath = 'dir{:0>4d}_det{:0>4d}_n{:0>4d}.jpg'.format(iDir, iDetection, len(detection.instances))
                 outputFullPath = os.path.join(filteringDir, outputRelativePath)
                 
                 if is_sas_url(options.imageBase):
@@ -901,7 +907,8 @@ def find_repeat_detections(inputFilename, outputFilename=None, options=None):
                     inputFullPath = os.path.join(options.imageBase, relativePath)
                     assert (os.path.isfile(inputFullPath)), 'Not a file: {}'.format(inputFullPath)
                     
-                render_bounding_box(detection, inputFullPath, outputFullPath, 15)
+                render_bounding_box(detection, inputFullPath, outputFullPath,
+                                    lineWidth=options.lineWidth, expansion=options.boxExpansion)
                 detection.sampleImageRelativeFileName = outputRelativePath
 
         # Write out the detection index
