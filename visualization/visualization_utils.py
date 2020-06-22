@@ -315,7 +315,7 @@ def draw_bounding_boxes_on_image(image,
                                  expansion=0,
                                  display_strs=()):
     """
-    Draws bounding boxes on image.
+    Draws bounding boxes on an image.
 
     Args:
       image: a PIL.Image object.
