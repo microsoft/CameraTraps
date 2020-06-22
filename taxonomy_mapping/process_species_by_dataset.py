@@ -13,10 +13,10 @@ import pandas as pd
 import numpy as np
 import os
 
-from species_lookup import get_taxonomic_info
-from species_lookup import initialize_taxonomy_lookup
-from species_lookup import print_taxonomy_matches
-import retrieve_sample_image
+from taxonomy_mapping.species_lookup import get_taxonomic_info
+from taxonomy_mapping.species_lookup import initialize_taxonomy_lookup
+from taxonomy_mapping.species_lookup import print_taxonomy_matches
+import taxonomy_mapping.retrieve_sample_image as retrieve_sample_image
 
 from tqdm import tqdm
 import unicodedata
@@ -28,21 +28,28 @@ import re
 
 #%% Constants
 
-output_base = r'c:\temp\taxonomy'
+output_base = r'C:\git\camera-traps-private\taxonomy_archive'
+xlsx_basename = 'species_by_dataset_2020_06_18.xlsx'
 
 # The input file
-species_by_dataset_file = os.path.join(output_base,'species_by_dataset_2020_05_02.xlsx')
+species_by_dataset_file = os.path.join(output_base,xlsx_basename)
 
 # The output file after automatic remapping
-output_file = os.path.join(output_base,'species_by_dataset_2020_05_02.output.xlsx')
+output_file = species_by_dataset_file.replace('.xlsx','.output.xlsx')
 
 # The file to which we manually copy that file and do all the manual review; this 
 # should never be programmatically written to
 manual_review_xlsx = output_file.replace('.xlsx','.manual.xlsx')
 
+# The final output spreadsheet
+output_xlsx = manual_review_xlsx.replace('.xlsx','_remapped.xlsx')
+output_csv = output_xlsx.replace('.xlsx','.csv')
+
 # An HTML file generated to facilitate the identificaiton of egregious mismappings
 html_output_file = os.path.join(output_base,'mapping_previews.html')
 download_images = True
+
+master_table_file = r'C:\git\camera-traps-private\camera_trap_taxonomy_mapping.csv'
 
 
 #%% Functions
@@ -216,6 +223,7 @@ initialize_taxonomy_lookup()
 #%% Test single-query lookup
 
 if False:
+    #%%
     matches = get_taxonomic_info('lion')
     print_taxonomy_matches(matches)
 
@@ -347,6 +355,24 @@ with open(html_output_file,'w') as f:
     f.write('</body></html>\n')
     
 
+#%% Look for redundancy with the master table
+    
+def generate_query_id(dataset_name,query):
+    return dataset_name + '|' + query    
+
+master_table = pd.read_csv(master_table_file)
+master_table_dataset_queries = set()
+for i_row,row in tqdm(master_table.iterrows(),total=len(master_table)):
+    query_id = generate_query_id(row.dataset_name,row.query)
+    master_table_dataset_queries.add(query_id)
+        
+for i_row,row in tqdm(output_df.iterrows(),total=len(output_df)):
+    query_id = generate_query_id(row.dataset_name,row.query)
+    if query_id in master_table_dataset_queries:
+        print('Warning: query {} available in master table'.format(query_id))
+    
+
+        
 #%% Manual review
     
 # Copy the spreadsheet to another file; you're about to do a ton of manual review work
@@ -358,8 +384,6 @@ with open(html_output_file,'w') as f:
 #%% After doing the manual mapping step...
     
 # Find scientific names that were added manually, and match them to taxonomies
-
-output_xlsx = manual_review_xlsx.replace('.xlsx','_remapped.xlsx')
 
 df = pd.read_excel(manual_review_xlsx)
 
@@ -404,3 +428,4 @@ for i_row,row in df.iterrows():
 # ...for each query
             
 df.to_excel(output_xlsx, index=None, header=True)
+df.to_csv(output_csv, index=None, header=True)

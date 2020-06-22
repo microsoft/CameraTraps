@@ -11,7 +11,7 @@
 
 #%% Imports and environment
 
-import simple_image_download
+from taxonomy_mapping import simple_image_download
 google_image_downloader = simple_image_download.simple_image_download()
 
 
