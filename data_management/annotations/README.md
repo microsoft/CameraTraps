@@ -16,7 +16,3 @@ dataset<dataset>.seq<seq_id>.frame<frame_num>.jpg
 The annotators will only use the `seq<seq_id>` field to group sequences together. 
 
 If the dataset has no explicit sequence information, it might be best to have the `seq_id` set to a short version of the image name (with `dummy_` prepended) so if the sequence information is in the file names, the sequence can appear together.
-
-
-
-
