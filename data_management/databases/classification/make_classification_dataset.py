@@ -12,12 +12,12 @@ import os
 import pickle
 import random
 import sys
-from typing import Dict, List, Mapping, Optional
+from typing import Any, Dict, List, Mapping, Optional
 import uuid
 
 import numpy as np
 from PIL import Image
-from pycocotools.coco import COCO
+import pycocotools.coco
 import tensorflow as tf
 import tqdm
 
@@ -40,6 +40,7 @@ if StrictVersion(tf.__version__) < StrictVersion('1.9.0'):
 
 # TFRecords variables
 class TFRecordsWriter():
+    """TODO"""
     def __init__(self, output_file: str, ims_per_record: int):
         self.output_file = output_file
         self.ims_per_record = ims_per_record
@@ -212,7 +213,7 @@ def load_frozen_graph(graph_path: str) -> tf.Graph:
     graph = tf.Graph()
     with graph.as_default():
         od_graph_def = tf.GraphDef()
-        with tf.gfile.GFile(graph_path, 'rb') as fid:
+        with tf.io.gfile.GFile(graph_path, 'rb') as fid:
             serialized_graph = fid.read()
             od_graph_def.ParseFromString(serialized_graph)
             tf.import_graph_def(od_graph_def, name='')
@@ -226,7 +227,7 @@ def main(input_json: str,
          detection_output: str,
          detection_input: Optional[str],
          split_by: str,
-         excluded_categories: List[str],
+         exclude_categories: List[str],
          detection_threshold: float,
          padding_factor: float,
          test_fraction: float,
@@ -245,7 +246,7 @@ def main(input_json: str,
             dataset
         split_by: str, key in image-level annotations that specifies the
             splitting criteria
-        excluded_categories: list of str, names of categories to ignore during
+        exclude_categories: list of str, names of categories to ignore during
             detection
         detection_threshold: float, in [0, 1]
         padding_factor: float, padding around detected objects when cropping
@@ -257,7 +258,7 @@ def main(input_json: str,
     graph = load_frozen_graph(args.frozen_graph)
 
     # Load COCO style annotations from the input dataset
-    coco = COCO(input_json)
+    coco = pycocotools.coco.COCO(input_json)
 
     # Get all categories, their names, and create updated ID for the json file
     categories = coco.loadCats(coco.getCatIds())
@@ -267,7 +268,7 @@ def main(input_json: str,
         for idx, old_key in enumerate(cat_id_to_names.keys())
     }
     print('All categories: \n"{}"\n'.format('", "'.join(cat_id_to_names.values())))
-    for ignore_cat in excluded_categories:
+    for ignore_cat in exclude_categories:
         if ignore_cat not in cat_id_to_names.values():
             raise ValueError(f'Category {ignore_cat} does not exist in dataset')
 
@@ -288,14 +289,13 @@ def main(input_json: str,
     print(list(coco.imgs.items())[0])
     print('The corresponding category annoation:')
     print(coco.imgToAnns[list(coco.imgs.items())[0][0]])
-    locations = set(ann[split_by] for ann in coco.imgs.values())
+    locations = sorted(set(ann[split_by] for ann in coco.imgs.values()))
     test_locations = sorted(
-        random.sample(
-            sorted(locations), max(1, int(test_fraction * len(locations)))))
-    training_locations = sorted(set(locations) - set(test_locations))
-    print('{} locations in total, {} will be used for training, {} for testing'.
-        format(len(locations), len(training_locations), len(test_locations)))
-    print('Training uses locations ', training_locations)
+        random.sample(locations, max(1, int(test_fraction * len(locations)))))
+    train_locations = sorted(set(locations) - set(test_locations))
+    print('{} locations in total, {} for training, {} for testing'.format(
+        len(locations), len(train_locations), len(test_locations)))
+    print('Training uses locations ', train_locations)
     print('Testing uses locations ', test_locations)
 
     # Load detections
@@ -317,7 +317,11 @@ def main(input_json: str,
 
     with graph.as_default():
         with tf.Session() as sess:
-            run_detection(sess, coco, excluded_categories, detections, train_json, test_json)
+            run_detection(
+                sess, coco, cat_id_to_names, cat_id_to_new_id, detections,
+                train_locations, train_json, test_json, image_dir,
+                coco_output_dir, tfrecords_output_dir, split_by,
+                exclude_categories, detection_threshold, padding_factor)
 
     if tfrecords_output_dir:
         training_tfr_writer.close()
@@ -344,19 +348,32 @@ def main(input_json: str,
         pickle.dump(detections, f, pickle.HIGHEST_PROTOCOL)
 
 
-def run_detection(
-        sess: tf.Session,
-        coco,
-        excluded_categories: List[str],
-        detections: Dict,
-        train_json: Dict[str, List],
-        test_json: Dict[str, List]):
+def run_detection(sess: tf.Session,
+                  coco: pycocotools.coco.COCO,
+                  cat_id_to_names: Mapping[Any, str],
+                  cat_id_to_new_id: Mapping[Any, int],
+                  detections: Dict,  # TODO
+                  train_locations: List[str],
+                  train_json: Dict[str, List],
+                  test_json: Dict[str, List],
+                  image_dir: str,
+                  coco_output_dir: Optional[str],
+                  tfrecords_output_dir: Optional[str],
+                  split_by: str,
+                  exclude_categories: List[str],
+                  detection_threshold: float,
+                  padding_factor: float):
     """
     Args:
         sess: tf.Session
-        coco: TODO
-        excluded_categories: list of str
+        coco: pycocotools.coco.COCO, representation of JSON
+        cat_id_to_names: dict, maps "old" category IDs to names
+        cat_id_to_new_id: dict, maps "old" category IDs to new IDs
         detections: dict, TODO
+        train_locations: list of str, TODO
+        train_json: dict, TODO
+        test_json: dict, TODO
+        **for all other args, see description for main()
     """
     images_missing = False
 
@@ -366,10 +383,8 @@ def run_detection(
     ops = graph.get_operations()
     all_tensor_names = {output.name for op in ops for output in op.outputs}
     tensor_dict = {}
-    for key in [
-            'num_detections', 'detection_boxes', 'detection_scores',
-            'detection_classes'
-    ]:
+    for key in ['num_detections', 'detection_boxes', 'detection_scores',
+                'detection_classes']:
         tensor_name = key + ':0'
         if tensor_name in all_tensor_names:
             tensor_dict[key] = graph.get_tensor_by_name(tensor_name)
@@ -386,79 +401,78 @@ def run_detection(
     # For all images listed in the annotations file
     next_image_id = 0
     next_annotation_id = 0
-    for cur_image_id in tqdm.tqdm(sorted(vv['id'] for vv in coco.imgs.values())):
-        detect_single_img(
-            detections, cur_image_id, coco, sess, excluded_categories, image_dir, split_by,
-            detection_threshold, training_locations, tensor_dict, image_tensor, train_json, test_json)
+    for image_id in tqdm.tqdm(sorted(vv['id'] for vv in coco.imgs.values())):
+        detect_single_img(image_id, train_locations, tensor_dict, image_tensor, sess, coco, cat_id_to_names, cat_id_to_new_id, detections, train_json, test_json, image_dir, coco_output_dir, tfrecords_output_dir, split_by, exclude_categories, detection_threshold, padding_factor)
 
 
-def detect_single_img(
-        detections: Dict,
-        cur_image_id,
-        coco,
-        sess: tf.Session,
-        excluded_categories: List[str],
-        image_dir: str,
-        split_by: str,
-        detection_threshold: float,
-        training_locations: List[str],
-        coco_output_dir: Optional[str],
-        tfrecords_output_dir: Optional[str],
-        padding_factor: float,
-        tensor_dict: Mapping[str, tf.Tensor],
-        image_tensor: tf.Tensor,
-        train_json: Dict[str, List],
-        test_json: Dict[str, List]):
+def detect_single_img(image_id: str,
+                      train_locations: List[str],
+                      tensor_dict: Mapping[str, tf.Tensor],
+                      image_tensor: tf.Tensor,
+                      sess: tf.Session,
+                      coco: pycocotools.coco.COCO,
+                      cat_id_to_names: Mapping[Any, str],
+                      cat_id_to_new_id: Mapping[Any, int],
+                      detections: Dict,  # TODO
+                      train_json: Dict[str, List],
+                      test_json: Dict[str, List],
+                      image_dir: str,
+                      coco_output_dir: Optional[str],
+                      tfrecords_output_dir: Optional[str],
+                      split_by: str,
+                      exclude_categories: List[str],
+                      detection_threshold: float,
+                      padding_factor: float):
     """
     Args
-    - cur_image_id: TODO
-    - sess: tf.Session
-    - excluded_categories
-    - padding_factor: float
+        image_id: str,
+        train_locations: List[str],
+        tensor_dict: Mapping[str, tf.Tensor],
+        image_tensor: tf.Tensor,
+        **for all other args, see description for run_detection()
     """
-    cur_image = coco.loadImgs([cur_image_id])[0]
-    cur_file_name = cur_image['file_name']
-    # Path to the input image
-    in_file = os.path.join(image_dir, cur_file_name)
+    category_ids = {ann['category_id'] for ann in coco.imgToAnns[image_id]}
+
     # Skip the image if it is annotated with more than one category
-    if len(
-            set([
-                ann['category_id']
-                for ann in coco.imgToAnns[cur_image['id']]
-            ])) != 1:
+    if len(category_ids) != 1:
         return
-    # Get category ID for this image
-    cur_cat_id = coco.imgToAnns[cur_image['id']][0]['category_id']
-    # ... and the corresponding category name
-    cur_cat_name = cat_id_to_names[cur_cat_id]
-    # The remapped category ID for our json file
-    cur_json_cat_id = cat_id_to_new_id[cur_cat_id]
-    # Whether it belongs to a training or testing location
-    is_train = cur_image[split_by] in training_locations
+
+    # Get "old" category ID, category name, and "new" category ID for this image
+    cat_id = list(category_ids)[0]
+    cat_name = cat_id_to_names[cat_id]
+    json_cat_id = cat_id_to_new_id[cat_id]
 
     # Skip excluded categories
-    if cur_cat_name in excluded_categories:
+    if cat_name in exclude_categories:
         return
 
+    cur_image = coco.loadImgs([image_id])[0]
+
+    # get path to image
+    cur_file_name = cur_image['file_name']
+    in_file = os.path.join(image_dir, cur_file_name)
+
+    # whether it belongs to a training or testing location
+    is_train = cur_image[split_by] in train_locations
+
     # If we already have detection results, we can use them
-    if cur_image_id in detections.keys():
-        output_dict = detections[cur_image_id]
+    if image_id in detections.keys():
+        output_dict = detections[image_id]
     # Otherwise run detector
     else:
         # We allow to skip images, which we do not have available right now
         # This is useful for processing parts of large datasets
-        if not os.path.isfile(os.path.join(image_dir, cur_file_name)):
+        if not os.path.isfile(in_file):
             if not images_missing:
-                print('Could not find ' + cur_file_name)
+                print('Could not find:', in_file)
                 print('Suppressing further warnings about missing files.')
                 images_missing = True
             return
 
         # Load image
-        image = np.array(
-            Image.open(os.path.join(image_dir, cur_file_name)))
+        image = np.array(Image.open(in_file))
         if image.dtype != np.uint8:
-            print('Failed to load image ' + cur_file_name)
+            print('Failed to load image:', in_file)
             return
 
         # Run inference
@@ -480,7 +494,7 @@ def detect_single_img(
                 'detection_masks'][0]
 
         # Add detections to the collection
-        detections[cur_image_id] = output_dict
+        detections[image_id] = output_dict
 
     imsize = cur_image['width'], cur_image['height']
     # Select detections with a confidence larger DETECTION_THRESHOLD
@@ -509,13 +523,11 @@ def detect_single_img(
         bbox, crop_box = selected_boxes[box_id], crop_boxes[box_id]
         if coco_output_dir is not None:
             # The file path as it will appear in the annotation json
-            new_file_name = os.path.join(cur_cat_name, cur_file_name)
+            new_file_name = os.path.join(cat_name, cur_file_name)
             # Add numbering to the original file name if there are multiple boxes
             if selected_boxes.shape[0] > 1:
-                new_file_base, new_file_ext = os.path.splitext(
-                    new_file_name)
-                new_file_name = '{}_{}{}'.format(
-                    new_file_base, box_id, new_file_ext)
+                new_file_base, new_file_ext = os.path.splitext(new_file_name)
+                new_file_name = f'{new_file_base}_{box_id}{new_file_ext}'
             # The absolute file path where we will store the image
             # Only used if an coco-style dataset is created
             out_file = os.path.join(coco_output_dir, new_file_name)
@@ -563,28 +575,25 @@ def detect_single_img(
                      width=cropped_img.shape[1],
                      height=cropped_img.shape[0],
                      file_name=new_file_name,
-                     original_key=cur_image_id))
+                     original_key=image_id))
             cur_json['annotations'].append(
                 dict(id=next_annotation_id,
                      image_id=next_image_id,
-                     category_id=cur_json_cat_id))
+                     gory_id=json_cat_id))
 
         if tfrecords_output_dir is not None:
-            image_data = {}
+            image_data = {
+                'id': next_image_id,
+                'class': {'label': json_cat_id,
+                          'text': cat_name},
+                'height': cropped_img.shape[0],
+                'width': cropped_img.shape[1]
+            }
             if coco_output_dir is not None:
                 image_data['filename'] = out_file
             else:
                 Image.fromarray(cropped_img).save(TMP_IMAGE)
                 image_data['filename'] = TMP_IMAGE
-            image_data['id'] = next_image_id
-
-            image_data['class'] = {}
-            image_data['class']['label'] = cur_json_cat_id
-            image_data['class']['text'] = cur_cat_name
-
-            # Propagate optional metadata to tfrecords
-            image_data['height'] = cropped_img.shape[0]
-            image_data['width'] = cropped_img.shape[1]
 
             cur_tfr_writer.add(image_data)
             if coco_output_dir is None:
@@ -594,20 +603,18 @@ def detect_single_img(
         next_image_id = next_image_id + 1
 
 
-
 if __name__ == '__main__':
     args = parse_args()
     detection_output = validate_args(args)
-    main(
-        input_json=args.input_json,
-        image_dir=args.image_dir,
-        coco_output_dir=args.coco_style_output,
-        tfrecords_output_dir=args.tfrecords_output,
-        detection_output=detection_output,
-        detection_input=args.use_detection_file,
-        split_by=args.location_key,
-        excluded_categories=args.excluded_categories,
-        detection_threshold=args.detection_threshold,
-        padding_factor=args.padding_factor,
-        test_fraction=args.test_fraction,
-        ims_per_record=args.ims_per_record)
+    main(input_json=args.input_json,
+         image_dir=args.image_dir,
+         coco_output_dir=args.coco_style_output,
+         tfrecords_output_dir=args.tfrecords_output,
+         detection_output=detection_output,
+         detection_input=args.use_detection_file,
+         split_by=args.location_key,
+         exclude_categories=args.exclude_categories,
+         detection_threshold=args.detection_threshold,
+         padding_factor=args.padding_factor,
+         test_fraction=args.test_fraction,
+         ims_per_record=args.ims_per_record)
