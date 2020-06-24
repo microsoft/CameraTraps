@@ -219,7 +219,6 @@ info['version'] = 1
 info['description'] = 'Island Conservation'
 info['contributor'] = 'CMI_manual'
 
-import pdb;pdb.set_trace()
 #%% Write output
 
 json_data = {}
