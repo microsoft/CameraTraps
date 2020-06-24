@@ -10,11 +10,12 @@ dependencies:
   - jupyterlab
   - lxml         # required for TFODAPI
   - matplotlib
+  - mypy         # optional
   - nb_conda_kernels
   - pillow
   - pip          # good to add pip as an explicit dependency
   - protobuf     # required for TFODAPI
-  - pylint
+  - pylint       # optional
   - pycocotools
   - scikit-learn
   - tensorflow-gpu=1.15.*
