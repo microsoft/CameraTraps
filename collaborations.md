@@ -10,7 +10,7 @@
 
 This page summarizes what we do to help our collaborators, typically ecologists, more specifically ecologists who are overwhelmed by camera trap images.  This page also includes some questions we ask new collaborators, to help assess whether our tools are useful, and &ndash; if so &ndash; what the right set of tools is for a particular project.
 
-Basically this page is the response we give when someone emails us and says &ldquo;I have too many camera trap images!  Can you help me?!?!&rdquo;.
+Basically this page is the response we give when someone emails us and says &ldquo;I have too many camera trap images!  Can you help me?!?!&rdquo;.  If you&rsquo;re an ecologist reading this page, and that sounds familiar, feel free to answer the questions below in an email to <a href="mailto:cameratraps@microsoft.com">cameratraps@microsoft.com</a>.
 
 ## Information about our camera trap work
 
