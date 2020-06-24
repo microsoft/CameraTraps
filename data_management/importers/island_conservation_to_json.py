@@ -208,6 +208,8 @@ for json_file in json_files:
             ann['conf'] = detection['conf']
             if category_id != 0:
                 ann['bbox'] = detection['bbox']
+            else:
+                assert(detection['bbox'] == [0,0,0,0])
             annotations.append(ann)
         if "person" in image_cats or "human" in image_cats:
             shutil.copy(os.path.join(dest_directory, image_name), os.path.join(base_dir, human_dir))
