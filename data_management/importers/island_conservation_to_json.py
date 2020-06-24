@@ -158,6 +158,12 @@ for json_file in json_files:
         im = {}
         im['id'] = img_id
         im['file_name'] = image_name
+        imagePath = os.path.join(dest_directory, image_name)
+        assert(os.path.isfile(imagePath))
+        pilImage = Image.open(imagePath)
+        width, height = pilImage.size
+        im['width'] = width
+        im['height'] = height
         tmp[0] = island_mapping[tmp[0]]
         if len(tmp) <= 3:
             location = "_".join(tmp[:2])
