@@ -31,13 +31,34 @@ output_json_file = os.path.join(base_dir, 'island_conservation.json')
 assert(os.path.isdir(src_directory))
 assert(os.path.isdir(dest_directory))
 
+human_dir = os.path.join(base_dir, 'human')
+non_human_dir = os.path.join(base_dir, 'non-human')
+
+human_zipfile = os.path.join(base_dir, 'island_humans.zip')
+non_human_zipfile = os.path.join(base_dir, 'island_nonhumans.zip')
+
+# Clean existing output folders/zipfiles
+if os.path.isdir(human_dir):
+    shutil.rmtree(human_dir)
+if os.path.isdir(non_human_dir):
+    shutil.rmtree(non_human_dir)
+
+if os.path.isfile(human_zipfile):
+    os.remove(human_zipfile)
+if os.path.isfile(human_zipfile):
+    os.remove(non_human_zipfile)
+
+os.makedirs(human_dir, exist_ok=True)
+os.makedirs(non_human_dir, exist_ok=True)
+
 island_mapping = {"Cabritos": "dominican_republic",
                   "Floreana": "ecuador",
                   "JFI": "chile",
                   "Mona": "puerto_rico",
                   "Ngeruktabel": "palau",
                   "SantaCruz": "ecuador",
-                  "Ulithi": "micronesia"}
+                  "Ulithi": "micronesia",
+                  "ULITHI": "micronesia"}
 
 category_mapping = {"BUOW": "burrowing owl",
                     "BAOW": "barred owl",
@@ -49,9 +70,29 @@ category_mapping = {"BUOW": "burrowing owl",
                     "WWDO": "white-winged dove",
                     "SEOW": "short-eared owl"}
 
-image_full_paths = find_images(src_directory, bRecursive=True)
+#%% Support functions
+
+
+def zipdir(path, zipfilename, basepath=None):
+    """
+    Zip everything in [path] into [zipfilename], with paths in the zipfile relative to [basepath]
+    """
+    ziph = zipfile.ZipFile(zipfilename, 'w', zipfile.ZIP_STORED)
+
+    for root, dirs, files in os.walk(path):
+        for file in files:
+            src = os.path.join(root, file)
+            if basepath is None:
+                dst = file
+            else:
+                dst = os.path.relpath(src, basepath)
+            ziph.write(src, dst, zipfile.ZIP_STORED)
+
+    ziph.close()
+
 def update_file_names():
     """ Function to update the filenames and copy to dest folder."""
+    image_full_paths = find_images(src_directory, bRecursive=True)
     for img in image_full_paths:
         fullpath = img
         dest_name = os.path.basename(fullpath)
@@ -105,7 +146,7 @@ for json_file in json_files:
         tmp = os.path.basename(os.path.join(
             dest_directory, image_name)).split(".")[0].split("_")
         try:
-            assert(len(tmp) == 2 or len(tmp) == 3 or len(tmp) == 6)
+            assert(len(tmp) >= 2 and len(tmp) <= 6)
         except Exception:
             import pdb;pdb.set_trace()
         for k, v in island_mapping.items():
@@ -118,9 +159,9 @@ for json_file in json_files:
         im['id'] = img_id
         im['file_name'] = image_name
         tmp[0] = island_mapping[tmp[0]]
-        if len(tmp) == 2 or len(tmp) == 2:
+        if len(tmp) <= 3:
             location = "_".join(tmp[:2])
-        elif len(tmp) == 6:
+        elif len(tmp) > 3:
             location = "_".join(tmp[:2])
             timestamp = tmp[2]
         if timestamp:
@@ -131,6 +172,7 @@ for json_file in json_files:
         # image_ids_to_images[img_id] = im
         images.append(im)
         detections = entry['detections']
+        image_cats = []
         for detection in detections:
             category_name = tmp_cat[detection['category']]
             if category_name == 'NULL':
@@ -139,7 +181,7 @@ for json_file in json_files:
                 category_name = category_mapping.get(
                     category_name, category_name)
             category_name = category_name.strip().lower()
-            # import pdb;pdb.set_trace()
+            image_cats.append(category_name)
 
             # Have we seen this category before?
             if category_name in category_name_to_category:
@@ -161,6 +203,10 @@ for json_file in json_files:
             if category_id != 0:
                 ann['bbox'] = detection['bbox']
             annotations.append(ann)
+        if "person" in image_cats or "human" in image_cats:
+            shutil.copy(os.path.join(dest_directory, image_name), os.path.join(base_dir, human_dir))
+        else:
+            shutil.copy(os.path.join(dest_directory, image_name), os.path.join(base_dir, non_human_dir))
 
 print('Finished creating CCT dictionaries')
 # import pdb;pdb.set_trace()
@@ -173,7 +219,7 @@ info['version'] = 1
 info['description'] = 'Island Conservation'
 info['contributor'] = 'CMI_manual'
 
-
+import pdb;pdb.set_trace()
 #%% Write output
 
 json_data = {}
@@ -185,6 +231,12 @@ json.dump(json_data, open(output_json_file, 'w'), indent=2)
 
 print('Finished writing .json file with {} images, {} annotations, and {} categories'.format(
     len(images), len(annotations), len(categories)))
+
+
+#%% Create ZIP files for human and non human
+
+zipdir(human_dir,human_zipfile)
+zipdir(non_human_dir,non_human_zipfile)
 
 #%% Validate output
 
@@ -212,4 +264,3 @@ html_output_file, image_db = visualize_db.process_images(db_path=output_json_fil
                                                          image_base_dir=dest_directory,
                                                          options=viz_options)
 os.startfile(html_output_file)
-
