@@ -13,11 +13,10 @@ CAMERATRAPS_DIR=/data/CameraTraps
 git clone https://github.com/Microsoft/CameraTraps.git $CAMERATRAPS_DIR
 ```
 
-Our code was tested with Python 3.6 and uses the libraries [Tensorflow](https://www.tensorflow.org/), [pycocotools](https://github.com/cocodataset/cocoapi/tree/master/PythonAPI), and the [Tensorflow object detection library](https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/installation.md). You can install the necessary libraries by running
+Our code was tested with Python 3.6 and uses the libraries [TensorFlow](https://www.tensorflow.org/), [pycocotools](https://github.com/cocodataset/cocoapi/tree/master/PythonAPI), and the [TensorFlow object detection library](https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/installation.md). You can install the necessary libraries by running
 
 ```bash
 conda env create -f ${CAMERATRAPS_DIR}/environment-classifier.yml
-# TODO: TFODAPI
 ```
 
 ### Data
@@ -32,37 +31,33 @@ First, we will copy the image data from the blob storage to the local machine. A
 DATASET_DIR=/data/serengeti
 mkdir $DATASET_DIR && cd $DATASET_DIR
 ```
-to assign this path to a variable called `DATASET_DIR`, create that directory, then change to it.
-
-You can copy the image data from blob storage to your local machine, unzip the archives, and delete the zip files using
-
-```bash
-BASEURL=https://lilablobssc.blob.core.windows.net/snapshotserengeti-v-2-0
-for SEASON in S01 S02 S03 S04
-do
-
-
-
-
-	dest="./${SEASON}.zip"
-	azcopy cp "${BASEURL}/SnapshotSerengeti_${SEASON}_v2_0.zip" "${dest}"
-	unzip -q ${dest}
-	rm ${dest}
-done
-```
+to assign this path to a variable called `DATASET_DIR`, create that directory, then change to it. There are two options for copying the image data from blob storage to your local machine using `azcopy`. (See installation instructions [here](https://aka.ms/azcopy).) The first (and recommended) option is to copy the image files one-by-one.
 
 ```bash
 BASEURL=https://lilablobssc.blob.core.windows.net/snapshotserengeti-unzipped
 SAS="?st=2020-01-01T00%3A00%3A00Z&se=2034-01-01T00%3A00%3A00Z&sp=rl&sv=2019-07-07&sr=c&sig=/DGPd%2B9WGFt6HgkemDFpo2n0M1htEXvTq9WoHlaH7L4%3D"
-for SEASON in S4  # S1 S2 S3 S4 S5 S6
+for SEASON in S1 S2 S3 S4 S5 S6
 do
-	mkdir ${SEASON}
-	dest="./${SEASON}"
-	azcopy cp "${BASEURL}/${SEASON}${SAS}" "${dest}" --recursive
+    mkdir ${SEASON}
+    dest="./${SEASON}"
+    azcopy cp "${BASEURL}/${SEASON}${SAS}" "${dest}" --recursive
 done
 ```
 
-The same steps are required for the metadata.
+Alternatively, if your internet connection is slow, you may consider copying the zipped archives then unzipping them yourself.
+
+```bash
+BASEURL=https://lilablobssc.blob.core.windows.net/snapshotserengeti-v-2-0
+for SEASON in S01 S02 S03 S04 S05 S06
+do
+    dest="./${SEASON}.zip"
+    azcopy cp "${BASEURL}/SnapshotSerengeti_${SEASON}_v2_0.zip" "${dest}"
+    unzip -q ${dest}
+    rm ${dest}
+done
+```
+
+Finally, download the metadata.
 
 ```bash
 dest="SnapshotSerengeti.json.zip"
@@ -108,18 +103,20 @@ python make_classification_dataset.py \
     --exclude_categories human empty
 ```
 
-In addition to detection and cropping of detected animals, the script will also divide the data into training and testing splits based on the locations. If you would like to use a different field name for splitting the data, you can use the `--location_key` flag.
+In addition to detection and cropping of detected animals, the script will also divide the data into training and testing splits based on the locations. If you would like to use a different field name for splitting the data, use the `--location_key` flag.
 
 The script will run for days or weeks depending on the dataset size. More details on the flags are discussed in the [classification README](https://github.com/Microsoft/CameraTraps/tree/master/classification#animal-detection-and-cropping). You can go to the folder `$COCO_STYLE_OUTPUT` and analyze the generated images. The script generates one subfolder for each category.
 
 ## Dataset statistics
 The number of generated images depends on the number of detected animals in the dataset as well as the how many of the images have only labeled with one species. We need the exact number of images for the classifier training. It can be computed using the script `cropped_camera_trap_dataset_statistics.py` in the same folder.
 
-    python cropped_camera_trap_dataset_statistics.py \
+```bash
+python cropped_camera_trap_dataset_statistics.py \
     $DATASET_DIR/SnapshotSerengeti.json \
     $COCO_STYLE_OUTPUT/train.json \
     $COCO_STYLE_OUTPUT/test.json \
     --classlist_output $COCO_STYLE_OUTPUT/classlist.txt
+```
 
 The script will print a complete overview of the generated data, which looks like this:
 
@@ -130,8 +127,8 @@ The script will print a complete overview of the generated data, which looks lik
     Statistics of the training split:
     Locations used:
     ['B03', 'B04', 'B05', ...
-    In total  49  classes and  1610503  images.
-    Classes with one or more images:  47
+    In total 49 classes and 1610503 images.
+    Classes with one or more images: 47
     Images per class:
     ID    Name            Image count
         0 empty                     0
@@ -143,8 +140,8 @@ The script will print a complete overview of the generated data, which looks lik
     Statistics of the testing split:
     Locations used:
     ['C01', 'C09', ...
-    In total  49  classes and  559437  images.
-    Classes with one or more images:  46
+    In total 49 classes and 559437 images.
+    Classes with one or more images: 46
     Images per class:
     ID    Name            Image count
         0 empty                     0
@@ -153,19 +150,20 @@ The script will print a complete overview of the generated data, which looks lik
         3 reedbuck               1060
     ...
 
-This tells us that there are in total 49 classes. The training split has 1610503 images and the testing split 559437.
+This tells us that there are 49 classes in total. The training split has 1610503 images and the testing split 559437.
 
 The output also contains the class distribution for each split, which allows for generating nice figures using a spreadsheet program of your choice. Copy all the lines
 
-        0 empty                     0
-        1 human                     0
-        2 gazelleGrants         28957
-        ....
+```
+    0 empty                     0
+    1 human                     0
+    2 gazelleGrants         28957
+    ....
+```
 
 with image counts to a text file, replace all consecutive spaces by a single comma using regular expressions, and open the file as CSV in a spreadsheet program. The program should detect the class names and image counts as separate columns. You can now create a plot such as:
 
 ![Serengeti class distribution](tutorial_images/serengeti_class_distribution.png?raw=true "Serengeti class distribution")
-
 
 
 ## Training a classifier
@@ -173,53 +171,56 @@ With this information, we can move on to the classifier training. The training r
 
 1. The TFRecords in `$TFRECORDS_OUTPUT` as generated above
 2. A pre-trained [Inception V4 model](http://download.tensorflow.org/models/inception_v4_2016_09_09.tar.gz)
-3. Slight modifications to the Tensorflow slim code in `$CAMERATRAPS_DIR/classification/tf-slim`
+3. Slight modifications to the TensorFlow slim code in `$CAMERATRAPS_DIR/classification/tf-slim`
 
 We already have the TFRecords, so we can directly jump to step 2, downloading the model. Let's put it in a separate directory:
 
-    PRETRAINED_DIR=/data/pretrained
-    mkdir $PRETRAINED_DIR && cd $PRETRAINED_DIR
-    wget -O inc4.tar.gz http://download.tensorflow.org/models/inception_v4_2016_09_09.tar.gz
-    tar xzf inc4.tar.gz
+```bash
+PRETRAINED_DIR=/data/pretrained
+mkdir $PRETRAINED_DIR && cd $PRETRAINED_DIR
+wget -O inc4.tar.gz http://download.tensorflow.org/models/inception_v4_2016_09_09.tar.gz
+tar xzf inc4.tar.gz
+```
 
 Now, we continue with the code modifications. Each dataset requires a separate dataset description file, which is located in
 `$CAMERATRAPS_DIR/classification/tf-slim/datasets/`. We will create a file for our Serengeti dataset from scratch to explain the procedure:
 
-    cd $CAMERATRAPS_DIR/classification/tf-slim/datasets/
-    cp cct.py serengeti.py
+```bash
+cd $CAMERATRAPS_DIR/classification/tf-slim/datasets/
+cp cct.py serengeti.py
+```
 
-Open the file and adjust lines 20 and 22 to match the our dataset numbers:
+Open the file (`serengeti.py`) and adjust lines 20 and 22 to match the our dataset numbers:
 
-    SPLITS_TO_SIZES = {'train': 1610503, 'test': 559437}
-    _NUM_CLASSES = 49
+```python
+SPLITS_TO_SIZES = {'train': 1610503, 'test': 559437}
+_NUM_CLASSES = 49
+```
 
-Close and save the file. This description now gets connected to the rest of the code by the file `dataset_factory.py`. Open it with
+Close and save the file. This description now gets connected to the rest of the code by the file `dataset_factory.py`. Open it and add an import as well as an entry to the list of datasets at line 37. The list of datasets is a dictionary called `datasets_map` and should now look like this:
 
-    vim $CAMERATRAPS_DIR/classification/tf-slim/datasets/dataset_factory.py
-
-and add an import as well as an entry to the list of datasets at line 37. The list of datasets is a dictionary called `datasets_map` and should now look like this:
-
+```python
+...
+from datasets import serengeti  # <-- This is new
+datasets_map = {
+    'cifar10': cifar10,
+    'flowers': flowers,
+    'imagenet': imagenet,
+    'mnist': mnist,
+    'cct': cct,
+    'wellington': wellington,
+    'serengeti': serengeti, # <-- This is new
+    'nacti': nacti
     ...
-    from datasets import serengeti  # <-- This is new
-    datasets_map = {
-        'cifar10': cifar10,
-        'flowers': flowers,
-        'imagenet': imagenet,
-        'mnist': mnist,
-        'cct': cct,
-        'wellington': wellington,
-        'serengeti': serengeti, # <-- This is new
-        'nacti': nacti
-    }
-    ...
+}
+```
 
-Now everything is prepared. The easiest way to start the training is by adapting one of the existing training scripts. We first switch to the classification directory.
+Now everything is prepared. The easiest way to start the training is by adapting one of the existing training scripts. We first switch to the classification directory, which contains several sample scripts for the training. As before, we will adapt an existing file to our needs:
 
-    cd $CAMERATRAPS_DIR/classification/training_scripts
-
-This folder contains several sample scripts for the training. As before, we will adapt an existing file to our needs:
-
-    cp train_cct_inception_v4.sh train_serengeti_inception_v4.sh
+```bash
+cd $CAMERATRAPS_DIR/classification/training_scripts
+cp train_cct_inception_v4.sh train_serengeti_inception_v4.sh
+```
 
 Open `train_serengeti_inception_v4.sh` with a text editor and adjust
 - `DATASET_NAME` to the key used in the dict `datasets_map` above, in our case `serengeti`
@@ -228,40 +229,40 @@ Open `train_serengeti_inception_v4.sh` with a text editor and adjust
 
 In our case, these three values would look like this
 
-    DATASET_DIR=/data/serengeti_cropped_tfrecords
-    DATASET_NAME=serengeti
-    CHECKPOINT_PATH=/data/pretrained/inception_v4.ckpt
+```bash
+DATASET_DIR=/data/serengeti/cropped_tfrecords
+DATASET_NAME=serengeti
+CHECKPOINT_PATH=/data/pretrained/inception_v4.ckpt
+```
 
 You might also want to adjust the number of training steps by changing the value of `--max_number_of_steps` at [line 51](https://github.com/Microsoft/CameraTraps/blob/classification/classification/train_serengeti_inception_v4.sh#L51). A good starting value is 30 epochs, which translates to
 
     NUM_EPOCHS * NUM_TRAINING_IMAGES / BATCH_SIZE
 
-steps. The longer you run the training, the better might be the accuracy.
+steps. The longer you run the training, the better the accuracy might be. We are now ready to start the training! Go to the TensorFlow slim directory and start the training with
 
-We are now ready to start the training! Go to the Tensorflow slim directory with
-
-    cd $CAMERATRAPS_DIR/classification/tf-slim
-
-and start the training with
-
-    bash ../training_scripts/train_serengeti_inception_v4.sh
+```bash
+cd $CAMERATRAPS_DIR/classification/tf-slim
+bash ../training_scripts/train_serengeti_inception_v4.sh
+```
 
 The training will take several days to complete. It is a two-step training, in which we first train only the last layer of the network. Afterward, all parameters are trained jointly.
 
-NOTE: It appears that there is a bug in the tf-slim code, which manifests in a significantly lower accuracy, e.g., 10% lower than expected. If you experiences issues with low accuracy values, try the following fix. After the training is finished, locate the created log directory, change the variable `TRAIN_DIR` in `../training_scripts/train_serengeti_inception_v4.sh` to this folder. Now re-run `bash ../training_scripts/train_serengeti_inception_v4.sh`. The tensorflow training will recognize the existing checkpoints, read the model, and write out a new bug-free model.
+NOTE: It appears that there is a bug in the tf-slim code, which manifests in a significantly lower accuracy, e.g., 10% lower than expected. If you experience issues with low accuracy values, try the following fix. After the training is finished, locate the created log directory, change the variable `TRAIN_DIR` in `../training_scripts/train_serengeti_inception_v4.sh` to this folder. Now re-run `bash ../training_scripts/train_serengeti_inception_v4.sh`. The tensorflow training will recognize the existing checkpoints, read the model, and write out a new bug-free model.
 
 ## Evaluating the classifier
-The sample training scripts will run an evaluation run on the test data after the training finished. This evaluation run can be repeated later as well. We will adapt an existing evaluation script for this purpose. First, switch to the directory containing the sample scripts by executing
+The sample training scripts will run an evaluation run on the test data after the training finished. This evaluation run can be repeated later as well. We will adapt an existing evaluation script for this purpose. First, switch to the directory containing the sample scripts and copy one of the existing scripts with
 
-    cd $CAMERATRAPS_DIR/classification/training_scripts
-
-and copy one of the existing scripts with
-
-    cp eval_cct_inception_v4.sh eval_serengeti_inception_v4.sh
+```bash
+cd $CAMERATRAPS_DIR/classification/training_scripts
+cp eval_cct_inception_v4.sh eval_serengeti_inception_v4.sh
+```
 
 This script needs similar adjustments as the training script created in the previous section. Open the script `eval_serengeti_inception_v4.sh` with a text editor like `vim` by executing
 
-    vim eval_serengeti_inception_v4.sh
+```bash
+vim eval_serengeti_inception_v4.sh
+```
 
 and set the variables in the top:
 - `DATASET_NAME` to the key used in the training script, in our case `serengeti`
@@ -274,17 +275,18 @@ One log folder is created for each training run in the directory
 
 and the folder name contains the starting date and time. Double check that that you pick the correct path as the evaluation will run even with an invalid path. In our case, the top of the script looks like this
 
-    DATASET_DIR=/data/serengeti_cropped_tfrecords
-    DATASET_NAME=serengeti
-    CHECKPOINT_DIR=/data/CameraTraps/classification/tf-slim/log/2019-02-22_07.05.54_well_incv4/all/
+```bash
+DATASET_DIR=/data/serengeti/cropped_tfrecords
+DATASET_NAME=serengeti
+CHECKPOINT_DIR=/data/CameraTraps/classification/tf-slim/log/2019-02-22_07.05.54_well_incv4/all/
+```
 
-The script is now ready for execution. Change to the `tf-slim` folder by executing
+The script is now ready for execution. Change to the `tf-slim` folder and start the evaluation run with
 
-    cd $CAMERATRAPS_DIR/classification/tf-slim
-
-and start the evaluation run with
-
-    bash ../training_scripts/eval_serengeti_inception_v4.sh
+```bash
+cd $CAMERATRAPS_DIR/classification/tf-slim
+bash ../training_scripts/eval_serengeti_inception_v4.sh
+```
 
 As before, the accuracy will be printed at the end:
 
@@ -299,46 +301,46 @@ As before, the accuracy will be printed at the end:
 The outputs `eval/Accuracy` and `eval/Recall_5` correspond to the top-1 and top-5 accuracy with values in [0,1].
 
 ## Single-image prediction
-The trained model can be deployed and used for single-image prediction. The first step is exporting the model definition and creating a frozen graph. Start by changing to the `tf-slim` folder
+The trained model can be deployed and used for single-image prediction. The first step is exporting the model definition and creating a frozen graph. Start by changing to the `tf-slim` folder and setting `CHECKPOINT_PATH` to point to the subfolder `all` of your training log directory. We can now start exporting the model definition by running
 
-    cd $CAMERATRAPS_DIR/classification/tf-slim
+```bash
+cd $CAMERATRAPS_DIR/classification/tf-slim
 
-and by making sure, that your `CHECKPOINT_PATH` points to the subfolder `all` of your training log directory. In our case it looks like this:
+CHECKPOINT_DIR=/data/CameraTraps/classification/tf-slim/log/2019-02-22_07.05.54_well_incv4/all/
 
-    CHECKPOINT_DIR=/data/CameraTraps/classification/tf-slim/log/2019-02-22_07.05.54_well_incv4/all/
-
-We can now start exporting the model definition by running
-
-    python ../export_inference_graph_definition.py \
-        --model_name=inception_v4 \
-        --output_file=${CHECKPOINT_DIR}/inception_v4_inf_graph_def.pbtxt \
-        --dataset_name=serengeti \
-        --write_text_graphdef=True
+python ../export_inference_graph_definition.py \
+    --model_name=inception_v4 \
+    --output_file=${CHECKPOINT_DIR}/inception_v4_inf_graph_def.pbtxt \
+    --dataset_name=serengeti \
+    --write_text_graphdef=True
+```
 
 where `$CHECKPOINT_DIR` is the path to the log directory of the model training as above. The export command will create a file called `inception_v4_inf_graph_def.pbtxt` in the log directory, which represents the structure of the classification model. The file does not contain the learned model parameters yet. These values are stored in the checkpoint files starting with `model.ckpt...`.
 
 We will now fuse the model structure and learned parameter values into one file, which is called frozen graph:
 
-    python ../freeze_graph.py \
-        --input_graph=${CHECKPOINT_DIR}/inception_v4_inf_graph_def.pbtxt \
-        --input_checkpoint=`ls ${CHECKPOINT_DIR}/model.ckpt*meta | tail -n 1 | rev | cut -c 6- | rev` \
-        --output_graph=${CHECKPOINT_DIR}/frozen_inference_graph_w_preprocessing.pb \
-        --input_node_names=input \
-        --output_node_names=output \
-        --clear_devices=True
+```bash
+python ../freeze_graph.py \
+    --input_graph=${CHECKPOINT_DIR}/inception_v4_inf_graph_def.pbtxt \
+    --input_checkpoint=`ls ${CHECKPOINT_DIR}/model.ckpt*meta | tail -n 1 | rev | cut -c 6- | rev` \
+    --output_graph=${CHECKPOINT_DIR}/frozen_inference_graph_w_preprocessing.pb \
+    --input_node_names=input \
+    --output_node_names=output \
+    --clear_devices=True
+```
 
 You should be able to run this command without any modification as the only bash variable here is `$CHECKPOINT_DIR`. The script will create a file called `frozen_inference_graph_w_preprocessing.pb` in the folder `$CHECKPOINT_DIR`, which is a deployable self-contained inference model. This model also contains all image preprocessing steps required.
 
-We now can predict the category of a new image as follows. First, change to the following directory
+We now can predict the category of a new image as follows. First, change to the `classification` directory. This folder contains the script `predict_image.py`, which takes the frozen graph, a list of class names, and an image as input. It will then read the image, pass it to the classification model, and print the five most likely categories.
 
-    cd $CAMERATRAPS_DIR/classification
+```bash
+cd $CAMERATRAPS_DIR/classification
 
-This folder contains the script `predict_image.py`, which takes the frozen graph, a list of class names, and an image as input. It will then read the image, pass it to the classification model, and print the five most likely categories.
-
-    python predict_image.py \
+python predict_image.py \
     --frozen_graph ${CHECKPOINT_DIR}/frozen_inference_graph_w_preprocessing.pb \
     --classlist $COCO_STYLE_OUTPUT/classlist.txt \
     --image_path $COCO_STYLE_OUTPUT/gazelleThomsons/S2/L12/L12_R1/S2_L12_R1_PICT2280.JPG
+```
 
 This command will analyze the testing image `$COCO_STYLE_OUTPUT/gazelleThomsons/S2/L12/L12_R1/S2_L12_R1_PICT2280.JPG`, which looks like
 
@@ -357,17 +359,17 @@ and print the following output:
 NOTE: The prediction only works properly if the frozen graph is generated by the script `../freeze_graph.py` as shown above. The frozen graph that is generated automatically by tensorflow slim training does not include the image pre-processing and hence might result in less accurate predictions.
 
 ## Joint detection an classification
-The repository also contains a script for test-driving the joint detection and classification. We assume that you already performed the model export as shown in the previous section about single-image prediction. You can now change to the directory
+The repository also contains a script for test-driving the joint detection and classification. We assume that you already performed the model export as shown in the previous section about single-image prediction. From the `classification` directory you may run
 
-    cd $CAMERATRAPS_DIR/classification
+```bash
+cd $CAMERATRAPS_DIR/classification
 
-and run
-
-    python detect_and_predict_image.py \
+python detect_and_predict_image.py \
     --classes_file $COCO_STYLE_OUTPUT/classlist.txt \
     --image_file $COCO_STYLE_OUTPUT/gazelleThomsons/S2/L12/L12_R1/S2_L12_R1_PICT2280.JPG \
     $FROZEN_DETECTION_GRAPH \
     ${CHECKPOINT_DIR}/frozen_inference_graph_w_preprocessing.pb
+```
 
 The script will run the detector on the image and apply the classifier to each detected box that has a high confidence. The results are plotted as an image and save to the folder containing the input images. The file name will be the original file name with a `_detections.jpg` attached. In our case, the output looks like
 
@@ -375,15 +377,15 @@ The script will run the detector on the image and apply the classifier to each d
 
 
 ## Sampling testing images
-For visualization and debugging purposes, we also provide a script to randomly sample testing images and run the prediction on each of those. The script is located in the `classification` subfolder, so first change there by executing
+For visualization and debugging purposes, we also provide a script to randomly sample testing images and run the prediction on each of those. The script is located in the `classification` subfolder. Execute the script as follows:
 
-    cd $CAMERATRAPS_DIR/classification/
+```bash
+cd $CAMERATRAPS_DIR/classification/
 
-Now execute the script `` as follows
-
-    python generate_sample_predictions.py \
+python generate_sample_predictions.py \
     --frozen_graph ${CHECKPOINT_DIR}/frozen_inference_graph_w_preprocessing.pb \
     --test_json     $COCO_STYLE_OUTPUT/test.json
+```
 
 By default, the output will be placed in a subfolder called `./sample_output` and ten images are selected. The images are sampled equally from all classes.
 
