@@ -315,19 +315,19 @@ def make_cct_embedded(image_db=None, bbox_db=None):
                     'category': cct_bbox_json_db.cat_id_to_name[bbox_anno['category_id']],
                     # 'bbox_abs': bbox_anno['bbox'],
                 }
+                if 'bbox' in bbox_anno:
+                    if 'width' in docs[image_id]:
+                        image_w = docs[image_id]['width']
+                        image_h = docs[image_id]['height']
+                        x, y, w, h = bbox_anno['bbox']
+                        item_bbox['bbox_rel'] = [
+                            truncate_float(x / image_w),
+                            truncate_float(y / image_h),
+                            truncate_float(w / image_w),
+                            truncate_float(h / image_h)
+                        ]
 
-                if 'width' in docs[image_id]:
-                    image_w = docs[image_id]['width']
-                    image_h = docs[image_id]['height']
-                    x, y, w, h = bbox_anno['bbox']
-                    item_bbox['bbox_rel'] = [
-                        truncate_float(x / image_w),
-                        truncate_float(y / image_h),
-                        truncate_float(w / image_w),
-                        truncate_float(h / image_h)
-                    ]
-
-                docs[image_id]['annotations']['bbox'].append(item_bbox)
+                    docs[image_id]['annotations']['bbox'].append(item_bbox)
 
             # not keeping height and width
             del docs[image_id]['width']
