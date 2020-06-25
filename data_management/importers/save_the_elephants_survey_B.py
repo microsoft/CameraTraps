@@ -153,7 +153,7 @@ for image_name in tqdm(list(filenames_to_rows.keys())):
     #        
     # 'Site 1_Oloisukut_1\Oloisukut_A11_UP\Service_2\100EK113\EK001382.JPG'
     # 'Site 1_Oloisukut_1\Oloisukut_A11_UP\Service_2.1\100EK113\EK001382.JPG'
-    img_id = image_name.replace('\\','/').replace('/','_').replace(' ','_')
+    img_id = image_name.replace('\\','/').replace('\n','').replace('/','_').replace(' ','_')
     
     row_indices = filenames_to_rows[image_name]
     
@@ -203,6 +203,8 @@ for image_name in tqdm(list(filenames_to_rows.keys())):
         if (isinstance(species,float) or \
             (isinstance(species,str) and (len(species) == 0))):
             category_name = 'empty'
+        elif species.startswith('?')
+            category_name = 'unknown'
         else:
             category_name = species
         
