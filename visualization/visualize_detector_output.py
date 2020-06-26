@@ -19,7 +19,7 @@ import urllib.parse as parse
 from azure.storage.blob import BlockBlobService
 from tqdm import tqdm
 
-from data_management.annotations.annotation_constants import  bbox_category_id_to_name  # here id is int
+from data_management.annotations.annotation_constants import detector_bbox_category_id_to_name # here id is int
 from visualization import visualization_utils as vis_utils
 from ct_utils import args_to_object
 
@@ -27,7 +27,7 @@ from ct_utils import args_to_object
 #%% Constants
 
 # convert category ID from int to str
-DEFAULT_DETECTOR_LABEL_MAP = {str(k): v for k, v in bbox_category_id_to_name.items()}
+DEFAULT_DETECTOR_LABEL_MAP = {str(k): v for k, v in detector_bbox_category_id_to_name.items()}
 
 
 #%% Options class
@@ -239,9 +239,10 @@ def main():
     if args.images_dir and args.sas_url:
         print('Both local images_dir and remote sas_url are supplied. Using local images as originals.')
 
-    options = DetectorVizOptions()
-    args_to_object(args,options)
+    # options = DetectorVizOptions()
+    # args_to_object(args,options)
     
-
+    visualize_detector_output(args)
+    
 if __name__ == '__main__':
     main()
