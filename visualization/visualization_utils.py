@@ -95,7 +95,7 @@ def resize_image(image, target_width, target_height=-1):
 
 
 def show_images_in_a_row(images):
-    
+
     num = len(images)
     assert num > 0
 
@@ -142,31 +142,31 @@ COLORS = [
 
 def crop_image(detections, image, confidence_threshold=0.8, expansion=0):
     """
-    Crops detections above *confidence_threshold* from the PIL image *image*, 
+    Crops detections above *confidence_threshold* from the PIL image *image*,
     returning a list of PIL images.
-    
-    *detections* should be a list of dictionaries with keys 'conf' and 'bbox'; 
+
+    *detections* should be a list of dictionaries with keys 'conf' and 'bbox';
     see bbox format description below.  Normalized, [x,y,w,h], upper-left-origin.
-    
+
     *expansion* specifies a number of pixels to include on each side of the box.
     """
-        
+
     ret_images = []
-    
+
     for detection in detections:
-    
+
         score = float(detection['conf'])
-        
-        if score >= confidence_threshold: 
-            
+
+        if score >= confidence_threshold:
+
             x1, y1, w_box, h_box = detection['bbox']
             ymin,xmin,ymax,xmax = y1, x1, y1 + h_box, x1 + w_box
-    
+
             # Convert to pixels so we can use the PIL crop() function
             im_width, im_height = image.size
             (left, right, top, bottom) = (xmin * im_width, xmax * im_width,
                                           ymin * im_height, ymax * im_height)
-            
+
             if expansion > 0:
                 left -= expansion
                 right += expansion
@@ -175,20 +175,20 @@ def crop_image(detections, image, confidence_threshold=0.8, expansion=0):
 
             # PIL's crop() does surprising things if you provide values outside of
             # the image, clip inputs
-            left = max(left,0); right = max(right,0); 
+            left = max(left,0); right = max(right,0)
             top = max(top,0); bottom = max(bottom,0)
-            
+
             left = min(left,im_width-1); right = min(right,im_width-1)
             top = min(top,im_height-1); bottom = min(bottom,im_height-1)
-            
-            ret_images.append(image.crop((left, top, right, bottom))) 
-           
+
+            ret_images.append(image.crop((left, top, right, bottom)))
+
         # ...if this detection is above threshold
-    
+
     # ...for each detection
-            
+
     return ret_images
-        
+
 
 def render_detection_bounding_boxes(detections, image,
                                     label_map={},
@@ -405,7 +405,7 @@ def draw_bounding_box_on_image(image,
         top -= expansion
         bottom += expansion
 
-        # Deliberately trimming to the width of the image only in the case where 
+        # Deliberately trimming to the width of the image only in the case where
         # box expansion is turned on.  There's not an obvious correct behavior here,
         # but the thinking is that if the caller provided an out-of-range bounding
         # box, they meant to do that, but at least in the eyes of the person writing
@@ -415,12 +415,12 @@ def draw_bounding_box_on_image(image,
         # A slightly more sophisticated might check whether it was in fact the expansion
         # that made this box larger than the image, but this is the case 99.999% of the time
         # here, so that doesn't seem necessary.
-        left = max(left,0); right = max(right,0); 
+        left = max(left,0); right = max(right,0)
         top = max(top,0); bottom = max(bottom,0)
-            
+
         left = min(left,im_width-1); right = min(right,im_width-1)
         top = min(top,im_height-1); bottom = min(bottom,im_height-1)
-            
+
     draw.line([(left, top), (left, bottom), (right, bottom),
                (right, top), (left, top)], width=thickness, fill=color)
 
@@ -496,27 +496,29 @@ def render_iMerit_boxes(boxes, classes, image,
 
 def render_megadb_bounding_boxes(boxes_info, image):
     """
-    each item in boxes_info is
-    {
-        "category": "animal",
-        "bbox": [
-          0.739,
-          0.448,
-          0.187,
-          0.198
-        ]
-    }
+    Args:
+        boxes_info: list of dict, each dict represents a single detection
+            {
+                "category": "animal",
+                "bbox": [
+                    0.739,
+                    0.448,
+                    0.187,
+                    0.198
+                ]
+            }
+            where bbox coordinates are normalized [x_min, y_min, width, height]
+        image: PIL.Image.Image, opened image
     """
     display_boxes = []
     display_strs = []
     classes = []  # ints, for selecting colors
 
     for b in boxes_info:
-        x_rel, y_rel, w_rel, h_rel = b['bbox']
-        ymin, xmin = y_rel, x_rel
-        ymax = ymin + h_rel
-        xmax = xmin + w_rel
-        display_boxes.append([ymin, xmin, ymax, xmax])
+        x_min, y_min, w_rel, h_rel = b['bbox']
+        y_max = y_min + h_rel
+        x_max = x_min + w_rel
+        display_boxes.append([y_min, x_min, y_max, x_max])
         display_strs.append([b['category']])
         classes.append(annotation_constants.detector_bbox_category_name_to_id[b['category']])
 
@@ -561,4 +563,4 @@ def render_db_bounding_boxes(boxes, classes, image, original_size=None,
     display_boxes = np.array(display_boxes)
     draw_bounding_boxes_on_image(image, display_boxes, classes, display_strs=display_strs,
                                  thickness=thickness, expansion=expansion)
-    
+
