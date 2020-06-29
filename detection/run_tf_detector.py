@@ -1,544 +1,498 @@
-######
-#
-# run_tf_detector.py
-#
-# Functions to load a TensorFlow detection model, run inference,
-# render bounding boxes on images, and write out the resulting
-# images (with bounding boxes).
-#
-# This script depends on nothign else in our repo, just standard pip
-# installs.  It's a good way to test our detector on a handful of images and
-# get super-satisfying, graphical results.  It's also a good way to see how
-# fast a detector model will run on a particular machine.
-#
-# This script is not a good way to process lots and lots of images; it loads all
-# the images first, then runs the model.  If you want to run a detector (e.g. ours)
-# on lots of images, you should check out:
-#
-# 1) run_tf_detector_batch.py (for local execution)
-# 
-# 2) https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing
-#    (for running large jobs on Azure ML)
-#
-# See the "test driver" cell for example invocation.
-#
-# If no output directory is specified, writes detections for c:\foo\bar.jpg to
-# c:\foo\bar_detections.jpg .
-#
-######
+"""
+Module to run a TensorFlow animal detection model on images.
+
+The class TFDetector contains functions to load a TensorFlow detection model and run inference.
+The main function in this script also render the predicted bounding boxes on images and
+save the resulting images (with bounding boxes).
+
+This script is not a good way to process lots of images (tens of thousands, say).
+It does not facilitate checkpointing the results so if it crashes
+you would have to start from scratch. If you want to run a detector (e.g. ours)
+on lots of images, you should check out:
+
+1) run_tf_detector_batch.py (for local execution)
+
+2) https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing
+   (for running large jobs on Azure ML)
+
+To run this script, we recommend you set up a conda virtual environment following instructions
+in the Installation section on the main README, using `environment-detector.yml` as the
+environment file where asked.
+
+This is a good way to test our detector on a handful of images and
+get super-satisfying, graphical results.  It's also a good way to see how
+fast a detector model will run on a particular machine.
+
+If you would like to *not* use the GPU on the machine, set the environment variable CUDA_VISIBLE_DEVICES to "-1"
+
+If no output directory is specified, writes detections for c:\foo\bar.jpg to
+c:\foo\bar_detections.jpg .
+
+This script will only consider detections with > 0.1 confidence at all times. The `threshold` you
+provide is only for rendering the results. If you need to see lower-confidence detections, you can change
+DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD.
+
+Reference:
+https://github.com/tensorflow/models/blob/master/research/object_detection/inference/detection_inference.py
+"""
+
 
 #%% Constants, imports, environment
 
 import argparse
 import glob
 import os
+import statistics
 import sys
 import time
+import warnings
 
-import PIL
 import humanfriendly
-import matplotlib
-matplotlib.use('TkAgg')
-import matplotlib.image as mpimg
-import matplotlib.patches as patches
-import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
 import numpy as np
-import tensorflow as tf
 from tqdm import tqdm
 
-DEFAULT_CONFIDENCE_THRESHOLD = 0.85
+from ct_utils import truncate_float
+import visualization.visualization_utils as viz_utils
 
-# Stick this into filenames before the extension for the rendered result
-DETECTION_FILENAME_INSERT = '_detections'
+# ignoring all "PIL cannot read EXIF metainfo for the images" warnings
+warnings.filterwarnings('ignore', '(Possibly )?corrupt EXIF data', UserWarning)
 
-BOX_COLORS = ['b','g','r']
-DEFAULT_LINE_WIDTH = 10
-SHOW_CONFIDENCE_VALUES = False
+# Metadata Warning, tag 256 had too many entries: 42, expected 1
+warnings.filterwarnings('ignore', 'Metadata warning', UserWarning)
 
-# Suppress excessive tensorflow output
-tf.logging.set_verbosity(tf.logging.ERROR)
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+# Numpy FutureWarnings from tensorflow import
+warnings.filterwarnings('ignore', category=FutureWarning)
 
+import tensorflow as tf
 
-#%% Core detection functions
-
-def load_model(checkpoint):
-    """
-    Load a detection model (i.e., create a graph) from a .pb file
-    """
-
-    detection_graph = tf.Graph()
-    with detection_graph.as_default():
-        od_graph_def = tf.GraphDef()
-        with tf.gfile.GFile(checkpoint, 'rb') as fid:
-            serialized_graph = fid.read()
-            od_graph_def.ParseFromString(serialized_graph)
-            tf.import_graph_def(od_graph_def, name='')
-    
-    return detection_graph
+print('TensorFlow version:', tf.__version__)
+print('Is GPU available? tf.test.is_gpu_available:', tf.test.is_gpu_available())
 
 
-def generate_detections(detection_graph,images):
-    """
-    boxes,scores,classes,images = generate_detections(detection_graph,images)
+#%% Classes
 
-    Run an already-loaded detector network on a set of images.
+class ImagePathUtils:
+    """A collection of utility functions supporting this stand-alone script"""
 
-    [images] can be a list of numpy arrays or a list of filenames.  Non-list inputs will be
-    wrapped into a list.
+    # Stick this into filenames before the extension for the rendered result
+    DETECTION_FILENAME_INSERT = '_detections'
 
-    Boxes are returned in relative coordinates as (top, left, bottom, right); 
-    x,y origin is the upper-left.
-    
-    [boxes] will be returned as a numpy array of size nImages x nDetections x 4.
-    
-    [scores] and [classes] will each be returned as a numpy array of size nImages x nDetections.
-    
-    [images] is a set of numpy arrays corresponding to the input parameter [images], which may have
-    have been either arrays or filenames.    
-    """
+    image_extensions = ['.jpg', '.jpeg', '.gif', '.png']
 
-    if not isinstance(images,list):
-        images = [images]
-    else:
-        images = images.copy()
+    @staticmethod
+    def is_image_file(s):
+        """
+        Check a file's extension against a hard-coded set of image file extensions    '
+        """
+        ext = os.path.splitext(s)[1]
+        return ext.lower() in ImagePathUtils.image_extensions
 
-    print('Loading images...')
-    startTime = time.time()
-    
-    # Load images if they're not already numpy arrays
-    # iImage = 0; image = images[iImage]
-    for iImage,image in enumerate(tqdm(images)):
-        if isinstance(image,str):
-            
-            # Load the image as an nparray of size h,w,nChannels
-            
-            # There was a time when I was loading with PIL and switched to mpimg,
-            # but I can't remember why, and converting to RGB is a very good reason
-            # to load with PIL, since mpimg doesn't give any indication of color 
-            # order, which basically breaks all .png files.
-            #
-            # So if you find a bug related to using PIL, update this comment
-            # to indicate what it was, but also disable .png support.
-            image = PIL.Image.open(image).convert("RGB"); image = np.array(image)
-            # image = mpimg.imread(image)
-            
-            # This shouldn't be necessary when loading with PIL and converting to RGB
-            nChannels = image.shape[2]
-            if nChannels > 3:
-                print('Warning: trimming channels from image')
-                image = image[:,:,0:3]
-            images[iImage] = image
+    @staticmethod
+    def find_image_files(strings):
+        """
+        Given a list of strings that are potentially image file names, look for strings
+        that actually look like image file names (based on extension).
+        """
+        return [s for s in strings if ImagePathUtils.is_image_file(s)]
+
+    @staticmethod
+    def find_images(dir_name, recursive=False):
+        """
+        Find all files in a directory that look like image file names
+        """
+        if recursive:
+            strings = glob.glob(os.path.join(dir_name, '**', '*.*'), recursive=True)
         else:
-            assert isinstance(image,np.ndarray)
+            strings = glob.glob(os.path.join(dir_name, '*.*'))
 
-    elapsed = time.time() - startTime
-    print("Finished loading {} file(s) in {}".format(len(images),
-          humanfriendly.format_timespan(elapsed)))    
-    
-    boxes = []
-    scores = []
-    classes = []
-    
-    nImages = len(images)
+        image_strings = ImagePathUtils.find_image_files(strings)
 
-    print('Running detector...')    
-    startTime = time.time()
-    firstImageCompleteTime = None
-    
-    with detection_graph.as_default():
-        
-        with tf.Session(graph=detection_graph) as sess:
-            
-            for iImage,imageNP in tqdm(enumerate(images)): 
-                
-                imageNP_expanded = np.expand_dims(imageNP, axis=0)
-                image_tensor = detection_graph.get_tensor_by_name('image_tensor:0')
-                box = detection_graph.get_tensor_by_name('detection_boxes:0')
-                score = detection_graph.get_tensor_by_name('detection_scores:0')
-                clss = detection_graph.get_tensor_by_name('detection_classes:0')
-                num_detections = detection_graph.get_tensor_by_name('num_detections:0')
-                
-                # Actual detection
-                (box, score, clss, num_detections) = sess.run(
-                        [box, score, clss, num_detections],
-                        feed_dict={image_tensor: imageNP_expanded})
+        return image_strings
 
-                boxes.append(box)
-                scores.append(score)
-                classes.append(clss)
-            
-                if iImage == 0:
-                    firstImageCompleteTime = time.time()
-                    
-            # ...for each image                
-    
-        # ...with tf.Session
 
-    # ...with detection_graph.as_default()
-    
-    elapsed = time.time() - startTime
-    if nImages == 1:
-        print("Finished running detector in {}".format(humanfriendly.format_timespan(elapsed)))
-    else:
-        firstImageElapsed = firstImageCompleteTime - startTime
-        remainingImagesElapsed = elapsed - firstImageElapsed
-        remainingImagesTimePerImage = remainingImagesElapsed/(nImages-1)
-        
-        print("Finished running detector on {} images in {} ({} for the first image, {} for each subsequent image)".format(len(images),
-              humanfriendly.format_timespan(elapsed),
-              humanfriendly.format_timespan(firstImageElapsed),
-              humanfriendly.format_timespan(remainingImagesTimePerImage)))
-    
-    nBoxes = len(boxes)
-    
-    # Currently "boxes" is a list of length nImages, where each element is shaped as
+class TFDetector:
+    """
+    A detector model loaded at the time of initialization. It is intended to be used with
+    the MegaDetector (TF). The inference batch size is set to 1; code needs to be modified
+    to support larger batch sizes, including resizing appropriately.
+    """
+
+    # Number of decimal places to round to for confidence and bbox coordinates
+    CONF_DIGITS = 3
+    COORD_DIGITS = 4
+
+    # MegaDetector was trained with batch size of 1, and the resizing function is a part
+    # of the inference graph
+    BATCH_SIZE = 1
+
+    # An enumeration of failure reasons
+    FAILURE_TF_INFER = 'Failure TF inference'
+    FAILURE_IMAGE_OPEN = 'Failure image access'
+
+    DEFAULT_RENDERING_CONFIDENCE_THRESHOLD = 0.85  # to render bounding boxes
+    DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD = 0.1  # to include in the output json file
+
+    DEFAULT_DETECTOR_LABEL_MAP = {
+        '1': 'animal',
+        '2': 'person',
+        '3': 'vehicle'  # available in megadetector v4+
+    }
+
+    NUM_DETECTOR_CATEGORIES = 4  # animal, person, group, vehicle - for color assignment
+
+    def __init__(self, model_path):
+        """Loads model from model_path and starts a tf.Session with this graph. Obtains
+        input and output tensor handles."""
+        detection_graph = TFDetector.__load_model(model_path)
+        self.tf_session = tf.Session(graph=detection_graph)
+
+        self.image_tensor = detection_graph.get_tensor_by_name('image_tensor:0')
+        self.box_tensor = detection_graph.get_tensor_by_name('detection_boxes:0')
+        self.score_tensor = detection_graph.get_tensor_by_name('detection_scores:0')
+        self.class_tensor = detection_graph.get_tensor_by_name('detection_classes:0')
+
+    @staticmethod
+    def round_and_make_float(d, precision=4):
+        return truncate_float(float(d), precision=precision)
+
+    @staticmethod
+    def __convert_coords(tf_coords):
+        """Converts coordinates from the model's output format [y1, x1, y2, x2] to the
+        format used by our API and MegaDB: [x1, y1, width, height]. All coordinates
+        (including model outputs) are normalized in the range [0, 1].
+
+        Args:
+            tf_coords: np.array of predicted bounding box coordinates from the TF detector,
+                has format [y1, x1, y2, x2]
+
+        Returns: list of Python float, predicted bounding box coordinates [x1, y1, width, height]
+        """
+        # change from [y1, x1, y2, x2] to [x1, y1, width, height]
+        width = tf_coords[3] - tf_coords[1]
+        height = tf_coords[2] - tf_coords[0]
+
+        new = [tf_coords[1], tf_coords[0], width, height]  # must be a list instead of np.array
+
+        # convert numpy floats to Python floats
+        for i, d in enumerate(new):
+            new[i] = TFDetector.round_and_make_float(d, precision=TFDetector.COORD_DIGITS)
+        return new
+
+    @staticmethod
+    def convert_to_tf_coords(array):
+        """From [x1, y1, width, height] to [y1, x1, y2, x2]"""
+        x2 = array[0] + array[2]
+        y2 = array[1] + array[3]
+        return [array[0], array[1], x2, y2]
+
+    @staticmethod
+    def __load_model(model_path):
+        """Loads a detection model (i.e., create a graph) from a .pb file.
+
+        Args:
+            model_path: .pb file of the model.
+
+        Returns: the loaded graph.
+        """
+        print('TFDetector: Loading graph...')
+        detection_graph = tf.Graph()
+        with detection_graph.as_default():
+            od_graph_def = tf.GraphDef()
+            with tf.gfile.GFile(model_path, 'rb') as fid:
+                serialized_graph = fid.read()
+                od_graph_def.ParseFromString(serialized_graph)
+                tf.import_graph_def(od_graph_def, name='')
+        print('TFDetector: Detection graph loaded.')
+
+        return detection_graph
+
+    def _generate_detections_one_image(self, image):
+        np_im = np.asarray(image, np.uint8)
+        im_w_batch_dim = np.expand_dims(np_im, axis=0)
+
+        # need to change the above line to the following if supporting a batch size > 1 and resizing to the same size
+        # np_images = [np.asarray(image, np.uint8) for image in images]
+        # images_stacked = np.stack(np_images, axis=0) if len(images) > 1 else np.expand_dims(np_images[0], axis=0)
+
+        # performs inference
+        (box_tensor_out, score_tensor_out, class_tensor_out) = self.tf_session.run(
+            [self.box_tensor, self.score_tensor, self.class_tensor],
+            feed_dict={self.image_tensor: im_w_batch_dim})
+
+        return box_tensor_out, score_tensor_out, class_tensor_out
+
+    def generate_detections_one_image(self, image, image_id,
+                                      detection_threshold=DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD):
+        """Apply the detector to an image.
+
+        Args:
+            image: the PIL Image object
+            image_id: a path to identify the image; will be in the "file" field of the output object
+            detection_threshold: confidence above which to include the detection proposal
+
+        Returns:
+        A dict with the following fields, see the 'images' key in https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing#batch-processing-api-output-format
+            - 'file' (always present)
+            - 'max_detection_conf'
+            - 'detections', which is a list of detection objects containing keys 'category', 'conf' and 'bbox'
+            - 'failure'
+        """
+        result = {
+            'file': image_id
+        }
+        try:
+            b_box, b_score, b_class = self._generate_detections_one_image(image)
+
+            # our batch size is 1; need to loop the batch dim if supporting batch size > 1
+            boxes, scores, classes = b_box[0], b_score[0], b_class[0]
+
+            detections_cur_image = []  # will be empty for an image with no confident detections
+            max_detection_conf = 0.0
+            for b, s, c in zip(boxes, scores, classes):
+                if s > detection_threshold:
+                    detection_entry = {
+                        'category': str(int(c)),  # use string type for the numerical class label, not int
+                        'conf': truncate_float(float(s),  # cast to float for json serialization
+                                               precision=TFDetector.CONF_DIGITS),
+                        'bbox': TFDetector.__convert_coords(b)
+                    }
+                    detections_cur_image.append(detection_entry)
+                    if s > max_detection_conf:
+                        max_detection_conf = s
+
+            result['max_detection_conf'] = truncate_float(float(max_detection_conf),
+                                                          precision=TFDetector.CONF_DIGITS)
+            result['detections'] = detections_cur_image
+
+        except Exception as e:
+            result['failure'] = TFDetector.FAILURE_TF_INFER
+            print('TFDetector: image {} failed during inference: {}'.format(image_id, str(e)))
+
+        return result
+
+
+#%% Main function
+
+def load_and_run_detector(model_file, image_file_names, output_dir,
+                          render_confidence_threshold=TFDetector.DEFAULT_RENDERING_CONFIDENCE_THRESHOLD,
+                          crop_images=False):
+    """Load and run detector on target images, and visualize the results."""
+    if len(image_file_names) == 0:
+        print('Warning: no files available')
+        return
+
+    start_time = time.time()
+    tf_detector = TFDetector(model_file)
+    elapsed = time.time() - start_time
+    print('Loaded model in {}'.format(humanfriendly.format_timespan(elapsed)))
+
+    detection_results = []
+    time_load = []
+    time_infer = []
+
+    # Dictionary mapping output file names to a collision-avoidance count.
     #
-    # 1,nDetections,4
-    #
-    # This implicitly banks on TF giving us back a fixed number of boxes, let's assert on this
-    # to make sure this doesn't silently break in the future.
-    nDetections = -1
-    # iBox = 0; box = boxes[iBox]
-    for iBox,box in enumerate(boxes):
-        nDetectionsThisBox = box.shape[1]
-        assert (nDetections == -1 or nDetectionsThisBox == nDetections), 'Detection count mismatch'
-        nDetections = nDetectionsThisBox
-        assert(box.shape[0] == 1)
-    
-    # "scores" is a length-nImages list of elements with size 1,nDetections
-    assert(len(scores) == nImages)
-    for(iScore,score) in enumerate(scores):
-        assert score.shape[0] == 1
-        assert score.shape[1] == nDetections
-        
-    # "classes" is a length-nImages list of elements with size 1,nDetections
-    #
-    # Still as floats, but really representing ints
-    assert(len(classes) == nBoxes)
-    for(iClass,c) in enumerate(classes):
-        assert c.shape[0] == 1
-        assert c.shape[1] == nDetections
-            
-    # Squeeze out the empty axis
-    boxes = np.squeeze(np.array(boxes),axis=1)
-    scores = np.squeeze(np.array(scores),axis=1)
-    classes = np.squeeze(np.array(classes),axis=1).astype(int)
-    
-    # boxes is nImages x nDetections x 4
-    assert(len(boxes.shape) == 3)
-    assert(boxes.shape[0] == nImages)
-    assert(boxes.shape[1] == nDetections)
-    assert(boxes.shape[2] == 4)
-    
-    # scores and classes are both nImages x nDetections
-    assert(len(scores.shape) == 2)
-    assert(scores.shape[0] == nImages)
-    assert(scores.shape[1] == nDetections)
-    
-    assert(len(classes.shape) == 2)
-    assert(classes.shape[0] == nImages)
-    assert(classes.shape[1] == nDetections)
-    
-    return boxes,scores,classes,images
+    # Since we'll be writing a bunch of files to the same folder, we rename
+    # as necessary to avoid collisions.
+    output_filename_collision_counts = {}
 
+    def input_file_to_detection_file(fn, crop_index=-1):
+        """Creates unique file names for output files.
 
-#%% Rendering functions
+        This function does 3 things:
+        1) If the --crop flag is used, then each input image may produce several output
+            crops. For example, if foo.jpg has 3 detections, then this function should
+            get called 3 times, with crop_index taking on 0, 1, then 2. Each time, this
+            function appends crop_index to the filename, resulting in
+                foo_crop00_detections.jpg
+                foo_crop01_detections.jpg
+                foo_crop02_detections.jpg
 
-def render_bounding_box(box, score, classLabel, inputFileName, outputFileName=None,
-                          confidenceThreshold=DEFAULT_CONFIDENCE_THRESHOLD,linewidth=DEFAULT_LINE_WIDTH):
-    """
-    Convenience wrapper to apply render_bounding_boxes to a single image
-    """
-    outputFileNames = []
-    if outputFileName is not None:
-        outputFileNames = [outputFileName]
-    scores = [[score]]
-    boxes = [[box]]
-    render_bounding_boxes(boxes,scores,[classLabel],[inputFileName],outputFileNames,
-                          confidenceThreshold,linewidth)
+        2) If the --recursive flag is used, then the same file (base)name may appear
+            multiple times. However, we output into a single flat folder. To avoid
+            filename collisions, we prepend an integer prefix to duplicate filenames:
+                foo_crop00_detections.jpg
+                0000_foo_crop00_detections.jpg
+                0001_foo_crop00_detections.jpg
 
+        3) Prepends the output directory:
+                out_dir/foo_crop00_detections.jpg
 
-def render_bounding_boxes(boxes, scores, classes, inputFileNames, outputFileNames=[],
-                          confidenceThreshold=DEFAULT_CONFIDENCE_THRESHOLD, linewidth=DEFAULT_LINE_WIDTH):
-    """
-    Render bounding boxes on the image files specified in [inputFileNames].  
-    
-    [boxes] and [scores] should be in the format returned by generate_detections, 
-    specifically [top, left, bottom, right] in normalized units, where the
-    origin is the upper-left.    
-    
-    "classes" is currently unused, it's a placeholder for adding text annotations
-    later.
-    """
+        Args:
+            fn: str, filename
+            crop_index: int, crop number
 
-    nImages = len(inputFileNames)
-    iImage = 0
-
-    for iImage in range(0,nImages):
-
-        inputFileName = inputFileNames[iImage]
-
-        if iImage >= len(outputFileNames):
-            outputFileName = ''
+        Returns: output file path
+        """
+        fn = os.path.basename(fn).lower()
+        name, ext = os.path.splitext(fn)
+        if crop_index >= 0:
+            name += '_crop{:0>2d}'.format(crop_index)
+        fn = '{}{}{}'.format(name, ImagePathUtils.DETECTION_FILENAME_INSERT, '.jpg')
+        if fn in output_filename_collision_counts:
+            n_collisions = output_filename_collision_counts[fn]
+            fn = '{:0>4d}'.format(n_collisions) + '_' + fn
+            output_filename_collision_counts[fn] += 1
         else:
-            outputFileName = outputFileNames[iImage]
+            output_filename_collision_counts[fn] = 0
+        fn = os.path.join(output_dir, fn)
+        return fn
 
-        if len(outputFileName) == 0:
-            name, ext = os.path.splitext(inputFileName)
-            outputFileName = "{}{}{}".format(name,DETECTION_FILENAME_INSERT,ext)
+    for im_file in tqdm(image_file_names):
 
-        image = mpimg.imread(inputFileName)
-        iBox = 0; box = boxes[iImage][iBox]
-        dpi = 100
-        s = image.shape; imageHeight = s[0]; imageWidth = s[1]
-        figsize = imageWidth / float(dpi), imageHeight / float(dpi)
+        try:
+            start_time = time.time()
 
-        plt.figure(figsize=figsize)
-        ax = plt.axes([0,0,1,1])
-        
-        # Display the image
-        ax.imshow(image)
-        ax.set_axis_off()
-    
-        # plt.show()
-        for iBox,box in enumerate(boxes[iImage]):
+            image = viz_utils.load_image(im_file)
 
-            score = scores[iImage][iBox]
-            if score < confidenceThreshold:
-                continue
+            elapsed = time.time() - start_time
+            time_load.append(elapsed)
 
-            # top, left, bottom, right 
-            #
-            # x,y origin is the upper-left
-            topRel = box[0]
-            leftRel = box[1]
-            bottomRel = box[2]
-            rightRel = box[3]
-            
-            x = leftRel * imageWidth
-            y = topRel * imageHeight
-            w = (rightRel-leftRel) * imageWidth
-            h = (bottomRel-topRel) * imageHeight
-            
-            # Location is the bottom-left of the rect
-            #
-            # Origin is the upper-left
-            iLeft = x
-            iBottom = y
-            iClass = int(classes[iImage][iBox])
-            
-            boxColor = BOX_COLORS[iClass % len(BOX_COLORS)]
-            rect = patches.Rectangle((iLeft,iBottom),w,h,linewidth=linewidth,edgecolor=boxColor,
-                                     facecolor='none')
-            
-            # Add the patch to the Axes
-            ax.add_patch(rect)        
-            
-            if SHOW_CONFIDENCE_VALUES:
-                pLabel = 'Class {} ({:.2f})'.format(iClass,score)
-                ax.text(iLeft+5,iBottom+5,pLabel,color=boxColor,fontsize=12,
-                        verticalalignment='top',bbox=dict(facecolor='black'))
-            
-        # ...for each box
+        except Exception as e:
+            print('Image {} cannot be loaded. Exception: {}'.format(im_file, e))
+            result = {
+                'file': im_file,
+                'failure': TFDetector.FAILURE_IMAGE_OPEN
+            }
+            detection_results.append(result)
+            continue
 
-        # This is magic goop that removes whitespace around image plots (sort of)        
-        plt.subplots_adjust(top = 1, bottom = 0, right = 1, left = 0, hspace = 0, 
-                            wspace = 0)
-        plt.margins(0,0)
-        ax.xaxis.set_major_locator(ticker.NullLocator())
-        ax.yaxis.set_major_locator(ticker.NullLocator())
-        ax.axis('tight')
-        ax.set(xlim=[0,imageWidth],ylim=[imageHeight,0],aspect=1)
-        plt.axis('off')                
+        try:
+            start_time = time.time()
 
-        # plt.savefig(outputFileName, bbox_inches='tight', pad_inches=0.0, dpi=dpi, transparent=True)
-        plt.savefig(outputFileName, dpi=dpi, transparent=True, optimize=True, quality=90)
-        plt.close()
-        # os.startfile(outputFileName)
+            result = tf_detector.generate_detections_one_image(image, im_file)
+            detection_results.append(result)
+
+            elapsed = time.time() - start_time
+            time_infer.append(elapsed)
+
+        except Exception as e:
+            print('An error occurred while running the detector on image {}. Exception: {}'.format(im_file, e))
+            continue
+
+        try:
+            if crop_images:
+
+                images_cropped = viz_utils.crop_image(result['detections'], image)
+
+                for i_crop, cropped_image in enumerate(images_cropped):
+                    output_full_path = input_file_to_detection_file(im_file, i_crop)
+                    cropped_image.save(output_full_path)
+
+            else:
+
+                # image is modified in place
+                viz_utils.render_detection_bounding_boxes(result['detections'], image,
+                                                          label_map=TFDetector.DEFAULT_DETECTOR_LABEL_MAP,
+                                                          confidence_threshold=render_confidence_threshold)
+                output_full_path = input_file_to_detection_file(im_file)
+                image.save(output_full_path)
+
+        except Exception as e:
+            print('Visualizing results on the image {} failed. Exception: {}'.format(im_file, e))
+            continue
 
     # ...for each image
 
-# ...def render_bounding_boxes
+    ave_time_load = statistics.mean(time_load)
+    ave_time_infer = statistics.mean(time_infer)
+    if len(time_load) > 1 and len(time_infer) > 1:
+        std_dev_time_load = humanfriendly.format_timespan(statistics.stdev(time_load))
+        std_dev_time_infer = humanfriendly.format_timespan(statistics.stdev(time_infer))
+    else:
+        std_dev_time_load = 'not available'
+        std_dev_time_infer = 'not available'
+    print('On average, for each image,')
+    print('- loading took {}, std dev is {}'.format(humanfriendly.format_timespan(ave_time_load),
+                                                    std_dev_time_load))
+    print('- inference took {}, std dev is {}'.format(humanfriendly.format_timespan(ave_time_infer),
+                                                      std_dev_time_infer))
 
 
-def load_and_run_detector(modelFile, imageFileNames, outputDir=None,
-                          confidenceThreshold=DEFAULT_CONFIDENCE_THRESHOLD, detection_graph=None):
-    
-    if len(imageFileNames) == 0:        
-        print('Warning: no files available')
-        return
-        
-    # Load and run detector on target images
-    print('Loading model...')
-    startTime = time.time()
-    if detection_graph is None:
-        detection_graph = load_model(modelFile)
-    elapsed = time.time() - startTime
-    print("Loaded model in {}".format(humanfriendly.format_timespan(elapsed)))
-    
-    boxes,scores,classes,images = generate_detections(detection_graph,imageFileNames)
-    
-    assert len(boxes) == len(imageFileNames)
-    
-    print('Rendering output...')
-    startTime = time.time()
-    
-    outputFullPaths = []
-    outputFileNames = {}
-    
-    if outputDir is not None:
-            
-        os.makedirs(outputDir,exist_ok=True)
-        
-        for iFn,fullInputPath in enumerate(tqdm(imageFileNames)):
-            
-            fn = os.path.basename(fullInputPath).lower()            
-            name, ext = os.path.splitext(fn)
-            fn = "{}{}{}".format(name,DETECTION_FILENAME_INSERT,ext)
-            
-            # Since we'll be writing a bunch of files to the same folder, rename
-            # as necessary to avoid collisions
-            if fn in outputFileNames:
-                nCollisions = outputFileNames[fn]
-                fn = str(nCollisions) + '_' + fn
-                outputFileNames[fn] = nCollisions + 1
-            else:
-                outputFileNames[fn] = 0
-            outputFullPaths.append(os.path.join(outputDir,fn))
-    
-        # ...for each file
-        
-    # ...if we're writing files to a directory other than the input directory
-    
-    plt.ioff()
-    
-    render_bounding_boxes(boxes=boxes, scores=scores, classes=classes, 
-                          inputFileNames=imageFileNames, outputFileNames=outputFullPaths,
-                          confidenceThreshold=confidenceThreshold)
-    
-    elapsed = time.time() - startTime
-    print("Rendered output in {}".format(humanfriendly.format_timespan(elapsed)))
-    
-    return detection_graph
+#%% Command-line driver
+
+def main():
+
+    parser = argparse.ArgumentParser(
+        description='Module to run a TF animal detection model on images')
+    parser.add_argument(
+        'detector_file',
+        help='Path to .pb TensorFlow detector model file')
+    group = parser.add_mutually_exclusive_group(required=True)  # must specify either an image file or a directory
+    group.add_argument(
+        '--image_file',
+        help='Single file to process, mutually exclusive with --image_dir')
+    group.add_argument(
+        '--image_dir',
+        help='Directory to search for images, with optional recursion by adding --recursive')
+    parser.add_argument(
+        '--recursive',
+        action='store_true',
+        help='Recurse into directories, only meaningful if using --image_dir')
+    parser.add_argument(
+        '--output_dir',
+        help='Directory for output images (defaults to same as input)')
+    parser.add_argument(
+        '--threshold',
+        type=float,
+        default=TFDetector.DEFAULT_RENDERING_CONFIDENCE_THRESHOLD,
+        help=('Confidence threshold between 0 and 1.0; only render boxes above this confidence'
+              ' (but only boxes above 0.1 confidence will be considered at all)'))
+    parser.add_argument(
+        '--crop',
+        default=False,
+        action="store_true",
+        help=('If set, produces separate output images for each crop, '
+              'rather than adding bounding boxes to the original image'))
+    if len(sys.argv[1:]) == 0:
+        parser.print_help()
+        parser.exit()
+
+    args = parser.parse_args()
+
+    assert os.path.exists(args.detector_file), 'detector_file specified does not exist'
+    assert 0.0 < args.threshold <= 1.0, 'Confidence threshold needs to be between 0 and 1'  # Python chained comparison
+
+    if args.image_file:
+        image_file_names = [args.image_file]
+    else:
+        image_file_names = ImagePathUtils.find_images(args.image_dir, args.recursive)
+
+    print('Running detector on {} images...'.format(len(image_file_names)))
+
+    if args.output_dir:
+        os.makedirs(args.output_dir, exist_ok=True)
+    else:
+        if args.image_dir:
+            args.output_dir = args.image_dir
+        else:
+            # but for a single image, args.image_dir is also None
+            args.output_dir = os.path.dirname(args.image_file)
+
+    load_and_run_detector(model_file=args.detector_file,
+                          image_file_names=image_file_names,
+                          output_dir=args.output_dir,
+                          render_confidence_threshold=args.threshold,
+                          crop_images=args.crop)
+
+
+if __name__ == '__main__':
+    main()
 
 
 #%% Interactive driver
 
 if False:
-    
+
     #%%
-    
-    detection_graph = None
-    
-    #%%
-    
-    modelFile = r'D:\temp\models\megadetector_v3.pb'
-    imageDir = r'D:\temp\demo_images\ssmini'    
-    imageFileNames = [fn for fn in glob.glob(os.path.join(imageDir,'*.jpg'))
-         if (not 'detections' in fn)]
-    # imageFileNames = [r"D:\temp\test\1\NE2881-9_RCNX0195_xparent.png"]
-    
-    detection_graph = load_and_run_detector(modelFile,imageFileNames,
-                                            confidenceThreshold=DEFAULT_CONFIDENCE_THRESHOLD,
-                                            detection_graph=detection_graph)
-    
+    model_file = r'c:\temp\models\md_v4.1.0.pb'
+    image_file_names = ImagePathUtils.find_images(r'c:\temp\demo_images\ssverymini')
+    output_dir = r'c:\temp\demo_images\ssverymini'
+    render_confidence_threshold = 0.8
+    crop_images = True
 
-#%% File helper functions
-
-imageExtensions = ['.jpg','.jpeg','.gif','.png']
-    
-def isImageFile(s):
-    """
-    Check a file's extension against a hard-coded set of image file extensions    '
-    """
-    ext = os.path.splitext(s)[1]
-    return ext.lower() in imageExtensions
-    
-    
-def findImageStrings(strings):
-    """
-    Given a list of strings that are potentially image file names, look for strings
-    that actually look like image file names (based on extension).
-    """
-    imageStrings = []
-    bIsImage = [False] * len(strings)
-    for iString,f in enumerate(strings):
-        bIsImage[iString] = isImageFile(f) 
-        if bIsImage[iString]:
-            imageStrings.append(f)
-        
-    return imageStrings
-
-    
-def findImages(dirName,bRecursive=False):
-    """
-    Find all files in a directory that look like image file names
-    """
-    if bRecursive:
-        strings = glob.glob(os.path.join(dirName,'**','*.*'), recursive=True)
-    else:
-        strings = glob.glob(os.path.join(dirName,'*.*'))
-        
-    imageStrings = findImageStrings(strings)
-    
-    return imageStrings
-
-    
-#%% Command-line driver
-    
-def main():
-    
-    # python run_tf_detector.py "D:\temp\models\object_detection\megadetector\megadetector_v2.pb" --imageFile "D:\temp\demo_images\test\S1_J08_R1_PICT0120.JPG"
-    # python run_tf_detector.py "D:\temp\models\object_detection\megadetector\megadetector_v2.pb" --imageDir "d:\temp\demo_images\test"
-    # python run_tf_detector.py "d:\temp\models\object_detection\megadetector\megadetector_v3.pb" --imageDir "d:\temp\test\in" --outputDir "d:\temp\test\out"
-    
-    parser = argparse.ArgumentParser()
-    parser.add_argument('detectorFile', type=str)
-    parser.add_argument('--imageDir', action='store', type=str, default='', 
-                        help='Directory to search for images, with optional recursion')
-    parser.add_argument('--imageFile', action='store', type=str, default='', 
-                        help='Single file to process, mutually exclusive with imageDir')
-    parser.add_argument('--threshold', action='store', type=float, 
-                        default=DEFAULT_CONFIDENCE_THRESHOLD, 
-                        help="Confidence threshold, don't render boxes below this confidence")
-    parser.add_argument('--recursive', action='store_true', 
-                        help='Recurse into directories, only meaningful if using --imageDir')
-    parser.add_argument('--forceCpu', action='store_true', 
-                        help='Force CPU detection, even if a GPU is available')
-    parser.add_argument('--outputDir', type=str, default=None, 
-                       help='Directory for output images (defaults to same as input)')
-    
-    if len(sys.argv[1:])==0:
-        parser.print_help()
-        parser.exit()
-    
-    args = parser.parse_args()    
-    
-    if len(args.imageFile) > 0 and len(args.imageDir) > 0:
-        raise Exception('Cannot specify both image file and image dir')
-    elif len(args.imageFile) == 0 and len(args.imageDir) == 0:
-        raise Exception('Must specify either an image file or an image directory')
-        
-    if len(args.imageFile) > 0:
-        imageFileNames = [args.imageFile]
-    else:
-        imageFileNames = findImages(args.imageDir,args.recursive)
-
-    if args.forceCpu:
-        os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-        os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
-
-    # Hack to avoid running on already-detected images
-    imageFileNames = [x for x in imageFileNames if DETECTION_FILENAME_INSERT not in x]
-                
-    print('Running detector on {} images'.format(len(imageFileNames)))    
-    
-    load_and_run_detector(modelFile=args.detectorFile, imageFileNames=imageFileNames, 
-                          confidenceThreshold=args.threshold, outputDir=args.outputDir)
-    
-
-if __name__ == '__main__':
-    
-    main()
+    load_and_run_detector(model_file=model_file,
+                          image_file_names=image_file_names,
+                          output_dir=output_dir,
+                          render_confidence_threshold=render_confidence_threshold,
+                          crop_images=crop_images)

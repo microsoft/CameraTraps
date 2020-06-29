@@ -2,13 +2,18 @@
 # missouri_to_json.py
 #
 # Create .json files from the original source files for the Missouri Camera Traps
-# data set.  Metadata was provided here in ~2 formats:
+# data set.  Metadata was provided here in two formats:
 #
-# 1) In one subset of the data, folder names indicated species names
+# 1) In one subset of the data, folder names indicated species names.  In Set 1,
+#    there are no empty sequences.  Set 1 has a metadata file to indicate image-level
+#    bounding boxes.
 #
-# 2) An subset of the data (overlapping with (1)) was annotated with bounding
-#    boxes, specified in a whitespace-delimited text file.
+# 2) A subset of the data (overlapping with (1)) was annotated with bounding
+#    boxes, specified in a whitespace-delimited text file.  In set 2, there are
+#    some sequences omitted from the metadata file, which implied emptiness.
 # 
+# In the end, set 2 labels were not reliable enough to publish, so LILA includes only set 1.
+#
 
 #%% Constants and imports
 
@@ -46,7 +51,7 @@ assert(os.path.isfile(metadataFilenameSet2))
 
 info = {}
 info['year'] = 2019
-info['version'] = '1.0'
+info['version'] = '1.1'
 info['description'] = 'Missouri Camera Traps (set 1)'
 info['contributor'] = ''
 info['date_created'] = str(datetime.date.today())
@@ -54,7 +59,7 @@ infoSet1 = info
 
 info = {}
 info['year'] = 2019
-info['version'] = '1.0'
+info['version'] = '1.1'
 info['description'] = 'Missouri Camera Traps (set 2)'
 info['contributor'] = ''
 info['date_created'] = str(datetime.date.today())
@@ -65,7 +70,9 @@ emptyCategoryId = 0
 emptyCategoryName = 'empty'
 
 
-#%% Enumerate files, read image sizes
+#%% Enumerate files, read image sizes (both sets)
+
+# Takes a few minutes, since we're reading image sizes.
 
 # Each element will be a list of relative path/full path/width/height
 fileInfo = []
@@ -91,12 +98,19 @@ for root, subdirs, files in os.walk(baseDir):
     
     bn = ntpath.basename(root)
     
-    if ('Set1' in root and 'SEQ' in root) or ('Set2' in root and bn != 'Set2'):
+    # Only process leaf nodes corresponding to sequences, which look like:
+    #
+    # E:\wildlife_data\missouri_camera_traps\Set1\1.02-Agouti\SEQ75583
+    # E:\wildlife_data\missouri_camera_traps\Set2\p1d101
+    #
+    if ('Set1' in root and 'SEQ' in bn) or ('Set2' in root and bn.startswith('p')):
         sequenceID = bn
         assert sequenceID not in sequenceIDtoCount
         sequenceIDtoCount[sequenceID] = 0
     else:
-        assert len(files) <= 2
+        print('Skipping folder {}:{}'.format(root,bn))
+        continue
+        # assert len(files) <= 2
     
     for fname in files:
   
@@ -136,8 +150,8 @@ for root, subdirs, files in os.walk(baseDir):
         im['seq_id'] = sequenceID
         im['seq_num_frames'] = -1
         
-        count = sequenceIDtoCount[sequenceID]
-        im['frame_num'] = count
+        frame_number = sequenceIDtoCount[sequenceID]
+        im['frame_num'] = frame_number
         sequenceIDtoCount[sequenceID] = sequenceIDtoCount[sequenceID] + 1
         
         imageIdToImage[im['id']] = im
@@ -164,18 +178,18 @@ print('Finished file enumeration in {}'.format(
       humanfriendly.format_timespan(elapsed)))
 
 
-#%% Add sequence lengths
+#%% Add sequence lengths (both sets)
     
 for imageID in imageIdToImage:
     
     im = imageIdToImage[imageID]
     sequenceID = im['seq_id']
-    count = sequenceIDtoCount[sequenceID]
+    seq_num_frames = sequenceIDtoCount[sequenceID]
     assert(im['seq_num_frames'] == -1)
-    im['seq_num_frames'] = count
+    im['seq_num_frames'] = seq_num_frames
     
 
-#%% Load the set 1 metadata file, split into tokens
+#%% Load the set 1 metadata file
 
 with open(metadataFilenameSet1) as f:
     metadataSet1Lines = f.readlines()
@@ -231,16 +245,23 @@ print('Corrected {} paths, missing {} images of {}'.format(len(correctedFiles),
 
 #%% Print missing files from Set 1 metadata
 
+# Manual changes I made to the metadata file:
+#
 # 'IMG' --> 'IMG_'
 # Red_Brocket_Deer --> Red_Deer
 # European-Hare --> European_Hare
 # Wood-Mouse --> Wood_Mouse
 # Coiban-Agouti --> Coiban_Agouti
+
+print('Missing files in Set 1:\n')
 for iFile,fInfo in enumerate(missingFilesSet1):
     print(fInfo[0])
     
 
-#%% Load the set 2 metadata file, split into tokens
+#%% Load the set 2 metadata file
+
+# This metadata file contains most (but not all) images, and a class label (person/animal/empty)
+# for each, plus bounding boxes.
 
 with open(metadataFilenameSet2) as f:
     metadataSet2Lines = f.readlines()
@@ -336,6 +357,8 @@ for iLine,line in enumerate(metadataSet2Lines):
     # Make sure we have image info for this image
     assert relPath in relPathToIm
 
+# ...for each line in the set 2 metadata file
+    
 print('Missing {} of {} files in set 2'.format(len(missingFilesSet2),len(metadataSet2Lines)))
 
 if False:
@@ -347,7 +370,7 @@ if False:
     
 # These are *mostly* empty images
 
-if False:
+if True:
 
     set2UnlabeledImageIndices = []
     set2ImageIDsUnlabeled = []
@@ -376,7 +399,7 @@ annotationsSet1 = []
 categoryNameToId = {}
 idToCategory = {}
 
-# Not used in this data set, but stored by convention
+# Though we have no empty sequences, we do have empty images in this set
 emptyCat = {}
 emptyCat['id'] = emptyCategoryId
 emptyCat['name'] = emptyCategoryName
@@ -429,7 +452,9 @@ for iImage,imageID in enumerate(set1ImageIDs):
         
         categoryId = categoryNameToId[categoryName]
         category = idToCategory[categoryId]
-        category['count'] = category['count'] + 1
+        
+        # This image may still be empty...
+        # category['count'] = category['count'] + 1
                 
     # If we have bounding boxes, create image-level annotations    
     if relPath in relPathToMetadataSet1:
@@ -458,9 +483,13 @@ for iImage,imageID in enumerate(set1ImageIDs):
             ann['category_id'] = emptyCategoryId
             ann['sequence_level_annotation'] = False
             annotationsSet1.append(ann)
+            emptyCat['count'] = emptyCat['count'] + 1
             nImageLevelEmpties += 1
             
         else:
+            
+            # This image is non-empty
+            category['count'] = category['count'] + 1
             
             for iBox in range(0,nBoxes):
                                 
@@ -489,7 +518,7 @@ for iImage,imageID in enumerate(set1ImageIDs):
                 # Bounding box values are in absolute coordinates, with the origin 
                 # at the upper-left of the image, as [xmin1 ymin1 xmax1 ymax1].
                 #
-                # Convert to floats and to x/y/w/h
+                # Convert to floats and to x/y/w/h, as per CCT standard
                 bboxW = boxCoords[2] - boxCoords[0]
                 bboxH = boxCoords[3] - boxCoords[1]
                 
@@ -504,7 +533,11 @@ for iImage,imageID in enumerate(set1ImageIDs):
                 ann['bbox'] = box
                 annotationsSet1.append(ann)
                 nTotalBoxes += 1
-                
+            
+            # ...for each box
+            
+        # if we do/don't have boxes for this image
+        
     # Else create a sequence-level annotation
     else:
         
@@ -534,7 +567,6 @@ annotationsSet2 = []
 categoryNameToId = {}
 idToCategory = {}
 
-# Not used in this data set, but stored by convention
 emptyCat = {}
 assert emptyCategoryId == 0
 emptyCat['id'] = emptyCategoryId
@@ -643,6 +675,10 @@ for iImage,imageID in enumerate(set2ImageIDs):
                 annotationsSet2.append(ann)
                 nTotalBoxes += 1
                 
+            # ...for each box
+            
+        # ...if we do/don't have boxes for this image
+        
     # Else create a sequence-level annotation
     else:
         
@@ -670,6 +706,13 @@ assert len(annotationsSet2) == nSequenceLevelAnnotations + nTotalBoxes + nImageL
 assert len(set2ImageIDs) == nSequenceLevelAnnotations + nFoundMetadata
     
     
+#%% The 'count' field isn't really meaningful, delete it
+
+# It's really the count of image-level annotations, not total images assigned to a class
+for d in categoriesSet1:
+    del d['count']
+    
+    
 #%% Write output .json files
 
 data = {}
@@ -689,10 +732,28 @@ json.dump(data, open(outputJsonFilenameSet2,'w'), indent=4)
 print('Finished writing json to {}'.format(outputJsonFilenameSet2))
 
 
-#%% Next steps...
+#%% Sanity-check final set 1 .json file
 
-# Sanity-check the final Set 1 .json file
+from data_management.databases import sanity_check_json_db
+options = sanity_check_json_db.SanityCheckOptions()
+sortedCategories,data = sanity_check_json_db.sanity_check_json_db(outputJsonFilenameSet1, options)
+sortedCategories
+
 # python sanity_check_json_db.py --bCheckImageSizes --baseDir "E:\wildlife_data\missouri_camera_traps" "E:\wildlife_data\missouri_camera_traps\missouri_camera_traps_set1.json"
 
-# Generate previews
-# python visualize_bbox_db.py "e:\wildlife_data\missouri_camera_traps\missouri_camera_traps_set1.json" "e:\wildlife_data\missouri_camera_traps\preview" "e:\wildlife_data\missouri_camera_traps" --num_to_visualize 1000
+
+#%% Generate previews
+
+from visualization import visualize_db
+
+output_dir = os.path.join(baseDir,'preview')
+
+options = visualize_db.DbVizOptions()
+options.num_to_visualize = 1000
+options.sort_by_filename = False
+options.classes_to_exclude = None
+
+htmlOutputFile,_ = visualize_db.process_images(outputJsonFilenameSet1,output_dir,baseDir,options)
+os.startfile(htmlOutputFile)
+
+# Generate previewse:\wildlife_data\missouri_camera_traps\missouri_camera_traps_set1.json" "e:\wildlife_data\missouri_camera_traps\preview" "e:\wildlife_data\missouri_camera_traps" --num_to_visualize 1000

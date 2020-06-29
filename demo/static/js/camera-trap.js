@@ -19,10 +19,7 @@ $('#reload').bind('click', function () {
     carousel.reload(newOptions);
     return false;
 });
-function ShowMessageNumFilesExceeded()
-{
-    maxFilesExceededError.show();
-}
+
 // Noty.overrideDefaults({
 //     layout   : 'topRight',
 //     theme    : 'mint',
@@ -89,24 +86,37 @@ $('img[rel=popover]').popover({
   html: true,
   trigger: 'hover',
   placement: 'right',
-  content: function(){return '<img src="'+$(this).data('img') + '" style="width:100%;height:100%;" />';}
+  content: function(){return '<img src="'+$(this).data('img') + 
+  '" style="width:100%;height:100%;" />';}
 });
 
-
-
+function FileUploadErrors(error)
+{
+    console.log(error)
+    if(error != "Your can't upload any more files.")
+    {
+        new Noty({ 
+            type: 'error', 
+            text: error,
+        }).show();
+    }  
+    else{
+        maxFilesExceededError.show();
+    }              
+}
 
 (function() {
     // Initialize
     //var bLazy = new Blazy({
     //    container: '.scroll-class'
     //});
-    
+
     maxFilesExceededError = new Noty({ 
         type:'error', 
-        text: 'Sorry only 8 files allowed. Extra files have been removed',
+        text: 'Sorry, only 10 files allowed. Extra files have been removed',
         //timeout: 2500
     });
-    
+
     if(localStorage.getItem("error"))
     {
         new Noty({ 

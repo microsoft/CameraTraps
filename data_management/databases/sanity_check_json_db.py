@@ -58,7 +58,7 @@ def check_image_existence_and_size(image,options=None):
     
     filePath = os.path.join(options.baseDir,image['file_name'])
     if not os.path.isfile(filePath):
-        print('Image path {} does not exist'.format(filePath))
+        # print('Image path {} does not exist'.format(filePath))
         return False
     
     if options.bCheckImageSizes:
@@ -203,7 +203,9 @@ def sanity_check_json_db(jsonFile, options=None):
             sequences.add(image['seq_id'])
             
         assert not ('sequence_id' in image or 'sequence' in image), 'Illegal sequence identifier'
-            
+        
+    unusedFiles = []
+                
     # Are we checking for unused images?
     if (len(baseDir) > 0) and options.bFindUnusedImages:    
         
@@ -222,13 +224,13 @@ def sanity_check_json_db(jsonFile, options=None):
                             relFile = relFile[2:]
                     imagePaths.append(relFile)
           
-        unusedFiles = []
-        
         for p in imagePaths:
             if p not in imagePathsInJson:
-                print('Image {} is unused'.format(p))
+                # print('Image {} is unused'.format(p))
                 unusedFiles.append(p)
                 
+    validationErrors = []
+    
     # Are we checking file existence and/or image size?
     if options.bCheckImageSizes or options.bCheckImageExistence:
         
@@ -247,6 +249,7 @@ def sanity_check_json_db(jsonFile, options=None):
         for iImage,r in enumerate(results):
             if not r:
                 print('Image validation error for image {}'.format(iImage))
+                validationErrors.append(os.path.join(options.baseDir,image['file_name']))
                             
     # ...for each image
     
@@ -299,6 +302,9 @@ def sanity_check_json_db(jsonFile, options=None):
     print('Found {} unannotated images, {} images with multiple annotations'.format(
             nUnannotated,nMultiAnnotated))
     
+    if (len(baseDir) > 0) and options.bFindUnusedImages:
+        print('Found {} unused image files'.format(len(unusedFiles)))
+        
     nUnusedCategories = 0
     
     # Find unused categories
@@ -332,7 +338,11 @@ def sanity_check_json_db(jsonFile, options=None):
     
     print('')
     
-    return sortedCategories, data
+    errorInfo = {}
+    errorInfo['unusedFiles'] = unusedFiles
+    errorInfo['validationErrors'] = validationErrors
+    
+    return sortedCategories, data, errorInfo
 
 # ...def sanity_check_json_db()
     

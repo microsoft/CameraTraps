@@ -9,21 +9,20 @@
         {% assets "css_all" %}
 		    <link rel="stylesheet" href="{{ ASSET_URL }}"> 
         {% endassets %}
-
+	<link href="https://fonts.googleapis.com/css?family=Biryani:200,400,600,700,800" rel="stylesheet">
         {{ dropzone.load_css() }}
         {{ dropzone.style('border: 2px dashed #C5BBB8; border-radius: 8px; 
-                          background-color:rgba(202,193,193,0.1); width: 75%;
-                          min-height: 400px; margin-left: 5%; text-align:center;') }}
+                          background-color:rgba(202,193,193,0.1); 
+                          min-height: 380px !important; text-align:center;') }}
         
     </head>
     <body class="{% block body_class %}{% endblock %} vh-100">
             <nav class="navbar navbar-expand-lg bg-transparent pl-4 z-index-999">
-               <div class="d-flex align-items-center">
-
-		 <a class="navbar-brand d-flex mr-2" href="https://www.microsoft.com">
+               <div class="d-flex align-items-center logo-container">
+     
+		 <a class="navbar-brand d-flex mr-2 ms-logo-container" href="https://www.microsoft.com">
                   {% block microsoft_logo %}{% endblock %}
-
-                  <span class="{% block font_Color_1 %}{% endblock %} logo-divider"> | </span>
+                  <span class="{% block font_Color_1 %}{% endblock %} logo-divider">|</span>
                 </a>
                 <a class="{% block font_Color_2%}{% endblock %}  aie-link letter-spacing-1" href="https://www.microsoft.com/en-us/aiforearth"> AI for Earth</a>
       		</div>
@@ -55,28 +54,48 @@
            <div id="overlay">
             <div class="loading" style="visibility: hidden"></div>
           </div>
-            {% block body -%}{%- endblock %}
-            {{ dropzone.load_js() }}
-            {{ dropzone.config(custom_init='dz = this; 
-                dz.on("error", function(file, message){
-                  console.log(file)
-                  <!--localStorage.setItem("error", message )-->
-                  
-                   console.log(dz)
-                 
-                }),
-                dz.on("maxfilesexceeded", function(file){
-                  ShowMessageNumFilesExceeded()
-                 
+          {% block body -%}{%- endblock %}
+          {{ dropzone.load_js() }}
+          {{ dropzone.config(custom_init='dz = this; 
+
+              dz.on("error", function(file, message){
+                FileUploadErrors(message)
+              }),
+              
+              dz.on("uploadprogress", function(a, uploadPercentage){
+                $(".dz-progress").remove();
+
+                percentage = Math.round(uploadPercentage)
+                
+                $("#progress-msg").show()
+                $("#progress-msg").html("Upload progress: " + percentage + "%")
+                
+                if(uploadPercentage == 100){
+                   $("#progress-msg").html("Processing images...");
+                }
+              }),
+
+              dz.on("maxfilesexceeded", function(file){
                   dz.removeFile(file)
-                }),
-                dz.on("addedfiles", function(){ 
-                    $(".loading").css("visibility", "visible");
-                    $("#overlay").show();  
-                })', max_files=8) }}
+              }),
+
+              dz.on("sending", function(file, xhr, formData) {
+                // Will send the filesize along with the file as POST data.
+                
+
+              }),
+             
+             
+              dz.on("addedfiles", function(fileList){ 
+                  $(".loading").css("visibility", "visible")
+                  $("#overlay").show()
+                  <!-- dz.files -->  
+              })', max_files=10, timeout = 180000000) }}
+    
 
             {% assets "js_all" %}
   		        <script type="text/javascript" src="{{ ASSET_URL }}"></script>
             {% endassets %}
+         
     </body>
 </html>

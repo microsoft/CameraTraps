@@ -14,86 +14,43 @@ import io
 import json
 import os
 import random
-from urllib import parse
+import urllib.parse as parse
 
 from azure.storage.blob import BlockBlobService
 from tqdm import tqdm
 
-import visualization_utils as vis_utils
+from data_management.annotations.annotation_constants import detector_bbox_category_id_to_name # here id is int
+from visualization import visualization_utils as vis_utils
+from ct_utils import args_to_object
 
 
-#%% Settings and user-supplied arguments
+#%% Constants
 
-parser = argparse.ArgumentParser(description=('Annotate the bounding boxes predicted by a detector '
-                                              'above some confidence threshold, and save the annotated images.'))
-
-parser.add_argument('detector_output_path', type=str,
-                    help='path to the json output file of the detector')
-
-parser.add_argument('out_dir', type=str,
-                    help=('path to a directory where the annotated images will be saved. '
-                          'The directory will be created if it does not exist'))
-
-parser.add_argument('-c', '--confidence', type=float,
-                    help=('a value between 0 and 1, indicating the confidence threshold above which to visualize '
-                          'bounding boxes'),
-                    default=0.8)
-
-parser.add_argument('-i', '--images_dir', type=str,
-                    help=('path to a local directory where the images are stored. This needs to be the root '
-                          'directory for image paths used in the detector_output_path'),
-                    default=None)
-
-parser.add_argument('-s', '--sas_url', type=str,
-                    help=('SAS URL, in double quotes, with list and read permissions to an Azure blob storage '
-                          'container where the images are stored. '
-                          'You can use Azure Storage Explorer to obtain a SAS URL'),
-                    default=None)
-
-parser.add_argument('-n', '--sample', type=int,
-                    help=('an integer specifying how many images should be annotated and rendered. Default (-1) is all '
-                          'images that are in the detector output file. There may result in fewer images if some are '
-                          'not found in images_dir'),
-                    default=-1)
-
-parser.add_argument('-w', '--output_image_width', type=int,
-                    help=('an integer indicating the desired width in pixels of the output annotated images. '
-                          'Use -1 to not resize.'),
-                    default=700)
-
-parser.add_argument('-r', '--random_seed', type=int,
-                    help=('an integer to seed random so that the sample of images drawn is deterministic'),
-                    default=None)
-
-args = parser.parse_args()
-print('Options to the script: ')
-print(args)
-print()
-
-assert args.confidence < 1.0 and args.confidence > 0.0, \
-    'The confidence threshold {} supplied is not valid; choose a threshold between 0 and 1.'.format(args.confidence)
-
-assert os.path.exists(args.detector_output_path), \
-    'Detector output file does not exist at {}'.format(args.detector_output_path)
-
-assert args.images_dir or args.sas_url, \
-    ('One of images_dir (original images in a local directory) or sas_url (images in the cloud) is required.')
-
-if args.images_dir and args.sas_url:
-    print('Both local images_dir and remote sas_url are supplied. Using local images as originals.')
-
-images_local = True if args.images_dir is not None else False
-
-os.makedirs(args.out_dir, exist_ok=True)
+# convert category ID from int to str
+DEFAULT_DETECTOR_LABEL_MAP = {str(k): v for k, v in detector_bbox_category_id_to_name.items()}
 
 
+#%% Options class
+    
+class DetectorVizOptions:
+    
+    ### Required inputs
+    
+    detector_output_path = ''
+    out_dir = ''
+
+
+    ## Options
+
+    confidence = 0.8
+    images_dir = None
+    sas_url = None
+    sample = -1
+    output_image_width = 700
+    random_seed = None
+
+    
 #%% Helper functions and constants
-
-DEFAULT_DETECTOR_LABEL_MAP = {
-    '1': 'animal',
-    '2': 'person',
-    '4': 'vehicle' # will be available in megadetector v4
-}
 
 def get_sas_key_from_uri(sas_uri):
     """
@@ -132,72 +89,160 @@ def get_container_from_uri(sas_uri):
     container = raw_path.split('/')[0]
 
     return container
+    
 
-
-#%% Load detector output
-
-detector_output = json.load(open(args.detector_output_path))
-
-assert 'images' in detector_output, 'Detector output file should be a json with an "images" field.'
-images = detector_output['images']
-
-detector_label_map = DEFAULT_DETECTOR_LABEL_MAP
-if 'detection_categories' in detector_output:
-    print('detection_categories provided')
-    detector_label_map = detector_output['detection_categories']
-
-num_images = len(images)
-print('Detector output file contains {} entries.'.format(num_images))
-
-if args.sample > 0:
-    assert num_images >= args.sample, \
-        'Sample size {} specified greater than number of entries ({}) in detector result.'.format(args.sample, num_images)
-
-    if args.random_seed:
-        images = sorted(images, key=lambda x: x['file'])
-        random.seed(args.random_seed)
-
-    random.shuffle(images)
-    images = sorted(images[:args.sample], key=lambda x: x['file'])
-    print('Sampled {} entries from the detector output file.'.format(len(images)))
-
-
-#%% Load images, annotate them and save
-
-if not images_local:
-    blob_service = get_service_from_uri(args.sas_url)
-    container_name = get_container_from_uri(args.sas_url)
-
-print('Starting to annotate the images...')
-num_saved = 0
-
-for entry in tqdm(images):
-    image_id = entry['file']
-    max_conf = entry['max_detection_conf']
-    detections = entry['detections']
-
-    if images_local:
-        image_obj = os.path.join(args.images_dir, image_id)
-        if not os.path.exists(image_obj):
-            print('Image {} is not found at local images_dir; skipped.'.format(image_id))
+#%% Main function
+    
+def visualize_detector_output(args):
+    
+    #%% Load detector output
+    
+    os.makedirs(args.out_dir, exist_ok=True)
+    
+    images_local = True if args.images_dir is not None else False
+    
+    detector_output = json.load(open(args.detector_output_path))
+    
+    assert 'images' in detector_output, 'Detector output file should be a json with an "images" field.'
+    images = detector_output['images']
+    
+    detector_label_map = DEFAULT_DETECTOR_LABEL_MAP
+    if 'detection_categories' in detector_output:
+        print('detection_categories provided')
+        detector_label_map = detector_output['detection_categories']
+    
+    num_images = len(images)
+    print('Detector output file contains {} entries.'.format(num_images))
+    
+    if args.sample > 0:
+        assert num_images >= args.sample, \
+            'Sample size {} specified greater than number of entries ({}) in detector result.'.format(args.sample, num_images)
+    
+        if args.random_seed:
+            images = sorted(images, key=lambda x: x['file'])
+            random.seed(args.random_seed)
+    
+        random.shuffle(images)
+        images = sorted(images[:args.sample], key=lambda x: x['file'])
+        print('Sampled {} entries from the detector output file.'.format(len(images)))
+    
+    
+    #%% Load images, annotate them and save
+    
+    if not images_local:
+        blob_service = get_service_from_uri(args.sas_url)
+        container_name = get_container_from_uri(args.sas_url)
+    
+    print('Starting to annotate the images...')
+    num_saved = 0
+    
+    annotated_img_paths = []
+    
+    for entry in tqdm(images):
+        if 'failure' in entry:
+            print('Skipping {}, which failed because of "{}"'.format(entry['file'], entry['failure']))
             continue
-    else:
-        if not blob_service.exists(container_name, blob_name=image_id):
-            print('Image {} is not found in the blob container {}; skipped.'.format(image_id, container_name))
-            continue
+    
+        image_id = entry['file']
+        # max_conf = entry['max_detection_conf']
+        detections = entry['detections']
+    
+        if images_local:
+            image_obj = os.path.join(args.images_dir, image_id)
+            if not os.path.exists(image_obj):
+                print('Image {} is not found at local images_dir; skipped.'.format(image_id))
+                continue
+        else:
+            if not blob_service.exists(container_name, blob_name=image_id):
+                print('Image {} is not found in the blob container {}; skipped.'.format(image_id, container_name))
+                continue
+    
+            image_obj = io.BytesIO()
+            _ = blob_service.get_blob_to_stream(container_name, image_id, image_obj)
+    
+        # resize is for displaying them more quickly
+        image = vis_utils.resize_image(vis_utils.open_image(image_obj), args.output_image_width)
+    
+        vis_utils.render_detection_bounding_boxes(detections, image, label_map=detector_label_map,
+                                                  confidence_threshold=args.confidence)
+    
+        annotated_img_name = 'anno_' + image_id.replace('/', '~').replace('\\', '~').replace(':','~')
+        annotated_img_path = os.path.join(args.out_dir, annotated_img_name)
+        annotated_img_paths.append(annotated_img_path)
+        image.save(annotated_img_path)
+        num_saved += 1
+    
+    print('Rendered detection results on {} images, saved to {}.'.format(num_saved, args.out_dir))
+    
+    return annotated_img_paths
 
-        image_obj = io.BytesIO()
-        _ = blob_service.get_blob_to_stream(container_name, image_id, image_obj)
 
-    # resize is for displaying them more quickly
-    image = vis_utils.resize_image(vis_utils.open_image(image_obj), args.output_image_width)
+#%% Command-line driver
 
-    vis_utils.render_detection_bounding_boxes(detections, image, label_map=detector_label_map,
-                                              confidence_threshold=args.confidence)
+def main():
 
-    annotated_img_name = 'anno_' + image_id.replace('/', '~').replace('\\', '~')
-    annotated_img_path = os.path.join(args.out_dir, annotated_img_name)
-    image.save(annotated_img_path)
-    num_saved += 1
+    parser = argparse.ArgumentParser(description=('Annotate the bounding boxes predicted by a detector '
+                                                  'above some confidence threshold, and save the annotated images.'))
+    
+    parser.add_argument('detector_output_path', type=str,
+                        help='path to the json output file of the detector')
+    
+    parser.add_argument('out_dir', type=str,
+                        help=('path to a directory where the annotated images will be saved. '
+                              'The directory will be created if it does not exist'))
+    
+    parser.add_argument('-c', '--confidence', type=float,
+                        help=('a value between 0 and 1, indicating the confidence threshold above which to visualize '
+                              'bounding boxes'),
+                        default=0.8)
+    
+    parser.add_argument('-i', '--images_dir', type=str,
+                        help=('path to a local directory where the images are stored. This needs to be the root '
+                              'directory for image paths used in the detector_output_path'),
+                        default=None)
+    
+    parser.add_argument('-s', '--sas_url', type=str,
+                        help=('SAS URL, in double quotes, with list and read permissions to an Azure blob storage '
+                              'container where the images are stored. '
+                              'You can use Azure Storage Explorer to obtain a SAS URL'),
+                        default=None)
+    
+    parser.add_argument('-n', '--sample', type=int,
+                        help=('an integer specifying how many images should be annotated and rendered. Default (-1) is all '
+                              'images that are in the detector output file. There may result in fewer images if some are '
+                              'not found in images_dir'),
+                        default=-1)
+    
+    parser.add_argument('-w', '--output_image_width', type=int,
+                        help=('an integer indicating the desired width in pixels of the output annotated images. '
+                              'Use -1 to not resize.'),
+                        default=700)
+    
+    parser.add_argument('-r', '--random_seed', type=int,
+                        help=('an integer to seed random so that the sample of images drawn is deterministic'),
+                        default=None)
+    
+    args = parser.parse_args()
+    print('Options to the script: ')
+    print(args)
+    print()
+    
+    assert args.confidence < 1.0 and args.confidence > 0.0, \
+        'The confidence threshold {} supplied is not valid; choose a threshold between 0 and 1.'.format(args.confidence)
+    
+    assert os.path.exists(args.detector_output_path), \
+        'Detector output file does not exist at {}'.format(args.detector_output_path)
+    
+    assert args.images_dir or args.sas_url, \
+        ('One of images_dir (original images in a local directory) or sas_url (images in the cloud) is required.')
+    
+    if args.images_dir and args.sas_url:
+        print('Both local images_dir and remote sas_url are supplied. Using local images as originals.')
 
-print('Rendered detection results on {} images, saved to {}.'.format(num_saved, args.out_dir))
+    # options = DetectorVizOptions()
+    # args_to_object(args,options)
+    
+    visualize_detector_output(args)
+    
+if __name__ == '__main__':
+    main()

@@ -1,11 +1,35 @@
-"""from peewee import *
-from DB_types import *
+from peewee import *
+from UIComponents.DBObjects import *
+from DL.sqlite_data_loader import SQLDataLoader
+from DL.utils import *
+from DL.networks import *
+from DL.Engine import Engine
+import sys
 
 db = SqliteDatabase('SS.db')
 proxy.initialize(db)
-db.create_tables([ModelDetection,OracleDetection])"""
+db.create_tables([Oracle])
 
-
+"""checkpoint= load_checkpoint('triplet_model_0054.tar')
+run_dataset = SQLDataLoader(DetectionKind.ModelDetection, "all_crops/SS_full_crops", False, num_workers= 8, batch_size= 2048)
+#run_dataset.setup(Detection.select(Detection.id,Category.id).join(Category).where(Detection.kind==DetectionKind.ModelDetection.value).limit(250000))
+num_classes= len(run_dataset.getClassesInfo())
+print("Num Classes= "+str(num_classes))
+run_loader = run_dataset.getSingleLoader()
+embedding_net = EmbeddingNet(checkpoint['arch'], checkpoint['feat_dim'])
+if checkpoint['loss_type'].lower()=='center':
+  model = torch.nn.DataParallel(ClassificationNet(embedding_net, n_classes=14)).cuda()
+else:
+  model= torch.nn.DataParallel(embedding_net).cuda()
+model.load_state_dict(checkpoint['state_dict'])
+e=Engine(model,None,None, verbose=True, print_freq=1)
+embd, label, paths = e.predict(run_loader, load_info=True)
+for i, key in enumerate(paths):
+    Detection.update(embedding=embd[i]).where(Detection.id==key).execute()
+    if i%10000==0:
+       print(i)
+       sys.stdout.flush()"""
+ 
 """import sqlite3
 import uuid
 
@@ -25,7 +49,7 @@ float(row[1]),float(row[2]),float(row[3]),float(row[4]),float(row[5])))
 conn.commit()"""
 
 
-import os
+"""import os
 from shutil import copyfile
 import sqlite3
 from PIL import Image
@@ -91,5 +115,5 @@ print(total_records)
 for i in range(1,total_processors+1):
   st,ln=divide(total_records,total_processors,i)
   p1 = Process(target=do_chunk, args=(i,rows[st:ln]))
-  p1.start()
+  p1.start()"""
  

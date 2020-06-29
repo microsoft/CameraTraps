@@ -6,7 +6,9 @@ Currently only people with access to our internal Azure subscription can deploy 
 
 If you just need to restart the service and have access to a built Docker container, you can jump to Step 4. 
 
-If you would like to create a new deployment of this API with its own compute resources, please create a new AML workspace and two storage containers within one storage account.
+If you would like to create a new deployment of this API with its own compute resources, please create a new Azure Machine Learning service ([AML service](https://azure.microsoft.com/en-us/services/machine-learning-service/)) workspace and two storage containers within one storage account on [Blob Storage](https://azure.microsoft.com/en-us/services/storage/blobs/). The storage account does not need to be in the same Azure region as the AMl workspace, as these two containers are used to store model outputs only. 
+
+Documentation on creating an AML service workspace can be found in this [tutorial](https://docs.microsoft.com/en-us/azure/machine-learning/service/tutorial-1st-experiment-sdk-setup). 
 
 
 ### Step 1. Fill out credentials and AML workspace info

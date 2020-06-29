@@ -9,7 +9,6 @@ import numpy as np
 import argparse
 import tensorflow as tf
 import os
-from PIL import Image
 import random
 import collections
 import shutil
@@ -35,6 +34,7 @@ os.makedirs(args.output_dir, exist_ok=True)
 assert args.num_samples > 0
 
 # Derived parameters
+
 # We assume that the dataset was generated with the make_classification_dataset.py script, 
 # hence the images should be located in the same folder as the json
 IMAGE_DIR = os.path.dirname(args.test_json)
@@ -54,9 +54,11 @@ graph = model_graph
 # Get dataset information
 with open(args.test_json, 'rt') as fi:
     js = json.load(fi)
+    
 # Get classes
 class_id_to_name = {cat['id']:cat['name'] for cat in js['categories']}
-# and the class list corresponding to the model outputs by assuming
+
+# ...and the class list corresponding to the model outputs by assuming
 # that they are in order of their ids
 classlist = [class_id_to_name[idx] for idx in sorted(list(class_id_to_name.keys()))]
 
@@ -70,14 +72,18 @@ for class_id in class_images.keys():
     random.shuffle(class_images[class_id])
 
 # Start the image sampling
+    
 # Set of avaiable class IDs, will be filled below
 available_classes = list()
 selected_images = list()
+
 while len(selected_images) < args.num_samples:
+    
     if len(available_classes) < 1:
         available_classes = list(class_images.keys())
         random.shuffle(available_classes)
     sampled_class = available_classes.pop()
+    
     # If there are still images left for that class
     if len(class_images[sampled_class]) > 0:
         # Get image for the sampled class, we already shuffled the class images before so 
@@ -86,7 +92,9 @@ while len(selected_images) < args.num_samples:
 
 # Start prediction
 with model_graph.as_default():
+    
     with tf.Session() as sess:
+        
         # Collect tensors for input and output
         image_tensor = tf.get_default_graph().get_tensor_by_name('input:0')
         predictions_tensor = tf.get_default_graph().get_tensor_by_name('output:0')

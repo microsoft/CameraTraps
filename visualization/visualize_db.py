@@ -15,16 +15,20 @@ import json
 import math
 import os
 import sys
+import time
 from itertools import compress
+from multiprocessing.pool import ThreadPool
 
 import pandas as pd
 from tqdm import tqdm
+import humanfriendly
 
 # Assumes ai4eutils is on the path (github.com/Microsoft/ai4eutils)
 from write_html_image_list import write_html_image_list
 
 # Assumes the cameratraps repo root is on the path
 import visualization.visualization_utils as vis_utils
+from data_management.cct_json_utils import IndexedJsonDb
 
 
 #%% Settings
@@ -41,11 +45,19 @@ class DbVizOptions:
     trim_to_images_with_bboxes = False
     random_seed = 0 # None
     add_search_links = False
+    
+    # These are mutually exclusive
+    classes_to_exclude = None
+    classes_to_include = None
 
     # We sometimes flatten image directories by replacing a path separator with 
     # another character.  Leave blank for the typical case where this isn't necessary.
     pathsep_replacement = '' # '~'
 
+    # Control rendering parallelization
+    parallelize_rendering_n_cores = 100
+    parallelize_rendering = False
+    
 
 #%% Helper functions
 
@@ -86,9 +98,10 @@ def process_images(db_path,output_dir,image_base_dir,options=None):
         image_db = json.load(open(db_path))
         print('...done')
     elif isinstance(db_path,dict):
+        print('Using previously-loaded DB')
         image_db = db_path
     else:
-        raise ValueError('Illegal dictionary or filename')
+        raise ValueError('Illegal dictionary or filename')    
         
     annotations = image_db['annotations']
     images = image_db['images']
@@ -114,22 +127,59 @@ def process_images(db_path,output_dir,image_base_dir,options=None):
                 bImageHasBbox[iImage] = True
         imagesWithBboxes = list(compress(images, bImageHasBbox))
         images = imagesWithBboxes
+                
+    # Optionally include/remove images with specific labels, *before* sampling
         
-    # put the annotations in a dataframe so we can select all annotations for a given image
+    assert (not ((options.classes_to_exclude is not None) and (options.classes_to_include is not None))), \
+        'Cannot specify an inclusion and exclusion list'
+        
+    if (options.classes_to_exclude is not None) or (options.classes_to_include is not None):
+     
+        print('Indexing database')
+        indexed_db = IndexedJsonDb(image_db)
+        bValidClass = [True] * len(images)        
+        for iImage,image in enumerate(images):
+            classes = indexed_db.get_classes_for_image(image)
+            if options.classes_to_exclude is not None:
+                for excludedClass in options.classes_to_exclude:
+                    if excludedClass in classes:
+                       bValidClass[iImage] = False
+                       break
+            elif options.classes_to_include is not None:       
+                bValidClass[iImage] = False
+                for c in classes:
+                    if c in options.classes_to_include:
+                        bValidClass[iImage] = True
+                        break                        
+            else:
+                raise ValueError('Illegal include/exclude combination')
+                
+        imagesWithValidClasses = list(compress(images, bValidClass))
+        images = imagesWithValidClasses    
+    
+    
+    # Put the annotations in a dataframe so we can select all annotations for a given image
+    print('Creating data frames')
     df_anno = pd.DataFrame(annotations)
     df_img = pd.DataFrame(images)
     
-    # construct label map
+    # Construct label map
     label_map = {}
     for cat in categories:
         label_map[int(cat['id'])] = cat['name']
     
-    # take a sample of images
+    # Take a sample of images
     if options.num_to_visualize is not None:
         df_img = df_img.sample(n=options.num_to_visualize,random_state=options.random_seed)
     
     images_html = []
     
+    # Set of dicts representing inputs to render_db_bounding_boxes:
+    #
+    # bboxes, boxClasses, image_path
+    rendering_info = []
+    
+    print('Preparing rendering list')
     # iImage = 0
     for iImage in tqdm(range(len(df_img))):
         
@@ -137,19 +187,7 @@ def process_images(db_path,output_dir,image_base_dir,options=None):
         img_relative_path = df_img.iloc[iImage]['file_name']
         img_path = os.path.join(image_base_dir, image_filename_to_path(img_relative_path, image_base_dir))
     
-        if not os.path.exists(img_path):
-            print('Image {} cannot be found'.format(img_path))
-            continue
-    
         annos_i = df_anno.loc[df_anno['image_id'] == img_id, :]  # all annotations on this image
-    
-        try:
-            originalImage = vis_utils.open_image(img_path)
-            original_size = originalImage .size
-            image = vis_utils.resize_image(originalImage , options.viz_size[0], options.viz_size[1])
-        except Exception as e:
-            print('Image {} failed to open. Error: {}'.format(img_path, e))
-            continue
     
         bboxes = []
         boxClasses = []
@@ -190,18 +228,22 @@ def process_images(db_path,output_dir,image_base_dir,options=None):
                 boxClasses.append(anno['category_id'])
         
         imageClasses = ', '.join(imageCategories)
+                
+        file_name = '{}_gt.jpg'.format(img_id.lower().split('.jpg')[0])
+        file_name = file_name.replace('/', '~').replace('\\','~')
         
-        # render bounding boxes in-place
-        vis_utils.render_db_bounding_boxes(bboxes, boxClasses, image, original_size, label_map)  
-        
-        file_name = '{}_gtbbox.jpg'.format(img_id.lower().split('.jpg')[0])
-        file_name = file_name.replace('/', '~')
-        image.save(os.path.join(output_dir, 'rendered_images', file_name))
-    
+        rendering_info.append({'bboxes':bboxes, 'boxClasses':boxClasses, 'img_path':img_path,
+                               'output_file_name':file_name})
+                
         labelLevelString = ''
         if len(annotationLevelForImage) > 0:
             labelLevelString = ' (annotation level: {})'.format(annotationLevelForImage)
             
+        # We're adding html for an image before we render it, so it's possible this image will
+        # fail to render.  For applications where this script is being used to debua a database
+        # (the common case?), this is useful behavior, for other applications, this is annoying.
+        #
+        # TODO: optionally write html only for images where rendering succeeded
         images_html.append({
             'filename': '{}/{}'.format('rendered_images', file_name),
             'title': '{}<br/>{}, number of boxes: {}, class labels: {}{}'.format(img_relative_path,img_id, len(bboxes), imageClasses, labelLevelString),
@@ -210,13 +252,58 @@ def process_images(db_path,output_dir,image_base_dir,options=None):
     
     # ...for each image
 
+    def render_image_info(rendering_info):
+        
+        img_path = rendering_info['img_path']
+        bboxes = rendering_info['bboxes']
+        bboxClasses = rendering_info['boxClasses']
+        output_file_name = rendering_info['output_file_name']
+        
+        if not os.path.exists(img_path):
+            print('Image {} cannot be found'.format(img_path))
+            return
+            
+        try:
+            original_image = vis_utils.open_image(img_path)
+            original_size = original_image.size
+            image = vis_utils.resize_image(original_image, options.viz_size[0], options.viz_size[1])
+        except Exception as e:
+            print('Image {} failed to open. Error: {}'.format(img_path, e))
+            return
+            
+        vis_utils.render_db_bounding_boxes(boxes=bboxes, classes=bboxClasses,
+                                           image=image, original_size=original_size,
+                                           label_map=label_map)
+        image.save(os.path.join(output_dir, 'rendered_images', output_file_name))
+    
+    # ...def render_image_info
+    
+    print('Rendering images')
+    start_time = time.time()
+    if options.parallelize_rendering:
+        if options.parallelize_rendering_n_cores is None:
+            pool = ThreadPool()
+        else:
+            print('Rendering images with {} workers'.format(options.parallelize_rendering_n_cores))
+            pool = ThreadPool(options.parallelize_rendering_n_cores)
+        tqdm(pool.imap(render_image_info, rendering_info), total=len(rendering_info))
+    else:
+        for file_info in tqdm(rendering_info):        
+            render_image_info(file_info)
+    elapsed = time.time() - start_time
+    
+    print('Rendered {} images in {}'.format(len(rendering_info),humanfriendly.format_timespan(elapsed)))
+        
     if options.sort_by_filename:    
         images_html = sorted(images_html, key=lambda x: x['filename'])
         
     htmlOutputFile = os.path.join(output_dir, 'index.html')
     
     htmlOptions = options.htmlOptions
-    htmlOptions['headerHtml'] = '<h1>Sample annotations from {}</h1>'.format(db_path)
+    if isinstance(db_path,str):
+        htmlOptions['headerHtml'] = '<h1>Sample annotations from {}</h1>'.format(db_path)
+    else:
+        htmlOptions['headerHtml'] = '<h1>Sample annotations</h1>'
     write_html_image_list(
             filename=htmlOutputFile,
             images=images_html,
@@ -262,7 +349,7 @@ def main():
     parser.add_argument('--pathsep_replacement', action='store', type=str, default='',
                         help='Replace path separators in relative filenames with another character (frequently ~)')
     
-    if len(sys.argv[1:])==0:
+    if len(sys.argv[1:]) == 0:
         parser.print_help()
         parser.exit()
             
@@ -270,7 +357,7 @@ def main():
     
     # Convert to an options object
     options = DbVizOptions()
-    args_to_object(args,options)
+    args_to_object(args, options)
     if options.random_sort:
         options.sort_by_filename = False
         
@@ -295,6 +382,6 @@ if False:
     options = DbVizOptions()
     options.num_to_visualize = 100
     
-    htmlOutputFile = process_images(db_path,output_dir,image_base_dir,options)
+    htmlOutputFile,db = process_images(db_path,output_dir,image_base_dir,options)
     # os.startfile(htmlOutputFile)
 

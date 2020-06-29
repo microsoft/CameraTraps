@@ -1,6 +1,8 @@
 """
 Create the tfrecord files for a dataset.
 
+This script is taken from the Visipedia repo: https://github.com/visipedia/tfrecords
+
 A lot of this code comes from the tensorflow inception example, so here is their license:
 
 # Copyright 2016 Google Inc. All Rights Reserved.
@@ -19,22 +21,19 @@ A lot of this code comes from the tensorflow inception example, so here is their
 # ==============================================================================
 
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import argparse
 from datetime import datetime
 import hashlib
 import json
 import os
-from Queue import Queue
+from queue import Queue
 import random
 import sys
 import threading
 
 import numpy as np
 import tensorflow as tf
+
 
 def _int64_feature(value):
     """Wrapper for inserting int64 features into Example proto."""
@@ -56,31 +55,39 @@ def _bytes_feature(value):
         value = [value]
     return tf.train.Feature(bytes_list=tf.train.BytesList(value=value))
 
+
 def _validate_text(text):
     """If text is not str or unicode, then try to convert it to str."""
 
     if isinstance(text, str):
-        return text
-    elif isinstance(text, unicode):
-        return text.encode('utf8', 'ignore')
+        return text.encode()
     else:
-        return str(text)
+        return str(text).encode()
 
-def _convert_to_example(image_example, image_buffer, height, width, colorspace='RGB',
-                        channels=3, image_format='JPEG'):
+
+def _str_and_encode(value):
+    return str(value).encode()
+
+
+def _convert_to_example(image_example, image_buffer, height, width,
+                        colorspace='RGB', channels=3, image_format='JPEG'):
     """Build an Example proto for an example.
-    Args:
-      image_example: dict, an image example
-      image_buffer: string, JPEG encoding of RGB image
-      height: integer, image height in pixels
-      width: integer, image width in pixels
-    Returns:
-      Example proto
-    """
 
+    Args:
+        image_example: dict, an image example
+        image_buffer: string, JPEG encoding of RGB image
+        height: integer, image height in pixels
+        width: integer, image width in pixels
+        colorspace: TODO
+        channels: TODO
+        image_format: TODO
+
+    Returns:
+        Example proto
+    """
     # Required
-    filename = str(image_example['filename'])
-    image_id = str(image_example['id'])
+    filename = str(image_example['filename']).encode()  # default encoding='utf-8'
+    image_id = str(image_example['id']).encode()
 
     # Class label for the whole image
     image_class = image_example.get('class', {})
@@ -100,7 +107,7 @@ def _convert_to_example(image_example, image_buffer, height, width, colorspace='
     ymax = image_bboxes.get('ymax', [])
     bbox_scores = image_bboxes.get('score', [])
     bbox_labels = image_bboxes.get('label', [])
-    bbox_text = map(_validate_text, image_bboxes.get('text', []))
+    bbox_text = list(map(_validate_text, image_bboxes.get('text', [])))
     bbox_label_confs = image_bboxes.get('conf', [])
 
     # Parts
@@ -114,22 +121,22 @@ def _convert_to_example(image_example, image_buffer, height, width, colorspace='
     object_areas = image_objects.get('area', [])
 
     # Ids
-    object_ids = map(str, image_objects.get('id', []))
+    object_ids = list(map(_str_and_encode, image_objects.get('id', [])))
 
     # Any extra data (e.g. stringified json)
-    extra_info = str(image_class.get('extra', ''))
+    extra_info = str(image_class.get('extra', '')).encode()
 
     # Additional fields for the format needed by the Object Detection repository
-    key = hashlib.sha256(image_buffer).hexdigest()
+    key = hashlib.sha256(image_buffer).hexdigest().encode()
     is_crowd = image_objects.get('is_crowd', [])
 
     # For explanation of the fields, see https://github.com/visipedia/tfrecords
     example = tf.train.Example(features=tf.train.Features(feature={
         'image/height': _int64_feature(height),
         'image/width': _int64_feature(width),
-        'image/colorspace': _bytes_feature(colorspace),
+        'image/colorspace': _bytes_feature(colorspace.encode()),
         'image/channels': _int64_feature(channels),
-        'image/format': _bytes_feature(image_format),
+        'image/format': _bytes_feature(image_format.encode()),
         'image/filename': _bytes_feature(filename),
         'image/id': _bytes_feature(image_id),
         'image/encoded': _bytes_feature(image_buffer),
@@ -144,22 +151,21 @@ def _convert_to_example(image_example, image_buffer, height, width, colorspace='
         'image/object/bbox/label': _int64_feature(bbox_labels),
         'image/object/bbox/text': _bytes_feature(bbox_text),
         'image/object/bbox/conf': _float_feature(bbox_label_confs),
-        'image/object/bbox/score' : _float_feature(bbox_scores),
-        'image/object/parts/x' : _float_feature(parts_x),
-        'image/object/parts/y' : _float_feature(parts_y),
-        'image/object/parts/v' : _int64_feature(parts_v),
-        'image/object/parts/score' : _float_feature(parts_s),
-        'image/object/count' : _int64_feature(object_count),
-        'image/object/area' : _float_feature(object_areas),
-        'image/object/id' : _bytes_feature(object_ids),
+        'image/object/bbox/score': _float_feature(bbox_scores),
+        'image/object/parts/x': _float_feature(parts_x),
+        'image/object/parts/y': _float_feature(parts_y),
+        'image/object/parts/v': _int64_feature(parts_v),
+        'image/object/parts/score': _float_feature(parts_s),
+        'image/object/count': _int64_feature(object_count),
+        'image/object/area': _float_feature(object_areas),
+        'image/object/id': _bytes_feature(object_ids),
 
-        # Additional fields for the format needed by the Object Detection repository
+        # Additional fields for format needed by Object Detection repository
         'image/source_id': _bytes_feature(image_id),
         'image/key/sha256': _bytes_feature(key),
         'image/object/class/label': _int64_feature(bbox_labels),
         'image/object/class/text': _bytes_feature(bbox_text),
         'image/object/is_crowd': _int64_feature(is_crowd)
-
     }))
     return example
 
@@ -214,7 +220,7 @@ def _process_image(filename, coder):
       width: integer, image width in pixels.
     """
     # Read the image file.
-    image_data = tf.gfile.FastGFile(filename, 'r').read()
+    image_data = tf.gfile.FastGFile(filename, 'rb').read()  # changed to 'rb' per https://github.com/tensorflow/tensorflow/issues/11312
 
     # Clean the dirty data.
     if _is_png(filename):
@@ -261,7 +267,7 @@ def _process_image_files_batch(coder, thread_index, ranges, name, output_directo
 
     counter = 0
     error_counter = 0
-    for s in xrange(num_shards_per_batch):
+    for s in range(num_shards_per_batch):
         # Generate a sharded version of the file name, e.g. 'train-00002-of-00010'
         shard = thread_index * num_shards_per_batch + s
         output_filename = '%s-%.5d-of-%.5d' % (name, shard, num_shards)
@@ -304,7 +310,9 @@ def _process_image_files_batch(coder, thread_index, ranges, name, output_directo
                 shard_counter += 1
                 counter += 1
             except Exception as e:
-                raise
+                #raise
+                print('Exception in making example for {}.'.format(i))
+                print('Filename: {}'.format(filename))
                 error_counter += 1
                 error_msg = repr(e)
                 image_example['error_msg'] = error_msg
@@ -369,7 +377,7 @@ def create(dataset, dataset_name, output_directory, num_shards, num_threads, shu
     spacing = np.linspace(0, len(dataset), num_threads + 1).astype(np.int)
     ranges = []
     threads = []
-    for i in xrange(len(spacing) - 1):
+    for i in range(len(spacing) - 1):
         ranges.append([spacing[i], spacing[i+1]])
 
     # Launch a thread for each batch.
@@ -386,7 +394,7 @@ def create(dataset, dataset_name, output_directory, num_shards, num_threads, shu
     error_queue = Queue()
 
     threads = []
-    for thread_index in xrange(len(ranges)):
+    for thread_index in range(len(ranges)):
         args = (coder, thread_index, ranges, dataset_name, output_directory, dataset,
                 num_shards, store_images, error_queue)
         t = threading.Thread(target=_process_image_files_batch, args=args)
@@ -402,7 +410,7 @@ def create(dataset, dataset_name, output_directory, num_shards, num_threads, shu
     errors = []
     while not error_queue.empty():
         errors.append(error_queue.get())
-    print ('%d examples failed.' % (len(errors),))
+    print('%d examples failed.' % (len(errors),))
 
     return errors
 

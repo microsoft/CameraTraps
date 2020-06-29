@@ -117,7 +117,7 @@ We can store a (short) string of metadata with each image path or URL. The json 
 
 #### Other notes and example  
 
-- Only images with file name ending in &lsquo;.jpg&rsquo; or &lsquo;.jpeg&rsquo; (case insensitive) will be processed, so please make sure the file names are compliant before you upload them to the container (you cannot rename a blob without copying it entirely once it is in Blob Storage). 
+- Only images with file name ending in &lsquo;.jpg&rsquo; (case insensitive) will be processed, so please make sure the file names are compliant before you upload them to the container (you cannot rename a blob without copying it entirely once it is in Blob Storage). 
 
 - By default we process all such images in the specified container. You can choose to only process a subset of them by specifying the other input parameters, and the images will be filtered out accordingly in this order:
     - `images_requested_json_sas`
@@ -226,7 +226,7 @@ The output of the detector is saved in `requestID_detections_requestName_timesta
     "detection_categories": {
         "1": "animal",
         "2": "person",
-        "4": "vehicle"
+        "3": "vehicle"
     },
     "classification_categories": {
         "0": "fox",
@@ -237,7 +237,7 @@ The output of the detector is saved in `requestID_detections_requestName_timesta
     },
     "images": [
         {
-            "file": "/path/from/base/dir/image1.jpg",
+            "file": "path/from/base/dir/image1.jpg",
             "meta": "a string of metadata if it was available in the list at images_requested_json_sas",
             "max_detection_conf": 0.926,
             "detections": [
@@ -268,6 +268,9 @@ The output of the detector is saved in `requestID_detections_requestName_timesta
 }
 ```
 
+A full output example computed on the Snapshot Serengeti data can be found [here](http://dolphinvm.westus2.cloudapp.azure.com/data/snapshot_serengeti/serengeti_val_detections_from_pkl_MDv1_20190528_w_classifications.json).
+
+
 ##### Detector outputs
 
 The bounding box in the `bbox` field is represented as
@@ -280,7 +283,7 @@ where `(x_min, y_min)` is the upper-left corner of the detection bounding box, w
 
 The detection category `category` can be interpreted using the `detection_categories` dictionary. 
 
-Note that the `vehicle` detection class (available in MegaDetector version 4 or later) is &ldquo;4&rdquo;. Detection categories not listed here (including "0" and "3") are used for intermediate processing and are allowable by this format specification, but should be treated as "no detection".
+Detection categories not listed here are allowed by this format specification, but should be treated as "no detection".
 
 When the detector model detects no animal (or person or vehicle), the confidence `conf` is shown as 0.0 (not confident that there is an object of interest) and the `detections` field is an empty list.
 
@@ -294,7 +297,7 @@ After a classifier is applied, each tuple in a `classifications` list represents
 
 ## Post-processing tools
 
-The [postprocessing](postprocessing) folder contains tools for working with the output of our detector API.  In particular, [postprocess_batch_results.py](postprocessing/postprocess_batch_results.py) provides visualization and accuracy assessment tools for the output of the batch processing API.
+The [postprocessing](postprocessing) folder contains tools for working with the output of our detector API.  In particular, [postprocess_batch_results.py](postprocessing/postprocess_batch_results.py) provides visualization and accuracy assessment tools for the output of the batch processing API. A sample output for the Snapshot Serengeti data when using ground-truth annotations can be seen [here](http://dolphinvm.westus2.cloudapp.azure.com/data/snapshot_serengeti/serengeti_val_detections_from_pkl_MDv1_20190528_w_classifications_eval/).
 
 
 ## Integration with other tools
