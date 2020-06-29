@@ -14,14 +14,13 @@ import io
 import json
 import os
 import random
+import sys
 import urllib.parse as parse
 
-from azure.storage.blob import BlockBlobService
 from tqdm import tqdm
 
 from data_management.annotations.annotation_constants import detector_bbox_category_id_to_name # here id is int
 from visualization import visualization_utils as vis_utils
-from ct_utils import args_to_object
 
 
 #%% Constants
@@ -221,11 +220,15 @@ def main():
     parser.add_argument('-r', '--random_seed', type=int,
                         help=('an integer to seed random so that the sample of images drawn is deterministic'),
                         default=None)
-    
+    if len(sys.argv[1:]) == 0:
+        parser.print_help()
+        parser.exit()
+
     args = parser.parse_args()
-    print('Options to the script: ')
-    print(args)
-    print()
+
+    # to accommodate the MegaDetector Colab notebook which does not yet use environment.yml
+    if args.sas_url is not None:
+        from azure.storage.blob import BlockBlobService
     
     assert args.confidence < 1.0 and args.confidence > 0.0, \
         'The confidence threshold {} supplied is not valid; choose a threshold between 0 and 1.'.format(args.confidence)
