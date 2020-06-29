@@ -67,7 +67,13 @@ First MegaDetector release!
 
 ## Using the models
 
-We provide three ways to apply this model to new images - see below. For the two scripts, we describe how you can get set up if you have Python 3 and pip installed on a Linux computer or if you are on Windows and are starting from scratch. If your computer is also used for other Python projects, we recommend you set up the environment as described in the [Installation](https://github.com/microsoft/CameraTraps#installation) section of our main README, and use conda to set up a virtual environment in which to run scripts from this repo. This reduces potential version conflict headaches with your other projects. The environment file you should use to run the two scripts below is `environment-detector.yml`. You will still need to add the required repos to `PYTHONPATH`, but don't have to worry about installing Python, pip or any packages yourself. If you do not have a GPU on your computer, change `tensorflow-gpu` to `tensorflow` in `environment-detector.yml`.
+We provide three ways to apply this model to new images:
+
+1. A simple test script that makes neat pictures with bounding boxes, but doesn't produce a useful output file ([run_tf_detector.py](https://github.com/microsoft/CameraTraps/blob/master/detection/run_tf_detector.py)) 
+2. A script for running large batches of images on a local GPU ([run_tf_detector_batch.py](https://github.com/microsoft/CameraTraps/blob/master/detection/run_tf_detector_batch.py)) 
+3. A [batch processing API](https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing/postprocessing) that runs images on many GPUs at once on Azure
+
+This section describes how to run the two scripts, including installing all the necessary Python dependencies. If your computer is also used for other Python projects, we recommend you set up the environment as described in the [Installation](https://github.com/microsoft/CameraTraps#installation) section of our main README, and use conda to set up a virtual environment in which to run scripts from this repo. This reduces potential version conflict headaches with your other projects. The environment file you should use to run the two scripts below is `environment-detector.yml`. You will still need to add the required repos to `PYTHONPATH`, but don't have to worry about installing Python, pip or any packages yourself. If you do not have a GPU on your computer, change `tensorflow-gpu` to `tensorflow` in `environment-detector.yml`.
 
 ### 0. prerequisites
 
@@ -94,12 +100,11 @@ On subsequent times you open your Anaconda prompt, you just need to do:
 ```batch
 cd c:\git\cameratraps\api\batch_processing\postprocessing
 set PYTHONPATH=c:\git\cameratraps;c:\git\ai4eutils
-python find_repeat_detections.py
 ```
 
 ### 1. run_tf_detector.py
 
-To "test" this model on small sets of images and get super-satisfying visual output, we provide [run_tf_detector.py](https://github.com/Microsoft/CameraTraps/blob/master/detection/run_tf_detector.py), an example script for invoking this detector on new images.  This script doesn't depend on anything else in our repo, so you can download it and give it a try.  [Let us know](mailto:cameratraps@microsoft.com) how it works on your images!
+To "test" this model on small sets of images and get super-satisfying visual output, we provide [run_tf_detector.py](https://github.com/Microsoft/CameraTraps/blob/master/detection/run_tf_detector.py), an example script for invoking this detector on new images.  This isn't how we recommend running lots of images through MegaDetector (see [run_tf_detector_batch.py](#2-run_tf_detector_batchpy) below for "real" usage), but it's a quick way to test things out.  [Let us know](mailto:cameratraps@microsoft.com) how it works on your images!
 
 #### Running run_tf_detector.py on Linux
 
@@ -172,12 +177,11 @@ Run `python run_tf_detector_batch.py` for a full list of options.
 
 #### Running run_tf_detector_batch.py on Windows
 
-Then all the `git`, `pip`, and `python` steps in the above instructions should work fine on Windows.  You'll probably want to just download the [MegaDetector model file](https://lilablobssc.blob.core.windows.net/models/camera_traps/megadetector/md_v4.1.0/md_v4.1.0.pb) in your browser.  For the step where you add our repos to your Python path, you can do this by finding the directory to which you cloned each repo, and adding that directory to your PYTHONPATH environment variable. Here's a [good page](https://www.computerhope.com/issues/ch000549.htm) about editing environment variables in Windows.  You can also do all of this at the command prompt.
+Once you've gone through the [prerequisites](#0-prerequisites) above, all the `git`, `pip`, and `python` steps in the above instructions should work fine on Windows too.  In the Linux instructions above, we suggest using `wget` to download the model file; on Windows, you'll probably want to download the [MegaDetector model file](https://lilablobssc.blob.core.windows.net/models/camera_traps/megadetector/md_v4.1.0/md_v4.1.0.pb) in your browser.
 
-Putting all of this together, if you've installed Anaconda, this might look like the following (in your Anaconda prompt):
+Putting together the prerequisites, package installation, and execution steps for Windows, once you've installed Anaconda, this might look like the following (in your Anaconda prompt):
 
-```batch
-cd c:\git
+```cd c:\git
 git clone https://github.com/microsoft/CameraTraps/
 git clone https://github.com/microsoft/ai4eutils/
 set PYTHONPATH=c:\git\cameratraps;c:\git\ai4eutils
@@ -189,7 +193,7 @@ python CameraTraps/detection/run_tf_detector_batch.py wherever_you_put_the_detec
 
 ### 3. Batch processing API
 
-Speaking of which, when we process loads of images from collaborators, we use our [batch processing API](https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing), which we can make available externally on request.  [Email us](mailto:cameratraps@microsoft.com) for more information.
+Speaking of lots of images, when we process loads of images from collaborators, we use our [batch processing API](https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing), which we can make available externally on request.  [Email us](mailto:cameratraps@microsoft.com) for more information.
 
 
 ## Citing MegaDetector
@@ -204,13 +208,6 @@ If you use the MegaDetector in a publication, please cite:
 }
 ```
 
-
-- To "test drive" this model on small sets of images and get super-satisfying visual output, we provide [run_tf_detector.py](https://github.com/Microsoft/CameraTraps/blob/master/detection/run_tf_detector.py), an example script for invoking this detector on new images.  This script doesn&rsquo;t depend on anything else in our repo, so you can download it and give it a try.  [Let us know](mailto:cameratraps@microsoft.com) how it works on your images!
-
- You can test it directly on Google Colaboratory <a href="https://colab.research.google.com/github/microsoft/CameraTraps/blob/master/detection/Microsoft_CameraTraps.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
- 
-- To apply this model to larger image sets on a single machine, we recommend a slightly different script, [run_tf_detector_batch](https://github.com/Microsoft/CameraTraps/blob/master/detection/run_tf_detector_batch.py).  This outputs data in the same format as our [batch processing API](https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing), so you can leverage all of our post-processing tools.
-- Speaking of which, when we process loads of images from collaborators, we use our [batch processing API](https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing), which we can make available externally on request.  [Email us](mailto:cameratraps@microsoft.com) for more information.
 
 ## Tell me more about why detectors are a good first step for camera trap images
 
