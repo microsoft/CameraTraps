@@ -61,10 +61,11 @@ def _detect_process_request_data(request):
     # request.content_length is the length of the total payload
     # also will not proceed if cannot find content_length, hence in the else we exceed the max limit
     content_length = request.content_length
-
-    if content_length > api_config.MAX_CONTENT_LENGTH_IN_MB * 1024 * 1024 or not content_length:
-        abort(413, ('Payload size {:.2f} MB exceeds the maximum allowed of {} MB, or payload content length'
-                    ' cannot be determined. Please upload fewer or more compressed images.').format(
+    if not content_length:
+        abort(411, 'No image(s) are sent, or content length cannot be determined.')
+    if content_length > api_config.MAX_CONTENT_LENGTH_IN_MB * 1024 * 1024:
+        abort(413, ('Payload size {:.2f} MB exceeds the maximum allowed of {} MB. '
+                    'Please upload fewer or more compressed images.').format(
             content_length / (1024 * 1024), api_config.MAX_CONTENT_LENGTH_IN_MB))
 
     render_boxes = True if params.get('render', '') in ['True', 'true'] else False

@@ -209,6 +209,17 @@ class TestSynchronousAPI(unittest.TestCase):
         for fd in open_files:
             fd.close()
 
+    def test_detect_no_image_sent(self):
+        params = {
+            'confidence': 0.8,
+            'render': False
+        }
+        files = {}
+        r = requests.post(self.api_url + 'detect',
+                          params=params,
+                          files=files, headers=self.headers)
+        self.assertEqual(r.status_code, 411)
+
     def test_detect_too_many_images(self):
         params = {
             'confidence': 0.8,
