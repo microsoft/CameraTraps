@@ -47,6 +47,13 @@ sudo sh build_docker.sh $API_DOCKER_IMAGE
 sudo docker run --gpus all -p 6002:1212 $API_DOCKER_IMAGE
 ```
 
+Now test the locally deployed API (see [Testing](#testing)). Then push the image to a container registry so we can deploy it on the production cluster.
+
+```bash
+sudo az acr login --name name_of_registry
+
+sudo docker push $API_DOCKER_IMAGE
+```
 
 
 ## Deployment
