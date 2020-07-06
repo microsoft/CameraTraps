@@ -1,6 +1,6 @@
-# Output Manager App
+# Camera Trap Batch API Output Manager App
 
-The Output Manager is a Windows desktop application for making the batch processing API's output JSON file more manageable in downstream processing. It does either or both of the following:
+The Camera Trap Batch API Output Manager is a Windows desktop application for making the batch processing API's output JSON file more manageable in downstream processing. It does either or both of the following:
 
 - Retrieves all result entries where the image file path matches a specified query string. It optionally replaces that query string with a replacement token. If the query string is blank, it can be used to prepend a token to all image file paths. A "result entry" corresponds to one image, containing all detections on that image.
 
