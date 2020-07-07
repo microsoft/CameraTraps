@@ -5,16 +5,10 @@ import io
 from datetime import datetime, timedelta
 from urllib import parse
 
-from azure.storage.blob import (
-    BlockBlobService,
-    ContainerPermissions,
-    BlobPermissions,
-    PublicAccess,
-    ContentSettings,
-    BlobBlock,
-    BlockListType,
-)
+import azure.storage.blob
+print('sas_blob_utils.py, azure.storage.blob version is {}'.format(azure.storage.blob.__version__))
 
+from azure.storage.blob import BlockBlobService, ContainerPermissions
 
 """
 This module contains helper functions for dealing with Shared Access Signatures (SAS) tokens
