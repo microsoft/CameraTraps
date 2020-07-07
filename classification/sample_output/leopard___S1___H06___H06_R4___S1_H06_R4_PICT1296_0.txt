@@ -1,7 +1,0 @@
-Predicting leopard/S1/H06/H06_R4/S1_H06_R4_PICT1296_0.JPG
-Most likely classes:
-	"leopard" with confidence 68.30%
-	"porcupine" with confidence 9.40%
-	"serval" with confidence 7.13%
-	"cheetah" with confidence 4.95%
-	"wildcat" with confidence 3.02%
