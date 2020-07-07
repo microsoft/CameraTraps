@@ -67,13 +67,19 @@ First MegaDetector release!
 
 ## Using the models
 
-We provide three ways to apply this model to new images:
+We provide four ways to apply this model to new images:
 
-1. A simple test script that makes neat pictures with bounding boxes, but doesn't produce a useful output file ([run_tf_detector.py](https://github.com/microsoft/CameraTraps/blob/master/detection/run_tf_detector.py)) 
-2. A script for running large batches of images on a local GPU ([run_tf_detector_batch.py](https://github.com/microsoft/CameraTraps/blob/master/detection/run_tf_detector_batch.py)) 
-3. A [batch processing API](https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing/postprocessing) that runs images on many GPUs at once on Azure
+1. Try applying the MegaDetector to some of your own images in Google Drive using this [Colab notebook](https://github.com/microsoft/CameraTraps/blob/master/detection/megadetector_colab.ipynb).
 
-This section describes how to run the two scripts, including installing all the necessary Python dependencies. If your computer is also used for other Python projects, we recommend you set up the environment as described in the [Installation](https://github.com/microsoft/CameraTraps#installation) section of our main README, and use conda to set up a virtual environment in which to run scripts from this repo. This reduces potential version conflict headaches with your other projects. The environment file you should use to run the two scripts below is `environment-detector.yml`. You will still need to add the required repos to `PYTHONPATH`, but don't have to worry about installing Python, pip or any packages yourself. If you do not have a GPU on your computer, change `tensorflow-gpu` to `tensorflow` in `environment-detector.yml`.
+<a href="https://colab.research.google.com/github/microsoft/CameraTraps/blob/master/detection/megadetector_colab.ipynb">
+  <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open in Colab"/>
+</a>
+
+2. A simple test script that makes neat pictures with bounding boxes, but doesn't produce a useful output file ([run_tf_detector.py](https://github.com/microsoft/CameraTraps/blob/master/detection/run_tf_detector.py)) 
+3. A script for running large batches of images on a local GPU ([run_tf_detector_batch.py](https://github.com/microsoft/CameraTraps/blob/master/detection/run_tf_detector_batch.py)) 
+4. A [batch processing API](https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing/postprocessing) that runs images on many GPUs at once on Azure
+
+This section describes how to run the two scripts (options 2 and 3), including installing all the necessary Python dependencies. If your computer is also used for other Python projects, we recommend you set up the environment as described in the [Installation](https://github.com/microsoft/CameraTraps#installation) section of our main README, and use conda to set up a virtual environment in which to run scripts from this repo. This reduces potential version conflict headaches with your other projects. The environment file you should use to run the two scripts below is `environment-detector.yml`. You will still need to add the required repos to `PYTHONPATH`, but don't have to worry about installing Python, pip or any packages yourself. If you do not have a GPU on your computer, change `tensorflow-gpu` to `tensorflow` in `environment-detector.yml`.
 
 ### 0. prerequisites
 
