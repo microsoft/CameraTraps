@@ -1,3 +1,0 @@
-BASE_URL = ''
-SUBSCRIPTION_KEY=''
-
