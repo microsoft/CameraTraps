@@ -134,10 +134,9 @@ class AMLCompute:
 
             compute_target = self.ws.compute_targets[aml_config['aml_compute_name']]
 
-            dependencies = CondaDependencies.create(pip_packages=['tensorflow-gpu==1.9.0',
+            dependencies = CondaDependencies.create(pip_packages=['tensorflow-gpu==1.12.0',
                                                                   'pillow',
                                                                   'numpy',
-                                                                  'azure',
                                                                   'azure-storage-blob==2.1.0',
                                                                   'azureml-defaults==1.0.41'])
 
