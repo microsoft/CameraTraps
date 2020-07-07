@@ -1,4 +1,4 @@
-# Output Manager App
+# Camera Trap Batch API Output Manager App
 
 The Output Manager is a Windows desktop application for making the batch processing API's output JSON file more manageable in downstream processing. It does either or both of the following:
 
