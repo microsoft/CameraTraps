@@ -1,7 +1,0 @@
-Predicting wildcat/S2/D03/D03_R4/S2_D03_R4_PICT0414.JPG
-Most likely classes:
-	"batEaredFox" with confidence 77.14%
-	"honeyBadger" with confidence 13.73%
-	"zorilla" with confidence 3.02%
-	"mongoose" with confidence 2.76%
-	"civet" with confidence 1.93%
