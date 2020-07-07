@@ -1,7 +1,0 @@
-Predicting porcupine/S1/H06/H06_R4/S1_H06_R4_PICT1178_1.JPG
-Most likely classes:
-	"elephant" with confidence 30.68%
-	"porcupine" with confidence 22.94%
-	"hippopotamus" with confidence 6.46%
-	"buffalo" with confidence 6.43%
-	"hyenaSpotted" with confidence 5.84%
