@@ -369,6 +369,8 @@ class Efficient_camtrap:
                         if iternum%int(self.num_iter_per_epoch*(opt.eval_percent_epoch/100)) == 0 and self.step > 0:
                             self.model.debug = True # For printing images
                             cls_loss, reg_loss, imgs_labelled = self.model(imgs, annot, obj_list=params.obj_list)
+                            # Plot a batch of images. Reduce to required number of images
+                            imgs_labelled = imgs_labelled[:opt.num_visualize_images]
                             # create a grid of training images for tensorboard
                             img_grid = self.create_plot_images(imgs_labelled, nrow=2)
                             # write to tensorboard
@@ -469,7 +471,8 @@ class Efficient_camtrap:
         loss_classification_ls = []
         self.model.evalresults = [] # Empty the results for next evaluation.
         imgs_to_viz = []
-        num_validation_steps = int(self.num_val_iter_per_epoch*(opt.eval_sampling_percent/100))
+        # Avoid going through the whole validation dataset by sampling.
+        num_validation_steps = max(1, int(self.num_val_iter_per_epoch*(opt.eval_sampling_percent/100)))
         for valiternum, valdata in enumerate(self.val_generator):
             with torch.no_grad():
                 imgs = valdata['img'] # get images
@@ -483,19 +486,23 @@ class Efficient_camtrap:
                     imgs = imgs.cuda()
                     annot = annot.cuda()
 
-                # Below condition will make sure that we get only required no.of images to plot.
-                if valiternum%(num_validation_steps//(opt.num_visualize_images//opt.batch_size)) != 0:
-                    self.model.debug = False
-                    cls_loss, reg_loss, _ = self.model(imgs, annot, obj_list=params.obj_list,
-                                                       resizing_imgs_scales=resizing_imgs_scales,
-                                                       new_ws=new_ws, new_hs=new_hs, imgs_ids=imgs_ids)
-                else:
+                # Below condition will make sure that we get an approximation to required no.of images to plot.
+                plotting_intervals = (opt.num_visualize_images//opt.batch_size)
+                if plotting_intervals == 0: 
+                    plotting_intervals= 1
+                if valiternum%(num_validation_steps//plotting_intervals) == 0 and valiternum > 0:
                     self.model.debug = True
                     cls_loss, reg_loss, val_imgs_labelled = self.model(imgs, annot, obj_list=params.obj_list,
                                                                        resizing_imgs_scales=resizing_imgs_scales,
                                                                        new_ws=new_ws, new_hs=new_hs, imgs_ids=imgs_ids)
 
                     imgs_to_viz += list(val_imgs_labelled) #Keep appending the images
+
+                else:
+                    self.model.debug = False
+                    cls_loss, reg_loss, _ = self.model(imgs, annot, obj_list=params.obj_list,
+                                                       resizing_imgs_scales=resizing_imgs_scales,
+                                                       new_ws=new_ws, new_hs=new_hs, imgs_ids=imgs_ids)
 
                 loss_classification_ls.append(cls_loss.item())
                 loss_regression_ls.append(reg_loss.item())
@@ -514,6 +521,8 @@ class Efficient_camtrap:
         self.writer.add_scalars('Regression_loss', {'val': reg_loss}, step)
         self.writer.add_scalars('Classfication_loss', {'val': cls_loss}, step)
 
+        #Update your images to the required no of images
+        imgs_to_viz = imgs_to_viz[:opt.num_visualize_images]
         # create grid of images for tensorboard
         val_img_grid = self.create_plot_images(imgs_to_viz, nrow=2)
         # write to tensorboard
@@ -557,8 +566,14 @@ def save_checkpoint(model:bytes, name:str):
     else:
         torch.save(model.model.state_dict(), os.path.join(OPT.saved_path, name))
 
+def check_args():
+    """
+    Make sure your params will not cause any errors.
+    """
+    assert OPT.eval_percent_epoch > 0, "Eval percent epoch must be greater than 0"
 
 if __name__ == '__main__':
     OPT = get_args()
+    check_args()
     efficient = Efficient_camtrap(OPT)
     efficient.train()

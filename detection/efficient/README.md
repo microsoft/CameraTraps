@@ -48,6 +48,8 @@ OR
 
 #### Commit histories
 
+    22nd commit - Cleaning_Update: `train.py` : Exact number of required images will be plotted now. Added worst-case scenario to `num_validation_steps`. Added `check_args` to raise exceptions or fix args.
+
     22nd commit - Documentation: `train.py` & `utils_/calc_eval.py` : Added references & cleaned the files. 
 
     21st commit - Added `plot_images` function in `train.py`.
