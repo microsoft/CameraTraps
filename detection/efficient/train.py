@@ -417,7 +417,7 @@ class Efficient_camtrap:
                         self.step += 1
 
                         if self.step % opt.save_interval == 0 and self.step > 0:
-                            save_checkpoint(self.model, f'efficientdet-d{opt.compound_coef}_{epoch}_{self.step}.pth')
+                            save_checkpoint(self.model, f'efficientdet-d{opt.compound_coef}_{epoch}_{self.step}.pth', score = self.best_mAp_metric)
                             print('checkpoint...')
 
                     except Exception as exception:
@@ -426,7 +426,7 @@ class Efficient_camtrap:
                         continue
                 self.scheduler.step(np.mean(epoch_loss))
         except KeyboardInterrupt:
-            save_checkpoint(self.model, f'efficientdet-d{opt.compound_coef}_{epoch}_{self.step}.pth')
+            save_checkpoint(self.model, f'efficientdet-d{opt.compound_coef}_{epoch}_{self.step}.pth', score= self.best_mAp_metric)
             self.writer.close()
         self.writer.close()
 
@@ -539,14 +539,16 @@ class Efficient_camtrap:
             try:
                 val_results = calc_mAP_fin(self.evaluation_pred_file, \
                                         val_gt=f'{opt.data_path}/{opt.project}/annotations/instances_{params.val_set}.json')
-    
+
+                # print(val_results)
                 category_Ap_scores = [-1]*len(val_results)
-                for catgname in val_results:
+                for idx, catgname in enumerate(val_results):
                     metricname = 'Average Precision  (AP) @[ IoU = 0.50      | area =    all | maxDets = 100 ]'
                     evalscore = val_results[catgname][metricname]
-                    category_Ap_scores.append(evalscore)
+                    category_Ap_scores[idx] = evalscore
                     self.writer.add_scalars(f'mAP@IoU=0.5', {f'{catgname}': evalscore}, step)
 
+                print(category_Ap_scores)
                 #get a mean of category scores
                 mean_Ap_metric = sum(category_Ap_scores)/len(category_Ap_scores) 
                 
@@ -558,7 +560,7 @@ class Efficient_camtrap:
             self.best_mAp_metric = mean_Ap_metric
             self.best_epoch = epoch
 
-            save_checkpoint(self.model, f'efficientdet-d{opt.compound_coef}_{epoch}_{step}.pth')
+            save_checkpoint(self.model, f'efficientdet-d{opt.compound_coef}_{epoch}_{step}.pth', score = self.best_mAp_metric)
 
         # Early stopping
         if epoch - self.best_epoch > opt.es_patience > 0:
@@ -567,7 +569,7 @@ class Efficient_camtrap:
         else:
             return False
 
-def save_checkpoint(model:bytes, name:str):
+def save_checkpoint(model:bytes, name:str, score:float):
     """
     Save the model
     """
@@ -576,12 +578,63 @@ def save_checkpoint(model:bytes, name:str):
     else:
         torch.save(model.model.state_dict(), os.path.join(OPT.saved_path, name))
 
+    model_prefix=f'efficientdet-d{OPT.compound_coef}'
+    assert model_prefix in name, "Error calling clean_savedmodels() function. Model prefix doesn't match"
+    clean_savedmodels(model_prefix, os.path.join(OPT.saved_path, name), score)
+
 def check_args():
     """
     Make sure your params will not cause any errors.
     """
     assert OPT.eval_percent_epoch > 0, "Eval percent epoch must be greater than 0"
 
+
+def clean_savedmodels(model_prefix: str, model_path: str, score: float, topk=3):
+    """
+    Inputs:
+        :topk                 -> Best k models to keep. Rest everything will be deleted
+        :Prefix of the models -> efficientdet-d{opt.compound_coef}_ in efficientdet-d{opt.compound_coef}_{}_{}.pth
+    
+    Description:
+    
+        We call this function everytime we save a model. Main purpose of this function is to 
+        handle the overwhelmingly saved models over the training time. Keep only the best #k models 
+        and remove everything else.
+        
+        We maintain a json file in `opt.saved_path` with prefix name that will store all [[mAP, filename]], 
+        Example : [[0.1,'file1'],[0.05, 'file2'],[0.2,'file3']]
+        
+        Function: Sort based on mAP. sorted(a, key=lambda a:a[0])
+                  Remove everything except the top 50.
+                  Enter the new model into list and update the json file.
+
+    """
+    log_file = os.path.join(OPT.saved_path, f'{model_prefix}.json')
+    filelogs = []
+    toremovefiles = []
+    if os.path.exists(log_file):
+        with open(f'{log_file}','r') as fh: 
+            filelogs = json.load(fh)
+            filelogs = sorted(filelogs, key=lambda filelogs:filelogs[0], reverse=True)
+            if len(filelogs) > topk:
+                toremovefiles = filelogs[topk:] 
+                filelogs =  filelogs[:topk]#Update the filelogs
+            print('=========================================================================')
+            print(toremovefiles)
+            print(filelogs)
+            print('=========================================================================')
+            for _, filename in toremovefiles: # Everything except last k files
+                print(filename)
+                try:
+                    os.remove(filename)
+                except IOError:
+                    print(f'File {filename} not found')
+
+
+    filelogs = [[score, model_path]] + filelogs
+    with open(f'{log_file}','w') as fh:
+        json.dump(filelogs, fh)
+    
 if __name__ == '__main__':
     OPT = get_args()
     check_args()
