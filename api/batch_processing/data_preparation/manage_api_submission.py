@@ -639,3 +639,20 @@ for i_folder,folder_name in enumerate(folders):
     options.query = folder_name + '\\'
     
     subset_data = subset_json_detector_output(input_filename,output_filename,options,data)
+
+
+#%% Folder splitting
+    
+from api.batch_processing.postprocessing.separate_detections_into_folders import separate_detections_into_folders
+from api.batch_processing.postprocessing.separate_detections_into_folders import SeparateDetectionsIntoFoldersOptions
+    
+default_threshold = 0.8
+options = SeparateDetectionsIntoFoldersOptions()    
+
+options.results_file = r"blah-20200629_detections.json"
+options.base_input_folder = "z:\\"
+options.base_output_folder = r"E:\blah-out"
+options.n_threads = 100
+options.allow_existing_directory = False
+
+separate_detections_into_folders(options)
