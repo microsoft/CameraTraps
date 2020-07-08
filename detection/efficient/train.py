@@ -315,6 +315,7 @@ class Efficient_camtrap:
 
         self.epoch = 0
         self.best_loss = 1e5
+        self.best_mAp_metric = -1
         self.best_epoch = 0
         self.step = max(0, last_step)
 
@@ -533,19 +534,28 @@ class Efficient_camtrap:
         # with the val.json
         if opt.max_preds_toeval > 0:
             json.dump(self.model.evalresults, open(self.evaluation_pred_file, 'w'), indent=4)
+
+            mean_Ap_metric = -1
             try:
                 val_results = calc_mAP_fin(self.evaluation_pred_file, \
                                         val_gt=f'{opt.data_path}/{opt.project}/annotations/instances_{params.val_set}.json')
-
+    
+                category_Ap_scores = [-1]*len(val_results)
                 for catgname in val_results:
                     metricname = 'Average Precision  (AP) @[ IoU = 0.50      | area =    all | maxDets = 100 ]'
                     evalscore = val_results[catgname][metricname]
+                    category_Ap_scores.append(evalscore)
                     self.writer.add_scalars(f'mAP@IoU=0.5', {f'{catgname}': evalscore}, step)
+
+                #get a mean of category scores
+                mean_Ap_metric = sum(category_Ap_scores)/len(category_Ap_scores) 
+                
             except Exception as exption:
                 print("Unable to perform evaluation", exption)
 
-        if loss + opt.es_min_delta < self.best_loss:
-            self.best_loss = loss
+        # Update if meanAP score is at its best.
+        if mean_Ap_metric + opt.es_min_delta > self.best_mAp_metric:
+            self.best_mAp_metric = mean_Ap_metric
             self.best_epoch = epoch
 
             save_checkpoint(self.model, f'efficientdet-d{opt.compound_coef}_{epoch}_{step}.pth')
