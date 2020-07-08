@@ -41,7 +41,7 @@ files_to_unzip = {
 # iNat: ~2.2GB zipped, ~51MB taxonomy
 
 taxonomy_download_dir = r'c:\temp\taxonomy'
-os.makedirs(taxonomy_download_dir,exist_ok=True)
+os.makedirs(taxonomy_download_dir, exist_ok=True)
 for taxonomy_name in taxonomy_urls:
     taxonomy_dir = os.path.join(taxonomy_download_dir, taxonomy_name)
     os.makedirs(taxonomy_dir, exist_ok=True)

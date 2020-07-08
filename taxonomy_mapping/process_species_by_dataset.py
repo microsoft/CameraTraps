@@ -362,6 +362,13 @@ with open(html_output_file, 'w') as f:
 
 #%% Look for redundancy with the master table
 
+# Note: `master_table_file` is a CSV file that is the concatenation of the
+#   manually-remapped files ("manual_remapped.xlsx"), which are the output of
+#   this script run across from different groups of datasets. The concatenation
+#   should be done manually. If `master_table_file` doesn't exist yet, skip this
+#   code cell. Then, after going through the manual steps below, set the final
+#   manually-remapped version to be the `master_table_file`.
+
 def generate_query_id(dataset_name: str, query: str) -> str:
     return dataset_name + '|' + query
 
