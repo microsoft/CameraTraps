@@ -20,18 +20,20 @@
 
 #%% Constants and imports
 
-import os
-import zipfile
 import argparse
-import shutil
+from collections import defaultdict
+from itertools import compress
+import os
 import pickle
+import shutil
+from typing import Iterable, Mapping, Set
+import zipfile
+
 import pandas as pd
 import numpy as np
 
 from tqdm import tqdm
-from collections import defaultdict
-from itertools import compress
-    
+
 import ai4e_web_utils
 
 taxonomy_urls = {
@@ -340,7 +342,11 @@ def taxonomy_row_to_string(r):
     return r['taxonRank'] + ' ' + scientific_name + common_string
 
 
-def traverse_taxonomy(matching_rows,taxon_id_to_row,taxon_id_to_vernacular,taxonomy,source_name):
+def traverse_taxonomy(matching_rownums: Iterable[int],
+                      taxon_id_to_row: Mapping[str, int],
+                      taxon_id_to_vernacular: Mapping[str, Set[str]],
+                      taxonomy: pd.DataFrame,
+                      source_name: str):
     """
     Given a data frame that's a set of rows from one of our taxonomy tables, walks the 
     taxonomy hierarchy from each row to put together a full taxonomy tree, then prunes
@@ -351,11 +357,13 @@ def traverse_taxonomy(matching_rows,taxon_id_to_row,taxon_id_to_vernacular,taxon
     matching_trees = []
     
     # i_match = 0
-    for i_match in range(0,len(matching_rows)):
-        
+    for i_match in matching_rownums:
+
+        # list of (taxon_id, taxonRank, scientific name, [vernacular names])
+        # corresponding to an exact match and its parents
         match_details = []
-        current_row = matching_rows.iloc[i_match]
-        
+        current_row = taxonomy.iloc[i_match]
+
         # Walk taxonomy hierarchy
         while True:
             
@@ -371,7 +379,8 @@ def traverse_taxonomy(matching_rows,taxon_id_to_row,taxon_id_to_vernacular,taxon
                 parent_taxon_id = current_row['parentNameUsageID'].astype('int64')                
                 i_parent_row = taxon_id_to_row[parent_taxon_id]
                 current_row = taxonomy.iloc[i_parent_row]
-            except Exception:
+            except Exception as e:
+                print(e)
                 break
 
             # The GBIF taxonomy contains unranked entries
@@ -385,12 +394,12 @@ def traverse_taxonomy(matching_rows,taxon_id_to_row,taxon_id_to_vernacular,taxon
     # ...for each match
         
     # Remove redundant matches
-    b_valid_tree = [True] * len(matching_rows)
+    b_valid_tree = [True] * len(matching_rownums)
     # i_tree_a = 0; tree_a = matching_trees[i_tree_a]
-    for i_tree_a,tree_a in enumerate(matching_trees):
-        
-        tree_a_primary_taxon_ID = tree_a['taxonomy'][0][0]
-        
+    for i_tree_a, tree_a in enumerate(matching_trees):
+
+        tree_a_primary_taxon_id = tree_a['taxonomy'][0][0]
+
         # i_tree_b = 1; tree_b = matching_trees[i_tree_b]
         for i_tree_b,tree_b in enumerate(matching_trees):
             
@@ -402,7 +411,7 @@ def traverse_taxonomy(matching_rows,taxon_id_to_row,taxon_id_to_vernacular,taxon
             #
             # taxonomy_level_b = tree_b['taxonomy'][0]
             for taxonomy_level_b in tree_b['taxonomy']:
-                if tree_a_primary_taxon_ID == taxonomy_level_b[0]:
+                if tree_a_primary_taxon_id == taxonomy_level_b[0]:
                     b_valid_tree[i_tree_a] = False
                     break
                 
@@ -418,7 +427,8 @@ def traverse_taxonomy(matching_rows,taxon_id_to_row,taxon_id_to_vernacular,taxon
 # ...def traverse_taxonomy()
     
 
-def get_taxonomic_info(query):
+
+def get_taxonomic_info(query: str):
     """
     Main entry point: get taxonomic matches from both taxonomies for [query], which
     may be a scientific or common name.
@@ -430,45 +440,38 @@ def get_taxonomic_info(query):
     
     query = query.strip().lower()
     # print("Finding taxonomy information for: {0}".format(query))
-    
-    inat_taxon_ids = []    
+
+    inat_taxon_ids = set()
     if query in inat_scientific_to_taxon_id:
-        inat_taxon_ids.extend(list(inat_scientific_to_taxon_id[query]))
+        inat_taxon_ids |= inat_scientific_to_taxon_id[query]
     if query in inat_vernacular_to_taxon_id:
-        inat_taxon_ids.extend(list(inat_vernacular_to_taxon_id[query]))
-    
-    gbif_taxon_ids = []
+        inat_taxon_ids |= inat_vernacular_to_taxon_id[query]
+
+    # in GBIF, some queries hit for both common and scientific, make sure we end
+    # up with unique inputs
+    gbif_taxon_ids = set()
     if query in gbif_scientific_to_taxon_id:
-        gbif_taxon_ids.extend(list(gbif_scientific_to_taxon_id[query]))
+        gbif_taxon_ids |= gbif_scientific_to_taxon_id[query]
     if query in gbif_vernacular_to_taxon_id:
-        gbif_taxon_ids.extend(list(gbif_vernacular_to_taxon_id[query]))
-        
+        gbif_taxon_ids |= gbif_vernacular_to_taxon_id[query]
+
+    # both GBIF and iNat have a 1-to-1 mapping between taxon_id and row number
     inat_row_indices = [inat_taxon_id_to_row[i] for i in inat_taxon_ids]
-    
-    # Some queries hit for both common and scientific, make sure we end up with unique inputs
-    inat_row_indices = list(set(inat_row_indices))
-    
     gbif_row_indices = [gbif_taxon_id_to_row[i] for i in gbif_taxon_ids]
-    
-    # Some queries hit for both common and scientific, make sure we end up with unique inputs
-    gbif_row_indices = list(set(gbif_row_indices))
-    
-    inat_matches = inat_taxonomy.iloc[inat_row_indices]
-    gbif_matches = gbif_taxonomy.iloc[gbif_row_indices]
-    
-    # inat_matches and species are both data frames
-    
+
     # If the species is not found in either taxonomy, return None
-    if (len(inat_matches) == 0) and (len(gbif_matches) == 0):
+    if (len(inat_row_indices) == 0) and (len(gbif_row_indices) == 0):
         return []
     
     # Walk both taxonomies
-        
-    gbif_matching_trees = traverse_taxonomy(gbif_matches, gbif_taxon_id_to_row, 
-                                            gbif_taxon_id_to_vernacular,gbif_taxonomy, 'gbif')
-    inat_matching_trees = traverse_taxonomy(inat_matches, inat_taxon_id_to_row, 
-                                            inat_taxon_id_to_vernacular,inat_taxonomy, 'inat')
-            
+
+    inat_matching_trees = traverse_taxonomy(
+        inat_row_indices, inat_taxon_id_to_row, inat_taxon_id_to_vernacular,
+        inat_taxonomy, 'inat')
+    gbif_matching_trees = traverse_taxonomy(
+        gbif_row_indices, gbif_taxon_id_to_row, gbif_taxon_id_to_vernacular,
+        gbif_taxonomy, 'gbif')
+
     return gbif_matching_trees + inat_matching_trees
 
 # ...def get_taxonomic_info()
