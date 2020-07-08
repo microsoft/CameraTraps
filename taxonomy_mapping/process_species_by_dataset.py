@@ -11,6 +11,7 @@
 
 import os
 import re
+from typing import Any
 import unicodedata
 
 import pandas as pd
@@ -54,7 +55,7 @@ master_table_file = r'C:\git\camera-traps-private\camera_trap_taxonomy_mapping.c
 
 #%% Functions
 
-def slugify(value, allow_unicode=False):
+def slugify(value: Any, allow_unicode: bool = False) -> str:
     """
     From:
     https://github.com/django/django/blob/master/django/utils/text.py
@@ -65,10 +66,9 @@ def slugify(value, allow_unicode=False):
     """
 
     value = str(value)
-    if allow_unicode:
-        value = unicodedata.normalize('NFKC', value)
-    else:
-        value = unicodedata.normalize('NFKD', value).encode('ascii', 'ignore').decode('ascii')
+    value = unicodedata.normalize('NFKC', value)
+    if not allow_unicode:
+        value = value.encode('ascii', 'ignore').decode('ascii')
     value = re.sub(r'[^\w\s-]', '', value.lower()).strip()
     return re.sub(r'[-\s]+', '-', value)
 
@@ -85,10 +85,10 @@ class TaxonomicMatch:
         self.match = match
 
 
-def get_preferred_taxonomic_match(query):
+def get_preferred_taxonomic_match(query: str) -> TaxonomicMatch:
     """
-    Wrapper for species_lookup.py, but expressing a variety of heuristics and preferences
-    that are specific to our scenario.
+    Wrapper for species_lookup.py, but expressing a variety of heuristics and
+    preferences that are specific to our scenario.
     """
 
     # query = 'person'
@@ -98,8 +98,8 @@ def get_preferred_taxonomic_match(query):
     inat_matches = [m for m in matches if m['source'] == 'inat']
     gbif_matches = [m for m in matches if m['source'] == 'gbif']
 
-    # print_taxonomy_matches(inat_matches,verbose=True)
-    # print_taxonomy_matches(gbif_matches,verbose=True)
+    # print_taxonomy_matches(inat_matches, verbose=True)
+    # print_taxonomy_matches(gbif_matches, verbose=True)
 
     scientific_name = ''
     common_name = ''
@@ -122,12 +122,13 @@ def get_preferred_taxonomic_match(query):
             # If we can't find a chordate, just take the first match.
             #
             # i_test_match = 0
-            for i_test_match in range(0,len(inat_matches)):
+            for i_test_match, match in enumerate(inat_matches):
                 found_vertebrate = False
-                match = inat_matches[i_test_match]
                 taxonomy = match['taxonomy']
                 for taxonomy_level in taxonomy:
-                    if taxonomy_level[1] == 'phylum' and taxonomy_level[2] == 'chordata':
+                    taxon_rank = taxonomy_level[1]
+                    scientific_name = taxonomy_level[2]
+                    if taxon_rank == 'phylum' and scientific_name == 'chordata':
                         i_match = i_test_match
                         found_vertebrate = True
                         break
@@ -143,7 +144,7 @@ def get_preferred_taxonomic_match(query):
         assert len(scientific_name) > 0
         common_names = lowest_level[3]
         if len(common_names) > 1:
-            # print('Warning: multiple iNat common names for {}'.format(query))
+            # print(f'Warning: multiple iNat common names for {query}')
             # Default to returning the query
             if query in common_names:
                 common_name = query
@@ -152,7 +153,7 @@ def get_preferred_taxonomic_match(query):
         elif len(common_names) > 0:
             common_name = common_names[0]
 
-        # print('Matched iNat {} to {},{}'.format(query,scientific_name,common_name))
+        # print(f'Matched iNat {query} to {scientific_name},{common_name}')
         source = 'inat'
 
     # ...if we had iNat matches
@@ -174,12 +175,13 @@ def get_preferred_taxonomic_match(query):
             # If we can't find a chordate, just take the first match.
             #
             # i_test_match = 0
-            for i_test_match in range(0,len(gbif_matches)):
+            for i_test_match, match in enumerate(gbif_matches):
                 found_vertebrate = False
-                match = gbif_matches[i_test_match]
                 taxonomy = match['taxonomy']
                 for taxonomy_level in taxonomy:
-                    if taxonomy_level[1] == 'phylum' and taxonomy_level[2] == 'chordata':
+                    taxon_rank = taxonomy_level[1]
+                    scientific_name = taxonomy_level[2]
+                    if taxon_rank == 'phylum' and scientific_name == 'chordata':
                         i_match = i_test_match
                         found_vertebrate = True
                         break
@@ -196,7 +198,7 @@ def get_preferred_taxonomic_match(query):
 
         common_names = lowest_level[3]
         if len(common_names) > 1:
-            # print('Warning: multiple GBIF common names for {}'.format(query))
+            # print(f'Warning: multiple GBIF common names for {query}')
             # Default to returning the query
             if query in common_names:
                 common_name = query
@@ -240,13 +242,7 @@ df = pd.read_excel(species_by_dataset_file)
 # i_row = 0; row = df.iloc[i_row]
 # query = 'lion'
 
-output_df = pd.DataFrame(columns=[
-    'dataset_name', 'query', 'taxonomy_level', 'scientific_name', 'common_name',
-    'source', 'is_typo', 'setup', 'notes', 'non-global', 'query_url',
-    'scientific_url', 'common_url', 'taxonomy_string'])
-
-results = []
-
+output_rows = []
 for i_row, row in df.iterrows():
 
     dataset_name = row['dataset']
@@ -254,8 +250,8 @@ for i_row, row in df.iterrows():
 
     taxonomic_match = get_preferred_taxonomic_match(query)
 
-    def google_images_url(query):
-        return 'https://www.google.com/search?tbm=isch&q={}'.format(query)
+    def google_images_url(query: str) -> str:
+        return f'https://www.google.com/search?tbm=isch&q={query}'
 
     scientific_url = ''
     if len(taxonomic_match.scientific_name) > 0:
@@ -265,7 +261,7 @@ for i_row, row in df.iterrows():
         common_url = google_images_url(taxonomic_match.common_name)
     query_url = google_images_url(query)
 
-    values_to_add = {
+    output_row = {
         'dataset_name': dataset_name,
         'query': query,
         'taxonomy_level': taxonomic_match.taxonomic_level,
@@ -281,16 +277,22 @@ for i_row, row in df.iterrows():
         'common_url': common_url,
         'taxonomy_string': taxonomic_match.taxonomy_string
     }
-    row_to_add = pd.Series(values_to_add, name='x')
-    output_df = output_df.append(row_to_add)
+    output_rows.append(output_row)
 
 # ...for each query
 
 # Write to the excel file that we'll use for manual review
+output_df = pd.DataFrame(data=output_rows, columns=[
+    'dataset_name', 'query', 'taxonomy_level', 'scientific_name', 'common_name',
+    'source', 'is_typo', 'setup', 'notes', 'non-global', 'query_url',
+    'scientific_url', 'common_url', 'taxonomy_string'])
 output_df.to_excel(output_file, index=None, header=True)
 
 
 #%% Download preview images for everything we successfully mapped
+
+# uncomment this to load saved output_file
+# output_df = pd.read_excel(output_file, keep_default_na=False)
 
 preview_base = os.path.join(output_base, 'preview_images')
 os.makedirs(preview_base, exist_ok=True)
@@ -309,14 +311,13 @@ for i_row, row in tqdm(output_df.iterrows(), total=len(output_df)):
         continue
 
     image_paths = None
-    preview_dir = slugify(scientific_name)
-    preview_dir = os.path.join(preview_base, preview_dir)
+    preview_dir = os.path.join(preview_base, slugify(scientific_name))
     if os.path.isdir(preview_dir) and len(os.listdir(preview_dir)) > 0:
-        print('Bypassing preview download for {}'.format(preview_dir))
+        print(f'Bypassing preview download for {preview_dir}')
         image_paths = os.listdir(preview_dir)
         image_paths = [os.path.join(preview_dir, p) for p in image_paths]
     elif download_images:
-        print('Downloading images for {}'.format(preview_dir))
+        print(f'Downloading images for {preview_dir}')
         os.makedirs(preview_dir, exist_ok=True)
         image_paths = retrieve_sample_image.download_images(
             scientific_name, output_directory=preview_dir, limit=4)
@@ -328,8 +329,7 @@ for i_row, row in tqdm(output_df.iterrows(), total=len(output_df)):
 
 #%% Write HTML file with representative images to scan for obvious mis-mappings
 
-with open(html_output_file,'w') as f:
-
+with open(html_output_file, 'w') as f:
     f.write('<html><head></head><body>\n')
 
     # i_row = 0; row = output_df.iloc[i_row]
@@ -339,7 +339,8 @@ with open(html_output_file,'w') as f:
         if len(common) == 0:
             common = 'no common name'
         f.write('{}: {} mapped to {} ({}) from {}</p>\n'.format(
-            row.dataset_name, row.query, row.scientific_name, common, row.source))
+            row.dataset_name, row.query, row.scientific_name, common,
+            row.source))
         if row.scientific_name not in scientific_name_to_paths:
             f.write('<p class="content_p">no images available</p>')
         else:
@@ -361,20 +362,19 @@ with open(html_output_file,'w') as f:
 
 #%% Look for redundancy with the master table
 
-def generate_query_id(dataset_name,query):
+def generate_query_id(dataset_name: str, query: str) -> str:
     return dataset_name + '|' + query
 
 master_table = pd.read_csv(master_table_file)
 master_table_dataset_queries = set()
 for i_row, row in tqdm(master_table.iterrows(), total=len(master_table)):
-    query_id = generate_query_id(row.dataset_name,row.query)
+    query_id = generate_query_id(row.dataset_name, row.query)
     master_table_dataset_queries.add(query_id)
 
 for i_row, row in tqdm(output_df.iterrows(), total=len(output_df)):
     query_id = generate_query_id(row.dataset_name, row.query)
     if query_id in master_table_dataset_queries:
         print('Warning: query {} available in master table'.format(query_id))
-
 
 
 #%% Manual review
@@ -391,9 +391,8 @@ for i_row, row in tqdm(output_df.iterrows(), total=len(output_df)):
 
 df = pd.read_excel(manual_review_xlsx)
 
-def clean_df(df):
-    df = df.applymap(lambda s: s.lower() if type(s) == str else s)
-    df = df.applymap(lambda s: s.strip() if type(s) == str else s)
+def clean_df(df: pd.DataFrame) -> pd.DataFrame:
+    df = df.applymap(lambda s: s.lower().strip() if isinstance(s, str) else s)
     df = df.replace(np.nan, '', regex=True)
     return df
 
@@ -405,17 +404,15 @@ for i_row, row in df.iterrows():
     assert row.source in ['manual', 'gbif', 'inat', '']
 
     if row.source == '':
-        assert(row.scientific_name == '')
+        assert row.scientific_name == ''
 
-    if row.source == 'manual':
-        if (row.taxonomy_string != ''):
-            print('Manual row with taxonomy string: {}.{}'.format(
-                row.dataset_name, row.query))
+    if row.source == 'manual' and row.taxonomy_string != '':
+        print('Manual row with taxonomy string: {}.{}'.format(
+            row.dataset_name, row.query))
 
-    if row.source != '':
-        if (len(row.scientific_name) == 0):
-            print('Unsourced row with no scientific name: {}.{}'.format(
-                row.dataset_name, row.query))
+    if row.source != '' and len(row.scientific_name) == 0:
+        print('Unsourced row with no scientific name: {}.{}'.format(
+            row.dataset_name, row.query))
 
     if row.source == 'manual':
         scientific_name = row.scientific_name
@@ -427,7 +424,7 @@ for i_row, row in df.iterrows():
             row.taxonomy_string = taxonomic_match.taxonomy_string
         if False:
             print('Matched {}.{} to {} ({}) via {}'.format(
-                row.dataset_name,scientific_name,
+                row.dataset_name, scientific_name,
                 taxonomic_match.scientific_name,
                 taxonomic_match.common_name,
                 taxonomic_match.source))
