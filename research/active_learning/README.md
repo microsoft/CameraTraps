@@ -7,6 +7,7 @@ Norouzzadeh, Mohammad Sadegh, Dan Morris, Sara Beery, Neel Joshi, Nebojsa Jojic,
 This script could be used to learn an embedding model for a given dataset or set of datasets using either triplet, constrastive, or cross entropy loss.
 Please refer to the command line arguments and the comments inside the code for further details.
 a pretrained embedding model trained on combination of eMammal and iNaturalist datasets is available for download here:
+https://drive.google.com/file/d/1n7VHlYEXaSb3A7aM3hIXy4VwvQ1vAj73/view?usp=sharing
 
 # run_active_learning.py
 
