@@ -1,22 +1,17 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
-# ai4e_api_tools has been added to the PYTHONPATH, so we can reference those
-# libraries directly.
-import json
-import math
-import os
-import time
-from datetime import datetime
-from random import shuffle
-import string
+# Python version is 3.5.2
 
-from ai4e_app_insights import AppInsights
-from ai4e_app_insights_wrapper import AI4EAppInsights
-from ai4e_service import AI4EWrapper
-from azure.storage.blob import BlockBlobService
+import os
+import string
+import sys
+from time import sleep
+
 from flask import Flask, request, make_response, jsonify
-from flask_restful import Api
-from task_management.api_task import ApiTaskManager
+from azure.storage.blob import BlockBlobService
+# /ai4e_api_tools has been added to the PYTHONPATH, so we can reference those libraries directly.
+from ai4e_app_insights_wrapper import AI4EAppInsights
+from ai4e_service import APIService
 
 import api_config
 import orchestrator
@@ -25,24 +20,16 @@ from sas_blob_utils import SasBlob  # file in this directory, not the ai4eutil r
 
 
 print('Creating application')
-
-api_prefix = os.getenv('API_PREFIX')
-print('API prefix: ', api_prefix)
 app = Flask(__name__)
-api = Api(app)
 
-# Log requests, traces and exceptions to the Application Insights service
-appinsights = AppInsights(app)
-
-# Use the AI4EAppInsights library to send log messages.
+# Use the AI4EAppInsights library to send log messages. NOT REQUIRED
 log = AI4EAppInsights()
 
-# Use the internal-container AI for Earth Task Manager (not for production use!).
-api_task_manager = ApiTaskManager(flask_api=api, resource_prefix=api_prefix)
+# Use the APIService to executes your functions within a logging trace, supports long-running/async functions,
+# handles SIGTERM signals from AKS, etc., and handles concurrent requests.
+with app.app_context():
+    ai4e_service = APIService(app, log)
 
-# Use the AI4EWrapper to executes your functions within a logging trace.
-# Also, helps support long-running/async functions.
-ai4e_wrapper = AI4EWrapper(app)
 
 # Instantiate blob storage service to the internal container to put intermediate results and files
 storage_account_name = os.getenv('STORAGE_ACCOUNT_NAME')
@@ -57,17 +44,20 @@ internal_datastore = {
 print('Internal storage container {} in account {} is set up.'.format(internal_container, storage_account_name))
 
 
-@app.route('/', methods=['GET'])
-def health_check():
-    return 'Health check OK'
-
-
 def _abort(error_code, error_message):
     return make_response(jsonify({'error': error_message}), error_code)
 
 
-@app.route(api_prefix + '/request_detections', methods=['POST'])
-def request_detections():
+def _request_detections_validate_params(request):
+    """Returns an error straight-away without issuing the user a request_id if the parameters
+    are not acceptable.
+
+    Args:
+        request: request body of the POST call
+
+    Returns:
+        dict of parameters to use in request_detections()
+    """
     if not request.is_json:
         return _abort(415, 'Body needs to have a mimetype for JSON (e.g. application/json).')
 
@@ -78,8 +68,8 @@ def request_detections():
 
     # required params
     caller_id = post_body.get('caller', None)
-    if caller_id is None or caller_id not in api_config.WHITELIST:
-        return _abort(401, ('Parameter caller is not supplied or is not on our whitelist. '
+    if caller_id is None or caller_id not in api_config.ALLOWLIST:
+        return _abort(401, ('Parameter caller is not supplied or is not on our allowlist. '
         'Please email cameratraps@microsoft.com to request access.'))
 
     use_url = post_body.get('use_url', False)
@@ -94,11 +84,11 @@ def request_detections():
         if result is not None:
             return _abort(result[0], result[1])
 
+    images_requested_json_sas = post_body.get('images_requested_json_sas', None)
+
     # if use_url, then images_requested_json_sas is required
-    if use_url:
-        images_requested_json_sas = post_body.get('images_requested_json_sas', None)
-        if images_requested_json_sas is None:
-            return _abort(400, 'Since use_url is true, images_requested_json_sas is required.')
+    if use_url and images_requested_json_sas is None:
+        return _abort(400, 'Since use_url is true, images_requested_json_sas is required.')
 
     # check model_version and request_name params are valid
     model_version = post_body.get('model_version', '')
@@ -116,322 +106,125 @@ def request_detections():
         if not set(request_name) <= allowed:
             return _abort(400, 'request_name contains unallowed characters (only letters, digits, - and _ are allowed).')
 
-    # TODO check that the expiry date of input_container_sas is at least a month into the future
+    first_n = post_body.get('first_n', None)
+
+    sample_n = post_body.get('sample_n', None)
+
+    model_version = post_body.get('model_version', '')
+    if model_version == '':
+        model_version = api_config.AML_CONFIG['default_model_version']
+    model_name = api_config.AML_CONFIG['models'][model_version]
+
+    # TODO check that the expiry date of input_container_sas is at least a few days into the future
 
     # TODO check images_requested_json_sas is a blob not a container
 
-    task_info = api_task_manager.AddTask('queued')
-    request_id = str(task_info['uuid'])
-
-    # wrap_async_endpoint executes the function in a new thread and wraps it within a logging trace
-    ai4e_wrapper.wrap_async_endpoint(_request_detections, 'post:request_detections',
-                                     request_id=request_id, post_body=post_body)
-
-    return jsonify(request_id=request_id)
-
-
-def _request_detections(**kwargs):
-    try:
-        body = kwargs.get('post_body')
-
-        input_container_sas = body.get('input_container_sas', None)
-
-        use_url = body.get('use_url', False)
-
-        images_requested_json_sas = body.get('images_requested_json_sas', None)
-
-        image_path_prefix = body.get('image_path_prefix', None)
-
-        first_n = body.get('first_n', None)
-        first_n = int(first_n) if first_n else None
-
-        sample_n = body.get('sample_n', None)
-        sample_n = int(sample_n) if sample_n else None
-
-        model_version = body.get('model_version', '')
-        if model_version == '':
-            model_version = api_config.AML_CONFIG['default_model_version']
-        model_name = api_config.AML_CONFIG['models'][model_version]
-
+    return {
+        'input_container_sas': input_container_sas,
+        'images_requested_json_sas': images_requested_json_sas,
+        'image_path_prefix': post_body.get('image_path_prefix', None),
+        'first_n': int(first_n) if first_n else None,
+        'sample_n': int(sample_n) if sample_n else None,
+        'model_version': model_version,
+        'model_name': model_name,
+        'request_name': request_name,
         # request_name and request_submission_timestamp are for appending to output file names
-        request_name = body.get('request_name', '')
-        request_submission_timestamp = orchestrator.get_utc_timestamp()
+        'request_submission_timestamp': orchestrator.get_utc_timestamp(),
+        'use_url': use_url
+    }
 
-        request_id = kwargs['request_id']
-        api_task_manager.UpdateTaskStatus(request_id, get_task_status('running', 'Request received.'))
-        print(('runserver.py, request_id {}, model_version {}, model_name {}, request_name {}, submission timestamp '
-               'is {}').format(request_id, model_version, model_name, request_name, request_submission_timestamp))
 
-        # image_paths can be a list of strings (paths on Azure blobs or public URLs), or a list of lists,
-        # each of length 2 and is the [image_id, metadata] pair
+@ai4e_service.api_async_func(
+    api_path = '/request_detections',
+    methods = ['POST'],
+    request_processing_function = _request_detections_validate_params, # This is the data process function that you created above.
+    maximum_concurrent_requests = 1, # If the number of requests exceed this limit, a 503 is returned to the caller.
+    content_types = ['application/json'],
+    content_max_length = 10000, # In bytes
+    trace_name = 'post:request_detections')
+def request_detections(*args, **kwargs):
+    # Since this is an async function, we need to keep the task updated.
+    request_id = kwargs.get('taskId')
+    input_container_sas = kwargs.get('input_container_sas')
+    images_requested_json_sas = kwargs.get('images_requested_json_sas')
+    image_path_prefix = kwargs.get('image_path_prefix')
+    first_n = kwargs.get('first_n')
+    sample_n = kwargs.get('sample_n')
+    model_version = kwargs.get('model_version')
+    model_name = kwargs.get('model_name')
+    request_name = kwargs.get('request_name')
+    request_submission_timestamp = kwargs.get('request_submission_timestamp')
+    use_url = kwargs.get('use_url')
 
-        # case 1 - listing all images in the container
-        if images_requested_json_sas is None:
-            metadata_available = False  # not possible to have attached metadata if listing images in a blob
-            api_task_manager.UpdateTaskStatus(request_id, get_task_status('running', 'Listing all images to process.'))
-            print('runserver.py, running - listing all images to process.')
+    log.log_debug('Started task', request_id)  # Log to Application Insights TODO - where does this log to?
 
-            # list all images to process
-            image_paths = SasBlob.list_blobs_in_container(api_config.MAX_NUMBER_IMAGES_ACCEPTED + 1,  # so > MAX_NUMBER_IMAGES_ACCEPTED will find that there are too many images requested so should not proceed
-                                                          sas_uri=input_container_sas,
-                                                          blob_prefix=image_path_prefix, blob_suffix='.jpg')
-        # case 2 - user supplied a list of images to process; can include metadata
-        else:
-            print('runserver.py, running - using provided list of images.')
-            image_paths_text = SasBlob.download_blob_to_text(images_requested_json_sas)
-            image_paths = json.loads(image_paths_text)
-            print('runserver.py, length of image_paths provided by the user: {}'.format(len(image_paths)))
-            if len(image_paths) == 0:
-                api_task_manager.UpdateTaskStatus(request_id,
-                                                  get_task_status('completed',
-                                                                  'Zero images found in provided list of images.'))
-                return
+    print(('runserver.py, request_id {}, model_version {}, model_name {}, request_name {}, '
+           'request_submission_timestamp is {}').format(
+        request_id, model_version, model_name, request_name, request_submission_timestamp))
 
-            error, metadata_available = orchestrator.validate_provided_image_paths(image_paths)
-            if error is not None:
-                raise ValueError('image paths provided in the json are not valid: {}'.format(error))
+    ai4e_service.api_task_manager.UpdateTaskStatus(request_id, get_task_status('running', 'Request received.'))
 
-            valid_image_paths = []
-            for p in image_paths:
-                locator = p[0] if metadata_available else p
-                if locator.lower().endswith(api_config.ACCEPTED_IMAGE_FILE_ENDINGS):
-                    valid_image_paths.append(p)
-            image_paths = valid_image_paths
-            print('runserver.py, length of image_paths provided by the user, after filtering to jpg: {}'.format(
-                len(image_paths)))
+    sleep(10)  # TODO
 
-            valid_image_paths = []
-            if image_path_prefix is not None:
-                for p in image_paths:
-                    locator = p[0] if metadata_available else p
-                    if locator.startswith(image_path_prefix):
-                        valid_image_paths.append(p)
-                image_paths = valid_image_paths
-                print(
-                    'runserver.py, length of image_paths provided by the user, after filtering for image_path_prefix: {}'.format(
-                        len(image_paths)))
+    ai4e_service.api_task_manager.UpdateTaskStatus(request_id,
+                                                   get_task_status('running',
+                                                                   'Images submitted to cluster for processing.'))
 
-            if not use_url:
-                res = orchestrator.spot_check_blob_paths_exist(image_paths, input_container_sas, metadata_available)
-                if res is not None:
-                    raise LookupError(
-                        'path {} provided in list of images to process does not exist in the container pointed to by data_container_sas.'.format(
-                            res))
 
-        # apply the first_n and sample_n filters
-        if first_n is not None:
-            assert first_n > 0, 'parameter first_n is 0.'
-            image_paths = image_paths[:first_n]  # will not error if first_n > total number of images
 
-        if sample_n is not None:
-            assert sample_n > 0, 'parameter sample_n is 0.'
-            if sample_n > len(image_paths):
-                raise ValueError(
-                    'parameter sample_n specifies more images than available (after filtering by other provided params).')
-
-            # we sample by shuffling the image paths and take the first sample_n images
-            print('First path before shuffling:', image_paths[0])
-            shuffle(image_paths)
-            print('First path after shuffling:', image_paths[0])
-            image_paths = image_paths[:sample_n]
-            image_paths = orchestrator.sort_image_paths(image_paths, metadata_available)
-
-        num_images = len(image_paths)
-        print('runserver.py, num_images after applying all filters: {}'.format(num_images))
-        if num_images < 1:
-            api_task_manager.UpdateTaskStatus(request_id,
-                                              get_task_status('completed',
-                                                              'Zero images found in container or in provided list of images after filtering with the provided parameters.'))
-            return
-        if num_images > api_config.MAX_NUMBER_IMAGES_ACCEPTED:
-            api_task_manager.UpdateTaskStatus(request_id,
-                                              get_task_status('failed',
-                                                              'The number of images ({}) requested for processing exceeds the maximum accepted ({}) in one call.'.format(
-                                                                  num_images, api_config.MAX_NUMBER_IMAGES_ACCEPTED)))
-            return
-
-        # finalized image_paths is uploaded to internal_container; all sharding and scoring use the uploaded list
-        image_paths_string = json.dumps(image_paths, indent=1)
-        internal_storage_service.create_blob_from_text(internal_container,
-                                                       '{}/{}_images.json'.format(request_id, request_id),
-                                                       image_paths_string)
-        # the list of images json does not have request_name or timestamp in the file name so that score.py can locate it
-
-        api_task_manager.UpdateTaskStatus(request_id,
-                                          get_task_status('running',
-                                                          'Images listed; processing {} images.'.format(num_images)))
-        print('runserver.py, running - images listed; processing {} images.'.format(num_images))
-
-        # set up connection to AML Compute and data stores
-        # do this for each request since pipeline step is associated with the data stores
-        aml_compute = orchestrator.AMLCompute(request_id=request_id, use_url=use_url,
-                                              input_container_sas=input_container_sas,
-                                              internal_datastore=internal_datastore, model_name=model_name)
-        print('AMLCompute resource connected successfully.')
-
-        num_images_per_job = api_config.NUM_IMAGES_PER_JOB
-        num_jobs = math.ceil(num_images / num_images_per_job)
-
-        list_jobs = {}
-        for job_index in range(num_jobs):
-            begin, end = job_index * num_images_per_job, (job_index + 1) * num_images_per_job
-            job_id = 'request{}_jobindex{}_total{}'.format(request_id, job_index, num_jobs)
-            list_jobs[job_id] = {'begin': begin, 'end': end}
-
-        list_jobs_submitted = aml_compute.submit_jobs(list_jobs, api_task_manager, num_images)
-        api_task_manager.UpdateTaskStatus(request_id,
-                                          get_task_status('running',
-                                                          'All {} images submitted to cluster for processing.'.format(
-                                                              num_images)))
-
-    except Exception as e:
-        api_task_manager.UpdateTaskStatus(request_id,
-                                          get_task_status('failed',
-                                                          'An error occurred while processing the request: {}'.format(
-                                                              e)))
-        print('runserver.py, exception in _request_detections: {}'.format(str(e)))
-        return  # do not initiate _monitor_detections_request
-
+# Define a function for processing request data, if applicable.  This function loads data or files into
+# a dictionary for access in your API function.  We pass this function as a parameter to your API setup.
+def process_request_data(request):
+    return_values = {'data': None}
     try:
-        aml_monitor = orchestrator.AMLMonitor(request_id=request_id, list_jobs_submitted=list_jobs_submitted,
-                                              request_name=request_name,
-                                              request_submission_timestamp=request_submission_timestamp,
-                                              model_version=model_version)
+        # Attempt to load the body
+        return_values['data'] = request.get_json()
+    except:
+        log.log_error('Unable to load the request data')   # Log to Application Insights
+    return return_values
 
-        # start another thread to monitor the jobs and consolidate the results when they finish
-        ai4e_wrapper.wrap_async_endpoint(_monitor_detections_request, 'post:_monitor_detections_request',
-                                         request_id=request_id,
-                                         aml_monitor=aml_monitor)
-    except Exception as e:
-        api_task_manager.UpdateTaskStatus(request_id,
-                                          get_task_status('problem', (
-                                              'An error occurred when starting the status monitoring process. '
-                                              'The images should be submitted for processing though - please contact us to retrieve your results. '
-                                              'Error: {}'.format(e))))
-        print('runserver.py, exception when starting orchestrator.AMLMonitor: ', str(e))
+# Define a function that runs your model.  This could be in a library.
+def run_model(taskId, body):
+    # Update the task status, so the caller knows it has been accepted and is running.
+    ai4e_service.api_task_manager.UpdateTaskStatus(taskId, 'running model')
 
+    log.log_debug('Running model', taskId) # Log to Application Insights
+    #INSERT_YOUR_MODEL_CALL_HERE
+    sleep(10)  # replace with real code
 
-def _monitor_detections_request(**kwargs):
-    try:
-        request_id = kwargs['request_id']
-        aml_monitor = kwargs['aml_monitor']
+# POST, long-running/async API endpoint example
+@ai4e_service.api_async_func(
+    api_path = '/example', 
+    methods = ['POST'], 
+    request_processing_function = process_request_data, # This is the data process function that you created above.
+    maximum_concurrent_requests = 3, # If the number of requests exceed this limit, a 503 is returned to the caller.
+    content_types = ['application/json'],
+    content_max_length = 1000, # In bytes
+    trace_name = 'post:my_long_running_funct')
+def default_post(*args, **kwargs):
+    # Since this is an async function, we need to keep the task updated.
+    taskId = kwargs.get('taskId')
+    log.log_debug('Started task', taskId) # Log to Application Insights
 
-        max_num_checks = api_config.MAX_MONITOR_CYCLES
-        num_checks = 0
-        num_errors_job_status = 0  # number of errors encountered during aml_monitor.check_job_status()
-        num_errors_aggregation = 0  # number of errors encountered during aml_monitor.aggregate_results()
+    # Get the data from the dictionary key that you assigned in your process_request_data function.
+    request_json = kwargs.get('data')
 
-        print('Monitoring thread with _monitor_detections_request started.')
+    if not request_json:
+        ai4e_service.api_task_manager.FailTask(taskId, 'Task failed - Body was empty or could not be parsed.')
+        return -1
 
-        # time.sleep() blocks the current thread only
-        while True:
-            time.sleep(api_config.MONITOR_PERIOD_MINUTES * 60)
+    # Run your model function
+    run_model(taskId, request_json)
 
-            print('runserver.py, _monitor_detections_request, woke up at {} for check number {}.'.format(
-                datetime.now(), num_checks))
+    # Once complete, ensure the status is updated.
+    log.log_debug('Completed task', taskId) # Log to Application Insights
+    # Update the task with a completion event.
+    ai4e_service.api_task_manager.CompleteTask(taskId, 'completed')
 
-            # check the status of the jobs, with retries
-            try:
-                all_jobs_finished, status_tally = aml_monitor.check_job_status()
-            except Exception as e:
-                num_errors_job_status += 1
-                print(
-                    'runserver.py, _monitor_detections_request, exception in aml_monitor.check_job_status(): {}'.format(
-                        e))
-
-                if num_errors_job_status <= api_config.NUM_RETRIES:
-                    print('Will retry in the next monitoring cycle. Number of errors so far: {}'.format(
-                        num_errors_job_status))
-                    continue
-                else:
-                    print('Number of retries reached for aml_monitor.check_job_status().')
-                    raise e
-
-            print('all jobs finished? {}'.format(all_jobs_finished))
-            for status, count in status_tally.items():
-                print('status {}, number of jobs = {}'.format(status, count))
-
-            num_failed = status_tally['Failed']
-            # need to periodically check the enumerations are what AML returns - not the same as in their doc
-            num_finished = status_tally['Finished'] + num_failed
-
-            # if all jobs finished, aggregate the results and return the URLs to the output files
-            if all_jobs_finished:
-                api_task_manager.UpdateTaskStatus(request_id,
-                                                  get_task_status('running',
-                                                                  'Model inference finished; now aggregating results.'))
-
-                # retrieve and join the output CSVs from each job, with retries
-                try:
-                    output_file_urls = aml_monitor.aggregate_results()
-                except Exception as e:
-                    num_errors_aggregation += 1
-                    print(('runserver.py, _monitor_detections_request, exception in '
-                           'aml_monitor.aggregate_results(): {}').format(e))
-
-                    if num_errors_aggregation <= api_config.NUM_RETRIES:
-                        print('Will retry during the next monitoring wake-up cycle. Number of errors so far: {}'.format(
-                            num_errors_aggregation))
-                        api_task_manager.UpdateTaskStatus(request_id,
-                                                          get_task_status('running',
-                                                                          'All shards finished but results aggregation failed. Will retry in {} minutes.'.format(
-                                                                              api_config.MONITOR_PERIOD_MINUTES)))
-                        continue
-                    else:
-                        print('Number of retries reached for aml_monitor.aggregate_results().')
-                        raise e
-
-                # output_file_urls_str = json.dumps(output_file_urls)
-                message = {
-                    'num_failed_shards': num_failed,
-                    'output_file_urls': output_file_urls
-                }
-                api_task_manager.UpdateTaskStatus(request_id, get_task_status('completed', message))
-                break
-
-            # not all jobs are finished, update the status with number of shards finished
-            api_task_manager.UpdateTaskStatus(request_id, get_task_status('running',
-                                                                          'Last status check at {}, {} out of {} shards finished processing, {} failed.'.format(
-                                                                              orchestrator.get_utc_time(), num_finished,
-                                                                              aml_monitor.get_total_jobs(),
-                                                                              num_failed)))
-
-            # not all jobs are finished but the maximum number of checking cycle is reached, stop this thread
-            num_checks += 1
-            if num_checks >= max_num_checks:
-                api_task_manager.UpdateTaskStatus(request_id, get_task_status('problem',
-                                                                              'Request unfinished after {} x {} minutes; abandoning the monitoring thread. Please contact us to retrieve any results.'.format(
-                                                                                  api_config.MAX_MONITOR_CYCLES,
-                                                                                  api_config.MONITOR_PERIOD_MINUTES
-                                                                              )))
-                print('runserver.py, _monitor_detections_request, ending!')
-
-                break
-    except Exception as e:
-        api_task_manager.UpdateTaskStatus(request_id, get_task_status('problem', (
-            'An error occurred while monitoring the status of this request. '
-            'The images should be processing though - please contact us to retrieve your results. Error: {}'.format(
-                e))))
-        print('runserver.py, exception in _monitor_detections_request(): ', str(e))
-
-
-@app.route(api_prefix + '/default_model_version', methods=['GET'])
-def default_model_version():
-    # wrap_sync_endpoint wraps your function within a logging trace.
-    return ai4e_wrapper.wrap_sync_endpoint(_default_model_version, 'get:default_model_version')
-
-def _default_model_version():
-    return api_config.AML_CONFIG['default_model_version']
-
-
-@app.route(api_prefix + '/supported_model_versions', methods=['GET'])
-def supported_model_versions():
-    # wrap_sync_endpoint wraps your function within a logging trace.
-    return ai4e_wrapper.wrap_sync_endpoint(_supported_model_versions, 'get:supported_model_versions')
-
-def _supported_model_versions():
-    return jsonify(api_config.SUPPORTED_MODEL_VERSIONS)
-
+# GET, sync API endpoint example
+@ai4e_service.api_sync_func(api_path = '/echo/<string:text>', methods = ['GET'], maximum_concurrent_requests = 1000, trace_name = 'get:echo', kwargs = {'text'})
+def echo(*args, **kwargs):
+    return 'Echo: ' + kwargs['text']
 
 if __name__ == '__main__':
     app.run()

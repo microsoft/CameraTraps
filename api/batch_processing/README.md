@@ -1,4 +1,4 @@
-# Detector batch processing API user guide
+# Camera trap batch processing API user guide
 
 We offer a service for processing a large quantity of camera trap images using our [MegaDetector](https://github.com/Microsoft/CameraTraps#megadetector) by calling an API, documented here. The output is most helpful for separating empty from non-empty images based on some detector confidence threshold that you select, and putting bounding boxes around animals so that manual review can proceed faster.
 
