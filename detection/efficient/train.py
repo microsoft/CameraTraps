@@ -589,7 +589,7 @@ def check_args():
     assert OPT.eval_percent_epoch > 0, "Eval percent epoch must be greater than 0"
 
 
-def clean_savedmodels(model_prefix: str, model_path: str, score: float, topk=3):
+def clean_savedmodels(model_prefix: str, model_path: str, score: float, topk=50):
     """
     Inputs:
         :topk                 -> Best k models to keep. Rest everything will be deleted
