@@ -26,7 +26,7 @@ from itertools import compress
 import os
 import pickle
 import shutil
-from typing import Iterable, Mapping, Set
+from typing import Any, Dict, Iterable, List, Mapping, Set
 import zipfile
 
 import pandas as pd
@@ -345,12 +345,21 @@ def traverse_taxonomy(matching_rownums: Iterable[int],
                       taxon_id_to_row: Mapping[str, int],
                       taxon_id_to_vernacular: Mapping[str, Set[str]],
                       taxonomy: pd.DataFrame,
-                      source_name: str):
+                      source_name: str) -> List[Dict[str, Any]]:
     """
     Given a data frame that's a set of rows from one of our taxonomy tables,
     walks the taxonomy hierarchy from each row to put together a full taxonomy
     tree, then prunes redundant trees (e.g. if we had separate hits for a
-    species and the genus that contains that species.
+    species and the genus that contains that species.)
+
+    Returns a list of dicts:
+    [
+        {
+            'source': 'inat' or 'gbif',
+            'taxonomy': [(taxon_id, taxon_rank, scientific_name, [common names])]
+        },
+        ...
+    ]
     """
 
     # list of dicts: {'source': source_name, 'taxonomy': match_details}
@@ -368,20 +377,19 @@ def traverse_taxonomy(matching_rownums: Iterable[int],
         while True:
 
             taxon_id = current_row['taxonID']
-            vernacular_names = list(taxon_id_to_vernacular[taxon_id])
+            vernacular_names = sorted(taxon_id_to_vernacular[taxon_id])  # sort for determinism
             match_details.append((taxon_id, current_row['taxonRank'],
                                   get_scientific_name_from_row(current_row),
                                   vernacular_names))
 
-            try:
-                if np.isnan(current_row['parentNameUsageID']):
-                    break
-                parent_taxon_id = current_row['parentNameUsageID'].astype('int64')
-                i_parent_row = taxon_id_to_row[parent_taxon_id]
-                current_row = taxonomy.iloc[i_parent_row]
-            except Exception as e:
-                print(e)
+            if np.isnan(current_row['parentNameUsageID']):
                 break
+            parent_taxon_id = current_row['parentNameUsageID'].astype('int64')
+            if parent_taxon_id not in taxon_id_to_row:
+                print(f'No row exists for parent_taxon_id {parent_taxon_id}')
+                break
+            i_parent_row = taxon_id_to_row[parent_taxon_id]
+            current_row = taxonomy.iloc[i_parent_row]
 
             # The GBIF taxonomy contains unranked entries
             if current_row['taxonRank'] == 'unranked':
@@ -453,16 +461,15 @@ def get_taxonomic_info(query: str):
     if query in gbif_vernacular_to_taxon_id:
         gbif_taxon_ids |= gbif_vernacular_to_taxon_id[query]
 
+    # If the species is not found in either taxonomy, return None
+    if (len(inat_taxon_ids) == 0) and (len(gbif_taxon_ids) == 0):
+        return []
+
     # both GBIF and iNat have a 1-to-1 mapping between taxon_id and row number
     inat_row_indices = [inat_taxon_id_to_row[i] for i in inat_taxon_ids]
     gbif_row_indices = [gbif_taxon_id_to_row[i] for i in gbif_taxon_ids]
 
-    # If the species is not found in either taxonomy, return None
-    if (len(inat_row_indices) == 0) and (len(gbif_row_indices) == 0):
-        return []
-
     # Walk both taxonomies
-
     inat_matching_trees = traverse_taxonomy(
         inat_row_indices, inat_taxon_id_to_row, inat_taxon_id_to_vernacular,
         inat_taxonomy, 'inat')
