@@ -84,6 +84,13 @@ class TaxonomicMatch:
         self.taxonomy_string = taxonomy_string
         self.match = match
 
+    def __repr__(self):
+        return ('TaxonomicMatch('
+            f'scientific_name={self.scientific_name}, '
+            f'common_name={self.common_name}, '
+            f'taxonomic_level={self.taxonomic_level}, '
+            f'source={self.source}')
+
 
 def get_preferred_taxonomic_match(query: str) -> TaxonomicMatch:
     """
@@ -404,6 +411,37 @@ def clean_df(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 df = clean_df(df)
+
+# manually inspect df for typos in 'dataset_names' and 'taxonomy_level' columns
+print('dataset names')
+print(df['dataset_name'].unique())
+print()
+print('taxonomy levels:')
+print(df['taxonomy_level'].unique())
+
+# identify rows where:
+# - 'taxonomy_level' does not match level of 1st element in 'taxonomy_string'
+# - 'scientific_name' does not match name of 1st element in 'taxonomy_string'
+for i, row in taxonomy_df.iterrows():
+    taxa_ancestry = row['taxonomy_string']
+    if pd.isna(taxa_ancestry):
+        continue
+
+    taxa_ancestry = eval(taxa_ancestry)  # pylint: disable=eval-used
+    taxon_id, taxon_level, taxon_name, _ = taxa_ancestry[0]
+
+    if row['taxonomy_level'] != taxon_level:
+        print(f'row: {i}, {row["dataset_name"]}, {row["query"]}')
+        print(f'- taxonomy_level column: {row["taxonomy_level"]}, '
+              f'level from taxonomy_string: {taxon_level}')
+        print()
+
+    if row['scientific_name'] != taxon_name:
+        print(f'row: {i}, {row["dataset_name"]}, {row["query"]}')
+        print(f'- scientific_name column: {row["scientific_name"]}, '
+              f'name from taxonomy_string: {taxon_name}')
+
+#%% Write out final version
 
 # i_row = 0; row = df.iloc[i_row]
 for i_row, row in df.iterrows():
