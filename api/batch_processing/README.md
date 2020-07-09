@@ -29,10 +29,10 @@ To submit a request for batch processing, make a POST call to
 
 ```http://URL/v2/camera-trap/detection-batch/request_detections```.
 
-with a json body containing input fields defined below. The API will return with a json response very quickly to give you a RequestID representing the request you have submitted, for example:
+with a json body containing input fields defined below. The API will return with a json response very quickly to give you a RequestID (UUID4) representing the request you have submitted, for example:
 ```json
 {
-  "request_id": "13H8A43FDE"
+  "request_id": "ea26326e-7e0d-4524-a9ea-f57a5799d4ba"
 }
 ```
 or an error message, if your inputs are not acceptable:
@@ -52,8 +52,8 @@ This returns a json with the fields `status`, `uuid`, and a few others. The `sta
 
 - `request_status`: one of `running`, `failed`, `problem`, and `completed`. 
 
-    - The status `failed` indicates that the images have not been submitted to the cluster for processing, and so you can go ahead and call the endpoint again, correcting your inputs according to the message shown. 
-    - The status `problem` indicates that the images have already been submitted for processing but the API encountered an error while monitoring progress; in this case, *please do not retry*; contact us to retrieve your results so that no unnecessary processing would occupy the cluster (`message` field will mention &ldquo;please contact us&rdquo;).
+    - The status `failed` indicates that the images have not been submitted to the cluster for processing, and so you can go ahead and call the endpoint again, correcting your inputs according to the error message returned with the status. 
+    - The status `problem` indicates that the images have already been submitted for processing but the API encountered an error while monitoring progress; in this case, *please do not retry*; contact us to retrieve your results so that no unnecessary processing would occupy the cluster (`message` field will mention "please contact us").
 
 - `message`: a longer string describing the `request_status` and any errors; when the request is completed, the URLs to the output files will also be here (see [Outputs](#23-outputs) section below).
 
@@ -132,11 +132,11 @@ Example body of the POST request:
 {
   "input_container_sas": "https://storageaccountname.blob.core.windows.net/container-name?se=2019-04-23T01%3A30%3A00Z&sp=rl&sv=2018-03-28&sr=c&sig=A_LONG_STRING",
   "images_requested_json_sas": "https://storageaccountname2.blob.core.windows.net/container-name2/possibly_in_a_folder/my_list_of_images.json?se=2019-04-19T20%3A31%3A00Z&sp=rl&sv=2018-03-28&sr=b&sig=ANOTHER_LONG_STRING",
-  "image_path_prefix": "2019/Alberta_location1",
+  "image_path_prefix": "2020/Alberta",
   "first_n": 100000,
-  "request_name": "Alberta_l1",
-  "model_version": "3",
-  "caller": "whitelisted_user_x"
+  "request_name": "Alberta_2020",
+  "model_version": "4.1",
+  "caller": "allowlisted_user_x"
 }
 ```
 
@@ -168,27 +168,27 @@ When all shards have finished processing, the `status` returned by the `/task` e
 
 ```json
 {
-    "uuid": 6319,
-    "status": {
+    "Status": {
         "request_status": "completed",
-        "time": "2019-06-06 18:56:32",
         "message": {
             "num_failed_shards": 0,
             "output_file_urls": {
-                "detections": "https://cameratrap.blob.core.windows.net/async-api/6319/6319_detections_test_20190606185113.json?se=2019-09-04T18%3A56%3A32Z&sp=r&sv=2018-03-28&sr=b&sig=KEY",
-                "failed_images": "https://cameratrap.blob.core.windows.net/async-api/6319/6319_failed_images_url_test_20190606185113.json?se=2019-09-04T18%3A56%3A32Z&sp=r&sv=2018-03-28&sr=b&sig=KEY",
-                "images": "https://cameratrap.blob.core.windows.net/async-api/6319/6319_images.json?se=2019-09-04T18%3A56%3A32Z&sp=r&sv=2018-03-28&sr=b&sig=KEY"
+                "detections": "https://cameratrap.blob.core.windows.net/async-api-internal/ee26326e-7e0d-4524-a9ea-f57a5799d4ba/ee26326e-7e0d-4524-a9ea-f57a5799d4ba_detections_4_1_on_test_images_20200709211752.json?sv=2019-02-02&sr=b&sig=key1",
+                "failed_images": "https://cameratrap.blob.core.windows.net/async-api-internal/ee26326e-7e0d-4524-a9ea-f57a5799d4ba/ee26326e-7e0d-4524-a9ea-f57a5799d4ba_failed_images_4_1_on_test_images_20200709211752.json?sv=2019-02-02&sr=b&sig=key2",
+                "images": "https://cameratrap.blob.core.windows.net/async-api-internal/ee26326e-7e0d-4524-a9ea-f57a5799d4ba/ee26326e-7e0d-4524-a9ea-f57a5799d4ba_images.json?sv=2019-02-02&sr=b&sig=key3"
             }
-        }
+        },
+        "time": "2020-07-09 21:27:17"
     },
-    "timestamp": "2019-06-06 18:51:13",
-    "endpoint": "uri"
+    "Timestamp": "2020-07-09 21:27:17",
+    "Endpoint": "/v3/camera-trap/detection-batch/request_detections",
+    "TaskId": "ea26326e-7e0d-4524-a9ea-f57a5799d4ba"
 }
 ```
  
  You can parse it to obtain the URLs:
 ```python
-task_status = body['status']
+task_status = body['Status']
 assert task_status['request_status'] == 'completed'
 message = task_status['message']
 assert message['num_failed_shards'] == 0
@@ -199,6 +199,7 @@ url_to_failed_images = output_files['failed_images']
 url_to_all_images_processed = output_files['images']
 
 ```
+Note that the field `Status` in the returned body is capitalized, since July 2020.
 
 These URLs are valid for 90 days from the time the request has finished. If you neglected to retrieve them before the links expired, contact us with the RequestID and we can send the results to you. Here are the 3 files to expect:
 
@@ -302,4 +303,4 @@ The [postprocessing](postprocessing) folder contains tools for working with the 
 
 ## Integration with other tools
 
-The &ldquo;integration&rdquo; folder contains guidelines and postprocessing scripts for using the output of our API in other applications.
+The [integration](integration) folder contains guidelines and postprocessing scripts for using the output of our API in other applications.
