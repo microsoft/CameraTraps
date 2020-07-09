@@ -392,7 +392,8 @@ def traverse_taxonomy(matching_rownums: Sequence[int],
             if parent_taxon_id not in taxon_id_to_row:
                 # this can happen because we remove questionable rows from the
                 # GBIF taxonomy
-                print(f'No row exists for parent_taxon_id {parent_taxon_id}')
+                print(f'No row exists for parent_taxon_id {parent_taxon_id}. '
+                      f'child taxon_id: {taxon_id}')
                 break
             i_parent_row = taxon_id_to_row[parent_taxon_id]
             current_row = taxonomy.iloc[i_parent_row]
