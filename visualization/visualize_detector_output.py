@@ -66,13 +66,6 @@ def get_sas_key_from_uri(sas_uri):
     return url_parts.query
 
 
-def get_service_from_uri(sas_uri):
-    
-    return BlockBlobService(
-        account_name=get_account_from_uri(sas_uri),
-        sas_token=get_sas_key_from_uri(sas_uri))
-
-
 def get_account_from_uri(sas_uri):
     
     url_parts = parse.urlsplit(sas_uri)
@@ -92,7 +85,7 @@ def get_container_from_uri(sas_uri):
 
 #%% Main function
     
-def visualize_detector_output(args):
+def visualize_detector_output(args, blob_service=None):
     
     #%% Load detector output
     
@@ -129,7 +122,7 @@ def visualize_detector_output(args):
     #%% Load images, annotate them and save
     
     if not images_local:
-        blob_service = get_service_from_uri(args.sas_url)
+        assert blob_service is not None
         container_name = get_container_from_uri(args.sas_url)
     
     print('Starting to annotate the images...')
@@ -227,8 +220,12 @@ def main():
     args = parser.parse_args()
 
     # to accommodate the MegaDetector Colab notebook which does not yet use environment.yml
+    blob_service = None
     if args.sas_url is not None:
         from azure.storage.blob import BlockBlobService
+        blob_service = BlockBlobService(
+            account_name=get_account_from_uri(args.sas_url),
+            sas_token=get_sas_key_from_uri(args.sas_url))
     
     assert args.confidence < 1.0 and args.confidence > 0.0, \
         'The confidence threshold {} supplied is not valid; choose a threshold between 0 and 1.'.format(args.confidence)
@@ -242,10 +239,7 @@ def main():
     if args.images_dir and args.sas_url:
         print('Both local images_dir and remote sas_url are supplied. Using local images as originals.')
 
-    # options = DetectorVizOptions()
-    # args_to_object(args,options)
-    
-    visualize_detector_output(args)
+    visualize_detector_output(args, blob_service=blob_service)
     
 if __name__ == '__main__':
     main()
