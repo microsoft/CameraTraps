@@ -24,7 +24,7 @@ from api.batch_processing.api_core.orchestrator_api.orchestrator import AMLMonit
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('request_id', type=str,
+    parser.add_argument('shortened_request_id', type=str,
                         help='the request ID to restart monitoring')
     parser.add_argument('model_version', type=str, help='version of megadetector used; this is used to fill in the meta info section of the output file')
     parser.add_argument('request_name', type=str, help='easy to remember name for that job, optional', default='')
