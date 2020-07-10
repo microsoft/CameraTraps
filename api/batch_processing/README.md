@@ -48,7 +48,7 @@ Check the status of your request by calling the `/task` endpoint via a GET call,
 
 ```http://URL/v2/camera-trap/detection-batch/task/RequestID```
 
-This returns a json with the fields `status`, `uuid`, and a few others. The `status` field is a json object with the following fields: 
+This returns a json with the fields `Status`, `TaskId` (which is the `request_id` in this document), and a few others. The `Status` field is a json object with the following fields: 
 
 - `request_status`: one of `running`, `failed`, `problem`, and `completed`. 
 
