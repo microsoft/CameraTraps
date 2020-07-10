@@ -21,11 +21,8 @@ COPY ./orchestrator_api /app/orchestrator_api/
 COPY ./orchestrator_api/sas_blob_utils.py /app/orchestrator_api/aml_scripts/sas_blob_utils.py
 
 # Copy the config file of the desired instance
+RUN echo using the configuration file $API_CONFIG
 COPY ./api_instances_config/$API_CONFIG /app/orchestrator_api/api_config.py
-
-# Add this API directory to PYTHONPATH
-ENV PYTHONPATH="${PYTHONPATH}:/app/orchestrator_api"
-ENV PYTHONUNBUFFERED=TRUE
 
 # Enter your Application Insights instrumentation key to enable Azure monitoring.  You can find the key here:
 #   https://docs.microsoft.com/en-us/azure/azure-monitor/app/create-new-resource#copy-the-instrumentation-key
@@ -53,11 +50,20 @@ ENV AZUREML_PASSWORD=
 ENV STORAGE_ACCOUNT_NAME= \
     STORAGE_ACCOUNT_KEY=
 
+# Add this API directory to PYTHONPATH
+ENV PYTHONPATH="${PYTHONPATH}:/app/orchestrator_api/"
+ENV PYTHONUNBUFFERED=TRUE
+
 # Expose the port that is to be used when calling your API
 EXPOSE 1212
 
-#HEALTHCHECK --interval=1m --timeout=3s --start-period=20s \
-#  CMD curl -f http://localhost:1212/${API_PREFIX}/ || exit 1
-# ENTRYPOINT [ "/startup.sh" ]
+HEALTHCHECK --interval=1m --timeout=3s --start-period=20s \
+  CMD curl -f http://localhost:1212/${API_PREFIX}/ || exit 1
+
+# startup.sh uses supervisord.conf and have 4 workers
+ENTRYPOINT [ "/startup.sh" ]
+
 # Comment out the line above and uncomment the following line to debug and see output messages.
-#ENTRYPOINT ["gunicorn", "-b", "0.0.0.0:1212", "runserver:app"]
+# ENTRYPOINT ["gunicorn", "-b", "0.0.0.0:1212", "runserver:app"]
+
+# CMD ["gunicorn", "-b", "0.0.0.0:1212", "runserver:app"]

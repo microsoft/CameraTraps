@@ -199,7 +199,7 @@ url_to_failed_images = output_files['failed_images']
 url_to_all_images_processed = output_files['images']
 
 ```
-Note that the field `Status` in the returned body is capitalized, since July 2020.
+Note that the field `Status` in the returned body is capitalized (since July 2020).
 
 These URLs are valid for 90 days from the time the request has finished. If you neglected to retrieve them before the links expired, contact us with the RequestID and we can send the results to you. Here are the 3 files to expect:
 

@@ -130,6 +130,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Batch score images using an object detection model.')
     parser.add_argument('--job_id', required=True)
+    parser.add_argument('--request_id', required=True)
     parser.add_argument('--model_name', required=True)
     parser.add_argument('--input_container_sas')
     parser.add_argument('--use_url')  # use public URLs to download images, instead of from Azure blobs
@@ -165,10 +166,15 @@ if __name__ == '__main__':
     job_id = str(args.job_id)
     print('score.py, job_id', job_id)
 
-    assert job_id.startswith('request'), 'Error in score.py: job_id does not start with "request"'
-    request_id = job_id.split('request')[1].split('_jobindex')[0]
+    request_id = str(args.request_id)
+    print('score.py, request_id', request_id)
 
-    list_images_path = os.path.join(args.internal_dir, request_id, '{}_images.json'.format(request_id))
+    # job_id format: 'r{}_i{}_t{}'.format(shortened_request_id, job_index, num_jobs)
+    assert job_id.startswith('r'), 'Error in score.py: job_id does not start with "r"'
+
+    # the image paths list JSON is still named using the full request_id
+    list_images_path = os.path.join(args.internal_dir, request_id, '{}_images.json'.format(
+        request_id))
     print('score.py, list_images_path: ', list_images_path)
 
     list_images = json.load(open(list_images_path))
