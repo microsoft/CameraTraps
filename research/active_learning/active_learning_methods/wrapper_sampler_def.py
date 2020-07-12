@@ -25,9 +25,9 @@ from __future__ import print_function
 
 import abc
 
-from sampling_methods.constants import AL_MAPPING
-from sampling_methods.constants import get_all_possible_arms
-from sampling_methods.sampling_def import SamplingMethod
+from active_learning_methods.constants import AL_MAPPING
+from active_learning_methods.constants import get_all_possible_arms
+from active_learning_methods.sampling_def import SamplingMethod
 
 get_all_possible_arms()
 
