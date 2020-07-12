@@ -22,8 +22,8 @@ from __future__ import print_function
 
 import copy
 
-from sampling_methods.sampling_def import SamplingMethod
-from sampling_methods.constants import AL_MAPPING, get_base_AL_mapping
+from active_learning_methods.sampling_def import SamplingMethod
+from active_learning_methods.constants import AL_MAPPING, get_base_AL_mapping
 
 get_base_AL_mapping()
 
