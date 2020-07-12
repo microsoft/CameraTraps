@@ -35,3 +35,6 @@ api/batch_processing/postprocessing/CameraTrapJsonFileProcessingApp/packages/
 
 # TF model files
 *.pb
+
+# batch processing API config files
+api_config*.py

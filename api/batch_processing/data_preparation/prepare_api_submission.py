@@ -364,10 +364,10 @@ def fetch_task_status(endpoint_url,task_id):
 def get_output_file_urls(response):
     """
     Given the dictionary returned by fetch_task_status, get the set of
-    URLs returned at the end of the task, or None if they're not available.'    
+    URLs returned at the end of the task, or None if they're not available.
     """
     try:
-        output_file_urls = response['status']['message']['output_file_urls']
+        output_file_urls = response['Status']['message']['output_file_urls']
     except:
         return None
     assert 'detections' in output_file_urls
@@ -434,7 +434,7 @@ def get_missing_images(response,verbose=False):
     if verbose:
         print('{} failed images'.format(len(failed_images)))
     
-    n_failed_shards = int(response['status']['message']['num_failed_shards'])
+    n_failed_shards = int(response['Status']['message']['num_failed_shards'])
     estimated_failed_shard_images = n_failed_shards * IMAGES_PER_SHARD
     if verbose:
         print('{} failed shards (approimately {} images)'.format(n_failed_shards,estimated_failed_shard_images))

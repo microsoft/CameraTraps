@@ -159,6 +159,7 @@ class AMLCompute:
                                                 hash_paths=['.'],  # include all contents of source_directory
                                                 name='batch_scoring',
                                                 arguments=['--job_id', param_job_id,
+                                                           '--request_id', request_id,
                                                            '--model_name', model_name,
                                                            '--input_container_sas', input_container_sas,  # can be None
                                                            '--use_url', use_url,
@@ -180,12 +181,14 @@ class AMLCompute:
 
     def _get_data_references(self, request_id, internal_datastore):
         print('AMLCompute, _get_data_references() called. Request ID: {}'.format(request_id))
+        # Argument Datastore Name needs to: only contain alphanumeric characters and _.
+        request_id_to_use_for_datastore = request_id.replace('-', '_')
         try:
             # setting the overwrite flag to True overwrites any datastore that was created previously with that name
 
             # internal_datastore stores all user-facing files: list of images, detection results, list of failed images
             # and it so happens that each job also needs the list of images as an input
-            internal_datastore_name = 'internal_datastore_{}'.format(request_id)
+            internal_datastore_name = 'internal_datastore_{}'.format(request_id_to_use_for_datastore)
             internal_account_name = internal_datastore['account_name']
             internal_account_key = internal_datastore['account_key']
             internal_container_name = internal_datastore['container_name']
@@ -197,7 +200,7 @@ class AMLCompute:
 
             # output_datastore stores the output from score.py in each job, which is another container
             # in the same storage account as interl_datastore
-            output_datastore_name = 'output_datastore_{}'.format(request_id)
+            output_datastore_name = 'output_datastore_{}'.format(request_id_to_use_for_datastore)
             output_container_name = api_config.AML_CONTAINER
             output_datastore = Datastore.register_azure_blob_container(self.ws, output_datastore_name,
                                                                        output_container_name,
@@ -213,7 +216,7 @@ class AMLCompute:
                                          data_reference_name='internal_dir',
                                          mode='mount')
 
-            output_dir = PipelineData('output_{}'.format(request_id),
+            output_dir = PipelineData('output_{}'.format(request_id_to_use_for_datastore),
                                       datastore=output_datastore,
                                       output_mode='mount')
             print('Finished setting up the Data References.')
@@ -270,8 +273,9 @@ class AMLCompute:
 # %% AML Monitor
 
 class AMLMonitor:
-    def __init__(self, request_id, list_jobs_submitted, request_name, request_submission_timestamp, model_version):
+    def __init__(self, request_id, shortened_request_id, list_jobs_submitted, request_name, request_submission_timestamp, model_version):
         self.request_id = request_id
+        self.shortened_request_id = shortened_request_id
         self.jobs_submitted = list_jobs_submitted
         self.request_name = request_name  # None if not provided by the user
         self.request_submission_timestamp = request_submission_timestamp  # str
@@ -318,12 +322,13 @@ class AMLMonitor:
     def _generate_urls_for_outputs(self):
         try:
             request_id = self.request_id
+            shortened_request_id = self.shortened_request_id
             request_name, request_submission_timestamp = self.request_name, self.request_submission_timestamp
 
             blob_paths = {
-                'detections': '{}/{}_detections_{}_{}.json'.format(request_id, request_id,
+                'detections': '{}/{}_detections_{}_{}.json'.format(request_id, shortened_request_id,
                                                                    request_name, request_submission_timestamp),
-                'failed_images': '{}/{}_failed_images_{}_{}.json'.format(request_id, request_id,
+                'failed_images': '{}/{}_failed_images_{}_{}.json'.format(request_id, shortened_request_id,
                                                                          request_name, request_submission_timestamp),
                 # list of images do not have request_name and timestamp in the file name so score.py can locate it easily
                 'images': '{}/{}_images.json'.format(request_id, request_id)
@@ -349,7 +354,7 @@ class AMLMonitor:
 
         # The more efficient method is to know the run_id which is the folder name that the result is written to.
         # Since we can't reliably get the run_id after submitting the run, resort to listing all blobs in the output
-        # container and match by the request_id
+        # container and match by the shortened_request_id
 
         # listing all (up to a large limit) because don't want to worry about generator next_marker
         datastore_aml_container = copy.deepcopy(self.internal_datastore)
@@ -364,12 +369,13 @@ class AMLMonitor:
             if blob_path.endswith('.json'):
                 # blob_path is azureml/run_id/output_requestID/out_file_name.json
                 out_file_name = blob_path.split('/')[-1]
-                # "request" is part of the AML job_id
-                if out_file_name.startswith('detections_request{}_'.format(self.request_id)):
+
+                # the output file names are "detections_[job_id].json" and "failures_[job_id].json"
+                if out_file_name.startswith('detections_r{}_'.format(self.shortened_request_id)):
                     all_detections.extend(self._download_read_json(blob_path))
                     num_aggregated += 1
                     print('Number of results aggregated: ', num_aggregated)
-                elif out_file_name.startswith('failures_request{}_'.format(self.request_id)):
+                elif out_file_name.startswith('failures_r{}_'.format(self.shortened_request_id)):
                     failures.extend(self._download_read_json(blob_path))
 
         print('aggregate_results(), length of all_detections: {}'.format(len(all_detections)))
@@ -394,7 +400,7 @@ class AMLMonitor:
         # upload aggregated results to output_store
         self.internal_storage_service.create_blob_from_text(self.internal_container,
                                                             '{}/{}_detections_{}_{}.json'.format(
-                                                                self.request_id, self.request_id,
+                                                                self.request_id, self.shortened_request_id,
                                                                 self.request_name, self.request_submission_timestamp),
                                                             detection_output_str, max_connections=4)
         print('aggregate_results(), detections uploaded')
@@ -403,7 +409,7 @@ class AMLMonitor:
         failures_str = json.dumps(failures, indent=1)
         self.internal_storage_service.create_blob_from_text(self.internal_container,
                                                             '{}/{}_failed_images_{}_{}.json'.format(
-                                                                self.request_id, self.request_id,
+                                                                self.request_id, self.shortened_request_id,
                                                                 self.request_name, self.request_submission_timestamp),
                                                             failures_str)
         print('aggregate_results(), failures uploaded')

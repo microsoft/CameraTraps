@@ -1,3 +1,8 @@
+"""
+This is an example of API instance configuration.
+"""
+
+
 # name of the container in the internal storage account to store user facing files:
 # image list, detection results and failed images list.
 INTERNAL_CONTAINER = 'async-api'
@@ -53,7 +58,7 @@ AML_CONFIG = {
     'application-id': ''
 }
 
-WHITELIST = []
+ALLOWLIST = []
 
 # version of the detector model in use
 SUPPORTED_MODEL_VERSIONS = sorted([k for k in AML_CONFIG['models']])
@@ -66,7 +71,8 @@ EXPIRATION_DAYS = 90
 
 DETECTION_CATEGORIES = {
     '1': 'animal',
-    '2': 'person'
+    '2': 'person',
+    '3': 'vehicle'
 }
 
 OUTPUT_FORMAT_VERSION = '1.0'
