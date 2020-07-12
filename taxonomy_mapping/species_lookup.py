@@ -524,11 +524,15 @@ if False:
     #%% Taxonomic lookup
     
     # query = 'lion'
-    query = 'primates'
+    query = 'great blue heron'
     matches = get_taxonomic_info(query)
     # print(matches)
 
     print_taxonomy_matches(matches,verbose=True)
+    
+    # Print the taxonomy in the taxonomy spreadsheet format
+    t = matches[1]['taxonomy']
+    [(4956, 'species', 'ardea herodias', ['great blue heron']), (4950, 'genus', 'ardea', ['great herons']), (597395, 'subfamily', 'ardeinae', ['typical herons']), (4929, 'family', 'ardeidae', ['herons, egrets, and bitterns']), (67566, 'order', 'pelecaniformes', ['pelicans, herons, ibises, and allies']), (3, 'class', 'aves', ['birds']), (355675, 'subphylum', 'vertebrata', ['vertebrates']), (2, 'phylum', 'chordata', ['chordates']), (1, 'kingdom', 'animalia', ['animals']), (48460, 'stateofmatter', 'life', [])]
     
     
     #%% Directly access the taxonomy tables
