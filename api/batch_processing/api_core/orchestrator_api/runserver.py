@@ -1,7 +1,6 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
-# ai4e_api_tools has been added to the PYTHONPATH, so we can reference those
-# libraries directly.
+
 import json
 import math
 import os
@@ -10,13 +9,11 @@ from datetime import datetime
 from random import shuffle
 import string
 
-from ai4e_app_insights import AppInsights
-from ai4e_app_insights_wrapper import AI4EAppInsights
-from ai4e_service import AI4EWrapper
-from azure.storage.blob import BlockBlobService
 from flask import Flask, request, make_response, jsonify
-from flask_restful import Api
-from task_management.api_task import ApiTaskManager
+from azure.storage.blob import BlockBlobService
+# /ai4e_api_tools has been added to the PYTHONPATH, so we can reference those libraries directly.
+from ai4e_app_insights_wrapper import AI4EAppInsights
+from ai4e_service import APIService
 
 import api_config
 import orchestrator
@@ -28,21 +25,22 @@ print('Creating application')
 
 api_prefix = os.getenv('API_PREFIX')
 print('API prefix: ', api_prefix)
+
 app = Flask(__name__)
-api = Api(app)
 
-# Log requests, traces and exceptions to the Application Insights service
-appinsights = AppInsights(app)
-
-# Use the AI4EAppInsights library to send log messages.
+# Use the AI4EAppInsights library to send log messages. NOT REQUIRED
 log = AI4EAppInsights()
 
-# Use the internal-container AI for Earth Task Manager (not for production use!).
-api_task_manager = ApiTaskManager(flask_api=api, resource_prefix=api_prefix)
+# Use the APIService to executes your functions within a logging trace, supports long-running/async functions,
+# handles SIGTERM signals from AKS, etc., and handles concurrent requests.
+with app.app_context():
+    ai4e_service = APIService(app, log)
 
-# Use the AI4EWrapper to executes your functions within a logging trace.
-# Also, helps support long-running/async functions.
-ai4e_wrapper = AI4EWrapper(app)
+# hacking the API Framework a bit, to use some functions directly instead of through its decorators,
+# in order for the return value of the async call to be backwards compatible
+api_task_manager = ai4e_service.api_task_manager
+ai4e_service.func_request_counts[api_prefix + '/request_detections'] = 0
+ai4e_service.func_request_counts[api_prefix + '/request_detections_aml'] = 0
 
 # Instantiate blob storage service to the internal container to put intermediate results and files
 storage_account_name = os.getenv('STORAGE_ACCOUNT_NAME')
@@ -55,11 +53,6 @@ internal_datastore = {
     'container_name': internal_container
 }
 print('Internal storage container {} in account {} is set up.'.format(internal_container, storage_account_name))
-
-
-@app.route('/', methods=['GET'])
-def health_check():
-    return 'Health check OK'
 
 
 def _abort(error_code, error_message):
@@ -78,8 +71,8 @@ def request_detections():
 
     # required params
     caller_id = post_body.get('caller', None)
-    if caller_id is None or caller_id not in api_config.WHITELIST:
-        return _abort(401, ('Parameter caller is not supplied or is not on our whitelist. '
+    if caller_id is None or caller_id not in api_config.ALLOWLIST:
+        return _abort(401, ('Parameter caller is not supplied or is not on our allowlist. '
         'Please email cameratraps@microsoft.com to request access.'))
 
     use_url = post_body.get('use_url', False)
@@ -120,12 +113,18 @@ def request_detections():
 
     # TODO check images_requested_json_sas is a blob not a container
 
-    task_info = api_task_manager.AddTask('queued')
-    request_id = str(task_info['uuid'])
+    task_info = api_task_manager.AddTask(request)
+    request_id = str(task_info['TaskId'])
+
+    # HACK hacking the API Framework a bit because we want to return a JSON with the request_id, otherwise
+    # a string "TaskId: the_task_id" will be returned
+
+    ai4e_service._create_and_execute_thread(func=_request_detections, api_path='/request_detections',
+                                            request_id=request_id, post_body=post_body)
 
     # wrap_async_endpoint executes the function in a new thread and wraps it within a logging trace
-    ai4e_wrapper.wrap_async_endpoint(_request_detections, 'post:request_detections',
-                                     request_id=request_id, post_body=post_body)
+    # ai4e_service.wrap_async_endpoint(_request_detections, trace_name='post:request_detections',
+    #                                  request_id=request_id, post_body=post_body)
 
     return jsonify(request_id=request_id)
 
@@ -275,7 +274,16 @@ def _request_detections(**kwargs):
         list_jobs = {}
         for job_index in range(num_jobs):
             begin, end = job_index * num_images_per_job, (job_index + 1) * num_images_per_job
-            job_id = 'request{}_jobindex{}_total{}'.format(request_id, job_index, num_jobs)
+
+            # Experiment name must be between 1 and 36 characters long. Its first character has to be alphanumeric,
+            # and the rest may contain hyphens and underscores..
+            shortened_request_id = request_id.split('-')[0]
+            if len(shortened_request_id) > 8:
+                shortened_request_id = shortened_request_id[:8]
+
+            # request ID, job index, total
+            job_id = 'r{}_i{}_t{}'.format(shortened_request_id, job_index, num_jobs)
+
             list_jobs[job_id] = {'begin': begin, 'end': end}
 
         list_jobs_submitted = aml_compute.submit_jobs(list_jobs, api_task_manager, num_images)
@@ -293,15 +301,21 @@ def _request_detections(**kwargs):
         return  # do not initiate _monitor_detections_request
 
     try:
-        aml_monitor = orchestrator.AMLMonitor(request_id=request_id, list_jobs_submitted=list_jobs_submitted,
+        aml_monitor = orchestrator.AMLMonitor(request_id=request_id,
+                                              shortened_request_id=shortened_request_id,
+                                              list_jobs_submitted=list_jobs_submitted,
                                               request_name=request_name,
                                               request_submission_timestamp=request_submission_timestamp,
                                               model_version=model_version)
 
         # start another thread to monitor the jobs and consolidate the results when they finish
-        ai4e_wrapper.wrap_async_endpoint(_monitor_detections_request, 'post:_monitor_detections_request',
-                                         request_id=request_id,
-                                         aml_monitor=aml_monitor)
+        # HACK
+        ai4e_service._create_and_execute_thread(func=_monitor_detections_request, api_path='/request_detections_aml',
+                                                request_id=request_id, aml_monitor=aml_monitor)
+
+        # ai4e_service.wrap_async_endpoint(_monitor_detections_request, trace_name='post:_monitor_detections_request',
+        #                                  request_id=request_id,
+        #                                  aml_monitor=aml_monitor)
     except Exception as e:
         api_task_manager.UpdateTaskStatus(request_id,
                                           get_task_status('problem', (
@@ -413,23 +427,29 @@ def _monitor_detections_request(**kwargs):
             'The images should be processing though - please contact us to retrieve your results. Error: {}'.format(
                 e))))
         print('runserver.py, exception in _monitor_detections_request(): ', str(e))
+    # maybe not needed?
+    # finally:
+    #     ai4e_service.func_request_counts[api_prefix + '/request_detections_aml'] -= 1
 
 
-@app.route(api_prefix + '/default_model_version', methods=['GET'])
-def default_model_version():
-    # wrap_sync_endpoint wraps your function within a logging trace.
-    return ai4e_wrapper.wrap_sync_endpoint(_default_model_version, 'get:default_model_version')
+# for the following sync end points, we use the ai4e_service decorator instead of the flask app decorator,
+# so that wrap_sync_endpoint() is done for us
 
-def _default_model_version():
+@ai4e_service.api_sync_func(
+    api_path='/default_model_version',
+    methods=['GET'],
+    maximum_concurrent_requests=100,
+    trace_name='get:default_model_version')
+def default_model_version(*args, **kwargs):
     return api_config.AML_CONFIG['default_model_version']
 
 
-@app.route(api_prefix + '/supported_model_versions', methods=['GET'])
-def supported_model_versions():
-    # wrap_sync_endpoint wraps your function within a logging trace.
-    return ai4e_wrapper.wrap_sync_endpoint(_supported_model_versions, 'get:supported_model_versions')
-
-def _supported_model_versions():
+@ai4e_service.api_sync_func(
+    api_path='/supported_model_versions',
+    methods=['GET'],
+    maximum_concurrent_requests=100,
+    trace_name='get:supported_model_versions')
+def supported_model_versions(*args, **kwargs):
     return jsonify(api_config.SUPPORTED_MODEL_VERSIONS)
 
 
