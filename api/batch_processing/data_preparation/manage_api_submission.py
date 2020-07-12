@@ -41,7 +41,7 @@ read_only_sas_token = '?st=2019-12...'
 read_write_sas_token = '?st=2019-12...'
 
 caller = 'caller'
-endpoint_base = 'http://blah.endpoint.com:6022/v2/camera-trap/detection-batch/'
+endpoint_base = 'http://blah.endpoint.com:6022/v3/camera-trap/detection-batch/'
 
 ### Typically left as default
 
@@ -317,7 +317,7 @@ for i_task_group,task_group in enumerate(task_groups):
         
         response,status = prepare_api_submission.fetch_task_status(task_status_endpoint_url,task_id)
         assert status == 200
-        n_failed_shards = int(response['status']['message']['num_failed_shards'])
+        n_failed_shards = int(response['Status']['message']['num_failed_shards'])
         
         # assert n_failed_shards == 0
         
