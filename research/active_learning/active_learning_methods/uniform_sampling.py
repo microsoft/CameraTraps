@@ -23,7 +23,7 @@ from __future__ import print_function
 
 import numpy as np
 
-from sampling_methods.sampling_def import SamplingMethod
+from active_learning_methods.sampling_def import SamplingMethod
 
 
 class UniformSampling(SamplingMethod):
