@@ -373,7 +373,7 @@ class Efficient_camtrap:
                             # Plot a batch of images. Reduce to required number of images
                             imgs_labelled = imgs_labelled[:opt.num_visualize_images]
                             # create a grid of training images for tensorboard
-                            img_grid = self.create_plot_images(imgs_labelled, nrow=2)
+                            img_grid = self.create_plot_images(imgs_labelled, nrow=4)
                             # write to tensorboard
                             self.writer.add_image('Training_images', img_grid, global_step=self.step)
 
@@ -430,7 +430,7 @@ class Efficient_camtrap:
             self.writer.close()
         self.writer.close()
 
-    def create_plot_images(self,imgs_labelled : List[float], nrow=2):
+    def create_plot_images(self,imgs_labelled : List[float], nrow=4):
         """
         Function:
             Convert the given images into a grid
@@ -525,7 +525,7 @@ class Efficient_camtrap:
         #Update your images to the required no of images
         imgs_to_viz = imgs_to_viz[:opt.num_visualize_images]
         # create grid of images for tensorboard
-        val_img_grid = self.create_plot_images(imgs_to_viz, nrow=2)
+        val_img_grid = self.create_plot_images(imgs_to_viz, nrow=4)
         # write to tensorboard
         self.writer.add_image('Eval_Images', val_img_grid, \
                             global_step=(step))
@@ -548,7 +548,6 @@ class Efficient_camtrap:
                     category_Ap_scores[idx] = evalscore
                     self.writer.add_scalars(f'mAP@IoU=0.5', {f'{catgname}': evalscore}, step)
 
-                print(category_Ap_scores)
                 #get a mean of category scores
                 mean_Ap_metric = sum(category_Ap_scores)/len(category_Ap_scores) 
                 
@@ -619,10 +618,7 @@ def clean_savedmodels(model_prefix: str, model_path: str, score: float, topk=50)
             if len(filelogs) > topk:
                 toremovefiles = filelogs[topk:] 
                 filelogs =  filelogs[:topk]#Update the filelogs
-            print('=========================================================================')
-            print(toremovefiles)
-            print(filelogs)
-            print('=========================================================================')
+
             for _, filename in toremovefiles: # Everything except last k files
                 print(filename)
                 try:
