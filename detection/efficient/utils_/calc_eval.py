@@ -22,7 +22,7 @@ from efficientdet.utils import BBoxTransform, ClipBoxes
 from utils.utils import invert_affine, postprocess
 
 def evaluate_mAP(imgs: List[float], imgs_ids: List[int], framed_metas: List[Tuple], regressions, \
-                 classifications: List[float], anchors: List[float], threshold=0.5, nms_threshold=0.5) -> List[Dict]:
+                 classifications: List[float], anchors: List[float], threshold=0.05, nms_threshold=0.5) -> List[Dict]:
     '''
     Inputs: Images, Image IDs, Framed Metas (Resizing stats), prredictions
     Output: results
