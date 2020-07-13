@@ -13,19 +13,12 @@ import json
 import os
 import time
 from collections import defaultdict
-from enum import Enum
 from shutil import move
 
 import humanfriendly
 from tqdm import tqdm
 
-from data_management.megadb.megadb_utils import MegadbUtils
-
-
-class Splits(Enum):
-    TRAIN = 'train'
-    VAL = 'val'
-    TEST = 'test'
+from data_management.megadb.megadb_utils import Splits, MegadbUtils
 
 
 def look_up_split(splits_table, entry):
@@ -34,11 +27,11 @@ def look_up_split(splits_table, entry):
     else:
         dataset_name = entry['dataset']
         split_lists = splits_table[dataset_name]
-        if entry['location'] in split_lists[Splits.TRAIN.value]:
+        if entry['location'] in split_lists[Splits.TRAIN]:
             return Splits.TRAIN
-        elif entry['location'] in split_lists[Splits.VAL.value]:
+        elif entry['location'] in split_lists[Splits.VAL]:
             return Splits.VAL
-        elif entry['location'] in split_lists[Splits.TEST.value]:
+        elif entry['location'] in split_lists[Splits.TEST]:
             return Splits.TEST
         else:
             if dataset_name != 'nacti':
@@ -78,9 +71,9 @@ def main():
     os.makedirs(args.dest_dir, exist_ok=True)
 
     dest_folders = {
-        Splits.TRAIN: os.path.join(args.dest_dir, Splits.TRAIN.value),
-        Splits.VAL: os.path.join(args.dest_dir, Splits.VAL.value),
-        Splits.TEST: os.path.join(args.dest_dir, Splits.TEST.value)
+        Splits.TRAIN: os.path.join(args.dest_dir, Splits.TRAIN),
+        Splits.VAL: os.path.join(args.dest_dir, Splits.VAL),
+        Splits.TEST: os.path.join(args.dest_dir, Splits.TEST)
     }
 
     os.makedirs(dest_folders[Splits.TRAIN], exist_ok=True)
@@ -103,11 +96,11 @@ def main():
         if not os.path.exists(origin_path):
             # print('Image not found in origin dir at {}'.format(origin_path))
             continue
-        dest_path = os.path.join(args.dest_dir, which_split.value, download_id)
+        dest_path = os.path.join(args.dest_dir, which_split, download_id)
         dest = move(origin_path, dest_path)
 
         count += 1
-        counter[entry['dataset']][which_split.value] += 1
+        counter[entry['dataset']][which_split] += 1
         if count % 10000 == 0:
             print(counter)
             print()
