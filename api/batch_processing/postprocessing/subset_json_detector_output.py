@@ -48,6 +48,7 @@
 #
 
 #%% Constants and imports
+
 import argparse
 import sys
 import copy
@@ -458,8 +459,9 @@ if False:
     #%% Subset and split, but don't copy to individual folders
     
     # input_filename = r"D:\temp\idfg\1800_detections_S2.json"
-    input_filename = r"D:\temp\idfg\detections_idfg_20190625_refiltered.json"
-    output_filename = r"D:\temp\idfg\output"
+    # input_filename = r"D:\temp\idfg\detections_idfg_20190625_refiltered.json"
+    input_filename = r"C:\temp\amapa-20200712_detections.json"
+    output_filename = r"C:\temp\amapa\output"
     
     options = SubsetJsonDetectorOutputOptions()
     options.split_folders = True    
