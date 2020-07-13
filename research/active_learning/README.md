@@ -14,3 +14,5 @@ https://drive.google.com/file/d/1n7VHlYEXaSb3A7aM3hIXy4VwvQ1vAj73/view?usp=shari
 This script runs the active learning model on a given dataset. The algorithm starts with 1,000 randomly selected queries and then actively choose the other labels to be labeled by the oracle. This scripts does not consider an oracle in the loop for labeling. Instead, it simulates an oracle by using pre-labeled samples. For further details, please refer to the command line arguments and the comments inside the code.
 
 The snapshots of the model after using 30,000 queries for the Snapshot Serengeti and NACTI datasets are available here:
+
+[NACTI](https://drive.google.com/file/d/1M_RzHbBEAWfD6KSBuQOMsH5dC-AH5s7t/view?usp=sharing)
