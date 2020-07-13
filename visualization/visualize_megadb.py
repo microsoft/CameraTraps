@@ -19,22 +19,24 @@ from visualization import visualization_utils as vis_utils
 
 
 def render_image_info(rendering, args):
-    blob_service = rendering['blob_service']
+    storage_client = rendering['storage_client']
     image_obj = io.BytesIO()
 
     try:
-        _ = blob_service.get_blob_to_stream(rendering['container_name'], rendering['blob_path'], image_obj)
+        storage_client.download_blob(rendering['blob_path']).readinto(image_obj)
     except Exception as e:
         print(f'Image not found in blob storage: {rendering["blob_path"]}')
         print(e)
         return
 
     # resize is for displaying them more quickly
-    image = vis_utils.resize_image(vis_utils.open_image(image_obj), args.output_image_width)
+    image = vis_utils.resize_image(
+        vis_utils.open_image(image_obj), args.output_image_width)
     vis_utils.render_megadb_bounding_boxes(rendering['bbox'], image)
 
     annotated_img_name = rendering['annotated_img_name']
-    annotated_img_path = os.path.join(args.output_dir, 'rendered_images', annotated_img_name)
+    annotated_img_path = os.path.join(
+        args.output_dir, 'rendered_images', annotated_img_name)
     image.save(annotated_img_path)
 
 
@@ -62,15 +64,18 @@ def visualize_sequences(datasets_table, sequences, args):
 
             num_images += 1
 
-            blob_path = MegadbUtils.get_full_path(datasets_table, dataset_name, im['file'])
+            blob_path = MegadbUtils.get_full_path(
+                datasets_table, dataset_name, im['file'])
             frame_num = im.get('frame_num', -1)
+
+            # if no class label on the image, show class label on the sequence
             im_class = im.get('class', None)
-            if im_class is None:  # if no class label on the image, show the class label on the sequence
+            if im_class is None:
                 im_class = seq.get('class', [])
 
             rendering = {}
-            rendering['blob_service'] = MegadbUtils.get_blob_service(datasets_table, dataset_name)
-            rendering['container_name'] = datasets_table[dataset_name]['container']
+            rendering['storage_client'] = MegadbUtils.get_storage_client(
+                datasets_table, dataset_name)
             rendering['blob_path'] = blob_path
             rendering['bbox'] = im.get('bbox', [])
 
@@ -110,20 +115,29 @@ def visualize_sequences(datasets_table, sequences, args):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('megadb_entries', type=str, help='Path to a json list of MegaDB entries')
-    parser.add_argument('output_dir', action='store', type=str,
-                        help='Output directory for html and rendered images')
-    parser.add_argument('--trim_to_images_bboxes_labeled', action='store_true',
-                        help='Only include images that have been sent for bbox labeling (but may be actually empty). Turn this on if QAing annotations.')
-    parser.add_argument('--num_to_visualize', action='store', type=int, default=200,
-                        help='Number of images to visualize (all comformant images in a sequence are shown, so may be a few more than specified). Sequences are shuffled. Defaults to 200. Use -1 to visualize all.')
-
-    parser.add_argument('--pathsep_replacement', action='store', type=str, default='~',
-                        help='Replace path separators in relative filenames with another character (default ~)')
-    parser.add_argument('-w', '--output_image_width', type=int,
-                        help=('an integer indicating the desired width in pixels of the output annotated images. '
-                              'Use -1 to not resize.'),
-                        default=700)
+    parser.add_argument(
+        'megadb_entries', type=str,
+        help='Path to a json list of MegaDB entries')
+    parser.add_argument(
+        'output_dir', action='store', type=str,
+        help='Output directory for html and rendered images')
+    parser.add_argument(
+        '--trim_to_images_bboxes_labeled', action='store_true',
+        help='Only include images that have been sent for bbox labeling (but '
+             'may be actually empty). Turn this on if QAing annotations.')
+    parser.add_argument(
+        '--num_to_visualize', action='store', type=int, default=200,
+        help='Number of images to visualize (all comformant images in a '
+             'sequence are shown, so may be a few more than specified). '
+             'Sequences are shuffled. Default: 200. Use -1 to visualize all.')
+    parser.add_argument(
+        '--pathsep_replacement', action='store', type=str, default='~',
+        help='Replace path separators in relative filenames with another '
+             'character (default ~)')
+    parser.add_argument(
+        '-w', '--output_image_width', type=int, default=700,
+        help='an integer indicating the desired width in pixels of the output '
+             'annotated images. Use -1 to not resize.')
 
     if len(sys.argv[1:]) == 0:
         parser.print_help()

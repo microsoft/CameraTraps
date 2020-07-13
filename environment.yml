@@ -28,11 +28,8 @@ dependencies:
 #
 # See https://azure.github.io/azure-sdk/releases/latest/
 - pip:        
-  # doc: https://azure-storage.readthedocs.io - this will go to versions prior to v12 update
-  - azure-storage-blob>=1.5.0, <=2.1.0   
-  # doc: https://azuresdkdocs.blob.core.windows.net/$web/python/azure-cosmos/4.0.0b5/index.html
-  - azure-cosmos==4.0.0b6  
+  - azure-storage-blob
+  - azure-cosmos
   - azureml-sdk[tensorboard]==1.0.83
   - requests-toolbelt  # required to call the sync API
   - locust  # load testing of sync API
-

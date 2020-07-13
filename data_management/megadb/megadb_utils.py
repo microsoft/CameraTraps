@@ -5,48 +5,57 @@ The environment variables COSMOS_ENDPOINT and COSMOS_KEY need to be set
 or passed in to the initializer.
 """
 
-import os
 from datetime import datetime
+from enum import Enum
+import os
+from typing import Any, Dict, List, Mapping, Optional, Set
 
 from azure.cosmos.cosmos_client import CosmosClient
-from azure.storage.blob import BlockBlobService
+from azure.storage.blob import ContainerClient
 import humanfriendly
+
+
+class Splits(str, Enum):
+    TRAIN = 'train'
+    VAL = 'val'
+    TEST = 'test'
 
 
 class MegadbUtils:
     """
     Attributes
-    - database: azure.cosmos.DatabaseProxy, the 'camera-trap' database
-    - container_sequences: azure.cosmos.ContainerProxy, the 'sequences' container
+    - database: azure.cosmos.DatabaseProxy, 'camera-trap' database
+    - container_sequences: azure.cosmos.ContainerProxy, 'sequences' container
     """
 
-    def __init__(self, url=None, key=None):
+    def __init__(self, url: Optional[str] = None, key: Optional[str] = None):
         if not url:
             url = os.environ['COSMOS_ENDPOINT']
         if not key:
             key = os.environ['COSMOS_KEY']
         client = CosmosClient(url, credential=key)
         self.database = client.get_database_client('camera-trap')
-        self.container_sequences = self.database.get_container_client('sequences')
+        self.container_sequences = self.database.get_container_client(
+            'sequences')
 
-    def get_datasets_table(self):
+    def get_datasets_table(self) -> Dict[str, Any]:
         """Gets the datasets table.
 
-        Returns: dict, keys are dataset names (`dataset` property in sequences and splits),
-            and values are properties of the dataset
+        Returns: dict, keys are dataset names, values are dataset properties
         """
         query = '''SELECT * FROM datasets d'''
 
         container_datasets = self.database.get_container_client('datasets')
-        result_iterable = container_datasets.query_items(query=query, enable_cross_partition_query=True)
+        result_iterable = container_datasets.query_items(
+            query=query, enable_cross_partition_query=True)
 
         datasets = {
-            i['dataset_name']: {k: v for k, v in i.items() if not k.startswith('_')}
+            i['dataset_name']: {k: i[k] for k in i if not k.startswith('_')}
             for i in result_iterable
         }
         return datasets
 
-    def get_splits_table(self):
+    def get_splits_table(self) -> Dict[str, Dict[Splits, Set[Any]]]:
         """Gets the splits table.
 
         Returns: dict, each key is a dataset name, and each value is a dict with
@@ -55,34 +64,40 @@ class MegadbUtils:
         query = '''SELECT * FROM datasets d'''
 
         container_splits = self.database.get_container_client('splits')
-        result_iterable = container_splits.query_items(query=query, enable_cross_partition_query=True)
+        result_iterable = container_splits.query_items(
+            query=query, enable_cross_partition_query=True)
 
         splits = {
-            i['dataset']: {k: set(v) for k, v in i.items() if not k.startswith('_')}
+            i['dataset']: {split: set(i[split]) for split in Splits}
             for i in result_iterable
         }
         return splits
 
-    def query_sequences_table(self, query, partition_key=None):
+    def query_sequences_table(
+            self, query: str, partition_key: Optional[str] = None,
+            parameters: Optional[List[Mapping[str, Any]]] = None
+        ) -> List[Dict[str, Any]]:
         """
         Args:
             query: str, SQL query
             partition_key: str, the dataset name is the partition key
                 see scheme/sequences_schema.json
+            parameters: list of dict
 
         Returns: list of dict, each dict represents a single sequence
         """
         startTime = datetime.now()
 
         if partition_key:
-            result_iterable = self.container_sequences.query_items(query=query,
-                                                                   partition_key=partition_key)
+            result_iterable = self.container_sequences.query_items(
+                query=query, partition_key=partition_key, parameters=parameters)
         else:
-            result_iterable = self.container_sequences.query_items(query=query,
-                                                                   enable_cross_partition_query=True)
+            result_iterable = self.container_sequences.query_items(
+                query=query, enable_cross_partition_query=True,
+                parameters=parameters)
 
         duration = datetime.now() - startTime
-        results = [item for item in result_iterable]  # TODO could return the iterable instead
+        results = list(result_iterable)  # TODO could return the iterable instead
 
         # print('Query took {}. Number of entries in result: {}'.format(
         #     humanfriendly.format_timespan(duration), len(results)
@@ -91,47 +106,47 @@ class MegadbUtils:
         return results
 
     @staticmethod
-    def get_blob_service(datasets_table, dataset_name):
-        """Gets a BlockBlobService for the Azure Storage Blob corresponding to
-        the given dataset.
+    def get_storage_client(datasets_table: Mapping[str, Any],
+                           dataset_name: str) -> ContainerClient:
+        """Gets a ContainerClient for the Azure Blob Storage Container
+        corresponding to the given dataset.
 
-        Adds 'blob_service' key to datasets_table (in-place update) if a new
-        BlockBlobService is created for the dataset.
+        Adds 'container_client' key to datasets_table (in-place update) if a new
+        ContainerClient is created for the dataset.
 
         Args:
             datasets_table: dict, the return value of get_datasets_table()
             dataset_name: str, key in datasets_table
 
-        Returns: azure.storage.blob.blockblobservice.BlockBlobService, corresponds to
-            the requested dataset
+        Returns: azure.storage.blob.ContainerClient, corresponds to the
+            requested dataset
         """
         if dataset_name not in datasets_table:
-            raise KeyError('Dataset {} is not in the datasets table.'.format(dataset_name))
+            raise KeyError(f'Dataset {dataset_name} is not in datasets table.')
 
         entry = datasets_table[dataset_name]
+        if 'storage_container_client' not in entry:
+            # create a new storage container client for this dataset,
+            # and cache it
+            if 'container_sas_key' not in entry:
+                raise KeyError(f'Dataset {dataset_name} does not have the '
+                               'container_sas_key field in the datasets table.')
+            entry['storage_container_client'] = ContainerClient(
+                account_url=f'{entry["storage_account"]}.blob.core.windows.net',
+                container_name=entry['container'],
+                credential=entry['container_sas_key'])
 
-        if 'blob_service' in entry:
-            return entry['blob_service']
-
-        # need to create a new blob service for this dataset
-        if 'container_sas_key' not in entry:
-            raise KeyError('Dataset {} does not have the container_sas_key field in the datasets table.'.format(dataset_name))
-
-        # the SAS token can be just for the container, not the storage account
-        # - will be fine for accessing files in that container later
-        blob_service = BlockBlobService(account_name=entry['storage_account'],
-                                        sas_token=entry['container_sas_key'])
-        datasets_table[dataset_name]['blob_service'] = blob_service  # in-place update
-        return blob_service
+        return entry['storage_container_client']
 
     @staticmethod
-    def get_full_path(datasets_table, dataset_name, img_path):
+    def get_full_path(datasets_table: Mapping[str, Any], dataset_name: str,
+                      img_path: str) -> str:
         """Gets the full blob path to an image.
 
         Args:
             datasets_table: dict, the return value of get_datasets_table()
             dataset_name: str, key in datasets_table
-            img_path: str, path in 'file' field of an image from the given dataset
+            img_path: str, path in 'file' field of an image from the dataset
 
         Returns: str, full blob path to image
         """
