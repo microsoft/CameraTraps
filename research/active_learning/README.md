@@ -14,5 +14,7 @@ a pretrained embedding model trained on combination of eMammal and CCT datasets 
 This script runs the active learning model on a given dataset. The algorithm starts with 1,000 randomly selected queries and then actively choose the other labels to be labeled by the oracle. This scripts does not consider an oracle in the loop for labeling. Instead, it simulates an oracle by using pre-labeled samples. For further details, please refer to the command line arguments and the comments inside the code.
 
 The snapshots of the model after using 30,000 queries for the Snapshot Serengeti and NACTI datasets are available here:
+
 [Snapshot Serengeti](https://drive.google.com/file/d/1JwFv6uToZMTAeqliVGh2MoS8LLf-QF69/view?usp=sharing)
+
 [NACTI](https://drive.google.com/file/d/1M_RzHbBEAWfD6KSBuQOMsH5dC-AH5s7t/view?usp=sharing)
