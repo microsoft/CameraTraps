@@ -119,7 +119,7 @@ for _folder in os.listdir(input_base):
         for i_row in row_indices:
             row = input_metadata.iloc[i_row]
             assert(row['image_name'] == image_name)
-            timestamp = row['datetime'].strftime("%d/%m/%Y")
+            timestamp = row['datetime']
             location = row['survey_name']+ " "+row['camera_name']
             if img_id in image_ids_to_images:
                 im = image_ids_to_images[img_id]
