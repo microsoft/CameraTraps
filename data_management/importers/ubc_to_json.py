@@ -206,7 +206,7 @@ options.bCheckImageSizes = False
 options.bCheckImageExistence = False
 options.bFindUnusedImages = False
 
-sortedCategories, data = sanity_check_json_db.sanity_check_json_db(
+sortedCategories, data, errors = sanity_check_json_db.sanity_check_json_db(
     output_json_file, options)
 
 
