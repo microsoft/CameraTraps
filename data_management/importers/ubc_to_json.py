@@ -162,7 +162,7 @@ for _folder in os.listdir(input_base):
             # fieldname = list(mapped_fields.keys())[0]
             for target_field in target_fields:
                 if target_field in input_metadata.columns:
-                    val = row[fieldname]
+                    val = row[target_field]
                     if isinstance(val,float) and np.isnan(val):
                         val = ''
                     else:
