@@ -11,17 +11,19 @@ Need to add exception handling.
 
 #%% Imports and constants
 
-import json
-import os
-import zipfile
 from datetime import datetime
-from tqdm import tqdm
-from azure.storage.blob import BlockBlobService
-
 import itertools
+import json
 import multiprocessing
 from multiprocessing.dummy import Pool as ThreadPool  # this functions like threading
+import os
 from shutil import copy, copyfile
+from tqdm import tqdm
+from typing import Optional
+import zipfile
+
+from azure.storage.blob import BlobServiceClient
+
 
 # configurations and paths
 log_folder = '/home/lynx/logs'
@@ -102,10 +104,15 @@ def copy_from_mounted_container(source_folder, dest_folder):
         json.dump(results, f)
 
 
-def _download_unzip(blob_service, blob_path, dest_path):
+def _download_unzip(blob_service: BlobServiceClient,
+                    container: str,
+                    blob_path: str,
+                    dest_path: str) -> Optional[str]:
     try:
-        print('Downloading...')
-        blob_service.get_blob_to_path(container, blob_path, dest_path)
+        with open(dest_path, 'wb') as f:
+            cc = blob_service.get_container_client(container)
+            print('Downloading...')
+            cc.download_blob(blob_path).readinto(f)
 
         dest_subfolder = dest_path.split('.zip')[0]
 
@@ -121,9 +128,13 @@ def _download_unzip(blob_service, blob_path, dest_path):
         return blob_path
 
 
-def download_from_container(dest_folder, blob_service, container='emammal', desired_blob_prefix=''):
-    generator = blob_service.list_blobs(container)
-    desired_blobs = [blob.name for blob in generator if blob.name.startswith(desired_blob_prefix)]
+def download_from_container(dest_folder: str,
+                            blob_service: BlobServiceClient,
+                            container: str = 'emammal',
+                            desired_blob_prefix: str = '') -> None:
+    generator = blob_service.get_containre_client(container).list_blobs()
+    desired_blobs = [blob.name for blob in generator
+                     if blob.name.startswith(desired_blob_prefix)]
 
     print('desired_blobs', desired_blobs)
 
@@ -133,7 +144,7 @@ def download_from_container(dest_folder, blob_service, container='emammal', desi
         print('blob_name', blob_name)
         dest_path = os.path.join(dest_folder, blob_name)
         print('dest_path', dest_path)
-        result = _download_unzip(blob_service, blob_path, dest_path)
+        result = _download_unzip(blob_service, container, blob_path, dest_path)
         results.append(result)
 
     cur_time = datetime.now().strftime('%Y%m%d-%H%M%S')
@@ -158,9 +169,10 @@ if __name__ == '__main__':
 
     elif origin == 'cloud':
         # or you can download them using the storage Python SDK
-        # key to the storage account should be stored in the environment variable AZ_STORAGE_KEY
-        key = os.environ["AZ_STORAGE_KEY"]
-        blob_service = BlockBlobService(account_name='wildlifeblobssc', account_key=key)
+        # store storage account key in environment variable AZ_STORAGE_KEY
+        blob_service = BlobServiceClient(
+            account_url='wildlifeblobssc.blob.core.windows.net',
+            credential=os.environ["AZ_STORAGE_KEY"])
         download_from_container(dest_folder, blob_service, container=container,
                                 desired_blob_prefix=desired_blob_prefix)
 

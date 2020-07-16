@@ -7,6 +7,8 @@ Core rendering functions shared across visualization scripts
 #%% Constants and imports
 
 from io import BytesIO
+from typing import Union
+
 import matplotlib.pyplot as plt
 import numpy as np
 import requests
@@ -19,41 +21,44 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 #%% Functions
 
-def open_image(input_file):
-    """
-    Opens an image in binary format using PIL.Image and convert to RGB mode. This operation is lazy; image will
-    not be actually loaded until the first operation that needs to load it (for example, resizing), so file opening
+def open_image(input_file: Union[str, BytesIO]) -> Image:
+    """Opens an image in binary format using PIL.Image and converts to RGB mode.
+
+    This operation is lazy; image will not be actually loaded until the first
+    operation that needs to load it (for example, resizing), so file opening
     errors can show up later.
 
     Args:
-        input_file: an image in binary format read from the POST request's body or
-            path to an image file (anything that PIL can open)
+        input_file: str or BytesIO, either a path to an image file (anything
+            that PIL can open), or an image as a stream of bytes
 
     Returns:
         an PIL image object in RGB mode
     """
-
-    if isinstance(input_file, str) and (input_file.startswith('http://') or input_file.startswith('https://')):
+    if (isinstance(input_file, str)
+            and input_file.startswith(('http://', 'https://'))):
         response = requests.get(input_file)
         image = Image.open(BytesIO(response.content))
     else:
         image = Image.open(input_file)
     if image.mode not in ('RGBA', 'RGB', 'L'):
-        raise AttributeError('Input image {} uses unsupported mode {}'.format(input_file, image.mode))
+        raise AttributeError(
+            f'Image {input_file} uses unsupported mode {image.mode}')
     if image.mode == 'RGBA' or image.mode == 'L':
         # PIL.Image.convert() returns a converted copy of this image
         image = image.convert(mode='RGB')
     return image
 
 
-def load_image(input_file):
-    """
-    Loads the image at input_file as a PIL Image into memory; Image.open() used in open_image() is lazy and
-    errors will occur downstream if not explicitly loaded
+def load_image(input_file: Union[str, BytesIO]) -> Image:
+    """Loads the image at input_file as a PIL Image into memory.
+
+    Image.open() used in open_image() is lazy and errors will occur downstream
+    if not explicitly loaded.
 
     Args:
-        input_file: an image in binary format read from the POST request's body or
-            path to an image file (anything that PIL can open)
+        input_file: str or BytesIO, either a path to an image file (anything
+            that PIL can open), or an image as a stream of bytes
 
     Returns:
         an PIL image object in RGB mode
@@ -72,21 +77,18 @@ def resize_image(image, target_width, target_height=-1):
 
     # Null operation
     if target_width == -1 and target_height == -1:
-
         return image
 
     elif target_width == -1 or target_height == -1:
 
         # Aspect ratio as width over height
+        # ar = w / h
         aspect_ratio = image.size[0] / image.size[1]
 
         if target_width != -1:
-            # ar = w / h
             # h = w / ar
             target_height = int(target_width / aspect_ratio)
-
         else:
-            # ar = w / h
             # w = ar * h
             target_width = int(aspect_ratio * target_height)
 
@@ -563,4 +565,3 @@ def render_db_bounding_boxes(boxes, classes, image, original_size=None,
     display_boxes = np.array(display_boxes)
     draw_bounding_boxes_on_image(image, display_boxes, classes, display_strs=display_strs,
                                  thickness=thickness, expansion=expansion)
-
