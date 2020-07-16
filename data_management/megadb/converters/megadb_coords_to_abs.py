@@ -25,13 +25,13 @@ from data_management.megadb.megadb_utils import MegadbUtils
 def round_to_int(f):
     return int(round(f))
 
-def _get_image_dims(blob_service, path_prefix, container_name, image_obj):
+def _get_image_dims(storage_client, path_prefix, image_obj):
     file_name = image_obj['file']
     file_path_on_blob = os.path.join(path_prefix, file_name)
 
     try:
         stream = io.BytesIO()
-        _ = blob_service.get_blob_to_stream(container_name, file_path_on_blob, stream)
+        storage_client.download_blob(file_path_on_blob).readinto(stream)
         image = Image.open(stream)
         image_height = image.height
         image_width = image.width
@@ -73,21 +73,20 @@ def get_image_dims(mega_db_seqs, dataset_name, datasets_table, n_cores):
 
     print('Getting the dimensions for {} images'.format(len(images_to_get_dims_for)))
 
-    blob_service = MegadbUtils.get_blob_service(datasets_table, dataset_name)
+    storage_client = MegadbUtils.get_storage_client(datasets_table, dataset_name)
     path_prefix = datasets_table[dataset_name]['path_prefix']
-    container_name = datasets_table[dataset_name]['container']
 
     if n_cores:
         print('Using threads to download images')
         pool = workerpool(n_cores)
-        updated_im_objects = pool.map(partial(_get_image_dims, blob_service, path_prefix, container_name),
+        updated_im_objects = pool.map(partial(_get_image_dims, storage_client, path_prefix),
                                        images_to_get_dims_for)
         print('pool.map has returned')
     else:
         print('Downloading images sequentially')
         updated_im_objects = []
         for image_obj in tqdm(images_to_get_dims_for):
-            updated_im_objects.append(get_image_dims(blob_service, path_prefix, container_name, image_obj))
+            updated_im_objects.append(get_image_dims(storage_client, path_prefix, image_obj))
     print('Successfully updated {} images.'.format(len(updated_im_objects)))
     updated_im_objects = {i['id']:i for i in updated_im_objects}
 
