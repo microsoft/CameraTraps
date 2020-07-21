@@ -19,7 +19,7 @@ locust --host=http://example.com/api/
 and visit http://127.0.0.1:8089 in a browser (local testing)
 """
 
-sample_input_dir = '../sample_input/test_images'
+sample_input_dir = './sample_input/test_images'
 test_image_names = sorted(os.listdir(sample_input_dir))
 test_image_paths = [os.path.join(sample_input_dir, image_name) for image_name in test_image_names if
                     image_name.lower().endswith('.jpg')]
