@@ -65,7 +65,7 @@ def visualize_detector_output(detector_output_path: str,
         # we don't import sas_blob_utils at the top of this file in order to
         # accommodate the MegaDetector Colab notebook which does not have
         # the azure-storage-blob package installed
-        from sas_blob_utils import SasBlob
+        import sas_blob_utils
     else:
         assert os.path.isdir(images_dir)
 
@@ -118,14 +118,14 @@ def visualize_detector_output(detector_output_path: str,
         # max_conf = entry['max_detection_conf']
 
         if is_azure:
-            blob_uri = SasBlob.generate_blob_sas_uri(
-                container_sas_uri=images_dir, blob_name=image_id)
-            if not SasBlob.check_blob_existence(blob_uri):
-                container = SasBlob.get_container_from_uri(images_dir)
+            blob_uri = sas_blob_utils.build_blob_uri(
+                container_uri=images_dir, blob_name=image_id)
+            if not sas_blob_utils.check_blob_existence(blob_uri):
+                container = sas_blob_utils.get_container_from_uri(images_dir)
                 print(f'Image {image_id} not found in blob container '
                       f'{container}; skipped.')
                 continue
-            image_obj, _ = SasBlob.get_blob_to_stream(blob_uri)
+            image_obj, _ = sas_blob_utils.download_blob_to_stream(blob_uri)
         else:
             image_obj = os.path.join(images_dir, image_id)
             if not os.path.exists(image_obj):
