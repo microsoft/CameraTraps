@@ -3,7 +3,7 @@ import json
 import os
 import random
 
-from locust import HttpLocust, TaskSet, task
+from locust import HttpUser, TaskSet, task
 from requests_toolbelt.multipart import decoder
 from PIL import Image
 
@@ -93,7 +93,7 @@ class UserBehavior(TaskSet):
         UserBehavior.open_detection_results(response)
 
 
-class WebsiteUser(HttpLocust):
+class WebsiteUser(HttpUser):
     task_set = UserBehavior
     min_wait = 1000  # only one task (request_detection, with model_version commented out), so this doesn't take effect.
     max_wait = 1000
