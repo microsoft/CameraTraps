@@ -86,8 +86,8 @@ Not yet supported. If you have accidentally submitted a request, please contact 
 | first_n                  | No          | int | Only process the first `first_n` images. Order of images is not guaranteed, but is likely to be alphabetical. Set this to a small number to avoid taking time to fully list all images in the blob (about 15 minutes for 1 million images) if you just want to try this API. |
 | sample_n                | No          | int | Randomly select `sample_n` images to process. |
 | model_version           | No          | string | Version of the MegaDetector model to use. Default is the most updated stable version (check using the `/default_model_version` endpoint). Supported versions are available at the `/supported_model_versions` endpoint.|
-| request_name            | No          | string | A string (letters, digits, `_`, `-` allowed, max length 32 characters) that will be appended to the output file names to help you identify the resulting files. A timestamp in UTC (`%Y%m%d%H%M%S`) of the time of submission will be appended to the resulting files automatically. |
-| use_url                  | No         | bool | True if the image URLs are used. |
+| request_name            | No          | string | A string (letters, digits, `_`, `-` allowed, max length 92 characters) that will be appended to the output file names to help you identify the resulting files. A timestamp in UTC (`%Y%m%d%H%M%S`) of the time of submission will be appended to the resulting files automatically. |
+| use_url                  | No         | bool | Please set to `true` if you are providing public image URLs. |
 | caller                  | Yes         | string | An identifier that we use to whitelist users for now. |
 
 <sup>1</sup> There are two ways of giving the API access to your images. 
