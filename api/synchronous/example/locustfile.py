@@ -3,7 +3,7 @@ import json
 import os
 import random
 
-from locust import HttpLocust, TaskSet, task
+from locust import HttpUser, TaskSet, task
 from requests_toolbelt.multipart import decoder
 from PIL import Image
 
@@ -19,7 +19,7 @@ locust --host=http://example.com/api/
 and visit http://127.0.0.1:8089 in a browser (local testing)
 """
 
-sample_input_dir = './sample_input/test_images'
+sample_input_dir = '../sample_input/test_images'
 test_image_names = sorted(os.listdir(sample_input_dir))
 test_image_paths = [os.path.join(sample_input_dir, image_name) for image_name in test_image_names if
                     image_name.lower().endswith('.jpg')]
@@ -93,7 +93,7 @@ class UserBehavior(TaskSet):
         UserBehavior.open_detection_results(response)
 
 
-class WebsiteUser(HttpLocust):
+class WebsiteUser(HttpUser):
     task_set = UserBehavior
     min_wait = 1000  # only one task (request_detection, with model_version commented out), so this doesn't take effect.
     max_wait = 1000
