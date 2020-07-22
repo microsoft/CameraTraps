@@ -11,29 +11,31 @@ from requests_toolbelt.multipart import decoder
 
 # get rid of formatting differences
 API_RESULT = json.dumps(json.loads('''
-{"detection_result": {"S1_D04_R6_PICT0020.JPG": [[0.006578,
+{"detection_result": {"S1_D04_R6_PICT0020.JPG": [[
     0,
-    0.9797779999999999,
+    0.006578,
     0.9401,
+    0.9797779999999999,
     0.998,
     1]],
-  "S1_D04_R6_PICT0021.JPG": [[0.01237, 0, 0.93057, 0.9344, 0.998, 1]]},
+  "S1_D04_R6_PICT0021.JPG": [[0, 0.01237, 0.9344, 0.93057, 0.998, 1]]},
  "classification_result": {}}
 '''))
 
 API_RESULT_PNG = json.dumps(json.loads('''
 {"detection_result": {"S1_D04_R6_PICT0022.JPG": [[0,
     0,
-    0.9905,
     0.9251,
+    0.9905,
     0.999,
     1]],
-  "S1_D04_R6_PICT0022.png": [[0, 0, 0.9906, 0.9252, 0.999, 1]],
-  "S1_D04_R6_PICT0128.JPG": [[0.0171, 0.5913, 0.1704, 0.67462, 0.997, 1]],
-  "S1_D04_R6_PICT0128.png": [[0.01656,
+  "S1_D04_R6_PICT0022.png": [[0, 0, 0.9252, 0.9906, 0.999, 1]],
+  "S1_D04_R6_PICT0128.JPG": [[0.5913, 0.0171, 0.67462, 0.1704, 0.997, 1]],
+  "S1_D04_R6_PICT0128.png": [[
     0.5914,
-    0.17046,
+    0.01656,
     0.6746300000000001,
+    0.17046,
     0.997,
     1]]},
  "classification_result": {}}
