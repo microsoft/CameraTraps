@@ -64,7 +64,7 @@ sudo docker push $API_DOCKER_IMAGE
 From this directory (`synchronous`),
 
 ```bash
-python synchronous_api_test.py "url_of_api"
+python test_synchronous_api.py "url_of_api"
 ```
 
 The URL looks like `http://vm-name.eastus.cloudapp.azure.com:6002/v1/camera-trap/sync/`
@@ -72,5 +72,5 @@ The URL looks like `http://vm-name.eastus.cloudapp.azure.com:6002/v1/camera-trap
 Also need to provide an API key to test the API in production:
 
 ```bash
-python synchronous_api_test.py "url_of_api" "api_key"
+python test_synchronous_api.py "url_of_api" "api_key"
 ```
