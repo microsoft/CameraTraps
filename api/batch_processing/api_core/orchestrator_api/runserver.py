@@ -8,6 +8,7 @@ import time
 from datetime import datetime
 from random import shuffle
 import string
+import urllib.parse
 
 from flask import Flask, request, make_response, jsonify
 from azure.storage.blob import BlockBlobService
@@ -193,7 +194,8 @@ def _request_detections(**kwargs):
             valid_image_paths = []
             for p in image_paths:
                 locator = p[0] if metadata_available else p
-                if locator.lower().endswith(api_config.ACCEPTED_IMAGE_FILE_ENDINGS):
+                # urlparse(p).path preserves the extension on local paths as well
+                if urllib.parse.urlparse(locator).path.lower().endswith(api_config.ACCEPTED_IMAGE_FILE_ENDINGS):
                     valid_image_paths.append(p)
             image_paths = valid_image_paths
             print('runserver.py, length of image_paths provided by the user, after filtering to jpg: {}'.format(
