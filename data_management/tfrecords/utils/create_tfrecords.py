@@ -170,7 +170,7 @@ def _convert_to_example(image_example, image_buffer, height, width,
     return example
 
 
-class ImageCoder(object):
+class ImageCoder:
     """Helper class that provides TensorFlow image coding utilities."""
 
     def __init__(self):
@@ -178,26 +178,29 @@ class ImageCoder(object):
         self._sess = tf.Session()
 
         # Initializes function that converts PNG to JPEG data.
-        self._png_data = tf.placeholder(dtype=tf.string)
-        image = tf.image.decode_png(self._png_data, channels=3)
-        self._png_to_jpeg = tf.image.encode_jpeg(image, format='rgb', quality=100)
+        self._png_ph = tf.placeholder(dtype=tf.string)
+        image = tf.image.decode_png(self._png_ph, channels=3)
+        self._png_to_jpeg = tf.image.encode_jpeg(
+            image, format='rgb', quality=100)
 
         # Initializes function that decodes RGB JPEG data.
-        self._decode_jpeg_data = tf.placeholder(dtype=tf.string)
-        self._decode_jpeg = tf.image.decode_jpeg(self._decode_jpeg_data, channels=3)
+        self._decode_jpeg_ph = tf.placeholder(dtype=tf.string)
+        self._decode_jpeg = tf.image.decode_jpeg(
+            self._decode_jpeg_ph, channels=3)
 
     def png_to_jpeg(self, image_data):
         # Convert the image data from png to jpg
         return self._sess.run(self._png_to_jpeg,
-                              feed_dict={self._png_data: image_data})
+                              feed_dict={self._png_ph: image_data})
 
     def decode_jpeg(self, image_data):
         # Decode the image data as a jpeg image
-        image = self._sess.run(self._decode_jpeg,
-                               feed_dict={self._decode_jpeg_data: image_data})
-        assert len(image.shape) == 3, "JPEG needs to have height x width x channels"
+        image = self._sess.run(self._decode_jpeg, feed_dict={
+            self._decode_jpeg_ph: image_data})
+        assert len(image.shape) == 3, "JPEG must be 3-D (H x W x C)"
         assert image.shape[2] == 3, "JPEG needs to have 3 channels (RGB)"
         return image
+
 
 def _is_png(filename):
     """Determine if a file contains a PNG format image.
@@ -208,6 +211,7 @@ def _is_png(filename):
     """
     _, file_extension = os.path.splitext(filename)
     return file_extension.lower() == '.png'
+
 
 def _process_image(filename, coder):
     """Process a single image file.
@@ -241,17 +245,18 @@ def _process_image(filename, coder):
 def _process_image_files_batch(coder, thread_index, ranges, name, output_directory,
                                dataset, num_shards, store_images, error_queue):
     """Processes and saves list of images as TFRecord in 1 thread.
+
     Args:
-      coder: instance of ImageCoder to provide TensorFlow image coding utils.
-      thread_index: integer, unique batch to run index is within [0, len(ranges)).
-      ranges: list of pairs of integers specifying ranges of each batches to
-        analyze in parallel.
-      name: string, unique identifier specifying the data set (e.g. `train` or `test`)
-      output_directory: string, file path to store the tfrecord files.
-      dataset: list, a list of image example dicts
-      num_shards: integer number of shards for this data set.
-      store_images: bool, should the image be stored in the tfrecord
-      error_queue: Queue, a queue to place image examples that failed.
+        coder: instance of ImageCoder to provide TensorFlow image coding utils.
+        thread_index: integer, unique batch to run index is within [0, len(ranges)).
+        ranges: list of pairs of integers specifying ranges of each batches to
+          analyze in parallel.
+        name: string, unique identifier specifying the data set (e.g. `train` or `test`)
+        output_directory: string, file path to store the tfrecord files.
+        dataset: list, a list of image example dicts
+        num_shards: integer number of shards for this data set.
+        store_images: bool, should the image be stored in the tfrecord
+        error_queue: Queue, a queue to place image examples that failed.
     """
     # Each thread produces N shards where N = int(num_shards / num_threads).
     # For instance, if num_shards = 128, and the num_threads = 2, then the first
@@ -272,7 +277,7 @@ def _process_image_files_batch(coder, thread_index, ranges, name, output_directo
         shard = thread_index * num_shards_per_batch + s
         output_filename = '%s-%.5d-of-%.5d' % (name, shard, num_shards)
         output_file = os.path.join(output_directory, output_filename)
-        writer = tf.python_io.TFRecordWriter(output_file)
+        writer = tf.io.TFRecordWriter(output_file)
 
         shard_counter = 0
         files_in_shard = np.arange(shard_ranges[s], shard_ranges[s + 1], dtype=int)
