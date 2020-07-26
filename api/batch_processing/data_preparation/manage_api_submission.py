@@ -614,7 +614,7 @@ data = None
 from api.batch_processing.postprocessing.subset_json_detector_output import subset_json_detector_output
 from api.batch_processing.postprocessing.subset_json_detector_output import SubsetJsonDetectorOutputOptions
 
-input_filename = inputFilename = list(folder_name_to_combined_output_file.values())[0]
+input_filename = list(folder_name_to_combined_output_file.values())[0]
 output_base = os.path.join(filename_base,'json_subsets')
 
 folders = os.listdir(image_base)
@@ -639,6 +639,22 @@ for i_folder,folder_name in enumerate(folders):
     options.query = folder_name + '\\'
     
     subset_data = subset_json_detector_output(input_filename,output_filename,options,data)
+
+
+#%% String replacement
+    
+data = None
+
+from api.batch_processing.postprocessing.subset_json_detector_output import subset_json_detector_output
+from api.batch_processing.postprocessing.subset_json_detector_output import SubsetJsonDetectorOutputOptions
+
+input_filename = list(folder_name_to_combined_output_file.values())[0]
+output_filename = input_filename.replace('.json','_replaced.json')
+
+options = SubsetJsonDetectorOutputOptions()
+options.query = folder_name + '/'
+options.replacement = ''
+subset_json_detector_output(input_filename,output_filename,options)
 
 
 #%% Folder splitting
