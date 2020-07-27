@@ -3,7 +3,7 @@ import json
 import os
 import random
 
-from locust import HttpUser, TaskSet, task
+from locust import HttpUser, task, between
 from requests_toolbelt.multipart import decoder
 from PIL import Image
 
@@ -33,12 +33,23 @@ headers = {
     'Ocp-Apim-Subscription-Key': os.environ.get('API_KEY', '')
 }
 
+class QuickstartUser(HttpUser):
+    wait_time = between(5, 9) #simulated users wait between 5 and 9 seconds after each task is executed
 
-class UserBehavior(TaskSet):
+    @task
+    def request_detection(self):
+        num_to_upload = random.randint(1, 8)  # API accepts 1 to 8 images
 
-    # @task
-    # def check_model_version(self):
-    #     self.client.get('model_version', headers=headers, name='model_version')
+        files = {}
+        for i in range(num_to_upload):
+            image_name, file_item = QuickstartUser.get_test_image()
+            files[image_name] = file_item
+
+        response = self.client.post('detect', name='detect:num_images:{}'.format(num_to_upload),
+                                                params=params,
+                                                files=files,
+                                                headers=headers)
+        QuickstartUser.open_detection_results(response)
 
     @staticmethod
     def get_test_image():
@@ -76,24 +87,3 @@ class UserBehavior(TaskSet):
             print(img_name)
             img.close()
         print()
-
-    @task
-    def request_detection(self):
-        num_to_upload = random.randint(1, 8)  # API accepts 1 to 8 images
-
-        files = {}
-        for i in range(num_to_upload):
-            image_name, file_item = UserBehavior.get_test_image()
-            files[image_name] = file_item
-
-        response = self.client.post('detect', name='detect:num_images:{}'.format(num_to_upload),
-                                                params=params,
-                                                files=files,
-                                                headers=headers)
-        UserBehavior.open_detection_results(response)
-
-
-class WebsiteUser(HttpUser):
-    task_set = UserBehavior
-    min_wait = 1000  # only one task (request_detection, with model_version commented out), so this doesn't take effect.
-    max_wait = 1000
