@@ -26,6 +26,11 @@ from api.batch_processing.postprocessing.postprocess_batch_results import PostPr
 from api.batch_processing.postprocessing.postprocess_batch_results import process_batch_results
 
 
+#%% Constants
+
+max_job_name_length = 92
+
+
 #%% Constants I set per job
 
 ### Required
@@ -194,9 +199,14 @@ for chunked_folder_files in folder_chunks:
         
         job_name = job_set_name + '_' + os.path.splitext(ntpath.basename(chunk_file))[0]
         
-        # periods not allowed in job names
+        # Periods not allowed in job names
         job_name = job_name.replace('.','_')
         
+        if len(job_name) > max_job_name_length:
+            long_job_name = job_name
+            job_name = job_name[0:max_job_name_length]
+            print('Warning: job name {} is too long, shortened to {}'.format(long_job_name,job_name))
+                    
         remote_path = 'api_inputs/' + job_set_name + '/' + ntpath.basename(chunk_file)
         print('Job {}: uploading {} to {}'.format(
             job_name,chunk_file,remote_path))
