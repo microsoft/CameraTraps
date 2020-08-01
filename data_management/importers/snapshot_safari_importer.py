@@ -18,7 +18,10 @@
 # * Push zipfile and unzipped images to LILA
 # * Push unzipped humans to wildlifeblobssc
 # * Delete images from UMN uplaod storage
-
+#
+# Snapshot Serengeti is handled specially, because we're dealing with bounding
+# boxes too.  See snapshot_serengeti_lily.py.
+#
 
 #%% Imports
 
