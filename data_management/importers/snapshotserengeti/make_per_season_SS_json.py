@@ -4,6 +4,10 @@
 # Create a COCO-camera-traps .json file for each Snapshot Serengeti season from 
 # the original .csv files provided on Dryad.
 #
+# This was used for "version 1.0" of the public Snapshot Serengeti archive; it's no 
+# longer used as of v2.0 (early 2020).  See snapshot_serengeti_lila.py for the updated
+# Snapshot Safari preparation process.
+#
 
 #%% Imports and constants
 
