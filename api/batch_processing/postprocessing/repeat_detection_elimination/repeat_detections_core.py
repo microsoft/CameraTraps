@@ -908,7 +908,7 @@ def find_repeat_detections(inputFilename, outputFilename=None, options=None):
                     assert (os.path.isfile(inputFullPath)), 'Not a file: {}'.format(inputFullPath)
                     
                 render_bounding_box(detection, inputFullPath, outputFullPath,
-                                    lineWidth=options.lineWidth, expansion=options.boxExpansion)
+                                    lineWidth=options.lineThickness, expansion=options.boxExpansion)
                 detection.sampleImageRelativeFileName = outputRelativePath
 
         # Write out the detection index
