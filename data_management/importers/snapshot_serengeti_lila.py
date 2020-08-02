@@ -38,8 +38,10 @@ import path_utils
    
 metadata_base = r'e:\snapshot-serengeti\MetaData\SER'
 image_base = r'e:\snapshot-serengeti\SER'
+
 bbox_file = r'e:\snapshot_serengeti_bboxes_20190409.json'
 old_json_file = r'e:\SnapshotSerengeti.json'
+
 temp_base = r'e:\snapshot_temp'
 output_base = r'e:\snapshot_out'
 output_zip_base = r'e:\snapshot_out'
@@ -53,7 +55,7 @@ assert(os.path.isfile(bbox_file))
 assert(os.path.isfile(old_json_file))
 
 nSeasons = 11
-non_public_seasons = set([11])
+non_public_seasons = set()
 
 initial_dictionary_cache_file = os.path.join(temp_base,'initial_dictionaries.p')
 resized_images_dictionary_cache_file = os.path.join(temp_base,'resized_image_dictionaries.p')
@@ -696,11 +698,12 @@ fn_annotation_csv_public = os.path.join(output_base,'SnapshotSerengeti_v2_0_anno
 fn_image_csv_all = os.path.join(output_base,'SnapshotSerengeti_v2_1_images.csv')
 fn_annotation_csv_all = os.path.join(output_base,'SnapshotSerengeti_v2_1_annotations.csv')
 
-image_table_public.to_csv(fn_image_csv_public)
-annotation_table_public.to_csv(fn_annotation_csv_public)
+# No longer writing these out now that there's no distinction between public and private
+# image_table_public.to_csv(fn_image_csv_public)
+# annotation_table_public.to_csv(fn_annotation_csv_public)
 
 image_table_all.to_csv(fn_image_csv_all)
-image_table_all.to_csv(fn_annotation_csv_all)
+annotation_table_all.to_csv(fn_annotation_csv_all)
 
 
 #%% Create a list of human files
