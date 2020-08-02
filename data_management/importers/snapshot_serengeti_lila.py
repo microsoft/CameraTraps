@@ -698,9 +698,8 @@ fn_annotation_csv_public = os.path.join(output_base,'SnapshotSerengeti_v2_0_anno
 fn_image_csv_all = os.path.join(output_base,'SnapshotSerengeti_v2_1_images.csv')
 fn_annotation_csv_all = os.path.join(output_base,'SnapshotSerengeti_v2_1_annotations.csv')
 
-# No longer writing these out now that there's no distinction between public and private
-# image_table_public.to_csv(fn_image_csv_public)
-# annotation_table_public.to_csv(fn_annotation_csv_public)
+image_table_public.to_csv(fn_image_csv_public)
+annotation_table_public.to_csv(fn_annotation_csv_public)
 
 image_table_all.to_csv(fn_image_csv_all)
 annotation_table_all.to_csv(fn_annotation_csv_all)
