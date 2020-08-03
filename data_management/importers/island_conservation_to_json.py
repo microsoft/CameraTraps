@@ -70,6 +70,8 @@ category_mapping = {"BUOW": "burrowing owl",
                     "WWDO": "white-winged dove",
                     "SEOW": "short-eared owl"}
 
+read_image_sizes = False
+
 
 #%% Load island name mappings from .csv
 
@@ -131,6 +133,8 @@ for image_full_path in tqdm(image_full_paths):
 
 # ...for each image
 
+print('Finished renaming IC images')
+
 
 #%% Create CCT dictionaries
 
@@ -150,57 +154,87 @@ category_name_to_category['empty'] = empty_category
 categories.append(empty_category)
 next_category_id = 1
 
+json_files = os.listdir(input_dir_json)
 
-json_files = os.listdir(input_json_dir)
+all_locations = set()
+all_image_ids = set()
+
+# json_file = json_files[0]
 for json_file in json_files:
-    folder = json_file.split(".")[0].replace("IC_AI4Earth_2019_timelapse_", "")
-    for k, v in island_mapping.items():
-        folder = folder.replace(k, v)
-    with open(os.path.join(input_json_dir, json_file), 'r') as inp:
-        data = inp.read()
+
+    print('Processing .json file {}'.format(json_file))
+    
+    # Example filename:
+    #
+    # IC_AI4Earth_2019_timelapse_Cabritos.json
+    
+    dataset_folder = json_file.split('.')[0].replace('IC_AI4Earth_2019_timelapse_', '').lower()
+    for k, v in island_name_mappings.items():
+        dataset_folder = dataset_folder.replace(k, v)
+    
+    # Load .json annotations for this data set
+    with open(os.path.join(input_dir_json, json_file), 'r') as f:
+        data = f.read()        
     data = json.loads(data)
-    tmp_cat = data['detection_categories']
+    
+    categories_this_dataset = data['detection_categories']
+    
+    # entry = data['images'][0]
     for entry in tqdm(data['images']):
-        image_name = entry['file']
-        image_name = os.path.join(folder, image_name)
-        tmp = os.path.basename(os.path.join(
-            output_dir_images, image_name)).split(".")[0].split("_")
-        try:
-            assert(len(tmp) >= 2 and len(tmp) <= 6)
-        except Exception:
-            import pdb;pdb.set_trace()
-        for k, v in island_mapping.items():
-            image_name = image_name.replace(k, v)
-        img_id = image_name.split(".")[0].replace(
-            '\\', '/').replace('/', '_').replace(' ', '_')
-        location = None
-        timestamp = None
-        im = {}
-        im['id'] = img_id
-        im['file_name'] = image_name
-        imagePath = os.path.join(output_dir_images, image_name)
-        assert(os.path.isfile(imagePath))
-        pilImage = Image.open(imagePath)
-        width, height = pilImage.size
-        im['width'] = width
-        im['height'] = height
-        tmp[0] = island_mapping[tmp[0]]
-        if len(tmp) <= 3:
-            location = "_".join(tmp[:2])
-        elif len(tmp) > 3:
-            location = "_".join(tmp[:2])
-            timestamp = tmp[2]
-        if timestamp:
-            im['datetime'] = timestamp
-        if location:
-            im['location'] = location.lower()
         
-        # image_ids_to_images[img_id] = im
+        image_path_relative_to_dataset = entry['file']
+        
+        # E.g.:
+        #
+        # dominican_republic/camara02/cam0226junio2015/cabritos_cam0226junio2015_20131026_063520_sunp0022.jpg
+        # dominican_republic/camara101/cam10118mayo2017/dominican_republic_cam10118mayo2017_20170425_175810_img_0019.jpg
+        #
+        image_relative_path = os.path.join(dataset_folder, image_path_relative_to_dataset).lower().replace('\\','/')
+        
+        for k, v in island_name_mappings.items():
+            image_relative_path = image_relative_path.replace(k, v)
+            
+        assert image_relative_path.startswith(dataset_folder)
+        
+        image_id = image_relative_path.split('.')[0].replace(
+            '\\', '/').replace('/', '_').replace(' ', '_')
+        
+        assert image_id not in all_image_ids
+        all_image_ids.add(image_id)
+        
+        # E.g. cam0226junio2015_20131026_063520_sunp0022.jpg
+        fn_without_location = os.path.basename(image_relative_path).replace(dataset_folder + '_','')
+        
+        # E.g. ['cam0226junio2015', '20131026', '063520', 'sunp0022']
+        tokens = fn_without_location.split('_')
+        
+        assert(len(tokens) >= 4)
+        
+        im = {}
+        im['id'] = image_id
+        im['file_name'] = image_relative_path
+        image_full_path = os.path.join(output_dir_images, image_relative_path)
+        assert(os.path.isfile(image_full_path))
+        
+        if read_image_sizes:
+            pil_image = Image.open(image_full_path)        
+            width, height = pil_image.size
+            im['width'] = width
+            im['height'] = height
+        
+        location = dataset_folder + '_' + tokens[0]
+        all_locations.add(location)
+                
+        assert(tokens[1].isdecimal())
+        assert(tokens[2].isdecimal())
+        timestamp = tokens[1] + '_' + tokens[2]
+        
         images.append(im)
+        
         detections = entry['detections']
         image_cats = []
         for detection in detections:
-            category_name = tmp_cat[detection['category']]
+            category_name = categories_this_dataset[detection['category']]
             if category_name == 'NULL':
                 category_name = 'empty'
             else:
@@ -220,6 +254,7 @@ for json_file in json_files:
                 category_name_to_category[category_name] = category
                 categories.append(category)
                 next_category_id += 1
+            
             # Create an annotation
             ann = {}        
             ann['id'] = str(uuid.uuid1())
@@ -231,23 +266,26 @@ for json_file in json_files:
             else:
                 assert(detection['bbox'] == [0,0,0,0])
             annotations.append(ann)
-        if "person" in image_cats or "human" in image_cats:
-            shutil.copy(os.path.join(output_dir_images, image_name), os.path.join(output_dir_base, human_dir))
+
+        # Copy this image to the appropriate output folder (human or non-human)            
+        if 'person' in image_cats or 'human' in image_cats:
+            shutil.copy(os.path.join(output_dir_images, image_relative_path), os.path.join(output_dir_base, human_dir))
         else:
-            shutil.copy(os.path.join(output_dir_images, image_name), os.path.join(output_dir_base, non_human_dir))
+            shutil.copy(os.path.join(output_dir_images, image_relative_path), os.path.join(output_dir_base, non_human_dir))
 
 print('Finished creating CCT dictionaries')
-# import pdb;pdb.set_trace()
+
 
 #%% Create info struct
 
 info = dict()
 info['year'] = 2018
-info['version'] = 1
-info['description'] = 'Island Conservation'
-info['contributor'] = 'CMI_manual'
+info['version'] = 1.0
+info['description'] = 'Island Conservation Camera Traps'
+info['contributor'] = 'Conservation Metrics and Island Conservation'
 
-#%% Write output
+
+#%% Write .json output
 
 json_data = {}
 json_data['images'] = images
@@ -265,6 +303,7 @@ print('Finished writing .json file with {} images, {} annotations, and {} catego
 zipdir(human_dir,human_zipfile)
 zipdir(non_human_dir,non_human_zipfile)
 
+
 #%% Validate output
 
 fn = output_json_file
@@ -273,11 +312,10 @@ options.baseDir = output_dir_images
 options.bCheckImageSizes = False
 options.bCheckImageExistence = False
 options.bFindUnusedImages = False
-sortedCategories, data, errors = sanity_check_json_db.sanity_check_json_db(fn, options)
+sorted_categories, data, errors = sanity_check_json_db.sanity_check_json_db(fn, options)
 
 
 #%% Preview labels
-
 
 viz_options = visualize_db.DbVizOptions()
 viz_options.num_to_visualize = 1000
