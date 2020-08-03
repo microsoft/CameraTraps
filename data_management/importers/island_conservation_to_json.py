@@ -9,33 +9,42 @@
 from visualization import visualize_db
 from data_management.databases import sanity_check_json_db
 import os
+import csv
 import json
 import uuid
-import time
-import humanfriendly
-import numpy as np
 from PIL import Image
 from tqdm import tqdm
 import shutil
 import zipfile
 from path_utils import find_images
 
+# Base directory for all input images and metadata
+#
+# Should contain folders "ic-images", "icr2-images", and "icr3-images"
+input_dir_base = r'e:\island-conservation\20200529drop'
 
-src_directory = r'/mnt/blobfuse/wildlifeblobssc/20200529drop/'
-base_dir = r'/home/gramener/island_conservation'
-dest_directory = os.path.join(base_dir, 'images')
-os.makedirs(dest_directory, exist_ok=True)
-json_directory = os.path.join(
-    base_dir, 'IC_AI4Earth_2019_timelapse_by_project')
-output_json_file = os.path.join(base_dir, 'island_conservation.json')
-assert(os.path.isdir(src_directory))
-assert(os.path.isdir(dest_directory))
+# Folder containing the input metadata files (unzipped from IC_AI4Earth_2019_timelapse_by_project.zip)
+input_dir_json = os.path.join(
+    input_dir_base, 'IC_AI4Earth_2019_timelapse_by_project')
 
-human_dir = os.path.join(base_dir, 'human')
-non_human_dir = os.path.join(base_dir, 'non-human')
+island_name_mapping_file = os.path.join(input_dir_base,'island_name_mappings.csv')
 
-human_zipfile = os.path.join(base_dir, 'island_humans.zip')
-non_human_zipfile = os.path.join(base_dir, 'island_nonhumans.zip')
+assert(os.path.isdir(input_dir_base))
+assert(os.path.isdir(input_dir_json))
+assert(os.path.isfile(island_name_mapping_file))
+
+output_dir_base = r'f:\data_staging\island-conservation'
+os.makedirs(output_dir_base, exist_ok=True)
+output_dir_images = os.path.join(output_dir_base, 'images')
+os.makedirs(output_dir_images, exist_ok=True)
+
+output_json_file = os.path.join(output_dir_base, 'island_conservation.json')
+
+human_dir = os.path.join(output_dir_base, 'human')
+non_human_dir = os.path.join(output_dir_base, 'non-human')
+
+human_zipfile = os.path.join(output_dir_base, 'island_conservation_camera_traps_humans.zip')
+non_human_zipfile = os.path.join(output_dir_base, 'island_conservation_camera_traps.zip')
 
 # Clean existing output folders/zipfiles
 if os.path.isdir(human_dir):
@@ -51,15 +60,6 @@ if os.path.isfile(human_zipfile):
 os.makedirs(human_dir, exist_ok=True)
 os.makedirs(non_human_dir, exist_ok=True)
 
-island_mapping = {"Cabritos": "dominican_republic",
-                  "Floreana": "ecuador",
-                  "JFI": "chile",
-                  "Mona": "puerto_rico",
-                  "Ngeruktabel": "palau",
-                  "SantaCruz": "ecuador",
-                  "Ulithi": "micronesia",
-                  "ULITHI": "micronesia"}
-
 category_mapping = {"BUOW": "burrowing owl",
                     "BAOW": "barred owl",
                     "GRHE": "green heron",
@@ -69,6 +69,16 @@ category_mapping = {"BUOW": "burrowing owl",
                     "YCNH": "yellow-crowned night heron",
                     "WWDO": "white-winged dove",
                     "SEOW": "short-eared owl"}
+
+
+#%% Load island name mappings from .csv
+
+island_name_mappings = None
+
+with open(island_name_mapping_file, mode='r') as f:
+    reader = csv.reader(f)
+    island_name_mappings = {rows[0]:rows[1] for rows in reader}
+
 
 #%% Support functions
 
@@ -90,27 +100,37 @@ def zipdir(path, zipfilename, basepath=None):
 
     ziph.close()
 
-def update_file_names():
-    """ Function to update the filenames and copy to dest folder."""
-    image_full_paths = find_images(src_directory, bRecursive=True)
-    for img in image_full_paths:
-        fullpath = img
-        dest_name = os.path.basename(fullpath)
-        img = img.replace(src_directory, '').replace('ic-images/', '').replace('icr2-images/', '').replace('icr3-images/', '')
-        for k, v in island_mapping.items():
-            img = img.replace(k, v)
-            dest_name = dest_name.replace(k, v)
-        assert not os.path.isabs(img)
-        dstdir = os.path.join(dest_directory, os.path.dirname(img))
-        try:
-            os.makedirs(dstdir)
-        except Exception as e:
-            pass
-        shutil.copy(fullpath, os.path.join(dstdir, dest_name))
 
-print("START!! copying files to destination folder")
-update_file_names()
-print("DONE!! copying files to destination folder")
+#%% Enumerate input images
+    
+image_full_paths = find_images(input_dir_base, recursive=True)
+print('Enumerated {} images from {}'.format(len(image_full_paths),input_dir_base))
+
+
+#%% Rename files for obfuscation
+    
+output_file_names = set()
+
+# image_full_path = image_full_paths[0]
+for image_full_path in tqdm(image_full_paths):
+    
+    destination_relative_path = os.path.relpath(image_full_path,input_dir_base).replace('\\','/').lower()
+    
+    # Remove "ic*-images" from paths; these were redunant    
+    destination_relative_path = destination_relative_path.replace('ic-images/', '').replace('icr2-images/', '').\
+        replace('icr3-images/', '')
+    for k, v in island_name_mappings.items():
+        destination_relative_path = destination_relative_path.replace(k, v)
+    
+    assert destination_relative_path not in output_file_names
+    output_file_names.add(destination_relative_path)
+    
+    destination_full_path = os.path.join(output_dir_images, destination_relative_path)
+    os.makedirs(os.path.dirname(destination_full_path),exist_ok=True)
+    shutil.copy(image_full_path, destination_full_path)
+
+# ...for each image
+
 
 #%% Create CCT dictionaries
 
@@ -131,12 +151,12 @@ categories.append(empty_category)
 next_category_id = 1
 
 
-json_files = os.listdir(json_directory)
+json_files = os.listdir(input_json_dir)
 for json_file in json_files:
     folder = json_file.split(".")[0].replace("IC_AI4Earth_2019_timelapse_", "")
     for k, v in island_mapping.items():
         folder = folder.replace(k, v)
-    with open(os.path.join(json_directory, json_file), 'r') as inp:
+    with open(os.path.join(input_json_dir, json_file), 'r') as inp:
         data = inp.read()
     data = json.loads(data)
     tmp_cat = data['detection_categories']
@@ -144,7 +164,7 @@ for json_file in json_files:
         image_name = entry['file']
         image_name = os.path.join(folder, image_name)
         tmp = os.path.basename(os.path.join(
-            dest_directory, image_name)).split(".")[0].split("_")
+            output_dir_images, image_name)).split(".")[0].split("_")
         try:
             assert(len(tmp) >= 2 and len(tmp) <= 6)
         except Exception:
@@ -158,7 +178,7 @@ for json_file in json_files:
         im = {}
         im['id'] = img_id
         im['file_name'] = image_name
-        imagePath = os.path.join(dest_directory, image_name)
+        imagePath = os.path.join(output_dir_images, image_name)
         assert(os.path.isfile(imagePath))
         pilImage = Image.open(imagePath)
         width, height = pilImage.size
@@ -212,9 +232,9 @@ for json_file in json_files:
                 assert(detection['bbox'] == [0,0,0,0])
             annotations.append(ann)
         if "person" in image_cats or "human" in image_cats:
-            shutil.copy(os.path.join(dest_directory, image_name), os.path.join(base_dir, human_dir))
+            shutil.copy(os.path.join(output_dir_images, image_name), os.path.join(output_dir_base, human_dir))
         else:
-            shutil.copy(os.path.join(dest_directory, image_name), os.path.join(base_dir, non_human_dir))
+            shutil.copy(os.path.join(output_dir_images, image_name), os.path.join(output_dir_base, non_human_dir))
 
 print('Finished creating CCT dictionaries')
 # import pdb;pdb.set_trace()
@@ -249,7 +269,7 @@ zipdir(non_human_dir,non_human_zipfile)
 
 fn = output_json_file
 options = sanity_check_json_db.SanityCheckOptions()
-options.baseDir = dest_directory
+options.baseDir = output_dir_images
 options.bCheckImageSizes = False
 options.bCheckImageExistence = False
 options.bFindUnusedImages = False
@@ -267,7 +287,7 @@ viz_options.sort_by_filename = False
 viz_options.parallelize_rendering = True
 html_output_file, image_db = visualize_db.process_images(db_path=output_json_file,
                                                          output_dir=os.path.join(
-                                                             base_dir, 'preview'),
-                                                         image_base_dir=dest_directory,
+                                                             output_dir_base, 'preview'),
+                                                         image_output_dir_base=output_dir_images,
                                                          options=viz_options)
 os.startfile(html_output_file)
