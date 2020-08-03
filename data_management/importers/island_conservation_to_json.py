@@ -1,5 +1,5 @@
 #
-# island_conservation_to_json_2017.py
+# island_conservation_to_json.py
 #
 # Convert the Island Conservation data set to a COCO-camera-traps .json file
 #
