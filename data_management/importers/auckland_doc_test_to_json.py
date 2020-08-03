@@ -14,6 +14,7 @@ import uuid
 import pandas as pd
 import datetime
 import ntpath
+import re
 import numpy as np
 from tqdm import tqdm
 
@@ -55,11 +56,38 @@ for fn in absolute_image_paths:
 
 relative_image_paths_set = set(relative_image_paths)
 
-# The excel file uses only filenames, not full paths; store just the filename
-filename_to_relative_path = {}
+assert len(relative_image_paths_set) == len(relative_image_paths)
+
+# The excel file uses only filenames, not full paths; store just the filename.  
+# 
+# We store relative paths as cameraname_filename
+camera_filename_to_relative_path = {}
+camera_names = set()
+
+# relative_path = relative_image_paths[0]
 for relative_path in relative_image_paths:
-    fn = ntpath.basename(relative_path)
-    filename_to_relative_path[fn] = relative_path
+    
+    # Example relative path:
+    #
+    # relative_path = 'Summer_Trial_2019/A1_1_42_SD114_20190210/AucklandIsland_A1_1_42_SD114_20190210_01300001.jpg'
+    fn = ntpath.basename(relative_path)    
+    
+    # Find the camera name
+    tokens = relative_path.split('/')
+    camera_token = tokens[1]
+    camera_name = None
+    m = re.search('^(.+)_SD',camera_token)
+    if m:
+        camera_name = m.group(1)
+    else:
+        # For camera tokens like C1_5_D_190207
+        m = re.search('^(.+_.+_.+)_',camera_token)
+        camera_name = m.group(1)
+    
+    assert camera_name
+    camera_filename = camera_name + '_' + fn
+    assert camera_filename not in camera_filename_to_relative_path
+    camera_filename_to_relative_path[camera_filename] = relative_path
     
 
 #%% Load input data
@@ -85,6 +113,9 @@ empty_category['name'] = 'empty'
 empty_category['id'] = 0
 category_name_to_category['empty'] = empty_category
 categories.append(empty_category)
+
+filenames_not_in_folder = []
+image_id_to_rows = {}
 
 next_id = 1
 
@@ -114,8 +145,6 @@ for category_name in category_names:
     next_id = next_id +1
     category_name_to_category[category_name] = cat
     
-filenames_not_in_folder = []
-
 def create_annotation(image_id,category_name,count):
     ann = {}    
     ann['id'] = str(uuid.uuid1())
@@ -138,10 +167,13 @@ for i_row,row in input_metadata.iterrows():
     assert filename.endswith('.jpg') or filename.endswith('.JPG')
     image_id = filename.lower().replace('.jpg','')
 
-    if image_id in image_id_to_image:
-        print('Warning: ignoring duplicate entry for {}'.format(image_id))
+    if image_id in image_id_to_rows:
+        image_id_to_rows[image_id].append(i_row)
+        # print('Warning: ignoring duplicate entry for {}'.format(image_id))
         continue
-    
+        
+    image_id_to_rows[image_id] = [i_row]
+        
     relative_path = filename_to_relative_path[filename]
     
     im = {}
