@@ -105,17 +105,17 @@ for i_folder,folder in enumerate(folders):
             lambda x: os.path.join(folder, x[0], x[1]), axis = 1)
 
     # i_row = 0; fn = input_metadata['image_relative_path'][i_row]
-    for i_row, fn in tqdm(enumerate(input_metadata['image_relative_path']), total=len(input_metadata)):
+    for i_row, image_relative_path in tqdm(enumerate(input_metadata['image_relative_path']), total=len(input_metadata)):
         
-        if fn in filenames_to_rows:
-            filenames_with_multiple_annotations.append(fn)
-            filenames_to_rows[fn].append(i_row)
+        if image_relative_path in filenames_to_rows:
+            filenames_with_multiple_annotations.append(image_relative_path)
+            filenames_to_rows[image_relative_path].append(i_row)
         else:
-            filenames_to_rows[fn] = [i_row]
-            image_path = os.path.join(input_base, fn)
+            filenames_to_rows[image_relative_path] = [i_row]
+            image_full_path = os.path.join(input_base, image_relative_path)
             
-            if not os.path.isfile(image_path):
-                missing_images.append(image_path)
+            if not image_full_path in image_full_paths_set:
+                missing_images.append(image_full_path)
         
     print('Finished verifying image existence for {} files, found {} filenames with multiple labels, {} missing images'.format(
         len(filenames_to_rows), len(filenames_with_multiple_annotations), len(missing_images)))
