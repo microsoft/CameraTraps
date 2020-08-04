@@ -148,7 +148,7 @@ category_names = ['cat','mouse','unknown','human','pig','sealion','penguin','dog
 
 def bird_name_to_category_name(bird_name):
     bird_name = bird_name.lower().strip().replace(' ','_').replace('song_thursh','song_thrush')
-    bird_name = bird_name.replace('pippet','nz_pipit').replace('pippit','nz_pipit').replace('pipit','nz_pipit')
+    bird_name = bird_name.replace('pippet','pipt').replace('pippit','pipit').replace('nz_pipit','pipit')
     if bird_name == '?' or bird_name == '' or bird_name == 'unknown':
         category_name = 'unknown_bird'
     else:
@@ -352,7 +352,7 @@ output_base = os.path.join(postprocessing_output_folder,'pr_analysis')
 os.makedirs(output_base,exist_ok=True)
 
 options = PostProcessingOptions()
-# options.unlabeled_classes.append('unknown')
+options.unlabeled_classes.append('openadjusted')
 options.image_base_dir = image_base
 options.parallelize_rendering = True
 options.include_almost_detections = True
