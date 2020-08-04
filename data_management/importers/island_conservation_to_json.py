@@ -73,9 +73,8 @@ category_mapping = {"buow": "burrowing owl",
                     "ycnh": "yellow-crowned night heron",
                     "wwdo": "white-winged dove",
                     "seow": "short-eared owl",
-                    "person": "human"}
-
-read_image_sizes = False
+                    "person": "human",
+                    "null": "empty"}
 
 
 #%% Load island name mappings from .csv
@@ -226,7 +225,6 @@ if False:
 
 images = []
 annotations = []
-categories = []
 
 image_ids_to_annotations = defaultdict(list)
 
@@ -239,7 +237,6 @@ empty_category = {}
 empty_category['name'] = 'empty'
 empty_category['id'] = 0
 category_name_to_category['empty'] = empty_category
-categories.append(empty_category)
 next_category_id = 1
 
 json_files = os.listdir(input_dir_json)
@@ -268,7 +265,7 @@ for json_file in json_files:
     categories_this_dataset = data['detection_categories']
     
     # entry = data['images'][0]
-    for entry in tqdm(data['images']):
+    for i_entry,entry in enumerate(tqdm(data['images'])):
         
         image_path_relative_to_dataset = entry['file']
         
@@ -292,31 +289,27 @@ for json_file in json_files:
         image_full_path = os.path.join(output_dir_images, image_relative_path)
         assert(os.path.isfile(image_full_path))
         
-        if read_image_sizes:
-            pil_image = Image.open(image_full_path)        
-            width, height = pil_image.size
-            im['width'] = width
-            im['height'] = height
-        
+        pil_image = Image.open(image_full_path)        
+        width, height = pil_image.size
+        im['width'] = width
+        im['height'] = height
+    
         location,timestamp = parse_ic_relative_filename(relative_path)
         all_locations.add(location)
                 
         images.append(im)
         
         detections = entry['detections']
-        image_cats = []
         
+        # detection = detections[0]
         for detection in detections:
             
             category_name = categories_this_dataset[detection['category']]
-            if category_name == 'NULL':
-                category_name = 'empty'
-            else:
-                category_name = category_mapping.get(
-                    category_name, category_name)
-            category_name = category_name.strip().lower()
-            image_cats.append(category_name)
-
+            category_name = category_name.strip().lower()            
+            category_name = category_mapping.get(
+                category_name, category_name)
+            category_name = category_name.replace(' ','_')        
+            
             # Have we seen this category before?
             if category_name in category_name_to_category:
                 category_id = category_name_to_category[category_name]['id']
@@ -324,9 +317,9 @@ for json_file in json_files:
                 category_id = next_category_id
                 category = {}
                 category['id'] = category_id
+                print('Adding category {}'.format(category_name))
                 category['name'] = category_name
                 category_name_to_category[category_name] = category
-                categories.append(category)
                 next_category_id += 1
             
             # Create an annotation
@@ -337,6 +330,13 @@ for json_file in json_files:
             ann['conf'] = detection['conf']
             if category_id != 0:
                 ann['bbox'] = detection['bbox']
+                # MegaDetector: [x,y,width,eight] (normalized, origin upper-left)
+                # CCT: [x,y,width,height] (absolute, origin upper-left)
+                # os.startfile(image_full_path)
+                ann['bbox'][0] = ann['bbox'][0] * im['width']
+                ann['bbox'][1] = ann['bbox'][1] * im['height']
+                ann['bbox'][2] = ann['bbox'][2] * im['width']
+                ann['bbox'][3] = ann['bbox'][3] * im['height']
             else:
                 assert(detection['bbox'] == [0,0,0,0])
             annotations.append(ann)
@@ -362,6 +362,8 @@ info['contributor'] = 'Conservation Metrics and Island Conservation'
 
 #%% Write .json output
 
+categories = list(category_name_to_category.values())
+
 json_data = {}
 json_data['images'] = images
 json_data['annotations'] = annotations
@@ -379,25 +381,28 @@ fn = output_json_file
 options = sanity_check_json_db.SanityCheckOptions()
 options.baseDir = output_dir_images
 options.bCheckImageSizes = False
-options.bCheckImageExistence = True
-options.bFindUnusedImages = True
+options.bCheckImageExistence = False
+options.bFindUnusedImages = False
 sorted_categories, data, errors = sanity_check_json_db.sanity_check_json_db(fn, options)
 
 
 #%% Preview labels
 
 viz_options = visualize_db.DbVizOptions()
-viz_options.num_to_visualize = 1000
+viz_options.num_to_visualize = 2000
 viz_options.trim_to_images_with_bboxes = False
-viz_options.add_search_links = True
+viz_options.classes_to_exclude = ['empty']
+viz_options.add_search_links = False
 viz_options.sort_by_filename = False
 viz_options.parallelize_rendering = True
 html_output_file, image_db = visualize_db.process_images(db_path=output_json_file,
                                                          output_dir=os.path.join(
                                                              output_dir_base, 'preview'),
-                                                         image_output_dir_base=output_dir_images,
+                                                         image_base_dir=output_dir_images,
                                                          options=viz_options)
 os.startfile(html_output_file)
+
+
 #%% Copy images out to human/non-human folders
 
 category_id_to_name = {cat['id']:cat['name'] for cat in categories}
