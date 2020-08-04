@@ -48,6 +48,7 @@ import path_utils
 
 # Assumes the cameratraps repo root is on the path
 import visualization.visualization_utils as vis_utils
+import visualization.plot_utils as plot_utils
 from data_management.cct_json_utils import CameraTrapJsonUtils, IndexedJsonDb
 from api.batch_processing.postprocessing.load_api_results import load_api_results
 from ct_utils import args_to_object
@@ -537,7 +538,7 @@ def process_batch_results(options):
         detection_results = detection_results[b_match]
         detector_files = detection_results['file'].tolist()
 
-        assert len(detector_files) > 0, 'No detection files available, possible ground truth path issue?'
+        assert len(detector_files) > 0, 'No detection files available, possible path issue?'
         
         print('Trimmed detection results to {} files'.format(len(detector_files)))
 
@@ -771,7 +772,7 @@ def process_batch_results(options):
         # Write precision/recall plot to .png file in output directory
         t = 'Precision-Recall curve: AP={:0.1%}, P@{:0.1%}={:0.1%}'.format(
                 average_precision, target_recall, precision_at_target_recall)
-        fig = vis_utils.plot_precision_recall_curve(precisions, recalls, t)
+        fig = plot_utils.plot_precision_recall_curve(precisions, recalls, t)
         pr_figure_relative_filename = 'prec_recall.png'
         pr_figure_filename = os.path.join(output_dir, pr_figure_relative_filename)
         plt.savefig(pr_figure_filename)

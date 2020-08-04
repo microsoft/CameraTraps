@@ -6,16 +6,20 @@
 
 #%% Constants and environment
 
-from visualization import visualize_db
-from data_management.databases import sanity_check_json_db
 import os
 import csv
 import json
 import uuid
-from PIL import Image
-from tqdm import tqdm
+import datetime
 import shutil
 import zipfile
+
+from PIL import Image
+from tqdm import tqdm
+from collections import defaultdict 
+
+from visualization import visualize_db
+from data_management.databases import sanity_check_json_db
 from path_utils import find_images
 
 # Base directory for all input images and metadata
@@ -60,20 +64,23 @@ if os.path.isfile(human_zipfile):
 os.makedirs(human_dir, exist_ok=True)
 os.makedirs(non_human_dir, exist_ok=True)
 
-category_mapping = {"BUOW": "burrowing owl",
-                    "BAOW": "barred owl",
-                    "GRHE": "green heron",
-                    "AMKE": "american kestrel",
-                    "GBHE": "great blue heron",
-                    "BRNO": "brown noddy",
-                    "YCNH": "yellow-crowned night heron",
-                    "WWDO": "white-winged dove",
-                    "SEOW": "short-eared owl"}
+category_mapping = {"buow": "burrowing owl",
+                    "baow": "barred owl",
+                    "grhe": "green heron",
+                    "amke": "american kestrel",
+                    "gbhe": "great blue heron",
+                    "brno": "brown noddy",
+                    "ycnh": "yellow-crowned night heron",
+                    "wwdo": "white-winged dove",
+                    "seow": "short-eared owl",
+                    "person": "human"}
 
 read_image_sizes = False
 
 
 #%% Load island name mappings from .csv
+
+# We map island names to generic region/country names using an external .csv file
 
 island_name_mappings = None
 
@@ -113,14 +120,18 @@ print('Enumerated {} images from {}'.format(len(image_full_paths),input_dir_base
     
 output_file_names = set()
 
+# TODO: this should be parallelized
+
 # image_full_path = image_full_paths[0]
 for image_full_path in tqdm(image_full_paths):
     
     destination_relative_path = os.path.relpath(image_full_path,input_dir_base).replace('\\','/').lower()
     
     # Remove "ic*-images" from paths; these were redunant    
-    destination_relative_path = destination_relative_path.replace('ic-images/', '').replace('icr2-images/', '').\
+    destination_relative_path = destination_relative_path.replace('ic-images/', '').\
+        replace('icr2-images/', '').\
         replace('icr3-images/', '')
+        
     for k, v in island_name_mappings.items():
         destination_relative_path = destination_relative_path.replace(k, v)
     
@@ -133,14 +144,91 @@ for image_full_path in tqdm(image_full_paths):
 
 # ...for each image
 
-print('Finished renaming IC images')
+print('\nFinished renaming IC images')
 
 
+#%% Extract location and date/time information from filenames
+
+sample_paths = [
+    
+    # Two folders deep
+    r'ecuador1\cam1613\ecuador1_cam1613_20150101_055929_img_0043.jpg',
+    r'palau\cam02a\cam02a12132018\palau_cam02a12132018_20180822_120000_rcnx0001.jpg',
+    r'ecuador2\ic1603\ecuador2_ic1603_20150101_000058_img_0004.jpg',
+    r'puertorico\2a\puertorico_2a_20141111_004833_img_0006.jpg',
+
+    # Three folders deep    
+    r'dominicanrepublic\camara01\cam0101noviembre2015\dominicanrepublic_cam0101noviembre2015_20151028_080024_sunp0001.jpg',
+    r'micronesia\cam05\cam05april2019\micronesia_cam05april2019_20190411_190527_rcnx0001.jpg',
+    
+    # Three folders deep with a different timestamp format
+    r'chile\filipiananbek\filipiananbek2013\chile_filipiananbek2013_0111201375113.jpg'
+    ]
+
+def parse_ic_relative_filename(relative_path):    
+    
+    relative_path = relative_path.replace('\\','/')
+    
+    for k in island_name_mappings.keys():
+        assert k not in relative_path
+        
+    folders = relative_path.split('/')
+    site = folders[1]
+    if site.startswith('camara'):
+        site = site.replace('camara','cam_')
+    elif site.startswith('cam'):
+        site = site.replace('cam','cam_')     
+    else:
+        site = 'cam_' + site
+      
+    filename = os.path.basename(relative_path)
+    tokens = filename.split('_')
+    
+    # Country can be a country, or "ecuador1"
+    #
+    # Either way, the first folder and the first token in the basename should be the same
+    country = folders[0]
+    assert country == tokens[0]
+    
+    # Make sure we have a valid country designator
+    assert country in island_name_mappings.values()
+
+    location = country + '_' + site
+    
+    if country in ['ecuador1','palau','ecuador2','puertorico','dominicanrepublic','micronesia']:
+        datestring = tokens[2]
+        timestring = tokens[3]
+        assert (len(datestring) == 8) and (len(timestring) == 6)
+        timestamp = datetime.datetime.strptime(datestring + timestring,'%Y%m%d%H%M%S')
+    elif country == 'chile':
+        # I'm not sure how to parse time from this, so not trying
+        # 0111201375113
+        datestring = tokens[2][0:8]
+        timestamp = datetime.datetime.strptime(datestring,'%m%d%Y')
+    else:
+        raise ValueError('Unknown country {}'.format(country))
+            
+    return location,timestamp
+
+#%% 
+        
+if False:
+    
+    #%%
+    relative_path = sample_paths[0]
+    for relative_path in sample_paths:
+        location,timestamp = parse_ic_relative_filename(relative_path)
+        print('Parsed {} to:\n{},{}\n'.format(relative_path,location,timestamp))
+
+    
+    
 #%% Create CCT dictionaries
 
 images = []
 annotations = []
 categories = []
+
+image_ids_to_annotations = defaultdict(list)
 
 # image_ids_to_images = {}
 
@@ -184,11 +272,6 @@ for json_file in json_files:
         
         image_path_relative_to_dataset = entry['file']
         
-        # E.g.:
-        #
-        # dominican_republic/camara02/cam0226junio2015/cabritos_cam0226junio2015_20131026_063520_sunp0022.jpg
-        # dominican_republic/camara101/cam10118mayo2017/dominican_republic_cam10118mayo2017_20170425_175810_img_0019.jpg
-        #
         image_relative_path = os.path.join(dataset_folder, image_path_relative_to_dataset).lower().replace('\\','/')
         
         for k, v in island_name_mappings.items():
@@ -196,19 +279,12 @@ for json_file in json_files:
             
         assert image_relative_path.startswith(dataset_folder)
         
+        # Generate a unique ID from the path
         image_id = image_relative_path.split('.')[0].replace(
             '\\', '/').replace('/', '_').replace(' ', '_')
         
         assert image_id not in all_image_ids
         all_image_ids.add(image_id)
-        
-        # E.g. cam0226junio2015_20131026_063520_sunp0022.jpg
-        fn_without_location = os.path.basename(image_relative_path).replace(dataset_folder + '_','')
-        
-        # E.g. ['cam0226junio2015', '20131026', '063520', 'sunp0022']
-        tokens = fn_without_location.split('_')
-        
-        assert(len(tokens) >= 4)
         
         im = {}
         im['id'] = image_id
@@ -222,18 +298,16 @@ for json_file in json_files:
             im['width'] = width
             im['height'] = height
         
-        location = dataset_folder + '_' + tokens[0]
+        location,timestamp = parse_ic_relative_filename(relative_path)
         all_locations.add(location)
                 
-        assert(tokens[1].isdecimal())
-        assert(tokens[2].isdecimal())
-        timestamp = tokens[1] + '_' + tokens[2]
-        
         images.append(im)
         
         detections = entry['detections']
         image_cats = []
+        
         for detection in detections:
+            
             category_name = categories_this_dataset[detection['category']]
             if category_name == 'NULL':
                 category_name = 'empty'
@@ -266,13 +340,14 @@ for json_file in json_files:
             else:
                 assert(detection['bbox'] == [0,0,0,0])
             annotations.append(ann)
-
-        # Copy this image to the appropriate output folder (human or non-human)            
-        if 'person' in image_cats or 'human' in image_cats:
-            shutil.copy(os.path.join(output_dir_images, image_relative_path), os.path.join(output_dir_base, human_dir))
-        else:
-            shutil.copy(os.path.join(output_dir_images, image_relative_path), os.path.join(output_dir_base, non_human_dir))
-
+            image_ids_to_annotations[im['id']].append(ann)
+            
+        # ...for each detection
+    
+    # ...for each image
+            
+# ...for each database
+            
 print('Finished creating CCT dictionaries')
 
 
@@ -298,20 +373,14 @@ print('Finished writing .json file with {} images, {} annotations, and {} catego
     len(images), len(annotations), len(categories)))
 
 
-#%% Create ZIP files for human and non human
-
-zipdir(human_dir,human_zipfile)
-zipdir(non_human_dir,non_human_zipfile)
-
-
 #%% Validate output
 
 fn = output_json_file
 options = sanity_check_json_db.SanityCheckOptions()
 options.baseDir = output_dir_images
 options.bCheckImageSizes = False
-options.bCheckImageExistence = False
-options.bFindUnusedImages = False
+options.bCheckImageExistence = True
+options.bFindUnusedImages = True
 sorted_categories, data, errors = sanity_check_json_db.sanity_check_json_db(fn, options)
 
 
@@ -329,3 +398,27 @@ html_output_file, image_db = visualize_db.process_images(db_path=output_json_fil
                                                          image_output_dir_base=output_dir_images,
                                                          options=viz_options)
 os.startfile(html_output_file)
+#%% Copy images out to human/non-human folders
+
+category_id_to_name = {cat['id']:cat['name'] for cat in categories}
+
+for im in images:
+    
+    # Find all category names associated with this image
+    assert im['id'] in image_ids_to_annotations
+    image_cat_ids = [ann['category_id'] for ann in image_ids_to_annotations]
+    image_cat_names = [category_id_to_name[cat_id] for cat_id in image_cat_ids]
+    
+    # Copy this image to the appropriate output folder (human or non-human)            
+    if 'human' in image_cat_names:
+        shutil.copy(os.path.join(output_dir_images, image_relative_path), os.path.join(output_dir_base, human_dir))
+    else:
+        shutil.copy(os.path.join(output_dir_images, image_relative_path), os.path.join(output_dir_base, non_human_dir))
+
+
+#%% Create zipfiles for human/non-human folders
+
+zipdir(human_dir,human_zipfile)
+zipdir(non_human_dir,non_human_zipfile)
+
+
