@@ -88,26 +88,6 @@ with open(island_name_mapping_file, mode='r') as f:
     island_name_mappings = {rows[0]:rows[1] for rows in reader}
 
 
-#%% Support functions
-
-def zipdir(path, zipfilename, basepath=None):
-    """
-    Zip everything in [path] into [zipfilename], with paths in the zipfile relative to [basepath]
-    """
-    ziph = zipfile.ZipFile(zipfilename, 'w', zipfile.ZIP_STORED)
-
-    for root, dirs, files in os.walk(path):
-        for file in files:
-            src = os.path.join(root, file)
-            if basepath is None:
-                dst = file
-            else:
-                dst = os.path.relpath(src, basepath)
-            ziph.write(src, dst, zipfile.ZIP_STORED)
-
-    ziph.close()
-
-
 #%% Enumerate input images
 
 image_full_paths = find_images(input_dir_base, recursive=True)
@@ -118,7 +98,7 @@ print('Enumerated {} images from {}'.format(len(image_full_paths),input_dir_base
     
 output_file_names = set()
 
-# PERF: this should be parallelized
+# PERF: this should be parallelized, it's almost entirely I/O-bound
 
 # image_full_path = image_full_paths[0]
 for image_full_path in tqdm(image_full_paths):
@@ -142,6 +122,7 @@ for image_full_path in tqdm(image_full_paths):
 
 # ...for each image
 
+del output_file_names
 print('\nFinished renaming IC images')
 
 
@@ -408,11 +389,29 @@ html_output_file, image_db = visualize_db.process_images(db_path=output_json_fil
 os.startfile(html_output_file)
 
 
+#%% Load data back from .json (basically to facilitate re-starting from here)
+
+with open(output_json_file,'r') as f:
+    data = json.load(f)
+
+images = data['images']
+categories = data['categories']
+annotations = data['annotations']
+
+category_id_to_name = {cat['id']:cat['name']  for cat in categories}
+image_ids_to_annotations = defaultdict(list)
+for ann in annotations:
+    image_ids_to_annotations[ann['image_id']].append(ann)
+assert len(images) == len(image_ids_to_annotations)    
+
+
 #%% Copy images out to human/non-human folders
 
 category_id_to_name = {cat['id']:cat['name'] for cat in categories}
 
-for im in tqdm(images):
+def copy_image_to_output_dir(im):
+    
+    image_relative_path = im['file_name']
     
     # Find all category names associated with this image
     assert im['id'] in image_ids_to_annotations
@@ -428,13 +427,56 @@ for im in tqdm(images):
     target_dir = os.path.dirname(target_file)
     os.makedirs(target_dir,exist_ok=True)
     
-    source_file = os.path.join(output_dir_images, image_relative_path)    
+    source_file = os.path.join(output_dir_images, image_relative_path)
+    assert os.path.isfile(source_file)
+    
+    # print('Copying {} to {}'.format(source_file,target_file))
     shutil.copy(source_file,target_file)
     
+# im = images[0]
+    
+# Serial version    
+if True:    
+    for im in tqdm(images):
+        copy_image_to_output_dir(im)
+
+# Joblib version (slower than multiprocessing for me, whether I used processes or threads)
+if False:
+    from joblib import Parallel,delayed
+    Parallel(n_jobs=50, prefer='processes')(
+        delayed(copy_image_to_output_dir)(im) for im in images)
+
+# Multiprocessing version
+if False:
+    from multiprocessing.pool import ThreadPool    
+    pool = ThreadPool(100)
+    results = list(tqdm(pool.imap(copy_image_to_output_dir, images)))
+    print('Finished copying images')
+
 
 #%% Create zipfiles for human/non-human folders
 
-zipdir(human_dir,human_zipfile)
-zipdir(non_human_dir,non_human_zipfile)
+def zipdir(path, zipfilename, basepath=None):
+    """
+    Zip everything in [path] into [zipfilename], with paths in the zipfile relative to [basepath]
+    """
+    ziph = zipfile.ZipFile(zipfilename, 'w', zipfile.ZIP_STORED)
+
+    try:
+        for root, dirs, files in os.walk(path):            
+            for file in files:
+                src = os.path.join(root, file)
+                if basepath is None:
+                    dst = file
+                else:
+                    dst = os.path.relpath(src, basepath)
+                ziph.write(src, dst, zipfile.ZIP_STORED)
+    finally:
+        ziph.close()
+
+zipdir(human_dir,human_zipfile,human_dir)
+zipdir(non_human_dir,non_human_zipfile,non_human_dir)
+
+print('Done creating zipfiles')
 
 

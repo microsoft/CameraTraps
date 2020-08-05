@@ -28,7 +28,7 @@ import itertools
 import errno
 import uuid
 
-from multiprocessing.pool import ThreadPool    
+from multiprocessing.pool import ThreadPool
 from enum import IntEnum
             
 import matplotlib
