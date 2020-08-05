@@ -36,11 +36,11 @@ def convert_json_to_csv(input_path,output_path=None,min_confidence=None,omit_bou
     
     # We add an output column for each class other than 'empty', 
     # containing the maximum probability of  that class for each image
-    n_non_empty_categories = len(annotation_constants.bbox_categories) - 1
+    n_non_empty_categories = len(annotation_constants.annotation_bbox_categories) - 1
     category_column_names = []
-    assert annotation_constants.bbox_category_id_to_name[0] == 'empty'
+    assert annotation_constants.annotation_bbox_category_id_to_name[0] == 'empty'
     for cat_id in range(1,n_non_empty_categories+1):
-        cat_name = annotation_constants.bbox_category_id_to_name[cat_id]
+        cat_name = annotation_constants.annotation_bbox_category_id_to_name[cat_id]
         category_column_names.append('max_conf_' + cat_name)
         
     print('Iterating through results...')
@@ -123,7 +123,7 @@ def convert_csv_to_json(input_path,output_path=None):
     }
     
     classification_categories = {}
-    detection_categories = annotation_constants.bbox_category_id_to_name
+    detection_categories = annotation_constants.annotation_bbox_category_id_to_name
 
     images = []
     
