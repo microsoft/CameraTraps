@@ -37,7 +37,7 @@ assert(os.path.isdir(input_dir_base))
 assert(os.path.isdir(input_dir_json))
 assert(os.path.isfile(island_name_mapping_file))
 
-output_dir_base = r'f:\data_staging\island-conservation'
+output_dir_base = r'f:\data_staging\island_conservation'
 os.makedirs(output_dir_base, exist_ok=True)
 output_dir_images = os.path.join(output_dir_base, 'images')
 os.makedirs(output_dir_images, exist_ok=True)
@@ -90,7 +90,6 @@ with open(island_name_mapping_file, mode='r') as f:
 
 #%% Support functions
 
-
 def zipdir(path, zipfilename, basepath=None):
     """
     Zip everything in [path] into [zipfilename], with paths in the zipfile relative to [basepath]
@@ -110,7 +109,7 @@ def zipdir(path, zipfilename, basepath=None):
 
 
 #%% Enumerate input images
-    
+
 image_full_paths = find_images(input_dir_base, recursive=True)
 print('Enumerated {} images from {}'.format(len(image_full_paths),input_dir_base))
 
@@ -119,7 +118,7 @@ print('Enumerated {} images from {}'.format(len(image_full_paths),input_dir_base
     
 output_file_names = set()
 
-# TODO: this should be parallelized
+# PERF: this should be parallelized
 
 # image_full_path = image_full_paths[0]
 for image_full_path in tqdm(image_full_paths):
@@ -165,6 +164,12 @@ sample_paths = [
     ]
 
 def parse_ic_relative_filename(relative_path):    
+    """
+    Takes a relative path in one of the three formats above and parses the location, date, and -
+    if available - time.  Date and time are combined into a single string.
+    
+    return location,timestamp
+    """
     
     relative_path = relative_path.replace('\\','/')
     
@@ -200,7 +205,7 @@ def parse_ic_relative_filename(relative_path):
         assert (len(datestring) == 8) and (len(timestring) == 6)
         timestamp = datetime.datetime.strptime(datestring + timestring,'%Y%m%d%H%M%S')
     elif country == 'chile':
-        # I'm not sure how to parse time from this, so not trying
+        # I'm not sure how to parse time from this, so not trying...
         # 0111201375113
         datestring = tokens[2][0:8]
         timestamp = datetime.datetime.strptime(datestring,'%m%d%Y')
@@ -209,7 +214,8 @@ def parse_ic_relative_filename(relative_path):
             
     return location,timestamp
 
-#%% 
+
+#%% Test driver for location/date parsing
         
 if False:
     
@@ -218,7 +224,6 @@ if False:
     for relative_path in sample_paths:
         location,timestamp = parse_ic_relative_filename(relative_path)
         print('Parsed {} to:\n{},{}\n'.format(relative_path,location,timestamp))
-
     
     
 #%% Create CCT dictionaries
@@ -354,7 +359,7 @@ print('Finished creating CCT dictionaries')
 #%% Create info struct
 
 info = dict()
-info['year'] = 2018
+info['year'] = 2020
 info['version'] = 1.0
 info['description'] = 'Island Conservation Camera Traps'
 info['contributor'] = 'Conservation Metrics and Island Conservation'
@@ -407,19 +412,25 @@ os.startfile(html_output_file)
 
 category_id_to_name = {cat['id']:cat['name'] for cat in categories}
 
-for im in images:
+for im in tqdm(images):
     
     # Find all category names associated with this image
     assert im['id'] in image_ids_to_annotations
-    image_cat_ids = [ann['category_id'] for ann in image_ids_to_annotations]
+    image_cat_ids = [ann['category_id'] for ann in image_ids_to_annotations[im['id']]]
     image_cat_names = [category_id_to_name[cat_id] for cat_id in image_cat_ids]
     
     # Copy this image to the appropriate output folder (human or non-human)            
     if 'human' in image_cat_names:
-        shutil.copy(os.path.join(output_dir_images, image_relative_path), os.path.join(output_dir_base, human_dir))
+        target_file = os.path.join(human_dir, image_relative_path)
     else:
-        shutil.copy(os.path.join(output_dir_images, image_relative_path), os.path.join(output_dir_base, non_human_dir))
-
+        target_file = os.path.join(non_human_dir, image_relative_path)
+    
+    target_dir = os.path.dirname(target_file)
+    os.makedirs(target_dir,exist_ok=True)
+    
+    source_file = os.path.join(output_dir_images, image_relative_path)    
+    shutil.copy(source_file,target_file)
+    
 
 #%% Create zipfiles for human/non-human folders
 
