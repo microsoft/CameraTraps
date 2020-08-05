@@ -30,8 +30,11 @@ assert(os.path.isdir(input_base))
 
 output_base = r'f:\data_staging\ubc'
 output_json_file = os.path.join(output_base,'ubc.json')
+file_list_file = os.path.join(output_base,'all_files.txt')
+
 os.makedirs(output_base,exist_ok=True)
 
+# Map Excel column names - which vary a little across spreadsheets - to a common set of names
 mapped_fields = {"Survey.Name" : "survey_name",
                  "project_id": "survey_name",
                  "Camera.Name": "camera_name",
@@ -47,21 +50,37 @@ mapped_fields = {"Survey.Name" : "survey_name",
                  "Sighting.Quantity": "species_count"
                 }
 
-target_fields = ['common_name', 'species_count', 'group_count', 'behavior']
+category_mappings = {
+    'bird_spp.':'unknown_bird',
+    'unknown_spp':'unknown_species'
+    }
+
+target_fields = ['species_count','group_count','behaviour']
 
 
 #%% Enumerate images
 
-image_full_paths = find_images(input_base, recursive=True)
+# Load from file if we've already enumerated
+if os.path.isfile(file_list_file):
+    with open(file_list_file,'r') as f:
+        files = f.readlines()
+    files = [s.strip() for s in files]
+    image_full_paths = files
+    print('Loaded {} images from {}'.format(len(image_full_paths),file_list_file))
+else:
+    image_full_paths = find_images(input_base, recursive=True)
+    with open(file_list_file,'w') as f:
+        for line in image_full_paths:
+            f.write(line + '\n')        
+    print('Enumerated {} images from {}'.format(len(image_full_paths),input_base))
+    
 image_full_paths_set = set(image_full_paths)
-print('Enumerated {} images from {}'.format(len(image_full_paths),input_base))
+image_relative_paths = [os.path.relpath(fn,input_base) for fn in image_full_paths]
 
 
 #%% Create CCT dictionaries
 
-images = []
 annotations = []
-categories = []
 image_ids_to_images = {}
 category_name_to_category = {}
 
@@ -70,13 +89,21 @@ empty_category = {}
 empty_category['name'] = 'empty'
 empty_category['id'] = 0
 category_name_to_category['empty'] = empty_category
-categories.append(empty_category)
 next_category_id = 1
+
+latin_to_common = {}
 
 folders = os.listdir(input_base)
 
-# i_folder = 0; folder = folders[i_folder]; print(folder)
+# To simplify debugging of the loop below
+i_folder = 0; folder = folders[i_folder]; 
+
+
+##%% Create CCT dictionaries (loop)
+
 for i_folder,folder in enumerate(folders):
+    
+    ##%% 
     
     print('Processing folder {} of {}: {}'.format(i_folder,len(folders),folder))
     
@@ -93,7 +120,7 @@ for i_folder,folder in enumerate(folders):
     input_metadata = pd.read_csv(input_metadata_file)
     
     # Rename columns
-    input_metadata.rename(columns=mapped_fields, inplace= True)
+    input_metadata.rename(columns=mapped_fields, inplace=True)
     print('Read {} columns and {} rows from metadata file'.format(len(input_metadata.columns), len(input_metadata)))
     
     # Create relative path names from camera name and filename
@@ -117,62 +144,95 @@ for i_folder,folder in enumerate(folders):
             if not image_full_path in image_full_paths_set:
                 missing_images.append(image_full_path)
         
-    print('Finished verifying image existence for {} files, found {} filenames with multiple labels, {} missing images'.format(
+    print('\nFinished verifying image existence for {} files, found {} filenames with multiple labels, {} missing images'.format(
         len(filenames_to_rows), len(filenames_with_multiple_annotations), len(missing_images)))
     
-    #%% Check for images that aren't included in the metadata file
+    
+    ##%% Check for images that aren't included in the metadata file
 
     # Enumerate all images
-    image_full_paths = find_images(image_directory, bRecursive=True)
+    image_relative_paths_this_folder = [s for s in image_relative_paths if s.startswith(folder)]
 
-    unannotated_images = []
+    unannotated_images = [s for s in image_relative_paths_this_folder if s not in filenames_to_rows]
 
-    for iImage, image_path in tqdm(enumerate(image_full_paths),total=len(image_full_paths)):
-        relative_path = os.path.relpath(image_path,input_base)
-        if relative_path not in filenames_to_rows:
-            unannotated_images.append(relative_path)
-
-    print('Finished checking {} images to make sure they\'re in the metadata, found {} unannotated images'.format(
-            len(image_full_paths),len(unannotated_images)))
-    print("Adding entries to CCT JSON file for Survey {0}".format(folder))
-    for image_name in tqdm(list(filenames_to_rows.keys())):
-        img_id = image_name.replace('\\','/').replace('/','_').replace(' ','_')
-        row_indices = filenames_to_rows[image_name]
+    print('Found {} unannotated images (of {}) in this folder'.format(
+            len(unannotated_images),len(image_relative_paths_this_folder)))
+    
+    
+    ##%% Create entries in CCT dictionaries
+    
+    print('Adding entries to CCT dictionary for folder {0}'.format(folder))
+    
+    image_relative_path = list(filenames_to_rows.keys())[0]
+    
+    for image_relative_path in tqdm(list(filenames_to_rows.keys())):
+        
+        img_id = image_relative_path.replace('\\','/').replace('/','_').replace(' ','_')
+        row_indices = filenames_to_rows[image_relative_path]
+        
+        # i_row = row_indices[0]
         for i_row in row_indices:
+            
             row = input_metadata.iloc[i_row]
-            assert(row['image_name'] == image_name)
-            timestamp = row['datetime']
-            location = row['survey_name']+ " "+row['camera_name']
+            assert(row['image_relative_path'] == image_relative_path)
+            timestamp = row['datetime']            
+            location = row['survey_name'] + '_' + row['camera_name']
+            
             if img_id in image_ids_to_images:
                 im = image_ids_to_images[img_id]
-                assert im['file_name'] == image_name
+                assert im['file_name'] == image_relative_path
                 assert im['location'] == location
             else:
                 im = {}
                 im['id'] = img_id
-                im['file_name'] = image_name
+                im['file_name'] = image_relative_path
                 im['datetime'] = timestamp
                 im['location'] = location
 
                 image_ids_to_images[img_id] = im
-                images.append(im)
-            species = row['species']
-        
+
+            species = row['species'].lower().strip().replace(' ','_')
+            
             if (isinstance(species,float) or \
                 (isinstance(species,str) and (len(species) == 0))):
                 category_name = 'empty'
             else:
                 category_name = species
+                
             category_name = category_name.strip().lower()
-            if category_name in category_name_to_category:
-                category_id = category_name_to_category[category_name]['id'] 
+            
+            common_name = row['common_name']
+            if isinstance(common_name,float) and np.isnan(common_name):
+                common_name = ''
             else:
+                common_name = str(common_name).lower().strip().replace(' ','_')
+            
+            for k,v in category_mappings.items():
+                common_name = common_name.replace(k,v)
+                category_name = category_name.replace(k,v)
+                
+            # If we've seen this category before...
+            if category_name in category_name_to_category:
+                
+                category = category_name_to_category[category_name]
+                category_id = category['id'] 
+                
+                # ...make sure it used the same latin --> common mapping
+                #
+                # If the previous instance had no mapping, use the new one.
+                if category['common_name'] == '':
+                    category['common_name'] = common_name
+                else:
+                    assert common_name == category['common_name']
+                    
+            else:
+                
                 category_id = next_category_id
                 category = {}
                 category['id'] = category_id
                 category['name'] = category_name
+                category['common_name'] = common_name
                 category_name_to_category[category_name] = category
-                categories.append(category)
                 next_category_id += 1
             
             # Create an annotation
@@ -180,8 +240,7 @@ for i_folder,folder in enumerate(folders):
             ann['id'] = str(uuid.uuid1())
             ann['image_id'] = im['id']    
             ann['category_id'] = category_id
-            
-            # fieldname = list(mapped_fields.keys())[0]
+                        
             for target_field in target_fields:
                 if target_field in input_metadata.columns:
                     val = row[target_field]
@@ -192,10 +251,14 @@ for i_folder,folder in enumerate(folders):
                     ann[target_field] = val
                 
             annotations.append(ann)
-e_time = time.time()
-elapsed_time = e_time - s_time
-print('Finished creating CCT dictionaries in {}'.format(
-      humanfriendly.format_timespan(elapsed_time)))
+
+        # ...for each annotation we found for this image
+            
+    # ...for each image
+             
+# ...for each dataset
+            
+print('Finished creating CCT dictionaries')
 
 #%% Create info struct
 
