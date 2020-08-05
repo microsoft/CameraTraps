@@ -79,7 +79,7 @@ def sanity_check_json_db(jsonFile, options=None):
     '''
     jsonFile can be a filename or an already-loaded json database
     
-    returns sortedCategories, data
+    return sortedCategories, data, errorInfo
     '''
     
     if options is None:   
