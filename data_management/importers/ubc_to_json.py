@@ -12,17 +12,17 @@
 
 #%% Constants and environment
 
-from visualization import visualize_db
-from data_management.databases import sanity_check_json_db
 import pandas as pd
 import os
 import json
 import uuid
-import time
-import humanfriendly
 import numpy as np
+import shutil
+
 from tqdm import tqdm
 
+from visualization import visualize_db
+from data_management.databases import sanity_check_json_db
 from path_utils import find_images
 
 input_base = r'e:\ubc'
@@ -52,7 +52,12 @@ mapped_fields = {"Survey.Name" : "survey_name",
 
 category_mappings = {
     'bird_spp.':'unknown_bird',
-    'unknown_spp':'unknown_species'
+    'dog_dog':'dog',
+    'hiker_hiker':'hiker',
+    'quad_quad':'quad',
+    'skier_skier':'skier',
+    'snowshoer_snowshoer':'showshoer',
+    'quad_quad':'quad'
     }
 
 target_fields = ['species_count','group_count','behaviour']
@@ -76,6 +81,7 @@ else:
     
 image_full_paths_set = set(image_full_paths)
 image_relative_paths = [os.path.relpath(fn,input_base) for fn in image_full_paths]
+image_relative_paths_set = set(image_relative_paths)
 
 
 #%% Create CCT dictionaries
@@ -88,6 +94,7 @@ category_name_to_category = {}
 empty_category = {}
 empty_category['name'] = 'empty'
 empty_category['id'] = 0
+empty_category['common_name'] = 'empty'
 category_name_to_category['empty'] = empty_category
 next_category_id = 1
 
@@ -99,13 +106,14 @@ folders = os.listdir(input_base)
 i_folder = 0; folder = folders[i_folder]; 
 
 
+
 ##%% Create CCT dictionaries (loop)
 
 for i_folder,folder in enumerate(folders):
-    
+        
     ##%% 
     
-    print('Processing folder {} of {}: {}'.format(i_folder,len(folders),folder))
+    print('\nProcessing folder {} of {}: {}'.format(i_folder,len(folders),folder))
     
     filenames_to_rows = {}
     filenames_with_multiple_annotations = []
@@ -123,16 +131,22 @@ for i_folder,folder in enumerate(folders):
     input_metadata.rename(columns=mapped_fields, inplace=True)
     print('Read {} columns and {} rows from metadata file'.format(len(input_metadata.columns), len(input_metadata)))
     
-    # Create relative path names from camera name and filename
     if folder.startswith("SC_"):
-        input_metadata['image_relative_path'] = input_metadata[['camera_name', 'filename']].apply(
-            lambda x: os.path.join(folder, x[0].lower(), x[1].replace(".JPG", ".jpg")), axis = 1)
+        # Folder name is the first two characters of the filename
+        #
+        # Create relative path names from the filename itself
+        input_metadata['image_relative_path'] = input_metadata['filename'].apply(
+            lambda x: os.path.join(folder, x[0:2], x.replace(".JPG", ".jpg")))
     else:
+        # Folder name is the camera name
+        #
+        # Create relative path names from camera name and filename    
         input_metadata['image_relative_path'] = input_metadata[['camera_name', 'filename']].apply(
             lambda x: os.path.join(folder, x[0], x[1]), axis = 1)
 
-    # i_row = 0; fn = input_metadata['image_relative_path'][i_row]
-    for i_row, image_relative_path in tqdm(enumerate(input_metadata['image_relative_path']), total=len(input_metadata)):
+    # Which of our images are in the spreadsheet?
+    # i_row = 0; fn = input_metadata['image_relative_path'][i_row]        
+    for i_row, image_relative_path in enumerate(input_metadata['image_relative_path']):
         
         if image_relative_path in filenames_to_rows:
             filenames_with_multiple_annotations.append(image_relative_path)
@@ -142,18 +156,23 @@ for i_folder,folder in enumerate(folders):
             image_full_path = os.path.join(input_base, image_relative_path)
             
             if not image_full_path in image_full_paths_set:
+                assert image_relative_path not in image_relative_paths_set
                 missing_images.append(image_full_path)
         
-    print('\nFinished verifying image existence for {} files, found {} filenames with multiple labels, {} missing images'.format(
-        len(filenames_to_rows), len(filenames_with_multiple_annotations), len(missing_images)))
+    print('Finished verifying image existence for {} files in {} rows\nFound {} filenames with multiple labels, {} missing images'.format(
+        len(input_metadata), len(filenames_to_rows), 
+        len(filenames_with_multiple_annotations), len(missing_images)))
     
     
     ##%% Check for images that aren't included in the metadata file
 
-    # Enumerate all images
+    # Find all the images in this folder
     image_relative_paths_this_folder = [s for s in image_relative_paths if s.startswith(folder)]
 
-    unannotated_images = [s for s in image_relative_paths_this_folder if s not in filenames_to_rows]
+    # Which of these aren't in the spreadsheet?
+    annotated_files_this_folder = list(filenames_to_rows.keys())
+    annotated_files_this_folder_set = set(annotated_files_this_folder)
+    unannotated_images = [s for s in image_relative_paths_this_folder if s not in annotated_files_this_folder_set]
 
     print('Found {} unannotated images (of {}) in this folder'.format(
             len(unannotated_images),len(image_relative_paths_this_folder)))
@@ -161,11 +180,13 @@ for i_folder,folder in enumerate(folders):
     
     ##%% Create entries in CCT dictionaries
     
-    print('Adding entries to CCT dictionary for folder {0}'.format(folder))
-    
     image_relative_path = list(filenames_to_rows.keys())[0]
     
-    for image_relative_path in tqdm(list(filenames_to_rows.keys())):
+    for image_relative_path in list(filenames_to_rows.keys()):
+        
+        # Only process images we have on disk
+        if image_relative_path not in image_relative_paths_set:
+            continue
         
         img_id = image_relative_path.replace('\\','/').replace('/','_').replace(' ','_')
         row_indices = filenames_to_rows[image_relative_path]
@@ -198,18 +219,24 @@ for i_folder,folder in enumerate(folders):
                 category_name = 'empty'
             else:
                 category_name = species
-                
+            del species
+            
             category_name = category_name.strip().lower()
             
             common_name = row['common_name']
             if isinstance(common_name,float) and np.isnan(common_name):
                 common_name = ''
             else:
-                common_name = str(common_name).lower().strip().replace(' ','_')
+                common_name = str(common_name).lower().strip().replace(', ',',').replace(' ','_')
             
             for k,v in category_mappings.items():
                 common_name = common_name.replace(k,v)
                 category_name = category_name.replace(k,v)
+            common_name = common_name.replace('.','').replace('spp','species')
+            category_name = category_name.replace('.','').replace('spp','species')
+                        
+            if category_name == 'passerine_species' and common_name != '' and common_name != 'passerine_species':
+                category_name = common_name
                 
             # If we've seen this category before...
             if category_name in category_name_to_category:
@@ -223,7 +250,10 @@ for i_folder,folder in enumerate(folders):
                 if category['common_name'] == '':
                     category['common_name'] = common_name
                 else:
-                    assert common_name == category['common_name']
+                    # assert common_name == category['common_name']
+                    if common_name != category['common_name']:
+                        print('Warning: common name {} used for species {}, previously {}'.format(
+                            common_name,category_name,category['common_name']))
                     
             else:
                 
@@ -260,15 +290,37 @@ for i_folder,folder in enumerate(folders):
             
 print('Finished creating CCT dictionaries')
 
+images = list(image_ids_to_images.values())
+categories = list(category_name_to_category.values())
+
+# Print all of our species mappings
+for c in categories:
+    print(c['name'].ljust(30) + c['common_name'])
+
+
 #%% Create info struct
 
 info = {}
 info['year'] = 2020
 info['version'] = 1
-info['description'] = 'UBC Funnel'
+info['description'] = 'UBC Camera Traps'
 info['contributor'] = 'UBC'
 
 
+#%% Copy images for which we actually have annotations to a new folder, lowercase everything
+
+# im = images[0]
+for im in tqdm(images):
+    relative_filename = im['file_name']
+    input_filename = os.path.join(input_base,relative_filename)
+    output_filename = os.path.join(output_base,relative_filename).lower()
+    os.makedirs(os.path.dirname(output_filename),exist_ok=True)
+    
+    shutil.copy(input_filename, output_filename)
+    im['file_name'] = im['file_name'].lower()
+    im['id'] = im['id'].lower()
+    
+    
 #%% Write output
 
 json_data = {}
@@ -284,7 +336,6 @@ print('Finished writing .json file with {} images, {} annotations, and {} catego
 
 #%% Validate output
 
-
 options = sanity_check_json_db.SanityCheckOptions()
 options.baseDir = input_base
 options.bCheckImageSizes = False
@@ -296,7 +347,6 @@ sortedCategories, data, errors = sanity_check_json_db.sanity_check_json_db(
 
 
 #%% Preview labels
-
 
 viz_options = visualize_db.DbVizOptions()
 viz_options.num_to_visualize = 1000
