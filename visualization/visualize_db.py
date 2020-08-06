@@ -261,7 +261,7 @@ def process_images(db_path,output_dir,image_base_dir,options=None):
         
         if not os.path.exists(img_path):
             print('Image {} cannot be found'.format(img_path))
-            return
+            return False
             
         try:
             original_image = vis_utils.open_image(img_path)
@@ -269,12 +269,13 @@ def process_images(db_path,output_dir,image_base_dir,options=None):
             image = vis_utils.resize_image(original_image, options.viz_size[0], options.viz_size[1])
         except Exception as e:
             print('Image {} failed to open. Error: {}'.format(img_path, e))
-            return
+            return False
             
         vis_utils.render_db_bounding_boxes(boxes=bboxes, classes=bboxClasses,
                                            image=image, original_size=original_size,
                                            label_map=label_map)
         image.save(os.path.join(output_dir, 'rendered_images', output_file_name))
+        return True
     
     # ...def render_image_info
     
@@ -286,13 +287,15 @@ def process_images(db_path,output_dir,image_base_dir,options=None):
         else:
             print('Rendering images with {} workers'.format(options.parallelize_rendering_n_cores))
             pool = ThreadPool(options.parallelize_rendering_n_cores)
-        tqdm(pool.imap(render_image_info, rendering_info), total=len(rendering_info))
+        rendering_success = tqdm(list(pool.imap(render_image_info, rendering_info)), total=len(rendering_info))
     else:
+        rendering_success = []
         for file_info in tqdm(rendering_info):        
-            render_image_info(file_info)
+            rendering_success.append(render_image_info(file_info))
     elapsed = time.time() - start_time
     
-    print('Rendered {} images in {}'.format(len(rendering_info),humanfriendly.format_timespan(elapsed)))
+    print('Rendered {} images in {} ({} successful)'.format(
+        len(rendering_info),humanfriendly.format_timespan(elapsed),sum(rendering_success)))
         
     if options.sort_by_filename:    
         images_html = sorted(images_html, key=lambda x: x['filename'])

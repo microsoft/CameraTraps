@@ -320,6 +320,12 @@ for im in tqdm(images):
     im['file_name'] = im['file_name'].lower()
     im['id'] = im['id'].lower()
     
+
+#%% Convert image IDs to lowercase in annotations
+    
+for ann in annotations:
+    ann['image_id'] = ann['image_id'].lower()
+    
     
 #%% Write output
 
@@ -357,7 +363,7 @@ viz_options.parallelize_rendering = True
 html_output_file, image_db = visualize_db.process_images(db_path=output_json_file,
                                                          output_dir=os.path.join(
                                                              output_base, 'preview'),
-                                                         image_base_dir=input_base,
+                                                         image_base_dir=output_base,
                                                          options=viz_options)
 # os.startfile(html_output_file)
 import subprocess, sys
