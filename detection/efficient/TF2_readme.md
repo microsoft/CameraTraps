@@ -4,7 +4,6 @@
 
 
 ### 1. Setup & Install requirements
-   # Clone the repo
    1. Add the TF2 Object detection repo by `git clone https://github.com/gitlost-murali/models.git`
    2. Setup conda environment
 
