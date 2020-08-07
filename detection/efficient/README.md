@@ -48,6 +48,15 @@ OR
 
 #### Commit histories
 
+
+    26th commit - Update: train.py & utils_/calc_eval.py: cleaning in train.py and threshold update in `calc_eval.py`.
+
+    25th commit - Update: train.py: Function to delete the saved that are accumulated over training.
+
+    24th commit - Update: train.py: Model will be saved based on AP score in contrast to the previous rule of loss. 
+
+    23rd commit - Cleaning_Update: `train.py` : Exact number of required images will be plotted now. Added worst-case scenario to `num_validation_steps`. Added `check_args` to raise exceptions or fix args.
+
     22nd commit - Documentation: `train.py` & `utils_/calc_eval.py` : Added references & cleaned the files. 
 
     21st commit - Added `plot_images` function in `train.py`.

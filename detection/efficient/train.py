@@ -315,6 +315,7 @@ class Efficient_camtrap:
 
         self.epoch = 0
         self.best_loss = 1e5
+        self.best_mAp_metric = -1
         self.best_epoch = 0
         self.step = max(0, last_step)
 
@@ -369,8 +370,10 @@ class Efficient_camtrap:
                         if iternum%int(self.num_iter_per_epoch*(opt.eval_percent_epoch/100)) == 0 and self.step > 0:
                             self.model.debug = True # For printing images
                             cls_loss, reg_loss, imgs_labelled = self.model(imgs, annot, obj_list=params.obj_list)
+                            # Plot a batch of images. Reduce to required number of images
+                            imgs_labelled = imgs_labelled[:opt.num_visualize_images]
                             # create a grid of training images for tensorboard
-                            img_grid = self.create_plot_images(imgs_labelled, nrow=2)
+                            img_grid = self.create_plot_images(imgs_labelled, nrow=4)
                             # write to tensorboard
                             self.writer.add_image('Training_images', img_grid, global_step=self.step)
 
@@ -414,7 +417,7 @@ class Efficient_camtrap:
                         self.step += 1
 
                         if self.step % opt.save_interval == 0 and self.step > 0:
-                            save_checkpoint(self.model, f'efficientdet-d{opt.compound_coef}_{epoch}_{self.step}.pth')
+                            save_checkpoint(self.model, f'efficientdet-d{opt.compound_coef}_{epoch}_{self.step}.pth', score = self.best_mAp_metric)
                             print('checkpoint...')
 
                     except Exception as exception:
@@ -423,11 +426,11 @@ class Efficient_camtrap:
                         continue
                 self.scheduler.step(np.mean(epoch_loss))
         except KeyboardInterrupt:
-            save_checkpoint(self.model, f'efficientdet-d{opt.compound_coef}_{epoch}_{self.step}.pth')
+            save_checkpoint(self.model, f'efficientdet-d{opt.compound_coef}_{epoch}_{self.step}.pth', score= self.best_mAp_metric)
             self.writer.close()
         self.writer.close()
 
-    def create_plot_images(self,imgs_labelled : List[float], nrow=2):
+    def create_plot_images(self,imgs_labelled : List[float], nrow=4):
         """
         Function:
             Convert the given images into a grid
@@ -469,7 +472,8 @@ class Efficient_camtrap:
         loss_classification_ls = []
         self.model.evalresults = [] # Empty the results for next evaluation.
         imgs_to_viz = []
-        num_validation_steps = int(self.num_val_iter_per_epoch*(opt.eval_sampling_percent/100))
+        # Avoid going through the whole validation dataset by sampling.
+        num_validation_steps = max(1, int(self.num_val_iter_per_epoch*(opt.eval_sampling_percent/100)))
         for valiternum, valdata in enumerate(self.val_generator):
             with torch.no_grad():
                 imgs = valdata['img'] # get images
@@ -483,19 +487,23 @@ class Efficient_camtrap:
                     imgs = imgs.cuda()
                     annot = annot.cuda()
 
-                # Below condition will make sure that we get only required no.of images to plot.
-                if valiternum%(num_validation_steps//(opt.num_visualize_images//opt.batch_size)) != 0:
-                    self.model.debug = False
-                    cls_loss, reg_loss, _ = self.model(imgs, annot, obj_list=params.obj_list,
-                                                       resizing_imgs_scales=resizing_imgs_scales,
-                                                       new_ws=new_ws, new_hs=new_hs, imgs_ids=imgs_ids)
-                else:
+                # Below condition will make sure that we get an approximation to required no.of images to plot.
+                plotting_intervals = (opt.num_visualize_images//opt.batch_size)
+                if plotting_intervals == 0: 
+                    plotting_intervals= 1
+                if valiternum%(num_validation_steps//plotting_intervals) == 0 and valiternum > 0:
                     self.model.debug = True
                     cls_loss, reg_loss, val_imgs_labelled = self.model(imgs, annot, obj_list=params.obj_list,
                                                                        resizing_imgs_scales=resizing_imgs_scales,
                                                                        new_ws=new_ws, new_hs=new_hs, imgs_ids=imgs_ids)
 
                     imgs_to_viz += list(val_imgs_labelled) #Keep appending the images
+
+                else:
+                    self.model.debug = False
+                    cls_loss, reg_loss, _ = self.model(imgs, annot, obj_list=params.obj_list,
+                                                       resizing_imgs_scales=resizing_imgs_scales,
+                                                       new_ws=new_ws, new_hs=new_hs, imgs_ids=imgs_ids)
 
                 loss_classification_ls.append(cls_loss.item())
                 loss_regression_ls.append(reg_loss.item())
@@ -514,8 +522,10 @@ class Efficient_camtrap:
         self.writer.add_scalars('Regression_loss', {'val': reg_loss}, step)
         self.writer.add_scalars('Classfication_loss', {'val': cls_loss}, step)
 
+        #Update your images to the required no of images
+        imgs_to_viz = imgs_to_viz[:opt.num_visualize_images]
         # create grid of images for tensorboard
-        val_img_grid = self.create_plot_images(imgs_to_viz, nrow=2)
+        val_img_grid = self.create_plot_images(imgs_to_viz, nrow=4)
         # write to tensorboard
         self.writer.add_image('Eval_Images', val_img_grid, \
                             global_step=(step))
@@ -524,22 +534,32 @@ class Efficient_camtrap:
         # with the val.json
         if opt.max_preds_toeval > 0:
             json.dump(self.model.evalresults, open(self.evaluation_pred_file, 'w'), indent=4)
+
+            mean_Ap_metric = -1
             try:
                 val_results = calc_mAP_fin(self.evaluation_pred_file, \
                                         val_gt=f'{opt.data_path}/{opt.project}/annotations/instances_{params.val_set}.json')
 
-                for catgname in val_results:
+                # print(val_results)
+                category_Ap_scores = [-1]*len(val_results)
+                for idx, catgname in enumerate(val_results):
                     metricname = 'Average Precision  (AP) @[ IoU = 0.50      | area =    all | maxDets = 100 ]'
                     evalscore = val_results[catgname][metricname]
+                    category_Ap_scores[idx] = evalscore
                     self.writer.add_scalars(f'mAP@IoU=0.5', {f'{catgname}': evalscore}, step)
+
+                #get a mean of category scores
+                mean_Ap_metric = sum(category_Ap_scores)/len(category_Ap_scores) 
+                
             except Exception as exption:
                 print("Unable to perform evaluation", exption)
 
-        if loss + opt.es_min_delta < self.best_loss:
-            self.best_loss = loss
+        # Update if meanAP score is at its best.
+        if mean_Ap_metric + opt.es_min_delta > self.best_mAp_metric:
+            self.best_mAp_metric = mean_Ap_metric
             self.best_epoch = epoch
 
-            save_checkpoint(self.model, f'efficientdet-d{opt.compound_coef}_{epoch}_{step}.pth')
+            save_checkpoint(self.model, f'efficientdet-d{opt.compound_coef}_{epoch}_{step}.pth', score = self.best_mAp_metric)
 
         # Early stopping
         if epoch - self.best_epoch > opt.es_patience > 0:
@@ -548,7 +568,7 @@ class Efficient_camtrap:
         else:
             return False
 
-def save_checkpoint(model:bytes, name:str):
+def save_checkpoint(model:bytes, name:str, score:float):
     """
     Save the model
     """
@@ -557,8 +577,62 @@ def save_checkpoint(model:bytes, name:str):
     else:
         torch.save(model.model.state_dict(), os.path.join(OPT.saved_path, name))
 
+    model_prefix=f'efficientdet-d{OPT.compound_coef}'
+    assert model_prefix in name, "Error calling clean_savedmodels() function. Model prefix doesn't match"
+    clean_savedmodels(model_prefix, os.path.join(OPT.saved_path, name), score)
 
+def check_args():
+    """
+    Make sure your params will not cause any errors.
+    """
+    assert OPT.eval_percent_epoch > 0, "Eval percent epoch must be greater than 0"
+
+
+def clean_savedmodels(model_prefix: str, model_path: str, score: float, topk=50):
+    """
+    Inputs:
+        :topk                 -> Best k models to keep. Rest everything will be deleted
+        :Prefix of the models -> efficientdet-d{opt.compound_coef}_ in efficientdet-d{opt.compound_coef}_{}_{}.pth
+    
+    Description:
+    
+        We call this function everytime we save a model. Main purpose of this function is to 
+        handle the overwhelmingly saved models over the training time. Keep only the best #k models 
+        and remove everything else.
+        
+        We maintain a json file in `opt.saved_path` with prefix name that will store all [[mAP, filename]], 
+        Example : [[0.1,'file1'],[0.05, 'file2'],[0.2,'file3']]
+        
+        Function: Sort based on mAP. sorted(a, key=lambda a:a[0])
+                  Remove everything except the top 50.
+                  Enter the new model into list and update the json file.
+
+    """
+    log_file = os.path.join(OPT.saved_path, f'{model_prefix}.json')
+    filelogs = []
+    toremovefiles = []
+    if os.path.exists(log_file):
+        with open(f'{log_file}','r') as fh: 
+            filelogs = json.load(fh)
+            filelogs = sorted(filelogs, key=lambda filelogs:filelogs[0], reverse=True)
+            if len(filelogs) > topk:
+                toremovefiles = filelogs[topk:] 
+                filelogs =  filelogs[:topk]#Update the filelogs
+
+            for _, filename in toremovefiles: # Everything except last k files
+                print(filename)
+                try:
+                    os.remove(filename)
+                except IOError:
+                    print(f'File {filename} not found')
+
+
+    filelogs = [[score, model_path]] + filelogs
+    with open(f'{log_file}','w') as fh:
+        json.dump(filelogs, fh)
+    
 if __name__ == '__main__':
     OPT = get_args()
+    check_args()
     efficient = Efficient_camtrap(OPT)
     efficient.train()

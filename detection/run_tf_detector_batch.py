@@ -38,6 +38,7 @@ import json
 import os
 import sys
 import time
+import copy
 import warnings
 import itertools
         
@@ -207,6 +208,34 @@ def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=No
     return results 
 
 
+def write_results_to_file(results, output_file, relative_path_base=None):
+    '''
+    Write the list of detection results in *results* to the .json file 
+    *output_file*, optionally making filenames relative to *relative_path_base*.
+    '''
+    
+    if relative_path_base is not None:
+        results_relative = []
+        for r in results:
+            r_relative = copy.copy(r)
+            r_relative['file'] = os.path.relpath(r_relative['file'], start=relative_path_base)
+            results_relative.append(r_relative)
+        results = results_relative
+
+    final_output = {
+        'images': results,
+        'detection_categories': TFDetector.DEFAULT_DETECTOR_LABEL_MAP,
+        'info': {
+            'detection_completion_time': datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'),
+            'format_version': '1.0'
+        }
+    }
+    with open(output_file, 'w') as f:
+        json.dump(final_output, f, indent=1)
+    print('Output file saved at {}'.format(output_file))
+
+    
+
 #%% Command-line driver
 
 def main():
@@ -331,22 +360,11 @@ def main():
     elapsed = time.time() - start_time
     print('Finished inference in {}'.format(humanfriendly.format_timespan(elapsed)))
 
+    relative_path_base = None
     if args.output_relative_filenames:
-        for r in results:
-            r['file'] = os.path.relpath(r['file'], start=args.image_file)
-
-    final_output = {
-        'images': results,
-        'detection_categories': TFDetector.DEFAULT_DETECTOR_LABEL_MAP,
-        'info': {
-            'detection_completion_time': datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'),
-            'format_version': '1.0'
-        }
-    }
-    with open(args.output_file, 'w') as f:
-        json.dump(final_output, f, indent=1)
-    print('Output file saved at {}'.format(args.output_file))
-
+        relative_path_base = args.image_file
+    write_results_to_file(results, args.output_file, relative_path_base=relative_path_base)
+    
     if checkpoint_path:
         os.remove(checkpoint_path)
         print('Deleted checkpoint file')
