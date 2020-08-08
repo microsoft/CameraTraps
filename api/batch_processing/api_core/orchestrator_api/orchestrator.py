@@ -4,6 +4,7 @@ import os
 from collections import defaultdict, OrderedDict
 from datetime import datetime, timedelta
 import json
+from typing import Any, Dict, Mapping, Optional, Sequence, Tuple
 
 import azureml.core
 from azure.storage.blob import BlockBlobService, BlobPermissions
@@ -32,17 +33,17 @@ svc_pr = ServicePrincipalAuthentication(
 
 # %% Utility functions
 
-def get_utc_time():
-    # return the current UTC time in string format '2019-05-19 08:57:43'
+def get_utc_time() -> str:
+    # return current UTC time in string format, e.g., '2019-05-19 08:57:43'
     return datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
 
 
-def get_utc_timestamp():
-    # return current UTC time in succinct format as a string, e.g. '20190519085759'
+def get_utc_timestamp() -> str:
+    # return current UTC time in succinct string format, e.g., '20190519085759'
     return datetime.utcnow().strftime("%Y%m%d%H%M%S")
 
 
-def get_task_status(request_status, message):
+def get_task_status(request_status: str, message: Any) -> Dict[str, Any]:
     return {
         'request_status': request_status,
         'time': get_utc_time(),
@@ -56,8 +57,10 @@ def check_data_container_sas(sas_uri):
     return None
 
 
-def spot_check_blob_paths_exist(paths, container_sas, metadata_available):
-    ''' Check that the first blob in paths exists in the container specified in container_sas.
+def spot_check_blob_paths_exist(paths: Sequence[Any], container_sas: str,
+                                metadata_available: bool) -> Optional[str]:
+    """Check that the first blob in paths exists in the container specified in
+    container_sas.
 
     Args:
         paths: A list of blob paths in the container
@@ -65,12 +68,13 @@ def spot_check_blob_paths_exist(paths, container_sas, metadata_available):
         metadata_available: paths will contain items that are [image_id, metadata] instead of just image_id
     Returns:
         None if no problem found. Return the image_path if it does not exist in the container specified
-    '''
+    """
     if len(paths) == 0:  # redundant check...
         return None
 
     path = paths[0][0] if metadata_available else paths[0]
-    if SasBlob.check_blob_exists_in_container(path, container_sas_uri=container_sas):
+    if SasBlob.check_blob_exists_in_container(path,
+                                              container_sas_uri=container_sas):
         return None
     return path
 
@@ -225,13 +229,27 @@ class AMLCompute:
 
         return internal_dir, output_dir
 
-    def submit_jobs(self, list_jobs, api_task_manager, num_images):
+    def submit_jobs(self, list_jobs: Dict[str, Dict[str, int]],
+                    api_task_manager: Any, num_images: int
+                    ) -> Dict[str, Dict[str, Any]]:
+        """
+        Args:
+            list_jobs: dict, maps job_id (str) to {'begin': begin, 'end': end}
+                where begin and end refer to job numbers
+            api_task_manager: task_management.api_task.TaskManager
+                see ai4e_api_tools
+            num_images: int
+
+        Returns: dict, copy of list_jobs, with an added key 'pipeline_run'
+            added to each nested job dict
+        """
         try:
             print('AMLCompute, submit_jobs() called.')
             list_jobs_active = copy.deepcopy(list_jobs)
 
             for i, (job_id, job) in enumerate(list_jobs.items()):
-                pipeline_run = Experiment(self.ws, job_id).submit(self.pipeline, pipeline_params={
+                exp = Experiment(self.ws, job_id)
+                pipeline_run = exp.submit(self.pipeline, pipeline_params={
                     'param_job_id': job_id,
                     'param_begin_index': job['begin'],
                     'param_end_index': job['end'],
@@ -255,25 +273,33 @@ class AMLCompute:
                 #     child_run_id = c.id
                 # print('=' * 20)
 
-                # list_jobs_active[job_id]['step_run_id']  = child_run_id  # this is the ID we can identify the output folder with
+                # this is the ID we can identify the output folder with
+                # list_jobs_active[job_id]['step_run_id'] = child_run_id
 
-                print('Submitted job {}.'.format(job_id))
+                print(f'Submitted job {job_id}.')
 
                 if i % api_config.JOB_SUBMISSION_UPDATE_INTERVAL == 0:
-                    api_task_manager.UpdateTaskStatus(self.request_id, get_task_status('running',
-                                                                                  '{} images out of total {} submitted for processing.'.format(
-                                                                                      i * api_config.NUM_IMAGES_PER_JOB,
-                                                                                      num_images)))
+                    num_submitted = i * api_config.NUM_IMAGES_PER_JOB
+                    task_status = get_task_status(
+                        'running',
+                        f'{num_submitted} images out of total {num_images} '
+                        'submitted for processing.')
+                    api_task_manager.UpdateTaskStatus(
+                        self.request_id, task_status)
             print('AMLCompute, submit_jobs() finished.')
             return list_jobs_active
         except Exception as e:
-            raise RuntimeError('Error in submitting jobs to AML Compute cluster: {}.'.format(str(e)))
+            raise RuntimeError('Error in submitting jobs to AML Compute '
+                               f'cluster: {e}.')
 
 
 # %% AML Monitor
 
 class AMLMonitor:
-    def __init__(self, request_id, shortened_request_id, list_jobs_submitted, request_name, request_submission_timestamp, model_version):
+    def __init__(self, request_id: str, shortened_request_id: str,
+                 list_jobs_submitted: Mapping[str, Mapping[str, Any]],
+                 request_name: str, request_submission_timestamp: str,
+                 model_version: str):
         self.request_id = request_id
         self.shortened_request_id = shortened_request_id
         self.jobs_submitted = list_jobs_submitted
@@ -283,8 +309,8 @@ class AMLMonitor:
 
         storage_account_name = os.getenv('STORAGE_ACCOUNT_NAME')
         storage_account_key = os.getenv('STORAGE_ACCOUNT_KEY')
-        self.internal_storage_service = BlockBlobService(account_name=storage_account_name,
-                                                         account_key=storage_account_key)
+        self.internal_storage_service = BlockBlobService(
+            account_name=storage_account_name, account_key=storage_account_key)
         self.internal_datastore = {
             'account_name': storage_account_name,
             'account_key': storage_account_key,
@@ -293,22 +319,24 @@ class AMLMonitor:
         self.aml_output_container = api_config.AML_CONTAINER
         self.internal_container = api_config.INTERNAL_CONTAINER
 
-    def get_total_jobs(self):
+    def get_total_jobs(self) -> int:
         return len(self.jobs_submitted)
 
-    def check_job_status(self):
+    def check_job_status(self) -> Tuple[bool, Dict[str, int]]:
         print('AMLMonitor, check_job_status() called.')
         all_jobs_finished = True
-        status_tally = defaultdict(int)
+        status_tally: Dict[str, int] = defaultdict(int)
 
         for job_id, job in self.jobs_submitted.items():
             pipeline_run = job['pipeline_run']
             status = pipeline_run.get_status()  # common values returned include Running, Completed, and Failed - March 19 apparently Finished is the enumeration
 
-            print('request_id {}, job_id {}, status is {}'.format(self.request_id, job_id, status))
+            print(f'request_id {self.request_id}, job_id {job_id}, status is '
+                  f'{status}')
             status_tally[status] += 1
 
-            if status not in api_config.AML_CONFIG['completed_status']:  # else all_job_finished will not be flipped
+            # else all_job_finished will not be flipped
+            if status not in api_config.AML_CONFIG['completed_status']:
                 all_jobs_finished = False
 
         return all_jobs_finished, status_tally
