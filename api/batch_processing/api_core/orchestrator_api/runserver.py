@@ -1,15 +1,16 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+from datetime import datetime
 import json
 import math
 import os
-import time
-from datetime import datetime
 from random import shuffle
 import string
+import threading
+import time
+from typing import Any, Dict, Mapping
 import urllib.parse
-from typing import Any, Dict
 
 from flask import Flask, request, make_response, jsonify, Response
 from azure.storage.blob import BlockBlobService
@@ -25,8 +26,8 @@ from sas_blob_utils import SasBlob  # file in this directory, not the ai4eutil r
 print('Creating application')
 
 api_prefix = os.getenv('API_PREFIX')
+print('API prefix:', api_prefix)
 assert api_prefix is not None
-print('API prefix: ', api_prefix)
 
 app = Flask(__name__)
 
@@ -60,6 +61,22 @@ internal_datastore = {
 }
 print(f'Internal storage container {internal_container} in account '
       f'{storage_account_name} is set up.')
+
+task_status_lock = threading.Lock()
+
+
+def update_task_status(task_manager: Any, request_id: str,
+                       task_status: Mapping[str, Any]) -> None:
+    """Thread-safe wrapper around api_task_manager.UpdateTaskStatus().
+
+    Args:
+        task_manager: task_management.api_task.TaskManager
+            see ai4e_api_tools
+        request_id: str
+        task_status: dict
+    """
+    with task_status_lock:
+        task_manager.UpdateTaskStatus(request_id, task_status)
 
 
 def _abort(error_code: int, error_message: str) -> Response:
@@ -128,7 +145,8 @@ def request_detections() -> Response:
 
     # TODO check images_requested_json_sas is a blob not a container
 
-    task_info = api_task_manager.AddTask(request)
+    with task_status_lock:
+        task_info = api_task_manager.AddTask(request)
     request_id = str(task_info['TaskId'])
 
     # HACK hacking the API Framework a bit because we want to return a JSON with
@@ -179,7 +197,7 @@ def _request_detections(**kwargs: Any) -> None:
         request_id = kwargs['request_id']
         task_status = orchestrator.get_task_status(
             'running', 'Request received.')
-        api_task_manager.UpdateTaskStatus(request_id, task_status)
+        update_task_status(api_task_manager, request_id, task_status)
         print(f'runserver.py, request_id {request_id}, '
               f'model_version {model_version}, model_name {model_name}, '
               f'request_name {request_name}, '
@@ -194,7 +212,7 @@ def _request_detections(**kwargs: Any) -> None:
             metadata_available = False
             task_status = orchestrator.get_task_status(
                 'running', 'Listing all images to process.')
-            api_task_manager.UpdateTaskStatus(request_id, task_status)
+            update_task_status(api_task_manager, request_id, task_status)
             print('runserver.py, running - listing all images to process.')
 
             # list all images to process
@@ -214,7 +232,7 @@ def _request_detections(**kwargs: Any) -> None:
             if len(image_paths) == 0:
                 task_status = orchestrator.get_task_status(
                     'completed', '0 images found in provided list of images.')
-                api_task_manager.UpdateTaskStatus(request_id, task_status)
+                update_task_status(api_task_manager, request_id, task_status)
                 return
 
             error, metadata_available = orchestrator.validate_provided_image_paths(image_paths)
@@ -281,7 +299,7 @@ def _request_detections(**kwargs: Any) -> None:
                 'completed',
                 'Zero images found in container or in provided list of images '
                 'after filtering with the provided parameters.')
-            api_task_manager.UpdateTaskStatus(request_id, task_status)
+            update_task_status(api_task_manager, request_id, task_status)
             return
         if num_images > api_config.MAX_NUMBER_IMAGES_ACCEPTED:
             task_status = orchestrator.get_task_status(
@@ -289,7 +307,7 @@ def _request_detections(**kwargs: Any) -> None:
                 f'The number of images ({num_images}) requested for processing '
                 'exceeds the maximum accepted '
                 f'({api_config.MAX_NUMBER_IMAGES_ACCEPTED}) in one call.')
-            api_task_manager.UpdateTaskStatus(request_id, task_status)
+            update_task_status(api_task_manager, request_id, task_status)
             return
 
         # finalized image_paths is uploaded to internal_container; all sharding
@@ -303,7 +321,7 @@ def _request_detections(**kwargs: Any) -> None:
 
         task_status = orchestrator.get_task_status(
             'running', f'Images listed; processing {num_images} images.')
-        api_task_manager.UpdateTaskStatus(request_id, task_status)
+        update_task_status(api_task_manager, request_id, task_status)
         print(f'runserver.py, running - images listed; processing {num_images} '
               'images.')
 
@@ -341,12 +359,12 @@ def _request_detections(**kwargs: Any) -> None:
         task_status = orchestrator.get_task_status(
             'running',
             f'All {num_images} images submitted to cluster for processing.')
-        api_task_manager.UpdateTaskStatus(request_id, task_status)
+        update_task_status(api_task_manager, request_id, task_status)
 
     except Exception as e:
         task_status = orchestrator.get_task_status(
             'failed', f'An error occurred while processing the request: {e}')
-        api_task_manager.UpdateTaskStatus(request_id, task_status)
+        update_task_status(api_task_manager, request_id, task_status)
         print(f'runserver.py, exception in _request_detections: {e}')
         return  # do not initiate _monitor_detections_request
 
@@ -377,7 +395,7 @@ def _request_detections(**kwargs: Any) -> None:
             'An error occurred when starting the status monitoring process. '
             'The images should be submitted for processing though - please '
             f'contact us to retrieve your results. Error: {e}')
-        api_task_manager.UpdateTaskStatus(request_id, task_status)
+        update_task_status(api_task_manager, request_id, task_status)
         print('runserver.py, exception when starting orchestrator.AMLMonitor: '
               f'{e}')
 
@@ -433,7 +451,7 @@ def _monitor_detections_request(**kwargs: Any) -> None:
                 task_status = orchestrator.get_task_status(
                     'running',
                     'Model inference finished; now aggregating results.')
-                api_task_manager.UpdateTaskStatus(request_id, task_status)
+                update_task_status(api_task_manager, request_id, task_status)
 
                 # retrieve and join the output CSVs from each job, with retries
                 try:
@@ -452,8 +470,8 @@ def _monitor_detections_request(**kwargs: Any) -> None:
                             'All shards finished but results aggregation '
                             'failed. Will retry in '
                             f'{api_config.MONITOR_PERIOD_MINUTES} minutes.')
-                        api_task_manager.UpdateTaskStatus(request_id,
-                                                          task_status)
+                        update_task_status(api_task_manager, request_id,
+                                           task_status)
                         continue
 
                     print('Number of retries reached for '
@@ -466,7 +484,7 @@ def _monitor_detections_request(**kwargs: Any) -> None:
                     'output_file_urls': output_file_urls
                 }
                 task_status = orchestrator.get_task_status('completed', message)
-                api_task_manager.UpdateTaskStatus(request_id, task_status)
+                update_task_status(api_task_manager, request_id, task_status)
                 break
 
             # not all jobs are finished, update the status with number of shards
@@ -476,7 +494,7 @@ def _monitor_detections_request(**kwargs: Any) -> None:
                 f'Last status check at {orchestrator.get_utc_time()}, '
                 f'{num_finished} out of {aml_monitor.get_total_jobs()} shards '
                 f'finished processing, {num_failed} failed.')
-            api_task_manager.UpdateTaskStatus(request_id, task_status)
+            update_task_status(api_task_manager, request_id, task_status)
 
             # not all jobs are finished but the maximum number of checking cycle
             # is reached, stop this thread
@@ -488,7 +506,7 @@ def _monitor_detections_request(**kwargs: Any) -> None:
                     f'x {api_config.MONITOR_PERIOD_MINUTES} minutes; '
                     'abandoning the monitoring thread. Please contact us to '
                     'retrieve any results.')
-                api_task_manager.UpdateTaskStatus(request_id, task_status)
+                update_task_status(api_task_manager, request_id, task_status)
                 print('runserver.py, _monitor_detections_request, ending!')
                 break
 
@@ -498,7 +516,7 @@ def _monitor_detections_request(**kwargs: Any) -> None:
             'An error occurred while monitoring the status of this request. '
             'The images should be processing though - please contact us to '
             f'retrieve your results. Error: {e}')
-        api_task_manager.UpdateTaskStatus(request_id, task_status)
+        update_task_status(api_task_manager, request_id, task_status)
         print('runserver.py, exception in _monitor_detections_request(): ', e)
     # maybe not needed?
     # finally:
