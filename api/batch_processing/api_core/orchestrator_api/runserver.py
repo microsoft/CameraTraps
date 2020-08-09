@@ -51,6 +51,8 @@ ai4e_service.func_request_counts[api_prefix + '/request_detections_aml'] = 0
 # results and files
 storage_account_name = os.getenv('STORAGE_ACCOUNT_NAME')
 storage_account_key = os.getenv('STORAGE_ACCOUNT_KEY')
+assert storage_account_name is not None
+assert storage_account_key is not None
 internal_storage_service = BlockBlobService(
     account_name=storage_account_name, account_key=storage_account_key)
 internal_container = api_config.INTERNAL_CONTAINER
@@ -407,8 +409,12 @@ def _monitor_detections_request(**kwargs: Any) -> None:
 
         max_num_checks = api_config.MAX_MONITOR_CYCLES
         num_checks = 0
-        num_errors_job_status = 0  # errors encountered during aml_monitor.check_job_status()
-        num_errors_aggregation = 0  # number of errors encountered during aml_monitor.aggregate_results()
+
+        # errors encountered during aml_monitor.check_job_status()
+        num_errors_job_status = 0
+
+        # errors encountered during aml_monitor.aggregate_results()
+        num_errors_aggregation = 0
 
         print('Monitoring thread with _monitor_detections_request started.')
 
@@ -520,7 +526,8 @@ def _monitor_detections_request(**kwargs: Any) -> None:
         print('runserver.py, exception in _monitor_detections_request(): ', e)
     # maybe not needed?
     # finally:
-    #     ai4e_service.func_request_counts[api_prefix + '/request_detections_aml'] -= 1
+    #     url = api_prefix + '/request_detections_aml'
+    #     ai4e_service.func_request_counts[url] -= 1
 
 
 # for the following sync end points, we use the ai4e_service decorator instead
