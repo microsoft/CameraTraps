@@ -50,10 +50,13 @@ def get_task_status(request_status: str, message: Any) -> Dict[str, Any]:
         'message': message
     }
 
-def check_data_container_sas(sas_uri):
+def check_data_container_sas(sas_uri: str) -> Optional[Tuple[int, str]]:
+    """Checks whether a given sas_uri has both read and list permissions."""
     permissions = SasBlob.get_permissions_from_uri(sas_uri)
     if 'read' not in permissions or 'list' not in permissions:
-        return (400, 'input_container_sas provided does not have both read and list permissions.')
+        msg = ('input_container_sas provided does not have both read and list '
+               'permissions.')
+        return (400, msg)
     return None
 
 
@@ -63,11 +66,17 @@ def spot_check_blob_paths_exist(paths: Sequence[Any], container_sas: str,
     container_sas.
 
     Args:
-        paths: A list of blob paths in the container
-        container_sas: Azure blob storage SAS token to a container where the paths are supposed to be in
-        metadata_available: paths will contain items that are [image_id, metadata] instead of just image_id
+        paths: list of blob paths (str) in the container if
+            metadata_available=False, or a list of [image_id, metadata] if
+            metadata_available=True
+        container_sas: str, Azure blob storage URI with SAS token to a container
+            where the paths are supposed to be in
+        metadata_available: bool, if true, then paths will contain items that
+            are [image_id, metadata] instead of just image_id
+
     Returns:
-        None if no problem found. Return the image_path if it does not exist in the container specified
+        None if no problem found. Return the image_path if it does not exist in
+        the container specified
     """
     if len(paths) == 0:  # redundant check...
         return None
@@ -79,35 +88,44 @@ def spot_check_blob_paths_exist(paths: Sequence[Any], container_sas: str,
     return path
 
 
-def validate_provided_image_paths(image_paths):
-    ''' Given a list of image_paths (list length at least 1), validate them and determine if metadata is available.
+def validate_provided_image_paths(image_paths: Sequence[Any]
+                                  ) -> Tuple[Optional[str], bool]:
+    """Given a list of image_paths (list length at least 1), validate them and
+    determine if metadata is available.
 
     Args:
-        image_paths: a list of string (image_id) or a list of 2-item lists ([image_id, image_metadata])
+        image_paths: a list of string (image_id) or a list of 2-item lists
+            ([image_id, image_metadata])
 
     Returns:
-        error: None if checks passed; a string message indicating the problem otherwise
+        error: None if checks passed, otherwise a string error message
         metadata_available: bool, True if available
-    '''
-    # image_paths will have length at least 1, otherwise would have ended before this step
+    """
+    # image_paths will have length at least 1, otherwise would have ended before
+    # this step
     first_item = image_paths[0]
     metadata_available = False
     if isinstance(first_item, str):
         for i in image_paths:
             if not isinstance(i, str):
-                return 'Not all items in image_paths supplied is of type string.', metadata_available
+                error = 'Not all items in image_paths are of type string.'
+                return error, metadata_available
         return None, metadata_available
     elif isinstance(first_item, list):
         metadata_available = True
         for i in image_paths:
             if len(i) != 2:  # i should be [image_id, metadata_string]
-                return 'Items in image_paths are lists, but not all lists are of length 2 [image locator, metadata].', metadata_available
+                error = ('Items in image_paths are lists, but not all lists '
+                         'are of length 2 [image locator, metadata].')
+                return error, metadata_available
         return None, metadata_available
     else:
-        return 'image_paths contain items that are not strings nor lists.', metadata_available
+        error = 'image_paths contain items that are not strings nor lists.'
+        return error, metadata_available
 
 
-def sort_image_paths(image_paths, metadata_available):
+def sort_image_paths(image_paths: Sequence[Any], metadata_available: bool
+                     ) -> Sequence[Any]:
     if len(image_paths) == 0:  # redundant check...
         return image_paths
 
@@ -120,7 +138,9 @@ def sort_image_paths(image_paths, metadata_available):
 # %% AML Compute
 
 class AMLCompute:
-    def __init__(self, request_id, use_url, input_container_sas, internal_datastore, model_name):
+    def __init__(self, request_id: str, use_url: bool,
+                 input_container_sas: Optional[str],
+                 internal_datastore: Mapping[str, str], model_name: str):
         try:
             self.request_id = request_id
 
@@ -134,98 +154,114 @@ class AMLCompute:
             )
             print('AMLCompute constructor, AML workspace obtained.')
 
-            internal_dir, output_dir = self._get_data_references(request_id, internal_datastore)
+            internal_dir, output_dir = self._get_data_references(
+                request_id, internal_datastore)
 
-            compute_target = self.ws.compute_targets[aml_config['aml_compute_name']]
+            aml_compute_name = aml_config['aml_compute_name']
+            compute_target = self.ws.compute_targets[aml_compute_name]
 
-            dependencies = CondaDependencies.create(pip_packages=['tensorflow-gpu==1.12.0',
-                                                                  'pillow',
-                                                                  'numpy',
-                                                                  'azure-storage-blob==2.1.0',
-                                                                  'azureml-defaults==1.0.41'])
+            pip_packages = ['tensorflow-gpu==1.12.0',
+                            'pillow',
+                            'numpy',
+                            'azure-storage-blob==2.1.0',
+                            'azureml-defaults==1.0.41']
+            dependencies = CondaDependencies.create(pip_packages=pip_packages)
 
-            amlcompute_run_config = RunConfiguration(conda_dependencies=dependencies)
+            amlcompute_run_config = RunConfiguration(
+                conda_dependencies=dependencies)
             amlcompute_run_config.environment.docker.enabled = True
             amlcompute_run_config.environment.docker.gpu_support = True
-            amlcompute_run_config.environment.docker.base_image = DEFAULT_GPU_IMAGE
+            amlcompute_run_config.environment.docker.base_image = DEFAULT_GPU_IMAGE  # pylint: disable=line-too-long
             amlcompute_run_config.environment.spark.precache_packages = False
 
-            # default values are required and need to be literal values or data references as JSON
-            param_job_id = PipelineParameter(name='param_job_id', default_value='default_job_id')
+            # default values are required and need to be literal values or data
+            # references as JSON
+            param_job_id = PipelineParameter(
+                name='param_job_id', default_value='default_job_id')
+            param_begin_index = PipelineParameter(
+                name='param_begin_index', default_value=0)
+            param_end_index = PipelineParameter(
+                name='param_end_index', default_value=0)
+            param_detection_threshold = PipelineParameter(
+                name='param_detection_threshold', default_value=0.05)
 
-            param_begin_index = PipelineParameter(name='param_begin_index', default_value=0)
-            param_end_index = PipelineParameter(name='param_end_index', default_value=0)
-
-            param_detection_threshold = PipelineParameter(name='param_detection_threshold', default_value=0.05)
-
-            batch_score_step = PythonScriptStep(aml_config['script_name'],
-                                                source_directory=aml_config['source_dir'],
-                                                hash_paths=['.'],  # include all contents of source_directory
-                                                name='batch_scoring',
-                                                arguments=['--job_id', param_job_id,
-                                                           '--request_id', request_id,
-                                                           '--model_name', model_name,
-                                                           '--input_container_sas', input_container_sas,  # can be None
-                                                           '--use_url', use_url,
-                                                           '--internal_dir', internal_dir,
-                                                           '--begin_index', param_begin_index,  # inclusive
-                                                           '--end_index', param_end_index,  # exclusive
-                                                           '--output_dir', output_dir,
-                                                           '--detection_threshold', param_detection_threshold],
-                                                compute_target=compute_target,
-                                                inputs=[internal_dir],
-                                                outputs=[output_dir],
-                                                runconfig=amlcompute_run_config
-                                                )
-            self.pipeline = Pipeline(workspace=self.ws, steps=[batch_score_step])
+            batch_score_step = PythonScriptStep(
+                aml_config['script_name'],
+                source_directory=aml_config['source_dir'],
+                hash_paths=['.'],  # include all contents of source_directory
+                name='batch_scoring',
+                arguments=[
+                    '--job_id', param_job_id,
+                    '--request_id', request_id,
+                    '--model_name', model_name,
+                    '--input_container_sas', input_container_sas,  # can be None
+                    '--use_url', use_url,
+                    '--internal_dir', internal_dir,
+                    '--begin_index', param_begin_index,  # inclusive
+                    '--end_index', param_end_index,  # exclusive
+                    '--output_dir', output_dir,
+                    '--detection_threshold', param_detection_threshold],
+                compute_target=compute_target,
+                inputs=[internal_dir],
+                outputs=[output_dir],
+                runconfig=amlcompute_run_config)
+            self.pipeline = Pipeline(
+                workspace=self.ws, steps=[batch_score_step])
             self.aml_config = aml_config
             print('AMLCompute constructor all good.')
         except Exception as e:
-            raise RuntimeError('Error in setting up AML Compute resource: {}.'.format(str(e)))
+            raise RuntimeError(f'Error setting up AML Compute resource: {e}.')
 
     def _get_data_references(self, request_id, internal_datastore):
-        print('AMLCompute, _get_data_references() called. Request ID: {}'.format(request_id))
-        # Argument Datastore Name needs to: only contain alphanumeric characters and _.
+        print('AMLCompute, _get_data_references() called. Request ID: '
+              f'{request_id}')
+        # Argument Datastore Name can only contain alphanumeric characters and _
         request_id_to_use_for_datastore = request_id.replace('-', '_')
         try:
-            # setting the overwrite flag to True overwrites any datastore that was created previously with that name
+            # setting the overwrite flag to True overwrites any datastore that
+            # was created previously with that name
 
-            # internal_datastore stores all user-facing files: list of images, detection results, list of failed images
-            # and it so happens that each job also needs the list of images as an input
-            internal_datastore_name = 'internal_datastore_{}'.format(request_id_to_use_for_datastore)
+            # internal_datastore stores all user-facing files: list of images,
+            # detection results, list of failed images
+            # and it so happens that each job also needs the list of images as
+            # an input
+            internal_datastore_name = (
+                f'internal_datastore_{request_id_to_use_for_datastore}')
             internal_account_name = internal_datastore['account_name']
             internal_account_key = internal_datastore['account_key']
             internal_container_name = internal_datastore['container_name']
-            internal_datastore = Datastore.register_azure_blob_container(self.ws, internal_datastore_name,
-                                                                         internal_container_name,
-                                                                         internal_account_name,
-                                                                         account_key=internal_account_key)
+            internal_datastore = Datastore.register_azure_blob_container(
+                self.ws, internal_datastore_name, internal_container_name,
+                internal_account_name, account_key=internal_account_key)
             print('internal_datastore done')
 
-            # output_datastore stores the output from score.py in each job, which is another container
-            # in the same storage account as interl_datastore
-            output_datastore_name = 'output_datastore_{}'.format(request_id_to_use_for_datastore)
+            # output_datastore stores the output from score.py in each job,
+            # which is another container in the same storage account as
+            # interl_datastore
+            output_datastore_name = (
+                f'output_datastore_{request_id_to_use_for_datastore}')
             output_container_name = api_config.AML_CONTAINER
-            output_datastore = Datastore.register_azure_blob_container(self.ws, output_datastore_name,
-                                                                       output_container_name,
-                                                                       internal_account_name,
-                                                                       account_key=internal_account_key)
+            output_datastore = Datastore.register_azure_blob_container(
+                self.ws, output_datastore_name, output_container_name,
+                internal_account_name, account_key=internal_account_key)
             print('output_datastore done')
 
         except Exception as e:
-            raise RuntimeError('Error in connecting to the datastores for AML Compute: {}'.format(str(e)))
+            raise RuntimeError(
+                f'Error in connecting to the datastores for AML Compute: {e}')
 
         try:
             internal_dir = DataReference(datastore=internal_datastore,
                                          data_reference_name='internal_dir',
                                          mode='mount')
 
-            output_dir = PipelineData('output_{}'.format(request_id_to_use_for_datastore),
-                                      datastore=output_datastore,
-                                      output_mode='mount')
+            output_dir = PipelineData(
+                f'output_{request_id_to_use_for_datastore}',
+                datastore=output_datastore, output_mode='mount')
             print('Finished setting up the Data References.')
         except Exception as e:
-            raise RuntimeError('Error in creating data references for AML Compute: {}.'.format(str(e)))
+            raise RuntimeError(
+                f'Error in creating data references for AML Compute: {e}.')
 
         return internal_dir, output_dir
 
@@ -253,7 +289,8 @@ class AMLCompute:
                     'param_job_id': job_id,
                     'param_begin_index': job['begin'],
                     'param_end_index': job['end'],
-                    'param_detection_threshold': self.aml_config['param_detection_threshold'],
+                    'param_detection_threshold':
+                        self.aml_config['param_detection_threshold'],
                 })
                 list_jobs_active[job_id]['pipeline_run'] = pipeline_run
 
@@ -261,7 +298,9 @@ class AMLCompute:
                 # child_run_id = None
                 # print('pipeline_run:', pipeline_run)
                 # for child_run in pipeline_run.get_children():
-                #     child_run_id = child_run.id  # we can do this because there's only one step in the pipeline - not working
+                #     # we can do this because there's only one step in the
+                #     # pipeline - not working
+                #     child_run_id = child_run.id
                 #
                 # print('=' * 20)
                 # exp = Experiment(self.ws, job_id)
@@ -329,7 +368,10 @@ class AMLMonitor:
 
         for job_id, job in self.jobs_submitted.items():
             pipeline_run = job['pipeline_run']
-            status = pipeline_run.get_status()  # common values returned include Running, Completed, and Failed - March 19 apparently Finished is the enumeration
+
+            # common values returned include Running, Completed, and Failed
+            # - March 19 apparently Finished is the enumeration
+            status = pipeline_run.get_status()
 
             print(f'request_id {self.request_id}, job_id {job_id}, status is '
                   f'{status}')
@@ -341,8 +383,9 @@ class AMLMonitor:
 
         return all_jobs_finished, status_tally
 
-    def _download_read_json(self, blob_path):
-        blob = self.internal_storage_service.get_blob_to_text(self.aml_output_container, blob_path)
+    def _download_read_json(self, blob_path: str) -> Any:
+        blob = self.internal_storage_service.get_blob_to_text(
+            self.aml_output_container, blob_path)
         stream = io.StringIO(blob.content)
         result = json.load(stream)
         return result
@@ -351,66 +394,81 @@ class AMLMonitor:
         try:
             request_id = self.request_id
             shortened_request_id = self.shortened_request_id
-            request_name, request_submission_timestamp = self.request_name, self.request_submission_timestamp
+            request_name = self.request_name
+            request_submission_timestamp = self.request_submission_timestamp
 
             blob_paths = {
-                'detections': '{}/{}_detections_{}_{}.json'.format(request_id, shortened_request_id,
-                                                                   request_name, request_submission_timestamp),
-                'failed_images': '{}/{}_failed_images_{}_{}.json'.format(request_id, shortened_request_id,
-                                                                         request_name, request_submission_timestamp),
-                # list of images do not have request_name and timestamp in the file name so score.py can locate it easily
-                'images': '{}/{}_images.json'.format(request_id, request_id)
+                'detections': '{}/{}_detections_{}_{}.json'.format(
+                    request_id, shortened_request_id, request_name,
+                    request_submission_timestamp),
+                'failed_images': '{}/{}_failed_images_{}_{}.json'.format(
+                    request_id, shortened_request_id, request_name,
+                    request_submission_timestamp),
+                # list of images do not have request_name and timestamp in the
+                # file name so score.py can locate it easily
+                'images': f'{request_id}/{request_id}_images.json'
             }
 
-            expiry = datetime.utcnow() + timedelta(days=api_config.EXPIRATION_DAYS)
+            expiry = datetime.utcnow() + timedelta(
+                days=api_config.EXPIRATION_DAYS)
 
             urls = {}
             for output, blob_path in blob_paths.items():
-                sas = self.internal_storage_service.generate_blob_shared_access_signature(
-                    self.internal_container, blob_path, permission=BlobPermissions.READ, expiry=expiry
-                )
-                url = self.internal_storage_service.make_blob_url(self.internal_container, blob_path, sas_token=sas)
+                sas = self.internal_storage_service.generate_blob_shared_access_signature(  # pylint: disable=line-too-long
+                    self.internal_container, blob_path,
+                    permission=BlobPermissions.READ, expiry=expiry)
+                url = self.internal_storage_service.make_blob_url(
+                    self.internal_container, blob_path, sas_token=sas)
                 urls[output] = url
             return urls
         except Exception as e:
-            raise RuntimeError('An error occurred while generating URLs for the output files. ' +
-                               'Please contact us to retrieve your results. ' +
-                               'Error: {}'.format(str(e)))
+            raise RuntimeError(
+                'An error occurred while generating URLs for the output files. '
+                'Please contact us to retrieve your results. '
+                f'Error: {e}')
 
     def aggregate_results(self):
         print('AMLMonitor, aggregate_results() called')
 
-        # The more efficient method is to know the run_id which is the folder name that the result is written to.
-        # Since we can't reliably get the run_id after submitting the run, resort to listing all blobs in the output
+        # The more efficient method is to know the run_id which is the folder
+        # name that the result is written to.
+        # Since we can't reliably get the run_id after submitting the run,
+        # resort to listing all blobs in the output
         # container and match by the shortened_request_id
 
-        # listing all (up to a large limit) because don't want to worry about generator next_marker
+        # listing all (up to a large limit) because don't want to worry about
+        # generator next_marker
         datastore_aml_container = copy.deepcopy(self.internal_datastore)
         datastore_aml_container['container_name'] = self.aml_output_container
-        list_blobs = SasBlob.list_blobs_in_container(api_config.MAX_BLOBS_IN_OUTPUT_CONTAINER,
-                                                     datastore=datastore_aml_container,
-                                                     blob_suffix='.json')
+        list_blobs = SasBlob.list_blobs_in_container(
+            api_config.MAX_BLOBS_IN_OUTPUT_CONTAINER,
+            datastore=datastore_aml_container, blob_suffix='.json')
         all_detections = []
         failures = []
         num_aggregated = 0
         for blob_path in list_blobs:
             if blob_path.endswith('.json'):
-                # blob_path is azureml/run_id/output_requestID/out_file_name.json
+                # blob_path has format
+                #       azureml/run_id/output_requestID/out_file_name.json
                 out_file_name = blob_path.split('/')[-1]
 
-                # the output file names are "detections_[job_id].json" and "failures_[job_id].json"
-                if out_file_name.startswith('detections_r{}_'.format(self.shortened_request_id)):
+                # the output file names are "detections_[job_id].json" and
+                # "failures_[job_id].json"
+                detections_prefix = f'detections_r{self.shortened_request_id}_'
+                failures_prefix = f'failures_r{self.shortened_request_id}_'
+                if out_file_name.startswith(detections_prefix):
                     all_detections.extend(self._download_read_json(blob_path))
                     num_aggregated += 1
-                    print('Number of results aggregated: ', num_aggregated)
-                elif out_file_name.startswith('failures_r{}_'.format(self.shortened_request_id)):
+                    print('Number of results aggregated:', num_aggregated)
+                elif out_file_name.startswith(failures_prefix):
                     failures.extend(self._download_read_json(blob_path))
 
-        print('aggregate_results(), length of all_detections: {}'.format(len(all_detections)))
+        print('aggregate_results(), length of all_detections:',
+              len(all_detections))
 
         detection_output_content = {
             'info': {
-                'detector': 'megadetector_v{}'.format(self.model_version),
+                'detector': f'megadetector_v{self.model_version}',
                 'detection_completion_time': get_utc_time(),
                 'format_version': api_config.OUTPUT_FORMAT_VERSION
             },
@@ -419,27 +477,30 @@ class AMLMonitor:
         }
         # order the json output keys
         detection_output_content = OrderedDict([
-                                                ('info', detection_output_content['info']),
-                                                ('detection_categories', detection_output_content['detection_categories']),
-                                                ('images', detection_output_content['images'])])
+            ('info', detection_output_content['info']),
+            ('detection_categories', detection_output_content['detection_categories']),  # pylint: disable=line-too-long
+            ('images', detection_output_content['images'])
+        ])
 
         detection_output_str = json.dumps(detection_output_content, indent=1)
 
         # upload aggregated results to output_store
-        self.internal_storage_service.create_blob_from_text(self.internal_container,
-                                                            '{}/{}_detections_{}_{}.json'.format(
-                                                                self.request_id, self.shortened_request_id,
-                                                                self.request_name, self.request_submission_timestamp),
-                                                            detection_output_str, max_connections=4)
+        self.internal_storage_service.create_blob_from_text(
+            self.internal_container,
+            '{}/{}_detections_{}_{}.json'.format(
+                self.request_id, self.shortened_request_id, self.request_name,
+                self.request_submission_timestamp),
+            detection_output_str, max_connections=4)
         print('aggregate_results(), detections uploaded')
 
-        print('aggregate_results(), number of failed images: {}'.format(len(failures)))
+        print('aggregate_results(), number of failed images:', len(failures))
         failures_str = json.dumps(failures, indent=1)
-        self.internal_storage_service.create_blob_from_text(self.internal_container,
-                                                            '{}/{}_failed_images_{}_{}.json'.format(
-                                                                self.request_id, self.shortened_request_id,
-                                                                self.request_name, self.request_submission_timestamp),
-                                                            failures_str)
+        self.internal_storage_service.create_blob_from_text(
+            self.internal_container,
+            '{}/{}_failed_images_{}_{}.json'.format(
+                self.request_id, self.shortened_request_id, self.request_name,
+                self.request_submission_timestamp),
+            failures_str)
         print('aggregate_results(), failures uploaded')
 
         output_file_urls = self._generate_urls_for_outputs()
