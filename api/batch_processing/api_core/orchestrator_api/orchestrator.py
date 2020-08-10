@@ -40,7 +40,7 @@ def get_utc_time() -> str:
 
 def get_utc_timestamp() -> str:
     # return current UTC time in succinct string format, e.g., '20190519085759'
-    return datetime.utcnow().strftime("%Y%m%d%H%M%S")
+    return datetime.utcnow().strftime('%Y%m%d%H%M%S')
 
 
 def get_task_status(request_status: str, message: Any) -> Dict[str, Any]:
@@ -56,7 +56,7 @@ def check_data_container_sas(sas_uri: str) -> Optional[Tuple[int, str]]:
     if 'read' not in permissions or 'list' not in permissions:
         msg = ('input_container_sas provided does not have both read and list '
                'permissions.')
-        return (400, msg)
+        return 400, msg
     return None
 
 
@@ -210,11 +210,10 @@ class AMLCompute:
             self.aml_config = aml_config
             print('AMLCompute constructor all good.')
         except Exception as e:
-            raise RuntimeError(f'Error setting up AML Compute resource: {e}.')
+            raise RuntimeError('Error setting up AML Compute resource: {}.'.format(e))
 
     def _get_data_references(self, request_id, internal_datastore):
-        print('AMLCompute, _get_data_references() called. Request ID: '
-              f'{request_id}')
+        print('AMLCompute, _get_data_references() called. Request ID: {}'.format(request_id))
         # Argument Datastore Name can only contain alphanumeric characters and _
         request_id_to_use_for_datastore = request_id.replace('-', '_')
         try:
@@ -226,7 +225,7 @@ class AMLCompute:
             # and it so happens that each job also needs the list of images as
             # an input
             internal_datastore_name = (
-                f'internal_datastore_{request_id_to_use_for_datastore}')
+                'internal_datastore_{}'.format(request_id_to_use_for_datastore))
             internal_account_name = internal_datastore['account_name']
             internal_account_key = internal_datastore['account_key']
             internal_container_name = internal_datastore['container_name']
@@ -239,7 +238,7 @@ class AMLCompute:
             # which is another container in the same storage account as
             # interl_datastore
             output_datastore_name = (
-                f'output_datastore_{request_id_to_use_for_datastore}')
+                'output_datastore_{}'.format(request_id_to_use_for_datastore))
             output_container_name = api_config.AML_CONTAINER
             output_datastore = Datastore.register_azure_blob_container(
                 self.ws, output_datastore_name, output_container_name,
@@ -248,7 +247,7 @@ class AMLCompute:
 
         except Exception as e:
             raise RuntimeError(
-                f'Error in connecting to the datastores for AML Compute: {e}')
+                'Error in connecting to the datastores for AML Compute: {}'.format(e))
 
         try:
             internal_dir = DataReference(datastore=internal_datastore,
@@ -256,12 +255,12 @@ class AMLCompute:
                                          mode='mount')
 
             output_dir = PipelineData(
-                f'output_{request_id_to_use_for_datastore}',
+                'output_{}'.format(request_id_to_use_for_datastore),
                 datastore=output_datastore, output_mode='mount')
             print('Finished setting up the Data References.')
         except Exception as e:
             raise RuntimeError(
-                f'Error in creating data references for AML Compute: {e}.')
+                'Error in creating data references for AML Compute: {}.'.format(e))
 
         return internal_dir, output_dir
 
@@ -315,21 +314,19 @@ class AMLCompute:
                 # this is the ID we can identify the output folder with
                 # list_jobs_active[job_id]['step_run_id'] = child_run_id
 
-                print(f'Submitted job {job_id}.')
+                print('Submitted job {}.'.format(job_id))
 
                 if i % api_config.JOB_SUBMISSION_UPDATE_INTERVAL == 0:
                     num_submitted = i * api_config.NUM_IMAGES_PER_JOB
                     task_status = get_task_status(
                         'running',
-                        f'{num_submitted} images out of total {num_images} '
-                        'submitted for processing.')
+                        '{} images out of total {} submitted for processing.'.format(num_submitted, num_images))
                     api_task_manager.UpdateTaskStatus(
                         self.request_id, task_status)
             print('AMLCompute, submit_jobs() finished.')
             return list_jobs_active
         except Exception as e:
-            raise RuntimeError('Error in submitting jobs to AML Compute '
-                               f'cluster: {e}.')
+            raise RuntimeError('Error in submitting jobs to AML Compute cluster: {}'.format(e))
 
 
 # %% AML Monitor
@@ -364,7 +361,8 @@ class AMLMonitor:
     def check_job_status(self) -> Tuple[bool, Dict[str, int]]:
         print('AMLMonitor, check_job_status() called.')
         all_jobs_finished = True
-        status_tally: Dict[str, int] = defaultdict(int)
+        # status_tally: Dict[str, int] = defaultdict(int)
+        status_tally = defaultdict(int)
 
         for job_id, job in self.jobs_submitted.items():
             pipeline_run = job['pipeline_run']
@@ -373,8 +371,7 @@ class AMLMonitor:
             # - March 19 apparently Finished is the enumeration
             status = pipeline_run.get_status()
 
-            print(f'request_id {self.request_id}, job_id {job_id}, status is '
-                  f'{status}')
+            print('request_id {}, job_id {}, status is {}'.format(self.request_id, job_id, status))
             status_tally[status] += 1
 
             # else all_job_finished will not be flipped
@@ -406,7 +403,7 @@ class AMLMonitor:
                     request_submission_timestamp),
                 # list of images do not have request_name and timestamp in the
                 # file name so score.py can locate it easily
-                'images': f'{request_id}/{request_id}_images.json'
+                'images': '{}/{}_images.json'.format(request_id, request_id)
             }
 
             expiry = datetime.utcnow() + timedelta(
@@ -425,7 +422,7 @@ class AMLMonitor:
             raise RuntimeError(
                 'An error occurred while generating URLs for the output files. '
                 'Please contact us to retrieve your results. '
-                f'Error: {e}')
+                'Error: {}'.format(e))
 
     def aggregate_results(self):
         print('AMLMonitor, aggregate_results() called')
@@ -454,8 +451,8 @@ class AMLMonitor:
 
                 # the output file names are "detections_[job_id].json" and
                 # "failures_[job_id].json"
-                detections_prefix = f'detections_r{self.shortened_request_id}_'
-                failures_prefix = f'failures_r{self.shortened_request_id}_'
+                detections_prefix = 'detections_r{}_'.format(self.shortened_request_id)
+                failures_prefix = 'failures_r{}_'.format(self.shortened_request_id)
                 if out_file_name.startswith(detections_prefix):
                     all_detections.extend(self._download_read_json(blob_path))
                     num_aggregated += 1
@@ -468,7 +465,7 @@ class AMLMonitor:
 
         detection_output_content = {
             'info': {
-                'detector': f'megadetector_v{self.model_version}',
+                'detector': 'megadetector_v{}'.format(self.model_version),
                 'detection_completion_time': get_utc_time(),
                 'format_version': api_config.OUTPUT_FORMAT_VERSION
             },
