@@ -25,7 +25,7 @@ gunicorn -b 0.0.0.0:1212 runserver:app
 
 To upload the Docker image:
 ```bash
-sudo az acr login --name name_of_registry
+sudo az acr login --name <name_of_registry>
 
 sudo docker push $IMAGE_NAME
 ```
