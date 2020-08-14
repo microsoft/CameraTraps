@@ -365,7 +365,4 @@ html_output_file, image_db = visualize_db.process_images(db_path=output_json_fil
                                                              output_base, 'preview'),
                                                          image_base_dir=output_base,
                                                          options=viz_options)
-# os.startfile(html_output_file)
-import subprocess, sys
-opener ="open" if sys.platform == "darwin" else "xdg-open"
-subprocess.call([opener, html_output_file])
+os.startfile(html_output_file)
