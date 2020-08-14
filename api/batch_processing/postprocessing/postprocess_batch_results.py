@@ -451,7 +451,7 @@ def process_batch_results(options: PostProcessingOptions
 
     ground_truth_indexed_db = None
 
-    if len(options.ground_truth_json_file) > 0:
+    if (options.ground_truth_json_file is not None) and (len(options.ground_truth_json_file) > 0):
 
         assert (not options.separate_detections_by_category), (
             "I don't know how to separate categories yet when doing a P/R analysis")
