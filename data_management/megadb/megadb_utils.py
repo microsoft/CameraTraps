@@ -75,7 +75,7 @@ class MegadbUtils:
 
     def query_sequences_table(
             self, query: str, partition_key: Optional[str] = None,
-            parameters: Optional[List[Mapping[str, Any]]] = None
+            parameters: Optional[List[Dict[str, Any]]] = None
         ) -> List[Dict[str, Any]]:
         """
         Args:
