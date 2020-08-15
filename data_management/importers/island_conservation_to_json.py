@@ -13,6 +13,7 @@ import uuid
 import datetime
 import shutil
 import zipfile
+import pandas as pd
 
 from PIL import Image
 from tqdm import tqdm
@@ -31,7 +32,11 @@ input_dir_base = r'e:\island-conservation\20200529drop'
 input_dir_json = os.path.join(
     input_dir_base, 'IC_AI4Earth_2019_timelapse_by_project')
 
+# Dictionary mapping original island names to obfuscated names
 island_name_mapping_file = os.path.join(input_dir_base,'island_name_mappings.csv')
+
+# List of images that have not been reviewed by a human
+images_not_reviewed_file = os.path.join(input_dir_base,'IC_AI4E_2019_images_not_reviewed.csv')
 
 assert(os.path.isdir(input_dir_base))
 assert(os.path.isdir(input_dir_json))
@@ -92,6 +97,20 @@ with open(island_name_mapping_file, mode='r') as f:
 
 image_full_paths = find_images(input_dir_base, recursive=True)
 print('Enumerated {} images from {}'.format(len(image_full_paths),input_dir_base))
+
+
+#%% Load list of non-reviewed images
+
+df = pd.read_csv(images_not_reviewed_file)
+
+non_reviewed_filenames = []
+for i_row,row in df.iterrows():
+    non_reviewed_filenames.append(os.path.join(row['folder'],row['filename']).lower().replace('\\','/'))
+
+non_reviewed_filenames_set = set(non_reviewed_filenames)
+
+print('Enumerated {} non-reviewed filenames ({} unique)'.\
+      format(len(non_reviewed_filenames),len(non_reviewed_filenames_set)))
 
 
 #%% Rename files for obfuscation
@@ -239,7 +258,11 @@ for json_file in json_files:
     #
     # IC_AI4Earth_2019_timelapse_Cabritos.json
     
-    dataset_folder = json_file.split('.')[0].replace('IC_AI4Earth_2019_timelapse_', '').lower()
+    # Store the non-obfuscated folder name, we need this to check against the non-reviewed image list
+    dataset_folder_original = json_file.split('.')[0].replace('IC_AI4Earth_2019_timelapse_', '').lower()
+    
+    # Otherwise we work on the obfuscated folder name
+    dataset_folder = dataset_folder_original
     for k, v in island_name_mappings.items():
         dataset_folder = dataset_folder.replace(k, v)
     
@@ -250,10 +273,18 @@ for json_file in json_files:
     
     categories_this_dataset = data['detection_categories']
     
-    # entry = data['images'][0]
+    # i_entry = 0; entry = data['images'][i_entry]
+    #
+    # PERF: Not exactly trivially parallelizable, but about 100% of the 
+    # time here is spent reading image sizes (which we need to do to get from 
+    # absolute to relative coordinates), so worth parallelizing.
     for i_entry,entry in enumerate(tqdm(data['images'])):
         
         image_path_relative_to_dataset = entry['file']
+        
+        original_filename = os.path.join(dataset_folder_original,image_path_relative_to_dataset).lower().replace('\\','/')
+        
+        reviewed_image = (original_filename not in non_reviewed_filenames_set)
         
         image_relative_path = os.path.join(dataset_folder, image_path_relative_to_dataset).lower().replace('\\','/')
         
@@ -270,6 +301,7 @@ for json_file in json_files:
         all_image_ids.add(image_id)
         
         im = {}
+        im['reviewed'] = reviewed_image
         im['id'] = image_id
         im['file_name'] = image_relative_path
         image_full_path = os.path.join(output_dir_images, image_relative_path)
@@ -313,7 +345,7 @@ for json_file in json_files:
             ann['id'] = str(uuid.uuid1())
             ann['image_id'] = im['id']    
             ann['category_id'] = category_id
-            ann['conf'] = detection['conf']
+            
             if category_id != 0:
                 ann['bbox'] = detection['bbox']
                 # MegaDetector: [x,y,width,eight] (normalized, origin upper-left)
@@ -336,7 +368,11 @@ for json_file in json_files:
             
 print('Finished creating CCT dictionaries')
 
+reviewed_images = [im for im in images if im['reviewed']]
+print('Found {} reviewed images (of {} total in .json files, {} total on disk)'.format(
+    len(reviewed_images),len(images),len(image_full_paths)))
 
+    
 #%% Create info struct
 
 info = dict()
