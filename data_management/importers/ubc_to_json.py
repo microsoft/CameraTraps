@@ -223,7 +223,7 @@ for i_folder,folder in enumerate(folders):
                     # These generally represent zero-byte images in this data set, don't try
                     # to find the very small handful that might be other kinds of failures we 
                     # might want to keep around.
-                    print('Error opening image {}'.format(image_relative_path))
+                    # print('Error opening image {}'.format(image_relative_path))
                     invalid_images.append(image_relative_path)
                     continue
                 
