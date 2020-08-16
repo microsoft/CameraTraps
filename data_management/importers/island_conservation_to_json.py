@@ -368,11 +368,21 @@ for json_file in json_files:
             
 print('Finished creating CCT dictionaries')
 
+# Remove non-reviewed images and associated annotations
+
+#%%
+
 reviewed_images = [im for im in images if im['reviewed']]
+
+reviewed_image_ids = set([im['id'] for im in reviewed_images])
+
+reviewed_annotations = [ann for ann in annotations if ann['image_id'] in reviewed_image_ids]
+
 print('Found {} reviewed images (of {} total in .json files, {} total on disk)'.format(
     len(reviewed_images),len(images),len(image_full_paths)))
+print('{} of {} annotations refer to reviewed images'.format(len(reviewed_annotations),
+                                                             len(annotations)))
 
-    
 #%% Create info struct
 
 info = dict()
@@ -384,17 +394,26 @@ info['contributor'] = 'Conservation Metrics and Island Conservation'
 
 #%% Write .json output
 
+for im in images:
+    del im['reviewed']
+    
 categories = list(category_name_to_category.values())
 
 json_data = {}
-json_data['images'] = images
-json_data['annotations'] = annotations
+
+json_data['images'] = reviewed_images
+json_data['annotations'] = reviewed_annotations
 json_data['categories'] = categories
 json_data['info'] = info
 json.dump(json_data, open(output_json_file, 'w'), indent=2)
 
 print('Finished writing .json file with {} images, {} annotations, and {} categories'.format(
     len(images), len(annotations), len(categories)))
+
+
+#%% Clean start
+
+### Everything after this should work from a clean start ###
 
 
 #%% Validate output
@@ -408,18 +427,37 @@ options.bFindUnusedImages = False
 sorted_categories, data, errors = sanity_check_json_db.sanity_check_json_db(fn, options)
 
 
-#%% Preview labels
+#%% Preview animal labels
 
 viz_options = visualize_db.DbVizOptions()
-viz_options.num_to_visualize = 2000
+viz_options.num_to_visualize = 3000
 viz_options.trim_to_images_with_bboxes = False
-viz_options.classes_to_exclude = ['empty']
+viz_options.classes_to_exclude = ['empty','human']
+# viz_options.classes_to_include = ['human']
 viz_options.add_search_links = False
 viz_options.sort_by_filename = False
 viz_options.parallelize_rendering = True
 html_output_file, image_db = visualize_db.process_images(db_path=output_json_file,
                                                          output_dir=os.path.join(
-                                                             output_dir_base, 'preview'),
+                                                             output_dir_base, 'preview_animals'),
+                                                         image_base_dir=output_dir_images,
+                                                         options=viz_options)
+os.startfile(html_output_file)
+
+
+#%% Preview empty labels
+
+viz_options = visualize_db.DbVizOptions()
+viz_options.num_to_visualize = 3000
+viz_options.trim_to_images_with_bboxes = False
+# viz_options.classes_to_exclude = ['empty','human']
+viz_options.classes_to_include = ['empty']
+viz_options.add_search_links = False
+viz_options.sort_by_filename = False
+viz_options.parallelize_rendering = True
+html_output_file, image_db = visualize_db.process_images(db_path=output_json_file,
+                                                         output_dir=os.path.join(
+                                                             output_dir_base, 'preview_empty'),
                                                          image_base_dir=output_dir_images,
                                                          options=viz_options)
 os.startfile(html_output_file)
@@ -516,3 +554,74 @@ zipdir(non_human_dir,non_human_zipfile,non_human_dir)
 print('Done creating zipfiles')
 
 
+#%% Scrap
+
+if False:
+    
+    pass
+
+    #%% Generate human-only .json file
+
+    with open(output_json_file,'r') as f:
+        data = json.load(f)
+    
+    images = data['images']
+    categories = data['categories']
+    annotations = data['annotations']
+    
+    human_cat_id = None
+    for cat in categories:
+        if cat['name'] == 'human':
+            human_cat_id = cat['id']
+    assert human_cat_id
+    
+    human_image_ids = set()
+    human_annotations = []
+    
+    for ann in annotations:
+        if ann['category_id'] == human_cat_id:
+            human_image_ids.add(ann['image_id'])
+            human_annotations.append(ann)
+                
+    human_images = [im for im in images if im['id'] in human_image_ids]
+    
+    json_data = {}
+    json_data['images'] = human_images
+    json_data['annotations'] = human_annotations
+    json_data['categories'] = categories
+    json_data['info'] = info
+    output_json_file_human = output_json_file.replace('.json','.human.json')
+    json.dump(json_data, open(output_json_file_human, 'w'), indent=2)
+    
+    print('Finished writing .json file with {} images, {} annotations, and {} categories'.format(
+        len(images), len(annotations), len(categories)))
+    
+    
+    ##%% Validate output
+    
+    fn = output_json_file_human
+    options = sanity_check_json_db.SanityCheckOptions()
+    options.baseDir = output_dir_images
+    options.bCheckImageSizes = False
+    options.bCheckImageExistence = False
+    options.bFindUnusedImages = False
+    sorted_categories, data, errors = sanity_check_json_db.sanity_check_json_db(fn, options)
+    
+    
+    ##%% Preview labels
+    
+    viz_options = visualize_db.DbVizOptions()
+    viz_options.num_to_visualize = 3000
+    viz_options.trim_to_images_with_bboxes = False
+    # viz_options.classes_to_exclude = ['empty']
+    viz_options.classes_to_include = ['human']
+    viz_options.add_search_links = False
+    viz_options.sort_by_filename = False
+    viz_options.parallelize_rendering = True
+    html_output_file, image_db = visualize_db.process_images(db_path=output_json_file_human,
+                                                             output_dir=os.path.join(
+                                                                 output_dir_base, 'preview_human'),
+                                                             image_base_dir=output_dir_images,
+                                                             options=viz_options)
+    os.startfile(html_output_file)
+    
