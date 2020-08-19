@@ -50,7 +50,7 @@ os.makedirs(output_dir_images, exist_ok=True)
 output_json_file = os.path.join(output_dir_base, 'island_conservation.json')
 
 human_dir = os.path.join(output_dir_base, 'human')
-non_human_dir = os.path.join(output_dir_base, 'non-human')
+non_human_dir = os.path.join(output_dir_base, 'public')
 
 human_zipfile = os.path.join(output_dir_base, 'island_conservation_camera_traps_humans.zip')
 non_human_zipfile = os.path.join(output_dir_base, 'island_conservation_camera_traps.zip')
@@ -560,6 +560,25 @@ if False:
     
     pass
 
+    #%% Count human images
+
+    human_cat_id = None
+    for cat in categories:
+        if cat['name'] == 'human':
+            human_cat_id = cat['id']
+    assert human_cat_id
+    
+    human_image_ids = set()
+    human_annotations = []
+    
+    for ann in annotations:
+        if ann['category_id'] == human_cat_id:
+            human_image_ids.add(ann['image_id'])
+            human_annotations.append(ann)
+    
+    print('Found {} human images'.format(len(human_image_ids)))
+    
+
     #%% Generate human-only .json file
 
     with open(output_json_file,'r') as f:
@@ -585,18 +604,19 @@ if False:
                 
     human_images = [im for im in images if im['id'] in human_image_ids]
     
+    print('Found {} human images'.format(len(human_images)))
+    
     json_data = {}
     json_data['images'] = human_images
     json_data['annotations'] = human_annotations
     json_data['categories'] = categories
-    json_data['info'] = info
+    json_data['info'] = data['info']
     output_json_file_human = output_json_file.replace('.json','.human.json')
     json.dump(json_data, open(output_json_file_human, 'w'), indent=2)
     
     print('Finished writing .json file with {} images, {} annotations, and {} categories'.format(
         len(images), len(annotations), len(categories)))
-    
-    
+        
     ##%% Validate output
     
     fn = output_json_file_human
@@ -607,6 +627,7 @@ if False:
     options.bFindUnusedImages = False
     sorted_categories, data, errors = sanity_check_json_db.sanity_check_json_db(fn, options)
     
+    #%%
     
     ##%% Preview labels
     
