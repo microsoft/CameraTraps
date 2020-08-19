@@ -321,15 +321,6 @@ print('Finished creating CCT dictionaries, loaded {} images of {} total on disk 
     len(images), len(image_relative_paths_set), len(invalid_images)))
 
 
-#%% Create info struct
-
-info = {}
-info['year'] = 2020
-info['version'] = 1
-info['description'] = 'UBC Camera Traps'
-info['contributor'] = 'UBC'
-
-
 #%% Copy images for which we actually have annotations to a new folder, lowercase everything
 
 # im = images[0]
@@ -344,12 +335,27 @@ for im in tqdm(images):
     im['id'] = im['id'].lower()
     
 
-#%% Convert image IDs to lowercase in annotations
+#%% Create info struct
+
+info = {}
+info['year'] = 2020
+info['version'] = 1
+info['description'] = 'UBC Camera Traps'
+info['contributor'] = 'UBC'
+
+
+#%% Convert image IDs to lowercase in annotations, tag as sequence level
+
+# While there isn't any sequence information, the nature of false positives
+# here leads me to believe the images were labeled at the sequence level, so
+# we should trust labels more when positives are verified.  Overall false
+# positive rate looks to be between 1% and 5%.
     
 for ann in annotations:
     ann['image_id'] = ann['image_id'].lower()
-    
-    
+    ann['sequence_level_annotation'] = True
+
+
 #%% Write output
 
 json_data = {}
@@ -366,10 +372,10 @@ print('Finished writing .json file with {} images, {} annotations, and {} catego
 #%% Validate output
 
 options = sanity_check_json_db.SanityCheckOptions()
-options.baseDir = input_base
+options.baseDir = output_base
 options.bCheckImageSizes = False
 options.bCheckImageExistence = False
-options.bFindUnusedImages = False
+options.bFindUnusedImages = True
 
 sortedCategories, data, errors = sanity_check_json_db.sanity_check_json_db(
     output_json_file, options)
@@ -378,7 +384,7 @@ sortedCategories, data, errors = sanity_check_json_db.sanity_check_json_db(
 #%% Preview labels
 
 viz_options = visualize_db.DbVizOptions()
-viz_options.num_to_visualize = 1000
+viz_options.num_to_visualize = 2000
 viz_options.trim_to_images_with_bboxes = False
 viz_options.add_search_links = True
 viz_options.sort_by_filename = False
