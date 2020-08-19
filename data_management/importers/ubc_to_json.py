@@ -20,6 +20,7 @@ import numpy as np
 import shutil
 
 from tqdm import tqdm
+from PIL import Image
 
 from visualization import visualize_db
 from data_management.databases import sanity_check_json_db
@@ -106,8 +107,9 @@ folders = os.listdir(input_base)
 i_folder = 0; folder = folders[i_folder]; 
 
 
-
 ##%% Create CCT dictionaries (loop)
+
+invalid_images = []
 
 for i_folder,folder in enumerate(folders):
         
@@ -188,6 +190,12 @@ for i_folder,folder in enumerate(folders):
         if image_relative_path not in image_relative_paths_set:
             continue
         
+        image_full_path = os.path.join(input_base,image_relative_path)
+        
+        # This is redundant, but doing this for clarity, at basically no performance
+        # cost since we need to *read* the images below to check validity.
+        assert os.path.isfile(image_full_path)
+        
         img_id = image_relative_path.replace('\\','/').replace('/','_').replace(' ','_')
         row_indices = filenames_to_rows[image_relative_path]
         
@@ -205,6 +213,20 @@ for i_folder,folder in enumerate(folders):
                 assert im['location'] == location
             else:
                 im = {}
+                
+                try:
+                    pil_image = Image.open(image_full_path)        
+                    width, height = pil_image.size
+                    im['width'] = width
+                    im['height'] = height
+                except:
+                    # These generally represent zero-byte images in this data set, don't try
+                    # to find the very small handful that might be other kinds of failures we 
+                    # might want to keep around.
+                    # print('Error opening image {}'.format(image_relative_path))
+                    invalid_images.append(image_relative_path)
+                    continue
+                
                 im['id'] = img_id
                 im['file_name'] = image_relative_path
                 im['datetime'] = timestamp
@@ -288,8 +310,6 @@ for i_folder,folder in enumerate(folders):
              
 # ...for each dataset
             
-print('Finished creating CCT dictionaries')
-
 images = list(image_ids_to_images.values())
 categories = list(category_name_to_category.values())
 
@@ -297,14 +317,8 @@ categories = list(category_name_to_category.values())
 for c in categories:
     print(c['name'].ljust(30) + c['common_name'])
 
-
-#%% Create info struct
-
-info = {}
-info['year'] = 2020
-info['version'] = 1
-info['description'] = 'UBC Camera Traps'
-info['contributor'] = 'UBC'
+print('Finished creating CCT dictionaries, loaded {} images of {} total on disk ({} invalid)'.format(
+    len(images), len(image_relative_paths_set), len(invalid_images)))
 
 
 #%% Copy images for which we actually have annotations to a new folder, lowercase everything
@@ -321,12 +335,27 @@ for im in tqdm(images):
     im['id'] = im['id'].lower()
     
 
-#%% Convert image IDs to lowercase in annotations
+#%% Create info struct
+
+info = {}
+info['year'] = 2020
+info['version'] = 1
+info['description'] = 'UBC Camera Traps'
+info['contributor'] = 'UBC'
+
+
+#%% Convert image IDs to lowercase in annotations, tag as sequence level
+
+# While there isn't any sequence information, the nature of false positives
+# here leads me to believe the images were labeled at the sequence level, so
+# we should trust labels more when positives are verified.  Overall false
+# positive rate looks to be between 1% and 5%.
     
 for ann in annotations:
     ann['image_id'] = ann['image_id'].lower()
-    
-    
+    ann['sequence_level_annotation'] = True
+
+
 #%% Write output
 
 json_data = {}
@@ -343,10 +372,10 @@ print('Finished writing .json file with {} images, {} annotations, and {} catego
 #%% Validate output
 
 options = sanity_check_json_db.SanityCheckOptions()
-options.baseDir = input_base
+options.baseDir = output_base
 options.bCheckImageSizes = False
 options.bCheckImageExistence = False
-options.bFindUnusedImages = False
+options.bFindUnusedImages = True
 
 sortedCategories, data, errors = sanity_check_json_db.sanity_check_json_db(
     output_json_file, options)
@@ -355,7 +384,7 @@ sortedCategories, data, errors = sanity_check_json_db.sanity_check_json_db(
 #%% Preview labels
 
 viz_options = visualize_db.DbVizOptions()
-viz_options.num_to_visualize = 1000
+viz_options.num_to_visualize = 2000
 viz_options.trim_to_images_with_bboxes = False
 viz_options.add_search_links = True
 viz_options.sort_by_filename = False
