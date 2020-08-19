@@ -13,6 +13,7 @@ import uuid
 import datetime
 import shutil
 import zipfile
+import pandas as pd
 
 from PIL import Image
 from tqdm import tqdm
@@ -31,7 +32,11 @@ input_dir_base = r'e:\island-conservation\20200529drop'
 input_dir_json = os.path.join(
     input_dir_base, 'IC_AI4Earth_2019_timelapse_by_project')
 
+# Dictionary mapping original island names to obfuscated names
 island_name_mapping_file = os.path.join(input_dir_base,'island_name_mappings.csv')
+
+# List of images that have not been reviewed by a human
+images_not_reviewed_file = os.path.join(input_dir_base,'IC_AI4E_2019_images_not_reviewed.csv')
 
 assert(os.path.isdir(input_dir_base))
 assert(os.path.isdir(input_dir_json))
@@ -45,7 +50,7 @@ os.makedirs(output_dir_images, exist_ok=True)
 output_json_file = os.path.join(output_dir_base, 'island_conservation.json')
 
 human_dir = os.path.join(output_dir_base, 'human')
-non_human_dir = os.path.join(output_dir_base, 'non-human')
+non_human_dir = os.path.join(output_dir_base, 'public')
 
 human_zipfile = os.path.join(output_dir_base, 'island_conservation_camera_traps_humans.zip')
 non_human_zipfile = os.path.join(output_dir_base, 'island_conservation_camera_traps.zip')
@@ -92,6 +97,20 @@ with open(island_name_mapping_file, mode='r') as f:
 
 image_full_paths = find_images(input_dir_base, recursive=True)
 print('Enumerated {} images from {}'.format(len(image_full_paths),input_dir_base))
+
+
+#%% Load list of non-reviewed images
+
+df = pd.read_csv(images_not_reviewed_file)
+
+non_reviewed_filenames = []
+for i_row,row in df.iterrows():
+    non_reviewed_filenames.append(os.path.join(row['folder'],row['filename']).lower().replace('\\','/'))
+
+non_reviewed_filenames_set = set(non_reviewed_filenames)
+
+print('Enumerated {} non-reviewed filenames ({} unique)'.\
+      format(len(non_reviewed_filenames),len(non_reviewed_filenames_set)))
 
 
 #%% Rename files for obfuscation
@@ -239,7 +258,11 @@ for json_file in json_files:
     #
     # IC_AI4Earth_2019_timelapse_Cabritos.json
     
-    dataset_folder = json_file.split('.')[0].replace('IC_AI4Earth_2019_timelapse_', '').lower()
+    # Store the non-obfuscated folder name, we need this to check against the non-reviewed image list
+    dataset_folder_original = json_file.split('.')[0].replace('IC_AI4Earth_2019_timelapse_', '').lower()
+    
+    # Otherwise we work on the obfuscated folder name
+    dataset_folder = dataset_folder_original
     for k, v in island_name_mappings.items():
         dataset_folder = dataset_folder.replace(k, v)
     
@@ -250,10 +273,18 @@ for json_file in json_files:
     
     categories_this_dataset = data['detection_categories']
     
-    # entry = data['images'][0]
+    # i_entry = 0; entry = data['images'][i_entry]
+    #
+    # PERF: Not exactly trivially parallelizable, but about 100% of the 
+    # time here is spent reading image sizes (which we need to do to get from 
+    # absolute to relative coordinates), so worth parallelizing.
     for i_entry,entry in enumerate(tqdm(data['images'])):
         
         image_path_relative_to_dataset = entry['file']
+        
+        original_filename = os.path.join(dataset_folder_original,image_path_relative_to_dataset).lower().replace('\\','/')
+        
+        reviewed_image = (original_filename not in non_reviewed_filenames_set)
         
         image_relative_path = os.path.join(dataset_folder, image_path_relative_to_dataset).lower().replace('\\','/')
         
@@ -270,6 +301,7 @@ for json_file in json_files:
         all_image_ids.add(image_id)
         
         im = {}
+        im['reviewed'] = reviewed_image
         im['id'] = image_id
         im['file_name'] = image_relative_path
         image_full_path = os.path.join(output_dir_images, image_relative_path)
@@ -313,7 +345,7 @@ for json_file in json_files:
             ann['id'] = str(uuid.uuid1())
             ann['image_id'] = im['id']    
             ann['category_id'] = category_id
-            ann['conf'] = detection['conf']
+            
             if category_id != 0:
                 ann['bbox'] = detection['bbox']
                 # MegaDetector: [x,y,width,eight] (normalized, origin upper-left)
@@ -336,6 +368,20 @@ for json_file in json_files:
             
 print('Finished creating CCT dictionaries')
 
+# Remove non-reviewed images and associated annotations
+
+#%%
+
+reviewed_images = [im for im in images if im['reviewed']]
+
+reviewed_image_ids = set([im['id'] for im in reviewed_images])
+
+reviewed_annotations = [ann for ann in annotations if ann['image_id'] in reviewed_image_ids]
+
+print('Found {} reviewed images (of {} total in .json files, {} total on disk)'.format(
+    len(reviewed_images),len(images),len(image_full_paths)))
+print('{} of {} annotations refer to reviewed images'.format(len(reviewed_annotations),
+                                                             len(annotations)))
 
 #%% Create info struct
 
@@ -348,17 +394,26 @@ info['contributor'] = 'Conservation Metrics and Island Conservation'
 
 #%% Write .json output
 
+for im in images:
+    del im['reviewed']
+    
 categories = list(category_name_to_category.values())
 
 json_data = {}
-json_data['images'] = images
-json_data['annotations'] = annotations
+
+json_data['images'] = reviewed_images
+json_data['annotations'] = reviewed_annotations
 json_data['categories'] = categories
 json_data['info'] = info
 json.dump(json_data, open(output_json_file, 'w'), indent=2)
 
 print('Finished writing .json file with {} images, {} annotations, and {} categories'.format(
     len(images), len(annotations), len(categories)))
+
+
+#%% Clean start
+
+### Everything after this should work from a clean start ###
 
 
 #%% Validate output
@@ -372,18 +427,37 @@ options.bFindUnusedImages = False
 sorted_categories, data, errors = sanity_check_json_db.sanity_check_json_db(fn, options)
 
 
-#%% Preview labels
+#%% Preview animal labels
 
 viz_options = visualize_db.DbVizOptions()
-viz_options.num_to_visualize = 2000
+viz_options.num_to_visualize = 3000
 viz_options.trim_to_images_with_bboxes = False
-viz_options.classes_to_exclude = ['empty']
+viz_options.classes_to_exclude = ['empty','human']
+# viz_options.classes_to_include = ['human']
 viz_options.add_search_links = False
 viz_options.sort_by_filename = False
 viz_options.parallelize_rendering = True
 html_output_file, image_db = visualize_db.process_images(db_path=output_json_file,
                                                          output_dir=os.path.join(
-                                                             output_dir_base, 'preview'),
+                                                             output_dir_base, 'preview_animals'),
+                                                         image_base_dir=output_dir_images,
+                                                         options=viz_options)
+os.startfile(html_output_file)
+
+
+#%% Preview empty labels
+
+viz_options = visualize_db.DbVizOptions()
+viz_options.num_to_visualize = 3000
+viz_options.trim_to_images_with_bboxes = False
+# viz_options.classes_to_exclude = ['empty','human']
+viz_options.classes_to_include = ['empty']
+viz_options.add_search_links = False
+viz_options.sort_by_filename = False
+viz_options.parallelize_rendering = True
+html_output_file, image_db = visualize_db.process_images(db_path=output_json_file,
+                                                         output_dir=os.path.join(
+                                                             output_dir_base, 'preview_empty'),
                                                          image_base_dir=output_dir_images,
                                                          options=viz_options)
 os.startfile(html_output_file)
@@ -480,3 +554,95 @@ zipdir(non_human_dir,non_human_zipfile,non_human_dir)
 print('Done creating zipfiles')
 
 
+#%% Scrap
+
+if False:
+    
+    pass
+
+    #%% Count human images
+
+    human_cat_id = None
+    for cat in categories:
+        if cat['name'] == 'human':
+            human_cat_id = cat['id']
+    assert human_cat_id
+    
+    human_image_ids = set()
+    human_annotations = []
+    
+    for ann in annotations:
+        if ann['category_id'] == human_cat_id:
+            human_image_ids.add(ann['image_id'])
+            human_annotations.append(ann)
+    
+    print('Found {} human images'.format(len(human_image_ids)))
+    
+
+    #%% Generate human-only .json file
+
+    with open(output_json_file,'r') as f:
+        data = json.load(f)
+    
+    images = data['images']
+    categories = data['categories']
+    annotations = data['annotations']
+    
+    human_cat_id = None
+    for cat in categories:
+        if cat['name'] == 'human':
+            human_cat_id = cat['id']
+    assert human_cat_id
+    
+    human_image_ids = set()
+    human_annotations = []
+    
+    for ann in annotations:
+        if ann['category_id'] == human_cat_id:
+            human_image_ids.add(ann['image_id'])
+            human_annotations.append(ann)
+                
+    human_images = [im for im in images if im['id'] in human_image_ids]
+    
+    print('Found {} human images'.format(len(human_images)))
+    
+    json_data = {}
+    json_data['images'] = human_images
+    json_data['annotations'] = human_annotations
+    json_data['categories'] = categories
+    json_data['info'] = data['info']
+    output_json_file_human = output_json_file.replace('.json','.human.json')
+    json.dump(json_data, open(output_json_file_human, 'w'), indent=2)
+    
+    print('Finished writing .json file with {} images, {} annotations, and {} categories'.format(
+        len(images), len(annotations), len(categories)))
+        
+    ##%% Validate output
+    
+    fn = output_json_file_human
+    options = sanity_check_json_db.SanityCheckOptions()
+    options.baseDir = output_dir_images
+    options.bCheckImageSizes = False
+    options.bCheckImageExistence = False
+    options.bFindUnusedImages = False
+    sorted_categories, data, errors = sanity_check_json_db.sanity_check_json_db(fn, options)
+    
+    #%%
+    
+    ##%% Preview labels
+    
+    viz_options = visualize_db.DbVizOptions()
+    viz_options.num_to_visualize = 3000
+    viz_options.trim_to_images_with_bboxes = False
+    # viz_options.classes_to_exclude = ['empty']
+    viz_options.classes_to_include = ['human']
+    viz_options.add_search_links = False
+    viz_options.sort_by_filename = False
+    viz_options.parallelize_rendering = True
+    html_output_file, image_db = visualize_db.process_images(db_path=output_json_file_human,
+                                                             output_dir=os.path.join(
+                                                                 output_dir_base, 'preview_human'),
+                                                             image_base_dir=output_dir_images,
+                                                             options=viz_options)
+    os.startfile(html_output_file)
+    
