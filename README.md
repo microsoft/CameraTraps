@@ -176,6 +176,7 @@ Adding this line to your `~/.bashrc` (on Linux) modifies `PYTHONPATH` permanentl
 We also do our best to follow [Google's Python Style Guide](http://google.github.io/styleguide/pyguide.html), and we have adopted their `pylintrc` file, with the following differences:
 - indent code blocks with 4 spaces (instead of 2)
 
+If you lack disk space on your computer, you might want to delete the `.git` folder if you don't plan to use it. You will save approximatively 1,4 Go.
 
 # Gratuitous pretty camera trap picture
 
