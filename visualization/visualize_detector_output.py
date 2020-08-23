@@ -120,7 +120,7 @@ def visualize_detector_output(detector_output_path: str,
         if is_azure:
             blob_uri = sas_blob_utils.build_blob_uri(
                 container_uri=images_dir, blob_name=image_id)
-            if not sas_blob_utils.check_blob_existence(blob_uri):
+            if not sas_blob_utils.check_blob_exists(blob_uri):
                 container = sas_blob_utils.get_container_from_uri(images_dir)
                 print(f'Image {image_id} not found in blob container '
                       f'{container}; skipped.')
@@ -162,6 +162,7 @@ def main() -> None:
     """Main function."""
 
     parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description='Annotate the bounding boxes predicted by a detector above '
                     'some confidence threshold, and save the annotated images.')
     parser.add_argument(
@@ -194,7 +195,7 @@ def main() -> None:
     parser.add_argument(
         '-w', '--output_image_width', type=int, default=700,
         help='Integer, desired width in pixels of the output annotated images. '
-             'Use -1 to not resize. Default: 700.')
+             'Use -1 to not resize.')
     parser.add_argument(
         '-r', '--random_seed', type=int, default=None,
         help='Integer, for deterministic order of image sampling')
