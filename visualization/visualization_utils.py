@@ -37,8 +37,12 @@ def open_image(input_file: Union[str, BytesIO]) -> Image.Image:
     """
     if (isinstance(input_file, str)
             and input_file.startswith(('http://', 'https://'))):
-        response = requests.get(input_file)
-        image = Image.open(BytesIO(response.content))
+        try:
+            response = requests.get(input_file)
+            image = Image.open(BytesIO(response.content))
+        except Exception as e:
+            print('Error opening image {}: {}'.format(input_file,str(e)))
+            raise
     else:
         image = Image.open(input_file)
     if image.mode not in ('RGBA', 'RGB', 'L'):
