@@ -106,7 +106,11 @@ class RepeatDetectionOptions:
     debugMaxRenderInstance = -1
     bParallelizeComparisons = True
     bParallelizeRendering = True
-
+    
+    # Determines whether bounding-box rendering errors (typically network errors) should
+    # be treated as failures    
+    bFailOnRenderError = False
+    
     bPrintMissingImageWarnings = True
     missingImageWarningType = 'once'  # 'all'
 
@@ -907,8 +911,14 @@ def find_repeat_detections(inputFilename, outputFilename=None, options=None):
                     inputFullPath = os.path.join(options.imageBase, relativePath)
                     assert (os.path.isfile(inputFullPath)), 'Not a file: {}'.format(inputFullPath)
                     
-                render_bounding_box(detection, inputFullPath, outputFullPath,
-                                    lineWidth=options.lineThickness, expansion=options.boxExpansion)
+                try:
+                    render_bounding_box(detection, inputFullPath, outputFullPath,
+                                        lineWidth=options.lineThickness, expansion=options.boxExpansion)
+                except Exception as e:
+                    print('Warning: error rendering bounding box from {} to {}: {}'.format(
+                        inputFullPath,outputFullPath,e))                    
+                    if options.bFailOnRenderError:
+                        raise
                 detection.sampleImageRelativeFileName = outputRelativePath
 
         # Write out the detection index
