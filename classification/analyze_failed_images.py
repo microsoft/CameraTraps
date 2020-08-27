@@ -8,7 +8,7 @@ from concurrent import futures
 import json
 from pprint import pprint
 import threading
-from typing import Any, Mapping, Optional, Tuple
+from typing import Any, Mapping, Optional, Sequence, Tuple
 
 from PIL import Image, ImageFile
 import requests
@@ -22,19 +22,16 @@ import sas_blob_utils  # from ai4eutils
 ImageFile.LOAD_TRUNCATED_IMAGES = False
 
 
-def main() -> None:
-    args = _parse_args()
-    analyze_images(url_or_path=args.failed_images, account=args.account,
-                   container=args.container, sas_token=args.sas_token)
-
-
 def _parse_args() -> argparse.Namespace:
     """Parses arguments."""
     parser = argparse.ArgumentParser(
         description='Analyze a list of images that failed to download or crop.')
     parser.add_argument(
         'failed_images', metavar='URL_OR_PATH',
-        help='URL or path to JSON file containing list of image paths')
+        help='URL or path to text or JSON file containing list of image paths')
+    parser.add_argument(
+        '-k', '--json-keys', nargs='*',
+        help='list of keys in JSON file containing image paths')
     parser.add_argument(
         '-a', '--account',
         help='name of Azure Blob Storage account. If not given, then image '
@@ -102,7 +99,7 @@ def check_image_condition(img_path: str,
     blob_url = sas_blob_utils.build_azure_storage_uri(
         account=account, container=container, sas_token=sas_token,
         blob=img_file)
-    blob_exists = sas_blob_utils.check_blob_existence(blob_url)
+    blob_exists = sas_blob_utils.check_blob_exists(blob_url)
     if not blob_exists:
         return img_file, 'nonexistant'
 
@@ -128,13 +125,22 @@ def check_image_condition(img_path: str,
             return img_file, 'bad'
 
 
-def analyze_images(url_or_path: str, account: Optional[str] = None,
+def analyze_images(url_or_path: str, json_keys: Optional[Sequence[str]] = None,
+                   account: Optional[str] = None,
                    container: Optional[str] = None,
                    sas_token: Optional[str] = None) -> None:
     """
     Args:
-        url_or_path: str, URL or local path to a JSON file containing a list
-            of image paths from the same Azure Blob Storage container
+        url_or_path: str, URL or local path to a file containing a list
+            of image paths. Each image path is either <blob_name> if account and
+            container are given, or <dataset>/<blob_name> if account and
+            container are None. File can either be a list of image paths, or a
+            JSON file containing image paths.
+        json_keys: optional list of str, only relevant if url_or_path is a JSON
+            file. If json_keys=None, then the JSON file at url_or_path is
+            assumed to be a JSON list of image paths. If json_keys is not None,
+            then the JSON file should be a dict, whose values corresponding to
+            json_keys are lists of image paths.
         account: str, name of Azure Blob Storage account
         container: str, name of Azure Blob Storage container
         sas_token: str, optional SAS token (without leading '?') if the
@@ -147,11 +153,23 @@ def analyze_images(url_or_path: str, account: Optional[str] = None,
         assert sas_token is None
         datasets_table = MegadbUtils().get_datasets_table()
 
+    is_json = ('.json' in url_or_path)
     if url_or_path.startswith(('http://', 'https://')):
-        img_paths = requests.get(url_or_path).json()
+        img_paths = requests.get(url_or_path)
+        if is_json:
+            img_paths = img_paths.json()
     else:
         with open(url_or_path, 'r') as f:
-            img_paths = json.load(f)
+            if is_json:
+                img_paths = json.load(f)
+            else:
+                img_paths = f.readlines()
+
+    if is_json and json_keys is not None:
+        img_paths_json = img_paths
+        img_paths = []
+        for k in json_keys:
+            img_paths.extend(img_paths_json[k])
 
     mapping = {
         status: []
@@ -165,9 +183,9 @@ def analyze_images(url_or_path: str, account: Optional[str] = None,
 
     futures_list = []
     for img_path in tqdm(img_paths):
-        args = (img_path, truncated_images_lock, account, container, sas_token,
+        _args = (img_path, truncated_images_lock, account, container, sas_token,
                 datasets_table)
-        future = pool.submit(check_image_condition, *args)
+        future = pool.submit(check_image_condition, *_args)
         futures_list.append(future)
 
     total = len(futures_list)
@@ -181,4 +199,7 @@ def analyze_images(url_or_path: str, account: Optional[str] = None,
 
 
 if __name__ == '__main__':
-    main()
+    args = _parse_args()
+    analyze_images(url_or_path=args.failed_images, json_keys=args.json_keys,
+                   account=args.account, container=args.container,
+                   sas_token=args.sas_token)
