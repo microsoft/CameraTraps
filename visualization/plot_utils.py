@@ -47,7 +47,8 @@ def plot_confusion_matrix(
     if use_colorbar:
         fig_w += 0.5
 
-    fig, ax = plt.subplots(1, 1, figsize=(fig_w, fig_h), tight_layout=True)
+    fig = matplotlib.figure.Figure(figsize=(fig_w, fig_h), tight_layout=True)
+    ax = fig.subplots(1, 1)
     im = ax.imshow(matrix, interpolation='nearest', cmap=cmap, vmax=vmax)
     ax.set_title(title)
 

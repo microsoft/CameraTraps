@@ -1,13 +1,13 @@
-"""
+r"""
 Module to run a TensorFlow animal detection model on images.
 
-The class TFDetector contains functions to load a TensorFlow detection model and run inference.
-The main function in this script also render the predicted bounding boxes on images and
-save the resulting images (with bounding boxes).
+The class TFDetector contains functions to load a TensorFlow detection model and
+run inference. The main function in this script also renders the predicted
+bounding boxes on images and saves the resulting images (with bounding boxes).
 
-This script is not a good way to process lots of images (tens of thousands, say).
-It does not facilitate checkpointing the results so if it crashes
-you would have to start from scratch. If you want to run a detector (e.g. ours)
+This script is not a good way to process lots of images (tens of thousands,
+say). It does not facilitate checkpointing the results so if it crashes you
+would have to start from scratch. If you want to run a detector (e.g., ours)
 on lots of images, you should check out:
 
 1) run_tf_detector_batch.py (for local execution)
@@ -15,27 +15,28 @@ on lots of images, you should check out:
 2) https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing
    (for running large jobs on Azure ML)
 
-To run this script, we recommend you set up a conda virtual environment following instructions
-in the Installation section on the main README, using `environment-detector.yml` as the
-environment file where asked.
+To run this script, we recommend you set up a conda virtual environment
+following instructions in the Installation section on the main README, using
+`environment-detector.yml` as the environment file where asked.
 
-This is a good way to test our detector on a handful of images and
-get super-satisfying, graphical results.  It's also a good way to see how
-fast a detector model will run on a particular machine.
+This is a good way to test our detector on a handful of images and get
+super-satisfying, graphical results.  It's also a good way to see how fast a
+detector model will run on a particular machine.
 
-If you would like to *not* use the GPU on the machine, set the environment variable CUDA_VISIBLE_DEVICES to "-1"
+If you would like to *not* use the GPU on the machine, set the environment
+variable CUDA_VISIBLE_DEVICES to "-1".
 
 If no output directory is specified, writes detections for c:\foo\bar.jpg to
-c:\foo\bar_detections.jpg .
+c:\foo\bar_detections.jpg.
 
-This script will only consider detections with > 0.1 confidence at all times. The `threshold` you
-provide is only for rendering the results. If you need to see lower-confidence detections, you can change
+This script will only consider detections with > 0.1 confidence at all times.
+The `threshold` you provide is only for rendering the results. If you need to
+see lower-confidence detections, you can change
 DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD.
 
 Reference:
 https://github.com/tensorflow/models/blob/master/research/object_detection/inference/detection_inference.py
 """
-
 
 #%% Constants, imports, environment
 
@@ -82,7 +83,7 @@ class ImagePathUtils:
     @staticmethod
     def is_image_file(s):
         """
-        Check a file's extension against a hard-coded set of image file extensions    '
+        Check a file's extension against a hard-coded set of image file extensions
         """
         ext = os.path.splitext(s)[1]
         return ext.lower() in ImagePathUtils.image_extensions
