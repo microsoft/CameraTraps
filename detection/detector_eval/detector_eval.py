@@ -345,6 +345,10 @@ def plot_calibration_curve(true_scores: Sequence[int],
                            ) -> matplotlib.figure.Figure:
     """Plot a calibration curve.
 
+    Consider rewriting / removing this function if
+        https://github.com/scikit-learn/scikit-learn/pull/17443
+    is merged into an actual scikit-learn release.
+
     Args:
         see calibration_ece() for args
         name: str, label in legend for the calibration curve
@@ -353,6 +357,8 @@ def plot_calibration_curve(true_scores: Sequence[int],
         ax: optional matplotlib Axes, if given then no legend is drawn, and
             fig_kwargs are ignored
         fig_kwargs: only used if ax is None
+
+    Returns: matplotlib Figure
     """
     accs, confs, ece = calibration_ece(true_scores, pred_scores, num_bins)
 
