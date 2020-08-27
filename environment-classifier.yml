@@ -1,0 +1,44 @@
+name: cameratraps-classifier
+
+channels:
+- pytorch
+- defaults
+- conda-forge
+
+dependencies:
+- python>=3.7
+
+# from pytorch channel
+- pytorch
+- torchvision
+- cpuonly  # for CPU only
+# - cudatoolkit=10.2  # for GPU
+
+# from defaults channel
+- humanfriendly
+- jsonpickle    # used by run_tf_detector_batch.py
+- jupyterlab
+- matplotlib
+- mypy
+- nb_conda_kernels
+- numpy
+- openpyxl      # used by taxonomy_mapping/species_by_dataset.py
+- pandas
+- progressbar2  # used by ai4eutils (which is called by taxonomy-mapping code)
+- pylint
+- scikit-learn
+- seaborn
+- tensorboard
+- tqdm
+- xlrd          # for pandas Excel support, needed by taxonomy_mapping/process_species_by_dataset
+- pip
+
+# from conda-forge
+- accimage      # faster Pillow replacement for torchvision
+
+# Some Azure packages or versions are only available from PyPI
+# These may require GCC to be installed
+- pip:
+  - azure-cosmos
+  - azure-storage-blob>=12.4
+  - pillow-simd
