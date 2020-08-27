@@ -1,80 +1,96 @@
+"""
+Functions for evaluating detectors on detection tasks.
+
+See benchmark/model_eval_utils.py for functions to evaluate on more generic
+tasks.
+
+TF Object Detection API needs to be installed.
+"""
 from collections import defaultdict
 import math
+from typing import Any, Dict, Mapping, Optional, Sequence, Tuple, Union
 
+import matplotlib.figure
 import numpy as np
-from object_detection.utils import per_image_evaluation, metrics  # TF Object Detection API needs to be installed
+from object_detection.utils import per_image_evaluation, metrics  # TFODAPI
 from tqdm import tqdm
 
 from ct_utils import convert_xywh_to_tf
 
-"""
-This file contains functions for evaluating detectors on detection tasks.
-See benchmark/model_eval_utils.py for functions to evaluate on more generic tasks.
-"""
 
-
-def compute_precision_recall_bbox(per_image_detections, per_image_gts, num_gt_classes,
-                                  matching_iou_threshold=0.5):
+def compute_precision_recall_bbox(
+        per_image_detections: Mapping[str, Mapping[str, Any]],
+        per_image_gts: Mapping[str, Mapping[str, Any]],
+        num_gt_classes: int,
+        matching_iou_threshold: float = 0.5
+        ) -> Dict[Union[str, int], Dict[str, Any]]:
     """
-    Compute the precision and recall at each confidence level for detection results of various classes.
+    Compute the precision and recall at each confidence level for detection
+    results of various classes.
+
     Args:
-        per_image_detections: dict of image_id to a dict with fields `boxes`, `scores` and `labels`
-        per_image_gts: dict of image_id to a dict with fields `gt_boxes` and `gt_labels`
-        num_gt_classes: number of classes in the ground truth labels
-        matching_iou_threshold: IoU above which a detected and a ground truth box are considered overlapping
+        per_image_detections: dict, image_id (str) => dict with fields
+            'boxes': array-like, shape [N, 4], type float, each row is
+                [ymin, xmin, ymax, xmax] in normalized coordinates
+            'scores': array-like, shape [N], float
+            'labels': array-like, shape [N], integers in [1, num_gt_classes]
+        per_image_gts: dic, image_id (str) => dict with fields
+            'gt_boxes': array-like, shape [M, 4], type float, each row is
+                [ymin, xmin, ymax, xmax] in normalized coordinates
+            'gt_labels': array-like, shape [M], integers in [1, num_gt_classes]
+        num_gt_classes: int, number of classes in the ground truth labels
+        matching_iou_threshold: float, IoU above which a detected and a ground
+            truth box are considered overlapping
 
-    Returns:
-    A dict `per_cat_metrics`, where the keys are the possible gt classes and `one_class` which considers
-    all classes. Each key corresponds to a dict with the fields precision, recall, average_precision, etc.
-
+    Returns: dict, per-class metrics, keys are integers in [1, num_gt_classes]
+        and 'one_class' which considers all classes. Each value is a dict with
+        fields ['precision', 'recall', 'average_precision', ...]
     """
     per_image_eval = per_image_evaluation.PerImageEvaluation(
         num_groundtruth_classes=num_gt_classes,
         matching_iou_threshold=matching_iou_threshold,
         nms_iou_threshold=1.0,
-        nms_max_output_boxes=10000
-    )
+        nms_max_output_boxes=10000)
 
-    print('Running per-object analysis...')
+    print('Running per-object analysis...', flush=True)
 
-    detection_tp_fp = defaultdict(list)  # key is the category; in each list, 1 is tp, 0 is fp
+    # keys are categories (int)
+    detection_tp_fp = defaultdict(list)  # in each list, 1 is tp, 0 is fp
     detection_scores = defaultdict(list)
-    num_total_gt = defaultdict(int)
+    num_total_gt: Dict[int, int] = defaultdict(int)
 
     for image_id, dets in tqdm(per_image_detections.items()):
-        detected_boxes = np.array(dets['boxes'], dtype=np.float32)
-        detected_scores = np.array(dets['scores'], dtype=np.float32)
+        # we force *_boxes to have shape [N, 4], even in case that N = 0
+        detected_boxes = np.asarray(
+            dets['boxes'], dtype=np.float32).reshape(-1, 4)
+        detected_scores = np.asarray(dets['scores'])
         # labels input to compute_object_detection_metrics() needs to start at 0, not 1
-        detected_labels = np.array(dets['labels'], dtype=np.int) - 1  # start at 0
+        detected_labels = np.asarray(dets['labels'], dtype=np.int) - 1  # start at 0
         # num_detections = len(dets['boxes'])
 
         gts = per_image_gts[image_id]
-        gt_boxes = np.array(gts['gt_boxes'], dtype=np.float32)
-        gt_labels = np.array(gts['gt_labels'], dtype=np.int) - 1  # start at 0
+        gt_boxes = np.asarray(gts['gt_boxes'], dtype=np.float32).reshape(-1, 4)
+        gt_labels = np.asarray(gts['gt_labels'], dtype=np.int) - 1  # start at 0
         num_gts = len(gts['gt_boxes'])
 
-        groundtruth_is_difficult_list = np.zeros(num_gts, dtype=bool)  # place holders - we don't have these
+        # place holders - we don't have these
+        groundtruth_is_difficult_list = np.zeros(num_gts, dtype=bool)
         groundtruth_is_group_of_list = np.zeros(num_gts, dtype=bool)
 
-        # to prevent 'Invalid dimensions for box data.' error
-        if num_gts == 0:
-            # this box will not match any detections
-            gt_boxes = np.array([[0, 0, 0, 0]], dtype=np.float32)
-
-        scores, tp_fp_labels, is_class_correctly_detected_in_image = (
-            per_image_eval.compute_object_detection_metrics(
-                detected_boxes=detected_boxes,
-                detected_scores=detected_scores,
-                detected_class_labels=detected_labels,
-                groundtruth_boxes=gt_boxes,
-                groundtruth_class_labels=gt_labels,
-                groundtruth_is_difficult_list=groundtruth_is_difficult_list,
-                groundtruth_is_group_of_list=groundtruth_is_group_of_list
-            )
-        )
+        results = per_image_eval.compute_object_detection_metrics(
+            detected_boxes=detected_boxes,
+            detected_scores=detected_scores,
+            detected_class_labels=detected_labels,
+            groundtruth_boxes=gt_boxes,
+            groundtruth_class_labels=gt_labels,
+            groundtruth_is_difficult_list=groundtruth_is_difficult_list,
+            groundtruth_is_group_of_list=groundtruth_is_group_of_list)
+        scores, tp_fp_labels, is_class_correctly_detected_in_image = results
 
         for i, tp_fp_labels_cat in enumerate(tp_fp_labels):
-            assert sum(tp_fp_labels_cat) <= sum(gt_labels == i)  # true positives < gt of that category
+            # true positives < gt of that category
+            assert sum(tp_fp_labels_cat) <= sum(gt_labels == i)
+
             cat = i + 1  # categories start at 1
             detection_tp_fp[cat].append(tp_fp_labels_cat)
             detection_scores[cat].append(scores[i])
@@ -84,7 +100,7 @@ def compute_precision_recall_bbox(per_image_detections, per_image_gts, num_gt_cl
     all_tp_fp = []
 
     print('Computing precision recall for each category...')
-    per_cat_metrics = {}
+    per_cat_metrics: Dict[Union[int, str], Dict[str, Any]] = {}
     for i in range(num_gt_classes):
         cat = i + 1
         scores_cat = np.concatenate(detection_scores[cat])
@@ -93,8 +109,7 @@ def compute_precision_recall_bbox(per_image_detections, per_image_gts, num_gt_cl
         all_tp_fp.append(tp_fp_cat)
 
         precision, recall = metrics.compute_precision_recall(
-            scores_cat, tp_fp_cat, num_total_gt[cat]
-        )
+            scores_cat, tp_fp_cat, num_total_gt[cat])
         average_precision = metrics.compute_average_precision(precision, recall)
 
         per_cat_metrics[cat] = {
@@ -106,17 +121,18 @@ def compute_precision_recall_bbox(per_image_detections, per_image_gts, num_gt_cl
             'tp_fp': tp_fp_cat,
             'num_gt': num_total_gt[cat]
         }
-        print('Number of ground truth in category {} is {}'.format(cat, num_total_gt[cat]))
+        print(f'Number of ground truth in category {cat}: {num_total_gt[cat]}')
 
-    # compute one-class precision/recall/average precision (if every box is just of an object class)
+    # compute one-class precision/recall/average precision (if every box is just
+    # of an object class)
     all_scores = np.concatenate(all_scores)
     all_tp_fp = np.concatenate(all_tp_fp)
     overall_gt_count = sum(num_total_gt.values())
 
     one_class_prec, one_class_recall = metrics.compute_precision_recall(
-        all_scores, all_tp_fp, overall_gt_count
-    )
-    one_class_average_precision = metrics.compute_average_precision(one_class_prec, one_class_recall)
+        all_scores, all_tp_fp, overall_gt_count)
+    one_class_average_precision = metrics.compute_average_precision(
+        one_class_prec, one_class_recall)
 
     per_cat_metrics['one_class'] = {
         'category': 'one_class',
@@ -131,29 +147,40 @@ def compute_precision_recall_bbox(per_image_detections, per_image_gts, num_gt_cl
     return per_cat_metrics
 
 
-def get_per_image_gts_and_detections(gt_db_dict, detection_res, label_map_name_to_id):
-    """
-        Group the detected and ground truth bounding boxes by image_id.
-        For use when the gt_db_dict is from the MegaDB
+def get_per_image_gts_and_detections(
+        gt_db_dict: Mapping[str, Mapping[str, Any]],
+        detection_res: Mapping[str, Mapping[str, Any]],
+        label_map_name_to_id: Mapping[str, int]
+        ) -> Tuple[
+            Dict[str, Dict[str, Any]],
+            Dict[str, Dict[str, Any]]
+        ]:
+    """Group the detected and ground truth bounding boxes by image_id.
+    For use when the gt_db_dict is from MegaDB.
 
     Args:
-        gt_db_dict: ground truth bbox json; usually query result from megaDB.
-        detection_res: dict of image_id to image entry in the API output file's `images` field. The key needs to be
-        the same image_id as those in the ground truth json db.
-        label_map_name_to_id: dict with pairs e.g. 'animal': 1
+        gt_db_dict: dict, ground truth bbox JSON, usually query result from
+            MegaDB, maps image_id => dict with key 'bbox'
+        detection_res: dict, image_id => detections dict, each key must also
+            appear in gt_db_dict. Each detection dict is an entry in the Batch
+            API output file's `images` field.
+        label_map_name_to_id: dict, e.g. 'animal': 1
 
     Returns:
-        per_image_gts: dict where the image_id is the key, corresponding to a dict with `gt_boxes` and
-            `gt_labels` for that image
-        per_image_detections: dict where the image_id is the key, corresponding to a dict with the detections'
-            `boxes`, `scores` and `labels` for that image
+        per_image_gts: dict, image_id (str) => dict with keys
+            'gt_boxes': list of list, inner lists are [ymin, xmin, ymax, xmax]
+                in normalized coordinates
+            'gt_labels':  list of int
+        per_image_detections: dict, image_id (str) => dict with keys
+            'boxes': list of list, inner lists are [ymin, xmin, ymax, xmax]
+                in normalized coordinates
+            'scores': list of float, detection confidences
+            'labels': list of int
     """
     per_image_gts = {}
     per_image_detections = {}
 
-    for det_image_obj in detection_res:
-        image_id = det_image_obj['file'].split('/')[-1].split('.jpg')[0]
-
+    for image_id, det_image_obj in detection_res.items():
         gt_boxes = []
         gt_labels = []
 
@@ -178,18 +205,11 @@ def get_per_image_gts_and_detections(gt_db_dict, detection_res, label_map_name_t
             detection_scores.append(det['conf'])
             detection_labels.append(int(det['category']))
 
-        if len(detection_boxes) > 0:
-            per_image_detections[image_id] = {
-                'boxes': detection_boxes,
-                'scores': detection_scores,
-                'labels': detection_labels
-            }
-        else:
-            per_image_detections[image_id] = {
-                'boxes': [[0.0, 0.0, 0.0, 0.0]],
-                'scores': [0.0],
-                'labels': [0]
-            }
+        per_image_detections[image_id] = {
+            'boxes': detection_boxes,
+            'scores': detection_scores,
+            'labels': detection_labels
+        }
     return per_image_gts, per_image_detections
 
 
@@ -214,7 +234,8 @@ def get_per_image_gts_and_detections_deprecated(gt_db_indexed, detection_res):
             # convert gt box coordinates to TFODAPI format
             gt_box_x, gt_box_y, gt_box_w, gt_box_h = gt_anno['bbox']
             gt_y_min, gt_x_min = gt_box_y / im_h, gt_box_x / im_w
-            gt_y_max, gt_x_max = (gt_box_y + gt_box_h) / im_h, (gt_box_x + gt_box_w) / im_w
+            gt_y_max = (gt_box_y + gt_box_h) / im_h
+            gt_x_max = (gt_box_x + gt_box_w) / im_w
             gt_boxes.append([gt_y_min, gt_x_min, gt_y_max, gt_x_max])
 
             gt_labels.append(gt_anno['category_id'])
@@ -251,23 +272,113 @@ def get_per_image_gts_and_detections_deprecated(gt_db_indexed, detection_res):
     return per_image_gts, per_image_detections
 
 
-def find_mAP(per_cat_metrics):
+def find_mAP(per_cat_metrics: Mapping[Union[str, int], Mapping[str, Any]]
+             ) -> float:
     """
     Mean average precision, the mean of the average precision for each category
+
     Args:
-        per_cat_metrics: result of compute_precision_recall()
+        per_cat_metrics: dict, result of compute_precision_recall()
 
-    Returns:
-        The mAP for this set of detection results
+    Returns: float, mAP for this set of detection results
     """
-    num_gt_classes = len(per_cat_metrics) - 1  # minus the 'one_class' set of metrics
+    # minus the 'one_class' set of metrics
+    num_gt_classes = len(per_cat_metrics) - 1
 
-    mAP_from_cats = sum([v['average_precision'] if k != 'one_class' and not math.isnan(v['average_precision']) else 0
-                         for k, v in per_cat_metrics.items()]) / num_gt_classes
+    mAP_from_cats = sum(
+        v['average_precision']
+        if k != 'one_class' and not math.isnan(v['average_precision']) else 0
+        for k, v in per_cat_metrics.items()
+    ) / num_gt_classes
 
     return mAP_from_cats
 
 
+def calibration_ece(true_scores: Sequence[int], pred_scores: Sequence[float],
+                    num_bins: int) -> Tuple[np.ndarray, np.ndarray, float]:
+    """Expected calibration error (ECE) as defined in equation (3) of
+        Guo et al. "On Calibration of Modern Neural Networks." (2017).
+
+    Implementation modified from sklearn.calibration.calibration_curve()
+    in order to implement ECE calculation. See
+        https://github.com/scikit-learn/scikit-learn/issues/18268
+
+    Args:
+        pred_scores: list of float, length N, pred_scores[i] is the predicted
+            confidence that example i is positive
+        true_scores: list of int, length N, binary-valued (0 = neg, 1 = pos)
+        num_bins: int, number of bins to use (`M` in eq. (3) of Guo 2017)
+
+    Returns:
+        accs: np.ndarray, shape [M], type float64, accuracy in each bin,
+            M <= num_bins because bins with no samples are not returned
+        confs: np.ndarray, shape [M], type float64, mean model confidence in
+            each bin
+        ece: float, expected calibration error
+    """
+    assert len(true_scores) == len(pred_scores)
+
+    bins = np.linspace(0., 1. + 1e-8, num=num_bins + 1)
+    binids = np.digitize(pred_scores, bins) - 1
+
+    bin_sums = np.bincount(binids, weights=pred_scores, minlength=len(bins))
+    bin_true = np.bincount(binids, weights=true_scores, minlength=len(bins))
+    bin_total = np.bincount(binids, minlength=len(bins))
+
+    nonzero = bin_total != 0
+    accs = bin_true[nonzero] / bin_total[nonzero]
+    confs = bin_sums[nonzero] / bin_total[nonzero]
+
+    weights = bin_total[nonzero] / len(true_scores)
+    ece = np.abs(accs - confs) @ weights
+    return accs, confs, ece
 
 
+def plot_calibration_curve(true_scores: Sequence[int],
+                           pred_scores: Sequence[float],
+                           num_bins: int,
+                           name: str = 'calibration',
+                           plot_perf: bool = True,
+                           plot_hist: bool = True,
+                           ax: Optional[matplotlib.axes.Axes] = None,
+                           **fig_kwargs: Any
+                           ) -> matplotlib.figure.Figure:
+    """Plot a calibration curve.
 
+    Args:
+        see calibration_ece() for args
+        name: str, label in legend for the calibration curve
+        plot_perf: bool, whether to plot y=x line indicating perfect calibration
+        plot_hist: bool, whether to plot histogram of counts
+        ax: optional matplotlib Axes, if given then no legend is drawn, and
+            fig_kwargs are ignored
+        fig_kwargs: only used if ax is None
+    """
+    accs, confs, ece = calibration_ece(true_scores, pred_scores, num_bins)
+
+    created_fig = False
+    if ax is None:
+        created_fig = True
+        fig = matplotlib.figure.Figure(**fig_kwargs)
+        ax = fig.subplots(1, 1)
+    ax.plot(confs, accs, 's-', label=name)  # 's-': squares on line
+    ax.set(xlabel='Model confidence', ylabel='Actual accuracy',
+           title=f'Calibration plot (ECE: {ece:.02g})')
+    ax.set(xlim=[-0.05, 1.05], ylim=[-0.05, 1.05])
+    if plot_perf:
+        ax.plot([0, 1], [0, 1], color='black', label='perfect calibration')
+    ax.grid(True)
+
+    if plot_hist:
+        ax1 = ax.twinx()
+        bins = np.linspace(0., 1. + 1e-8, num=num_bins + 1)
+        counts = ax1.hist(pred_scores, alpha=0.5, label='histogram of examples',
+                          bins=bins, color='tab:red')[0]
+        max_count = np.max(counts)
+        ax1.set_ylim([-0.05 * max_count, 1.05 * max_count])
+        ax1.set_ylabel('Count')
+
+    if created_fig:
+        fig.legend(loc='upper left', bbox_to_anchor=(0.15, 0.85))
+
+    return ax.figure
