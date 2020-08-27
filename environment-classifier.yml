@@ -49,3 +49,4 @@ dependencies:
 
   # conda (defaults channel) tends to lag PyPI for TensorFlow-related packages
   - tensorboard
+  - tensorflow
