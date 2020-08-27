@@ -107,7 +107,8 @@ def main(queried_images_json_path: str,
 
     missing_detections, images_no_confident_detections, missing_crops = result
     print('Images missing detections:', len(missing_detections))
-    print('Images without detections:', len(images_no_confident_detections))
+    print('Images without confident detections:',
+          len(images_no_confident_detections))
     print('Missing crops:', len(missing_crops))
 
     crops_df = pd.read_csv(
@@ -182,14 +183,12 @@ def create_crops_csv(queried_images_json_path: str,
     with open(queried_images_json_path, 'r') as f:
         js = json.load(f)
 
+    print('loading detection cache...', end='')
     detector_output_cache_dir = os.path.join(
         detector_output_cache_base_dir, f'v{detector_version}')
-    detection_cache = {}
     datasets = set(img_path[:img_path.find('/')] for img_path in js)
-    print('loading detection cache...', end='')
-    for ds in datasets:
-        detection_cache[ds] = detect_and_crop.load_detection_cache(
-            detector_output_cache_dir=detector_output_cache_dir, dataset=ds)
+    detection_cache, cat_id_to_name = detect_and_crop.load_detection_cache(
+        detector_output_cache_dir=detector_output_cache_dir, datasets=datasets)
     print('done!')
 
     missing_detections = []  # no cached detections or ground truth bboxes
@@ -214,6 +213,9 @@ def create_crops_csv(queried_images_json_path: str,
         else:  # get bounding boxes from detector cache
             if img_file in detection_cache[ds]:
                 bbox_dicts = detection_cache[ds][img_file]['detections']
+                # convert from category ID to category name
+                for d in bbox_dicts:
+                    d['category'] = cat_id_to_name[d['category']]
             else:
                 missing_detections.append(img_path)
                 continue
