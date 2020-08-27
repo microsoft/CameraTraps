@@ -4,10 +4,10 @@
 from datetime import datetime
 import json
 import math
+import multiprocessing
 import os
 from random import shuffle
 import string
-import threading
 import time
 from typing import Any, Dict, Mapping
 import urllib.parse
@@ -67,7 +67,12 @@ internal_datastore = {
 print('Internal storage container {} in account {} is set up.'.format(
     internal_container, storage_account_name))
 
-task_status_lock = threading.Lock()
+# We use multiprocessing.Lock which works everywhere a threading.Lock works,
+# i.e., even in single-process, multi-threaded code. However, this lock is only
+# effective if the lock is actually created before worker processes are forked
+# and therefore shared. Thus, we require --preload flag when running gunicorn.
+# See https://stackoverflow.com/q/18213619.
+task_status_lock = multiprocessing.Lock()
 
 
 def update_task_status(task_manager: Any, request_id: str,
