@@ -28,7 +28,6 @@ dependencies:
 - pylint
 - scikit-learn
 - seaborn
-- tensorboard
 - tqdm
 - xlrd          # for pandas Excel support, needed by taxonomy_mapping/process_species_by_dataset
 - pip
@@ -36,9 +35,17 @@ dependencies:
 # from conda-forge
 - accimage      # faster Pillow replacement for torchvision
 
-# Some Azure packages or versions are only available from PyPI
+# Some packages or versions are only available from PyPI
 # These may require GCC to be installed
 - pip:
   - azure-cosmos
   - azure-storage-blob>=12.4
+
+  # Pillow-SIMD will "over-shadow" the normal Pillow package installed by conda.
+  # After installing, check that Pillow-SIMD is what gets imported:
+  #     import PIL
+  #     print(PIL.__version__)  # make sure this ends in '.postX'
   - pillow-simd
+
+  # conda (defaults channel) tends to lag PyPI for TensorFlow-related packages
+  - tensorboard
