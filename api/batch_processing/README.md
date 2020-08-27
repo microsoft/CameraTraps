@@ -21,13 +21,13 @@ It takes about 0.8 seconds per image per machine, and we have at most 16 machine
 The endpoints of this API are available at
 
 ```
-http://URL/v2/camera-trap/detection-batch
+http://URL/v3/camera-trap/detection-batch
 ```
 
 #### `/request_detections`
 To submit a request for batch processing, make a POST call to
 
-```http://URL/v2/camera-trap/detection-batch/request_detections```.
+```http://URL/v3/camera-trap/detection-batch/request_detections```.
 
 with a json body containing input fields defined below. The API will return with a json response very quickly to give you a RequestID (UUID4) representing the request you have submitted, for example:
 ```json
@@ -46,7 +46,7 @@ or an error message, if your inputs are not acceptable:
 #### `/task`
 Check the status of your request by calling the `/task` endpoint via a GET call, passing in your RequestID:
 
-```http://URL/v2/camera-trap/detection-batch/task/RequestID```
+```http://URL/v3/camera-trap/detection-batch/task/RequestID```
 
 This returns a json with the fields `Status`, `TaskId` (which is the `request_id` in this document), and a few others. The `Status` field is a json object with the following fields: 
 
@@ -63,13 +63,13 @@ This returns a json with the fields `Status`, `TaskId` (which is the `request_id
 #### `/supported_model_versions`
 Check which versions of the MegaDetector are supported by this API by making a GET call to 
 
-```http://URL/v2/camera-trap/detection-batch/supported_model_versions```
+```http://URL/v3/camera-trap/detection-batch/supported_model_versions```
 
 
 #### `/default_model_version`
 Check which versions of the MegaDetector is used by default by making a GET call to
 
-```http://URL/v2/camera-trap/detection-batch/default_model_version```
+```http://URL/v3/camera-trap/detection-batch/default_model_version```
 
 
 #### Canceling a request
