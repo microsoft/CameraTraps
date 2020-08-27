@@ -55,7 +55,7 @@ This script outputs 3 files to <output_dir>:
 
 Example usage:
     python create_classification_dataset.py \
-        run_idfg2/labeled_images.json /ssd/crops_sq \
+        run_idfg2/queried_images.json /ssd/crops_sq \
         -c $HOME/classifier-training/mdcache -v "4.1" -t 0.8 \
         -d run_idfg2/classifcation_ds.csv -s run_idfg2/splits.json
 """
@@ -70,7 +70,7 @@ from tqdm import tqdm
 from classification import detect_and_crop
 
 
-def main(labeled_images_json_path: str,
+def main(queried_images_json_path: str,
          detector_version: str,
          detector_output_cache_base_dir: str,
          cropped_images_dir: str,
@@ -80,7 +80,7 @@ def main(labeled_images_json_path: str,
          ) -> None:
     """
     Args:
-        labeled_images_json_path: str, path to output of json_validator.py
+        queried_images_json_path: str, path to output of json_validator.py
         detector_version: str, detector version string, e.g., '4.1',
             see {batch_detection_api_url}/supported_model_versions,
             determines the subfolder of detector_output_cache_base_dir in
@@ -98,7 +98,7 @@ def main(labeled_images_json_path: str,
         os.makedirs(output_dir)
         print(f'Created {output_dir}')
     csv_save_path = os.path.join(output_dir, 'classification_ds.csv')
-    result = create_crops_csv(labeled_images_json_path,
+    result = create_crops_csv(queried_images_json_path,
                               detector_version,
                               detector_output_cache_base_dir,
                               cropped_images_dir,
@@ -141,7 +141,7 @@ def main(labeled_images_json_path: str,
         json.dump(split_to_locs, f, indent=1)
 
 
-def create_crops_csv(labeled_images_json_path: str,
+def create_crops_csv(queried_images_json_path: str,
                      detector_version: str,
                      detector_output_cache_base_dir: str,
                      cropped_images_dir: str,
@@ -159,7 +159,7 @@ def create_crops_csv(labeled_images_json_path: str,
     - label: str, comma-separated list of classification labels
 
     Args:
-        labeled_images_json_path: str, path to output of json_validator.py
+        queried_images_json_path: str, path to output of json_validator.py
         detector_version: str, detector version string, e.g., '4.1',
             see {batch_detection_api_url}/supported_model_versions,
             determines the subfolder of detector_output_cache_base_dir in
@@ -179,7 +179,7 @@ def create_crops_csv(labeled_images_json_path: str,
         images_missing_crop: list of tuple (img_path, i), where i is the i-th
             crop index
     """
-    with open(labeled_images_json_path, 'r') as f:
+    with open(queried_images_json_path, 'r') as f:
         js = json.load(f)
 
     detector_output_cache_dir = os.path.join(
@@ -346,7 +346,7 @@ def _parse_args() -> argparse.Namespace:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description='Creates classification dataset.')
     parser.add_argument(
-        'labeled_images_json',
+        'queried_images_json',
         help='path to JSON file containing image paths and classification info')
     parser.add_argument(
         'cropped_images_dir',
@@ -374,7 +374,7 @@ def _parse_args() -> argparse.Namespace:
 if __name__ == '__main__':
     args = _parse_args()
     assert 0 <= args.confidence_threshold <= 1
-    main(labeled_images_json_path=args.labeled_images_json,
+    main(queried_images_json_path=args.queried_images_json,
          detector_version=args.detector_version,
          detector_output_cache_base_dir=args.detector_output_cache_dir,
          cropped_images_dir=args.cropped_images_dir,
