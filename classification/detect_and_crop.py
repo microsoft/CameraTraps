@@ -101,8 +101,8 @@ import json
 import os
 import pprint
 import time
-from typing import (Any, BinaryIO, Dict, Iterable, List, Mapping, Optional,
-                    Sequence, Tuple, Union)
+from typing import (Any, BinaryIO, Collection, Dict, Iterable, List, Mapping,
+                    Optional, Sequence, Tuple, Union)
 
 from azure.storage.blob import download_blob_from_url
 from PIL import Image, ImageOps
@@ -253,29 +253,45 @@ def main(queried_images_json_path: str,
         json.dump(log, f, indent=1)
 
 
-def load_detection_cache(detector_output_cache_dir: str, dataset: str
-                         ) -> Tuple[Dict[str, Dict[str, Any]], Dict[str, str]]:
+def load_detection_cache(detector_output_cache_dir: str,
+                         datasets: Collection[str]) -> Tuple[
+                             Dict[str, Dict[str, Dict[str, Any]]],
+                             Dict[str, str]
+                         ]:
     """Loads detection cache for a given dataset. Returns empty dictionaries
     if the cache does not exist.
 
     Args:
         detector_output_cache_dir: str, path to local directory where detector
             outputs are cached, 1 JSON file per dataset
-        dataset: str, name of dataset
+        datasets: list of str, names of datasets
 
     Returns:
-        dataset_cache: dict, maps str image file to dict of detection info
+        detection_cache: dict, maps dataset name to dict, which maps
+            image file to corresponding entry in 'images' list from the
+            Batch Detection API output. detection_cache[ds] is an empty dict
+            if no cached detections were found for the given dataset ds.
         detection_categories: dict, maps str category ID to str category name
     """
-    cache_path = os.path.join(detector_output_cache_dir, f'{dataset}.json')
-    dataset_cache = {}
-    detection_categories = {}
-    if os.path.exists(cache_path):
-        with open(cache_path, 'r') as f:
-            js = json.load(f)
-        dataset_cache = {img['file']: img for img in js['images']}
-        detection_categories = js['detection_categories']
-    return dataset_cache, detection_categories
+    # cache of Detector outputs: dataset name => {img_path => detection_dict}
+    detection_cache = {}
+    detection_categories: Dict[str, str] = {}
+
+    pbar = tqdm(datasets)
+    for ds in pbar:
+        pbar.set_description(f'Loading dataset {ds} into detection cache')
+        cache_path = os.path.join(detector_output_cache_dir, f'{ds}.json')
+        if os.path.exists(cache_path):
+            with open(cache_path, 'r') as f:
+                js = json.load(f)
+            detection_cache[ds] = {img['file']: img for img in js['images']}
+            if len(detection_categories) == 0:
+                detection_categories = js['detection_categories']
+            assert detection_categories == js['detection_categories']
+        else:
+            tqdm.write(f'No detection cache found for dataset {ds}')
+            detection_cache[ds] = {}
+    return detection_cache, detection_categories
 
 
 def filter_detected_images(
@@ -303,24 +319,15 @@ def filter_detected_images(
         detection_categories: dict, maps str category ID to str category name,
             empty dict if no cached detections are found
     """
-    # cache of Detector outputs: dataset name => {img_path => detection_dict}
-    detection_cache: Dict[str, Dict[str, Dict]] = {}
-    detection_categories: Dict[str, str] = {}
+    datasets = set(img_path[:img_path.find('/')]
+                   for img_path in potential_images_to_detect)
+    detection_cache, detection_categories = load_detection_cache(
+        detector_output_cache_dir, datasets)
 
     images_to_detect = []
-    pbar = tqdm(potential_images_to_detect)
-    for img_path in pbar:
+    for img_path in potential_images_to_detect:
         # img_path: <dataset-name>/<img-filename>
         ds, img_file = img_path.split('/', maxsplit=1)
-
-        if ds not in detection_cache:
-            pbar.set_description(f'Loading dataset {ds} into detection cache')
-            detection_cache[ds], categories = load_detection_cache(
-                detector_output_cache_dir, ds)
-            if len(detection_categories) == 0:
-                detection_categories = categories
-            assert detection_categories == categories
-
         if img_file not in detection_cache[ds]:
             images_to_detect.append(img_path)
 
