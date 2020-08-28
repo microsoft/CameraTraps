@@ -137,6 +137,7 @@ def main(queried_images_json_path: str,
                     datasets.extend(level)
                 prioritize[label] = datasets
 
+    print('Creating splits...')
     split_to_locs = create_splits(crops_df, prioritize=prioritize)
     with open(os.path.join(output_dir, 'splits.json'), 'w') as f:
         json.dump(split_to_locs, f, indent=1)
@@ -339,6 +340,10 @@ def create_splits(df: pd.DataFrame,
                 split = 'train'
             add_loc_to_split(loc, split)
 
+    # sort the resulting locs
+    split_to_locs = {
+        split: sorted(locs) for split, locs in split_to_locs.items()
+    }
     return split_to_locs
 
 
