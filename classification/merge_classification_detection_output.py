@@ -76,7 +76,7 @@ def row_to_classification_list(row: Mapping[str, float],
         if contains_label:
             result[0] = (result[0][0], true_label_prob)
     else:
-        i = label_names.find(row['label'])
+        i = label_names.index(row['label'])
         result = [(str(i), 1.0)]
     return result
 
@@ -88,11 +88,14 @@ def main(classification_csv_path: str,
          detector_output_cache_base_dir: str,
          detector_version: str,
          output_json_path: str,
-         datasets: Optional[Sequence[str]] = None
+         datasets: Optional[Sequence[str]] = None,
+         samples_per_label: Optional[int] = None,
+         seed: int = 123
          ) -> None:
     """Main function."""
-    # load classification output CSV
+    # load classification CSV
     # extract dataset name from img_file so we can process 1 dataset at a time
+    print('Loading classification CSV...')
     df = pd.read_csv(classification_csv_path, float_precision='high',
                      index_col=False)
     df['dataset'] = df['path'].str.split('/', n=1, expand=True)[0]
@@ -102,8 +105,14 @@ def main(classification_csv_path: str,
     if datasets is not None:
         for ds in datasets:
             assert ds in unique_datasets
+        df = df[df['dataset'].isin(datasets)]  # filter by dataset
     else:
         datasets = unique_datasets
+
+    # randomly sample images for each class
+    if samples_per_label is not None:
+        print(f'Sampling {samples_per_label} bounding boxes per label')
+        df = df.groupby('label').sample(samples_per_label, random_state=seed)
 
     classification_time = datetime.date.fromtimestamp(
         os.path.getmtime(classification_csv_path))
@@ -239,6 +248,13 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         '-d', '--datasets', nargs='*',
         help='optionally limit output to images from certain datasets')
+    parser.add_argument(
+        '-s', '--samples-per-label', type=int,
+        help='randomly sample this many bounding boxes per label (each label '
+             'must have at least this many examples)')
+    parser.add_argument(
+        '--seed', type=int, default=123,
+        help='random seed, only used if --samples-per-label is given')
     return parser.parse_args()
 
 
@@ -251,4 +267,6 @@ if __name__ == '__main__':
          detector_output_cache_base_dir=args.detector_output_cache_dir,
          detector_version=args.detector_version,
          output_json_path=args.output_json,
-         datasets=args.datasets)
+         datasets=args.datasets,
+         samples_per_label=args.samples_per_label,
+         seed=args.seed)
