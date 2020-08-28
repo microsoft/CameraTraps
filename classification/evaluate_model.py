@@ -35,7 +35,7 @@ import argparse
 import json
 import os
 from pprint import pprint
-from typing import Iterable, Optional, Sequence, Tuple
+from typing import Any, Iterable, Mapping, Optional, Sequence, Tuple
 
 import numpy as np
 import pandas as pd
@@ -51,21 +51,30 @@ torchvision.set_image_backend('accimage')
 
 SPLITS = ['train', 'val', 'test']
 
+def check_override(params: Mapping[str, Any], key: str,
+                   override: Optional[Any]) -> Any:
+    """Return desired value, with optional override."""
+    saved = params[key]
+    if override is None:
+        return saved
+    print(f'Overriding saved {key}. Saved: {saved}. Override with: {override}.')
+    return override
+
 
 def main(logdir: str, ckpt_name: str, splits: Iterable[str],
-         batch_size: Optional[int] = None, num_workers: Optional[int] = None
+         batch_size: Optional[int] = None, num_workers: Optional[int] = None,
+         dataset_dir: Optional[str] = None
          ) -> None:
     """Main function."""
     with open(os.path.join(logdir, 'params.json'), 'r') as f:
         params = json.load(f)
     pprint(params)
     model_name = params['model_name']
-    if batch_size is None:
-        batch_size = params['batch_size']
-    if num_workers is None:
-        num_workers = params['num_workers']
 
-    dataset_dir = params['dataset_dir']
+    batch_size = check_override(params, 'batch_size', batch_size)
+    num_workers = check_override(params, 'num_workers', num_workers)
+    dataset_dir = check_override(params, 'dataset_dir', dataset_dir)
+
     loaders, label_names = train_classifier.create_dataloaders(
         dataset_csv_path=os.path.join(dataset_dir, 'classification_ds.csv'),
         label_index_json_path=os.path.join(dataset_dir, 'label_index.json'),
@@ -301,10 +310,15 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         '--num-workers', type=int,
         help='number of workers for data loading, defaults to training value')
+    parser.add_argument(
+        '--dataset-dir',
+        help='path to directory containing classification_ds.csv, '
+             'label_index.json, and splits.json. Defaults to training value.')
     return parser.parse_args()
 
 
 if __name__ == '__main__':
     args = _parse_args()
     main(logdir=args.logdir, ckpt_name=args.ckpt_name, splits=args.splits,
-         batch_size=args.batch_size, num_workers=args.num_workers)
+         batch_size=args.batch_size, num_workers=args.num_workers,
+         dataset_dir=args.dataset_dir)
