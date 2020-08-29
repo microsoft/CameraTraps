@@ -102,7 +102,8 @@ def load_dataset_csv(dataset_csv_path: str,
                      label_index_json_path: str,
                      splits_json_path: str,
                      multilabel: bool,
-                     label_weighted: bool,
+                     weight_by_detection_conf: bool,
+                     label_weighted: bool
                      ) -> Tuple[pd.DataFrame,
                                 List[str],
                                 Dict[str, Set[Tuple[str, str]]]
@@ -112,7 +113,11 @@ def load_dataset_csv(dataset_csv_path: str,
         classification_dataset_csv_path: str, path to CSV file with columns
             ['dataset', 'location', 'label'], where label is a comma-delimited
             list of labels
+        label_index_json_path: str, TODO
         splits_json_path: str, path to JSON file
+        multilabel: bool, TODO
+        weight_by_detection_conf: bool, TODO
+        label_weighted: bool, TODO
 
     Returns:
         df: pd.DataFrame, with columns
@@ -125,7 +130,7 @@ def load_dataset_csv(dataset_csv_path: str,
         split_to_locs: dict, maps split to set of (dataset, location) tuples
     """
     # read in dataset CSV and create merged (dataset, location) col
-    df = pd.read_csv(dataset_csv_path, index_col=False)
+    df = pd.read_csv(dataset_csv_path, index_col=False, float_precision='high')
     df['dataset_location'] = list(zip(df['dataset'], df['location']))
 
     with open(label_index_json_path, 'r') as f:
@@ -153,14 +158,26 @@ def load_dataset_csv(dataset_csv_path: str,
     assert split_to_locs['train'].isdisjoint(split_to_locs['test'])
     assert split_to_locs['val'].isdisjoint(split_to_locs['test'])
 
+    if weight_by_detection_conf:
+        raise NotImplementedError
+
     if label_weighted:
+        df['weights'] = -1.0
         # TODO: handle multilabel case
-        # sample_weight[i] = 1 / count(i's label)
-        # - weight allocated to each label is 1
+
+        # treat each split separately
+        # sample_weight[i] = (N / C) / count(i's label)
+        # - N = # of examples in split; C = # of labels
+        # - weight allocated to each label is N/C
         # - within each label, weigh each example as 1/# of examples in label
-        # sample_weights sums to C, where C = number of labels
-        sample_weights = 1. / df['label'].value_counts()[df['label']]
-        df['weights'] = sample_weights.tolist()
+        # - sample_weights sums to N
+        for locs in split_to_locs.values():
+            split_mask = df['dataset_location'].isin(locs)
+            label_sizes = df[split_mask].groupby('label').size()
+            n_over_c = split_mask.sum() / len(label_names)
+            sample_weights = n_over_c / label_sizes[df.loc[split_mask, 'label']]
+            df.loc[split_mask, 'weights'] = sample_weights.to_numpy()
+        assert (df['weights'] > 0).all()
 
     return df, label_names, split_to_locs
 
