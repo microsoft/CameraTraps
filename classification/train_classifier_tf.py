@@ -150,7 +150,8 @@ def create_dataloaders(
     """
     df, label_names, split_to_locs = load_dataset_csv(
         dataset_csv_path, label_index_json_path, splits_json_path,
-        multilabel=multilabel, label_weighted=label_weighted)
+        multilabel=multilabel, weight_by_detection_conf=False,
+        label_weighted=label_weighted)
 
     # define the transforms
 
@@ -186,8 +187,7 @@ def create_dataloaders(
         weights = None
         if label_weighted:
             # weights sums to the # of images in the split
-            weights = split_df['weights']
-            weights = (weights * len(split_df) / weights.sum()).tolist()
+            weights = split_df['weights'].to_numpy()
 
         cache: Union[bool, str] = (split in cache_splits)
         if split == 'train' and 'train' in cache_splits:
@@ -630,7 +630,7 @@ def _parse_args() -> argparse.Namespace:
         '--seed', type=int,
         help='random seed')
     parser.add_argument(
-        '--logdir', default='',
+        '--logdir', default='.',
         help='directory where TensorBoard logs and a params file are saved')
     parser.add_argument(
         '--cache', nargs='*', choices=['train', 'val', 'test'], default=(),
