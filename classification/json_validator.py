@@ -54,6 +54,7 @@ from __future__ import annotations
 
 import argparse
 from concurrent import futures
+from datetime import datetime
 import json
 import os
 import pprint
@@ -557,14 +558,14 @@ def remove_bad_images(js: Mapping[str, Dict[str, Any]],
 
     Returns: copy of js, but with bad images removed
     """
-    pool = futures.ThreadPoolExecutor(max_workers=num_threads)
-    future_to_img_path = {}
+    num_bad_images = 0
 
     # only keep images with valid image file extension
     print('Removing images with invalid image file extensions...')
     img_paths = [k for k in js.keys() if path_utils.is_image_file(k)]
     nonimg_paths = set(js.keys()) - set(img_paths)
     print(f'Found {len(nonimg_paths)} files with non-image extensions.')
+    num_bad_images += len(nonimg_paths)
 
     def check_local_then_azure(img_path: str, blob_url: str) -> bool:
         assert isinstance(check_blob_exists, str)
@@ -574,6 +575,9 @@ def remove_bad_images(js: Mapping[str, Dict[str, Any]],
         return sas_blob_utils.check_blob_exists(blob_url)
 
     if check_blob_exists:
+        pool = futures.ThreadPoolExecutor(max_workers=num_threads)
+        future_to_img_path = {}
+
         blob_urls = get_image_sas_uris(img_paths)
         total = len(img_paths)
         print(f'Checking {total} images for existence...')
@@ -602,15 +606,24 @@ def remove_bad_images(js: Mapping[str, Dict[str, Any]],
                 exception_type = type(e).__name__
                 tqdm.write(f'{img_path} - generated {exception_type}: {e}')
             nonexistent_images.append(img_path)
+        pool.shutdown()
 
-    pool.shutdown()
+        print(f'Found {len(nonexistent_images)} nonexistent blobs.')
+        num_bad_images += len(nonexistent_images)
+    else:
+        print('Not checking for image existence.')
 
-    if output_dir is not None:
-        filename = 'json_validator_bad_images.json'
+    print(f'Found a total of {num_bad_images} bad images.')
+
+    if output_dir is not None and num_bad_images > 0:
         bad_images = {'nonimage_files': sorted(nonimg_paths)}
         if check_blob_exists:
             bad_images['nonexistent_images'] = sorted(nonexistent_images)
-        with open(os.path.join(output_dir, filename), 'w') as f:
+
+        date = datetime.now().strftime('%Y%m%d_%H%M%S')  # ex: '20200722_110816'
+        log_path = os.path.join(output_dir, f'json_validator_log_{date}.json')
+        print(f'Saving log of bad images to {log_path}')
+        with open(log_path, 'w') as f:
             json.dump(bad_images, f, indent=1)
 
     output_js = {
@@ -707,7 +720,7 @@ def _parse_args() -> argparse.Namespace:
         help='flag that restricts the taxonomy to only allow a single parent '
              'for each taxon node')
     parser.add_argument(
-        '--check-blob-existence', nargs='?', const=True,
+        '--check-blob-exists', nargs='?', const=True,
         help='check that the blob for each queried image actually exists. Can '
              'be very slow if reaching throttling limits. Optionally pass in a '
              'local directory to check before checking Azure Blob Storage.')
