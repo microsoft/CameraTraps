@@ -76,7 +76,9 @@ def main(queried_images_json_path: str,
          cropped_images_dir: str,
          output_dir: str,
          confidence_threshold: float,
-         label_spec_json_path: Optional[str] = None
+         label_spec_json_path: Optional[str] = None,
+         match_test_csv_path: Optional[str] = None,
+         match_test_splits_path: Optional[str] = None
          ) -> None:
     """
     Args:
@@ -93,7 +95,28 @@ def main(queried_images_json_path: str,
             label index JSON
         confidence_threshold: float, only crop bounding boxes above this value
         label_spec_json_path: optional str, path to label spec JSON
+        match_test_csv_path: optional str, path to existing classification CSV
+        match_test_splits_path: optional str, path to existing splits JSON
     """
+    # input validation
+    assert 0 <= confidence_threshold <= 1
+    if (match_test_csv_path is None) != (match_test_splits_path is None):
+        raise ValueError('both match_test_csv_path and match_test_splits_path '
+                         'must be given together')
+
+    exclude_locs = None  # set of (dataset, location) tuples
+    append_df = None
+    if match_test_splits_path is not None:
+        with open(match_test_splits_path, 'r') as f:
+            match_splits = json.load(f)
+        test_set_locs = set(tuple(loc) for loc in match_splits['test'])
+        match_df = pd.read_csv(match_test_csv_path, index_col=False,
+                               float_precision='high')
+        ds_locs = pd.Series(zip(match_df['dataset'], match_df['location']))
+        test_set_df = match_df[ds_locs.isin(test_set_locs)]
+        exclude_locs = test_set_locs
+        append_df = test_set_df
+
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
         print(f'Created {output_dir}')
@@ -103,7 +126,9 @@ def main(queried_images_json_path: str,
                               detector_output_cache_base_dir,
                               cropped_images_dir,
                               confidence_threshold,
-                              csv_save_path)
+                              csv_save_path,
+                              append_df=append_df,
+                              exclude_locs=exclude_locs)
 
     missing_detections, images_no_confident_detections, missing_crops = result
     print('Images missing detections:', len(missing_detections))
@@ -148,7 +173,9 @@ def create_crops_csv(queried_images_json_path: str,
                      detector_output_cache_base_dir: str,
                      cropped_images_dir: str,
                      confidence_threshold: float,
-                     csv_save_path: str
+                     csv_save_path: str,
+                     append_df: Optional[pd.DataFrame] = None,
+                     exclude_locs: Optional[Container[Tuple[str, str]]] = None
                      ) -> Tuple[List[str], List[str], List[Tuple[str, int]]]:
     """Creates a classification dataset CSV.
 
@@ -172,6 +199,10 @@ def create_crops_csv(queried_images_json_path: str,
             bounding boxes
         confidence_threshold: float, only crop bounding boxes above this value
         csv_save_path: str, path to save dataset csv
+        append_df: optional pd.DataFrame, existing DataFrame that is appended to
+            the classification CSV
+        exclude_locs: optional set of (dataset, location) tuples, crops from
+            these locations are excluded (does not affect append_df)
 
     Returns:
         missing_detections: list of str, images without ground truth
@@ -181,6 +212,11 @@ def create_crops_csv(queried_images_json_path: str,
         images_missing_crop: list of tuple (img_path, i), where i is the i-th
             crop index
     """
+    columns = [
+        'path', 'dataset', 'location', 'dataset_class', 'confidence', 'label']
+    if append_df is not None:
+        assert (append_df.columns == columns).all()
+
     with open(queried_images_json_path, 'r') as f:
         js = json.load(f)
 
@@ -249,10 +285,16 @@ def create_crops_csv(queried_images_json_path: str,
             continue
         all_rows.extend(rows)
 
-    print('Saving classification dataset CSV...', end='')
-    columns = [
-        'path', 'dataset', 'location', 'dataset_class', 'confidence', 'label']
     df = pd.DataFrame(data=all_rows, columns=columns)
+    if exclude_locs is not None:
+        mask = ~pd.Series(zip(df['dataset'], df['location'])).isin(exclude_locs)
+        print(f'Excluding {(~mask).sum()} crops from CSV')
+        df = df[mask]
+    if append_df is not None:
+        print(f'Appending {len(append_df)} rows to CSV')
+        df = df.append(append_df)
+
+    print('Saving classification dataset CSV...', end='')
     df.to_csv(csv_save_path, index=False)
     print('done!')
 
@@ -375,16 +417,25 @@ def _parse_args() -> argparse.Namespace:
         '--label-spec',
         help='optional path to label specification JSON file, if specifying '
              'dataset priority')
+    parser.add_argument(
+        '--match-test-csv',
+        help='path to an existing classification CSV from which to match '
+             'val/test crops (requires --match-test-splits)')
+    parser.add_argument(
+        '--match-test-splits',
+        help='path to existing split JSON file from which to match val/test '
+             'locations (requires --match-test-csv)')
     return parser.parse_args()
 
 
 if __name__ == '__main__':
     args = _parse_args()
-    assert 0 <= args.confidence_threshold <= 1
     main(queried_images_json_path=args.queried_images_json,
          detector_version=args.detector_version,
          detector_output_cache_base_dir=args.detector_output_cache_dir,
          cropped_images_dir=args.cropped_images_dir,
          output_dir=args.output_dir,
          confidence_threshold=args.confidence_threshold,
-         label_spec_json_path=args.label_spec)
+         label_spec_json_path=args.label_spec,
+         match_test_csv_path=args.match_test_csv,
+         match_test_splits_path=args.match_test_splits)
