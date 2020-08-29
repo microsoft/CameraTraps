@@ -135,7 +135,8 @@ def create_dataloaders(
     """
     df, label_names, split_to_locs = load_dataset_csv(
         dataset_csv_path, label_index_json_path, splits_json_path,
-        multilabel=multilabel, label_weighted=label_weighted)
+        multilabel=multilabel, weight_by_detection_conf=False,
+        label_weighted=label_weighted)
 
     # define the transforms
     normalize = tv.transforms.Normalize(mean=MEANS, std=STDS, inplace=True)
@@ -162,8 +163,7 @@ def create_dataloaders(
         weights = None
         if label_weighted:
             # weights sums to the # of images in the split
-            weights = split_df['weights']
-            weights = (weights * len(split_df) / weights.sum()).tolist()
+            weights = split_df['weights'].to_numpy()
             if is_train:
                 sampler = torch.utils.data.WeightedRandomSampler(
                     weights, num_samples=len(split_df), replacement=True)
@@ -672,7 +672,7 @@ def _parse_args() -> argparse.Namespace:
         '--seed', type=int,
         help='random seed')
     parser.add_argument(
-        '--logdir', default='',
+        '--logdir', default='.',
         help='directory where TensorBoard logs and a params file are saved')
     return parser.parse_args()
 
