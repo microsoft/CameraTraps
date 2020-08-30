@@ -18,8 +18,8 @@ from collections import defaultdict
 from datetime import datetime
 import json
 import os
-from typing import (
-    Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union)
+from typing import (Any, Callable, Dict, List, Mapping, MutableMapping,
+                    Optional, Sequence, Tuple, Union)
 import uuid
 
 import numpy as np
@@ -29,7 +29,7 @@ from tensorboard.plugins.hparams import api as hp
 import tqdm
 
 from classification.train_utils import (
-    HeapItem, accuracy_from_confusion_matrix, add_to_heap, fig_to_img,
+    HeapItem, recall_from_confusion_matrix, add_to_heap, fig_to_img,
     imgs_with_confidences, load_dataset_csv, prefix_all_keys)
 from visualization import plot_utils
 
@@ -47,15 +47,6 @@ EFFICIENTNET_MODELS: Mapping[str, Mapping[str, Any]] = {
     'efficientnet-b6': {'cls': 'EfficientNetB6', 'img_size': 528},
     'efficientnet-b7': {'cls': 'EfficientNetB7', 'img_size': 600}
 }
-
-
-def load_image(path: str) -> tf.Tensor:
-    """Loads a JPEG image into a 3D uint8 tf.Tensor from a file path."""
-    # read file as str, then convert str to a 3D uint8 tensor
-    # keras EfficientNet already includes normalization from [0, 255] to [0, 1]
-    img = tf.io.read_file(path)
-    img = tf.io.decode_jpeg(img, channels=3)
-    return img
 
 
 def create_dataset(
@@ -94,13 +85,20 @@ def create_dataset(
     """
     # images dataset
     img_ds = tf.data.Dataset.from_tensor_slices(img_files)
-    img_ds = img_ds.map(lambda p: load_image(img_base_dir + os.sep + p),
+    img_ds = img_ds.map(lambda p: tf.io.read_file(img_base_dir + os.sep + p),
                         num_parallel_calls=AUTOTUNE)
 
+    # for smaller disk / memory usage, we cache the raw JPEG bytes instead
+    # of the decoded Tensor
     if isinstance(cache, str):
         img_ds = img_ds.cache(cache)
     elif cache:
         img_ds = img_ds.cache()
+
+    # convert JPEG bytes to a 3D uint8 Tensor
+    # keras EfficientNet already includes normalization from [0, 255] to [0, 1],
+    #   so we don't need to do that here
+    img_ds = img_ds.map(lambda img: tf.io.decode_jpeg(img, channels=3))
 
     if transform:
         img_ds = img_ds.map(transform, num_parallel_calls=AUTOTUNE)
@@ -187,7 +185,7 @@ def create_dataloaders(
         weights = None
         if label_weighted:
             # weights sums to the # of images in the split
-            weights = split_df['weights'].to_numpy()
+            weights = split_df['weights'].tolist()
 
         cache: Union[bool, str] = (split in cache_splits)
         if split == 'train' and 'train' in cache_splits:
@@ -234,12 +232,6 @@ def build_model(model_name: str, num_classes: int, img_size: int,
     outputs = tf.keras.layers.Dense(num_classes, name='logits')(x)
     model = tf.keras.Model(inputs, outputs, name='complete_model')
     return model
-
-
-def log_metrics(metrics: Dict[str, float], epoch: int) -> None:
-    """Logs metrics to TensorBoard."""
-    for metric, value in metrics.items():
-        tf.summary.scalar(metric, value, epoch)
 
 
 def main(dataset_dir: str,
@@ -328,31 +320,17 @@ def main(dataset_dir: str,
             model, loader=loaders['train'], weighted=label_weighted,
             loss_fn=loss_fn, weight_decay=weight_decay, finetune=finetune,
             optimizer=optimizer, return_extreme_images=True)
-        train_per_label_acc = accuracy_from_confusion_matrix(
-            train_cm, label_names)
-        train_metrics.update(prefix_all_keys(train_per_label_acc, 'label_acc/'))
-        train_metrics = prefix_all_keys(train_metrics, prefix='train/')
-        log_metrics(train_metrics, epoch)
-        log_confusion_matrix(train_cm, label_names=label_names,
-                             tag='confusion_matrix/train', epoch=epoch)
-        for heap_type, heap_dict in train_heaps.items():
-            log_images_with_confidence(
-                heap_dict, label_names, epoch=epoch, tag=f'train/{heap_type}')
+        train_metrics = prefix_all_keys(train_metrics, prefix='train')
+        log_run('train', epoch, writer, label_names,
+                metrics=train_metrics, heaps=train_heaps, cm=train_cm)
 
         print('- val:')
         val_metrics, val_heaps, val_cm = run_epoch(
             model, loader=loaders['val'], weighted=label_weighted,
             loss_fn=loss_fn, return_extreme_images=True)
-        val_per_class_acc = accuracy_from_confusion_matrix(val_cm, label_names)
-        val_metrics.update(prefix_all_keys(val_per_class_acc, 'label_acc/'))
-        val_metrics = prefix_all_keys(val_metrics, prefix='val/')
-        log_metrics(val_metrics, epoch)
-        log_confusion_matrix(val_cm, label_names=label_names,
-                             tag='confusion_matrix/val', epoch=epoch)
-        for heap_type, heap_dict in val_heaps.items():
-            log_images_with_confidence(
-                heap_dict, label_names, epoch=epoch, tag=f'val/{heap_type}')
-        writer.flush()
+        val_metrics = prefix_all_keys(val_metrics, prefix='val')
+        log_run('val', epoch, writer, label_names,
+                metrics=val_metrics, heaps=val_heaps, cm=val_cm)
 
         if val_metrics['val/acc_top1'] > best_epoch_metrics.get('val/acc_top1', 0):  # pylint: disable=line-too-long
             filename = os.path.join(logdir, f'ckpt_{epoch}.h5')
@@ -361,6 +339,13 @@ def main(dataset_dir: str,
             best_epoch_metrics.update(train_metrics)
             best_epoch_metrics.update(val_metrics)
             best_epoch_metrics['epoch'] = epoch
+
+            test_metrics, test_heaps, test_cm = run_epoch(
+                model, loader=loaders['test'], weighted=label_weighted,
+                loss_fn=loss_fn, return_extreme_images=True)
+            test_metrics = prefix_all_keys(test_metrics, prefix='test')
+            log_run('test', epoch, writer, label_names,
+                    metrics=test_metrics, heaps=test_heaps, cm=test_cm)
 
         # stop training after 8 epochs without improvement
         if epoch >= best_epoch_metrics['epoch'] + 8:
@@ -377,13 +362,34 @@ def main(dataset_dir: str,
     writer.close()
 
 
-def log_confusion_matrix(cm: np.ndarray, label_names: Sequence[str], tag: str,
-                         epoch: int) -> None:
-    """Log a confusion matrix in TensorBoard."""
-    cm_fig = plot_utils.plot_confusion_matrix(
-        cm, classes=label_names, normalize=True)
+def log_run(split: str, epoch: int, writer: tf.summary.SummaryWriter,
+            label_names: Sequence[str], metrics: MutableMapping[str, float],
+            heaps: Mapping[str, Mapping[int, List[HeapItem]]], cm: np.ndarray
+            ) -> None:
+    """Logs the outputs (metrics, confusion matrix, tp/fp/fn images) from a
+    single epoch run to Tensorboard.
+
+    Args:
+        metrics: dict, keys already prefixed with {split}/
+    """
+    per_class_recall = recall_from_confusion_matrix(cm, label_names)
+    metrics.update(prefix_all_keys(per_class_recall, f'{split}/label_recall/'))
+
+    # log metrics
+    for metric, value in metrics.items():
+        tf.summary.scalar(metric, value, epoch)
+
+    # log confusion matrix
+    cm_fig = plot_utils.plot_confusion_matrix(cm, classes=label_names,
+                                              normalize=True)
     cm_fig_img = tf.convert_to_tensor(fig_to_img(cm_fig)[np.newaxis, ...])
-    tf.summary.image(tag, cm_fig_img, step=epoch)
+    tf.summary.image(f'confusion_matrix/{split}', cm_fig_img, step=epoch)
+
+    # log tp/fp/fn images
+    for heap_type, heap_dict in heaps.items():
+        log_images_with_confidence(heap_dict, label_names, epoch=epoch,
+                                   tag=f'{split}/{heap_type}')
+    writer.flush()
 
 
 def log_images_with_confidence(
@@ -567,7 +573,7 @@ def run_epoch(model: tf.keras.Model,
 
         for k, acc in accuracies_topk.items():
             acc.update_state(labels, outputs, sample_weight=weights)
-            desc.append(f'Acc@{k} {acc.result().numpy():.3f}')
+            desc.append(f'Acc@{k} {acc.result().numpy() * 100:.3f}')
         tqdm_loader.set_description(' '.join(desc))
 
         if return_extreme_images:
@@ -581,7 +587,7 @@ def run_epoch(model: tf.keras.Model,
     if loss_fn is not None:
         metrics['loss'] = losses.result().numpy().item()
     for k, acc in accuracies_topk.items():
-        metrics[f'acc_top{k}'] = acc.result().numpy().item()
+        metrics[f'acc_top{k}'] = acc.result().numpy().item() * 100
     heaps = {'tp': tp_heaps, 'fp': fp_heaps, 'fn': fn_heaps}
     return metrics, heaps, confusion_matrix
 

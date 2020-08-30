@@ -47,16 +47,15 @@ import tqdm
 from classification import efficientnet, train_classifier
 
 
-torchvision.set_image_backend('accimage')
-
 SPLITS = ['train', 'val', 'test']
+
 
 def check_override(params: Mapping[str, Any], key: str,
                    override: Optional[Any]) -> Any:
     """Return desired value, with optional override."""
-    saved = params[key]
     if override is None:
-        return saved
+        return params[key]
+    saved = params.get(key, None)
     print(f'Overriding saved {key}. Saved: {saved}. Override with: {override}.')
     return override
 
@@ -66,6 +65,9 @@ def main(logdir: str, ckpt_name: str, splits: Iterable[str],
          dataset_dir: Optional[str] = None
          ) -> None:
     """Main function."""
+    # evaluating with accimage is much faster than Pillow or Pillow-SIMD
+    torchvision.set_image_backend('accimage')
+
     with open(os.path.join(logdir, 'params.json'), 'r') as f:
         params = json.load(f)
     pprint(params)
@@ -86,14 +88,7 @@ def main(logdir: str, ckpt_name: str, splits: Iterable[str],
         batch_size=batch_size,
         num_workers=params['num_workers'],
         augment_train=False)
-    with open(os.path.join(logdir, 'label_index.json'), 'r') as f:
-        # Note: JSON always saves keys as strings!
-        saved_idx_to_label = json.load(f)
-
     num_labels = len(label_names)
-    assert num_labels == len(saved_idx_to_label)
-    for i in range(num_labels):
-        assert label_names[i] == saved_idx_to_label[str(i)]
 
     # create model
     # TODO: handle dropout
