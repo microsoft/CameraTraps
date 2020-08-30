@@ -182,7 +182,7 @@ def load_dataset_csv(dataset_csv_path: str,
     return df, label_names, split_to_locs
 
 
-def accuracy_from_confusion_matrix(
+def recall_from_confusion_matrix(
         confusion_matrix: np.ndarray,
         label_names: Sequence[str],
         ) -> Dict[str, float]:
@@ -192,7 +192,7 @@ def accuracy_from_confusion_matrix(
             C[i, j] = # of samples with true label i, predicted as label j
         label_names: list of str, label names in order by label id
 
-    Returns: dict, label_name => accuracy
+    Returns: dict, label_name => recall
     """
     result = {
         label_name: confusion_matrix[i, i] / (confusion_matrix[i].sum() + 1e-8)
