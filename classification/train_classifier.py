@@ -21,7 +21,8 @@ from collections import defaultdict
 from datetime import datetime
 import json
 import os
-from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple
+from typing import (Any, Callable, Dict, List, Mapping, MutableMapping,
+                    Optional, Sequence, Tuple)
 
 import numpy as np
 import PIL.Image
@@ -34,7 +35,7 @@ import tqdm
 
 from classification import efficientnet, evaluate_model
 from classification.train_utils import (
-    HeapItem, accuracy_from_confusion_matrix, add_to_heap, fig_to_img,
+    HeapItem, recall_from_confusion_matrix, add_to_heap, fig_to_img,
     imgs_with_confidences, load_dataset_csv, prefix_all_keys)
 from visualization import plot_utils
 
@@ -182,13 +183,6 @@ def create_dataloaders(
     return dataloaders, label_names
 
 
-def log_metrics(writer: tensorboard.SummaryWriter, metrics: Dict[str, float],
-                epoch: int, prefix: str = '') -> None:
-    """Logs metrics to TensorBoard."""
-    for metric, value in metrics.items():
-        writer.add_scalar(f'{prefix}{metric}', value, epoch)
-
-
 def build_model(model_name: str, num_classes: int, pretrained: bool,
                 finetune: bool, dropout: float, ckpt_path: Optional[str] = None
                 ) -> Tuple[torch.nn.Module, torch.device]:
@@ -318,32 +312,17 @@ def main(dataset_dir: str,
             model, loader=loaders['train'], weighted=False, device=device,
             loss_fn=loss_fn, finetune=finetune, optimizer=optimizer,
             return_extreme_images=True)
-        train_per_label_acc = accuracy_from_confusion_matrix(
-            train_cm, label_names)
-        train_metrics.update(prefix_all_keys(train_per_label_acc, 'label_acc/'))
-        train_metrics = prefix_all_keys(train_metrics, prefix='train/')
-        log_metrics(writer, train_metrics, epoch)
-        log_confusion_matrix(train_cm, label_names=label_names, writer=writer,
-                             tag='confusion_matrix/train', epoch=epoch)
-        for heap_type, heap_dict in train_heaps.items():
-            log_images_with_confidence(writer, heap_dict, label_names,
-                                       epoch=epoch, tag=f'train/{heap_type}')
+        train_metrics = prefix_all_keys(train_metrics, prefix='train')
+        log_run('train', epoch, writer, label_names,
+                metrics=train_metrics, heaps=train_heaps, cm=train_cm)
 
         print('- val:')
         val_metrics, val_heaps, val_cm = run_epoch(
             model, loader=loaders['val'], weighted=label_weighted,
             device=device, loss_fn=loss_fn, return_extreme_images=True)
-
-        val_per_label_acc = accuracy_from_confusion_matrix(val_cm, label_names)
-        val_metrics.update(prefix_all_keys(val_per_label_acc, 'label_acc/'))
-        val_metrics = prefix_all_keys(val_metrics, prefix='val/')
-        log_metrics(writer, val_metrics, epoch)
-        log_confusion_matrix(val_cm, label_names=label_names, writer=writer,
-                             tag='confusion_matrix/val', epoch=epoch)
-        for heap_type, heap_dict in val_heaps.items():
-            log_images_with_confidence(writer, heap_dict, label_names,
-                                       epoch=epoch, tag=f'val/{heap_type}')
-        writer.flush()
+        val_metrics = prefix_all_keys(val_metrics, prefix='val')
+        log_run('val', epoch, writer, label_names,
+                metrics=val_metrics, heaps=val_heaps, cm=val_cm)
 
         lr_scheduler.step()  # decrease the learning rate
 
@@ -360,6 +339,14 @@ def main(dataset_dir: str,
             best_epoch_metrics.update(train_metrics)
             best_epoch_metrics.update(val_metrics)
             best_epoch_metrics['epoch'] = epoch
+
+            print('- test:')
+            test_metrics, test_heaps, test_cm = run_epoch(
+                model, loader=loaders['test'], weighted=label_weighted,
+                device=device, loss_fn=loss_fn, return_extreme_images=True)
+            test_metrics = prefix_all_keys(test_metrics, prefix='test')
+            log_run('test', epoch, writer, label_names,
+                    metrics=test_metrics, heaps=test_heaps, cm=test_cm)
 
         # stop training after 8 epochs without improvement
         if epoch >= best_epoch_metrics['epoch'] + 8:
@@ -382,14 +369,35 @@ def main(dataset_dir: str,
                         splits=evaluate_model.SPLITS)
 
 
-def log_confusion_matrix(cm: np.ndarray, label_names: Sequence[str],
-                         writer: tensorboard.SummaryWriter, tag: str,
-                         epoch: int) -> None:
-    """Log a confusion matrix in TensorBoard."""
-    cm_fig = plot_utils.plot_confusion_matrix(
-        cm, classes=label_names, normalize=True)
+def log_run(split: str, epoch: int, writer: tensorboard.SummaryWriter,
+            label_names: Sequence[str], metrics: MutableMapping[str, float],
+            heaps: Mapping[str, Mapping[int, List[HeapItem]]], cm: np.ndarray
+            ) -> None:
+    """Logs the outputs (metrics, confusion matrix, tp/fp/fn images) from a
+    single epoch run to Tensorboard.
+
+    Args:
+        metrics: dict, keys already prefixed with {split}/
+    """
+    per_label_recall = recall_from_confusion_matrix(cm, label_names)
+    metrics.update(prefix_all_keys(per_label_recall, f'{split}/label_recall/'))
+
+    # log metrics
+    for metric, value in metrics.items():
+        writer.add_scalar(metric, value, epoch)
+
+    # log confusion matrix
+    cm_fig = plot_utils.plot_confusion_matrix(cm, classes=label_names,
+                                              normalize=True)
     cm_fig_img = fig_to_img(cm_fig)
-    writer.add_image(tag, cm_fig_img, global_step=epoch, dataformats='HWC')
+    writer.add_image(tag=f'confusion_matrix/{split}', img_tensor=cm_fig_img,
+                     global_step=epoch, dataformats='HWC')
+
+    # log tp/fp/fn images
+    for heap_type, heap_dict in heaps.items():
+        log_images_with_confidence(writer, heap_dict, label_names,
+                                   epoch=epoch, tag=f'{split}/{heap_type}')
+    writer.flush()
 
 
 def log_images_with_confidence(
