@@ -47,6 +47,10 @@ from visualization import plot_utils
 MEANS = np.asarray([0.485, 0.456, 0.406])
 STDS = np.asarray([0.229, 0.224, 0.225])
 
+VALID_MODELS = sorted(
+    set(efficientnet.VALID_MODELS) |
+    {'resnet101', 'resnet152', 'resnet18', 'resnet34', 'resnet50'})
+
 
 class AverageMeter:
     """Computes and stores the average and current value"""
@@ -165,14 +169,18 @@ def create_dataloaders(
         is_train = (split == 'train') and augment_train
         split_df = df[df['dataset_location'].isin(locs)]
 
-        sampler = None
+        sampler: Optional[torch.utils.data.Sampler] = None
         weights = None
         if label_weighted:
             # weights sums to the # of images in the split
             weights = split_df['weights'].to_numpy()
+            assert np.isclose(weights.sum(), len(split_df))
             if is_train:
                 sampler = torch.utils.data.WeightedRandomSampler(
                     weights, num_samples=len(split_df), replacement=True)
+        elif is_train:
+            # for normal (non-weighted) shuffling
+            sampler = torch.utils.data.SubsetRandomSampler(range(len(split_df)))
 
         dataset = SimpleDataset(
             img_files=split_df['path'].tolist(),
@@ -188,10 +196,31 @@ def create_dataloaders(
     return dataloaders, label_names
 
 
+def set_finetune(model: torch.nn.Module, model_name: str, finetune: bool
+                 ) -> None:
+    """Set the 'requires_grad' on each model parameter according to whether or
+    not we are fine-tuning the model.
+    """
+    if finetune:
+        # set all parameters to not require gradients except final FC layer
+        model.requires_grad_(False)
+
+        if 'efficientnet' in model_name:
+            final_layer = model._fc  # pylint: disable=protected-access
+        else:  # torchvision resnet
+            final_layer = model.fc
+        assert isinstance(final_layer, torch.nn.Module)
+        for param in final_layer.parameters():
+            param.requires_grad = True
+    else:
+        model.requires_grad_(True)
+
+
 def build_model(model_name: str, num_classes: int, pretrained: bool,
                 finetune: bool, ckpt_path: Optional[str] = None
                 ) -> Tuple[torch.nn.Module, torch.device]:
-    """Creates a model with an EfficientNet base.
+    """Creates a model with an EfficientNet or ResNet base. The model outputs
+    unnormalized logits.
 
     Args:
         model_name: str, name of efficient model
@@ -205,25 +234,31 @@ def build_model(model_name: str, num_classes: int, pretrained: bool,
             DataParallel if more than 1 GPU is found
         device: torch.device, 'cuda:0' if GPU is found, otherwise 'cpu'
     """
-    if pretrained:
-        assert ckpt_path is None
-        model = efficientnet.EfficientNet.from_pretrained(
-            model_name, num_classes=num_classes)
+    assert model_name in VALID_MODELS
+    is_efficientnet = ('efficientnet' in model_name)
+
+    if is_efficientnet:
+        if pretrained:
+            assert ckpt_path is None
+            model = efficientnet.EfficientNet.from_pretrained(
+                model_name, num_classes=num_classes)
+        else:
+            model = efficientnet.EfficientNet.from_name(
+                model_name, num_classes=num_classes)
     else:
-        model = efficientnet.EfficientNet.from_name(
-            model_name, num_classes=num_classes)
+        model_class = getattr(tv.models, model_name)
+        model = model_class(pretrained=pretrained)
+
+        # replace final fully-connected layer (which has 1000 ImageNet classes)
+        model.fc = torch.nn.Linear(model.fc.in_features, num_classes)
 
     if ckpt_path is not None:
         print(f'Loading saved weights from {ckpt_path}')
         ckpt = torch.load(ckpt_path)
         model.load_state_dict(ckpt['model'])
 
-    if finetune:
-        # set all parameters to not require gradients except final FC layer
-        for param in model.parameters():
-            param.requires_grad = False
-        for param in model._fc.parameters():  # pylint: disable=protected-access
-            param.requires_grad = True
+    assert all(p.requires_grad for p in model.parameters())
+    set_finetune(model=model, model_name=model_name, finetune=finetune)
 
     # detect GPU, use all if available
     if torch.cuda.is_available():
@@ -244,7 +279,7 @@ def main(dataset_dir: str,
          multilabel: bool,
          model_name: str,
          pretrained: bool,
-         finetune: bool,
+         finetune: int,
          label_weighted: bool,
          epochs: int,
          batch_size: int,
@@ -269,13 +304,18 @@ def main(dataset_dir: str,
     with open(os.path.join(logdir, 'params.json'), 'w') as f:
         json.dump(params, f, indent=1)
 
+    if 'efficientnet' in model_name:
+        img_size = efficientnet.EfficientNet.get_image_size(model_name)
+    else:
+        img_size = 224
+
     # create dataloaders and log the index_to_label mapping
     loaders, label_names = create_dataloaders(
         dataset_csv_path=os.path.join(dataset_dir, 'classification_ds.csv'),
         label_index_json_path=os.path.join(dataset_dir, 'label_index.json'),
         splits_json_path=os.path.join(dataset_dir, 'splits.json'),
         cropped_images_dir=cropped_images_dir,
-        img_size=efficientnet.EfficientNet.get_image_size(model_name),
+        img_size=img_size,
         multilabel=multilabel,
         label_weighted=label_weighted,
         batch_size=batch_size,
@@ -287,7 +327,7 @@ def main(dataset_dir: str,
     # create model
     model, device = build_model(
         model_name, num_classes=len(label_names), pretrained=pretrained,
-        finetune=finetune)
+        finetune=finetune > 0)
 
     # define loss function and optimizer
     loss_fn: torch.nn.Module
@@ -312,10 +352,14 @@ def main(dataset_dir: str,
         print(f'Epoch: {epoch}')
         writer.add_scalar('lr', lr_scheduler.get_last_lr()[0], epoch)
 
+        if epoch > 0 and finetune == epoch:
+            print('Turning off fine-tune!')
+            set_finetune(model, model_name, finetune=False)
+
         print('- train:')
         train_metrics, train_heaps, train_cm = run_epoch(
             model, loader=loaders['train'], weighted=False, device=device,
-            loss_fn=loss_fn, finetune=finetune, optimizer=optimizer,
+            loss_fn=loss_fn, finetune=finetune > epoch, optimizer=optimizer,
             return_extreme_images=True)
         train_metrics = prefix_all_keys(train_metrics, prefix='train/')
         log_run('train', epoch, writer, label_names,
@@ -655,14 +699,15 @@ def _parse_args() -> argparse.Namespace:
         help='for multi-label, multi-class classification')
     parser.add_argument(
         '-m', '--model-name', default='efficientnet-b0',
-        choices=efficientnet.VALID_MODELS,
+        choices=VALID_MODELS,
         help='which EfficientNet model')
     parser.add_argument(
         '--pretrained', action='store_true',
         help='start with pretrained model')
     parser.add_argument(
-        '--finetune', action='store_true',
-        help='only fine tune the final fully-connected layer')
+        '--finetune', type=int, default=0,
+        help='only fine tune the final fully-connected layer for the first '
+             '<finetune> epochs')
     parser.add_argument(
         '--label-weighted', action='store_true',
         help='weight training samples to balance labels')
