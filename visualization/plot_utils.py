@@ -1,9 +1,13 @@
-"""Functions for plotting."""
-from typing import Optional, Sequence, Union
+"""Functions for plotting.
+
+NOTE: Do NOT import matplotlib.pyplot here to avoid the interactive backend.
+Thus, the matplotlib.figure.Figure objects returned by the functions here do not
+need to be "closed" with `plt.close(fig)`.
+"""
+from typing import Any, Optional, Sequence, Tuple, Union
 
 import numpy as np
-import matplotlib.figure
-import matplotlib.pyplot as plt
+import matplotlib.figure  # this also imports mpl.{cm, axes, colors}
 
 
 def plot_confusion_matrix(
@@ -11,10 +15,11 @@ def plot_confusion_matrix(
         classes: Sequence[str],
         normalize: bool = False,
         title: str = 'Confusion matrix',
-        cmap: Union[str, matplotlib.colors.Colormap] = plt.cm.Blues,
+        cmap: Union[str, matplotlib.colors.Colormap] = matplotlib.cm.Blues,
         vmax: Optional[float] = None,
         use_colorbar: bool = True,
-        y_label: bool = True
+        y_label: bool = True,
+        fmt: str = '{:.0f}'
         ) -> matplotlib.figure.Figure:
     """Plot a confusion matrix. By default, assumes values in the given matrix
     are percentages. If the matrix contains counts, normalization can be applied
@@ -26,11 +31,12 @@ def plot_confusion_matrix(
         classes: list of str, class names for each row/column
         normalize: bool, whether to perform row-wise normalization to sum 1
         title: str, figure title
-        cmap: pyplot colormap, default: matplotlib.pyplot.cm.Blues
+        cmap: colormap, default: matplotlib.cm.Blues
         vmax: float, value corresponding s to the largest value of the colormap.
             If None, the maximum value in *matrix* will be used. Default: None
         use_colorbar: bool, whether to show colorbar
         y_label: bool, whether to show class names on the y-axis
+        fmt: str, format string
 
     Returns: matplotlib.figure.Figure, a reference to the figure
     """
@@ -68,7 +74,7 @@ def plot_confusion_matrix(
         ax.set_ylabel('Ground-truth class')
 
     for i, j in np.ndindex(matrix.shape):
-        ax.text(j, i, '{:.0f}'.format(matrix[i, j] * 100),
+        ax.text(j, i, fmt.format(matrix[i, j] * 100),
                 horizontalalignment='center',
                 verticalalignment='center',
                 color='white' if matrix[i, j] > 0.5 else 'black')
@@ -95,7 +101,8 @@ def plot_precision_recall_curve(
     """
     assert len(precisions) == len(recalls)
 
-    fig, ax = plt.subplots(1, 1, tight_layout=True)
+    fig = matplotlib.figure.Figure(tight_layout=True)
+    ax = fig.subplots(1, 1)
     ax.step(recalls, precisions, color='b', alpha=0.2, where='post')
     ax.fill_between(recalls, precisions, alpha=0.2, color='b', step='post')
 
@@ -130,8 +137,9 @@ def plot_stacked_bar_chart(data: np.ndarray,
     num_series, num_columns = data.shape
     ind = np.arange(num_columns)
 
-    fig, ax = plt.subplots(1, 1, tight_layout=True)
-    colors = plt.cm.rainbow(np.linspace(0, 1, num_series))
+    fig = matplotlib.figure.Figure(tight_layout=True)
+    ax = fig.subplots(1, 1)
+    colors = matplotlib.cm.rainbow(np.linspace(0, 1, num_series))
 
     # stacked bar charts are made with each segment starting from a y position
     cumulative_size = np.zeros(num_columns)
@@ -162,3 +170,99 @@ def plot_stacked_bar_chart(data: np.ndarray,
     ax.legend(loc='center left', bbox_to_anchor=(0.99, 0.5), frameon=False)
 
     return fig
+
+
+def calibration_ece(true_scores: Sequence[int], pred_scores: Sequence[float],
+                    num_bins: int) -> Tuple[np.ndarray, np.ndarray, float]:
+    """Expected calibration error (ECE) as defined in equation (3) of
+        Guo et al. "On Calibration of Modern Neural Networks." (2017).
+
+    Implementation modified from sklearn.calibration.calibration_curve()
+    in order to implement ECE calculation. See
+        https://github.com/scikit-learn/scikit-learn/issues/18268
+
+    Args:
+        pred_scores: list of float, length N, pred_scores[i] is the predicted
+            confidence that example i is positive
+        true_scores: list of int, length N, binary-valued (0 = neg, 1 = pos)
+        num_bins: int, number of bins to use (`M` in eq. (3) of Guo 2017)
+
+    Returns:
+        accs: np.ndarray, shape [M], type float64, accuracy in each bin,
+            M <= num_bins because bins with no samples are not returned
+        confs: np.ndarray, shape [M], type float64, mean model confidence in
+            each bin
+        ece: float, expected calibration error
+    """
+    assert len(true_scores) == len(pred_scores)
+
+    bins = np.linspace(0., 1. + 1e-8, num=num_bins + 1)
+    binids = np.digitize(pred_scores, bins) - 1
+
+    bin_sums = np.bincount(binids, weights=pred_scores, minlength=len(bins))
+    bin_true = np.bincount(binids, weights=true_scores, minlength=len(bins))
+    bin_total = np.bincount(binids, minlength=len(bins))
+
+    nonzero = bin_total != 0
+    accs = bin_true[nonzero] / bin_total[nonzero]
+    confs = bin_sums[nonzero] / bin_total[nonzero]
+
+    weights = bin_total[nonzero] / len(true_scores)
+    ece = np.abs(accs - confs) @ weights
+    return accs, confs, ece
+
+
+def plot_calibration_curve(true_scores: Sequence[int],
+                           pred_scores: Sequence[float],
+                           num_bins: int,
+                           name: str = 'calibration',
+                           plot_perf: bool = True,
+                           plot_hist: bool = True,
+                           ax: Optional[matplotlib.axes.Axes] = None,
+                           **fig_kwargs: Any
+                           ) -> matplotlib.figure.Figure:
+    """Plot a calibration curve.
+
+    Consider rewriting / removing this function if
+        https://github.com/scikit-learn/scikit-learn/pull/17443
+    is merged into an actual scikit-learn release.
+
+    Args:
+        see calibration_ece() for args
+        name: str, label in legend for the calibration curve
+        plot_perf: bool, whether to plot y=x line indicating perfect calibration
+        plot_hist: bool, whether to plot histogram of counts
+        ax: optional matplotlib Axes, if given then no legend is drawn, and
+            fig_kwargs are ignored
+        fig_kwargs: only used if ax is None
+
+    Returns: matplotlib Figure
+    """
+    accs, confs, ece = calibration_ece(true_scores, pred_scores, num_bins)
+
+    created_fig = False
+    if ax is None:
+        created_fig = True
+        fig = matplotlib.figure.Figure(**fig_kwargs)
+        ax = fig.subplots(1, 1)
+    ax.plot(confs, accs, 's-', label=name)  # 's-': squares on line
+    ax.set(xlabel='Model confidence', ylabel='Actual accuracy',
+           title=f'Calibration plot (ECE: {ece:.02g})')
+    ax.set(xlim=[-0.05, 1.05], ylim=[-0.05, 1.05])
+    if plot_perf:
+        ax.plot([0, 1], [0, 1], color='black', label='perfect calibration')
+    ax.grid(True)
+
+    if plot_hist:
+        ax1 = ax.twinx()
+        bins = np.linspace(0., 1. + 1e-8, num=num_bins + 1)
+        counts = ax1.hist(pred_scores, alpha=0.5, label='histogram of examples',
+                          bins=bins, color='tab:red')[0]
+        max_count = np.max(counts)
+        ax1.set_ylim([-0.05 * max_count, 1.05 * max_count])
+        ax1.set_ylabel('Count')
+
+    if created_fig:
+        fig.legend(loc='upper left', bbox_to_anchor=(0.15, 0.85))
+
+    return ax.figure
