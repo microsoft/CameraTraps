@@ -11,8 +11,9 @@ must be proided.
 
 If the CSV contains [label names] columns (e.g., output of evaluate_model.py),
 then each crop's "classifications" output will have one value per category.
-If the CSV also contains a 'label' column, then the label category is placed
-first in the results. Other categories are sorted decreasing by confidence.
+If the CSV also contains a 'label' column and the --label-first flag is given,
+then the label category is placed first in the results. Other categories are
+sorted decreasing by confidence.
     "classifications": [
         ["4", 0.025],  # label always first, even if classifier is incorrect
         ["3", 0.901],
@@ -50,34 +51,37 @@ from tqdm import tqdm
 
 def row_to_classification_list(row: Mapping[str, float],
                                label_names: Sequence[str],
-                               contains_preds: bool
+                               contains_preds: bool,
+                               label_first: bool
                                ) -> List[Tuple[str, float]]:
     """Given a mapping from label name to output probability, returns a list of
     tuples, (str(label_id), prob), which can be serialized into the Batch API
     output format.
 
     The list of tuples is returned in sorted order by the predicted probability
-    for each label. However, if 'label' is in row, then the true label is always
-    put first.
+    for each label.
+
+    If 'label' is in row, then we add (label_id + 1_000_000, 1.) to the list. If
+    label_first=True, we put this at the front of the list. Otherwise, we put
+    it at the end.
     """
     contains_label = ('label' in row)
     assert contains_label or contains_preds
 
     result = []
     if contains_preds:
-        for i, label in enumerate(label_names):
-            prob = row[label]
-            if contains_label and label == row['label']:
-                true_label_prob = prob
-                prob = 1000  # arbitrary large number so true label sorts first
-            result.append((str(i), prob))
-        # sort from highest to lowest probability, with label in first position
+        result = [(str(i), row[label]) for i, label in enumerate(label_names)]
+        # sort from highest to lowest probability
         result = sorted(result, key=lambda x: x[1], reverse=True)
-        if contains_label:
-            result[0] = (result[0][0], true_label_prob)
-    else:
-        i = label_names.index(row['label'])
-        result = [(str(i), 1.0)]
+
+    if contains_label:
+        label = row['label']
+        label_id = label_names.index(label)
+        item = (str(label_id + 1_000_000), 1.)
+        if label_first:
+            result = [item] + result
+        else:
+            result.append(item)
     return result
 
 
@@ -90,6 +94,7 @@ def main(classification_csv_path: str,
          output_json_path: str,
          datasets: Optional[Sequence[str]] = None,
          samples_per_label: Optional[int] = None,
+         label_first: bool = False,
          seed: int = 123
          ) -> None:
     """Main function."""
@@ -121,6 +126,9 @@ def main(classification_csv_path: str,
     with open(label_names_json_path, 'r') as f:
         idx_to_label = json.load(f)
     label_names = [idx_to_label[str(i)] for i in range(len(idx_to_label))]
+    if 'label' in df.columns:
+        for i, label in enumerate(label_names):
+            idx_to_label[str(i + 1_000_000)] = f'label: {label}'
 
     contains_preds = all(label_name in df.columns for label_name in label_names)
     if not contains_preds:
@@ -210,7 +218,7 @@ def main(classification_csv_path: str,
             detection_dict = images[img_path]['detections'][crop_index]
             detection_dict['classifications'] = row_to_classification_list(
                 row=ds_df.loc[crop_path], label_names=label_names,
-                contains_preds=contains_preds)
+                contains_preds=contains_preds, label_first=label_first)
 
     classification_js['images'] = list(images.values())
 
@@ -225,8 +233,8 @@ def _parse_args() -> argparse.Namespace:
         description='Merges classification results with Batch Detection API '
                     'outputs.')
     parser.add_argument(
-        'classification_output_csv',
-        help='path to classification outputs CSV')
+        'classification_csv',
+        help='path to classification CSV')
     parser.add_argument(
         'label_names_json',
         help='path to JSON file mapping label index to label name')
@@ -253,6 +261,10 @@ def _parse_args() -> argparse.Namespace:
         help='randomly sample this many bounding boxes per label (each label '
              'must have at least this many examples)')
     parser.add_argument(
+        '--label-first', action='store_true',
+        help='if <classification_csv> contains a "label" column, always '
+             'put the label first in the list of classifications')
+    parser.add_argument(
         '--seed', type=int, default=123,
         help='random seed, only used if --samples-per-label is given')
     return parser.parse_args()
@@ -260,7 +272,7 @@ def _parse_args() -> argparse.Namespace:
 
 if __name__ == '__main__':
     args = _parse_args()
-    main(classification_csv_path=args.classification_output_csv,
+    main(classification_csv_path=args.classification_csv,
          label_names_json_path=args.label_names_json,
          queried_images_json_path=args.queried_images_json,
          classifier_name=args.classifier_name,
@@ -269,4 +281,5 @@ if __name__ == '__main__':
          output_json_path=args.output_json,
          datasets=args.datasets,
          samples_per_label=args.samples_per_label,
+         label_first=args.label_first,
          seed=args.seed)
