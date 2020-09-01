@@ -84,7 +84,7 @@ def main(logdir: str, ckpt_name: str, splits: Iterable[str],
         cropped_images_dir=params['cropped_images_dir'],
         img_size=efficientnet.EfficientNet.get_image_size(model_name),
         multilabel=params['multilabel'],
-        label_weighted=True,
+        label_weighted=params['label_weighted'],
         batch_size=batch_size,
         num_workers=params['num_workers'],
         augment_train=False)
@@ -94,8 +94,8 @@ def main(logdir: str, ckpt_name: str, splits: Iterable[str],
     # TODO: handle dropout
     ckpt_path = os.path.join(logdir, ckpt_name)
     model, device = train_classifier.build_model(
-        model_name, num_classes=num_labels, pretrained=False,
-        finetune=False, dropout=0, ckpt_path=ckpt_path)
+        model_name, num_classes=num_labels, pretrained=False, finetune=False,
+        ckpt_path=ckpt_path)
 
     # define loss function (criterion)
     loss_fn: torch.nn.Module
@@ -238,12 +238,11 @@ def test_epoch(model: torch.nn.Module,
             desc = []
             if loss_fn is not None:
                 loss = loss_fn(outputs, labels)
+                losses.update(loss.mean().item(), n=batch_size)
+                desc.append(f'Loss {losses.val:.4f} ({losses.avg:.4f})')
                 if weights is not None:
                     loss_weighted = (loss * weights).mean()
                     losses_weighted.update(loss_weighted.item(), n=batch_size)
-                loss = loss.mean()
-                losses.update(loss.item(), n=batch_size)
-                desc.append(f'Loss {losses.val:.4f} ({losses.avg:.4f})')
 
             top_correct = train_classifier.correct(
                 outputs, labels, weights=None, top=top)
