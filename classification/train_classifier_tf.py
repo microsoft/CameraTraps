@@ -237,6 +237,7 @@ def build_model(model_name: str, num_classes: int, img_size: int,
             scale=1. / 3., mode='fan_out', distribution='uniform'),
         name='logits')(x)
     model = tf.keras.Model(inputs, outputs, name='complete_model')
+    model.base_model = base_model  # cache this so that we can turn off finetune
     return model
 
 
@@ -245,7 +246,7 @@ def main(dataset_dir: str,
          multilabel: bool,
          model_name: str,
          pretrained: bool,
-         finetune: bool,
+         finetune: int,
          label_weighted: bool,
          epochs: int,
          batch_size: int,
@@ -265,6 +266,7 @@ def main(dataset_dir: str,
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')  # '20200722_110816'
     logdir = os.path.join(logdir, timestamp)
     os.makedirs(logdir, exist_ok=True)
+    print('Created logdir:', logdir)
     with open(os.path.join(logdir, 'params.json'), 'w') as f:
         json.dump(params, f, indent=1)
 
@@ -292,7 +294,7 @@ def main(dataset_dir: str,
 
     model = build_model(
         model_name, num_classes=len(label_names), img_size=img_size,
-        pretrained=pretrained, finetune=finetune)
+        pretrained=pretrained, finetune=finetune > 0)
 
     # define loss function and optimizer
     loss_fn: tf.keras.losses.Loss
@@ -320,12 +322,16 @@ def main(dataset_dir: str,
         optimizer.learning_rate = lr_schedule(epoch)
         tf.summary.scalar('lr', optimizer.learning_rate, epoch)
 
+        if epoch > 0 and finetune == epoch:
+            print('Turning off fine-tune!')
+            model.base_model.trainable = True
+
         print('- train:')
         # TODO: change weighted to False if oversampling minority classes
         train_metrics, train_heaps, train_cm = run_epoch(
             model, loader=loaders['train'], weighted=label_weighted,
-            loss_fn=loss_fn, weight_decay=weight_decay, finetune=finetune,
-            optimizer=optimizer, return_extreme_images=True)
+            loss_fn=loss_fn, weight_decay=weight_decay, optimizer=optimizer,
+            finetune=finetune > epoch, return_extreme_images=True)
         train_metrics = prefix_all_keys(train_metrics, prefix='train/')
         log_run('train', epoch, writer, label_names,
                 metrics=train_metrics, heaps=train_heaps, cm=train_cm)
@@ -622,8 +628,9 @@ def _parse_args() -> argparse.Namespace:
         '--pretrained', action='store_true',
         help='start with pretrained model')
     parser.add_argument(
-        '--finetune', action='store_true',
-        help='only fine tune the final fully-connected layer')
+        '--finetune', type=int, default=0,
+        help='only fine tune the final fully-connected layer for the first '
+             '<finetune> epochs')
     parser.add_argument(
         '--label-weighted', action='store_true',
         help='weight training samples to balance labels')

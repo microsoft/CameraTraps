@@ -176,8 +176,10 @@ def load_dataset_csv(dataset_csv_path: str,
             label_sizes = df[split_mask].groupby('label').size()
             n_over_c = split_mask.sum() / len(label_names)
             sample_weights = n_over_c / label_sizes[df.loc[split_mask, 'label']]
+            assert np.isclose(sample_weights.sum(), split_mask.sum())
             df.loc[split_mask, 'weights'] = sample_weights.to_numpy()
         assert (df['weights'] > 0).all()
+        assert np.isclose(df['weights'].sum(), len(df))
 
     return df, label_names, split_to_locs
 
