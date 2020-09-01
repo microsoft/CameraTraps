@@ -183,9 +183,9 @@ def analyze_images(url_or_path: str, json_keys: Optional[Sequence[str]] = None,
 
     futures_list = []
     for img_path in tqdm(img_paths):
-        _args = (img_path, truncated_images_lock, account, container, sas_token,
-                datasets_table)
-        future = pool.submit(check_image_condition, *_args)
+        future = pool.submit(
+            check_image_condition, img_path, truncated_images_lock, account,
+            container, sas_token, datasets_table)
         futures_list.append(future)
 
     total = len(futures_list)
