@@ -38,14 +38,14 @@ AUTOTUNE = tf.data.experimental.AUTOTUNE
 
 # match pytorch EfficientNet model names
 EFFICIENTNET_MODELS: Mapping[str, Mapping[str, Any]] = {
-    'efficientnet-b0': {'cls': 'EfficientNetB0', 'img_size': 224},
-    'efficientnet-b1': {'cls': 'EfficientNetB1', 'img_size': 240},
-    'efficientnet-b2': {'cls': 'EfficientNetB2', 'img_size': 260},
-    'efficientnet-b3': {'cls': 'EfficientNetB3', 'img_size': 300},
-    'efficientnet-b4': {'cls': 'EfficientNetB4', 'img_size': 380},
-    'efficientnet-b5': {'cls': 'EfficientNetB5', 'img_size': 456},
-    'efficientnet-b6': {'cls': 'EfficientNetB6', 'img_size': 528},
-    'efficientnet-b7': {'cls': 'EfficientNetB7', 'img_size': 600}
+    'efficientnet-b0': dict(cls='EfficientNetB0', img_size=224, dropout=0.2),
+    'efficientnet-b1': dict(cls='EfficientNetB1', img_size=240, dropout=0.2),
+    'efficientnet-b2': dict(cls='EfficientNetB2', img_size=260, dropout=0.3),
+    'efficientnet-b3': dict(cls='EfficientNetB3', img_size=300, dropout=0.3),
+    'efficientnet-b4': dict(cls='EfficientNetB4', img_size=380, dropout=0.4),
+    'efficientnet-b5': dict(cls='EfficientNetB5', img_size=456, dropout=0.4),
+    'efficientnet-b6': dict(cls='EfficientNetB6', img_size=528, dropout=0.5),
+    'efficientnet-b7': dict(cls='EfficientNetB7', img_size=600, dropout=0.5)
 }
 
 
@@ -168,6 +168,9 @@ def create_dataloaders(
         img = tf.image.resize_with_pad(img, img_size, img_size,
                                        method=tf.image.ResizeMethod.BICUBIC)
         img = tf.image.random_flip_left_right(img)
+        img = tf.image.random_brightness(img, max_delta=0.25)
+        img = tf.image.random_contrast(img, lower=0.75, upper=1.25)
+        img = tf.image.random_saturation(img, lower=0.75, upper=1.25)
         return img
 
     @tf.function
@@ -210,11 +213,12 @@ def create_dataloaders(
 
 
 def build_model(model_name: str, num_classes: int, img_size: int,
-                pretrained: bool, finetune: bool, dropout: float
-                ) -> tf.keras.Model:
+                pretrained: bool, finetune: bool) -> tf.keras.Model:
     """Creates a model with an EfficientNet base."""
-    model_class = tf.keras.applications.__dict__[
-        EFFICIENTNET_MODELS[model_name]['cls']]
+    class_name = EFFICIENTNET_MODELS[model_name]['cls']
+    dropout = EFFICIENTNET_MODELS[model_name]['dropout']
+
+    model_class = tf.keras.applications.__dict__[class_name]
     weights = 'imagenet' if pretrained else None
     inputs = tf.keras.layers.Input(shape=(img_size, img_size, 3))
     base_model = model_class(
@@ -226,10 +230,12 @@ def build_model(model_name: str, num_classes: int, img_size: int,
         base_model.trainable = False
 
     # rebuild output
-    x = base_model.output
-    if dropout > 0:
-        x = tf.keras.layers.Dropout(dropout, name='top_dropout')(x)
-    outputs = tf.keras.layers.Dense(num_classes, name='logits')(x)
+    x = tf.keras.layers.Dropout(dropout, name='top_dropout')(base_model.output)
+    outputs = tf.keras.layers.Dense(
+        num_classes,
+        kernel_initializer=tf.keras.initializers.VarianceScaling(
+            scale=1. / 3., mode='fan_out', distribution='uniform'),
+        name='logits')(x)
     model = tf.keras.Model(inputs, outputs, name='complete_model')
     return model
 
@@ -286,7 +292,7 @@ def main(dataset_dir: str,
 
     model = build_model(
         model_name, num_classes=len(label_names), img_size=img_size,
-        pretrained=pretrained, finetune=finetune, dropout=0)
+        pretrained=pretrained, finetune=finetune)
 
     # define loss function and optimizer
     loss_fn: tf.keras.losses.Loss
@@ -320,7 +326,7 @@ def main(dataset_dir: str,
             model, loader=loaders['train'], weighted=label_weighted,
             loss_fn=loss_fn, weight_decay=weight_decay, finetune=finetune,
             optimizer=optimizer, return_extreme_images=True)
-        train_metrics = prefix_all_keys(train_metrics, prefix='train')
+        train_metrics = prefix_all_keys(train_metrics, prefix='train/')
         log_run('train', epoch, writer, label_names,
                 metrics=train_metrics, heaps=train_heaps, cm=train_cm)
 
@@ -328,7 +334,7 @@ def main(dataset_dir: str,
         val_metrics, val_heaps, val_cm = run_epoch(
             model, loader=loaders['val'], weighted=label_weighted,
             loss_fn=loss_fn, return_extreme_images=True)
-        val_metrics = prefix_all_keys(val_metrics, prefix='val')
+        val_metrics = prefix_all_keys(val_metrics, prefix='val/')
         log_run('val', epoch, writer, label_names,
                 metrics=val_metrics, heaps=val_heaps, cm=val_cm)
 
@@ -340,10 +346,11 @@ def main(dataset_dir: str,
             best_epoch_metrics.update(val_metrics)
             best_epoch_metrics['epoch'] = epoch
 
+            print('- test:')
             test_metrics, test_heaps, test_cm = run_epoch(
                 model, loader=loaders['test'], weighted=label_weighted,
                 loss_fn=loss_fn, return_extreme_images=True)
-            test_metrics = prefix_all_keys(test_metrics, prefix='test')
+            test_metrics = prefix_all_keys(test_metrics, prefix='test/')
             log_run('test', epoch, writer, label_names,
                     metrics=test_metrics, heaps=test_heaps, cm=test_cm)
 
