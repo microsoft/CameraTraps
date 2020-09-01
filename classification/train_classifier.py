@@ -43,6 +43,7 @@ from visualization import plot_utils
 # accimage backend is faster than Pillow/Pillow-SIMD, but occasionally crashes
 # tv.set_image_backend('accimage')
 
+# mean/std values from https://pytorch.org/docs/stable/torchvision/models.html
 MEANS = np.asarray([0.485, 0.456, 0.406])
 STDS = np.asarray([0.229, 0.224, 0.225])
 
@@ -143,7 +144,11 @@ def create_dataloaders(
     normalize = tv.transforms.Normalize(mean=MEANS, std=STDS, inplace=True)
     train_transform = tv.transforms.Compose([
         tv.transforms.RandomResizedCrop(img_size),
-        tv.transforms.RandomHorizontalFlip(),
+        tv.transforms.RandomRotation(degrees=(-90, 90)),
+        tv.transforms.RandomHorizontalFlip(p=0.5),
+        tv.transforms.RandomVerticalFlip(p=0.1),
+        tv.transforms.RandomGrayscale(p=0.1),
+        tv.transforms.ColorJitter(brightness=.25, contrast=.25, saturation=.25),
         tv.transforms.ToTensor(),
         normalize
     ])
@@ -184,7 +189,7 @@ def create_dataloaders(
 
 
 def build_model(model_name: str, num_classes: int, pretrained: bool,
-                finetune: bool, dropout: float, ckpt_path: Optional[str] = None
+                finetune: bool, ckpt_path: Optional[str] = None
                 ) -> Tuple[torch.nn.Module, torch.device]:
     """Creates a model with an EfficientNet base.
 
@@ -193,7 +198,6 @@ def build_model(model_name: str, num_classes: int, pretrained: bool,
         num_classes: int, number of classes for output layer
         pretrained: bool, whether to initialize to ImageNet weights
         finetune: bool, whether to freeze all layers except the final FC layer
-        dropout: float, dropout probability, TODO
         ckpt_path: optional str, path to checkpoint from which to load weights
 
     Returns:
@@ -261,6 +265,7 @@ def main(dataset_dir: str,
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')  # '20200722_110816'
     logdir = os.path.join(logdir, timestamp)
     os.makedirs(logdir, exist_ok=True)
+    print('Created logdir:', logdir)
     with open(os.path.join(logdir, 'params.json'), 'w') as f:
         json.dump(params, f, indent=1)
 
@@ -282,7 +287,7 @@ def main(dataset_dir: str,
     # create model
     model, device = build_model(
         model_name, num_classes=len(label_names), pretrained=pretrained,
-        finetune=finetune, dropout=0)
+        finetune=finetune)
 
     # define loss function and optimizer
     loss_fn: torch.nn.Module
@@ -312,7 +317,7 @@ def main(dataset_dir: str,
             model, loader=loaders['train'], weighted=False, device=device,
             loss_fn=loss_fn, finetune=finetune, optimizer=optimizer,
             return_extreme_images=True)
-        train_metrics = prefix_all_keys(train_metrics, prefix='train')
+        train_metrics = prefix_all_keys(train_metrics, prefix='train/')
         log_run('train', epoch, writer, label_names,
                 metrics=train_metrics, heaps=train_heaps, cm=train_cm)
 
@@ -320,7 +325,7 @@ def main(dataset_dir: str,
         val_metrics, val_heaps, val_cm = run_epoch(
             model, loader=loaders['val'], weighted=label_weighted,
             device=device, loss_fn=loss_fn, return_extreme_images=True)
-        val_metrics = prefix_all_keys(val_metrics, prefix='val')
+        val_metrics = prefix_all_keys(val_metrics, prefix='val/')
         log_run('val', epoch, writer, label_names,
                 metrics=val_metrics, heaps=val_heaps, cm=val_cm)
 
@@ -344,7 +349,7 @@ def main(dataset_dir: str,
             test_metrics, test_heaps, test_cm = run_epoch(
                 model, loader=loaders['test'], weighted=label_weighted,
                 device=device, loss_fn=loss_fn, return_extreme_images=True)
-            test_metrics = prefix_all_keys(test_metrics, prefix='test')
+            test_metrics = prefix_all_keys(test_metrics, prefix='test/')
             log_run('test', epoch, writer, label_names,
                     metrics=test_metrics, heaps=test_heaps, cm=test_cm)
 
