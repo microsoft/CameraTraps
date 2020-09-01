@@ -226,7 +226,7 @@ def main(queried_images_json_path: str,
     log = {'images_missing_detections': images_to_detect}
 
     if cropped_images_dir is not None:
-        images_failed_dload_crop = download_and_crop(
+        images_failed_dload_crop, num_downloads, num_crops = download_and_crop(
             queried_images_json=js,
             detection_cache=detection_cache,
             detection_categories=categories,
@@ -240,6 +240,8 @@ def main(queried_images_json_path: str,
             threads=threads,
             images_missing_detections=images_to_detect)
         log['images_failed_download_or_crop'] = images_failed_dload_crop
+        log['num_new_downloads'] = num_downloads
+        log['num_new_crops'] = num_crops
 
     print(f'{len(images_to_detect)} images with missing detections.')
     if cropped_images_dir is not None:
@@ -737,18 +739,24 @@ def download_and_crop(
         future_to_img_path[future] = img_path
 
     total = len(future_to_img_path)
+    total_downloads = 0
+    total_new_crops = 0
     print(f'Reading/downloading {total} images and cropping...')
     for future in tqdm(futures.as_completed(future_to_img_path), total=total):
         img_path = future_to_img_path[future]
         try:
-            future.result()
+            did_download, num_new_crops = future.result()
+            total_downloads += did_download
+            total_new_crops += num_new_crops
         except Exception as e:  # pylint: disable=broad-except
             exception_type = type(e).__name__
             tqdm.write(f'{img_path} - generated {exception_type}: {e}')
             images_failed_download.append(img_path)
 
     pool.shutdown()
-    return images_failed_download
+    print(f'Downloaded {total_downloads} images.')
+    print(f'Made {total_new_crops} new crops.')
+    return images_failed_download, total_downloads, total_new_crops
 
 
 def load_local_image(img_path: Union[str, BinaryIO]) -> Optional[Image.Image]:
@@ -771,7 +779,7 @@ def load_and_crop(img_path: str,
                   save_full_image: bool,
                   square_crops: bool,
                   check_crops_valid: bool,
-                  images_dir: Optional[str]) -> None:
+                  images_dir: Optional[str]) -> Tuple[bool, int]:
     """Given an image and a list of bounding boxes, checks if the crops already
     exist. If not, loads the image locally or Azure Blob Storage, then crops it.
 
@@ -791,7 +799,14 @@ def load_and_crop(img_path: str,
         check_crops_valid: bool, whether to load each crop to ensure the file is
             valid (i.e., not truncated)
         images_dir: optional str, path to folder where full images are saved
+
+    Returns:
+        did_download: bool, whether image was downloaded from Azure Blob Storage
+        num_new_crops: int, number of new crops successfully saved
     """
+    did_download = False
+    num_new_crops = 0
+
     # crop_path => normalized bbox coordinates [xmin, ymin, width, height]
     bboxes_tocrop: Dict[str, List[float]] = {}
     for i, bbox_dict in enumerate(bbox_dicts):
@@ -806,7 +821,7 @@ def load_and_crop(img_path: str,
                 check_crops_valid and load_local_image(crop_path) is None):
             bboxes_tocrop[crop_path] = bbox_dict['bbox']
     if len(bboxes_tocrop) == 0:
-        return
+        return did_download, num_new_crops
 
     img = None
     if images_dir is not None:
@@ -832,6 +847,7 @@ def load_and_crop(img_path: str,
                     blob_url, stream, credential=sas_token, overwrite=True)
                 stream.seek(0)
                 img = load_local_image(stream)
+        did_download = True
 
     assert img is not None
     if img.mode != 'RGB':
@@ -839,11 +855,13 @@ def load_and_crop(img_path: str,
 
     # crop the image
     for crop_path, bbox in bboxes_tocrop.items():
-        save_crop(img, bbox_norm=bbox, square_crop=square_crops, save=crop_path)
+        num_new_crops += save_crop(
+            img, bbox_norm=bbox, square_crop=square_crops, save=crop_path)
+    return did_download, num_new_crops
 
 
 def save_crop(img: Image.Image, bbox_norm: Sequence[float], square_crop: bool,
-              save: str) -> None:
+              save: str) -> bool:
     """Crops an image and saves the crop to file.
 
     Args:
@@ -852,6 +870,8 @@ def save_crop(img: Image.Image, bbox_norm: Sequence[float], square_crop: bool,
             normalized coordinates
         square_crop: bool, whether to crop bounding boxes as a square
         save: str, path to save cropped image
+
+    Returns: bool, True if a crop was saved, False otherwise
     """
     img_w, img_h = img.size
     xmin = int(bbox_norm[0] * img_w)
@@ -873,7 +893,7 @@ def save_crop(img: Image.Image, bbox_norm: Sequence[float], square_crop: bool,
 
     if box_w == 0 or box_h == 0:
         tqdm.write(f'Skipping size-0 crop (w={box_w}, h={box_h}) at {save}')
-        return
+        return False
 
     # Image.crop() takes box=[left, upper, right, lower]
     crop = img.crop(box=[xmin, ymin, xmin + box_w, ymin + box_h])
@@ -884,6 +904,7 @@ def save_crop(img: Image.Image, bbox_norm: Sequence[float], square_crop: bool,
 
     os.makedirs(os.path.dirname(save), exist_ok=True)
     crop.save(save)
+    return True
 
 
 def _parse_args() -> argparse.Namespace:
