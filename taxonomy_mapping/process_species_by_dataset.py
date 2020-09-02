@@ -29,8 +29,8 @@ import taxonomy_mapping.retrieve_sample_image as retrieve_sample_image
 
 #%% Constants
 
-output_base = r'C:\git\camera-traps-private\taxonomy_archive'
-xlsx_basename = 'species_by_dataset_2020_06_18.xlsx'
+output_base = r'C:\git\ai4edev\camera-traps-private\taxonomy_archive'
+xlsx_basename = 'species_by_dataset_2020_09_02_snapshot_safari.xlsx'
 
 # Input file
 species_by_dataset_file = os.path.join(output_base, xlsx_basename)
@@ -50,7 +50,7 @@ output_csv = output_xlsx.replace('.xlsx', '.csv')
 html_output_file = os.path.join(output_base, 'mapping_previews.html')
 download_images = True
 
-master_table_file = r'C:\git\camera-traps-private\camera_trap_taxonomy_mapping.csv'
+master_table_file = r'C:\git\ai4edev\camera-traps-private\camera_trap_taxonomy_mapping.csv'
 
 
 #%% Functions
@@ -422,24 +422,29 @@ print(df['taxonomy_level'].unique())
 # identify rows where:
 # - 'taxonomy_level' does not match level of 1st element in 'taxonomy_string'
 # - 'scientific_name' does not match name of 1st element in 'taxonomy_string'
-for i, row in taxonomy_df.iterrows():
+# i_row = 0; row = df.iloc[i_row]
+for i_row, row in df.iterrows():
+    
     taxa_ancestry = row['taxonomy_string']
     if pd.isna(taxa_ancestry):
         continue
 
+    # The taxonomy_string column is a .json-formatted string; expand it into
+    # an object via eval()
     taxa_ancestry = eval(taxa_ancestry)  # pylint: disable=eval-used
     taxon_id, taxon_level, taxon_name, _ = taxa_ancestry[0]
 
     if row['taxonomy_level'] != taxon_level:
-        print(f'row: {i}, {row["dataset_name"]}, {row["query"]}')
+        print(f'row: {i_row}, {row["dataset_name"]}, {row["query"]}')
         print(f'- taxonomy_level column: {row["taxonomy_level"]}, '
               f'level from taxonomy_string: {taxon_level}')
         print()
 
     if row['scientific_name'] != taxon_name:
-        print(f'row: {i}, {row["dataset_name"]}, {row["query"]}')
+        print(f'row: {i_row}, {row["dataset_name"]}, {row["query"]}')
         print(f'- scientific_name column: {row["scientific_name"]}, '
               f'name from taxonomy_string: {taxon_name}')
+
 
 #%% Write out final version
 
