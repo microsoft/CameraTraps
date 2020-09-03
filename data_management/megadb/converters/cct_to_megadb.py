@@ -11,20 +11,20 @@ Check carefully that the dataset_name parameter is set correctly!!
 """
 
 import argparse
+import json
 import os
+import sys
 import uuid
 from collections import defaultdict
-import sys
-from random import sample
 from copy import deepcopy
+from random import sample
 
 import numpy as np
 from tqdm import tqdm
 
-from data_management.megadb.schema import sequences_schema_check
-from data_management.cct_json_utils import IndexedJsonDb
 from ct_utils import truncate_float, write_json
-
+from data_management.cct_json_utils import IndexedJsonDb
+from data_management.megadb.schema import sequences_schema_check
 
 # some property names have changed in the new schema
 old_to_new_prop_name_mapping = {
@@ -232,9 +232,9 @@ def process_sequences(embedded_image_objects, dataset_name, deepcopy_embedded=Tr
     #%% validation
     print('Example sequence items:')
     print()
-    print(sequences_neat[0])
+    print(json.dumps(sequences_neat[0]))
     print()
-    print(sample(sequences_neat, 1))
+    print(json.dumps(sample(sequences_neat, 1)[0]))
     print()
 
     return sequences_neat
