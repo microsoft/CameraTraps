@@ -52,7 +52,8 @@ from tqdm import tqdm
 def row_to_classification_list(row: Mapping[str, float],
                                label_names: Sequence[str],
                                contains_preds: bool,
-                               label_first: bool
+                               label_first: bool,
+                               relative_conf: bool = False
                                ) -> List[Tuple[str, float]]:
     """Given a mapping from label name to output probability, returns a list of
     tuples, (str(label_id), prob), which can be serialized into the Batch API
@@ -67,10 +68,15 @@ def row_to_classification_list(row: Mapping[str, float],
     """
     contains_label = ('label' in row)
     assert contains_label or contains_preds
+    if relative_conf:
+        assert contains_label and contains_preds
 
     result = []
     if contains_preds:
         result = [(str(i), row[label]) for i, label in enumerate(label_names)]
+        if relative_conf:
+            label_conf = row[row['label']]
+            result = [(k, max(v - label_conf, 0)) for k, v in result]
         # sort from highest to lowest probability
         result = sorted(result, key=lambda x: x[1], reverse=True)
 
@@ -94,8 +100,9 @@ def main(classification_csv_path: str,
          output_json_path: str,
          datasets: Optional[Sequence[str]] = None,
          samples_per_label: Optional[int] = None,
+         seed: int = 123,
          label_first: bool = False,
-         seed: int = 123
+         relative_conf: bool = False
          ) -> None:
     """Main function."""
     # load classification CSV
@@ -218,7 +225,8 @@ def main(classification_csv_path: str,
             detection_dict = images[img_path]['detections'][crop_index]
             detection_dict['classifications'] = row_to_classification_list(
                 row=ds_df.loc[crop_path], label_names=label_names,
-                contains_preds=contains_preds, label_first=label_first)
+                contains_preds=contains_preds, label_first=label_first,
+                relative_conf=relative_conf)
 
     classification_js['images'] = list(images.values())
 
@@ -261,12 +269,16 @@ def _parse_args() -> argparse.Namespace:
         help='randomly sample this many bounding boxes per label (each label '
              'must have at least this many examples)')
     parser.add_argument(
+        '--seed', type=int, default=123,
+        help='random seed, only used if --samples-per-label is given')
+    parser.add_argument(
         '--label-first', action='store_true',
         help='if <classification_csv> contains a "label" column, always '
              'put the label first in the list of classifications')
     parser.add_argument(
-        '--seed', type=int, default=123,
-        help='random seed, only used if --samples-per-label is given')
+        '--relative-conf', action='store_true',
+        help='for each class, outputs its relative confidence over the '
+             'confidence of the true label, requires "label" to be in CSV')
     return parser.parse_args()
 
 
@@ -281,5 +293,6 @@ if __name__ == '__main__':
          output_json_path=args.output_json,
          datasets=args.datasets,
          samples_per_label=args.samples_per_label,
+         seed=args.seed,
          label_first=args.label_first,
-         seed=args.seed)
+         relative_conf=args.relative_conf)
