@@ -13,9 +13,9 @@ names of mislabeled candidates, one per line. The text files are saved to:
 Assumes the following directory layout:
     base_logdir/
         queried_images.json
+        label_index.json
         logdir/
             outputs_{split}.csv.json
-            label_index.json
 """
 import argparse
 import json
@@ -32,7 +32,7 @@ def main(logdir: str, splits: Iterable[str], margin: float) -> None:
     base_logdir = os.path.dirname(logdir)
 
     queried_images_json_path = os.path.join(base_logdir, 'queried_images.json')
-    idx_to_label_json_path = os.path.join(logdir, 'label_index.json')
+    idx_to_label_json_path = os.path.join(base_logdir, 'label_index.json')
 
     with open(queried_images_json_path, 'r') as f:
         queried_images_js = json.load(f)
