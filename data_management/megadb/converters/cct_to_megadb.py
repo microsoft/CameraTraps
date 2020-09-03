@@ -11,19 +11,20 @@ Check carefully that the dataset_name parameter is set correctly!!
 """
 
 import argparse
+import json
 import os
+import sys
 import uuid
 from collections import defaultdict
-import sys
-from random import sample
 from copy import deepcopy
+from random import sample
 
+import numpy as np
 from tqdm import tqdm
 
-from data_management.megadb.schema import sequences_schema_check
-from data_management.cct_json_utils import IndexedJsonDb
 from ct_utils import truncate_float, write_json
-
+from data_management.cct_json_utils import IndexedJsonDb
+from data_management.megadb.schema import sequences_schema_check
 
 # some property names have changed in the new schema
 old_to_new_prop_name_mapping = {
@@ -191,6 +192,8 @@ def process_sequences(embedded_image_objects, dataset_name, deepcopy_embedded=Tr
                 seq_level_prop_values[prop_name].add(seq[prop_name])
     dataset_props = []
     for prop_name, values in seq_level_prop_values.items():
+        if prop_name == 'season':
+            continue  # always keep 'season'
         if len(values) == 1:
             dataset_props.append(prop_name)
             print('! Sequence-level property {} with value {} should be a dataset-level property. Removed from sequences.'.format(prop_name, list(values)[0]))
@@ -212,13 +215,26 @@ def process_sequences(embedded_image_objects, dataset_name, deepcopy_embedded=Tr
                     im['class'] = [c.lower() for c in set(im['class'])]
         sequences_neat.append(sequences_schema_check.order_seq_properties(seq))
 
+    # turn all float NaN values into None so it gets converted to null when serialized
+    # this was an issue in the Snapshot Safari datasets
+    for seq in sequences_neat:
+        for seq_prop, seq_prop_value in seq.items():
+            if isinstance(seq_prop_value, float) and np.isnan(seq_prop_value):
+                seq[seq_prop] = None
+
+            if seq_prop == 'images':
+                for im_idx, im in enumerate(seq['images']):
+                    for im_prop, im_prop_value in im.items():
+                        if isinstance(im_prop_value, float) and np.isnan(im_prop_value):
+                            seq['images'][im_idx][im_prop] = None
+
     print('Finished processing sequences.')
     #%% validation
     print('Example sequence items:')
     print()
-    print(sequences[0])
+    print(json.dumps(sequences_neat[0]))
     print()
-    print(sample(sequences, 1))
+    print(json.dumps(sample(sequences_neat, 1)[0]))
     print()
 
     return sequences_neat
