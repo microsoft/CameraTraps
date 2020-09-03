@@ -62,8 +62,9 @@ Example usage:
 import argparse
 import json
 import os
-from typing import Container, Dict, List, Mapping, Optional, Tuple
+from typing import Container, Dict, List, Mapping, Optional, Set, Tuple
 
+# import numpy as np  # uncomment if randomly assigning locs to splits
 import pandas as pd
 from tqdm import tqdm
 
@@ -104,18 +105,16 @@ def main(queried_images_json_path: str,
         raise ValueError('both match_test_csv_path and match_test_splits_path '
                          'must be given together')
 
-    exclude_locs = None  # set of (dataset, location) tuples
-    append_df = None
+    test_set_locs = None  # set of (dataset, location) tuples
+    test_set_df = None
     if match_test_splits_path is not None:
         with open(match_test_splits_path, 'r') as f:
             match_splits = json.load(f)
-        test_set_locs = set(tuple(loc) for loc in match_splits['test'])
+        test_set_locs = set((loc[0], loc[1]) for loc in match_splits['test'])
         match_df = pd.read_csv(match_test_csv_path, index_col=False,
                                float_precision='high')
         ds_locs = pd.Series(zip(match_df['dataset'], match_df['location']))
         test_set_df = match_df[ds_locs.isin(test_set_locs)]
-        exclude_locs = test_set_locs
-        append_df = test_set_df
 
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
@@ -127,8 +126,8 @@ def main(queried_images_json_path: str,
                               cropped_images_dir,
                               confidence_threshold,
                               csv_save_path,
-                              append_df=append_df,
-                              exclude_locs=exclude_locs)
+                              append_df=test_set_df,
+                              exclude_locs=test_set_locs)
 
     missing_detections, images_no_confident_detections, missing_crops = result
     print('Images missing detections:', len(missing_detections))
@@ -163,7 +162,8 @@ def main(queried_images_json_path: str,
                 prioritize[label] = datasets
 
     print('Creating splits...')
-    split_to_locs = create_splits(crops_df, prioritize=prioritize)
+    split_to_locs = create_splits(
+        crops_df, prioritize=prioritize, test_set_locs=test_set_locs)
     with open(os.path.join(output_dir, 'splits.json'), 'w') as f:
         json.dump(split_to_locs, f, indent=1)
 
@@ -328,7 +328,8 @@ def sort_locs_by_size(loc_to_size: Mapping[Tuple[str, str], int],
 
 
 def create_splits(df: pd.DataFrame,
-                  prioritize: Optional[Mapping[str, Container[str]]] = None
+                  prioritize: Optional[Mapping[str, Container[str]]] = None,
+                  test_set_locs: Optional[Set[Tuple[str, str]]] = None
                   ) -> Dict[str, List[Tuple[str, str]]]:
     """
     Args:
@@ -337,6 +338,7 @@ def create_splits(df: pd.DataFrame,
             assumes each image is assigned exactly 1 label
         prioritize: optional dict, label => list of datasets to prioritize
             for inclusion in the test and validation sets
+        test_set_locs: optional set of (dataset, location) tuples
 
     Returns: dict, keys are ['train', 'val', 'test'], values are lists of locs,
         where each loc is a tuple (dataset, location)
@@ -353,6 +355,9 @@ def create_splits(df: pd.DataFrame,
         label: dict(train=0, val=0, test=0)
         for label in df['label'].unique()
     }
+    if test_set_locs is not None:
+        split_to_locs['test'] = list(test_set_locs)
+        seen_locs.update(test_set_locs)
 
     def add_loc_to_split(loc: Tuple[str, str], split: str) -> None:
         split_to_locs[split].append(loc)
@@ -367,6 +372,13 @@ def create_splits(df: pd.DataFrame,
         ordered_locs = sort_locs_by_size(
             loc_to_size=df[mask].groupby('dataset_location').size().to_dict(),
             prioritize=prioritize)
+        # to use random permutation of locations instead of ordering by size
+        # ordered_locs = np.random.permutation(
+        #     df.loc[mask, 'dataset_location'].unique()).tolist()
+
+        split_sizes = label_sizes_by_split[label]
+        test_thresh = 0.15 * label_size
+        val_thresh = 0.15 * label_size
 
         for loc in ordered_locs:
             if loc in seen_locs:
@@ -374,9 +386,9 @@ def create_splits(df: pd.DataFrame,
             seen_locs.add(loc)
 
             # greedily add to test set until it has >= 15% of images
-            if label_sizes_by_split[label]['test'] < 0.15 * label_size:
+            if test_set_locs is None and split_sizes['test'] < test_thresh:
                 split = 'test'
-            elif label_sizes_by_split[label]['val'] < 0.15 * label_size:
+            elif split_sizes['val'] < val_thresh:
                 split = 'val'
             else:
                 split = 'train'
