@@ -127,6 +127,7 @@ def create_dataloaders(
         img_size: int,
         multilabel: bool,
         label_weighted: bool,
+        weight_by_detection_conf: Union[bool, str],
         batch_size: int,
         augment_train: bool,
         cache_splits: Sequence[str]
@@ -148,8 +149,8 @@ def create_dataloaders(
     """
     df, label_names, split_to_locs = load_dataset_csv(
         dataset_csv_path, label_index_json_path, splits_json_path,
-        multilabel=multilabel, weight_by_detection_conf=False,
-        label_weighted=label_weighted)
+        multilabel=multilabel, label_weighted=label_weighted,
+        weight_by_detection_conf=weight_by_detection_conf)
 
     # define the transforms
 
@@ -186,9 +187,13 @@ def create_dataloaders(
         split_df = df[df['dataset_location'].isin(locs)]
 
         weights = None
-        if label_weighted:
-            # weights sums to the # of images in the split
+        if label_weighted or weight_by_detection_conf:
+            # weights sums to:
+            # - if weight_by_detection_conf: (# images in split - conf delta)
+            # - otherwise: (# images in split)
             weights = split_df['weights'].tolist()
+            if not weight_by_detection_conf:
+                assert np.isclose(sum(weights), len(split_df))
 
         cache: Union[bool, str] = (split in cache_splits)
         if split == 'train' and 'train' in cache_splits:
@@ -248,6 +253,7 @@ def main(dataset_dir: str,
          pretrained: bool,
          finetune: int,
          label_weighted: bool,
+         weight_by_detection_conf: Union[bool, str],
          epochs: int,
          batch_size: int,
          lr: float,
@@ -256,6 +262,12 @@ def main(dataset_dir: str,
          logdir: str = '',
          cache_splits: Sequence[str] = ()) -> None:
     """Main function."""
+    # input validation
+    assert os.path.exists(dataset_dir)
+    assert os.path.exists(cropped_images_dir)
+    if isinstance(weight_by_detection_conf, str):
+        assert os.path.exists(weight_by_detection_conf)
+
     # set seed
     seed = np.random.randint(10_000) if seed is None else seed
     np.random.seed(seed)
@@ -285,6 +297,7 @@ def main(dataset_dir: str,
         img_size=img_size,
         multilabel=multilabel,
         label_weighted=label_weighted,
+        weight_by_detection_conf=weight_by_detection_conf,
         batch_size=batch_size,
         augment_train=True,
         cache_splits=cache_splits)
@@ -635,6 +648,10 @@ def _parse_args() -> argparse.Namespace:
         '--label-weighted', action='store_true',
         help='weight training samples to balance labels')
     parser.add_argument(
+        '--weight-by-detection-conf', nargs='?', const=True, default=False,
+        help='weight training examples by detection confidence. '
+             'Optionally takes a .npz file for isotonic calibration.')
+    parser.add_argument(
         '--epochs', type=int, default=0,
         help='number of epochs for training, 0 for eval-only')
     parser.add_argument(
@@ -669,6 +686,7 @@ if __name__ == '__main__':
          pretrained=args.pretrained,
          finetune=args.finetune,
          label_weighted=args.label_weighted,
+         weight_by_detection_conf=args.weight_by_detection_conf,
          epochs=args.epochs,
          batch_size=args.batch_size,
          lr=args.lr,
