@@ -77,12 +77,17 @@ def main(logdir: str, ckpt_name: str, splits: Iterable[str],
     num_workers = check_override(params, 'num_workers', num_workers)
     dataset_dir = check_override(params, 'dataset_dir', dataset_dir)
 
+    if 'efficientnet' in model_name:
+        img_size = efficientnet.EfficientNet.get_image_size(model_name)
+    else:
+        img_size = 224
+
     loaders, label_names = train_classifier.create_dataloaders(
         dataset_csv_path=os.path.join(dataset_dir, 'classification_ds.csv'),
         label_index_json_path=os.path.join(dataset_dir, 'label_index.json'),
         splits_json_path=os.path.join(dataset_dir, 'splits.json'),
         cropped_images_dir=params['cropped_images_dir'],
-        img_size=efficientnet.EfficientNet.get_image_size(model_name),
+        img_size=img_size,
         multilabel=params['multilabel'],
         label_weighted=params['label_weighted'],
         batch_size=batch_size,
