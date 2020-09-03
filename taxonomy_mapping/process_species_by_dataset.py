@@ -30,7 +30,7 @@ import taxonomy_mapping.retrieve_sample_image as retrieve_sample_image
 #%% Constants
 
 output_base = r'C:\git\ai4edev\camera-traps-private\taxonomy_archive'
-xlsx_basename = 'species_by_dataset_2020_09_02_snapshot_safari.xlsx'
+xlsx_basename = 'species_by_dataset_2020_09_02_ic_ubc.xlsx'
 
 # Input file
 species_by_dataset_file = os.path.join(output_base, xlsx_basename)
@@ -98,6 +98,8 @@ def get_preferred_taxonomic_match(query: str) -> TaxonomicMatch:
     preferences that are specific to our scenario.
     """
 
+    query = query.lower().strip().replace('_', ' ')
+    
     # query = 'person'
     matches = get_taxonomic_info(query)
 
