@@ -647,7 +647,7 @@ def download_and_crop(
         images_dir: Optional[str] = None,
         threads: int = 1,
         images_missing_detections: Optional[Iterable[str]] = None
-        ) -> List[str]:
+        ) -> Tuple[List[str], int, int]:
     """
     Saves crops to a file with the same name as the original image, except the
     ending is changed from ".jpg" (for example) to:
