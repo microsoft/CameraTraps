@@ -3,12 +3,14 @@ import dataclasses
 import heapq
 import io
 import json
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Set, Tuple
+from typing import (Any, Dict, List, Mapping, Optional, Sequence, Set, Tuple,
+                    Union)
 
 import matplotlib.figure
 import numpy as np
 import pandas as pd
 import PIL.Image
+import scipy.interpolate
 
 
 @dataclasses.dataclass(order=True)
@@ -102,7 +104,7 @@ def load_dataset_csv(dataset_csv_path: str,
                      label_index_json_path: str,
                      splits_json_path: str,
                      multilabel: bool,
-                     weight_by_detection_conf: bool,
+                     weight_by_detection_conf: Union[bool, str],
                      label_weighted: bool
                      ) -> Tuple[pd.DataFrame,
                                 List[str],
@@ -111,12 +113,16 @@ def load_dataset_csv(dataset_csv_path: str,
     """
     Args:
         classification_dataset_csv_path: str, path to CSV file with columns
-            ['dataset', 'location', 'label'], where label is a comma-delimited
-            list of labels
+            ['dataset', 'location', 'label', 'confidence'], where label is a
+            comma-delimited list of labels
         label_index_json_path: str, TODO
         splits_json_path: str, path to JSON file
         multilabel: bool, TODO
-        weight_by_detection_conf: bool, TODO
+        weight_by_detection_conf: bool or str
+            - if True: assumes classification CSV's 'confidence' column
+                represents calibrated scores
+            - if str: path the .npz file containing x/y values for isotonic
+                regression calibration function
         label_weighted: bool, TODO
 
     Returns:
@@ -149,37 +155,54 @@ def load_dataset_csv(dataset_csv_path: str,
 
     # load the splits and assert that there are no overlaps in locs
     with open(splits_json_path, 'r') as f:
-        split_to_locs = json.load(f)
+        split_to_locs_js = json.load(f)
     split_to_locs = {
-        split: set(tuple(loc) for loc in locs)
-        for split, locs in split_to_locs.items()
+        split: set((loc[0], loc[1]) for loc in locs)
+        for split, locs in split_to_locs_js.items()
     }
     assert split_to_locs['train'].isdisjoint(split_to_locs['val'])
     assert split_to_locs['train'].isdisjoint(split_to_locs['test'])
     assert split_to_locs['val'].isdisjoint(split_to_locs['test'])
 
     if weight_by_detection_conf:
-        raise NotImplementedError
+        df['weights'] = 1.0
+
+        # only weight the training set by detection confidence
+        # TODO: consider weighting val and test set as well
+        train_mask = df['dataset_location'].isin(split_to_locs['train'])
+        df.loc[train_mask, 'weights'] = df.loc[train_mask, 'confidence']
+
+        if isinstance(weight_by_detection_conf, str):
+            # isotonic regression calibration of MegaDetector confidence
+            with np.load(weight_by_detection_conf) as npz:
+                f = scipy.interpolate.interp1d(
+                    x=npz['x'], y=npz['y'], kind='linear')
+            df.loc[train_mask, 'weights'] = f(df.loc[train_mask, 'weights'])
 
     if label_weighted:
-        df['weights'] = -1.0
-        # TODO: handle multilabel case
+        if multilabel:
+            raise NotImplementedError  # TODO
+
+        if 'weights' not in df.columns:
+            df['weights'] = 1.0
 
         # treat each split separately
         # sample_weight[i] = (N / C) / count(i's label)
-        # - N = # of examples in split; C = # of labels
+        # - N = # of examples in split (weighted by confidence); C = # of labels
         # - weight allocated to each label is N/C
         # - within each label, weigh each example as 1/# of examples in label
         # - sample_weights sums to N
+        c = len(label_names)
         for locs in split_to_locs.values():
             split_mask = df['dataset_location'].isin(locs)
+            n = df.loc[split_mask, 'weights'].sum()
             label_sizes = df[split_mask].groupby('label').size()
-            n_over_c = split_mask.sum() / len(label_names)
-            sample_weights = n_over_c / label_sizes[df.loc[split_mask, 'label']]
-            assert np.isclose(sample_weights.sum(), split_mask.sum())
+            sample_weights = (n / c) / label_sizes[df.loc[split_mask, 'label']]
+            assert np.isclose(sample_weights.sum(), n)
             df.loc[split_mask, 'weights'] = sample_weights.to_numpy()
+
+        # error checking
         assert (df['weights'] > 0).all()
-        assert np.isclose(df['weights'].sum(), len(df))
 
     return df, label_names, split_to_locs
 
