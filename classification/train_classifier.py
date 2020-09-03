@@ -22,7 +22,7 @@ from datetime import datetime
 import json
 import os
 from typing import (Any, Callable, Dict, List, Mapping, MutableMapping,
-                    Optional, Sequence, Tuple)
+                    Optional, Sequence, Tuple, Union)
 
 import numpy as np
 import PIL.Image
@@ -123,6 +123,7 @@ def create_dataloaders(
         img_size: int,
         multilabel: bool,
         label_weighted: bool,
+        weight_by_detection_conf: Union[bool, str],
         batch_size: int,
         num_workers: int,
         augment_train: bool
@@ -141,8 +142,8 @@ def create_dataloaders(
     """
     df, label_names, split_to_locs = load_dataset_csv(
         dataset_csv_path, label_index_json_path, splits_json_path,
-        multilabel=multilabel, weight_by_detection_conf=False,
-        label_weighted=label_weighted)
+        multilabel=multilabel, label_weighted=label_weighted,
+        weight_by_detection_conf=weight_by_detection_conf)
 
     # define the transforms
     normalize = tv.transforms.Normalize(mean=MEANS, std=STDS, inplace=True)
@@ -171,10 +172,13 @@ def create_dataloaders(
 
         sampler: Optional[torch.utils.data.Sampler] = None
         weights = None
-        if label_weighted:
-            # weights sums to the # of images in the split
+        if label_weighted or weight_by_detection_conf:
+            # weights sums to:
+            # - if weight_by_detection_conf: (# images in split - conf delta)
+            # - otherwise: # images in split
             weights = split_df['weights'].to_numpy()
-            assert np.isclose(weights.sum(), len(split_df))
+            if not weight_by_detection_conf:
+                assert np.isclose(weights.sum(), len(split_df))
             if is_train:
                 sampler = torch.utils.data.WeightedRandomSampler(
                     weights, num_samples=len(split_df), replacement=True)
@@ -281,14 +285,21 @@ def main(dataset_dir: str,
          pretrained: bool,
          finetune: int,
          label_weighted: bool,
+         weight_by_detection_conf: Union[bool, str],
          epochs: int,
          batch_size: int,
          lr: float,
          weight_decay: float,
          num_workers: int,
          seed: Optional[int] = None,
-         logdir: str = '') -> None:
+         logdir: str = '.') -> None:
     """Main function."""
+    # input validation
+    assert os.path.exists(dataset_dir)
+    assert os.path.exists(cropped_images_dir)
+    if isinstance(weight_by_detection_conf, str):
+        assert os.path.exists(weight_by_detection_conf)
+
     # set seed
     seed = np.random.randint(10_000) if seed is None else seed
     np.random.seed(seed)
@@ -318,6 +329,7 @@ def main(dataset_dir: str,
         img_size=img_size,
         multilabel=multilabel,
         label_weighted=label_weighted,
+        weight_by_detection_conf=weight_by_detection_conf,
         batch_size=batch_size,
         num_workers=num_workers,
         augment_train=True)
@@ -342,10 +354,17 @@ def main(dataset_dir: str,
     # - epochs: 350
     # - learning rate: 0.256, decays by 0.97 every 2.4 epochs
     # - weight decay: 1e-5
-    optimizer = torch.optim.RMSprop(model.parameters(), lr, alpha=0.9,
-                                    momentum=0.9, weight_decay=weight_decay)
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(
-        optimizer=optimizer, step_size=1, gamma=0.97 ** (1 / 2.4))
+    optimizer: torch.optim.Optimizer
+    if 'efficientnet' in model_name:
+        optimizer = torch.optim.RMSprop(model.parameters(), lr, alpha=0.9,
+                                        momentum=0.9, weight_decay=weight_decay)
+        lr_scheduler = torch.optim.lr_scheduler.StepLR(
+            optimizer=optimizer, step_size=1, gamma=0.97 ** (1 / 2.4))
+    else:  # resnet
+        optimizer = torch.optim.SGD(model.parameters(), lr, momentum=0.9,
+                                    weight_decay=weight_decay)
+        lr_scheduler = torch.optim.lr_scheduler.StepLR(
+            optimizer=optimizer, step_size=8, gamma=0.1)  # lower every 8 epochs
 
     best_epoch_metrics: Dict[str, float] = {}
     for epoch in range(epochs):
@@ -635,16 +654,16 @@ def run_epoch(model: torch.nn.Module,
                 inputs, labels, img_files = batch[0:3]
                 weights = None
 
+            inputs = inputs.to(device, non_blocking=True)
+
             batch_size = labels.size(0)
             start_i = end_i
             end_i = start_i + batch_size
             all_labels[start_i:end_i] = labels
 
-            inputs = inputs.to(device, non_blocking=True)
+            desc = []
             labels = labels.to(device, non_blocking=True)
             outputs = model(inputs)
-
-            desc = []
             all_preds[start_i:end_i] = outputs.detach().argmax(dim=1).cpu()
 
             if loss_fn is not None:
@@ -712,6 +731,10 @@ def _parse_args() -> argparse.Namespace:
         '--label-weighted', action='store_true',
         help='weight training samples to balance labels')
     parser.add_argument(
+        '--weight-by-detection-conf', nargs='?', const=True, default=False,
+        help='weight training examples by detection confidence. '
+             'Optionally takes a .npz file for isotonic calibration.')
+    parser.add_argument(
         '--epochs', type=int, default=0,
         help='number of epochs for training, 0 for eval-only')
     parser.add_argument(
@@ -746,6 +769,7 @@ if __name__ == '__main__':
          pretrained=args.pretrained,
          finetune=args.finetune,
          label_weighted=args.label_weighted,
+         weight_by_detection_conf=args.weight_by_detection_conf,
          epochs=args.epochs,
          batch_size=args.batch_size,
          lr=args.lr,
