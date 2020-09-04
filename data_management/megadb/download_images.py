@@ -127,6 +127,10 @@ def process_json(file_list_path: str,
                  ) -> Tuple[Dict[str, str], int]:
     """Processes JSON file.
 
+    Args:
+        file_list_path: str, path to JSON file
+        existing: set of str, paths (in local OS format)
+
     Returns:
         filename_to_url: dict, maps filename (str) to url (str)
         count: int, number of entries in original JSON file
@@ -145,11 +149,11 @@ def process_json(file_list_path: str,
 
         # build filename
         _, ext = os.path.splitext(entry['file'])
-        filename = os.path.normpath(entry[save_key])
+        filename = entry[save_key]
         if not filename.endswith(ext):
             filename += ext
 
-        if filename in existing:
+        if os.path.normpath(filename) in existing:
             continue
         assert filename not in entries_to_download
         entries_to_download[filename] = entry
@@ -180,6 +184,10 @@ def process_txt(file_list_path: str,
                 ) -> Tuple[Dict[str, str], int]:
     """Processes text file.
 
+    Args:
+        file_list_path: str, path to text file, each line in file is a filename
+        existing: set of str, paths (in local OS format)
+
     Returns:
         filename_to_url: dict, maps filename (str) to url (str)
         count: int, number of entries in original text file
@@ -189,8 +197,8 @@ def process_txt(file_list_path: str,
     with open(file_list_path, 'r') as f:
         for filename in f:
             count += 1
-            filename = os.path.normpath(filename.rstrip())  # remove newline
-            if filename in existing or len(filename) == 0:
+            filename = filename.rstrip()  # remove newline
+            if os.path.normpath(filename) in existing or len(filename) == 0:
                 continue
 
             try:
