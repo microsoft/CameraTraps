@@ -189,7 +189,7 @@ def process_txt(file_list_path: str,
     with open(file_list_path, 'r') as f:
         for filename in f:
             count += 1
-            filename = filename.rstrip()  # remove newline
+            filename = os.path.normpath(filename.rstrip())  # remove newline
             if filename in existing or len(filename) == 0:
                 continue
 
@@ -227,6 +227,7 @@ def main(filetype: str,
     else:
         print('Creating directory at:', store_dir)
         os.makedirs(store_dir)
+        existing = set()
 
     print('Loading datasets table from MegaDB')
     datasets_table = MegadbUtils().get_datasets_table()
