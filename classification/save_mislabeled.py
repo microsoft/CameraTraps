@@ -50,7 +50,7 @@ def update_mislabeled_images(container_path: str, input_csv_path: str) -> None:
     df['file'] = df['blob_dirname'] + '/' + df['File']
 
     for ds, ds_df in df.groupby('dataset'):
-        sr_path = os.path.join(container_path, f'megadb_mislabeled/{ds}.csv')
+        sr_path = os.path.join(container_path, 'megadb_mislabeled', f'{ds}.csv')
         if os.path.exists(sr_path):
             old_sr = pd.read_csv(sr_path, index_col='file', squeeze=True)
         else:
