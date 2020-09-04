@@ -82,6 +82,8 @@ def main(logdir: str, ckpt_name: str, splits: Iterable[str],
     else:
         img_size = 224
 
+    # TODO: for now, we don't weight crops by detection confidence during
+    # evaluation. But consider changing this.
     loaders, label_names = train_classifier.create_dataloaders(
         dataset_csv_path=os.path.join(dataset_dir, 'classification_ds.csv'),
         label_index_json_path=os.path.join(dataset_dir, 'label_index.json'),
@@ -90,6 +92,7 @@ def main(logdir: str, ckpt_name: str, splits: Iterable[str],
         img_size=img_size,
         multilabel=params['multilabel'],
         label_weighted=params['label_weighted'],
+        weight_by_detection_conf=False,
         batch_size=batch_size,
         num_workers=params['num_workers'],
         augment_train=False)
