@@ -175,9 +175,9 @@ def load_dataset_csv(dataset_csv_path: str,
         if isinstance(weight_by_detection_conf, str):
             # isotonic regression calibration of MegaDetector confidence
             with np.load(weight_by_detection_conf) as npz:
-                f = scipy.interpolate.interp1d(
+                calib = scipy.interpolate.interp1d(
                     x=npz['x'], y=npz['y'], kind='linear')
-            df.loc[train_mask, 'weights'] = f(df.loc[train_mask, 'weights'])
+            df.loc[train_mask, 'weights'] = calib(df.loc[train_mask, 'weights'])
 
     if label_weighted:
         if multilabel:
