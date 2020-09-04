@@ -1,10 +1,28 @@
-## Installation
+# Table of Contents
+* Overview
+* Installation
+* Typical Training Pipeline
+  1. Select classification labels for training.
+  2. Validate the classification labels specification JSON file, and generate a list of images to run detection on.
+  3. Submit images without ground-truth bounding boxes to the MegaDetector Batch Detection API to get bounding box labels.
+  4. Create classification dataset and split into train/val/test sets by location.
+  5. (Optional) Manually inspect dataset.
+  6. Train classifier.
+  7. Evaluate classifier.
+  8. (Optional) Identify potentially mislabeled images.
+
+# Overview
+
+TODO
+
+# Installation
 
 Install miniconda3. Then create the conda environment using the following command. If you need to add/remove/modify packages, make the appropriate change in the `environment-classifier.yml` file and run the following command again.
 
 ```bash
 conda env update -f environment-classifier.yml --prune
 ```
+# Typical Training Pipeline
 
 ## 1. Select classification labels for training.
 
@@ -130,5 +148,82 @@ The output of `json_validator.py` is another JSON file (`queried_images.json`) t
 
 ## 3. Submit images without ground-truth bounding boxes to the MegaDetector Batch Detection API to get bounding box labels.
 
+TODO
+
+## 4. Create classification dataset and split into train/val/test sets by location.
+
+TODO
+
+## 5. (Optional) Manually inspect dataset.
+
+TODO
+
+## 6. Train classifier.
+
+TODO
+
+## 7. Evaluate classifier.
+
+TODO
+
+## 8. (Optional) Identify potentially mislabeled images.
+
+We can now use our trained classifier to identify potentially mislabeled images by looking at the model's false positives. A "mislabeled candidate" is defined as an image meeting both of the following criteria:
+- according to the ground-truth label, the model made an incorrect prediction
+- the model's prediction confidence exceeds its confidence for the ground-truth label by some minimum confidence.
+
+At this point, we should have the following folder structure:
+```
+<base_logdir>/
+    queried_images.json           # generated in step (?)
+    label_index.json              # generated in step (?)
+    <logdir>/                     # generated in step (?)
+        outputs_{split}.csv.json  # generated in step (7)
+```
+
+We generate a JSON file that can be loaded into Timelapse to help us review mislabeled candidates. We again use `merge_classification_detection_output.py`. However, instead of outputting raw classification probabilities, we output the margin of error by passing the `--relative-conf` flag.
+
 ```bash
+python merge_classification_detection_output.py <base_logdir>/<logdir>/outputs_test.csv.gz \
+    <base_logdir>/label_index.json \
+    <base_logdir>/queried_images.json \
+    -n "myclassifier"
+    -c $HOME/classifier-training/mdcache -v "4.1"
+    -o <base_logdir>/<logdir>/outputs_json_test_set_relative_conf.json --relative-conf
+```
+
+If the images are not already on the Timelapse machine, and we don't want to download the entire dataset onto the Timelapse machine, we can instead choose to only download the mislabeled candidate images. We use the `identify_mislabeled_candidates.py` script to generate the lists of images to download, one file per split and dataset: `<logdir>/mislabeled_candidates_{split}_{dataset}.txt`. It is recommended to set a high margin >=0.95 in order to restrict ourselves to only the most-likely mislabeled candidates. Then, use either AzCopy or `data_management/megadb/download_images.py` to do the actual downloading.
+
+Using `data_management/megadb/download_images.py` is the recommended and faster way of downloading images. It expects a file list with the format `<dataset_name>/<blob_name>`, so we have to pass the `--include-dataset-in-filename` flag to `identify_mislabeled_candidates.py`.
+
+```bash
+python identify_mislabeled_candidates.py <base_logdir>/<logdir> \
+    --margin 0.95 --splits test --include-dataset-in-filename
+
+python ../data_management/megadb/download_images.py txt \
+    <base_logdir>/<logdir>/mislabeled_candidates_{split}_{dataset}.json \
+    /save/images/to/here \
+    --threads 50
+```
+
+Until AzCopy improves its performance for its undocumented `--list-of-files` option, its performance is generally much slower. However, we can use it as follows:
+
+```bash
+python identify_mislabeled_candidates.py <base_logdir>/<logdir> \
+    --margin 0.95 --splits test
+
+azcopy cp "http://<url_of_container>?<sas_token>" "/save/files/here" \
+    --list-of-files "mislabeled_candidates_{split}_{dataset}.txt"
+```
+
+Load the images into Timelapse with a template that includes a Flag named "mislabeled" and a Note named "correct_class". Load the JSON classifications file, and enable the image recognition controls. There are two methods for effectively identifying potential false positives. Whenever you identify a mislabeled image, check the "mislabeled" checkbox. If you know its correct class, type it into the "correct_class" text field.
+
+1. If you downloaded images using `identify_mislabeled_candidates.py`, then select images with "label: elk", for example. This should show all images that are labeled "elk" but predicted as a different class with a margin of error of at least 0.95. Look through the selected images, and any image that is *not* actually of an elk is therefore mislabeled.
+
+2. If you already had all the images downloaded, then select images with "elk", but set the confidence threshold to >=0.95. This will show all images that the classifier incorrectly predicted as "elk" by a margin of error of at least 0.95. Look through the selected images, and any image that *is* actually an elk is therefore mislabeled.
+
+When you are done identifying mislabeled images, export the Timelapse database to a CSV. We can now update our list of known mislabeled images with this CSV:
+
+```bash
+python save_mislabeled.py $HOME/classifier-training <path_to_mislabeled_images.csv>
 ```
