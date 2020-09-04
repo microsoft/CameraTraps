@@ -49,8 +49,8 @@ for taxonomy_name in taxonomy_urls:
 serialized_structures_file = os.path.join(taxonomy_download_dir,
                                           'serialized_taxonomies.p')
 
-# these are un-initialized globals that must be initialized by
-# the initialize_taxonomy_lookup() function below
+# These are un-initialized globals that must be initialized by
+# the initialize_taxonomy_lookup() function below.
 inat_taxonomy: pd.DataFrame
 gbif_taxonomy: pd.DataFrame
 gbif_common_mapping: pd.DataFrame
@@ -349,7 +349,8 @@ def traverse_taxonomy(matching_rownums: Sequence[int],
                       taxon_id_to_row: Mapping[str, int],
                       taxon_id_to_vernacular: Mapping[str, Set[str]],
                       taxonomy: pd.DataFrame,
-                      source_name: str) -> List[Dict[str, Any]]:
+                      source_name: str,
+                      query: str) -> List[Dict[str, Any]]:
     """
     Given a data frame that's a set of rows from one of our taxonomy tables,
     walks the taxonomy hierarchy from each row to put together a full taxonomy
@@ -390,10 +391,10 @@ def traverse_taxonomy(matching_rownums: Sequence[int],
                 break
             parent_taxon_id = current_row['parentNameUsageID'].astype('int64')
             if parent_taxon_id not in taxon_id_to_row:
-                # this can happen because we remove questionable rows from the
+                # This can happen because we remove questionable rows from the
                 # GBIF taxonomy
-                print(f'No row exists for parent_taxon_id {parent_taxon_id}. '
-                      f'child taxon_id: {taxon_id}')
+                print(f'Warning: no row exists for parent_taxon_id {parent_taxon_id},' + \
+                      f'child taxon_id: {taxon_id}, query: {query}')
                 break
             i_parent_row = taxon_id_to_row[parent_taxon_id]
             current_row = taxonomy.iloc[i_parent_row]
@@ -475,10 +476,10 @@ def get_taxonomic_info(query: str) -> List[Dict[str, Any]]:
     # Walk both taxonomies
     inat_matching_trees = traverse_taxonomy(
         inat_row_indices, inat_taxon_id_to_row, inat_taxon_id_to_vernacular,
-        inat_taxonomy, 'inat')
+        inat_taxonomy, 'inat', query)
     gbif_matching_trees = traverse_taxonomy(
         gbif_row_indices, gbif_taxon_id_to_row, gbif_taxon_id_to_vernacular,
-        gbif_taxonomy, 'gbif')
+        gbif_taxonomy, 'gbif', query)
 
     return gbif_matching_trees + inat_matching_trees
 
