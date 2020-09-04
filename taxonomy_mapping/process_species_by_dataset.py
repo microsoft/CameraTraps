@@ -29,8 +29,8 @@ import taxonomy_mapping.retrieve_sample_image as retrieve_sample_image
 
 #%% Constants
 
-output_base = r'C:\git\camera-traps-private\taxonomy_archive'
-xlsx_basename = 'species_by_dataset_2020_06_18.xlsx'
+output_base = r'C:\git\ai4edev\camera-traps-private\taxonomy_archive'
+xlsx_basename = 'species_by_dataset_2020_09_02_ic_ubc.xlsx'
 
 # Input file
 species_by_dataset_file = os.path.join(output_base, xlsx_basename)
@@ -50,7 +50,7 @@ output_csv = output_xlsx.replace('.xlsx', '.csv')
 html_output_file = os.path.join(output_base, 'mapping_previews.html')
 download_images = True
 
-master_table_file = r'C:\git\camera-traps-private\camera_trap_taxonomy_mapping.csv'
+master_table_file = r'C:\git\ai4edev\camera-traps-private\camera_trap_taxonomy_mapping.csv'
 
 
 #%% Functions
@@ -98,6 +98,8 @@ def get_preferred_taxonomic_match(query: str) -> TaxonomicMatch:
     preferences that are specific to our scenario.
     """
 
+    query = query.lower().strip().replace('_', ' ')
+    
     # query = 'person'
     matches = get_taxonomic_info(query)
 
@@ -399,9 +401,7 @@ for i_row, row in tqdm(output_df.iterrows(), total=len(output_df)):
 # See manual_review_xlsx above
 
 
-#%% After doing the manual mapping step...
-
-# Find scientific names that were added manually, and match them to taxonomies
+#%% Read back the results of the manual review process
 
 df = pd.read_excel(manual_review_xlsx)
 
@@ -412,36 +412,52 @@ def clean_df(df: pd.DataFrame) -> pd.DataFrame:
 
 df = clean_df(df)
 
-# manually inspect df for typos in 'dataset_names' and 'taxonomy_level' columns
+
+#%% Look for manual mapping errors
+
+# Manually inspect df for typos in 'dataset_names' and 'taxonomy_level' columns
 print('dataset names')
 print(df['dataset_name'].unique())
 print()
 print('taxonomy levels:')
 print(df['taxonomy_level'].unique())
 
-# identify rows where:
+# Identify rows where:
+#
 # - 'taxonomy_level' does not match level of 1st element in 'taxonomy_string'
 # - 'scientific_name' does not match name of 1st element in 'taxonomy_string'
-for i, row in taxonomy_df.iterrows():
+#
+# ...both of which typically represent manual mapping errors.
+
+# i_row = 0; row = df.iloc[i_row]
+for i_row, row in df.iterrows():
+    
     taxa_ancestry = row['taxonomy_string']
-    if pd.isna(taxa_ancestry):
+    
+    # I'm not sure why both of these checks are necessary, best guess is that 
+    # the Excel parser was reading blanks as na on one OS/Excel version and as ''
+    # on another.
+    if (isinstance(taxa_ancestry,str) and taxa_ancestry == '') or (pd.isna(taxa_ancestry)):
         continue
 
+    # The taxonomy_string column is a .json-formatted string; expand it into
+    # an object via eval()
     taxa_ancestry = eval(taxa_ancestry)  # pylint: disable=eval-used
     taxon_id, taxon_level, taxon_name, _ = taxa_ancestry[0]
 
     if row['taxonomy_level'] != taxon_level:
-        print(f'row: {i}, {row["dataset_name"]}, {row["query"]}')
+        print(f'row: {i_row}, {row["dataset_name"]}, {row["query"]}')
         print(f'- taxonomy_level column: {row["taxonomy_level"]}, '
               f'level from taxonomy_string: {taxon_level}')
         print()
 
     if row['scientific_name'] != taxon_name:
-        print(f'row: {i}, {row["dataset_name"]}, {row["query"]}')
+        print(f'row: {i_row}, {row["dataset_name"]}, {row["query"]}')
         print(f'- scientific_name column: {row["scientific_name"]}, '
               f'name from taxonomy_string: {taxon_name}')
 
-#%% Write out final version
+
+#%% Find scientific names that were added manually, and match them to taxonomies
 
 # i_row = 0; row = df.iloc[i_row]
 for i_row, row in df.iterrows():
@@ -451,15 +467,22 @@ for i_row, row in df.iterrows():
     if row.source == '':
         assert row.scientific_name == ''
 
-    if row.source == 'manual' and row.taxonomy_string != '':
-        print('Manual row with taxonomy string: {}.{}'.format(
-            row.dataset_name, row.query))
+    if False:
+        if row.source == 'manual' and row.taxonomy_string != '':
+            print('Warning: manual row with taxonomy string: {}.{}'.format(
+                row.dataset_name, row.query))
 
     if row.source != '' and len(row.scientific_name) == 0:
         print('Unsourced row with no scientific name: {}.{}'.format(
             row.dataset_name, row.query))
 
     if row.source == 'manual':
+        
+        common_name = row.common_name
+        if common_name == '':
+            print('Warning: manual row with no common name: {}.{}'.format(
+                row.dataset_name, row.query))
+            
         scientific_name = row.scientific_name
         taxonomic_match = get_preferred_taxonomic_match(scientific_name)
         if taxonomic_match.source == '':
@@ -475,6 +498,9 @@ for i_row, row in df.iterrows():
                 taxonomic_match.source))
 
 # ...for each query
+
+
+#%% Write out final version
 
 df.to_excel(output_xlsx, index=None, header=True)
 df.to_csv(output_csv, index=None, header=True)
