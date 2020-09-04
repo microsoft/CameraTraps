@@ -43,16 +43,17 @@ import argparse
 import datetime
 import json
 import os
-from typing import List, Mapping, Optional, Sequence, Tuple
+from typing import Any, List, Mapping, Optional, Sequence, Tuple
 
 import pandas as pd
 from tqdm import tqdm
 
 
-def row_to_classification_list(row: Mapping[str, float],
+def row_to_classification_list(row: Mapping[str, Any],
                                label_names: Sequence[str],
                                contains_preds: bool,
                                label_first: bool,
+                               threshold: float,
                                relative_conf: bool = False
                                ) -> List[Tuple[str, float]]:
     """Given a mapping from label name to output probability, returns a list of
@@ -77,6 +78,10 @@ def row_to_classification_list(row: Mapping[str, float],
         if relative_conf:
             label_conf = row[row['label']]
             result = [(k, max(v - label_conf, 0)) for k, v in result]
+
+        # filter out confidences below the threshold
+        result = [(k, conf) for k, conf in result if conf >= threshold]
+
         # sort from highest to lowest probability
         result = sorted(result, key=lambda x: x[1], reverse=True)
 
@@ -98,6 +103,7 @@ def main(classification_csv_path: str,
          detector_output_cache_base_dir: str,
          detector_version: str,
          output_json_path: str,
+         threshold: float,
          datasets: Optional[Sequence[str]] = None,
          samples_per_label: Optional[int] = None,
          seed: int = 123,
@@ -105,6 +111,15 @@ def main(classification_csv_path: str,
          relative_conf: bool = False
          ) -> None:
     """Main function."""
+    # input validation
+    assert os.path.exists(classification_csv_path)
+    assert os.path.exists(label_names_json_path)
+    assert os.path.exists(queried_images_json_path)
+    detector_output_cache_dir = os.path.join(
+        detector_output_cache_base_dir, f'v{detector_version}')
+    assert os.path.isdir(detector_output_cache_dir)
+    assert 0 <= threshold <= 1
+
     # load classification CSV
     # extract dataset name from img_file so we can process 1 dataset at a time
     print('Loading classification CSV...')
@@ -147,9 +162,6 @@ def main(classification_csv_path: str,
         os.path.splitext(img_path)[0]: img_path
         for img_path in queried_images_js
     }
-
-    detector_output_cache_dir = os.path.join(
-        detector_output_cache_base_dir, f'v{detector_version}')
 
     classification_js = {
         'info': {
@@ -226,7 +238,7 @@ def main(classification_csv_path: str,
             detection_dict['classifications'] = row_to_classification_list(
                 row=ds_df.loc[crop_path], label_names=label_names,
                 contains_preds=contains_preds, label_first=label_first,
-                relative_conf=relative_conf)
+                threshold=threshold, relative_conf=relative_conf)
 
     classification_js['images'] = list(images.values())
 
@@ -262,6 +274,10 @@ def _parse_args() -> argparse.Namespace:
         '-o', '--output-json', required=True,
         help='(required) path to save output JSON')
     parser.add_argument(
+        '--threshold', type=float, default=0.1,
+        help='Confidence threshold between 0 and 1.0. Exclude classes below '
+             'this confidence in the output file.')
+    parser.add_argument(
         '-d', '--datasets', nargs='*',
         help='optionally limit output to images from certain datasets')
     parser.add_argument(
@@ -291,6 +307,7 @@ if __name__ == '__main__':
          detector_output_cache_base_dir=args.detector_output_cache_dir,
          detector_version=args.detector_version,
          output_json_path=args.output_json,
+         threshold=args.threshold,
          datasets=args.datasets,
          samples_per_label=args.samples_per_label,
          seed=args.seed,
