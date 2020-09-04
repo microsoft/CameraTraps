@@ -204,8 +204,15 @@ def main(label_spec_json_path: str,
          check_blob_exists: Union[bool, str] = False,
          output_dir: str = None,
          json_indent: Optional[int] = None,
-         seed: int = 123) -> None:
+         seed: int = 123,
+         mislabeled_images_dir: Optional[str] = None) -> None:
     """Main function."""
+    # input validation
+    assert os.path.exists(label_spec_json_path)
+    assert os.path.exists(taxonomy_csv_path)
+    if mislabeled_images_dir is not None:
+        assert os.path.isdir(mislabeled_images_dir)
+
     random.seed(seed)
 
     print('Building taxonomy hierarchy')
@@ -231,7 +238,7 @@ def main(label_spec_json_path: str,
 
     # use MegaDB to generate list of images
     print('Generating output json')
-    output_js = get_output_json(label_to_inclusions)
+    output_js = get_output_json(label_to_inclusions, mislabeled_images_dir)
 
     # only keep images that:
     # 1) end in a supported file extension, and
@@ -403,13 +410,16 @@ def validate_json(input_js: Dict[str, Dict[str, Any]],
     return label_to_inclusions
 
 
-def get_output_json(label_to_inclusions: Dict[str, Set[Tuple[str, str]]]
+def get_output_json(label_to_inclusions: Dict[str, Set[Tuple[str, str]]],
+                    mislabeled_images_dir: Optional[str] = None
                     ) -> Dict[str, Dict[str, Any]]:
     """Queries MegaDB to get image paths matching dataset_labels.
 
     Args:
         label_to_inclusions: dict, maps label name to set of
             (dataset, dataset_label) tuples, output of validate_json()
+        mislabeled_images_dir: str, path to directory of CSVs with known
+            mislabeled images
 
     Returns: dict, maps sorted image_path <dataset>/<img_file> to a dict of
         properties
@@ -425,7 +435,7 @@ def get_output_json(label_to_inclusions: Dict[str, Set[Tuple[str, str]]]
     #         'dataset_label': [output_label1, output_label2]
     #     }
     # }
-    ds_to_labels: Dict[str, Dict[str, List]] = {}
+    ds_to_labels: Dict[str, Dict[str, List[str]]] = {}
     for output_label, ds_dslabels_set in label_to_inclusions.items():
         for (ds, ds_label) in ds_dslabels_set:
             if ds not in ds_to_labels:
@@ -480,6 +490,13 @@ def get_output_json(label_to_inclusions: Dict[str, Set[Tuple[str, str]]]
 
     output_json = {}  # maps full image path to json object
     for ds in tqdm(sorted(ds_to_labels.keys())):  # sort for determinism
+        mislabeled_images: Mapping[str, Any] = {}
+        if mislabeled_images_dir is not None:
+            csv_path = os.path.join(mislabeled_images_dir, f'{ds}.csv')
+            if os.path.exists(csv_path):
+                mislabeled_images = pd.read_csv(csv_path, index_col='file',
+                                                squeeze=True)
+
         ds_labels = sorted(ds_to_labels[ds].keys())
         tqdm.write(f'Querying dataset "{ds}" for dataset labels: {ds_labels}')
 
@@ -491,18 +508,34 @@ def get_output_json(label_to_inclusions: Dict[str, Set[Tuple[str, str]]]
         tqdm.write(f'- query took {elapsed:.0f}s, found {len(results)} images')
 
         # if no path prefix, set it to the empty string '', because
-        #     os.path.join('', x) = x
-        img_path_prefix = os.path.join(
-            ds, datasets_table[ds].get('path_prefix', ''))
+        #     os.path.join('', x, '') = '{x}/'
+        path_prefix = datasets_table[ds].get('path_prefix', '')
+        count_corrected = 0
+        count_unknown = 0
         for result in results:
             # result keys
             # - already has: ['dataset', 'location', 'file', 'class', 'bbox']
             # - add ['label'], remove ['file']
-            img_path = os.path.join(img_path_prefix, result['file'])
+            img_file = os.path.join(path_prefix, result['file'])
+
+            # if img is mislabeled, but we don't know the correct class, skip it
+            # otherwise, update the img with the correct class
+            if img_file in mislabeled_images:
+                correct_class = mislabeled_images[img_file]
+                if pd.isna(correct_class):
+                    count_unknown += 1
+                    continue
+                else:
+                    count_corrected += 1
+                    result['class'] = correct_class
+            img_path = os.path.join(ds, img_file)
             del result['file']
             ds_label = result['class']
             result['label'] = ds_to_labels[ds][ds_label]
             output_json[img_path] = result
+
+        tqdm.write(f'Removed {count_unknown} mislabeled images.')
+        tqdm.write(f'Corrected labels for {count_corrected} images.')
 
     # sort keys for determinism
     output_json = {k: output_json[k] for k in sorted(output_json.keys())}
@@ -647,9 +680,9 @@ def filter_images(output_js: Mapping[str, Mapping[str, Any]], label: str,
     """
     img_files: Set[str] = set()
     for img_file, img_dict in output_js.items():
-        cond = (label in img_dict['label']) and (
-            datasets is None or img_dict['dataset'] in datasets)
-        if cond:
+        cond1 = (label in img_dict['label'])
+        cond2 = (datasets is None or img_dict['dataset'] in datasets)
+        if cond1 and cond2:
             img_files.add(img_file)
     return img_files
 
@@ -720,7 +753,7 @@ def _parse_args() -> argparse.Namespace:
         help='flag that restricts the taxonomy to only allow a single parent '
              'for each taxon node')
     parser.add_argument(
-        '--check-blob-exists', nargs='?', const=True,
+        '-c', '--check-blob-exists', nargs='?', const=True,
         help='check that the blob for each queried image actually exists. Can '
              'be very slow if reaching throttling limits. Optionally pass in a '
              'local directory to check before checking Azure Blob Storage.')
@@ -729,7 +762,7 @@ def _parse_args() -> argparse.Namespace:
         help='path to directory to save outputs. The output JSON file is saved '
              'at <output-dir>/queried_images.json, and the mapping from '
              'classification labels to dataset labels is saved at '
-             '<output-dir>/label_to_dataset_label.txt.')
+             '<output-dir>/included_dataset_labels.txt.')
     parser.add_argument(
         '--json-indent', type=int,
         help='number of spaces to use for JSON indent (default no indent), '
@@ -738,6 +771,11 @@ def _parse_args() -> argparse.Namespace:
         '--seed', type=int, default=123,
         help='random seed for sampling images, only used if --output-dir is '
              'given and a label specification includes a "max_count" key')
+    parser.add_argument(
+        '-m', '--mislabeled-images',
+        help='path to `megadb_mislabeled` directory of locally mounted '
+             '`classifier-training` Azure Blob Storage container where known '
+             'mislabeled images are tracked')
     return parser.parse_args()
 
 
@@ -750,7 +788,8 @@ if __name__ == '__main__':
          check_blob_exists=args.check_blob_exists,
          output_dir=args.output_dir,
          json_indent=args.json_indent,
-         seed=args.seed)
+         seed=args.seed,
+         mislabeled_images_dir=args.mislabeled_images)
 
 # main(
 #     label_spec_json_path='idfg_classes.json',
