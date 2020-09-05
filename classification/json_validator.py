@@ -746,8 +746,8 @@ def _parse_args() -> argparse.Namespace:
         help='path to taxonomy CSV file')
     parser.add_argument(
         '--allow-multilabel', action='store_true',
-        help='flag that allows assigning a (dataset, dataset_label) pair to '
-             'multiple output labels')
+        help='allow assigning a (dataset, dataset_label) pair to multiple '
+             'output labels')
     parser.add_argument(
         '--single-parent-taxonomy', action='store_true',
         help='flag that restricts the taxonomy to only allow a single parent '

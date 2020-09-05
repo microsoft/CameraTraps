@@ -432,10 +432,10 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         '--match-test-csv',
         help='path to an existing classification CSV from which to match '
-             'val/test crops (requires --match-test-splits)')
+             'test crops (requires --match-test-splits)')
     parser.add_argument(
         '--match-test-splits',
-        help='path to existing split JSON file from which to match val/test '
+        help='path to existing split JSON file from which to match test '
              'locations (requires --match-test-csv)')
     return parser.parse_args()
 
