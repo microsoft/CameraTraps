@@ -1,4 +1,4 @@
-"""
+r"""
 This program compiles an Excel spreadsheet for manually mapping dataset-specific
 species names to a common taxonomy.
 
