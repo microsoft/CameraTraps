@@ -11,22 +11,33 @@ must be proided.
 
 If the CSV contains [label names] columns (e.g., output of evaluate_model.py),
 then each crop's "classifications" output will have one value per category.
-If the CSV also contains a 'label' column and the --label-first flag is given,
-then the label category is placed first in the results. Other categories are
-sorted decreasing by confidence.
+Categories are sorted decreasing by confidence.
     "classifications": [
-        ["4", 0.025],  # label always first, even if classifier is incorrect
         ["3", 0.901],
         ["1", 0.071],
-        ["2", 0.003]
+        ["4", 0.025],
+        ["2", 0.003],
     ]
 
 If the CSV only contains the 'label' column (e.g., output of
 create_classification_dataset.py), then each crop's "classifications" output
-will have only one value, with a confidence of 1.0. Other categories are not
-included.
+will have only one value, with a confidence of 1.0. The label's classification
+category ID is always greater than 1,000,000, to distinguish it from a predicted
+category ID.
     "classifications": [
-        ["4", 1.0]
+        ["1000004", 1.0]
+    ]
+
+If the CSV contains both [label names] and 'label' columns, then both the
+predicted categories and label category will be included. By default, the
+label-category is included last; if the --label-first flag is given, then the
+label catgory is placed first in the results.
+    "classifications": [
+        ["1000004", 1.0],  # label put first if --label-first flag is given
+        ["3", 0.901],  # all other results are sorted by confidence
+        ["1", 0.071],
+        ["4", 0.025],
+        ["2", 0.003]
     ]
 
 Example usage:
@@ -52,7 +63,7 @@ from tqdm import tqdm
 def row_to_classification_list(row: Mapping[str, Any],
                                label_names: Sequence[str],
                                contains_preds: bool,
-                               label_first: bool,
+                               label_pos: Optional[str],
                                threshold: float,
                                relative_conf: bool = False
                                ) -> List[Tuple[str, float]]:
@@ -63,9 +74,9 @@ def row_to_classification_list(row: Mapping[str, Any],
     The list of tuples is returned in sorted order by the predicted probability
     for each label.
 
-    If 'label' is in row, then we add (label_id + 1_000_000, 1.) to the list. If
-    label_first=True, we put this at the front of the list. Otherwise, we put
-    it at the end.
+    If 'label' is in row and label_pos is not None, then we add
+    (label_id + 1_000_000, 1.) to the list. If label_pos='first', we put this at
+    the front of the list. Otherwise, we put it at the end.
     """
     contains_label = ('label' in row)
     assert contains_label or contains_preds
@@ -85,11 +96,11 @@ def row_to_classification_list(row: Mapping[str, Any],
         # sort from highest to lowest probability
         result = sorted(result, key=lambda x: x[1], reverse=True)
 
-    if contains_label:
+    if contains_label and label_pos is not None:
         label = row['label']
         label_id = label_names.index(label)
         item = (str(label_id + 1_000_000), 1.)
-        if label_first:
+        if label_pos == 'first':
             result = [item] + result
         else:
             result.append(item)
@@ -107,7 +118,7 @@ def main(classification_csv_path: str,
          datasets: Optional[Sequence[str]] = None,
          samples_per_label: Optional[int] = None,
          seed: int = 123,
-         label_first: bool = False,
+         label_pos: Optional[str] = None,
          relative_conf: bool = False
          ) -> None:
     """Main function."""
@@ -119,6 +130,7 @@ def main(classification_csv_path: str,
         detector_output_cache_base_dir, f'v{detector_version}')
     assert os.path.isdir(detector_output_cache_dir)
     assert 0 <= threshold <= 1
+    assert label_pos in [None, 'first', 'last']
 
     # load classification CSV
     # extract dataset name from img_file so we can process 1 dataset at a time
@@ -127,6 +139,9 @@ def main(classification_csv_path: str,
                      index_col=False)
     df['dataset'] = df['path'].str.split('/', n=1, expand=True)[0]
     df.set_index('path', inplace=True)
+
+    if label_pos is not None:
+        assert 'label' in df.columns
 
     unique_datasets = df['dataset'].unique()
     if datasets is not None:
@@ -237,7 +252,7 @@ def main(classification_csv_path: str,
             detection_dict = images[img_path]['detections'][crop_index]
             detection_dict['classifications'] = row_to_classification_list(
                 row=ds_df.loc[crop_path], label_names=label_names,
-                contains_preds=contains_preds, label_first=label_first,
+                contains_preds=contains_preds, label_pos=label_pos,
                 threshold=threshold, relative_conf=relative_conf)
 
     classification_js['images'] = list(images.values())
@@ -274,7 +289,7 @@ def _parse_args() -> argparse.Namespace:
         '-o', '--output-json', required=True,
         help='(required) path to save output JSON')
     parser.add_argument(
-        '--threshold', type=float, default=0.1,
+        '-t', '--threshold', type=float, default=0.1,
         help='Confidence threshold between 0 and 1.0. Exclude classes below '
              'this confidence in the output file.')
     parser.add_argument(
@@ -288,9 +303,10 @@ def _parse_args() -> argparse.Namespace:
         '--seed', type=int, default=123,
         help='random seed, only used if --samples-per-label is given')
     parser.add_argument(
-        '--label-first', action='store_true',
-        help='if <classification_csv> contains a "label" column, always '
-             'put the label first in the list of classifications')
+        '--label', choices=['first', 'last'], default=None,
+        help='Whether to put the label first or last in the list of '
+             'classifications. If this argument is omitted, then no labels are '
+             'included in the output.')
     parser.add_argument(
         '--relative-conf', action='store_true',
         help='for each class, outputs its relative confidence over the '
@@ -311,5 +327,5 @@ if __name__ == '__main__':
          datasets=args.datasets,
          samples_per_label=args.samples_per_label,
          seed=args.seed,
-         label_first=args.label_first,
+         label_pos=args.label,
          relative_conf=args.relative_conf)
