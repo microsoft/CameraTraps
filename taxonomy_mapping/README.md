@@ -9,3 +9,9 @@ Creating the taxonomy CSV file requires running two scripts.
 2. Because each partner organization uses their own naming scheme, we need to map the class names onto a common taxonomy. We use a combination of the [iNaturalist taxonomy](https://forum.inaturalist.org/t/how-to-download-taxa/3542) and the [Global Biodiversity Information Facility (GBIF) Backbone Taxonomy](https://www.gbif.org/dataset/d7dddbf4-2cf0-4f39-9b2a-bb099caae36c).
 
     This is done by running the `taxonomy_mapping/process_species_by_dataset.py` script. Note that this script is not meant to be run as a normal Python script but is instead intended to be run interactively.
+
+3. Once the taxonomy CSV is generated, check for errors by running
+
+```bash
+python taxonomy_mapping/taxonomy_csv_checker.py /path/to/taxonomy.csv
+```
