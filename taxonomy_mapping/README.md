@@ -1,6 +1,8 @@
 We generated a list of all the annotations in our universe; the scripts in this folder were used to (interactively) map them onto the GBIF and iNat taxonomies.
 
-Creating the taxonomy CSV file requires running two scripts.
+## Creating the Taxonomy CSV
+
+Creating the taxonomy CSV file requires running 3 scripts.
 
 1. Generate a spreadsheet of the class names within each desired dataset by querying MegaDB. These class names are the names provided directly by our partner organizations and may include abbreviations, e.g. "wtd" meaning "white-tailed deer."
 
@@ -15,3 +17,8 @@ Creating the taxonomy CSV file requires running two scripts.
 ```bash
 python taxonomy_mapping/taxonomy_csv_checker.py /path/to/taxonomy.csv
 ```
+
+
+## Visualize the Taxonomy Hierarchy
+
+The `visualize_taxonomy.ipynb` notebook demonstrates how to visualize the taxonomy hierarchy. It requires the *networkx* and *graphviz* Python packages.
