@@ -2,39 +2,53 @@
 # This .gitignore file was automatically created by Microsoft(R) Visual Studio.
 ################################################################################
 
-
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
+
+# C extensions
+*.so
+
 # Jupyter Notebook
 .ipynb_checkpoints
 
-*.pth
-*.so
-*.o
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
 
 # Apple directory 
 *.DS_Store
 
-# IDE
+# IDEs
 *.idea/
+*.project
+.spyderproject
+.spyproject
+.vscode
 
-.spyproject/workspace.ini
+# Demo files
 demo/aadconfig.py
 demo/apiconfig.py
 demo/CameraTrapAssets
-.webassets-cache/
 demo/static/uploads
 demo/static/results
-.spyproject/
+.webassets-cache/
+
+# CameraTrapJsonFileProcessingApp
 api/batch_processing/postprocessing/CameraTrapJsonFileProcessingApp/.vs/
 api/batch_processing/postprocessing/CameraTrapJsonFileProcessingApp/bin/
 api/batch_processing/postprocessing/CameraTrapJsonFileProcessingApp/obj/
 api/batch_processing/postprocessing/CameraTrapJsonFileProcessingApp/packages/
-/.project
 
-# TF model files
+# TF and PyTorch model files
 *.pb
+*.pt
 
 # batch processing API config files
 api_config*.py
+
+# Other
+*.pth
+*.o
