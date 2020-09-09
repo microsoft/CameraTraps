@@ -121,6 +121,7 @@ def main(label_spec_json_path: str,
         output_js, output_dir, check_blob_exists=check_blob_exists)
 
     # save label counts, pre-subsampling
+    print('Saving pre-sampling label counts')
     save_path = os.path.join(output_dir, 'image_counts_by_label_presample.json')
     with open(save_path, 'w') as f:
         image_counts_by_label = {
@@ -129,12 +130,16 @@ def main(label_spec_json_path: str,
         }
         json.dump(image_counts_by_label, f, indent=1)
 
+    print('Sampling with priority (if needed)')
     output_js = sample_with_priority(input_js, output_js)
+
+    print('Saving queried_images.json')
     output_json_path = os.path.join(output_dir, 'queried_images.json')
     with open(output_json_path, 'w') as f:
         json.dump(output_js, f, indent=json_indent)
 
     # save label counts, post-subsampling
+    print('Saving post-sampling label counts')
     save_path = os.path.join(output_dir, 'image_counts_by_label_sampled.json')
     with open(save_path, 'w') as f:
         image_counts_by_label = {
@@ -294,14 +299,11 @@ def get_output_json(label_to_inclusions: Dict[str, Set[Tuple[str, str]]],
         img.bbox
     FROM sequences seq JOIN img IN seq.images
     WHERE (ARRAY_LENGTH(img.class) = 1
-            AND ARRAY_CONTAINS(@dataset_labels, img.class[0])
+           AND ARRAY_CONTAINS(@dataset_labels, img.class[0])
         )
         OR (ARRAY_LENGTH(seq.class) = 1
             AND ARRAY_CONTAINS(@dataset_labels, seq.class[0])
-            AND (ARRAY_LENGTH(img.class) = 0
-                OR NOT IS_DEFINED(img.class)
-                OR (ARRAY_LENGTH(img.class) = 1 AND img.class[0] = seq.class[0])
-            )
+            AND (NOT IS_DEFINED(img.class))
         )
     '''
 
@@ -328,7 +330,7 @@ def get_output_json(label_to_inclusions: Dict[str, Set[Tuple[str, str]]],
         #     os.path.join('', x, '') = '{x}/'
         path_prefix = datasets_table[ds].get('path_prefix', '')
         count_corrected = 0
-        count_unknown = 0
+        count_removed = 0
         for result in results:
             # result keys
             # - already has: ['dataset', 'location', 'file', 'class', 'bbox']
@@ -336,23 +338,25 @@ def get_output_json(label_to_inclusions: Dict[str, Set[Tuple[str, str]]],
             img_file = os.path.join(path_prefix, result['file'])
 
             # if img is mislabeled, but we don't know the correct class, skip it
-            # otherwise, update the img with the correct class
+            # otherwise, update the img with the correct class, but skip the
+            #   img if the correct class is not one we queried for
             if img_file in mislabeled_images:
-                correct_class = mislabeled_images[img_file]
-                if pd.isna(correct_class):
-                    count_unknown += 1
+                new_class = mislabeled_images[img_file]
+                if pd.isna(new_class) or new_class not in ds_to_labels[ds]:
+                    count_removed += 1
                     continue
-                else:
-                    count_corrected += 1
-                    result['class'] = correct_class
+
+                count_corrected += 1
+                result['class'] = new_class
+
             img_path = os.path.join(ds, img_file)
             del result['file']
             ds_label = result['class']
             result['label'] = ds_to_labels[ds][ds_label]
             output_json[img_path] = result
 
-        tqdm.write(f'Removed {count_unknown} mislabeled images.')
-        tqdm.write(f'Corrected labels for {count_corrected} images.')
+        tqdm.write(f'- Removed {count_removed} mislabeled images.')
+        tqdm.write(f'- Corrected labels for {count_corrected} images.')
 
     # sort keys for determinism
     output_json = {k: output_json[k] for k in sorted(output_json.keys())}
