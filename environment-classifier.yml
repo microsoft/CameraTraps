@@ -21,11 +21,13 @@ dependencies:
 - matplotlib
 - mypy
 - nb_conda_kernels
+- networkx      # used for taxonomy visualization
 - numpy
 - openpyxl      # used by taxonomy_mapping/species_by_dataset.py
 - pandas
 - progressbar2  # used by ai4eutils (which is called by taxonomy-mapping code)
 - pylint
+- python-graphviz  # used for taxonomy visualization
 - scikit-learn
 - seaborn
 - tqdm
@@ -49,4 +51,4 @@ dependencies:
 
   # conda (defaults channel) tends to lag PyPI for TensorFlow-related packages
   - tensorboard
-  - tensorflow
+  - tensorflow>=2.3  # requires v2.3.0 or greater for Keras EfficientNet
