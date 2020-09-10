@@ -21,7 +21,7 @@ dependencies:
 - matplotlib
 - mypy
 - nb_conda_kernels
-- networkx      # used for taxonomy visualization
+- networkx      # used for taxonomy graph
 - numpy
 - openpyxl      # used by taxonomy_mapping/species_by_dataset.py
 - pandas
