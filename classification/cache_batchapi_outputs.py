@@ -1,5 +1,8 @@
 """
 Script to cache Batch Detection API outputs.
+
+Batch Detection API Output Format:
+github.com/microsoft/CameraTraps/tree/master/api/batch_processing#api-outputs
 """
 import argparse
 import json
@@ -11,6 +14,7 @@ import requests
 from classification.detect_and_crop import cache_detections
 from api.batch_processing.data_preparation.prepare_api_submission import (
     TaskStatus, Task)
+
 
 def main(json_path: str,
          dataset: str,
