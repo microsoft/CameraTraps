@@ -1,7 +1,9 @@
 # Table of Contents
-* Overview
-* Installation
-* Setup
+* [Overview](#overview)
+* [Setup](#setup)
+  * [Installation](#installation)
+  * [Directory Structure](#directory-structure)
+  * [Environment Variables](#environment-variables)
 * Running MegaClassifier on New Data
 * Typical Training Pipeline
   1. Select classification labels for training.
@@ -15,11 +17,17 @@
   9. (Optional) Identify potentially mislabeled images.
 * Miscellaneous Notes
 
+
 # Overview
 
-TODO
+This README describes how to train and run an animal "species" classifier. "Species" is in quotes, because the classifier can be trained to identify animals at arbitrary levels within the biological taxonomy of animals.
 
-# Installation
+This guide is written for internal use at Microsoft AI for Earth. Certain services, such as MegaDB and various private repos are only accessible interally within Microsoft. However, this guide may still be of interest to more technical users of the AI for Earth Camera Trap services.
+
+
+# Setup
+
+## Installation
 
 Install miniconda3. Then create the conda environment using the following command. If you need to add/remove/modify packages, make the appropriate change in the `environment-classifier.yml` file and run the following command again.
 
@@ -27,7 +35,8 @@ Install miniconda3. Then create the conda environment using the following comman
 conda env update -f environment-classifier.yml --prune
 ```
 
-# Setup
+
+## Directory Structure
 
 The classifier pipeline assumes the following directory structure:
 
@@ -57,7 +66,29 @@ camera-traps-private/           # internal taxonomy git repo
   - This is used for [TODO].
 - `
 
-TODO: environment variables
+
+## Environment Variables
+
+TODO
+
+
+# Running a classifier on new data
+
+## Run MegaDetector
+
+TODO
+
+## Crop images
+
+TODO
+
+## Create classification dataset
+
+TODO
+
+## Run classifier
+
+TODO
 
 
 # Typical Training Pipeline
@@ -219,7 +250,7 @@ This step consists of 3 sub-steps:
 <details>
     <summary>To use the MegaDetector Batch Detection API</summary>
 
-We use the `detect_and_crop.py` script. In theory, we can do everything we need in a single invocation. The script groups the queried images by dataset and then submits 1 "task" to the Batch Detection API for each dataset. It knows to wait for each task to finish running, before starting to download and crop the images based on bounding boxes.
+We use the `detect_and_crop.py` script. In theory, we can do everything we need in a single invocation. The script groups the queried images by dataset and then submits 1 "task" to the Batch Detection API for each dataset. It knows to wait for each task to finish running, before starting to download and crop the images based on bounding boxes. Because of the resume file, in theory it should be OK to cancel the script once the tasks are all submitted, then re-run the script later with the exact same arguments to fetch the results and begin the downloading and cropping.
 
 ```bash
 python detect_and_crop.py \
@@ -250,7 +281,7 @@ python detect_and_crop.py \
     -d batchapi -r $BASE_LOGDIR/resume.json
 ```
 
-When a task if finished running, manually create a JSON file for each task according to the [Batch Detection API response format](https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing#api-outputs). Then, use `cache_batchapi_outputs.py` to cache these results:
+When a task finishes running, manually create a JSON file for each task according to the [Batch Detection API response format](https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing#api-outputs). Save the JSON file to `$BASE_LOGDIR/batchapi_response/dataset.json`. Then, use `cache_batchapi_outputs.py` to cache these results:
 
 ```bash
 python cache_batchapi_outputs.py \
@@ -259,7 +290,7 @@ python cache_batchapi_outputs.py \
     -c $HOME/classifier-training/mdcache -v 4.1
 ```
 
-Finally, we download and crop the images based on the ground truth and detected bounding boxes:
+Finally, we download and crop the images based on the ground truth and detected bounding boxes. On a VM, expect this download and cropping step to run at ~60 images per second (~5 hours for 1 million images).
 
 ```bash
 python detect_and_crop.py \
