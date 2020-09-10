@@ -1,6 +1,8 @@
 # Table of Contents
 * Overview
 * Installation
+* Setup
+* Running MegaClassifier on New Data
 * Typical Training Pipeline
   1. Select classification labels for training.
   2. Validate the classification labels specification JSON file, and generate a list of images to run detection on.
@@ -11,6 +13,7 @@
   7. Evaluate classifier.
   8. Export classification results as JSON.
   9. (Optional) Identify potentially mislabeled images.
+* Miscellaneous Notes
 
 # Overview
 
@@ -23,11 +26,45 @@ Install miniconda3. Then create the conda environment using the following comman
 ```bash
 conda env update -f environment-classifier.yml --prune
 ```
+
+# Setup
+
+The classifier pipeline assumes the following directory structure:
+
+```
+classifier-training/            # Azure container mounted locally
+    mdcache/                    # cached MegaDetector outputs
+        v4.1/
+            datasetX.json
+    megadb_mislabeled/          # known mislabeled images in MegaDB
+        datasetX.csv
+
+full_images/                    # (optional) local directory to save full-size images
+
+image_crops/                    # local directory to save cropped images
+    datasetX/
+
+CameraTraps/                    # this git repo
+    classification/
+        BASE_LOGDIR/
+            LOGDIR/
+
+camera-traps-private/           # internal taxonomy git repo
+    camera_trap_taxonomy_mapping.csv  # THE taxonomy CSV file
+```
+
+- `classifier-training` Azure storage container is mounted locally
+  - This is used for [TODO].
+- `
+
+TODO: environment variables
+
+
 # Typical Training Pipeline
 
 ## 1. Select classification labels for training.
 
-Create a classification labels specification JSON file. This file defines the labels that our classifier will be trained to distinguish, as well as the original dataset labels and/or biological taxons that will map to each classification label.
+Create a classification labels specification JSON file (usually named `label_spec.json`). This file defines the labels that our classifier will be trained to distinguish, as well as the original dataset labels and/or biological taxons that will map to each classification label.
 
 The classification labels specification JSON file must have the following format:
 
@@ -55,7 +92,7 @@ The classification labels specification JSON file must have the following format
 
         "max_count": 50000  // only include up to this many images (not crops)
 
-        // max_count: prioritize images from certain datasets over others,
+        // prioritize images from certain datasets over others,
         // only used if "max_count" is given
         "prioritize": [
             ["idfg_swwlf_2019"],  // give 1st priority to images from this list of datasets
@@ -96,7 +133,12 @@ The classification labels specification JSON file must have the following format
 }
 ```
 
-For convenience, we also permit defining the classification labels via a CSV file, which we then translate to JSON using `csv_to_json.py`. The CSV syntax is as follows:
+For MegaClassifier, see `megaclassifier_label_spec.ipynb` to see how the label specification JSON file is generated.
+
+For bespoke classifiers, it is likely easier to write a CSV file instead of manually writing the JSON file. We then translate to JSON using `csv_to_json.py`. The CSV syntax is as follows:
+
+<details>
+    <summary>Syntax for CSV Label Specification</summary>
 
 ```
 output_label,type,content
@@ -120,8 +162,10 @@ output_label,type,content
 # is they Python syntax for List[List[str]], i.e., a list of lists of strings
 <label>,prioritize,"[['<dataset_name1>', '<dataset_name2>'], ['<dataset_name3>']]"
 ```
+</details>
 
-## 2. Validate the classification labels specification JSON file, and generate a list of images to run detection on.
+
+## 2. Validate the classification labels specification JSON file, and generate a list of matching images.
 
 In `json_validator.py`, we validate the classification labels specification JSON file. It checks that the specified taxa are included in the master taxonomy CSV file, which specifies the biological taxonomy for every dataset label in MegaDB. The script then queries MegaDB to list all images that match the classification labels specification, and optionally verifies that each image is only assigned a single classification label.
 
@@ -147,9 +191,86 @@ The output of `json_validator.py` is another JSON file (`queried_images.json`) t
 }
 ```
 
-## 3. Submit images without ground-truth bounding boxes to the MegaDetector Batch Detection API to get bounding box labels.
+Example usage of `json_validator.py`:
 
-TODO
+```bash
+python json_validator.py \
+    $BASE_LOGDIR/label_spec.json
+    /path/to/camera-traps-private/camera_trap_taxonomy_mapping.csv \
+    --json-indent 1 \
+    -m /path/to/classifier-training/megab_mislabeled
+```
+
+
+## 3. Generate bounding boxes using MegaDetector.
+
+While some labeled images in MegaDB already have ground-truth bounding boxes, other images do not. For the labeled images without bounding box annotations, we run MegaDetector to get bounding boxes. MegaDetector can be run either locally or via the Batch Detection API.
+
+This step consists of 3 sub-steps:
+1. Run MegaDetector (either locally or via Batch API) on the queried images.
+2. Cache MegaDetector results on the images to JSON files in `classifier-training/mdcache`.
+3. Download and crop the images to be used for training the classifier.
+
+<details>
+    <summary>To run MegaDetector locally</summary>
+    Not implemented yet.
+</details>
+
+<details>
+    <summary>To use the MegaDetector Batch Detection API</summary>
+
+We use the `detect_and_crop.py` script. In theory, we can do everything we need in a single invocation. The script groups the queried images by dataset and then submits 1 "task" to the Batch Detection API for each dataset. It knows to wait for each task to finish running, before starting to download and crop the images based on bounding boxes.
+
+```bash
+python detect_and_crop.py \
+    $BASE_LOGDIR/queried_images.json \
+    $BASE_LOGDIR \
+    -c /path/to/classifier-training/mdcache -v "4.1" \
+    -d batchapi -r $BASE_LOGDIR/resume.json \
+    -p /path/to/crops --square-crops -t 0.9 -n 50 \
+    --save-full-images -i /path/to/images
+```
+
+However, because the Batch Detection API often returns incorrect responses, in practice we often need to call `detect_and_crop.py` multiple times. It is important to understand the 2 different "modes" of the script.
+
+1. Call the Batch Detection API, and cache the results.
+    * To run this mode: set `--detector batchapi`
+    * To skip this mode: set `--detector skip`
+2. Using ground truth and cached detections, crop the images.
+    * To run this mode: set `--cropped-images-dir /path/to/crops`
+    * To skip this mode: don't set `--cropped-images-dir`
+
+Thus, we will first call the Batch Detection API. This will save a `resume.json` file that contains all of the task IDs. Because the Batch Detection API does not always respond with the correct task status, the only real way to verify if a task has finished running is to check the `async-api-*` Azure Storage container and see if the output files are there.
+
+```bash
+python detect_and_crop.py \
+    $BASE_LOGDIR/queried_images.json \
+    $BASE_LOGDIR \
+    -c /path/to/classifier-training/mdcache -v "4.1" \
+    -d batchapi -r $BASE_LOGDIR/resume.json
+```
+
+When a task if finished running, manually create a JSON file for each task according to the [Batch Detection API response format](https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing#api-outputs). Then, use `cache_batchapi_outputs.py` to cache these results:
+
+```bash
+python cache_batchapi_outputs.py \
+    $BASE_LOGDIR/batchapi_response/dataset.json \
+    --dataset dataset \
+    -c $HOME/classifier-training/mdcache -v 4.1
+```
+
+Finally, we download and crop the images based on the ground truth and detected bounding boxes:
+
+```bash
+python detect_and_crop.py \
+    $BASE_LOGDIR/queried_images.json \
+    $BASE_LOGDIR \
+    -c /path/to/classifier-training/mdcache -v "4.1" \
+    -d skip -p /path/to/crops --square-crops -t 0.9 -n 50 \
+    --save-full-images -i /path/to/images
+```
+</details>
+
 
 ## 4. Create classification dataset and split into train/val/test sets by location.
 
