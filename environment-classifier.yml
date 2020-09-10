@@ -16,6 +16,7 @@ dependencies:
 
 # from defaults channel
 - humanfriendly
+- ipywidgets    # for using tqdm inside Jupyter Lab
 - jsonpickle    # used by run_tf_detector_batch.py
 - jupyterlab
 - matplotlib
@@ -29,7 +30,7 @@ dependencies:
 - pylint
 - python-graphviz  # used for taxonomy visualization
 - scikit-learn
-- seaborn
+- seaborn>=0.11
 - tqdm
 - xlrd          # for pandas Excel support, needed by taxonomy_mapping/process_species_by_dataset
 - pip
@@ -41,7 +42,7 @@ dependencies:
 # These may require GCC to be installed
 - pip:
   - azure-cosmos
-  - azure-storage-blob>=12.4
+  - azure-storage-blob>=12.5  # require v12.5.0 for BlobClient.exists()
 
   # Pillow-SIMD will "over-shadow" the normal Pillow package installed by conda.
   # After installing, check that Pillow-SIMD is what gets imported:
@@ -51,4 +52,4 @@ dependencies:
 
   # conda (defaults channel) tends to lag PyPI for TensorFlow-related packages
   - tensorboard
-  - tensorflow>=2.3  # requires v2.3.0 or greater for Keras EfficientNet
+  - tensorflow>=2.3  # require v2.3.0 or greater for Keras EfficientNet
