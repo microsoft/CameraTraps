@@ -291,8 +291,9 @@ def main(dataset_dir: str,
          lr: float,
          weight_decay: float,
          num_workers: int,
-         seed: Optional[int] = None,
-         logdir: str = '.') -> None:
+         logdir: str,
+         log_extreme_examples: int,
+         seed: Optional[int] = None) -> None:
     """Main function."""
     # input validation
     assert os.path.exists(dataset_dir)
@@ -379,7 +380,7 @@ def main(dataset_dir: str,
         train_metrics, train_heaps, train_cm = run_epoch(
             model, loader=loaders['train'], weighted=False, device=device,
             loss_fn=loss_fn, finetune=finetune > epoch, optimizer=optimizer,
-            return_extreme_images=True)
+            k_extreme=log_extreme_examples)
         train_metrics = prefix_all_keys(train_metrics, prefix='train/')
         log_run('train', epoch, writer, label_names,
                 metrics=train_metrics, heaps=train_heaps, cm=train_cm)
@@ -388,7 +389,7 @@ def main(dataset_dir: str,
         print('- val:')
         val_metrics, val_heaps, val_cm = run_epoch(
             model, loader=loaders['val'], weighted=label_weighted,
-            device=device, loss_fn=loss_fn, return_extreme_images=True)
+            device=device, loss_fn=loss_fn, k_extreme=log_extreme_examples)
         val_metrics = prefix_all_keys(val_metrics, prefix='val/')
         log_run('val', epoch, writer, label_names,
                 metrics=val_metrics, heaps=val_heaps, cm=val_cm)
@@ -413,7 +414,7 @@ def main(dataset_dir: str,
             print('- test:')
             test_metrics, test_heaps, test_cm = run_epoch(
                 model, loader=loaders['test'], weighted=label_weighted,
-                device=device, loss_fn=loss_fn, return_extreme_images=True)
+                device=device, loss_fn=loss_fn, k_extreme=log_extreme_examples)
             test_metrics = prefix_all_keys(test_metrics, prefix='test/')
             log_run('test', epoch, writer, label_names,
                     metrics=test_metrics, heaps=test_heaps, cm=test_cm)
@@ -497,7 +498,8 @@ def log_images_with_confidence(
 
         imgs_list = []
         for item in sorted(heap, reverse=True):  # sort largest to smallest
-            img = unnormalize(item.data[0]).clamp_(0, 1).permute(1, 2, 0)
+            img = item.data[0].float()  # clamp() only supports fp32 on CPU
+            img = unnormalize(img).clamp_(0, 1).permute(1, 2, 0)
             imgs_list.append((img, *item.data[1:]))
 
         fig, img_files = imgs_with_confidences(imgs_list, label_names)
@@ -595,7 +597,7 @@ def run_epoch(model: torch.nn.Module,
               loss_fn: Optional[torch.nn.Module] = None,
               finetune: bool = False,
               optimizer: Optional[torch.optim.Optimizer] = None,
-              return_extreme_images: bool = False
+              k_extreme: int = 0
               ) -> Tuple[
                   Dict[str, float],
                   Optional[Dict[str, Dict[int, List[HeapItem]]]],
@@ -613,6 +615,7 @@ def run_epoch(model: torch.nn.Module,
         loss_fn: optional loss function, calculates per-example loss
         finetune: bool, if true sets model's dropout and BN layers to eval mode
         optimizer: optional optimizer
+        k_extreme: int, # of tp/fp/fn examples to track for each label
 
     Returns:
         metrics: dict, metrics from epoch, contains keys:
@@ -640,8 +643,8 @@ def run_epoch(model: torch.nn.Module,
         losses = AverageMeter()
     accuracies_topk = {k: AverageMeter() for k in top}  # acc@k
 
-    # for each label, track 5 most-confident and least-confident examples
-    if return_extreme_images:
+    # for each label, track k_extreme most-confident and least-confident images
+    if k_extreme > 0:
         tp_heaps: Dict[int, List[HeapItem]] = defaultdict(list)
         fp_heaps: Dict[int, List[HeapItem]] = defaultdict(list)
         fn_heaps: Dict[int, List[HeapItem]] = defaultdict(list)
@@ -691,9 +694,9 @@ def run_epoch(model: torch.nn.Module,
                 desc.append(f'Acc@{k} {acc.val:.3f} ({acc.avg:.3f})')
             tqdm_loader.set_description(' '.join(desc))
 
-            if return_extreme_images:
+            if k_extreme > 0:
                 track_extreme_examples(tp_heaps, fp_heaps, fn_heaps, inputs,
-                                       labels, img_files, outputs)
+                                       labels, img_files, outputs, k=k_extreme)
 
     num_classes = outputs.size(1)
     confusion_matrix = sklearn.metrics.confusion_matrix(
@@ -705,7 +708,7 @@ def run_epoch(model: torch.nn.Module,
     for k, acc in accuracies_topk.items():
         metrics[f'acc_top{k}'] = acc.avg
     heaps = None
-    if return_extreme_images:
+    if k_extreme > 0:
         heaps = {'tp': tp_heaps, 'fp': fp_heaps, 'fn': fn_heaps}
     return metrics, heaps, confusion_matrix
 
@@ -757,13 +760,16 @@ def _parse_args() -> argparse.Namespace:
         help='weight decay')
     parser.add_argument(
         '--num-workers', type=int, default=8,
-        help='number of workers for data loading')
-    parser.add_argument(
-        '--seed', type=int,
-        help='random seed')
+        help='# of workers for data loading')
     parser.add_argument(
         '--logdir', default='.',
         help='directory where TensorBoard logs and a params file are saved')
+    parser.add_argument(
+        '--log-extreme-examples', type=int, default=0,
+        help='# of tp/fp/fn examples to log for each label and split per epoch')
+    parser.add_argument(
+        '--seed', type=int,
+        help='random seed')
     return parser.parse_args()
 
 
@@ -784,5 +790,6 @@ if __name__ == '__main__':
          lr=args.lr,
          weight_decay=args.weight_decay,
          num_workers=args.num_workers,
-         seed=args.seed,
-         logdir=args.logdir)
+         logdir=args.logdir,
+         log_extreme_examples=args.log_extreme_examples,
+         seed=args.seed)
