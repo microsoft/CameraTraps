@@ -1,4 +1,9 @@
-"""Track the max-k elements using a heap."""
+"""
+Utility functions useful for training a classifier.
+
+This script should NOT depend on any other file within this repo. It should
+especially be agnostic to PyTorch vs. TensorFlow.
+"""
 import dataclasses
 import heapq
 import io
@@ -62,7 +67,7 @@ def fig_to_img(fig: matplotlib.figure.Figure) -> np.ndarray:
 
 def imgs_with_confidences(imgs_list: List[Tuple[Any, ...]],
                           label_names: Sequence[str],
-                          ) -> Tuple[np.ndarray, List[str]]:
+                          ) -> Tuple[matplotlib.figure.Figure, List[str]]:
     """
     Args:
         imgs_list: list of tuple, each tuple consists of:
@@ -74,30 +79,98 @@ def imgs_with_confidences(imgs_list: List[Tuple[Any, ...]],
         label_names: list of str, label names in order of label id
 
     Returns:
-        fig_img: np.ndarray, type uint8, shape [H, W, C]
+        fig: matplotlib.figure.Figure
         img_files: list of str
     """
-    num_images = len(imgs_list)
-    fig = matplotlib.figure.Figure(figsize=(num_images * 2.5, 3),
-                                   tight_layout=True)
-    axs = fig.subplots(1, num_images, squeeze=False)[0, :]
-    img_files = []
-    for ax, item in zip(axs, imgs_list):
-        img, label_id, topk_conf, topk_preds, img_file = item
+    imgs, img_files, tags, titles = [], [], [], []
+    for img, label_id, topk_conf, topk_preds, img_file in imgs_list:
+        imgs.append(img)
         img_files.append(img_file)
-
-        ax.imshow(img)
-        ax.axis('off')
-        ax.text(-0.2, -0.2, label_names[label_id], ha='left', va='top',
-                bbox=dict(lw=0, facecolor='white'))
+        tags.append(label_names[label_id])
 
         lines = []
         for pred, conf in zip(topk_preds, topk_conf):
-            pred_label_name = label_names[pred]
-            lines.append(f'{pred_label_name}: {conf:.03f}')
-        ax.set_title('\n'.join(lines))
+            pred_name = label_names[pred]
+            lines.append(f'{pred_name}: {conf:.03f}')
+        titles.append('\n'.join(lines))
 
+    fig = plot_img_grid(imgs=imgs, row_h=3, col_w=2.5, tags=tags, titles=titles)
     return fig, img_files
+
+
+def plot_img_grid(imgs: Sequence[Any], row_h: float, col_w: float,
+                  ncols: Optional[int] = None,
+                  tags: Optional[Sequence[str]] = None,
+                  titles: Optional[Sequence[str]] = None
+                  ) -> matplotlib.figure.Figure:
+    """Plots a grid of images.
+
+    Args:
+        imgs: list of images, each image is either an array or a PIL Image,
+            see matplotlib.axes.Axes.imshow() documentation for supported shapes
+        row_h: float, row height in inches
+        col_w: float, col width in inches
+        ncols: optional int, number of columns, defaults to len(imgs)
+        tags: optional list of str, tags are displayed in upper-left corner of
+            each image on a white background
+        titles: optional list of str, text displayed above each image
+
+    Returns: matplotlib.figure.Figure
+    """
+    # input validation
+    num_images = len(imgs)
+    if tags is not None:
+        assert len(tags) == len(imgs)
+    if titles is not None:
+        assert len(titles) == len(imgs)
+
+    if ncols is None:
+        ncols = num_images
+
+    nrows = int(np.ceil(len(imgs) / ncols))
+    fig = matplotlib.figure.Figure(figsize=(ncols * col_w, nrows * row_h),
+                                   tight_layout=True)
+    axs = fig.subplots(nrows, ncols, squeeze=False)
+
+    # plot the images
+    for i in range(num_images):
+        r, c = i // ncols, i % ncols
+        ax = axs[r, c]
+        ax.imshow(imgs[i])
+        if tags is not None:
+            ax.text(-0.2, -0.2, tags[i], ha='left', va='top',
+                    bbox=dict(lw=0, facecolor='white'))
+        if titles is not None:
+            ax.set_title(titles[i])
+
+    # adjust the figure
+    for r in range(nrows):
+        for c in range(ncols):
+            axs[r, c].set_axis_off()
+            axs[r, c].set_aspect('equal')
+    fig.subplots_adjust(wspace=0, hspace=0)
+    return fig
+
+
+def load_splits(splits_json_path: str) -> Dict[str, Set[Tuple[str, str]]]:
+    """Loads location splits from JSON file and assert that there are no
+    overlaps between splits.
+
+    Args:
+        splits_json_path: str, path to JSON file
+
+    Returns: dict, maps split to set of (dataset, location) tuples
+    """
+    with open(splits_json_path, 'r') as f:
+        split_to_locs_js = json.load(f)
+    split_to_locs = {
+        split: set((loc[0], loc[1]) for loc in locs)
+        for split, locs in split_to_locs_js.items()
+    }
+    assert split_to_locs['train'].isdisjoint(split_to_locs['val'])
+    assert split_to_locs['train'].isdisjoint(split_to_locs['test'])
+    assert split_to_locs['val'].isdisjoint(split_to_locs['test'])
+    return split_to_locs
 
 
 def load_dataset_csv(dataset_csv_path: str,
@@ -131,7 +204,8 @@ def load_dataset_csv(dataset_csv_path: str,
             label: str if not multilabel, list of str if multilabel
             label_index: int if not multilabel, list of int if multilabel
             weights: float, column sums to C where C = number of labels,
-                column exists only if label_weighted=True
+                column exists only if label_weighted=True or
+                weight_by_detection_conf is not False
         label_names: list of str, label names in order of label id
         split_to_locs: dict, maps split to set of (dataset, location) tuples
     """
@@ -153,16 +227,8 @@ def load_dataset_csv(dataset_csv_path: str,
         assert not any(df['label'].str.contains(','))
         df['label_index'] = df['label'].map(label_to_idx.__getitem__)
 
-    # load the splits and assert that there are no overlaps in locs
-    with open(splits_json_path, 'r') as f:
-        split_to_locs_js = json.load(f)
-    split_to_locs = {
-        split: set((loc[0], loc[1]) for loc in locs)
-        for split, locs in split_to_locs_js.items()
-    }
-    assert split_to_locs['train'].isdisjoint(split_to_locs['val'])
-    assert split_to_locs['train'].isdisjoint(split_to_locs['test'])
-    assert split_to_locs['val'].isdisjoint(split_to_locs['test'])
+    # load the splits
+    split_to_locs = load_splits(splits_json_path)
 
     if weight_by_detection_conf:
         df['weights'] = 1.0
