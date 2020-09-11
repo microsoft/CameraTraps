@@ -77,6 +77,7 @@ def main(queried_images_json_path: str,
          cropped_images_dir: str,
          output_dir: str,
          confidence_threshold: float,
+         min_locs: Optional[int] = None,
          label_spec_json_path: Optional[str] = None,
          match_test_csv_path: Optional[str] = None,
          match_test_splits_path: Optional[str] = None
@@ -95,6 +96,8 @@ def main(queried_images_json_path: str,
         output_dir: str, path to directory to save dataset CSV, splits JSON, and
             label index JSON
         confidence_threshold: float, only crop bounding boxes above this value
+        min_locs: optional int, minimum # of locations that each label must
+            have in order to be included
         label_spec_json_path: optional str, path to label spec JSON
         match_test_csv_path: optional str, path to existing classification CSV
         match_test_splits_path: optional str, path to existing splits JSON
@@ -126,6 +129,7 @@ def main(queried_images_json_path: str,
                               cropped_images_dir,
                               confidence_threshold,
                               csv_save_path,
+                              min_locs=min_locs,
                               append_df=test_set_df,
                               exclude_locs=test_set_locs)
 
@@ -174,6 +178,7 @@ def create_crops_csv(queried_images_json_path: str,
                      cropped_images_dir: str,
                      confidence_threshold: float,
                      csv_save_path: str,
+                     min_locs: Optional[int] = None,
                      append_df: Optional[pd.DataFrame] = None,
                      exclude_locs: Optional[Container[Tuple[str, str]]] = None
                      ) -> Tuple[List[str], List[str], List[Tuple[str, int]]]:
@@ -199,6 +204,8 @@ def create_crops_csv(queried_images_json_path: str,
             bounding boxes
         confidence_threshold: float, only crop bounding boxes above this value
         csv_save_path: str, path to save dataset csv
+        min_locs: optional int, minimum # of locations that each label must
+            have in order to be included
         append_df: optional pd.DataFrame, existing DataFrame that is appended to
             the classification CSV
         exclude_locs: optional set of (dataset, location) tuples, crops from
@@ -286,6 +293,19 @@ def create_crops_csv(queried_images_json_path: str,
         all_rows.extend(rows)
 
     df = pd.DataFrame(data=all_rows, columns=columns)
+
+    # remove images from labels that have fewer than min_locs locations
+    if min_locs is not None:
+        nlocs_per_label = df.groupby('label').apply(
+            lambda xdf: len(xdf[['dataset', 'location']].drop_duplicates()))
+        valid_labels_mask = (nlocs_per_label >= min_locs)
+        valid_labels = nlocs_per_label.index[valid_labels_mask]
+        invalid_labels = nlocs_per_label.index[~valid_labels_mask]
+        orig = len(df)
+        df = df[df['label'].isin(valid_labels)]
+        print(f'Excluding {orig - len(df)} crops from {len(invalid_labels)} '
+              'labels:', invalid_labels.tolist())
+
     if exclude_locs is not None:
         mask = ~pd.Series(zip(df['dataset'], df['location'])).isin(exclude_locs)
         print(f'Excluding {(~mask).sum()} crops from CSV')
@@ -426,6 +446,10 @@ def _parse_args() -> argparse.Namespace:
         '-t', '--confidence-threshold', type=float, default=0.8,
         help='confidence threshold above which to crop bounding boxes')
     parser.add_argument(
+        '--min-locs', type=int,
+        help='minimum number of locations that each label must have in order '
+             'to be included (does not apply to match-test-splits)')
+    parser.add_argument(
         '--label-spec',
         help='optional path to label specification JSON file, if specifying '
              'dataset priority')
@@ -448,6 +472,7 @@ if __name__ == '__main__':
          cropped_images_dir=args.cropped_images_dir,
          output_dir=args.output_dir,
          confidence_threshold=args.confidence_threshold,
+         min_locs=args.min_locs,
          label_spec_json_path=args.label_spec,
          match_test_csv_path=args.match_test_csv,
          match_test_splits_path=args.match_test_splits)
