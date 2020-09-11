@@ -29,10 +29,38 @@ This guide is written for internal use at Microsoft AI for Earth. Certain servic
 
 ## Installation
 
-Install miniconda3. Then create the conda environment using the following command. If you need to add/remove/modify packages, make the appropriate change in the `environment-classifier.yml` file and run the following command again.
+Install [miniconda3](https://docs.conda.io/en/latest/miniconda.html). Then create the conda environment using the following command. If you want to run PyTorch on a GPU, be sure to comment out `cpuonly` and uncomment `cudatoolkit` in `environment-classifier.yml`. If you need to add/remove/modify packages, make the appropriate change in the `environment-classifier.yml` file and run the following command again.
 
 ```bash
 conda env update -f environment-classifier.yml --prune
+```
+
+Verify that *Pillow-SIMD* (installed from PyPI) overshadows the normal *Pillow* package (installed from conda). Open up a Python interpreter and run the following code. Make sure that the *Pillow* version ends in `'.postX'`, which indicates *Pillow-SIMD*.
+
+```python
+import PIL
+print(PIL.__version__)
+```
+
+If this is running on a VM, enable remote Jupyter notebook access by doing the following. For more information, see the [Jupyter notebook server guide](https://jupyter-notebook.readthedocs.io/en/stable/public_server.html).
+
+1. Make sure that the desired port (e.g., 8888) is publicly exposed on the VM.
+2. Run the following command to create a Jupyter config file at `$HOME/.jupyter/jupyter_notebook_config.py`.
+
+    ```bash
+    jupyter notebook --generate-config
+    ```
+
+3. Add the following line to the config file:
+
+    ```python
+    c.NotebookApp.ip = '*'
+    ```
+
+To use the *tqdm* widget in a notebook through JupyterLab (`jupyter lab`), make sure you have node.js installed, then run the following command. See the [*ipywidgets* installation guide](https://ipywidgets.readthedocs.io/en/latest/user_install.html) for more details.
+
+```bash
+jupyter labextension install @jupyter-widgets/jupyterlab-manager
 ```
 
 
