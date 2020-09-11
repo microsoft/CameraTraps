@@ -383,6 +383,7 @@ def main(dataset_dir: str,
         train_metrics = prefix_all_keys(train_metrics, prefix='train/')
         log_run('train', epoch, writer, label_names,
                 metrics=train_metrics, heaps=train_heaps, cm=train_cm)
+        del train_heaps
 
         print('- val:')
         val_metrics, val_heaps, val_cm = run_epoch(
@@ -391,6 +392,7 @@ def main(dataset_dir: str,
         val_metrics = prefix_all_keys(val_metrics, prefix='val/')
         log_run('val', epoch, writer, label_names,
                 metrics=val_metrics, heaps=val_heaps, cm=val_cm)
+        del val_heaps
 
         lr_scheduler.step()  # decrease the learning rate
 
@@ -415,6 +417,7 @@ def main(dataset_dir: str,
             test_metrics = prefix_all_keys(test_metrics, prefix='test/')
             log_run('test', epoch, writer, label_names,
                     metrics=test_metrics, heaps=test_heaps, cm=test_cm)
+            del test_heaps
 
         # stop training after 8 epochs without improvement
         if epoch >= best_epoch_metrics['epoch'] + 8:
@@ -439,8 +442,8 @@ def main(dataset_dir: str,
 
 def log_run(split: str, epoch: int, writer: tensorboard.SummaryWriter,
             label_names: Sequence[str], metrics: MutableMapping[str, float],
-            heaps: Mapping[str, Mapping[int, List[HeapItem]]], cm: np.ndarray
-            ) -> None:
+            heaps: Optional[Mapping[str, Mapping[int, List[HeapItem]]]],
+            cm: np.ndarray) -> None:
     """Logs the outputs (metrics, confusion matrix, tp/fp/fn images) from a
     single epoch run to Tensorboard.
 
@@ -462,9 +465,10 @@ def log_run(split: str, epoch: int, writer: tensorboard.SummaryWriter,
                      global_step=epoch, dataformats='HWC')
 
     # log tp/fp/fn images
-    for heap_type, heap_dict in heaps.items():
-        log_images_with_confidence(writer, heap_dict, label_names,
-                                   epoch=epoch, tag=f'{split}/{heap_type}')
+    if heaps is not None:
+        for heap_type, heap_dict in heaps.items():
+            log_images_with_confidence(writer, heap_dict, label_names,
+                                       epoch=epoch, tag=f'{split}/{heap_type}')
     writer.flush()
 
 
@@ -592,7 +596,7 @@ def run_epoch(model: torch.nn.Module,
               return_extreme_images: bool = False
               ) -> Tuple[
                   Dict[str, float],
-                  Dict[str, Dict[int, List[HeapItem]]],
+                  Optional[Dict[str, Dict[int, List[HeapItem]]]],
                   np.ndarray
               ]:
     """Runs for 1 epoch.
@@ -635,9 +639,10 @@ def run_epoch(model: torch.nn.Module,
     accuracies_topk = {k: AverageMeter() for k in top}  # acc@k
 
     # for each label, track 5 most-confident and least-confident examples
-    tp_heaps: Dict[int, List[HeapItem]] = defaultdict(list)
-    fp_heaps: Dict[int, List[HeapItem]] = defaultdict(list)
-    fn_heaps: Dict[int, List[HeapItem]] = defaultdict(list)
+    if return_extreme_images:
+        tp_heaps: Dict[int, List[HeapItem]] = defaultdict(list)
+        fp_heaps: Dict[int, List[HeapItem]] = defaultdict(list)
+        fn_heaps: Dict[int, List[HeapItem]] = defaultdict(list)
 
     all_labels = np.zeros(len(loader.dataset), dtype=np.int32)
     all_preds = np.zeros_like(all_labels)
@@ -697,7 +702,9 @@ def run_epoch(model: torch.nn.Module,
         metrics['loss'] = losses.avg
     for k, acc in accuracies_topk.items():
         metrics[f'acc_top{k}'] = acc.avg
-    heaps = {'tp': tp_heaps, 'fp': fp_heaps, 'fn': fn_heaps}
+    heaps = None
+    if return_extreme_images:
+        heaps = {'tp': tp_heaps, 'fp': fp_heaps, 'fn': fn_heaps}
     return metrics, heaps, confusion_matrix
 
 
