@@ -17,31 +17,37 @@ that the following conditions hold:
 If --output-dir <output_dir> is given, then we query MegaDB for images
 that match the dataset labels identified during the validation step. We filter
 out images that have unaccepted file extensions and images that don't actually
-exist in Azure Blob Storage, and we record these bad images:
-    <output_dir>/json_validator_bad_images.json
-Finally, we output a JSON file with good image files and their attributes,
-sorted by image filename:
-    <output_dir>/queried_images.json
+exist in Azure Blob Storage. In total, we output the following files:
 
-The output JSON file looks like:
-
-{
-    "caltech/cct_images/59f5fe2b-23d2-11e8-a6a3-ec086b02610b.jpg": {
-        "dataset": "caltech",
-        "location": 13,
-        "class": "mountain_lion",  // class from dataset
-        "label": ["monutain_lion"]  // labels to use in classifier
-    },
-    "caltech/cct_images/59f79901-23d2-11e8-a6a3-ec086b02610b.jpg": {
-        "dataset": "caltech",
-        "location": 13,
-        "class": "mountain_lion",  // class from dataset
-        "bbox": [{"category": "animal",
-                  "bbox": [0, 0.347, 0.237, 0.257]}],
-        "label": ["monutain_lion"]  // labels to use in classifier
-    },
-    ...
-}
+<output_dir>/
+- included_dataset_labels.txt
+    lists the original dataset classes included for each classification label
+- image_counts_by_label_presample.json
+    number of images for each classification label after filtering bad
+    images, but before sampling
+- image_counts_by_label_sampled.json
+    number of images for each classification label in queried_images.json
+- json_validator_log_{timestamp}.json
+    log of excluded images / labels
+- queried_images.json
+    main output file, ex:
+    {
+        "caltech/cct_images/59f5fe2b-23d2-11e8-a6a3-ec086b02610b.jpg": {
+            "dataset": "caltech",
+            "location": 13,
+            "class": "mountain_lion",  // class from dataset
+            "label": ["monutain_lion"]  // labels to use in classifier
+        },
+        "caltech/cct_images/59f79901-23d2-11e8-a6a3-ec086b02610b.jpg": {
+            "dataset": "caltech",
+            "location": 13,
+            "class": "mountain_lion",  // class from dataset
+            "bbox": [{"category": "animal",
+                    "bbox": [0, 0.347, 0.237, 0.257]}],
+            "label": ["monutain_lion"]  // labels to use in classifier
+        },
+        ...
+    }
 
 Example usage:
 
@@ -50,22 +56,22 @@ Example usage:
         --output-dir run --json-indent 2
 """
 import argparse
+from collections import defaultdict
 from concurrent import futures
 from datetime import datetime
 import json
 import os
 import pprint
 import random
-import time
-from typing import (Any, Container, Dict, Iterable, List, Mapping, Optional,
-                    Set, Tuple, Union)
+from typing import (Any, Container, Dict, Iterable, List, Mapping,
+                    MutableMapping, Optional, Set, Tuple, Union)
 
 import pandas as pd
+import path_utils  # from ai4eutils
+import sas_blob_utils  # from ai4eutils
 from tqdm import tqdm
 
 from data_management.megadb import megadb_utils
-import path_utils  # from ai4eutils
-import sas_blob_utils  # from ai4eutils
 from taxonomy_mapping.taxonomy_graph import (
     build_taxonomy_graph, dag_to_tree, TaxonNode)
 
@@ -75,7 +81,8 @@ def main(label_spec_json_path: str,
          allow_multilabel: bool = False,
          single_parent_taxonomy: bool = False,
          check_blob_exists: Union[bool, str] = False,
-         output_dir: str = None,
+         min_locs: Optional[int] = None,
+         output_dir: Optional[str] = None,
          json_indent: Optional[int] = None,
          seed: int = 123,
          mislabeled_images_dir: Optional[str] = None) -> None:
@@ -113,12 +120,27 @@ def main(label_spec_json_path: str,
     # use MegaDB to generate list of images
     print('Generating output json')
     output_js = get_output_json(label_to_inclusions, mislabeled_images_dir)
+    print(f'In total found {len(output_js)} images')
 
     # only keep images that:
     # 1) end in a supported file extension, and
     # 2) actually exist in Azure Blob Storage
-    output_js = remove_bad_images(
-        output_js, output_dir, check_blob_exists=check_blob_exists)
+    # 3) belong to a label with at least min_locs locations
+    log: Dict[str, Any] = {}
+    remove_non_images(output_js, log)
+    if isinstance(check_blob_exists, str):
+        remove_nonexistent_images(output_js, log, check_local=check_blob_exists)
+    elif check_blob_exists:
+        remove_nonexistent_images(output_js, log)
+    if min_locs is not None:
+        remove_images_insufficient_locs(output_js, log, min_locs)
+
+    # write out log of images / labels that were removed
+    date = datetime.now().strftime('%Y%m%d_%H%M%S')  # ex: '20200722_110816'
+    log_path = os.path.join(output_dir, f'json_validator_log_{date}.json')
+    print(f'Saving log of bad images to {log_path}')
+    with open(log_path, 'w') as f:
+        json.dump(log, f, indent=1)
 
     # save label counts, pre-subsampling
     print('Saving pre-sampling label counts')
@@ -248,7 +270,7 @@ def get_output_json(label_to_inclusions: Dict[str, Set[Tuple[str, str]]],
         - 'dataset': str, name of dataset that image is from
         - 'location': str or int, optional
         - 'class': str, class label from the dataset
-        - 'label': str, assigned output label
+        - 'label': list of str, assigned output label
         - 'bbox': list of dicts, optional
     """
     # because MegaDB is organized by dataset, we do the same
@@ -319,11 +341,11 @@ def get_output_json(label_to_inclusions: Dict[str, Set[Tuple[str, str]]],
         ds_labels = sorted(ds_to_labels[ds].keys())
         tqdm.write(f'Querying dataset "{ds}" for dataset labels: {ds_labels}')
 
-        start = time.time()
+        start = datetime.now()
         parameters = [dict(name='@dataset_labels', value=ds_labels)]
         results = megadb.query_sequences_table(
             query, partition_key=ds, parameters=parameters)
-        elapsed = time.time() - start
+        elapsed = (datetime.now() - start).total_seconds()
         tqdm.write(f'- query took {elapsed:.0f}s, found {len(results)} images')
 
         # if no path prefix, set it to the empty string '', because
@@ -394,96 +416,109 @@ def get_image_sas_uris(img_paths: Iterable[str]) -> List[str]:
     return image_sas_uris
 
 
-def remove_bad_images(js: Mapping[str, Dict[str, Any]],
-                      output_dir: Optional[str] = None,
-                      check_blob_exists: Union[bool, str] = False,
-                      num_threads: int = 50
-                      ) -> Dict[str, Dict[str, Any]]:
-    """Checks if each image path in js:
-        1) ends in a supported image file extension
-        2) actually exists on Azure Blob Storage (if check_blob_exists=True)
+def remove_non_images(js: MutableMapping[str, Dict[str, Any]],
+                      log: MutableMapping[str, Any]) -> None:
+    """Remove images with non-image file extensions. Modifies [js] and [log]
+    in-place.
 
     Args:
-        js: dict, keys are image paths <dataset>/<img_file>
-        output_dir: optional str, if given saves list of nonexistent images
-            to <output_dir>/nonexistent_images.json
-        check_blob_exists: bool
-        num_threads: int, number of threads to use for checking blob existence
-
-    Returns: copy of js, but with bad images removed
+        js: dict, img_path => info dict
+        log: dict, maps str description to log info
     """
-    num_bad_images = 0
-
-    # only keep images with valid image file extension
     print('Removing images with invalid image file extensions...')
-    img_paths = [k for k in js.keys() if path_utils.is_image_file(k)]
-    nonimg_paths = set(js.keys()) - set(img_paths)
-    print(f'Found {len(nonimg_paths)} files with non-image extensions.')
-    num_bad_images += len(nonimg_paths)
+    nonimg_paths = [k for k in js.keys() if not path_utils.is_image_file(k)]
+    for img_path in nonimg_paths:
+        del js[img_path]
+    print(f'Removed {len(nonimg_paths)} files with non-image extensions.')
+    if len(nonimg_paths) > 0:
+        log['nonimage_files'] = sorted(nonimg_paths)
 
-    def check_local_then_azure(img_path: str, blob_url: str) -> bool:
-        assert isinstance(check_blob_exists, str)
-        local_path = os.path.join(check_blob_exists, img_path)
-        if os.path.exists(local_path):
-            return True
-        return sas_blob_utils.check_blob_exists(blob_url)
 
-    if check_blob_exists:
-        pool = futures.ThreadPoolExecutor(max_workers=num_threads)
-        future_to_img_path = {}
+def remove_nonexistent_images(js: MutableMapping[str, Dict[str, Any]],
+                              log: MutableMapping[str, Any],
+                              check_local: Optional[str] = None,
+                              num_threads: int = 50) -> None:
+    """Remove images that don't actually exist locally or on Azure Blob Storage.
+    Modifies [js] and [log] in-place.
 
-        blob_urls = get_image_sas_uris(img_paths)
-        total = len(img_paths)
-        print(f'Checking {total} images for existence...')
-        pbar = tqdm(zip(img_paths, blob_urls), total=total)
-        if isinstance(check_blob_exists, bool):
-            # only check Azure Blob Storage
-            for img_path, blob_url in pbar:
-                future = pool.submit(sas_blob_utils.check_blob_exists, blob_url)
-                future_to_img_path[future] = img_path
-        else:
-            # check local directory first before checking Azure Blob Storage
-            for img_path, blob_url in pbar:
-                future = pool.submit(check_local_then_azure, img_path, blob_url)
-                future_to_img_path[future] = img_path
+    Args:
+        js: dict, image paths <dataset>/<img_file> => info dict
+        log: dict, maps str description to log info
+        check_local: optional str, path to local dir
+        num_threads: int, number of threads to use for checking blob existence
+    """
+    def check_local_then_azure(local_path: str, blob_url: str) -> bool:
+        return (os.path.exists(local_path)
+                or sas_blob_utils.check_blob_exists(blob_url))
 
-        img_paths = []
-        nonexistent_images = []
-        print('Fetching results...')
-        for future in tqdm(futures.as_completed(future_to_img_path), total=total):
-            img_path = future_to_img_path[future]
-            try:
-                if future.result():  # blob_url exists
-                    img_paths.append(img_path)
-                    continue
-            except Exception as e:  # pylint: disable=broad-except
-                exception_type = type(e).__name__
-                tqdm.write(f'{img_path} - generated {exception_type}: {e}')
-            nonexistent_images.append(img_path)
-        pool.shutdown()
-
-        print(f'Found {len(nonexistent_images)} nonexistent blobs.')
-        num_bad_images += len(nonexistent_images)
+    pool = futures.ThreadPoolExecutor(max_workers=num_threads)
+    future_to_img_path = {}
+    blob_urls = get_image_sas_uris(js.keys())
+    total = len(js)
+    print(f'Checking {total} images for existence...')
+    pbar = tqdm(zip(js.keys(), blob_urls), total=total)
+    if check_local is None:
+        # only check Azure Blob Storage
+        for img_path, blob_url in pbar:
+            future = pool.submit(sas_blob_utils.check_blob_exists, blob_url)
+            future_to_img_path[future] = img_path
     else:
-        print('Not checking for image existence.')
+        # check local directory first before checking Azure Blob Storage
+        for img_path, blob_url in pbar:
+            local_path = os.path.join(check_local, img_path)
+            future = pool.submit(check_local_then_azure, local_path, blob_url)
+            future_to_img_path[future] = img_path
 
-    print(f'Found a total of {num_bad_images} bad images.')
+    nonexistent_images = []
+    print('Fetching results...')
+    for future in tqdm(futures.as_completed(future_to_img_path), total=total):
+        img_path = future_to_img_path[future]
+        try:
+            if future.result():  # blob_url exists
+                continue
+        except Exception as e:  # pylint: disable=broad-except
+            exception_type = type(e).__name__
+            tqdm.write(f'{img_path} - generated {exception_type}: {e}')
+        nonexistent_images.append(img_path)
+        del js[img_path]
+    pool.shutdown()
 
-    if output_dir is not None and num_bad_images > 0:
-        bad_images = {'nonimage_files': sorted(nonimg_paths)}
-        if check_blob_exists:
-            bad_images['nonexistent_images'] = sorted(nonexistent_images)
+    print(f'Found {len(nonexistent_images)} nonexistent blobs.')
+    if len(nonexistent_images) > 0:
+        log['nonexistent_images'] = sorted(nonexistent_images)
 
-        date = datetime.now().strftime('%Y%m%d_%H%M%S')  # ex: '20200722_110816'
-        log_path = os.path.join(output_dir, f'json_validator_log_{date}.json')
-        print(f'Saving log of bad images to {log_path}')
-        with open(log_path, 'w') as f:
-            json.dump(bad_images, f, indent=1)
 
-    output_js = {
-        img_path: js[img_path] for img_path in sorted(img_paths)
-    }
-    return output_js
+def remove_images_insufficient_locs(js: MutableMapping[str, Dict[str, Any]],
+                                    log: MutableMapping[str, Any],
+                                    min_locs: int) -> None:
+    """Removes images that have labels that don't have at least min_locs
+    locations. Modifies [js] and [log] in-place.
+
+    Args:
+        js: dict, image paths <dataset>/<img_file> => info dict
+        log: dict, maps str description to log info
+        min_locs: optional int, minimum # of locations that each label must
+            have in order to be included
+    """
+    # 1st pass: populate label_to_locs
+    # label (tuple of str) => set of (dataset, location)
+    label_to_locs = defaultdict(set)
+    for img_path, img_info in js.items():
+        label = tuple(img_info['label'])
+        loc = (img_info['dataset'], img_info.get('location', ''))
+        label_to_locs[label].add(loc)
+
+    bad_labels = set(label for label, locs in label_to_locs.items()
+                     if len(locs) < min_locs)
+    print(f'Found {len(bad_labels)} labels with < {min_locs} locations.')
+
+    # 2nd pass: eliminate bad images
+    if len(bad_labels) > 0:
+        log[f'labels with < {min_locs} locs'] = sorted(bad_labels)
+        for img_path in list(js.keys()):  # copy keys to modify js in-place
+            label = tuple(js[img_path]['label'])
+            if label in bad_labels:
+                del js[img_path]
 
 
 def filter_images(output_js: Mapping[str, Mapping[str, Any]], label: str,
@@ -579,6 +614,10 @@ def _parse_args() -> argparse.Namespace:
              'be very slow if reaching throttling limits. Optionally pass in a '
              'local directory to check before checking Azure Blob Storage.')
     parser.add_argument(
+        '--min-locs', type=int,
+        help='minimum number of locations that each label must have in order '
+             'to be included')
+    parser.add_argument(
         '-o', '--output-dir',
         help='path to directory to save outputs. The output JSON file is saved '
              'at <output-dir>/queried_images.json, and the mapping from '
@@ -607,6 +646,7 @@ if __name__ == '__main__':
          allow_multilabel=args.allow_multilabel,
          single_parent_taxonomy=args.single_parent_taxonomy,
          check_blob_exists=args.check_blob_exists,
+         min_locs=args.min_locs,
          output_dir=args.output_dir,
          json_indent=args.json_indent,
          seed=args.seed,
