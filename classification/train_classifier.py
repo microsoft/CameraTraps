@@ -516,12 +516,13 @@ def track_extreme_examples(tp_heaps: Dict[int, List[HeapItem]],
                            inputs: torch.Tensor,
                            labels: torch.Tensor,
                            img_files: Sequence[str],
-                           logits: torch.Tensor) -> None:
-    """Updates the 5 most extreme true-positive (tp), false-positive (fp), and
+                           logits: torch.Tensor,
+                           k: int = 5) -> None:
+    """Updates the k most extreme true-positive (tp), false-positive (fp), and
     false-negative (fn) examples with examples from this batch.
 
     Each HeapItem's data attribute is a tuple of:
-    - img: torch.Tensor, shape [H, W, 3], type float32, values in [0, 1]
+    - img: torch.Tensor, shape [3, H, W], type float16, values in [0, 1]
     - label: int
     - top3_conf: list of float
     - top3_preds: list of float
@@ -533,9 +534,10 @@ def track_extreme_examples(tp_heaps: Dict[int, List[HeapItem]],
         labels: torch.Tensor, shape [batch_size]
         img_files: list of str
         logits: torch.Tensor, shape [batch_size, num_classes]
+        k: int, number of examples to track
     """
     with torch.no_grad():
-        inputs = inputs.detach().cpu()
+        inputs = inputs.detach().to(device='cpu', dtype=torch.float16)
         labels_list = labels.tolist()  # new var name to satisfy mypy
         batch_probs = torch.nn.functional.softmax(logits, dim=1).cpu()
         zipped = zip(inputs, labels_list, batch_probs, img_files)  # all on CPU
@@ -549,13 +551,13 @@ def track_extreme_examples(tp_heaps: Dict[int, List[HeapItem]],
             data = [img, label, top3_conf, top3_preds, img_file]
             if top3_preds[0] == label:  # true positive
                 item = HeapItem(priority=label_conf - top3_conf[1], data=data)
-                add_to_heap(tp_heaps[label], item, k=5)
+                add_to_heap(tp_heaps[label], item, k=k)
             else:
                 # false positive for top3_pred[0]
                 # false negative for label
                 item = HeapItem(priority=top3_conf[0] - label_conf, data=data)
-                add_to_heap(fp_heaps[top3_preds[0]], item, k=5)
-                add_to_heap(fn_heaps[label], item, k=5)
+                add_to_heap(fp_heaps[top3_preds[0]], item, k=k)
+                add_to_heap(fn_heaps[label], item, k=k)
 
 
 def correct(outputs: torch.Tensor, labels: torch.Tensor,
