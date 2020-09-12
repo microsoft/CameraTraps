@@ -1,0 +1,25 @@
+name: cameratraps-classifier
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python>=3.6
+  - contextlib2  # required for TFODAPI
+  - cython       # required for TFODAPI
+  - humanfriendly
+  - jupyterlab
+  - lxml         # required for TFODAPI
+  - matplotlib
+  - mypy         # optional
+  - nb_conda_kernels
+  - pillow
+  - pip          # good to add pip as an explicit dependency
+  - protobuf     # required for TFODAPI
+  - pylint       # optional
+  - pycocotools
+  - scikit-learn
+  - tensorflow-gpu=1.15.*
+  - tqdm
+
+  - pip:
+    - tf_slim    # required for TFODAPI
