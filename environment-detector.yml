@@ -1,0 +1,27 @@
+# Use this environment to run `detection/run_tf_detector*.py`
+# If your computer does not have a CUDA-supported GPU, change the
+# dependency `tensorflow-gpu` to `tensorflow`
+
+name: cameratraps-detector
+
+dependencies:
+- python>=3.5
+- nb_conda_kernels
+- ipykernel
+# note that tensorflow < 1.13.0 needs CUDA 9.0, and later versions need CUDA 10;
+# depending on the CUDA stack installed in your environment, you might have to specify
+# a particular version of tensorflow in the range given here:
+- tensorflow-gpu>=1.9.0, <1.15.0
+- tqdm
+- jsonpickle
+- Pillow>=5.3.0
+- humanfriendly
+- numpy
+- matplotlib
+- nb_conda_kernels
+- ipykernel
+- opencv
+- requests
+
+# the `nb_conda_kernels` and `ipykernel` packages are installed so that we
+# can use Jupyter Notebooks with this environment as a kernel

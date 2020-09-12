@@ -1,0 +1,7 @@
+Predicting mongoose/S1/R11/R11_R1/S1_R11_R1_PICT0101_1.JPG
+Most likely classes:
+	"mongoose" with confidence 100.00%
+	"reptiles" with confidence 0.00%
+	"batEaredFox" with confidence 0.00%
+	"aardvark" with confidence 0.00%
+	"honeyBadger" with confidence 0.00%
