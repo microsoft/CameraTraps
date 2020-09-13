@@ -28,7 +28,7 @@ that the dataset name does not contain '/'.
 
 We assume that the tuple (dataset, location) identifies a unique location. In
 other words, we assume that no two datasets have overlapping locations. This
-probably isn't 100% true, but it's probably the best we can do in terms of
+probably isn't 100% true, but it's pretty much the best we can do in terms of
 avoiding overlapping locations between the train/val/test splits.
 
 This script outputs 3 files to <output_dir>:
@@ -62,129 +62,123 @@ Example usage:
 import argparse
 import json
 import os
-from typing import Container, Dict, List, Mapping, Optional, Set, Tuple
+from typing import Container, Dict, List, MutableMapping, Optional, Set, Tuple
 
-# import numpy as np  # uncomment if randomly assigning locs to splits
+import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
 from classification import detect_and_crop
 
 
-def main(queried_images_json_path: str,
-         detector_version: str,
-         detector_output_cache_base_dir: str,
-         cropped_images_dir: str,
-         output_dir: str,
-         confidence_threshold: float,
-         min_locs: Optional[int] = None,
-         label_spec_json_path: Optional[str] = None,
-         match_test_csv_path: Optional[str] = None,
-         match_test_splits_path: Optional[str] = None
-         ) -> None:
-    """
-    Args:
-        queried_images_json_path: str, path to output of json_validator.py
-        detector_version: str, detector version string, e.g., '4.1',
-            see {batch_detection_api_url}/supported_model_versions,
-            determines the subfolder of detector_output_cache_base_dir in
-            which to find and save detector outputs
-        detector_output_cache_base_dir: str, path to local directory
-            where detector outputs are cached, 1 JSON file per dataset
-        cropped_images_dir: str, path to local directory for saving crops of
-            bounding boxes
-        output_dir: str, path to directory to save dataset CSV, splits JSON, and
-            label index JSON
-        confidence_threshold: float, only crop bounding boxes above this value
-        min_locs: optional int, minimum # of locations that each label must
-            have in order to be included
-        label_spec_json_path: optional str, path to label spec JSON
-        match_test_csv_path: optional str, path to existing classification CSV
-        match_test_splits_path: optional str, path to existing splits JSON
-    """
+DATASET_FILENAME = 'classification_ds.csv'
+LABEL_INDEX_FILENAME = 'label_index.json'
+SPLITS_FILENAME = 'splits.json'
+
+
+def main(output_dir: str,
+         mode: List[str],
+         match_test: Optional[List[str]],
+         queried_images_json_path: Optional[str],
+         cropped_images_dir: Optional[str],
+         detector_version: Optional[str],
+         detector_output_cache_base_dir: Optional[str],
+         confidence_threshold: Optional[float],
+         min_locs: Optional[int],
+         val_frac: Optional[float],
+         test_frac: Optional[float],
+         splits_method: Optional[str],
+         label_spec_json_path: Optional[str]) -> None:
+    """Main function."""
     # input validation
-    assert 0 <= confidence_threshold <= 1
-    if (match_test_csv_path is None) != (match_test_splits_path is None):
-        raise ValueError('both match_test_csv_path and match_test_splits_path '
-                         'must be given together')
+    assert set(mode) <= {'csv', 'splits'}
+    if label_spec_json_path is not None:
+        assert splits_method == 'smallest_label_first'
 
     test_set_locs = None  # set of (dataset, location) tuples
     test_set_df = None
-    if match_test_splits_path is not None:
+    if match_test is not None:
+        match_test_csv_path, match_test_splits_path = match_test
+        match_df = pd.read_csv(match_test_csv_path, index_col=False,
+                               float_precision='high')
         with open(match_test_splits_path, 'r') as f:
             match_splits = json.load(f)
         test_set_locs = set((loc[0], loc[1]) for loc in match_splits['test'])
-        match_df = pd.read_csv(match_test_csv_path, index_col=False,
-                               float_precision='high')
         ds_locs = pd.Series(zip(match_df['dataset'], match_df['location']))
         test_set_df = match_df[ds_locs.isin(test_set_locs)]
 
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-        print(f'Created {output_dir}')
-    csv_save_path = os.path.join(output_dir, 'classification_ds.csv')
-    result = create_crops_csv(queried_images_json_path,
-                              detector_version,
-                              detector_output_cache_base_dir,
-                              cropped_images_dir,
-                              confidence_threshold,
-                              csv_save_path,
-                              min_locs=min_locs,
-                              append_df=test_set_df,
-                              exclude_locs=test_set_locs)
+    dataset_path = os.path.join(output_dir, DATASET_FILENAME)
 
-    missing_detections, images_no_confident_detections, missing_crops = result
-    print('Images missing detections:', len(missing_detections))
-    print('Images without confident detections:',
-          len(images_no_confident_detections))
-    print('Missing crops:', len(missing_crops))
+    if 'csv' in mode:
+        assert queried_images_json_path is not None
+        assert cropped_images_dir is not None
+        assert detector_version is not None
+        assert detector_output_cache_base_dir is not None
+        assert confidence_threshold is not None
 
-    crops_df = pd.read_csv(
-        csv_save_path, index_col=False, float_precision='high')
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+            print(f'Created {output_dir}')
 
-    # create label index JSON
-    labels = crops_df['label']
-    if any(crops_df['label'].str.contains(',')):
-        print('multi-label!')
-        labels = labels.map(lambda x: x.split(',')).explode()
-        # look into sklearn.preprocessing.MultiLabelBinarizer
-    label_names = sorted(labels.unique())
-    with open(os.path.join(output_dir, 'label_index.json'), 'w') as f:
-        # Note: JSON always saves keys as strings!
-        json.dump(dict(enumerate(label_names)), f, indent=1)
+        df, log = create_classification_csv(
+            queried_images_json_path=queried_images_json_path,
+            detector_output_cache_base_dir=detector_output_cache_base_dir,
+            detector_version=detector_version,
+            cropped_images_dir=cropped_images_dir,
+            confidence_threshold=confidence_threshold,
+            min_locs=min_locs,
+            append_df=test_set_df,
+            exclude_locs=test_set_locs)
+        print('Saving classification dataset CSV')
+        df.to_csv(dataset_path, index=False)
+        for msg, img_list in log.items():
+            print(f'{msg}:', len(img_list))
 
-    prioritize = None
-    if label_spec_json_path is not None:
-        with open(label_spec_json_path, 'r') as f:
-            label_spec_js = json.load(f)
-        prioritize = {}
-        for label, label_spec in label_spec_js.items():
-            if 'prioritize' in label_spec:
-                datasets = []
-                for level in label_spec['prioritize']:
-                    datasets.extend(level)
-                prioritize[label] = datasets
+        # create label index JSON
+        labels = df['label']
+        if any(labels.str.contains(',')):
+            print('multi-label!')
+            labels = labels.map(lambda x: x.split(',')).explode()
+            # look into sklearn.preprocessing.MultiLabelBinarizer
+        label_names = sorted(labels.unique())
+        with open(os.path.join(output_dir, LABEL_INDEX_FILENAME), 'w') as f:
+            # Note: JSON always saves keys as strings!
+            json.dump(dict(enumerate(label_names)), f, indent=1)
 
-    print('Creating splits...')
-    split_to_locs = create_splits(
-        crops_df, prioritize=prioritize, test_set_locs=test_set_locs)
-    with open(os.path.join(output_dir, 'splits.json'), 'w') as f:
-        json.dump(split_to_locs, f, indent=1)
+    if 'splits' in mode:
+        assert splits_method is not None
+        assert val_frac is not None
+        assert (match_test is None) != (test_frac is None)
+        if test_frac is None:
+            test_frac = 0
+
+        print(f'Creating splits using "{splits_method}" method...')
+        df = pd.read_csv(dataset_path, index_col=False, float_precision='high')
+
+        if splits_method == 'random':
+            split_to_locs = create_splits_random(
+                df, val_frac, test_frac, test_split=test_set_locs)
+        else:
+            split_to_locs = create_splits_smallest_label_first(
+                df, val_frac, test_frac, test_split=test_set_locs,
+                label_spec_json_path=label_spec_json_path)
+        with open(os.path.join(output_dir, SPLITS_FILENAME), 'w') as f:
+            json.dump(split_to_locs, f, indent=1)
 
 
-def create_crops_csv(queried_images_json_path: str,
-                     detector_version: str,
-                     detector_output_cache_base_dir: str,
-                     cropped_images_dir: str,
-                     confidence_threshold: float,
-                     csv_save_path: str,
-                     min_locs: Optional[int] = None,
-                     append_df: Optional[pd.DataFrame] = None,
-                     exclude_locs: Optional[Container[Tuple[str, str]]] = None
-                     ) -> Tuple[List[str], List[str], List[Tuple[str, int]]]:
-    """Creates a classification dataset CSV.
+def create_classification_csv(
+        queried_images_json_path: str,
+        detector_output_cache_base_dir: str,
+        detector_version: str,
+        cropped_images_dir: str,
+        confidence_threshold: float,
+        min_locs: Optional[int] = None,
+        append_df: Optional[pd.DataFrame] = None,
+        exclude_locs: Optional[Container[Tuple[str, str]]] = None
+        ) -> Tuple[pd.DataFrame, Dict[str, List]]:
+    """Creates a classification dataset.
 
-    The classification dataset CSV contains the columns
+    The classification dataset is a pd.DataFrame with columns:
     - path: str, <dataset>/<crop-filename>
     - dataset: str, name of camera trap dataset
     - location: str, location of image, provided by the camera trap dataset
@@ -203,7 +197,6 @@ def create_crops_csv(queried_images_json_path: str,
         cropped_images_dir: str, path to local directory for saving crops of
             bounding boxes
         confidence_threshold: float, only crop bounding boxes above this value
-        csv_save_path: str, path to save dataset csv
         min_locs: optional int, minimum # of locations that each label must
             have in order to be included
         append_df: optional pd.DataFrame, existing DataFrame that is appended to
@@ -212,13 +205,18 @@ def create_crops_csv(queried_images_json_path: str,
             these locations are excluded (does not affect append_df)
 
     Returns:
-        missing_detections: list of str, images without ground truth
-            bboxes and not in detection cache
-        images_no_confident_detections: list of str, images in detection cache
-            with no bboxes above the confidence threshold
-        images_missing_crop: list of tuple (img_path, i), where i is the i-th
-            crop index
+        df: pd.DataFrame, the classification dataset
+        class_names: list of str, names of the classification classes
+        log: dict, with the following keys
+            'images missing detections': list of str, images without ground
+                truth bboxes and not in detection cache
+            'images without confident detections': list of str, images in
+                detection cache with no bboxes above the confidence threshold
+            'missing crops': list of tuple (img_path, i), where i is the
+                i-th crop index
     """
+    assert 0 <= confidence_threshold <= 1
+
     columns = [
         'path', 'dataset', 'location', 'dataset_class', 'confidence', 'label']
     if append_df is not None:
@@ -314,58 +312,124 @@ def create_crops_csv(queried_images_json_path: str,
         print(f'Appending {len(append_df)} rows to CSV')
         df = df.append(append_df)
 
-    print('Saving classification dataset CSV...', end='')
-    df.to_csv(csv_save_path, index=False)
-    print('done!')
-
-    return (missing_detections,
-            images_no_confident_detections,
-            images_missing_crop)
-
-
-def sort_locs_by_size(loc_to_size: Mapping[Tuple[str, str], int],
-                      prioritize: Optional[Container[str]] = None
-                      ) -> List[Tuple[str, str]]:
-    """Given a dict mapping each (dataset, location) tuple to its size, returns
-    a list of (dataset, location) tuples, ordered from smallest size to largest.
-    If a list of datasets to prioritize is given, then locations from those
-    datasets come first.
-    """
-    result = []
-    if prioritize is not None:
-        prioritized_loc_to_size = {}
-        remaining_loc_to_size = {}
-        for loc, size in loc_to_size.items():
-            if loc[0] in prioritize:
-                prioritized_loc_to_size[loc] = size
-            else:
-                remaining_loc_to_size[loc] = size
-        loc_to_size = remaining_loc_to_size
-        result.extend(sort_locs_by_size(prioritized_loc_to_size))
-
-    result.extend(sorted(loc_to_size, key=loc_to_size.__getitem__))
-    return result
+    log = {
+        'images missing detections': missing_detections,
+        'images without confident detections': images_no_confident_detections,
+        'missing crops': images_missing_crop
+    }
+    return df, log
 
 
-def create_splits(df: pd.DataFrame,
-                  prioritize: Optional[Mapping[str, Container[str]]] = None,
-                  test_set_locs: Optional[Set[Tuple[str, str]]] = None
-                  ) -> Dict[str, List[Tuple[str, str]]]:
+def create_splits_random(df: pd.DataFrame, val_frac: float,
+                         test_frac: float = 0.,
+                         test_split: Optional[Set[Tuple[str, str]]] = None,
+                         ) -> Dict[str, List[Tuple[str, str]]]:
     """
     Args:
         df: pd.DataFrame, contains columns ['dataset', 'location', 'label']
             each row is a single image
             assumes each image is assigned exactly 1 label
-        prioritize: optional dict, label => list of datasets to prioritize
-            for inclusion in the test and validation sets
-        test_set_locs: optional set of (dataset, location) tuples
+        test_split: optional set of (dataset, location) tuples
 
     Returns: dict, keys are ['train', 'val', 'test'], values are lists of locs,
         where each loc is a tuple (dataset, location)
     """
+    if test_split is not None:
+        assert test_frac == 0
+    train_frac = 1. - val_frac - test_frac
+    targets = {'train': train_frac, 'val': val_frac, 'test': test_frac}
+
+    # merge dataset and location into a single string '<dataset>/<location>'
+    # - use string instead of tuple because TODO
+    df['dataset_location'] = df['dataset'] + '/' + df['location']
+
+    # create DataFrame of counts. rows = locations, columns = labels
+    loc_label_counts = (df.groupby(['label', 'dataset_location']).size()
+                        .unstack('label', fill_value=0))
+    num_locs = len(loc_label_counts)
+
+    # label_count: label => number of examples
+    # loc_count: label => number of locs containing that label
+    label_count = loc_label_counts.sum()
+    loc_count = (loc_label_counts > 0).sum()
+
+    best_score = np.inf  # lower is better
+    best_splits = None
+    for _ in tqdm(range(10_000)):
+
+        # generate a new split
+        num_train = int(num_locs * (train_frac + np.random.uniform(-.03, .03)))
+        if test_frac == 0:
+            num_val = int(num_locs * (val_frac + np.random.uniform(-.03, .03)))
+        else:
+            num_val = num_locs - num_train
+        permuted_locs = loc_label_counts.index[np.random.permutation(num_locs)]
+        split_to_locs = {'train': permuted_locs[:num_train],
+                         'val': permuted_locs[num_train:num_train + num_val]}
+        if test_frac == 0:
+            split_to_locs['test'] = permuted_locs[num_train + num_val:]
+
+        # score the split
+        score = 0.
+        for split, locs in split_to_locs.items():
+            split_df = loc_label_counts.loc[locs]
+            target = targets[split]
+
+            # SSE for # of images per label (with 2x weight)
+            crop_frac = split_df.sum() / label_count
+            score += 2 * ((crop_frac - target) ** 2).sum()
+
+            # SSE for # of locs per label
+            loc_frac = (split_df > 0).sum() / loc_count
+            score += ((loc_frac - target) ** 2).sum()
+
+        if score < best_score:
+            tqdm.write(f'New lowest score: {score}')
+            best_score = score
+            best_splits = split_to_locs
+
+    assert best_splits is not None
+    split_to_locs = {
+        s: sorted(locs.map(lambda x: tuple(x.split('/', maxsplit=1))))
+        for s, locs in best_splits.items()
+    }
+    if test_split is not None:
+        split_to_locs['test'] = test_split
+    return split_to_locs
+
+
+def create_splits_smallest_label_first(
+        df: pd.DataFrame,
+        val_frac: float,
+        test_frac: float = 0.,
+        label_spec_json_path: Optional[str] = None,
+        test_split: Optional[Set[Tuple[str, str]]] = None,
+        ) -> Dict[str, List[Tuple[str, str]]]:
+    """
+    Args:
+        df: pd.DataFrame, contains columns ['dataset', 'location', 'label']
+            each row is a single image
+            assumes each image is assigned exactly 1 label
+        label_spec_json_path: optional str, path to label spec JSON
+        test_split: optional set of (dataset, location) tuples
+
+    Returns: dict, keys are ['train', 'val', 'test'], values are lists of locs,
+        where each loc is a tuple (dataset, location)
+    """
+    # label => list of datasets to prioritize for test and validation sets
+    prioritize = {}
+    if label_spec_json_path is not None:
+        with open(label_spec_json_path, 'r') as f:
+            label_spec_js = json.load(f)
+        for label, label_spec in label_spec_js.items():
+            if 'prioritize' in label_spec:
+                datasets = []
+                for level in label_spec['prioritize']:
+                    datasets.extend(level)
+                prioritize[label] = datasets
+
     # merge dataset and location into a tuple (dataset, location)
     df['dataset_location'] = list(zip(df['dataset'], df['location']))
-
     loc_to_label_sizes = df.groupby(['dataset_location', 'label']).size()
 
     seen_locs = set()
@@ -375,9 +439,10 @@ def create_splits(df: pd.DataFrame,
         label: dict(train=0, val=0, test=0)
         for label in df['label'].unique()
     }
-    if test_set_locs is not None:
-        split_to_locs['test'] = list(test_set_locs)
-        seen_locs.update(test_set_locs)
+    if test_split is not None:
+        assert test_frac == 0
+        split_to_locs['test'] = list(test_split)
+        seen_locs.update(test_split)
 
     def add_loc_to_split(loc: Tuple[str, str], split: str) -> None:
         split_to_locs[split].append(loc)
@@ -388,37 +453,58 @@ def create_splits(df: pd.DataFrame,
     ordered_labels = df.groupby('label').size().sort_values()
     for label, label_size in tqdm(ordered_labels.items()):
 
+        split_sizes = label_sizes_by_split[label]
+        test_thresh = test_frac * label_size
+        val_thresh = val_frac * label_size
+
         mask = df['label'] == label
         ordered_locs = sort_locs_by_size(
             loc_to_size=df[mask].groupby('dataset_location').size().to_dict(),
-            prioritize=prioritize)
-        # to use random permutation of locations instead of ordering by size
-        # ordered_locs = np.random.permutation(
-        #     df.loc[mask, 'dataset_location'].unique()).tolist()
-
-        split_sizes = label_sizes_by_split[label]
-        test_thresh = 0.15 * label_size
-        val_thresh = 0.15 * label_size
+            prioritize=prioritize.get(label, None))
+        ordered_locs = [loc for loc in ordered_labels if loc not in seen_locs]
 
         for loc in ordered_locs:
-            if loc in seen_locs:
-                continue
             seen_locs.add(loc)
-
             # greedily add to test set until it has >= 15% of images
-            if test_set_locs is None and split_sizes['test'] < test_thresh:
+            if split_sizes['test'] < test_thresh:
                 split = 'test'
             elif split_sizes['val'] < val_thresh:
                 split = 'val'
             else:
                 split = 'train'
             add_loc_to_split(loc, split)
+        seen_locs.update(ordered_locs)
 
     # sort the resulting locs
-    split_to_locs = {
-        split: sorted(locs) for split, locs in split_to_locs.items()
-    }
+    split_to_locs = {s: sorted(locs) for s, locs in split_to_locs.items()}
     return split_to_locs
+
+
+def sort_locs_by_size(loc_to_size: MutableMapping[Tuple[str, str], int],
+                      prioritize: Optional[Container[str]] = None
+                      ) -> List[Tuple[str, str]]:
+    """Sorts locations by size, optionally prioritizing locations from certain
+    datasets first.
+
+    Args:
+        loc_to_size: dict, maps each (dataset, location) tuple to its size,
+            modified in-place
+        prioritize: optional list of str, datasets to prioritize
+
+    Returns: list of (dataset, location) tuples, ordered from smallest size to
+        largest. Locations from prioritized datasets come first.
+    """
+    result = []
+    if prioritize is not None:
+        # modify loc_to_size in place, so copy its keys before iterating
+        prioritized_loc_to_size = {
+            loc: loc_to_size.pop(loc) for loc in list(loc_to_size.keys())
+            if loc[0] in prioritize
+        }
+        result = sort_locs_by_size(prioritized_loc_to_size)
+
+    result.extend(sorted(loc_to_size, key=loc_to_size.__getitem__))
+    return result
 
 
 def _parse_args() -> argparse.Namespace:
@@ -426,53 +512,82 @@ def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description='Creates classification dataset.')
+
+    # arguments relevant to both creating the dataset CSV and splits.json
     parser.add_argument(
-        'queried_images_json',
-        help='path to JSON file containing image paths and classification info')
-    parser.add_argument(
-        'cropped_images_dir',
-        help='path to local directory for saving crops of bounding boxes')
-    parser.add_argument(
-        '-c', '--detector-output-cache-dir', required=True,
-        help='(required) path to directory where detector outputs are cached')
-    parser.add_argument(
-        '-v', '--detector-version', required=True,
-        help='(required) detector version string, e.g., "4.1"')
-    parser.add_argument(
-        '-o', '--output-dir', required=True,
-        help='(required) path to directory where the 3 output files should be '
+        'output_dir',
+        help='path to directory where the 3 output files should be '
              'saved: 1) dataset CSV, 2) label index JSON, 3) splits JSON')
     parser.add_argument(
+        '--mode', nargs='+', choices=['csv', 'splits'],
+        default=['csv', 'splits'],
+        help='whether to generate only a CSV, only a splits.json file (based '
+             'on an existing classification_ds.csv), or both')
+    parser.add_argument(
+        '--match-test', nargs=2,
+        help='path to an existing classification CSV and path to an existing '
+             'splits JSON file from which to match test set')
+
+    # arguments only relevant for creating the dataset CSV
+    csv_group = parser.add_argument_group(
+        'arguments for creating classification CSV')
+    csv_group.add_argument(
+        '-q', '--queried-images-json',
+        help='path to JSON file containing image paths and classification info')
+    csv_group.add_argument(
+        '-c', '--cropped-images-dir',
+        help='path to local directory for saving crops of bounding boxes')
+    csv_group.add_argument(
+        '-d', '--detector-output-cache-dir',
+        help='(required) path to directory where detector outputs are cached')
+    csv_group.add_argument(
+        '-v', '--detector-version',
+        help='(required) detector version string, e.g., "4.1"')
+    csv_group.add_argument(
         '-t', '--confidence-threshold', type=float, default=0.8,
         help='confidence threshold above which to crop bounding boxes')
-    parser.add_argument(
+    csv_group.add_argument(
         '--min-locs', type=int,
         help='minimum number of locations that each label must have in order '
              'to be included (does not apply to match-test-splits)')
-    parser.add_argument(
+
+    # arguments only relevant for creating the splits JSON
+    splits_group = parser.add_argument_group(
+        'arguments for creating train/val/test splits')
+    splits_group.add_argument(
+        '--val-frac', type=float,
+        help='(required) fraction of data to use for validation split')
+    splits_group.add_argument(
+        '--test-frac', type=float,
+        help='fraction of data to use for test split, must be provided if '
+             '--match-test is not given')
+    splits_group.add_argument(
+        '--method', choices=['random', 'smallest_first'], default='random',
+        help='"random": randomly tries up to 10,000 different train/val/test '
+             'splits and chooses the one that best meets the scoring criteria, '
+             'does not support --label-spec. '
+             '"smallest_first": greedily divides locations into splits '
+             'starting with the smallest class first. Supports --label-spec.')
+    splits_group.add_argument(
         '--label-spec',
         help='optional path to label specification JSON file, if specifying '
-             'dataset priority')
-    parser.add_argument(
-        '--match-test-csv',
-        help='path to an existing classification CSV from which to match '
-             'test crops (requires --match-test-splits)')
-    parser.add_argument(
-        '--match-test-splits',
-        help='path to existing split JSON file from which to match test '
-             'locations (requires --match-test-csv)')
+             'dataset priority. Requires --method=smallest_first.')
     return parser.parse_args()
 
 
 if __name__ == '__main__':
     args = _parse_args()
-    main(queried_images_json_path=args.queried_images_json,
-         detector_version=args.detector_version,
-         detector_output_cache_base_dir=args.detector_output_cache_dir,
-         cropped_images_dir=args.cropped_images_dir,
-         output_dir=args.output_dir,
-         confidence_threshold=args.confidence_threshold,
-         min_locs=args.min_locs,
-         label_spec_json_path=args.label_spec,
-         match_test_csv_path=args.match_test_csv,
-         match_test_splits_path=args.match_test_splits)
+    main(
+        output_dir=args.output_dir,
+        mode=args.mode,
+        match_test=args.match_test,
+        queried_images_json_path=args.queried_images_json,
+        cropped_images_dir=args.cropped_images_dir,
+        detector_version=args.detector_version,
+        detector_output_cache_base_dir=args.detector_output_cache_dir,
+        confidence_threshold=args.confidence_threshold,
+        min_locs=args.min_locs,
+        val_frac=args.val_frac,
+        test_frac=args.test_frac,
+        splits_method=args.method,
+        label_spec_json_path=args.label_spec)
