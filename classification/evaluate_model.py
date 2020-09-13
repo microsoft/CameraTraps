@@ -60,6 +60,40 @@ def check_override(params: Mapping[str, Any], key: str,
     return override
 
 
+def trace_model(model_name: str, logdir: str, ckpt_name: str, num_classes: int,
+                img_size: int) -> str:
+    """Use TorchScript tracing to compile trained model into standalone file.
+
+    For now, we have to use tracing instead of scripting. See
+        https://github.com/lukemelas/EfficientNet-PyTorch/issues/89
+        https://github.com/lukemelas/EfficientNet-PyTorch/issues/218
+
+    Args:
+        model_name: str
+        logdir: str, path to logdir
+        ckpt_name: str, name of checkpoint file within logdir
+        num_labels: int, number of classification classes
+        img_size: int, size of input image, used for tracing
+
+    Returns: str, name of file for compiled model. If ckpt_name is 'ckpt_16.pt',
+        then the returned path is '<logdir>/ckpt_16_compiled.pt'.
+    """
+    ckpt_path = os.path.join(logdir, ckpt_name)
+    model = train_classifier.build_model(model_name, num_classes=num_classes,
+                                         pretrained=ckpt_path, finetune=False)
+    if 'efficientnet' in model_name:
+        model.set_swish(memory_efficient=False)
+    model.eval()
+
+    ex_img = torch.rand(1, 3, img_size, img_size)
+    scripted_model = torch.jit.trace(model, (ex_img,))
+
+    root, ext = os.path.splitext(ckpt_path)
+    compiled_path = root + '_compiled' + ext
+    scripted_model.save(compiled_path)
+    return compiled_path
+
+
 def main(logdir: str, ckpt_name: str, splits: Iterable[str],
          batch_size: Optional[int] = None, num_workers: Optional[int] = None,
          dataset_dir: Optional[str] = None
@@ -82,7 +116,7 @@ def main(logdir: str, ckpt_name: str, splits: Iterable[str],
     else:
         img_size = 224
 
-    # TODO: for now, we don't weight crops by detection confidence during
+    # For now, we don't weight crops by detection confidence during
     # evaluation. But consider changing this.
     loaders, label_names = train_classifier.create_dataloaders(
         dataset_csv_path=os.path.join(dataset_dir, 'classification_ds.csv'),
@@ -99,11 +133,10 @@ def main(logdir: str, ckpt_name: str, splits: Iterable[str],
     num_labels = len(label_names)
 
     # create model
-    # TODO: handle dropout
-    ckpt_path = os.path.join(logdir, ckpt_name)
-    model, device = train_classifier.build_model(
-        model_name, num_classes=num_labels, pretrained=False, finetune=False,
-        ckpt_path=ckpt_path)
+    compiled_path = trace_model(model_name, logdir, ckpt_name, num_labels,
+                                img_size)
+    model = torch.jit.load(compiled_path)
+    model, device = train_classifier.prep_device(model)
 
     # define loss function (criterion)
     loss_fn: torch.nn.Module
