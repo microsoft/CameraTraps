@@ -1,13 +1,12 @@
-r"""Train an EfficientNet classifier.
+r"""Train a EfficientNet or ResNet classifier.
 
-Currently implementation of multi-label multi-class classification is
+NOTE: Currently implementation of multi-label multi-class classification is
 non-functional.
+
+
 
 During training, start tensorboard from within the classification/ directory:
     tensorboard --logdir run --bind_all --samples_per_plugin scalars=0,images=0
-
-TODO:
-- verify that finetuning is really only changing the final-layer weights
 
 Example usage:
     python train_classifier.py run_idfg /ssd/crops_sq \
@@ -206,44 +205,38 @@ def set_finetune(model: torch.nn.Module, model_name: str, finetune: bool
     not we are fine-tuning the model.
     """
     if finetune:
-        # set all parameters to not require gradients except final FC layer
-        model.requires_grad_(False)
-
         if 'efficientnet' in model_name:
             final_layer = model._fc  # pylint: disable=protected-access
         else:  # torchvision resnet
             final_layer = model.fc
         assert isinstance(final_layer, torch.nn.Module)
+
+        # set all parameters to not require gradients except final FC layer
+        model.requires_grad_(False)
         for param in final_layer.parameters():
             param.requires_grad = True
     else:
         model.requires_grad_(True)
 
 
-def build_model(model_name: str, num_classes: int, pretrained: bool,
-                finetune: bool, ckpt_path: Optional[str] = None
-                ) -> Tuple[torch.nn.Module, torch.device]:
+def build_model(model_name: str, num_classes: int, pretrained: Union[bool, str],
+                finetune: bool) -> torch.nn.Module:
     """Creates a model with an EfficientNet or ResNet base. The model outputs
     unnormalized logits.
 
     Args:
-        model_name: str, name of efficient model
+        model_name: str, name of EfficientNet or Resnet model
         num_classes: int, number of classes for output layer
-        pretrained: bool, whether to initialize to ImageNet weights
+        pretrained: bool or str, (bool) whether to initialize to ImageNet
+            weights, (str) path to checkpoint
         finetune: bool, whether to freeze all layers except the final FC layer
-        ckpt_path: optional str, path to checkpoint from which to load weights
 
-    Returns:
-        model: torch.nn.Module, model placed on the proper device with
-            DataParallel if more than 1 GPU is found
-        device: torch.device, 'cuda:0' if GPU is found, otherwise 'cpu'
+    Returns: torch.nn.Module, model loaded on CPU
     """
     assert model_name in VALID_MODELS
-    is_efficientnet = ('efficientnet' in model_name)
 
-    if is_efficientnet:
-        if pretrained:
-            assert ckpt_path is None
+    if 'efficientnet' in model_name:
+        if pretrained is True:
             model = efficientnet.EfficientNet.from_pretrained(
                 model_name, num_classes=num_classes)
         else:
@@ -251,19 +244,32 @@ def build_model(model_name: str, num_classes: int, pretrained: bool,
                 model_name, num_classes=num_classes)
     else:
         model_class = getattr(tv.models, model_name)
-        model = model_class(pretrained=pretrained)
+        model = model_class(pretrained=(pretrained is True))
 
         # replace final fully-connected layer (which has 1000 ImageNet classes)
         model.fc = torch.nn.Linear(model.fc.in_features, num_classes)
 
-    if ckpt_path is not None:
-        print(f'Loading saved weights from {ckpt_path}')
-        ckpt = torch.load(ckpt_path)
+    if isinstance(pretrained, str):
+        print(f'Loading saved weights from {pretrained}')
+        ckpt = torch.load(pretrained, map_location='cpu')
         model.load_state_dict(ckpt['model'])
 
     assert all(p.requires_grad for p in model.parameters())
     set_finetune(model=model, model_name=model_name, finetune=finetune)
+    return model
 
+
+def prep_device(model: torch.nn.Module) -> Tuple[torch.nn.Module, torch.device]:
+    """Place model on appropriate device.
+
+    Args:
+        model: torch.nn.Module, not already wrapped with DataParallel
+
+    Returns:
+        model: torch.nn.Module, model placed on <device>, wrapped with
+            DataParallel if more than 1 GPU is found
+        device: torch.device, 'cuda:0' if GPU is found, otherwise 'cpu'
+    """
     # detect GPU, use all if available
     if torch.cuda.is_available():
         device = torch.device('cuda:0')
@@ -274,7 +280,6 @@ def build_model(model_name: str, num_classes: int, pretrained: bool,
     else:
         device = torch.device('cpu')
     model.to(device)  # in-place
-
     return model, device
 
 
@@ -282,7 +287,7 @@ def main(dataset_dir: str,
          cropped_images_dir: str,
          multilabel: bool,
          model_name: str,
-         pretrained: bool,
+         pretrained: Union[bool, str],
          finetune: int,
          label_weighted: bool,
          weight_by_detection_conf: Union[bool, str],
@@ -300,6 +305,8 @@ def main(dataset_dir: str,
     assert os.path.exists(cropped_images_dir)
     if isinstance(weight_by_detection_conf, str):
         assert os.path.exists(weight_by_detection_conf)
+    if isinstance(pretrained, str):
+        assert os.path.exists(pretrained)
 
     # set seed
     seed = np.random.randint(10_000) if seed is None else seed
@@ -338,9 +345,9 @@ def main(dataset_dir: str,
     writer = tensorboard.SummaryWriter(logdir)
 
     # create model
-    model, device = build_model(
-        model_name, num_classes=len(label_names), pretrained=pretrained,
-        finetune=finetune > 0)
+    model = build_model(model_name, num_classes=len(label_names),
+                        pretrained=pretrained, finetune=finetune > 0)
+    model, device = prep_device(model)
 
     # define loss function and optimizer
     loss_fn: torch.nn.Module
@@ -733,8 +740,8 @@ def _parse_args() -> argparse.Namespace:
         choices=VALID_MODELS,
         help='which EfficientNet model')
     parser.add_argument(
-        '--pretrained', action='store_true',
-        help='start with pretrained model')
+        '--pretrained', nargs='?', const=True, default=False,
+        help='start with ImageNet pretrained model or a specific checkpoint')
     parser.add_argument(
         '--finetune', type=int, default=0,
         help='only fine tune the final fully-connected layer for the first '
