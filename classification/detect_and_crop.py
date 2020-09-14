@@ -223,7 +223,7 @@ def main(queried_images_json_path: str,
             detector_output_cache_dir=detector_output_cache_dir)
         print(f'{len(images_to_detect)} images not in detection cache')
 
-    log = {'images_missing_detections': images_to_detect}
+    log: Dict[str, Any] = {'images_missing_detections': images_to_detect}
 
     if cropped_images_dir is not None:
         images_failed_dload_crop, num_downloads, num_crops = download_and_crop(
