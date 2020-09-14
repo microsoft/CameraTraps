@@ -138,7 +138,7 @@ See [`api/batch_processing/data_preparation/manage_api_submission.py`](https://g
 
 ## 2. Crop images
 
-Run `crop_detections.py` to crop detections. Pass in a Azure Blob Storage container URL if the images are not stored locally and the detections were obtained from the Batch API.
+Run `crop_detections.py` to crop the bounding boxes according to the detections JSON. Pass in an Azure Blob Storage container URL if the images are not stored locally and the detections were obtained from the Batch API. The crops are saved to `/path/to/crops`.
 
 ```bash
 python crop_detections.py \
@@ -153,13 +153,28 @@ python crop_detections.py \
     --logdir "."
 ```
 
-## Create classification dataset
+## 3. Run classifier
 
-TODO
+MegaClassifier's model file is stored in the `classifier-training` Azure container under the `megaclassifier/` directory.
 
-## Run classifier
+On a GPU, this should run at ~200 crops per second.
 
-TODO
+```bash
+python run_classifier.py \
+    /path/to/classifier-training/megaclassifier/v0.1_efficientnet-b3.pt \
+    /path/to/crops \
+    classifier_output.csv.gz \
+    --detections-json detections.json \
+    --classifier-categories /path/to/classifier-training/megaclassifier/v0.1_index_to_name.json \
+    --image-size 300 --batch-size 64 --num-workers 8
+```
+
+# 4. (Optional) Build mapping from MegaClassifier categories to desired categories
+
+
+# 5. Merge classification results with detection JSON
+
+
 
 
 # Typical Training Pipeline
