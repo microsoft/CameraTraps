@@ -102,13 +102,56 @@ TODO
 
 # Running a classifier on new data
 
-## Run MegaDetector
+## 1. Run MegaDetector
 
-TODO
+Run MegaDetector on the new images to get an output JSON file in the format of the Batch API. MegaDetector can be run either locally or via the Batch API.
 
-## Crop images
+<details>
+    <summary>Basic instructions for running MegaDetector locally</summary>
 
-TODO
+We assume that the images are in a local folder `/path/to/images`. Use [AzCopy](http://aka.ms/azcopy) if necessary to download the images from Azure Blob Storage.
+
+From the CameraTraps repo folder, run the following. On a fast GPU, this should process ~3 images per second.
+
+```bash
+# Download the MegaDetector model file
+wget -O md_v4.1.0.pb https://lilablobssc.blob.core.windows.net/models/camera_traps/megadetector/md_v4.1.0/md_v4.1.0.pb
+
+# install TensorFlow v1 and other dependences
+conda env update -f environment-detector.yml --prune
+conda activate cameratraps-detector
+
+# run MegaDetector
+python detection/run_tf_detector_batch.py md_v4.1.0.pb /path/to/images detections.json --recursive --output_relative_filenames
+```
+
+For more details, consult the [MegaDetector README](https://github.com/microsoft/CameraTraps/blob/master/megadetector.md).
+</details>
+
+
+<details>
+    <summary>Instructions for running MegaDetector via Batch API</summary>
+
+See [`api/batch_processing/data_preparation/manage_api_submission.py`](https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing/data_preparation/manage_api_submission.py).
+</details>
+
+
+## 2. Crop images
+
+Run `crop_detections.py` to crop detections. Pass in a Azure Blob Storage container URL if the images are not stored locally and the detections were obtained from the Batch API.
+
+```bash
+python crop_detections.py \
+    detections.json \
+    /path/to/crops \
+    --images-dir /path/to/images \
+    --container-url "https://account.blob.core.windows.net/container?sas_token" \
+    --detector-version "4.1" \
+    --confidence-threshold 0.8 \
+    --save-full-images --square-crops \
+    --threads 50 \
+    --logdir "."
+```
 
 ## Create classification dataset
 
