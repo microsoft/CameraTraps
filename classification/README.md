@@ -391,15 +391,33 @@ python detect_and_crop.py \
 
 ## 4. Create classification dataset and split into train/val/test sets by location.
 
-TODO
+```bash
+python create_classification_dataset.py \
+    BASE_LOGDIR \
+    --mode csv splits \
+    -q $BASE_LOGDIR/queried_images.json \
+    -c /path/to/crops \
+    -d /path/to/classifier-training/mdcache -v "4.1" \
+    -t 0.8 --min-locs 20 \
+    --val-frac 0.2 --test-frac 0.2 \
+    --method random
+```
 
 ## 5. (Optional) Manually inspect dataset.
 
-TODO
+Copy the `inspect_dataset.ipynb` notebook into `$BASE_LOGDIR`. Open a Jupyter lab or notebook instance, and run the notebook.
 
 ## 6. Train classifier.
 
-TODO
+```bash
+python train_classifier.py \
+    $BASE_LOGDIR \
+    /path/to/crops_sq \
+    -m efficientnet-b3 --pretrained
+    --label-weighted --weight-by-detection-conf /path/to/classifier-training/mdv4_1_isotonic_calibration.npz \
+    --epochs 50 --batch-size 160 --lr 0.0001 \
+    --logdir $BASE_LOGDIR --log-extreme-examples 3
+```
 
 The following hyperparameters for MegaClassifier seem to work well for both EfficientNet-B1 and EfficientNet-B3 (PyTorch implementation):
 
@@ -414,7 +432,9 @@ The following hyperparameters for MegaClassifier seem to work well for both Effi
 
 ## 7. Evaluate classifier.
 
-TODO
+```bash
+python evaluate_model.py $BASE_LOGDIR/$LOGDIR ckpt_XX.pt
+```
 
 ### 8. Export classification results as JSON.
 
