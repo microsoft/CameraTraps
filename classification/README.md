@@ -343,6 +343,17 @@ TODO
 
 TODO
 
+The following hyperparameters for MegaClassifier seem to work well for both EfficientNet-B1 and EfficientNet-B3 (PyTorch implementation):
+
+* no initial finetuning
+* `--pretrained`
+* EfficientNet-B1: `--batch-size 192` (on 2 GPUs), EfficientNet-B3: `--batch-size 160` (on 4 GPUs)
+* `--label-weighted`
+* `--epochs 50`: test-set accuracy will likely plateau before the full 50 epochs
+* `--weight-by-detection-conf /path/to/mdv4_1_isotonic_calibration.npz`
+* `--lr 3e-5`
+* `--weight-decay 1e-6`
+
 ## 7. Evaluate classifier.
 
 TODO
