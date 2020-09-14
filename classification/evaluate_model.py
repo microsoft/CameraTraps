@@ -35,7 +35,7 @@ import argparse
 import json
 import os
 from pprint import pprint
-from typing import Any, Iterable, Mapping, Optional, Sequence, Tuple
+from typing import Any, Mapping, Optional, Sequence, Tuple
 
 import numpy as np
 import pandas as pd
@@ -91,10 +91,11 @@ def trace_model(model_name: str, logdir: str, ckpt_name: str, num_classes: int,
     root, ext = os.path.splitext(ckpt_path)
     compiled_path = root + '_compiled' + ext
     scripted_model.save(compiled_path)
+    print('Saved TorchScript compiled model to', compiled_path)
     return compiled_path
 
 
-def main(logdir: str, ckpt_name: str, splits: Iterable[str],
+def main(logdir: str, ckpt_name: str, splits: Sequence[str],
          batch_size: Optional[int] = None, num_workers: Optional[int] = None,
          dataset_dir: Optional[str] = None
          ) -> None:
