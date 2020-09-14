@@ -171,12 +171,9 @@ def main(classification_csv_path: str,
     if not contains_preds:
         print('CSV does not contain predictions. Outputting labels only.')
 
+    # load queried images JSON, needed for ground-truth bbox info
     with open(queried_images_json_path, 'r') as f:
         queried_images_js = json.load(f)
-    img_root_to_full = {
-        os.path.splitext(img_path)[0]: img_path
-        for img_path in queried_images_js
-    }
 
     classification_js = {
         'info': {
@@ -218,23 +215,19 @@ def main(classification_csv_path: str,
         cat_to_catid = {v: k for k, v in detection_js[key].items()}
 
         for crop_path in tqdm(ds_df.index):
-            # crop_path: <dataset>/<img_path_root>_<suffix>.jpg
-            crop_index = int(crop_path[-6:-4])
+            # crop_path: <dataset>/<img_file>___cropXX_mdvY.Y.jpg
+            #            [----<img_path>----]       [-<suffix>--]
+            img_path, suffix = crop_path.split('___crop')
+            img_file = img_path[img_path.find('/') + 1:]
+            crop_index = int(suffix[:2])
 
-            if '_mdv4.1' in crop_path:  # file has detection entry
-                img_path_root = crop_path.split('_mdv4.1')[0]
-                img_path = img_root_to_full[img_path_root]  # <dataset>/<img_file>
-
+            if '_mdv' in suffix:  # file has detection entry
                 if img_path not in images:
-                    img_file = img_path[img_path.find('/') + 1:]
                     img_idx = img_file_to_index[img_file]
                     images[img_path] = detection_js['images'][img_idx]
                     images[img_path]['file'] = img_path
 
             else:  # bounding box is from ground truth
-                img_path_root = crop_path.split('_crop')[0]
-                img_path = img_root_to_full[img_path_root]  # <dataset>/<img_file>
-
                 if img_path not in images:
                     images[img_path] = {
                         'file': img_path,
