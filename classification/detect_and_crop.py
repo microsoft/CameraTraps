@@ -1,5 +1,6 @@
 r"""
-Run MegaDetector on images, then save crops of the detected bounding boxes.
+Run MegaDetector on images via Batch API, then save crops of the detected
+bounding boxes.
 
 The input to this script is a "queried images" JSON file, whose keys are paths
 to images and values are dicts containing information relevant for training
@@ -27,21 +28,21 @@ that the dataset name does not contain '/'.
 
 We assume that no image contains over 100 bounding boxes, and we always save
 crops as RGB .jpg files for consistency. For each image, each bounding box is
-cropped and saved to a file with the same name as the original image, except we
-add a suffix "_cropXX" for ground truth bounding boxes and "_mdvY.Y_cropXX" for
-detected bounding boxes. "XX" ranges from "00" to "99" and "Y.Y" indicates the
-MegaDetector version. If an image has ground truth bounding boxes, we assume
-that they are exhaustive--i.e., there are no other objects of interest, so we
-don't need to run MegaDetector on the image. If an image does not have ground
-truth bounding boxes, we run MegaDetector on the image and label the detected
-boxes in order from 00 up to 99. Based on the given confidence threshold, we may
-skip saving certain bounding box crops, but we still increment the bounding box
-number for skipped boxes.
+cropped and saved to a file with a suffix "___cropXX.jpg" (ground truth bbox) or
+"___cropXX_mdvY.Y.jpg" (detected bbox) added to the filename of the original
+image. "XX" ranges from "00" to "99" and "Y.Y" indicates the MegaDetector
+version. If an image has ground truth bounding boxes, we assume that they are
+exhaustive--i.e., there are no other objects of interest, so we don't need to
+run MegaDetector on the image. If an image does not have ground truth bounding
+boxes, we run MegaDetector on the image and label the detected boxes in order
+from 00 up to 99. Based on the given confidence threshold, we may skip saving
+certain bounding box crops, but we still increment the bounding box number for
+skipped boxes.
 
 Example cropped image path (with ground truth bbox)
-    "caltech/cct_images/59f79901-23d2-11e8-a6a3-ec086b02610b_crop00.jpg"
+    "path/to/images.jpg___crop00.jpg"
 Example cropped image path (with MegaDetector bbox)
-    "caltech/cct_images/59f5fe2b-23d2-11e8-a6a3-ec086b02610b_mdv4.1_crop00.jpg"
+    "path/to/images.jpg___crop00_mdv4.1.jpg"
 
 By default, the images are cropped exactly per the given bounding box
 coordinates. However, if square crops are desired, pass the --square-crops
@@ -73,12 +74,13 @@ organized as
 This script outputs either 1 or 3 files, depending on if the Batch Detection API
 is run:
 
-1) (if detector=='batchapi') task lists for uploading to the Batch Detection API
-    are saved to <output_dir>/batchapi_tasklists/
-2) (if detector=='batchapi') task status responses for completed tasks are saved
-    to <output_dir>/batchapi_response/{task_id}.json
-3) log of images missing detections and images that failed to properly
-    download and crop, <output_dir>/detect_and_crop_log_{timestamp}.json
+- <output_dir>/detect_and_crop_log_{timestamp}.json
+    log of images missing detections and images that failed to properly
+    download and crop
+- <output_dir>/batchapi_tasklists/{task_id}.json
+    (if --run-dectector) task lists uploaded to the Batch Detection API
+- <output_dir>/batchapi_response/{task_id}.json
+    (if --run-dectector) task status responses for completed tasks
 
 Example command:
 
@@ -87,7 +89,6 @@ Example command:
         /ssd/crops_sq/ \
         --detector-output-cache-dir "$HOME/classifier-training/mdcache" \
         --detector-version "4.1" \
-        --detector skip \
         --confidence-threshold 0.8 \
         --images-dir /ssd/images/ \
         --threads 50 \
@@ -96,25 +97,22 @@ Example command:
 import argparse
 from concurrent import futures
 from datetime import datetime
-import io
 import json
 import os
 import pprint
 import time
-from typing import (Any, BinaryIO, Collection, Dict, Iterable, List, Mapping,
-                    Optional, Sequence, Tuple, Union)
+from typing import (Any, Collection, Dict, Iterable, List, Mapping, Optional,
+                    Sequence, Tuple)
 
-from azure.storage.blob import download_blob_from_url
-from PIL import Image, ImageOps
+from azure.storage.blob import ContainerClient
 import requests
 from tqdm import tqdm
 
 from api.batch_processing.data_preparation.prepare_api_submission import (
     BatchAPIResponseError, Task, TaskStatus, divide_list_into_tasks)
-from api.batch_processing.postprocessing.combine_api_outputs import (
-    combine_api_output_dictionaries)
+from classification.cache_batchapi_outputs import cache_detections
+from classification.crop_detections import load_and_crop
 from data_management.megadb import megadb_utils
-# from detection import run_tf_detector_batch
 import path_utils  # from ai4eutils
 import sas_blob_utils  # from ai4eutils
 
@@ -123,7 +121,7 @@ def main(queried_images_json_path: str,
          output_dir: str,
          detector_version: str,
          detector_output_cache_base_dir: str,
-         detector: str,
+         run_detector: bool,
          resume_file_path: Optional[str],
          cropped_images_dir: Optional[str],
          save_full_images: bool,
@@ -143,9 +141,8 @@ def main(queried_images_json_path: str,
             where detector outputs are cached, 1 JSON file per dataset
         cropped_images_dir: str, path to local directory for saving crops of
             bounding boxes
-        detector: str, one of ['local', 'batchapi', 'skip'],
-            whether to run detection locally or through the Batch Detection API,
-            or to skip running the detector entirely
+        run_detector: bool, whether to run Batch Detection API, or to skip
+            running the detector entirely
         output_dir: str, path to directory to save outputs, see module docstring
         save_full_images: bool, whether to save downloaded images to images_dir,
             images_dir must be given if save_full_images=True
@@ -153,7 +150,6 @@ def main(queried_images_json_path: str,
         check_crops_valid: bool, whether to load each crop to ensure the file is
             valid (i.e., not truncated)
         confidence_threshold: float, only crop bounding boxes above this value
-        skip_detection: bool, whether to skip running the detector
         images_dir: optional str, path to local directory where images are saved
         threads: int, number of threads to use for downloading images
         resume_file_path: optional str, path to save JSON file with list of info
@@ -162,7 +158,6 @@ def main(queried_images_json_path: str,
     """
     # error checking
     assert 0 <= confidence_threshold <= 1
-    assert detector in ['local', 'batchapi', 'skip']
     if save_full_images:
         assert images_dir is not None
         if not os.path.exists(images_dir):
@@ -182,39 +177,29 @@ def main(queried_images_json_path: str,
         detector_output_cache_dir=detector_output_cache_dir)
     print(f'{len(images_to_detect)} images not in detection cache')
 
-    if detector != 'skip' and len(images_to_detect) > 0:
+    if run_detector:
+        assert resume_file_path is not None
+        assert not os.path.isdir(resume_file_path)
+        batch_detection_api_url = os.environ['BATCH_DETECTION_API_URL']
 
-        if detector == 'local':
-            # download the necessary images locally
-            # run_detection(images_to_detect, detector_version)
-            # call run_tf_detector_batch()
-            raise NotImplementedError
-
+        if os.path.exists(resume_file_path):
+            tasks_by_dataset = resume_tasks(
+                resume_file_path,
+                batch_detection_api_url=batch_detection_api_url)
         else:
-            assert resume_file_path is not None
-            assert not os.path.isdir(resume_file_path)
-            account = os.environ['CLASSIFICATION_BLOB_STORAGE_ACCOUNT']
-            container = os.environ['CLASSIFICATION_BLOB_CONTAINER']
-            sas_token = os.environ['CLASSIFICATION_BLOB_CONTAINER_WRITE_SAS']
-            caller = os.environ['DETECTION_API_CALLER']
-            batch_detection_api_url = os.environ['BATCH_DETECTION_API_URL']
-
-            if os.path.exists(resume_file_path):
-                tasks_by_dataset = resume_tasks(
-                    resume_file_path,
-                    batch_detection_api_url=batch_detection_api_url)
-            else:
-                task_lists_dir = os.path.join(output_dir, 'batchapi_tasklists')
-                tasks_by_dataset = submit_batch_detection_api(
-                    images_to_detect=images_to_detect,
-                    task_lists_dir=task_lists_dir,
-                    detector_version=detector_version,
-                    account=account, container=container, sas_token=sas_token,
-                    caller=caller,
-                    batch_detection_api_url=batch_detection_api_url,
-                    resume_file_path=resume_file_path)
-            wait_for_tasks(tasks_by_dataset, detector_output_cache_dir,
-                           output_dir=output_dir)
+            task_lists_dir = os.path.join(output_dir, 'batchapi_tasklists')
+            tasks_by_dataset = submit_batch_detection_api(
+                images_to_detect=images_to_detect,
+                task_lists_dir=task_lists_dir,
+                detector_version=detector_version,
+                account=os.environ['CLASSIFICATION_BLOB_STORAGE_ACCOUNT'],
+                container=os.environ['CLASSIFICATION_BLOB_CONTAINER'],
+                sas_token=os.environ['CLASSIFICATION_BLOB_CONTAINER_WRITE_SAS'],
+                caller=os.environ['DETECTION_API_CALLER'],
+                batch_detection_api_url=batch_detection_api_url,
+                resume_file_path=resume_file_path)
+        wait_for_tasks(tasks_by_dataset, detector_output_cache_dir,
+                       output_dir=output_dir)
 
         # refresh detection cache
         print('Refreshing detection cache...')
@@ -600,40 +585,6 @@ def wait_for_tasks(tasks_by_dataset: Mapping[str, Iterable[Task]],
     progbar.close()
 
 
-def cache_detections(detections: Mapping[str, Any], dataset: str,
-                     detector_output_cache_dir: str) -> str:
-    """
-    Args:
-        detections: dict, represents JSON output of detector,
-            see https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing#batch-processing-api-output-format
-        dataset: str, name of dataset
-        detector_output_cache_dir: str, path to folder where detector outputs
-            are cached, stored as 1 JSON file per dataset, directory must
-            already exist
-
-    Returns: str, message
-    """
-    # combine detections with cache
-    dataset_cache_path = os.path.join(
-        detector_output_cache_dir, f'{dataset}.json')
-    merged_dataset_cache: Mapping[str, Any]
-    if os.path.exists(dataset_cache_path):
-        with open(dataset_cache_path, 'r') as f:
-            dataset_cache = json.load(f)
-        merged_dataset_cache = combine_api_output_dictionaries(
-            input_dicts=[dataset_cache, detections], require_uniqueness=False)
-        msg = f'Merging detection output with {dataset_cache_path}'
-    else:
-        merged_dataset_cache = detections
-        msg = ('No cached detection outputs found. Saving detection output to '
-               f'{dataset_cache_path}')
-
-    # write combined detections back out to cache
-    with open(dataset_cache_path, 'w') as f:
-        json.dump(merged_dataset_cache, f, indent=1)
-    return msg
-
-
 def download_and_crop(
         queried_images_json: Mapping[str, Mapping[str, Any]],
         detection_cache: Mapping[str, Mapping[str, Mapping[str, Any]]],
@@ -703,16 +654,7 @@ def download_and_crop(
 
     # we need the datasets table for getting SAS keys
     datasets_table = megadb_utils.MegadbUtils().get_datasets_table()
-
-    # True for ground truth, False for MegaDetector
-    # always save as JPG for consistency
-    crop_path_template = {
-        True: os.path.join(
-            cropped_images_dir, '{img_path_root}_crop{n:>02d}.jpg'),
-        False: os.path.join(
-            cropped_images_dir,
-            '{img_path_root}_' + f'mdv{detector_version}' + '_crop{n:>02d}.jpg')
-    }
+    container_clients = {}  # dataset name => ContainerClient
 
     pool = futures.ThreadPoolExecutor(max_workers=threads)
     future_to_img_path = {}
@@ -724,18 +666,37 @@ def download_and_crop(
         info_dict = queried_images_json[img_path]
         ds, img_file = img_path.split('/', maxsplit=1)
 
+        # get ContainerClient
+        if ds not in container_clients:
+            sas_token = datasets_table[ds]['container_sas_key']
+            if sas_token[0] == '?':
+                sas_token = sas_token[1:]
+            url = sas_blob_utils.build_azure_storage_uri(
+                account=datasets_table[ds]['storage_account'],
+                container=datasets_table[ds]['container'],
+                sas_token=sas_token)
+            container_clients[ds] = ContainerClient.from_container_url(url)
+        container_client = container_clients[ds]
+
         # get bounding boxes
         is_ground_truth = ('bbox' in info_dict)
         if is_ground_truth:  # ground-truth bounding boxes
             bbox_dicts = info_dict['bbox']
+            crop_path_template = os.path.join(
+                cropped_images_dir, ds, '{img_path}___crop{n:>02d}.jpg')
         else:  # detected bounding boxes
             bbox_dicts = detection_cache[ds][img_file]['detections']
+            crop_path_template = os.path.join(
+                cropped_images_dir, ds,
+                '{img_path}___crop{n:>02d}_' + f'mdv{detector_version}.jpg')
+
+        ds_dir = None if images_dir is None else os.path.join(images_dir, ds)
 
         # get the image, either from disk or from Blob Storage
         future = pool.submit(
-            load_and_crop, img_path, datasets_table[ds], bbox_dicts,
-            confidence_threshold, crop_path_template[is_ground_truth],
-            save_full_images, square_crops, check_crops_valid, images_dir)
+            load_and_crop, img_file, ds_dir, container_client, bbox_dicts,
+            confidence_threshold, crop_path_template, save_full_images,
+            square_crops, check_crops_valid)
         future_to_img_path[future] = img_path
 
     total = len(future_to_img_path)
@@ -754,157 +715,14 @@ def download_and_crop(
             images_failed_download.append(img_path)
 
     pool.shutdown()
+    for container_client in container_clients.values():
+        # inelegant way to close the container_clients
+        with container_client:
+            pass
+
     print(f'Downloaded {total_downloads} images.')
     print(f'Made {total_new_crops} new crops.')
     return images_failed_download, total_downloads, total_new_crops
-
-
-def load_local_image(img_path: Union[str, BinaryIO]) -> Optional[Image.Image]:
-    """Attempts to load an image from a local path."""
-    try:
-        with Image.open(img_path) as img:
-            img.load()
-        return img
-    except OSError as e:  # PIL.UnidentifiedImageError is a subclass of OSError
-        exception_type = type(e).__name__
-        tqdm.write(f'Unable to load {img_path}. {exception_type}: {e}.')
-    return None
-
-
-def load_and_crop(img_path: str,
-                  dataset_info: Mapping[str, Any],
-                  bbox_dicts: Iterable[Mapping[str, Any]],
-                  confidence_threshold: float,
-                  crop_path_template: str,
-                  save_full_image: bool,
-                  square_crops: bool,
-                  check_crops_valid: bool,
-                  images_dir: Optional[str]) -> Tuple[bool, int]:
-    """Given an image and a list of bounding boxes, checks if the crops already
-    exist. If not, loads the image locally or Azure Blob Storage, then crops it.
-
-    An image is only downloaded from Azure Blob Storage if it does not already
-    exist locally and if it has at least 1 bounding box with confidence greater
-    than the confidence threshold.
-
-    Args:
-        images_dir: optional str, path to local directory of images
-        img_path: str, image path with format `<dataset-name>/<blob-name>`
-        dataset_info: dict, info about dataset from MegaDB
-        bbox_dicts: list of dicts, each dict contains info on a bounding box
-        confidence_threshold: float, only crop bounding boxes above this value
-        save_full_images: bool, whether to save downloaded images to images_dir,
-            images_dir must be given and must exist if save_full_images=True
-        square_crops: bool, whether to crop bounding boxes as squares
-        check_crops_valid: bool, whether to load each crop to ensure the file is
-            valid (i.e., not truncated)
-        images_dir: optional str, path to folder where full images are saved
-
-    Returns:
-        did_download: bool, whether image was downloaded from Azure Blob Storage
-        num_new_crops: int, number of new crops successfully saved
-    """
-    did_download = False
-    num_new_crops = 0
-
-    # crop_path => normalized bbox coordinates [xmin, ymin, width, height]
-    bboxes_tocrop: Dict[str, List[float]] = {}
-    for i, bbox_dict in enumerate(bbox_dicts):
-        # only ground-truth bboxes do not have a "confidence" value
-        if 'conf' in bbox_dict and bbox_dict['conf'] < confidence_threshold:
-            continue
-        if bbox_dict['category'] != 'animal':
-            continue
-        img_path_root = os.path.splitext(img_path)[0]
-        crop_path = crop_path_template.format(img_path_root=img_path_root, n=i)
-        if not os.path.exists(crop_path) or (
-                check_crops_valid and load_local_image(crop_path) is None):
-            bboxes_tocrop[crop_path] = bbox_dict['bbox']
-    if len(bboxes_tocrop) == 0:
-        return did_download, num_new_crops
-
-    img = None
-    if images_dir is not None:
-        full_img_path = os.path.join(images_dir, img_path)
-        if os.path.exists(full_img_path):
-            img = load_local_image(full_img_path)
-    if img is None:
-        # download image from Blob Storage
-        blob_url = sas_blob_utils.build_azure_storage_uri(
-            account=dataset_info['storage_account'],
-            container=dataset_info['container'],
-            blob=img_path[img_path.find('/') + 1:])
-        sas_token = dataset_info['container_sas_key']
-
-        if save_full_image:
-            os.makedirs(os.path.dirname(full_img_path), exist_ok=True)
-            download_blob_from_url(
-                blob_url, full_img_path, credential=sas_token, overwrite=True)
-            img = load_local_image(full_img_path)
-        else:
-            with io.BytesIO() as stream:
-                download_blob_from_url(
-                    blob_url, stream, credential=sas_token, overwrite=True)
-                stream.seek(0)
-                img = load_local_image(stream)
-        did_download = True
-
-    assert img is not None
-    if img.mode != 'RGB':
-        img = img.convert(mode='RGB')  # always save as RGB for consistency
-
-    # crop the image
-    for crop_path, bbox in bboxes_tocrop.items():
-        num_new_crops += save_crop(
-            img, bbox_norm=bbox, square_crop=square_crops, save=crop_path)
-    return did_download, num_new_crops
-
-
-def save_crop(img: Image.Image, bbox_norm: Sequence[float], square_crop: bool,
-              save: str) -> bool:
-    """Crops an image and saves the crop to file.
-
-    Args:
-        img: PIL.Image.Image object, already loaded
-        bbox_norm: list or tuple of float, [xmin, ymin, width, height] all in
-            normalized coordinates
-        square_crop: bool, whether to crop bounding boxes as a square
-        save: str, path to save cropped image
-
-    Returns: bool, True if a crop was saved, False otherwise
-    """
-    img_w, img_h = img.size
-    xmin = int(bbox_norm[0] * img_w)
-    ymin = int(bbox_norm[1] * img_h)
-    box_w = int(bbox_norm[2] * img_w)
-    box_h = int(bbox_norm[3] * img_h)
-
-    if square_crop:
-        # expand box width or height to be square, but limit to img size
-        box_size = max(box_w, box_h)
-        xmin = max(0, min(
-            xmin - int((box_size - box_w) / 2),
-            img_w - box_w))
-        ymin = max(0, min(
-            ymin - int((box_size - box_h) / 2),
-            img_h - box_h))
-        box_w = min(img_w, box_size)
-        box_h = min(img_h, box_size)
-
-    if box_w == 0 or box_h == 0:
-        tqdm.write(f'Skipping size-0 crop (w={box_w}, h={box_h}) at {save}')
-        return False
-
-    # Image.crop() takes box=[left, upper, right, lower]
-    crop = img.crop(box=[xmin, ymin, xmin + box_w, ymin + box_h])
-
-    if square_crop and (box_w != box_h):
-        # pad to square using 0s
-        crop = ImageOps.pad(crop, size=(box_size, box_size), color=0)
-
-    os.makedirs(os.path.dirname(save), exist_ok=True)
-    crop.save(save)
-    return True
 
 
 def _parse_args() -> argparse.Namespace:
@@ -914,7 +732,7 @@ def _parse_args() -> argparse.Namespace:
         description='Detects and crops images.')
     parser.add_argument(
         'queried_images_json',
-        help='path to JSON file containing image paths and classification info')
+        help='path to JSON file mapping image paths and classification info')
     parser.add_argument(
         'output_dir',
         help='path to directory to save log file. If --detector=batchapi, then '
@@ -926,16 +744,14 @@ def _parse_args() -> argparse.Namespace:
         '-v', '--detector-version', required=True,
         help='(required) detector version string, e.g., "4.1"')
     parser.add_argument(
-        '-d', '--detector', required=True,
-        choices=['local', 'batchapi', 'skip'],
-        help='(required) whether to run the detector locally, via the Batch '
-             'Detection API, or to skip running the detector entirely (and '
-             'only use ground truth and cached bounding boxes.')
+        '-d', '--run-detector', action='store_true',
+        help='Run the Batch Detection API. If not given, skips running the '
+             'detector (and only use ground truth and cached bounding boxes).')
     parser.add_argument(
         '-r', '--resume-file',
         help='path to save JSON file with list of info dicts on running tasks, '
-             'or to resume from running tasks. Only used if '
-             '--detector=batchapi. Each dict has keys '
+             'or to resume from running tasks. Only used if --run-detector is '
+             'set. Each dict has keys '
              '["dataset", "task_id", "task_name", "local_images_list_path", '
              '"remote_images_list_url"]')
     parser.add_argument(
@@ -975,7 +791,7 @@ if __name__ == '__main__':
          output_dir=args.output_dir,
          detector_version=args.detector_version,
          detector_output_cache_base_dir=args.detector_output_cache_dir,
-         detector=args.detector,
+         run_detector=args.run_detector,
          resume_file_path=args.resume_file,
          cropped_images_dir=args.cropped_images_dir,
          save_full_images=args.save_full_images,
