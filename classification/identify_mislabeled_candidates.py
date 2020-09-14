@@ -24,7 +24,6 @@ be downloaded with
 
 Assumes the following directory layout:
     <base_logdir>/
-        queried_images.json
         label_index.json
         <logdir>/
             outputs_{split}.csv.gz
@@ -34,6 +33,7 @@ Example usage:
         --margin 0.5 --splits val test
 """
 import argparse
+from collections import defaultdict
 import json
 import os
 from typing import Dict, Iterable, Set, Sequence
@@ -47,42 +47,23 @@ def main(logdir: str, splits: Iterable[str], margin: float,
     # load files
     logdir = os.path.normpath(logdir)  # removes any trailing slash
     base_logdir = os.path.dirname(logdir)
-
-    queried_images_json_path = os.path.join(base_logdir, 'queried_images.json')
     idx_to_label_json_path = os.path.join(base_logdir, 'label_index.json')
-
-    with open(queried_images_json_path, 'r') as f:
-        queried_images_js = json.load(f)
-
     with open(idx_to_label_json_path, 'r') as f:
         idx_to_label = json.load(f)
     label_names = [idx_to_label[str(i)] for i in range(len(idx_to_label))]
-
-    # map crop paths to list of image paths
-    img_root_to_full = {
-        os.path.splitext(img_path)[0]: img_path
-        for img_path in queried_images_js
-    }
 
     for split in splits:
         outputs_csv_path = os.path.join(logdir, f'outputs_{split}.csv.gz')
         candidates_df = get_candidates_df(outputs_csv_path, label_names, margin)
 
         # dataset => set of img_file
-        candidate_image_files: Dict[str, Set[str]] = {}
+        candidate_image_files: Dict[str, Set[str]] = defaultdict(set)
 
         for crop_path in tqdm(candidates_df['path']):
-            # crop_path: <dataset>/<img_path_root>_<suffix>.jpg
-            if '_mdv4.1' in crop_path:  # file has detection entry
-                img_path_root = crop_path.split('_mdv4.1')[0]
-            else:  # bounding box is from ground truth
-                img_path_root = crop_path.split('_crop')[0]
-
-            img_path = img_root_to_full[img_path_root]  # <dataset>/<img_file>
+            # crop_path: <dataset>/<img_file>___cropXX_mdvY.Y.jpg
+            #            [----<img_path>----]
+            img_path = crop_path.split('___crop')[0]
             ds, img_file = img_path.split('/', maxsplit=1)
-
-            if ds not in candidate_image_files:
-                candidate_image_files[ds] = set()
             if include_dataset_in_filename:
                 candidate_image_files[ds].add(img_path)
             else:
