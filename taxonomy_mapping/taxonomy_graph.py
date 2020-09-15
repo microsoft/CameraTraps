@@ -1,6 +1,45 @@
-"""
+r"""
 Methods for transforming taxonomy CSV into a graph structure backed by
-networkx.
+NetworkX.
+
+We treat each taxon in the taxonomy as a node in a graph, represented by the
+TaxonNode class. We use a NetworkX directed graph (nx.DiGraph) to keep track of
+the edges (parent-child relationships) between the nodes.
+
+In theory, the true biological taxonomy graph should be a tree, where every
+taxon node has exactly 1 parent. However, because we use both GBIF and INAT
+taxonomies, there are 2 situations where a taxon node ends up with two parents.
+Thus, the graph is actually a "directed acyclic graph" (DAG) instead of a tree.
+
+The two situations are explained in detail below. This module includes a
+function dag_to_tree() which converts a DAG to a tree by heuristically removing
+edges from the DAG so that each node only has 1 parent.
+
+CASE 1: INAT and GBIF have different granularity in their taxonomy levels
+======
+An example is shown below. In dag_to_tree(), the lower parent is kept, while
+the higher-up parent is discarded. In this example, the "sciurini -> sciurus"
+edge would be kept, while "sciuridae -> sciurus" would be removed.
+
+        "eastern gray squirrel" (inat)     "squirrel" (gbif)
+        ------------------------------     -----------------
+    family:                        sciuridae
+                                  /          \
+    subfamily:          sciurinae             |  # skips subfamily
+                                |             |
+    tribe:               sciurini             |  # skips tribe
+                                  \          /
+    genus:                          sciurus
+
+
+CASE 2: INAT and GBIF have different taxonomies
+======
+An example is shown below. In dag_to_tree(), the resolution to these
+discrepancies are hard-coded.
+
+    order:    cathartiformes (inat)     accipitriformes (gbif)
+                           \           /
+    family:                 cathartidae
 """
 # allow forward references in typing annotations
 from __future__ import annotations
@@ -13,22 +52,11 @@ import pandas as pd
 
 
 class TaxonNode:
-    r"""A node in a taxonomy tree, associated with a set of dataset labels.
+    """
+    A node in a taxonomy graph (DAG), associated with a set of dataset labels.
 
-    By default we support multiple parents for each TaxonNode because different
-    taxonomies may have a different granularity of hierarchy. If the taxonomy
-    was created from a mixture of different taxonomies, then we may see the
-    following, for example:
-
-        "eastern gray squirrel" (inat)     "squirrel" (gbif)
-        ------------------------------     -----------------
-    family:                        sciuridae
-                                  /          \
-    subfamily:          sciurinae             |  # skips subfamily
-                                |             |
-    tribe:               sciurini             |  # skips tribe
-                                  \          /
-    genus:                          sciurus
+    By default, we support multiple parents for each TaxonNode. See discussion
+    in module docstring above.
     """
     # class variables
     single_parent_only: ClassVar[bool] = False
@@ -170,18 +198,17 @@ class TaxonNode:
         return None
 
 
-def build_taxonomy_graph(
-        taxonomy_df: pd.DataFrame
-        ) -> Tuple[
-            nx.DiGraph,
-            Dict[Tuple[str, str], TaxonNode],
-            Dict[Tuple[str, str], TaxonNode]
-        ]:
+def build_taxonomy_graph(taxonomy_df: pd.DataFrame
+                         ) -> Tuple[
+                             nx.DiGraph,
+                             Dict[Tuple[str, str], TaxonNode],
+                             Dict[Tuple[str, str], TaxonNode]
+                         ]:
     """Creates a mapping from (taxon_level, taxon_name) to TaxonNodes, used for
     gathering all dataset labels associated with a given taxon.
 
     Args:
-        taxonomy_df: pd.DataFrame, see taxonomy_mapping directory for more info
+        taxonomy_df: pd.DataFrame, the taxonomy CSV
 
     Returns:
         graph: nx.DiGraph
@@ -234,9 +261,18 @@ def build_taxonomy_graph(
 
 def dag_to_tree(graph: nx.DiGraph,
                 taxon_to_node: Dict[Tuple[str, str], TaxonNode]) -> nx.DiGraph:
-    """
-    NOTE: nx.is_tree(tree) might fail because tree may have disconnected
-    components
+    """Converts the taxonomy graph from a DAG to a tree. See module docstring
+    for more information.
+
+    NOTE: nx.is_tree() on the output of this function might fail because the
+    tree may have disconnected components. Instead, check nx.is_tree() on each
+    component separately.
+
+    Args:
+        graph: nx.DiGraph, DAG representation of taxonomy hieararchy
+        taxon_to_node: dict, maps (taxon_level, taxon_name) to a TaxonNode
+
+    Returns: nx.DiGraph, a tree-structured graph
     """
     tree = nx.DiGraph()
     for node in graph.nodes:
