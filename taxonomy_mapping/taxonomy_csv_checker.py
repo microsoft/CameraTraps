@@ -7,7 +7,8 @@ Checks the taxonomy CSV file to make sure that for each row:
 
 Prints out any mismatches.
 
-Also prints out nodes that have 2 ambiguous parents.
+Also prints out nodes that have 2 ambiguous parents. See "CASE 2" from the
+module docstring of taxonomy_graph.py.
 """
 import argparse
 from typing import Optional
