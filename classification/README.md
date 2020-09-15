@@ -5,12 +5,12 @@
   * [Directory Structure](#directory-structure)
   * [Environment Variables](#environment-variables)
 * [Running a classifier on new images](#running-a-classifier-on-new-images)
-  1. [Run MegaDetector](#run-megadetector)
-  2. [Crop images](#crop-images)
-  3. [Run classifier](#run-classifier)
-  4. [(Optional) Build mapping from desired categories to MegaClassifier categories](#TODO)
-  5. [Merge classification results with detection JSON](#merge-classification-results-with-detection-json)
-* Typical Training Pipeline
+  1. [Run MegaDetector](#1-run-megadetector)
+  2. [Crop images](#2-crop-images)
+  3. [Run classifier](#3-run-classifier)
+  4. [(Optional) Build mapping from desired categories to MegaClassifier categories](#4-optional-build-mapping-from-desired-categories-to-megaclassifier-categories)
+  5. [Merge classification results with detection JSON](#5-merge-classification-results-with-detection-json)
+* [Typical Training Pipeline](#typical-training-pipeline)
   1. Select classification labels for training.
   2. Validate the classification labels specification JSON file, and generate a list of images to run detection on.
   3. Submit images without ground-truth bounding boxes to the MegaDetector Batch Detection API to get bounding box labels.
@@ -20,7 +20,7 @@
   7. Evaluate classifier.
   8. Export classification results as JSON.
   9. (Optional) Identify potentially mislabeled images.
-* [Label Specification Syntax](label-specification-syntax)
+* [Label Specification Syntax](#label-specification-syntax)
   * [CSV](#csv)
   * [JSON](#json)
 
@@ -197,13 +197,49 @@ python run_classifier.py \
     --image-size 300 --batch-size 64 --num-workers 8
 ```
 
-# 4. (Optional) Build mapping from desired categories to MegaClassifier categories
+## 4. (Optional) Map MegaClassifier categories to desired categories
 
+MegaClassifier outputs 100+ categories, but we usually don't care about all of them. Instead, we can group the classifier labels into desired "target" categories. This process involves 3 sub-steps:
 
-# 5. Merge classification results with detection JSON
+* Specify the target categories that we care about.
+* Build a mapping from desired target categories to MegaClassifier labels.
+* Aggregate probabilities from the classifier's outputs according to the mapping.
 
+**Specify the target categories that we care about.**
 
+Use the [label specification syntax](#label-specification-syntax) to specify the taxons and/or dataset classes that constitute each target category. If using the CSV format, convert it to the JSON specification syntax using `python csv_to_json.py`.
 
+**Build a mapping from desired target categories to MegaClassifier labels.**
+
+Run the `map_classification_categories.py` script with the target label specification JSON to create a mapping from target categories to MegaClassifier labels. The output file is another JSON file representing a dictionary whose keys are target categories and whose values are lists of MegaClassifier labels. MegaClassifier labels who are not explictly assigned a target are assigned to a target named "other". Each MegaClassifier label is assigned to exactly one target category.
+
+```bash
+python map_classification_categories.py \
+    target_label_spec.json \
+    /path/to/classifier-training/megaclassifier/v0.1_label_spec.json \
+    /path/to/camera-traps-private/camera_trap_taxonomy_mapping.csv \
+    --output target_to_classifier_labels.json \
+    --classifier-label-index /path/to/classifier-training/megaclassifier/v0.1_index_to_name.json
+```
+
+**Aggregate probabilities from the classifier's outputs according to the mapping.**
+
+Using the mapping, create a new version of the classifier output CSV with probabilities summed within each target category. Also output a new "index-to-name" JSON file which identifies the sequential order of the target categories.
+
+```bash
+python aggregate_classifier_probs.py \
+    classifier_output.csv.gz \
+    --target-mapping target_to_classifier_labels.json \
+    --output-csv classifier_output_remapped.csv.gz \
+    --output-label-index label_index_remapped.json
+```
+
+## 5. Merge classification results with detection JSON
+
+Finally, merge the classification results CSV with the original detection JSON file. Use the `--threshold` argument to exclude predicted categories from the JSON file if their confidence is below a certain threshold. This file can then be opened in Timelapse (requires v2.2.3.7.1 or greater).
+
+```bash
+```
 
 # Typical Training Pipeline
 
@@ -219,6 +255,8 @@ For bespoke classifiers, it is likely easier to write a CSV file instead of manu
 ## 2. Validate the classification labels specification JSON file, and generate a list of matching images.
 
 In `json_validator.py`, we validate the classification labels specification JSON file. It checks that the specified taxa are included in the master taxonomy CSV file, which specifies the biological taxonomy for every dataset label in MegaDB. The script then queries MegaDB to list all images that match the classification labels specification, and optionally verifies that each image is only assigned a single classification label.
+
+TODO: explain `-m` flag for mislabeled images.
 
 The output of `json_validator.py` is another JSON file (`queried_images.json`) that maps image names to a dictionary of properties:
 
@@ -246,7 +284,7 @@ Example usage of `json_validator.py`:
 
 ```bash
 python json_validator.py \
-    $BASE_LOGDIR/label_spec.json
+    $BASE_LOGDIR/label_spec.json \
     /path/to/camera-traps-private/camera_trap_taxonomy_mapping.csv \
     --json-indent 1 \
     -m /path/to/classifier-training/megab_mislabeled
