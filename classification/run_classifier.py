@@ -186,7 +186,7 @@ def test_epoch(model: torch.nn.Module,
 
             df = pd.DataFrame(data=probs, columns=label_names,
                               index=pd.Index(img_files, name='path'))
-            df.to_csv(output_csv_path, header=header, mode=mode)
+            df.to_csv(output_csv_path, index=True, header=header, mode=mode)
 
             if header:
                 header = False
