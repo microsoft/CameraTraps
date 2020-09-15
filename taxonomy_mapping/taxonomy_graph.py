@@ -212,16 +212,18 @@ def build_taxonomy_graph(taxonomy_df: pd.DataFrame
 
     Returns:
         graph: nx.DiGraph
-        taxon_to_node: dict, maps (taxon_level, taxon_name) to a TaxonNode
+        taxon_to_node: dict, maps (taxon_level, taxon_name) to a TaxonNode,
+            keys are all lowercase
         label_to_node: dict, maps (dataset_name, dataset_label) to the lowest
-            TaxonNode node in the tree that contains the label
+            TaxonNode node in the tree that contains the label,
+            keys are all lowercase
     """
     graph = nx.DiGraph()
     taxon_to_node = {}  # maps (taxon_level, taxon_name) to a TaxonNode
     label_to_node = {}  # maps (dataset_name, dataset_label) to a TaxonNode
     for _, row in taxonomy_df.iterrows():
-        ds = row['dataset_name']
-        ds_label = row['query']
+        ds = row['dataset_name'].lower()
+        ds_label = row['query'].lower()
         id_source = row['source']
         taxa_ancestry = row['taxonomy_string']
         if pd.isna(taxa_ancestry):
@@ -234,6 +236,8 @@ def build_taxonomy_graph(taxonomy_df: pd.DataFrame
         taxon_child: Optional[TaxonNode] = None
         for i, taxon in enumerate(taxa_ancestry):
             taxon_id, taxon_level, taxon_name, _ = taxon
+            taxon_level = taxon_level.lower()
+            taxon_name = taxon_name.lower()
 
             key = (taxon_level, taxon_name)
             if key not in taxon_to_node:
