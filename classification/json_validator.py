@@ -171,7 +171,7 @@ def main(label_spec_json_path: str,
         json.dump(image_counts_by_label, f, indent=1)
 
 
-def parse_taxa(taxa_dicts: List[Dict[str, str]],
+def parse_taxa(taxa_dicts: List[Dict[str, Any]],
                taxonomy_dict: Dict[Tuple[str, str], TaxonNode]
                ) -> Set[Tuple[str, str]]:
     """Gathers the dataset labels requested by a "taxa" specification.
@@ -188,7 +188,7 @@ def parse_taxa(taxa_dicts: List[Dict[str, str]],
     """
     results = set()
     for taxon in taxa_dicts:
-        key = (taxon['level'], taxon['name'])
+        key = (taxon['level'].lower(), taxon['name'].lower())
         datasets = taxon.get('datasets', None)
         results |= taxonomy_dict[key].get_dataset_labels(datasets)
     return results
