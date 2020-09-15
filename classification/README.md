@@ -4,7 +4,12 @@
   * [Installation](#installation)
   * [Directory Structure](#directory-structure)
   * [Environment Variables](#environment-variables)
-* Running MegaClassifier on New Data
+* [Running a classifier on new images](#running-a-classifier-on-new-images)
+  1. [Run MegaDetector](#run-megadetector)
+  2. [Crop images](#crop-images)
+  3. [Run classifier](#run-classifier)
+  4. [(Optional) Build mapping from desired categories to MegaClassifier categories](#TODO)
+  5. [Merge classification results with detection JSON](#merge-classification-results-with-detection-json)
 * Typical Training Pipeline
   1. Select classification labels for training.
   2. Validate the classification labels specification JSON file, and generate a list of images to run detection on.
@@ -15,7 +20,9 @@
   7. Evaluate classifier.
   8. Export classification results as JSON.
   9. (Optional) Identify potentially mislabeled images.
-* Miscellaneous Notes
+* [Label Specification Syntax](label-specification-syntax)
+  * [CSV](#csv)
+  * [JSON](#json)
 
 
 # Overview
@@ -66,7 +73,7 @@ jupyter labextension install @jupyter-widgets/jupyterlab-manager
 
 ## Directory Structure
 
-The classifier pipeline assumes the following directory structure:
+The classifier pipeline assumes the following directories:
 
 ```
 classifier-training/            # Azure container mounted locally
@@ -75,32 +82,49 @@ classifier-training/            # Azure container mounted locally
             datasetX.json
     megadb_mislabeled/          # known mislabeled images in MegaDB
         datasetX.csv
+    megaclassifier/             # files relevant to MegaClassifier
 
-full_images/                    # (optional) local directory to save full-size images
+images/                         # (optional) local directory to save full-size images
+    datasetX/                   # images are organized by dataset
+        img0.jpg
 
-image_crops/                    # local directory to save cropped images
-    datasetX/
+crops/                          # local directory to save cropped images
+    datasetX/                   # images are organized by dataset
+        img0___crop00.jpg
 
 CameraTraps/                    # this git repo
     classification/
-        BASE_LOGDIR/
-            LOGDIR/
+        BASE_LOGDIR/            # classification dataset and splits
+            LOGDIR/             # logs and checkpoints from a single training run
 
 camera-traps-private/           # internal taxonomy git repo
     camera_trap_taxonomy_mapping.csv  # THE taxonomy CSV file
 ```
 
-- `classifier-training` Azure storage container is mounted locally
-  - This is used for [TODO].
-- `
-
 
 ## Environment Variables
 
-TODO
+The following environment variables are useful to have in `.bashrc`:
+
+```bash
+# Python development
+export PYTHONPATH="/path/to/repos/CameraTraps:/path/to/repos/ai4eutils"
+export MYPYPATH=$PYTHONPATH
+
+# accessing MegaDB
+export COSMOS_ENDPOINT="[INTERNAL_USE]"
+export COSMOS_KEY="[INTERNAL_USE]"
+
+# running Batch API
+export BATCH_DETECTION_API_URL="http://[INTERNAL_USE]/v3/camera-trap/detection-batch"
+export CLASSIFICATION_BLOB_STORAGE_ACCOUNT="[INTERNAL_USE]"
+export CLASSIFICATION_BLOB_CONTAINER="classifier-training"
+export CLASSIFICATION_BLOB_CONTAINER_WRITE_SAS="[INTERNAL_USE]"
+export DETECTION_API_CALLER="[INTERNAL_USE]"
+```
 
 
-# Running a classifier on new data
+# Running a classifier on new images
 
 ## 1. Run MegaDetector
 
@@ -138,7 +162,7 @@ See [`api/batch_processing/data_preparation/manage_api_submission.py`](https://g
 
 ## 2. Crop images
 
-Run `crop_detections.py` to crop the bounding boxes according to the detections JSON. Pass in an Azure Blob Storage container URL if the images are not stored locally and the detections were obtained from the Batch API. The crops are saved to `/path/to/crops`.
+Run `crop_detections.py` to crop the bounding boxes according to the detections JSON. Pass in an Azure Blob Storage container URL if the images are not stored locally and the detections were obtained from the Batch API. The crops are saved to `/path/to/crops`. Unless you have a good reason not to, use the `--square-crops` flag, which crops the tightest square enclosing each bounding box (which may have an arbitrary aspect ratio).
 
 ```bash
 python crop_detections.py \
@@ -155,13 +179,17 @@ python crop_detections.py \
 
 ## 3. Run classifier
 
-MegaClassifier's model file is stored in the `classifier-training` Azure container under the `megaclassifier/` directory.
+Load the TorchScript-compiled model file for the classifier. A normal PyTorch checkpoint (e.g., with a `state_dict`) will not work here. For example, MegaClassifier's compiled model file can be found at `classifier-training/megaclassifier/v0.1_efficientnet-b3_compiled.pt`.
+
+The following script will output a CSV file (optionally gzipped) whose columns are:
+* `path`: path to image crop, relative to the cropped images directory
+* category names: one column per classifier output category. The values are the confidence of the classifier on each category.
 
 On a GPU, this should run at ~200 crops per second.
 
 ```bash
 python run_classifier.py \
-    /path/to/classifier-training/megaclassifier/v0.1_efficientnet-b3.pt \
+    /path/to/classifier-training/megaclassifier/v0.1_efficientnet-b3_compiled.pt \
     /path/to/crops \
     classifier_output.csv.gz \
     --detections-json detections.json \
@@ -169,7 +197,7 @@ python run_classifier.py \
     --image-size 300 --batch-size 64 --num-workers 8
 ```
 
-# 4. (Optional) Build mapping from MegaClassifier categories to desired categories
+# 4. (Optional) Build mapping from desired categories to MegaClassifier categories
 
 
 # 5. Merge classification results with detection JSON
@@ -181,105 +209,11 @@ python run_classifier.py \
 
 ## 1. Select classification labels for training.
 
-Create a classification labels specification JSON file (usually named `label_spec.json`). This file defines the labels that our classifier will be trained to distinguish, as well as the original dataset labels and/or biological taxons that will map to each classification label.
-
-The classification labels specification JSON file must have the following format:
-
-```javascript
-{
-    // name of classification label
-    "cervid": {
-
-        // select animals to include based on hierarchical taxonomy,
-        // optionally restricting to a subset of datasets
-        "taxa": [
-            {
-                "level": "family",
-                "name": "cervidae",
-                "datasets": ["idfg", "idfg_swwlf_2019"]
-                // include all datasets if no "datasets" key given
-            }
-        ],
-
-        // select animals to include based on dataset labels
-        "dataset_labels": {
-            "idfg": ["deer", "elk", "prong"],
-            "idfg_swwlf_2019": ["elk", "muledeer", "whitetaileddeer"],
-        },
-
-        "max_count": 50000  // only include up to this many images (not crops)
-
-        // prioritize images from certain datasets over others,
-        // only used if "max_count" is given
-        "prioritize": [
-            ["idfg_swwlf_2019"],  // give 1st priority to images from this list of datasets
-            ["idfg"]  // give 2nd priority to images from this list of datasets
-            // give remaining priority to images from all other datasets
-        ],
-
-    },
-
-    // name of another classification label
-    "bird": {
-        "taxa": [
-            {
-                "level": "class",
-                "name": "aves",
-            }
-        ],
-        "dataset_labels": {
-            "idfg_swwlf_2019": ["bird"]
-        },
-
-        // exclude animals using the same format
-        "exclude": {
-            // same format as "taxa" above
-            "taxa": [
-                {
-                    "level": "genus",
-                    "name": "meleagris"
-                }
-            ],
-
-            // same format as "dataset_labels" above
-            "dataset_labels": {
-                "idfg_swwlf_2019": ["turkey"]
-            }
-        }
-    }
-}
-```
+Create a classification labels specification JSON file (usually named `label_spec.json`). This file defines the labels that our classifier will be trained to distinguish, as well as the original dataset labels and/or biological taxons that will map to each classification label. See the required format [here](#json).
 
 For MegaClassifier, see `megaclassifier_label_spec.ipynb` to see how the label specification JSON file is generated.
 
-For bespoke classifiers, it is likely easier to write a CSV file instead of manually writing the JSON file. We then translate to JSON using `csv_to_json.py`. The CSV syntax is as follows:
-
-<details>
-    <summary>Syntax for CSV Label Specification</summary>
-
-```
-output_label,type,content
-
-# select a specific row from the master taxonomy CSV
-<label>,row,<dataset_name>|<dataset_label>
-
-# select all animals in a taxon from a particular dataset
-<label>,datasettaxon,<dataset_name>|<taxon_level>|<taxon_name>
-
-# select all animals in a taxon across all datasets
-<label>,<taxon_level>,<taxon_name>
-
-# exclude certain rows or taxons
-!<label>,...
-
-# set a limit on the number of images to sample for this class
-<label>,max_count,<int>
-
-# when sampling images, prioritize certain datasets over others
-# is they Python syntax for List[List[str]], i.e., a list of lists of strings
-<label>,prioritize,"[['<dataset_name1>', '<dataset_name2>'], ['<dataset_name3>']]"
-```
-</details>
+For bespoke classifiers, it is likely easier to write a CSV file instead of manually writing the JSON file. We then translate to JSON using `csv_to_json.py`. The CSV syntax can be found [here](#csv).
 
 
 ## 2. Validate the classification labels specification JSON file, and generate a list of matching images.
@@ -293,16 +227,16 @@ The output of `json_validator.py` is another JSON file (`queried_images.json`) t
     "caltech/cct_images/59f79901-23d2-11e8-a6a3-ec086b02610b.jpg": {
         "dataset": "caltech",
         "location": 13,
-        "class": "mountain_lion",  // class from dataset
+        "class": "mountain_lion",  // class from dataset in MegaDB
         "bbox": [{"category": "animal",
                   "bbox": [0, 0.347, 0.237, 0.257]}],
-        "label": ["monutain_lion"]  // labels to use in classifier
+        "label": ["cat"]  // labels to use in classifier
     },
     "caltech/cct_images/59f5fe2b-23d2-11e8-a6a3-ec086b02610b.jpg": {
         "dataset": "caltech",
         "location": 13,
-        "class": "mountain_lion",  // class from dataset
-        "label": ["monutain_lion"]  // labels to use in classifier
+        "class": "mountain_lion",  // class from dataset in MegaDB
+        "label": ["cat"]  // labels to use in classifier
     },
     ...
 }
@@ -436,7 +370,7 @@ The following hyperparameters for MegaClassifier seem to work well for both Effi
 python evaluate_model.py $BASE_LOGDIR/$LOGDIR ckpt_XX.pt
 ```
 
-### 8. Export classification results as JSON.
+## 8. Export classification results as JSON.
 
 Once we have the `output_{split}.csv.gz` files, we can export our classification results in the Batch Detection API JSON format. The following command generates such a JSON file for the images from the test set, including only classification probabilities greater than 0.1, and also including the true label:
 
@@ -511,4 +445,102 @@ When you are done identifying mislabeled images, export the Timelapse database t
 
 ```bash
 python save_mislabeled.py $HOME/classifier-training /path/to/mislabeled_images.csv
+```
+
+
+# Label Specification Syntax
+
+## CSV
+
+```
+output_label,type,content
+
+# select a specific row from the master taxonomy CSV
+<label>,row,<dataset_name>|<dataset_label>
+
+# select all animals in a taxon from a particular dataset
+<label>,datasettaxon,<dataset_name>|<taxon_level>|<taxon_name>
+
+# select all animals in a taxon across all datasets
+<label>,<taxon_level>,<taxon_name>
+
+# exclude certain rows or taxons
+!<label>,...
+
+# set a limit on the number of images to sample for this class
+<label>,max_count,<int>
+
+# when sampling images, prioritize certain datasets over others
+# is they Python syntax for List[List[str]], i.e., a list of lists of strings
+<label>,prioritize,"[['<dataset_name1>', '<dataset_name2>'], ['<dataset_name3>']]"
+```
+
+A CSV label specification file can be converted to the [JSON label specification syntax](#json) via the Python script `csv_to_json.py`.
+
+
+## JSON
+
+```javascript
+{
+    // name of classification label
+    "cervid": {
+
+        // select animals to include based on hierarchical taxonomy,
+        // optionally restricting to a subset of datasets
+        "taxa": [
+            {
+                "level": "family",
+                "name": "cervidae",
+                "datasets": ["idfg", "idfg_swwlf_2019"]
+                // include all datasets if no "datasets" key given
+            }
+        ],
+
+        // select animals to include based on dataset labels
+        "dataset_labels": {
+            "idfg": ["deer", "elk", "prong"],
+            "idfg_swwlf_2019": ["elk", "muledeer", "whitetaileddeer"],
+        },
+
+        "max_count": 50000  // only include up to this many images (not crops)
+
+        // prioritize images from certain datasets over others,
+        // only used if "max_count" is given
+        "prioritize": [
+            ["idfg_swwlf_2019"],  // give 1st priority to images from this list of datasets
+            ["idfg"]  // give 2nd priority to images from this list of datasets
+            // give remaining priority to images from all other datasets
+        ],
+
+    },
+
+    // name of another classification label
+    "bird": {
+        "taxa": [
+            {
+                "level": "class",
+                "name": "aves",
+            }
+        ],
+        "dataset_labels": {
+            "idfg_swwlf_2019": ["bird"]
+        },
+
+        // exclude animals using the same format
+        "exclude": {
+            // same format as "taxa" above
+            "taxa": [
+                {
+                    "level": "genus",
+                    "name": "meleagris"
+                }
+            ],
+
+            // same format as "dataset_labels" above
+            "dataset_labels": {
+                "idfg_swwlf_2019": ["turkey"]
+            }
+        }
+    }
+}
 ```

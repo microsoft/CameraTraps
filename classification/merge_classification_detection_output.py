@@ -280,7 +280,8 @@ def _parse_args() -> argparse.Namespace:
         help='(required) detector version string, e.g., "4.1"')
     parser.add_argument(
         '-o', '--output-json', required=True,
-        help='(required) path to save output JSON')
+        help='(required) path to save output JSON with both detection and '
+             'classification results')
     parser.add_argument(
         '-t', '--threshold', type=float, default=0.1,
         help='Confidence threshold between 0 and 1.0. Exclude classes below '

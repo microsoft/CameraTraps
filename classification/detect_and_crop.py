@@ -39,10 +39,10 @@ from 00 up to 99. Based on the given confidence threshold, we may skip saving
 certain bounding box crops, but we still increment the bounding box number for
 skipped boxes.
 
-Example cropped image path (with ground truth bbox)
-    "path/to/images.jpg___crop00.jpg"
+Example cropped image path (with ground truth bbox from MegaDB)
+    "path/to/crops/image.jpg___crop00.jpg"
 Example cropped image path (with MegaDetector bbox)
-    "path/to/images.jpg___crop00_mdv4.1.jpg"
+    "path/to/crops/image.jpg___crop00_mdv4.1.jpg"
 
 By default, the images are cropped exactly per the given bounding box
 coordinates. However, if square crops are desired, pass the --square-crops
