@@ -169,7 +169,7 @@ def analyze_images(url_or_path: str, json_keys: Optional[Sequence[str]] = None,
         img_paths_json = img_paths
         img_paths = []
         for k in json_keys:
-            img_paths.extend(img_paths_json[k])
+            img_paths += img_paths_json[k]
 
     mapping = {
         status: []
