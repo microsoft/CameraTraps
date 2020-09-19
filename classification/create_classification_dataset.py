@@ -524,7 +524,7 @@ def _parse_args() -> argparse.Namespace:
         help='whether to generate only a CSV, only a splits.json file (based '
              'on an existing classification_ds.csv), or both')
     parser.add_argument(
-        '--match-test', nargs=2,
+        '--match-test', nargs=2, metavar=('CLASSIFICATION_CSV', 'SPLITS_JSON'),
         help='path to an existing classification CSV and path to an existing '
              'splits JSON file from which to match test set')
 
@@ -577,17 +577,16 @@ def _parse_args() -> argparse.Namespace:
 
 if __name__ == '__main__':
     args = _parse_args()
-    main(
-        output_dir=args.output_dir,
-        mode=args.mode,
-        match_test=args.match_test,
-        queried_images_json_path=args.queried_images_json,
-        cropped_images_dir=args.cropped_images_dir,
-        detector_version=args.detector_version,
-        detector_output_cache_base_dir=args.detector_output_cache_dir,
-        confidence_threshold=args.confidence_threshold,
-        min_locs=args.min_locs,
-        val_frac=args.val_frac,
-        test_frac=args.test_frac,
-        splits_method=args.method,
-        label_spec_json_path=args.label_spec)
+    main(output_dir=args.output_dir,
+         mode=args.mode,
+         match_test=args.match_test,
+         queried_images_json_path=args.queried_images_json,
+         cropped_images_dir=args.cropped_images_dir,
+         detector_version=args.detector_version,
+         detector_output_cache_base_dir=args.detector_output_cache_dir,
+         confidence_threshold=args.confidence_threshold,
+         min_locs=args.min_locs,
+         val_frac=args.val_frac,
+         test_frac=args.test_frac,
+         splits_method=args.method,
+         label_spec_json_path=args.label_spec)
