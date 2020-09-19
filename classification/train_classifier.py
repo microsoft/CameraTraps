@@ -320,7 +320,8 @@ def main(dataset_dir: str,
     logdir = os.path.join(logdir, timestamp)
     os.makedirs(logdir, exist_ok=True)
     print('Created logdir:', logdir)
-    with open(os.path.join(logdir, 'params.json'), 'w') as f:
+    params_json_path = os.path.join(logdir, 'params.json')
+    with open(params_json_path, 'w') as f:
         json.dump(params, f, indent=1)
 
     if 'efficientnet' in model_name:
@@ -444,8 +445,10 @@ def main(dataset_dir: str,
 
     # do a complete evaluation run
     best_epoch = best_epoch_metrics['epoch']
-    evaluate_model.main(logdir, ckpt_name=f'ckpt_{best_epoch}.pt',
-                        splits=evaluate_model.SPLITS)
+    evaluate_model.main(
+        params_json_path=params_json_path,
+        ckpt_path=os.path.join(logdir, f'ckpt_{best_epoch}.pt'),
+        output_dir=logdir, splits=evaluate_model.SPLITS)
 
 
 def log_run(split: str, epoch: int, writer: tensorboard.SummaryWriter,
@@ -738,7 +741,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         '-m', '--model-name', default='efficientnet-b0',
         choices=VALID_MODELS,
-        help='which EfficientNet model')
+        help='which EfficientNet or Resnet model')
     parser.add_argument(
         '--pretrained', nargs='?', const=True, default=False,
         help='start with ImageNet pretrained model or a specific checkpoint')
