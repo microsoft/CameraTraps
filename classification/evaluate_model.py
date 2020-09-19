@@ -60,7 +60,7 @@ def check_override(params: Mapping[str, Any], key: str,
     return override
 
 
-def trace_model(model_name: str, logdir: str, ckpt_name: str, num_classes: int,
+def trace_model(model_name: str, ckpt_path: str, num_classes: int,
                 img_size: int) -> str:
     """Use TorchScript tracing to compile trained model into standalone file.
 
@@ -70,15 +70,19 @@ def trace_model(model_name: str, logdir: str, ckpt_name: str, num_classes: int,
 
     Args:
         model_name: str
-        logdir: str, path to logdir
-        ckpt_name: str, name of checkpoint file within logdir
+        ckpt_path: str, path to checkpoint file
         num_labels: int, number of classification classes
         img_size: int, size of input image, used for tracing
 
-    Returns: str, name of file for compiled model. If ckpt_name is 'ckpt_16.pt',
-        then the returned path is '<logdir>/ckpt_16_compiled.pt'.
+    Returns: str, name of file for compiled model. For example, if ckpt_path is
+        '/path/to/ckpt_16.pt', then the returned path is
+        '/path/to/ckpt_16_compiled.pt'.
     """
-    ckpt_path = os.path.join(logdir, ckpt_name)
+    root, ext = os.path.splitext(ckpt_path)
+    compiled_path = root + '_compiled' + ext
+    if os.path.exists(compiled_path):
+        return compiled_path
+
     model = train_classifier.build_model(model_name, num_classes=num_classes,
                                          pretrained=ckpt_path, finetune=False)
     if 'efficientnet' in model_name:
@@ -88,29 +92,45 @@ def trace_model(model_name: str, logdir: str, ckpt_name: str, num_classes: int,
     ex_img = torch.rand(1, 3, img_size, img_size)
     scripted_model = torch.jit.trace(model, (ex_img,))
 
-    root, ext = os.path.splitext(ckpt_path)
-    compiled_path = root + '_compiled' + ext
     scripted_model.save(compiled_path)
     print('Saved TorchScript compiled model to', compiled_path)
     return compiled_path
 
 
-def main(logdir: str, ckpt_name: str, splits: Sequence[str],
-         batch_size: Optional[int] = None, num_workers: Optional[int] = None,
-         dataset_dir: Optional[str] = None
-         ) -> None:
+def main(params_json_path: str, ckpt_path: str, output_dir: str,
+         splits: Sequence[str], label_index_json_path: Optional[str] = None,
+         **kwargs: Any) -> None:
     """Main function."""
+    # input validation
+    assert os.path.exists(params_json_path)
+    assert os.path.exists(ckpt_path)
+
     # evaluating with accimage is much faster than Pillow or Pillow-SIMD
     torchvision.set_image_backend('accimage')
 
-    with open(os.path.join(logdir, 'params.json'), 'r') as f:
+    # create output directory
+    if not os.path.exists(output_dir):
+        print('Creating output directory:', output_dir)
+        os.makedirs(output_dir, exist_ok=True)
+
+    with open(params_json_path, 'r') as f:
         params = json.load(f)
     pprint(params)
-    model_name = params['model_name']
 
-    batch_size = check_override(params, 'batch_size', batch_size)
-    num_workers = check_override(params, 'num_workers', num_workers)
-    dataset_dir = check_override(params, 'dataset_dir', dataset_dir)
+    # override saved params with kwargs
+    for key, new in kwargs.items():
+        if new is None:
+            continue
+        if key in params:
+            saved = params[key]
+            print(f'Overriding saved {key}. Saved: {saved}. '
+                  f'Override with: {new}.')
+        else:
+            print(f'Did not find {key} in saved params. Using value {new}.')
+        params[key] = new
+
+    model_name: str = params['model_name']
+    dataset_dir: str = params['dataset_dir']
 
     if 'efficientnet' in model_name:
         img_size = efficientnet.EfficientNet.get_image_size(model_name)
@@ -128,14 +148,13 @@ def main(logdir: str, ckpt_name: str, splits: Sequence[str],
         multilabel=params['multilabel'],
         label_weighted=params['label_weighted'],
         weight_by_detection_conf=False,
-        batch_size=batch_size,
+        batch_size=params['batch_size'],
         num_workers=params['num_workers'],
         augment_train=False)
     num_labels = len(label_names)
 
     # create model
-    compiled_path = trace_model(model_name, logdir, ckpt_name, num_labels,
-                                img_size)
+    compiled_path = trace_model(model_name, ckpt_path, num_labels, img_size)
     model = torch.jit.load(compiled_path)
     model, device = train_classifier.prep_device(model)
 
@@ -156,8 +175,9 @@ def main(logdir: str, ckpt_name: str, splits: Sequence[str],
             label_names=label_names, loss_fn=loss_fn)
 
         # this file ends up being huge, so we GZIP compress it
-        df.to_csv(os.path.join(logdir, f'outputs_{split}.csv.gz'), index=False,
-                  compression='gzip')
+        output_csv_path = os.path.join(output_dir, f'outputs_{split}.csv.gz')
+        df.to_csv(output_csv_path, index=False, compression='gzip')
+
         split_metrics[split] = metrics
         cms[split] = cm
         split_label_stats[split] = calc_per_label_stats(cm, label_names)
@@ -171,15 +191,17 @@ def main(logdir: str, ckpt_name: str, splits: Sequence[str],
                           sum((preds == df['label']) * df['weight']) / len(df))
 
     metrics_df = pd.concat(split_metrics, names=['split']).unstack(level=1)
-    metrics_df.to_csv(os.path.join(logdir, 'overall_metrics.csv'))
+    metrics_df.to_csv(os.path.join(output_dir, 'overall_metrics.csv'))
 
     # save the confusion matrices to .npz
-    np.savez_compressed(os.path.join(logdir, 'confusion_matrices.npz'), **cms)
+    npz_path = os.path.join(output_dir, 'confusion_matrices.npz')
+    np.savez_compressed(npz_path, **cms)
 
     # save per-label statistics
     label_stats_df = pd.concat(
         split_label_stats, names=['split', 'label']).reset_index()
-    label_stats_df.to_csv(os.path.join(logdir, 'label_stats.csv'), index=False)
+    label_stats_csv_path = os.path.join(output_dir, 'label_stats.csv')
+    label_stats_df.to_csv(label_stats_csv_path, index=False)
 
 
 def calc_per_label_stats(cm: np.ndarray, label_names: Sequence[str]
@@ -296,7 +318,8 @@ def test_epoch(model: torch.nn.Module,
                 top_correct = train_classifier.correct(
                     outputs, labels, weights=weights, top=top)
                 for k, acc in accs_weighted.items():
-                    acc.update(top_correct[k] * (100. / batch_size), n=batch_size)
+                    acc.update(top_correct[k] * (100. / batch_size),
+                               n=batch_size)
                     desc.append(f'Acc_w@{k} {acc.val:.3f} ({acc.avg:.3f})')
 
             tqdm_loader.set_description(' '.join(desc))
@@ -332,29 +355,39 @@ def _parse_args() -> argparse.Namespace:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description='Evaluate trained model.')
     parser.add_argument(
-        'logdir',
-        help='path to logdir')
+        'params_json',
+        help='path to params.json')
     parser.add_argument(
-        'ckpt_name',
-        help='name of checkpoint file from the logdir')
+        'ckpt_path',
+        help='path to checkpoint file')
+    parser.add_argument(
+        '-o', '--output-dir', required=True,
+        help='(required) path to output directory')
     parser.add_argument(
         '--splits', nargs='*', choices=SPLITS, default=SPLITS,
         help='which splits to evaluate model on')
-    parser.add_argument(
+
+    override_group = parser.add_argument_group(
+        'optional arguments to override values in params_json')
+    override_group.add_argument(
+        '--model-name',
+        help='which EfficientNet or Resnet model')
+    override_group.add_argument(
         '--batch-size', type=int,
-        help='batch size for evaluating model, defaults to training value')
-    parser.add_argument(
+        help='batch size for evaluating model')
+    override_group.add_argument(
         '--num-workers', type=int,
-        help='number of workers for data loading, defaults to training value')
-    parser.add_argument(
+        help='number of workers for data loading')
+    override_group.add_argument(
         '--dataset-dir',
         help='path to directory containing classification_ds.csv, '
-             'label_index.json, and splits.json. Defaults to training value.')
+             'label_index.json, and splits.json')
     return parser.parse_args()
 
 
 if __name__ == '__main__':
     args = _parse_args()
-    main(logdir=args.logdir, ckpt_name=args.ckpt_name, splits=args.splits,
-         batch_size=args.batch_size, num_workers=args.num_workers,
-         dataset_dir=args.dataset_dir)
+    main(params_json_path=args.params_json, ckpt_path=args.ckpt_path,
+         output_dir=args.output_dir, splits=args.splits,
+         model_name=args.model_name, batch_size=args.batch_size,
+         num_workers=args.num_workers, dataset_dir=args.dataset_dir)
