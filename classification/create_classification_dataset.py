@@ -93,7 +93,7 @@ def main(output_dir: str,
     # input validation
     assert set(mode) <= {'csv', 'splits'}
     if label_spec_json_path is not None:
-        assert splits_method == 'smallest_label_first'
+        assert splits_method == 'smallest_first'
 
     test_set_locs = None  # set of (dataset, location) tuples
     test_set_df = None
