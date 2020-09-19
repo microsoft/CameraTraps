@@ -8,7 +8,7 @@ from concurrent import futures
 import json
 from pprint import pprint
 import threading
-from typing import Any, Mapping, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
 from PIL import Image, ImageFile
 import requests
@@ -155,9 +155,11 @@ def analyze_images(url_or_path: str, json_keys: Optional[Sequence[str]] = None,
 
     is_json = ('.json' in url_or_path)
     if url_or_path.startswith(('http://', 'https://')):
-        img_paths = requests.get(url_or_path)
+        r = requests.get(url_or_path)
         if is_json:
-            img_paths = img_paths.json()
+            img_paths = r.json()
+        else:
+            img_paths = r.text.splitlines()
     else:
         with open(url_or_path, 'r') as f:
             if is_json:
@@ -171,7 +173,7 @@ def analyze_images(url_or_path: str, json_keys: Optional[Sequence[str]] = None,
         for k in json_keys:
             img_paths += img_paths_json[k]
 
-    mapping = {
+    mapping: Dict[str, List[str]] = {
         status: []
         for status in ['good', 'nonexistant', 'non_image', 'truncated', 'bad']
     }
