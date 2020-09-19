@@ -85,14 +85,13 @@ is run:
 Example command:
 
     python detect_and_crop.py \
-        run_idfg/queried_images.json \
-        /ssd/crops_sq/ \
-        --detector-output-cache-dir "$HOME/classifier-training/mdcache" \
-        --detector-version "4.1" \
-        --confidence-threshold 0.8 \
-        --images-dir /ssd/images/ \
-        --threads 50 \
-        --save-full-images --square-crops
+        base_logdir/queried_images.json \
+        base_logdir \
+        --detector-output-cache-dir /path/to/classifier-training/mdcache \
+        --detector-version 4.1 \
+        --run-detector --resume-file base_logdir/resume.json \
+        --cropped-images-dir /path/to/crops --square-crops --threshold 0.9 \
+        --save-full-images --images-dir /path/to/images --threads 50
 """
 import argparse
 from concurrent import futures
@@ -771,7 +770,7 @@ def _parse_args() -> argparse.Namespace:
         help='load each crop to ensure file is valid (i.e., not truncated), '
              'only used if <cropped_images_dir> is not None')
     parser.add_argument(
-        '-t', '--confidence-threshold', type=float, default=0.0,
+        '-t', '--threshold', type=float, default=0.0,
         help='confidence threshold above which to crop bounding boxes, '
              'only used if <cropped_images_dir> is not None')
     parser.add_argument(
@@ -797,6 +796,6 @@ if __name__ == '__main__':
          save_full_images=args.save_full_images,
          square_crops=args.square_crops,
          check_crops_valid=args.check_crops_valid,
-         confidence_threshold=args.confidence_threshold,
+         confidence_threshold=args.threshold,
          images_dir=args.images_dir,
          threads=args.threads)

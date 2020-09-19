@@ -123,6 +123,16 @@ export CLASSIFICATION_BLOB_CONTAINER_WRITE_SAS="[INTERNAL_USE]"
 export DETECTION_API_CALLER="[INTERNAL_USE]"
 ```
 
+# MegaClassifier
+
+MegaClassifier is an image classifier. MegaClassifier v0.1 is based on an EfficientNet-B3 architecture, [implemented in PyTorch](https://github.com/lukemelas/EfficientNet-PyTorch). It supports 169 categories*, where each category is either a single biological taxon or a group of related taxons. See the [`megaclassifier_label_spec.ipynb`](https://github.com/microsoft/CameraTraps/blob/master/classification/megaclassifier_label_spec.ipynb) notebook for more details on the categories. The taxonomy used is based on the 2020_09 revision of the taxonomy CSV.
+
+The training dataset, splits, and parameters used for v0.1 can be found in `classifier-training/megaclassifier/v0.1_training`.
+
+*Unfortunately, there are some duplicated taxons. Ideally, these should be corrected in the next revision of the taxonomy CSV. The known list of duplicates includes:
+* _domestic dogs_: sometimes tagged as species "Canis familiaris" and other times tagged as subspecies "Canis lupus familiaris" (see [Wikipedia](https://en.wikipedia.org/wiki/Dog))
+* _zebras_: usually tagged as a species under the genus "equus" but occasionally tagged under the genus "zebra" (see [Wikipedia](https://en.wikipedia.org/wiki/Zebra) and [GBIF](https://www.gbif.org/species/3239462))
+
 
 # Running a classifier on new images
 
@@ -236,16 +246,26 @@ python aggregate_classifier_probs.py \
 
 ## 5. Merge classification results with detection JSON
 
-Finally, merge the classification results CSV with the original detection JSON file. Use the `--threshold` argument to exclude predicted categories from the JSON file if their confidence is below a certain threshold. This file can then be opened in Timelapse (requires v2.2.3.7.1 or greater).
+Finally, merge the classification results CSV with the original detection JSON file. Use the `--threshold` argument to exclude predicted categories from the JSON file if their confidence is below a certain threshold. The output JSON file path is specified by the `--output-json` argument. If desired, this file can then be opened in Timelapse (requires v2.2.3.7.1 or greater).
 
 ```bash
+python merge_classification_detection_output.py \
+    classifier_output_remapped.csv.gz \
+    label_index_remapped.json \
+    --output-json detections_with_classifications.json \
+    --classifier-name megaclassifier_v0.1_efficientnet-b3 \
+    --threshold 0.05 \
+    --detection-json detections.json
 ```
+
 
 # Typical Training Pipeline
 
+Before doing any model training, create a directory under `CameraTraps/classification/` for tracking all of our generated files. We refer to this directory with the variable `$BASE_LOGDIR`.
+
 ## 1. Select classification labels for training.
 
-Create a classification labels specification JSON file (usually named `label_spec.json`). This file defines the labels that our classifier will be trained to distinguish, as well as the original dataset labels and/or biological taxons that will map to each classification label. See the required format [here](#json).
+Create a classification label specification JSON file (usually named `label_spec.json`). This file defines the labels that our classifier will be trained to distinguish, as well as the original dataset labels and/or biological taxons that will map to each classification label. See the required format [here](#json).
 
 For MegaClassifier, see `megaclassifier_label_spec.ipynb` to see how the label specification JSON file is generated.
 
@@ -256,9 +276,9 @@ For bespoke classifiers, it is likely easier to write a CSV file instead of manu
 
 In `json_validator.py`, we validate the classification labels specification JSON file. It checks that the specified taxa are included in the master taxonomy CSV file, which specifies the biological taxonomy for every dataset label in MegaDB. The script then queries MegaDB to list all images that match the classification labels specification, and optionally verifies that each image is only assigned a single classification label.
 
-TODO: explain `-m` flag for mislabeled images.
+There are some known mislabeled images in MegaDB. These mistakes are currently tracked as CSV files (1 per dataset) in `classifier-training/megadb_mislabeled`. Use the `--mislabeled-images` argument to provide `json_validator.py` the path to these CSVs, so it can ignore or correct the mislabeled images after it queries MegaDB.
 
-The output of `json_validator.py` is another JSON file (`queried_images.json`) that maps image names to a dictionary of properties:
+The output of `json_validator.py` is another JSON file (`queried_images.json`) that maps image names to a dictionary of properties. The `"label"` key of each entry is a list of strings. For now, this list should only include a single string. However, we are using a list to provide flexibility for allowing multi-label multi-class classification in the future.
 
 ```javascript
 {
@@ -287,7 +307,7 @@ python json_validator.py \
     $BASE_LOGDIR/label_spec.json \
     /path/to/camera-traps-private/camera_trap_taxonomy_mapping.csv \
     --json-indent 1 \
-    -m /path/to/classifier-training/megab_mislabeled
+    --mislabeled-images /path/to/classifier-training/megab_mislabeled
 ```
 
 
@@ -302,7 +322,31 @@ This step consists of 3 sub-steps:
 
 <details>
     <summary>To run MegaDetector locally</summary>
-    Not implemented yet.
+
+This option is only recommended if there are not too many images (<1 million) and all of your image files are from a single dataset in a single Azure container. Download all of the images to `/path/to/images/name_of_dataset`. Then, follow the instructions from the [MegaDetector README](https://github.com/microsoft/CameraTraps/blob/master/megadetector.md) to run MegaDetector. Finally, cache the detection results. The commands should be roughly as follows, assuming your terminal is in the `CameraTraps/` folder:
+
+```bash
+# Download the MegaDetector model file
+wget -O md_v4.1.0.pb https://lilablobssc.blob.core.windows.net/models/camera_traps/megadetector/md_v4.1.0/md_v4.1.0.pb
+
+# install TensorFlow v1 and other dependences
+conda env update -f environment-detector.yml --prune
+conda activate cameratraps-detector
+
+# run MegaDetector
+python detection/run_tf_detector_batch.py \
+    md_v4.1.0.pb \
+    /path/to/images/name_of_dataset \
+    classification/$BASE_LOGDIR/detections.json \
+    --recursive --output_relative_filenames
+
+# cache the detections
+python cache_batchapi_outputs.py \
+    classification/$BASE_LOGDIR/detections.json \
+    --format detections \
+    --dataset name_of_dataset \
+    --detector-output-cache-dir "/path/to/classifier-training/mdcache" --detector-version "4.1"
+```
 </details>
 
 <details>
@@ -314,29 +358,29 @@ We use the `detect_and_crop.py` script. In theory, we can do everything we need 
 python detect_and_crop.py \
     $BASE_LOGDIR/queried_images.json \
     $BASE_LOGDIR \
-    -c /path/to/classifier-training/mdcache -v "4.1" \
-    -d batchapi -r $BASE_LOGDIR/resume.json \
-    -p /path/to/crops --square-crops -t 0.9 -n 50 \
-    --save-full-images -i /path/to/images
+    --detector-output-cache-dir /path/to/classifier-training/mdcache --detector-version 4.1 \
+    --run-detector --resume-file $BASE_LOGDIR/resume.json \
+    --cropped-images-dir /path/to/crops --square-crops --threshold 0.9 \
+    --save-full-images --images-dir /path/to/images --threads 50
 ```
 
 However, because the Batch Detection API often returns incorrect responses, in practice we often need to call `detect_and_crop.py` multiple times. It is important to understand the 2 different "modes" of the script.
 
 1. Call the Batch Detection API, and cache the results.
-    * To run this mode: set `--detector batchapi`
-    * To skip this mode: set `--detector skip`
+    * To run this mode: set the `--run-detector` flag
+    * To skip this mode: omit the flag
 2. Using ground truth and cached detections, crop the images.
     * To run this mode: set `--cropped-images-dir /path/to/crops`
-    * To skip this mode: don't set `--cropped-images-dir`
+    * To skip this mode: omit `--cropped-images-dir`
 
-Thus, we will first call the Batch Detection API. This will save a `resume.json` file that contains all of the task IDs. Because the Batch Detection API does not always respond with the correct task status, the only real way to verify if a task has finished running is to check the `async-api-*` Azure Storage container and see if the output files are there.
+Thus, we will first call the Batch Detection API. This will save a `resume.json` file that contains all of the task IDs. Because the Batch Detection API does not always respond with the correct task status, the only real way to verify if a task has finished running is to check the `async-api-*` Azure Storage container and see if the 3 output files are there.
 
 ```bash
 python detect_and_crop.py \
     $BASE_LOGDIR/queried_images.json \
     $BASE_LOGDIR \
-    -c /path/to/classifier-training/mdcache -v "4.1" \
-    -d batchapi -r $BASE_LOGDIR/resume.json
+    --detector-output-cache-dir /path/to/classifier-training/mdcache --detector-version 4.1 \
+    --run-detector --resume-file $BASE_LOGDIR/resume.json
 ```
 
 When a task finishes running, manually create a JSON file for each task according to the [Batch Detection API response format](https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing#api-outputs). Save the JSON file to `$BASE_LOGDIR/batchapi_response/dataset.json`. Then, use `cache_batchapi_outputs.py` to cache these results:
@@ -345,32 +389,82 @@ When a task finishes running, manually create a JSON file for each task accordin
 python cache_batchapi_outputs.py \
     $BASE_LOGDIR/batchapi_response/dataset.json \
     --dataset dataset \
-    -c $HOME/classifier-training/mdcache -v 4.1
+    --detector-output-cache-dir /path/to/classifier-training/mdcache --detector-version 4.1
 ```
 
-Finally, we download and crop the images based on the ground truth and detected bounding boxes. On a VM, expect this download and cropping step to run at ~60 images per second (~5 hours for 1 million images).
+Finally, we download and crop the images based on the ground truth and detected bounding boxes. On a VM, expect this download and cropping step to run at ~60 images per second (~5 hours for 1 million images). Unless you have a good reason not to, use the `--square-crops` flag, which crops the tightest square enclosing each bounding box (which may have an arbitrary aspect ratio). Because images are resized to a square during training, using square crops guarantees that the model does not see a distorted aspect ratio of the animal.
 
 ```bash
 python detect_and_crop.py \
     $BASE_LOGDIR/queried_images.json \
     $BASE_LOGDIR \
-    -c /path/to/classifier-training/mdcache -v "4.1" \
-    -d skip -p /path/to/crops --square-crops -t 0.9 -n 50 \
-    --save-full-images -i /path/to/images
+    --detector-output-cache-dir /path/to/classifier-training/mdcache --detector-version 4.1 \
+    --cropped-images-dir /path/to/crops --square-crops --threshold 0.9 \
+    --save-full-images --images-dir /path/to/images --threads 50
 ```
 </details>
 
 
 ## 4. Create classification dataset and split into train/val/test sets by location.
 
+Prepaing a classification dataset for training involves two steps. First, we create a CSV file representing our classification dataset, where each row in this CSV represents a single training example, which is an image crop with its label. Second, we partition the training examples into 3 splits (train, val, and test) based on the location the images were taken. Both of these steps are handled by `create_classification_dataset.py`.
+
+**Creating the classification dataset CSV**
+
+The classification dataset CSV has the columns listed below. Only image crops in `/path/to/crops` from images listed in the `queried_images.json` file are included in the classification dataset CSV. For now, the 'label' column is a single value. However, we support a comma-separated list of labels to provide flexibility for allowing multi-label multi-class classification in the future.
+
+- 'path': str, path to image crop
+- 'dataset': str, name of dataset that image is from
+- 'location': str, location that image was taken, as saved in MegaDB, or `"unknown_location"` if no location is provided in MegaDB
+- 'dataset_class': str, original class assigned to image, as saved in MegaDB
+- 'confidence': float, confidence that this crop is of an actual animal, 1.0 if the crop is a "ground truth bounding box" (i.e., from MegaDB), <= 1.0 if the bounding box was detected by MegaDetector
+- 'label': str, comma-separated list of label(s) assigned to this crop for the sake of classification
+
+The command to create the CSV is shown below. Two arguments merit explanation:
+
+- The `--threshold` argument filters out crops whose detection confidence is below a given threshold. Note, however, that if during the cropping step you only cropped bounding boxes above a detection confidence of 0.9, specifying a threshold of 0.8 here will have the same effect as specifying a threshold of 0.9. This script will not magically go back and crop the bounding boxes with a detection confidence between 0.8 and 0.9.
+- The `--min-locs` argument filters out crops whose label appears in fewer than some number of locations. This is useful for targetting a minimum diversity of locations. Because we split images into train/val/test based on location, at the bare minimum you should consider setting `--min-locs 3`. Otherwise, the label will be entirely excluded from at least one of the 3 splits.
+
 ```bash
 python create_classification_dataset.py \
-    BASE_LOGDIR \
+    $BASE_LOGDIR \
+    --mode csv \
+    --queried-images-json $BASE_LOGDIR/queried_images.json \
+    --cropped-images-dir /path/to/crops \
+    --detector-output-cache-dir /path/to/classifier-training/mdcache --detector-version 4.1 \
+    --threshold 0.9 \
+    --min-locs 20
+```
+
+**Splitting training examples by location**
+
+We split training examples by location in order to test the classifier's ability to generalize to unseen locations. Otherwise, the classifier might "memorize" the distribution of known species at each location. This second step assumes that a classification dataset CSV already exists at `$BASE_LOGDIR/classification_ds.csv`.
+
+TODO:
+- explain --method
+- explain --match-test
+- explain --label-spec
+
+
+```bash
+python create_classification_dataset.py \
+    $BASE_LOGDIR \
+    --mode splits \
+    --val-frac 0.2 --test-frac 0.2 \
+    --method random
+```
+
+**Combining both steps in one command**
+
+```bash
+python create_classification_dataset.py \
+    $BASE_LOGDIR \
     --mode csv splits \
-    -q $BASE_LOGDIR/queried_images.json \
-    -c /path/to/crops \
-    -d /path/to/classifier-training/mdcache -v "4.1" \
-    -t 0.8 --min-locs 20 \
+    --queried-images-json $BASE_LOGDIR/queried_images.json \
+    --cropped-images-dir /path/to/crops \
+    --detector-output-cache-dir /path/to/classifier-training/mdcache --detector-version 4.1 \
+    --threshold 0.9 \
+    --min-locs 20 \
     --val-frac 0.2 --test-frac 0.2 \
     --method random
 ```
