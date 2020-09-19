@@ -8,15 +8,15 @@
   1. [Run MegaDetector](#1-run-megadetector)
   2. [Crop images](#2-crop-images)
   3. [Run classifier](#3-run-classifier)
-  4. [(Optional) Build mapping from desired categories to MegaClassifier categories](#4-optional-build-mapping-from-desired-categories-to-megaclassifier-categories)
+  4. [(Optional) Map MegaClassifier categories to desired categories](#4-optional-map-megaclassifier-categories-to-desired-categories)
   5. [Merge classification results with detection JSON](#5-merge-classification-results-with-detection-json)
 * [Typical Training Pipeline](#typical-training-pipeline)
-  1. Select classification labels for training.
-  2. Validate the classification labels specification JSON file, and generate a list of images to run detection on.
-  3. Submit images without ground-truth bounding boxes to the MegaDetector Batch Detection API to get bounding box labels.
-  4. Create classification dataset and split into train/val/test sets by location.
-  5. (Optional) Manually inspect dataset.
-  6. Train classifier.
+  1. [Select classification labels for training](#1-select-classification-labels-for-training)
+  2. [Query MegaDB for labeled images](#2-query-megadb-for-labeled-images)
+  3. [For images without ground-truth bounding boxes, generate bounding boxes using MegaDetector](#3-for-images-without-ground-truth-bounding-boxes-generate-bounding-boxes-using-megadetector)
+  4. [Create classification dataset and split into train/val/test sets by location](#4-create-classification-dataset-and-split-image-crops-into-train/val/test-sets-by-location)
+  5. [(Optional) Manually inspect dataset](#5-optional-manually-inspect-dataset)
+  6. [Train classifier](#6-train-classifier)
   7. Evaluate classifier.
   8. Export classification results as JSON.
   9. (Optional) Identify potentially mislabeled images.
@@ -263,7 +263,7 @@ python merge_classification_detection_output.py \
 
 Before doing any model training, create a directory under `CameraTraps/classification/` for tracking all of our generated files. We refer to this directory with the variable `$BASE_LOGDIR`.
 
-## 1. Select classification labels for training.
+## 1. Select classification labels for training
 
 Create a classification label specification JSON file (usually named `label_spec.json`). This file defines the labels that our classifier will be trained to distinguish, as well as the original dataset labels and/or biological taxons that will map to each classification label. See the required format [here](#json).
 
@@ -272,7 +272,7 @@ For MegaClassifier, see `megaclassifier_label_spec.ipynb` to see how the label s
 For bespoke classifiers, it is likely easier to write a CSV file instead of manually writing the JSON file. We then translate to JSON using `csv_to_json.py`. The CSV syntax can be found [here](#csv).
 
 
-## 2. Validate the classification labels specification JSON file, and generate a list of matching images.
+## 2. Query MegaDB for labeled images
 
 In `json_validator.py`, we validate the classification labels specification JSON file. It checks that the specified taxa are included in the master taxonomy CSV file, which specifies the biological taxonomy for every dataset label in MegaDB. The script then queries MegaDB to list all images that match the classification labels specification, and optionally verifies that each image is only assigned a single classification label.
 
@@ -311,7 +311,7 @@ python json_validator.py \
 ```
 
 
-## 3. Generate bounding boxes using MegaDetector.
+## 3. For images without ground-truth bounding boxes, generate bounding boxes using MegaDetector
 
 While some labeled images in MegaDB already have ground-truth bounding boxes, other images do not. For the labeled images without bounding box annotations, we run MegaDetector to get bounding boxes. MegaDetector can be run either locally or via the Batch Detection API.
 
@@ -405,25 +405,26 @@ python detect_and_crop.py \
 </details>
 
 
-## 4. Create classification dataset and split into train/val/test sets by location.
+## 4. Create classification dataset and split image crops into train/val/test sets by location
 
-Prepaing a classification dataset for training involves two steps. First, we create a CSV file representing our classification dataset, where each row in this CSV represents a single training example, which is an image crop with its label. Second, we partition the training examples into 3 splits (train, val, and test) based on the location the images were taken. Both of these steps are handled by `create_classification_dataset.py`.
+Prepaing a classification dataset for training involves two steps. First, we create a CSV file representing our classification dataset, where each row in this CSV represents a single training example, which is an image crop with its label. Second, we split the training examples into 3 sets (train, val, and test) based on the location the images were taken. Both of these steps are handled by `create_classification_dataset.py`.
 
 **Creating the classification dataset CSV**
 
 The classification dataset CSV has the columns listed below. Only image crops in `/path/to/crops` from images listed in the `queried_images.json` file are included in the classification dataset CSV. For now, the 'label' column is a single value. However, we support a comma-separated list of labels to provide flexibility for allowing multi-label multi-class classification in the future.
 
-- 'path': str, path to image crop
-- 'dataset': str, name of dataset that image is from
-- 'location': str, location that image was taken, as saved in MegaDB, or `"unknown_location"` if no location is provided in MegaDB
-- 'dataset_class': str, original class assigned to image, as saved in MegaDB
-- 'confidence': float, confidence that this crop is of an actual animal, 1.0 if the crop is a "ground truth bounding box" (i.e., from MegaDB), <= 1.0 if the bounding box was detected by MegaDetector
-- 'label': str, comma-separated list of label(s) assigned to this crop for the sake of classification
+* 'path': str, path to image crop
+* 'dataset': str, name of dataset that image is from
+* 'location': str, location that image was taken, as saved in MegaDB, or `"unknown_location"` if no location is provided in MegaDB
+* 'dataset_class': str, original class assigned to image, as saved in MegaDB
+* 'confidence': float, confidence that this crop is of an actual animal, 1.0 if the crop is a "ground truth bounding box" (i.e., from MegaDB), <= 1.0 if the bounding box was detected by MegaDetector
+* 'label': str, comma-separated list of label(s) assigned to this crop for the sake of classification
 
-The command to create the CSV is shown below. Two arguments merit explanation:
+The command to create the CSV is shown below. Three arguments merit explanation:
 
-- The `--threshold` argument filters out crops whose detection confidence is below a given threshold. Note, however, that if during the cropping step you only cropped bounding boxes above a detection confidence of 0.9, specifying a threshold of 0.8 here will have the same effect as specifying a threshold of 0.9. This script will not magically go back and crop the bounding boxes with a detection confidence between 0.8 and 0.9.
-- The `--min-locs` argument filters out crops whose label appears in fewer than some number of locations. This is useful for targetting a minimum diversity of locations. Because we split images into train/val/test based on location, at the bare minimum you should consider setting `--min-locs 3`. Otherwise, the label will be entirely excluded from at least one of the 3 splits.
+* The `--threshold` argument filters out crops whose detection confidence is below a given threshold. Note, however, that if during the cropping step you only cropped bounding boxes above a detection confidence of 0.9, specifying a threshold of 0.8 here will have the same effect as specifying a threshold of 0.9. This script will not magically go back and crop the bounding boxes with a detection confidence between 0.8 and 0.9.
+* The `--min-locs` argument filters out crops whose label appears in fewer than some number of locations. This is useful for targetting a minimum diversity of locations. Because we split images into train/val/test based on location, at the bare minimum you should consider setting `--min-locs 3`. Otherwise, the label will be entirely excluded from at least one of the 3 splits.
+* The `--match-test` argument is useful for trying a new training dataset, but using an existing test set. This argument takes two values: `--match-test CLASSIFICATION_CSV SPLITS_JSON`. After creating the classification dataset (ignoring this argument), the script will append all crops from the given `CLASSIFICATION_CSV` whose "location" appears in the test set from `SPLITS_JSON`.
 
 ```bash
 python create_classification_dataset.py \
@@ -440,11 +441,14 @@ python create_classification_dataset.py \
 
 We split training examples by location in order to test the classifier's ability to generalize to unseen locations. Otherwise, the classifier might "memorize" the distribution of known species at each location. This second step assumes that a classification dataset CSV already exists at `$BASE_LOGDIR/classification_ds.csv`.
 
-TODO:
-- explain --method
-- explain --match-test
-- explain --label-spec
+Several arguments merit explanation:
 
+* `--val-frac` and `--test-frac`: These arguments specify roughly the fraction of all crops that should be put into the val and test sets, respectively. How this is done depends on the `--method` argument, explained below. Note that `--match-test` and `--test-frac` are mutually exclusive arguments, and `--test-frac` is treated as 0 if it is not given. The size of the train set is `1 - val_frac - test_frac`.
+* `--method`: There are two heuristics to choose from which determine how the splits are made:
+  * The `random` heuristic tries 10,000 different combinations of assigning approximately `--val-frac` and `--test-frac` locations to the val and test sets, with the remaining going to the train set. It then scores each of these combinations on how far each label's distribution of image crops and locations are from the desired train/val/test split. The combination with the lowest score
+  * The `smallest_first` heuristic sorts the labels from fewest to most examples, and then sorts the locations for each label from fewest to most examples. Locations are added in order to the test, val, then train sets until each split meets the desired split size.
+* `--label-spec`: This argument is useful for prioritizing certain datasets over others for inclusion in the test set, based on the given label specification JSON file. This argument requires `--method=smallest_first`.
+* The `--match-test` argument is useful for trying a new training dataset, but using an existing test set. This argument takes two values: `--match-test CLASSIFICATION_CSV SPLITS_JSON`. This will simply copy the test set from `SPLITS_JSON`.
 
 ```bash
 python create_classification_dataset.py \
@@ -469,17 +473,32 @@ python create_classification_dataset.py \
     --method random
 ```
 
-## 5. (Optional) Manually inspect dataset.
+## 5. (Optional) Manually inspect dataset
 
-Copy the `inspect_dataset.ipynb` notebook into `$BASE_LOGDIR`. Open a Jupyter lab or notebook instance, and run the notebook.
+Copy the `inspect_dataset.ipynb` notebook into `$BASE_LOGDIR`. Open a Jupyter lab or notebook instance, and run the notebook. This notebook:
 
-## 6. Train classifier.
+* Samples some images from each label and displays them. Verify that these images are reasonable.
+* Prints out the distribution of images and locations across the train, val, and test splits, and highlights the labels that have "extreme" distributions. Verify that these deviations are acceptable.
+
+## 6. Train classifier
+
+Use the `train_classifier.py` script to train a classifier in PyTorch based on either a Resnet ([torchvision](https://pytorch.org/docs/stable/torchvision/models.html#id10)) or EfficientNet ([lukemelas](https://github.com/lukemelas/EfficientNet-PyTorch)) architecture. The script runs the model on the val split after every training epoch, and if the val split achieves a new highest accuracy, it saves the model weights from that epoch and also runs the model on the test split. If the model does not improve the val accuracy for 8 epochs, the model stops training. Finally, the best-performing model (based on val accuracy) is evaluated on all three splits (see the next section).
+
+The script assumes that the `$BASE_LOGDIR` directory has 3 files: 1) classification dataset CSV, 2) label index JSON, and 3) splits JSON.
+
+Most command-line options are self-explanatory. However, several merit explanation:
+
+* `--pretrained`: Without this argument, the model is trained from scratch. If this argument is used as a flag (without a value), then the model uses pre-trained weights from an ImageNet-trained model. This argument can also take a path to a normal model checkpoint (not a TorchScript-compiled checkpoint) as well. This is useful, for example, to use MegaClassifier's weights as the starting point for a bespoke classifier.
+* `--label-weighted`: Instead of a simple random shuffle, this flag causes training examples to be selected through a weighted sampling procedure. Examples are weighted inversely proportional to number of examples in each label. In other words, all labels get sampled with equal frequency. This effectively balances the dataset. We found that weighted sampling was more effective than weighting each example's loss because the weights varied dramatically between labels (e.g., often exceeding 100x between the smallest and largest labels). If using a weighted loss, certain batches would have an extremely large loss and gradient, which was detrimental to training.
+* `--weight-by-detection`: If used as a flag, this argument weights each example by its detection confidence. This argument optionally takes a path to a compressed numpy archive (`.npz`) file containing the isotonic regression interpolation coordinates for calibrating the detection confidence.
+* `--log-extreme-examples`: This flag specifies the number of true-positive (tp), false-positive (fp), and false-negative (fn) examples of each label to log in TensorBoard during each epoch of training. This flag is very helpful for identifying what images the classifier is struggling with during training. However, it is recommended to turn this flag OFF when training MegaClassifier because its RAM usage is linearly proportional to the number of classes (and MegaClassifier has a lot of classes).
+* `--finetune`: If used as a flag, this argument will only adjust the final fully-connected layer of the model. This argument optionally takes an integer, which specifies the number of epochs for fine-tuning the final layer before enabling all layers to be trained. I found that empirically there was no observable benefit to fine-tuning the final layer first before training all layers, so usually there should be no reason to use this argument.
 
 ```bash
 python train_classifier.py \
     $BASE_LOGDIR \
-    /path/to/crops_sq \
-    -m efficientnet-b3 --pretrained
+    /path/to/crops \
+    --model-name efficientnet-b3 --pretrained \
     --label-weighted --weight-by-detection-conf /path/to/classifier-training/mdv4_1_isotonic_calibration.npz \
     --epochs 50 --batch-size 160 --lr 0.0001 \
     --logdir $BASE_LOGDIR --log-extreme-examples 3
@@ -496,7 +515,33 @@ The following hyperparameters for MegaClassifier seem to work well for both Effi
 * `--lr 3e-5`
 * `--weight-decay 1e-6`
 
-## 7. Evaluate classifier.
+**Note about TensorFlow implementation**
+
+There is a `train_classifier_tf.py` script in this directory which attempts to mimic the PyTorch training script, but using TensorFlow v2 instead. The reason I tried to do a TensorFlow implementation is because TensorFlow v2.3 introduced an official Keras EfficientNet implementation, whereas the PyTorch code I used was a third-party implementation. However, the TensorFlow implementation proved difficult to implement well, and several features from the PyTorch version are different or remain lacking in the TensorFlow version:
+
+* Training on multiple GPUs is not supported. PyTorch natively supports this by wrapping a model in `torch.nn.DataParallel`. TensorFlow also supports this when using `tf.keras.Model.fit()`. However, I wrote my own training loop in TensorFlow to match the PyTorch version instead of using `model.fit()`. Adopting `model.fit()` would likely require a completely different implementation from the PyTorch code and involve subclassing `tf.keras.Model` to define a new `model.train_step()` method. For now, the TensorFlow code is limited to a single GPU, which means using extremely small batch sizes.
+* `--label-weighted` uses weighted loss instead of weighted data sampling. Weighted data sampling can be implemented in TensorFlow, but it is much more verbose than the equivalent PyTorch code. See the [TensorFlow tutorial](https://www.tensorflow.org/tutorials/structured_data/imbalanced_data#oversampling) on oversampling the minority class.
+* initializing the model from a checkpoint, e.g., `--pretrained /path/to/checkpoint`
+
+Consequently, I recommend against using the TensorFlow training code until these issues are resolved.
+
+
+## 7. Evaluate classifier
+
+By default, this step is actually already run by the model training code. However, there are two cases where one would want to run this step manually:
+
+* if the training code somehow runs into an error during model evaluation, or
+* if you want to evaluate a model on a different dataset than the model was trained on.
+
+The model evaluation script is `evaluate_model.py`, which compiles a given normal model checkpoint into a TorchScript checkpoint.
+
+TODO
+- explain overrides
+- explain output files
+
+Note that the classifier evaluation code uses the "accimage" backend for image transformations instead of the "Pillow" or "Pillow-SIMD" backend used during training. The accimage backend empirically improves data loading speed by about 20-50% over Pillow and Pillow-SIMD. However, accimage runs into occasional unpredictable errors every once in a while, so it is impractical for training. For evaluation, it has worked quite well though.
+
+There tends to be a small difference in the val and test accuracies between training and evaluation. This might be due to the differences between Pillow and accimage, although I haven't rigorously tested it to be sure.
 
 ```bash
 python evaluate_model.py $BASE_LOGDIR/$LOGDIR ckpt_XX.pt
