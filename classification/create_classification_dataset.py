@@ -288,7 +288,7 @@ def create_classification_csv(
         if len(rows) == 0:
             images_no_confident_detections.append(img_path)
             continue
-        all_rows.extend(rows)
+        all_rows += rows
 
     df = pd.DataFrame(data=all_rows, columns=columns)
 
@@ -425,7 +425,7 @@ def create_splits_smallest_label_first(
             if 'prioritize' in label_spec:
                 datasets = []
                 for level in label_spec['prioritize']:
-                    datasets.extend(level)
+                    datasets += level
                 prioritize[label] = datasets
 
     # merge dataset and location into a tuple (dataset, location)
@@ -503,7 +503,7 @@ def sort_locs_by_size(loc_to_size: MutableMapping[Tuple[str, str], int],
         }
         result = sort_locs_by_size(prioritized_loc_to_size)
 
-    result.extend(sorted(loc_to_size, key=loc_to_size.__getitem__))
+    result += sorted(loc_to_size, key=loc_to_size.__getitem__)
     return result
 
 

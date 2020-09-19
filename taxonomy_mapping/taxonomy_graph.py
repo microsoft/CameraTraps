@@ -183,12 +183,12 @@ class TaxonNode:
         for node in nodes:
             # get path to root
             path = {node}
-            remaining = list(node.parents)  # make a shallow copy
+            remaining = node.parents.copy()  # make a shallow copy
             while len(remaining) > 0:
                 x = remaining.pop()
                 if x not in path:
                     path.add(x)
-                    remaining.extend(x.parents)
+                    remaining += x.parents
             paths.append(path)
         intersect = set.intersection(*paths)
 
