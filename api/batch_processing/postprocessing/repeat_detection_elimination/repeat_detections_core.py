@@ -315,7 +315,13 @@ def find_matches_in_directory(dirName, options, rowsByDirectory):
             for iCandidate, candidate in enumerate(candidateDetections):
 
                 # Is this a match?                    
-                iou = ct_utils.get_iou(bbox, candidate.bbox)
+                try:
+                    iou = ct_utils.get_iou(bbox, candidate.bbox)
+                except Exception as e:
+                    print('Warning: IOU computation error on boxes ({},{},{},{}),({},{},{},{}): {}'.format(
+                        bbox[0],bbox[1],bbox[2],bbox[3],
+                        candidate.bbox[0],candidate.bbox[1],candidate.bbox[2],candidate.bbox[3], str(e)))
+                    continue
 
                 if iou >= options.iouThreshold:
                     
