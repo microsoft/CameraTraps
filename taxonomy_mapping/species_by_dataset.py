@@ -28,16 +28,14 @@ Also, the spreadsheet creation step is only done for datasets in
 DATASETS_TO_INCLUDE_IN_SPREADSHEET specified below. This is usually the datasets
 just ingested that need their species names mapped next.
 
-Leave out the flag `--query_species` if you only want to prepare the spreadsheet
+Leave out the flag `--query-species` if you only want to prepare the spreadsheet
 using previously queried species presence result.
 
 
 Example invocation:
-```
-python taxonomy_mapping/species_by_dataset.py \
-    --output_dir /Users/siyuyang/Source/temp_data/CameraTrap/megadb_query_results/species_by_dataset_trial \
-    --query_species
-```
+    python taxonomy_mapping/species_by_dataset.py \
+        --output-dir $HOME/megadb_query_results/species_by_dataset_trial \
+        --query-species
 """
 
 import argparse
@@ -288,13 +286,13 @@ def make_spreadsheet(megadb_utils: MegadbUtils, output_dir: str) -> None:
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        '--output_dir', required=True,
+        '-o', '--output-dir', required=True,
         help='Path to directory where the JSONs containing species count for '
              'each dataset live')
     parser.add_argument(
-        '--query_species', action='store_true',
-        help='If flagged, query what species are present in a dataset. '
-             'Otherwise, create a spreadsheet for labeling the taxonomy')
+        '-q', '--query-species', action='store_true',
+        help='Query what species are present in a dataset. '
+             'Otherwise, create a spreadsheet for labeling the taxonomy.')
     args = parser.parse_args()
 
     assert 'COSMOS_ENDPOINT' in os.environ and 'COSMOS_KEY' in os.environ
