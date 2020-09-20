@@ -18,8 +18,9 @@
   5. [(Optional) Manually inspect dataset](#5-optional-manually-inspect-dataset)
   6. [Train classifier](#6-train-classifier)
   7. [Evaluate classifier](#7-evaluate-classifier)
-  8. [Export classification results as JSON](#8-export-classification-results-as-json)
-  9. [(Optional) Identify potentially mislabeled images](#9-optional-identify-potentially-mislabeled-images)
+  8. [Analyze classification results](#8-analyze-classification-results)
+  9. [Export classification results as JSON](#9-export-classification-results-as-json)
+  10. [(Optional) Identify potentially mislabeled images](#10-optional-identify-potentially-mislabeled-images)
 * [Label Specification Syntax](#label-specification-syntax)
   * [CSV](#csv)
   * [JSON](#json)
@@ -597,7 +598,18 @@ python map_classification_categories.py \
     --model-name efficientnet-b3 --batch-size 256 --num-workers 12
 ```
 
-## 8. Export classification results as JSON
+
+## 8. Analyze classification results
+
+Copy the `analyze_classifier_results.ipynb` notebook into `$BASE_LOGDIR/$LOGDIR`. Open a Jupyter lab or notebook instance, and run the notebook. This notebook:
+
+* Plots the confusion matrix for each split.
+* Prints out the precision / recall values for each label.
+* Plots classifier's calibration curve for each label.
+* For a given label, plots images from that label, grouped by their predicted class.
+
+
+## 9. Export classification results as JSON
 
 Once we have the `output_{split}.csv.gz` files, we can export our classification results in the Batch Detection API JSON format. The following command generates such a JSON file for the images from the test set, including only classification probabilities greater than 0.1, and also including the true label:
 
@@ -613,7 +625,7 @@ python merge_classification_detection_output.py \
     --label last
 ```
 
-## 9. (Optional) Identify potentially mislabeled images
+## 10. (Optional) Identify potentially mislabeled images
 
 We can now use our trained classifier to identify potentially mislabeled images by looking at the model's false positives. A "mislabeled candidate" is defined as an image meeting both of the following criteria:
 - according to the ground-truth label, the model made an incorrect prediction
