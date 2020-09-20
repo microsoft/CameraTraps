@@ -98,12 +98,18 @@ def trace_model(model_name: str, ckpt_path: str, num_classes: int,
 
 
 def main(params_json_path: str, ckpt_path: str, output_dir: str,
-         splits: Sequence[str], label_index_json_path: Optional[str] = None,
+         splits: Sequence[str], target_mapping_json_path: Optional[str] = None,
+         label_index_json_path: Optional[str] = None,
          **kwargs: Any) -> None:
     """Main function."""
     # input validation
     assert os.path.exists(params_json_path)
     assert os.path.exists(ckpt_path)
+    assert (target_mapping_json_path is None) == (label_index_json_path is None)
+    if target_mapping_json_path is not None:
+        assert label_index_json_path is not None
+        assert os.path.exists(target_mapping_json_path)
+        assert os.path.exists(label_index_json_path)
 
     # evaluating with accimage is much faster than Pillow or Pillow-SIMD
     torchvision.set_image_backend('accimage')
@@ -139,6 +145,7 @@ def main(params_json_path: str, ckpt_path: str, output_dir: str,
 
     # For now, we don't weight crops by detection confidence during
     # evaluation. But consider changing this.
+    print('Creating dataloaders')
     loaders, label_names = train_classifier.create_dataloaders(
         dataset_csv_path=os.path.join(dataset_dir, 'classification_ds.csv'),
         label_index_json_path=os.path.join(dataset_dir, 'label_index.json'),
@@ -154,9 +161,43 @@ def main(params_json_path: str, ckpt_path: str, output_dir: str,
     num_labels = len(label_names)
 
     # create model
-    compiled_path = trace_model(model_name, ckpt_path, num_labels, img_size)
-    model = torch.jit.load(compiled_path)
+    print('Loading model from checkpoint')
+    try:
+        model = torch.jit.load(ckpt_path, map_location='cpu')
+    except RuntimeError:
+        compiled_path = trace_model(model_name, ckpt_path, num_labels, img_size)
+        model = torch.jit.load(compiled_path, map_location='cpu')
     model, device = train_classifier.prep_device(model)
+
+    target_cols_map = None
+    if target_mapping_json_path is not None:
+        assert label_index_json_path is not None
+
+        # verify that target names matches original "label names" from dataset
+        with open(target_mapping_json_path, 'r') as f:
+            target_names_map = json.load(f)
+        target_names = set(target_names_map.keys())
+
+        # if the dataset does not already have a 'other' category, then the
+        # 'other' category must come last in label_names to avoid conflicting
+        # with an existing label_id
+        if target_names != set(label_names):
+            assert target_names == set(label_names) | {'other'}
+            label_names.append('other')
+
+        with open(label_index_json_path, 'r') as f:
+            idx_to_label = json.load(f)
+        classifier_name_to_idx = {
+            idx_to_label[str(k)]: k for k in range(len(idx_to_label))
+        }
+
+        target_cols_map = {}
+        for i_target, label_name in enumerate(label_names):
+            classifier_names = target_names_map[label_name]
+            target_cols_map[i_target] = [
+                classifier_name_to_idx[classifier_name]
+                for classifier_name in classifier_names
+            ]
 
     # define loss function (criterion)
     loss_fn: torch.nn.Module
@@ -172,7 +213,8 @@ def main(params_json_path: str, ckpt_path: str, output_dir: str,
         print(f'Evaluating {split}...')
         df, metrics, cm = test_epoch(
             model, loaders[split], weighted=True, device=device,
-            label_names=label_names, loss_fn=loss_fn)
+            label_names=label_names, loss_fn=loss_fn,
+            target_mapping=target_cols_map)
 
         # this file ends up being huge, so we GZIP compress it
         output_csv_path = os.path.join(output_dir, f'outputs_{split}.csv.gz')
@@ -208,16 +250,27 @@ def calc_per_label_stats(cm: np.ndarray, label_names: Sequence[str]
                          ) -> pd.DataFrame:
     """
     Args:
-        cm: np.ndarray, confusion matrix C such that C[i,j] is the # of
-            observations known to be in group i and predicted to be in group j
+        cm: np.ndarray, type int, confusion matrix C such that C[i,j] is the #
+            of observations from group i that are predicted to be in group j
         label_names: list of str, label names in order of label id
 
     Returns: pd.DataFrame, index 'label', columns ['precision', 'recall']
+        precision values are in [0, 1]
+        recall values are in [0, 1], or np.nan if that label had 0 ground-truth
+            observations
     """
+    tp = np.diag(cm)  # true positives
+
+    predicted_positives = cm.sum(axis=0, dtype=np.float64)  # tp + fp
+    predicted_positives[predicted_positives == 0] += 1e-8
+
+    all_positives = cm.sum(axis=1, dtype=np.float64)  # tp + fn
+    all_positives[all_positives == 0] = np.nan
+
     df = pd.DataFrame()
     df['label'] = label_names
-    df['precision'] = np.diag(cm) / (cm.sum(axis=0) + 1e-8)
-    df['recall'] = np.diag(cm) / (cm.sum(axis=1) + 1e-8)
+    df['precision'] = tp / predicted_positives
+    df['recall'] = tp / all_positives
     df.set_index('label', inplace=True)
     return df
 
@@ -229,6 +282,7 @@ def test_epoch(model: torch.nn.Module,
                label_names: Sequence[str],
                top: Sequence[int] = (1, 3),
                loss_fn: Optional[torch.nn.Module] = None,
+               target_mapping: Mapping[int, Sequence[int]] = None
                ) -> Tuple[pd.DataFrame, pd.Series, np.ndarray]:
     """Runs for 1 epoch.
 
@@ -240,6 +294,8 @@ def test_epoch(model: torch.nn.Module,
         label_names: list of str, label names in order of label id
         top: tuple of int, list of values of k for calculating top-K accuracy
         loss_fn: optional loss function, calculates per-example loss
+        target_mapping: optional dict, label_id => list of ids from classifer
+            that should map to the label_id
 
     Returns:
         df: pd.DataFrame, columns ['img_file', 'label', 'weight', label_names]
@@ -271,7 +327,7 @@ def test_epoch(model: torch.nn.Module,
     if weighted:
         all_weights = np.zeros(num_examples, dtype=np.float32)
 
-    end_i = 0
+    batch_slice = slice(0, 0)
     tqdm_loader = tqdm.tqdm(loader)
     with torch.no_grad():
         for batch in tqdm_loader:
@@ -285,25 +341,37 @@ def test_epoch(model: torch.nn.Module,
             all_img_files.append(img_files)
 
             batch_size = labels.size(0)
-            start_i = end_i
-            end_i = start_i + batch_size
-            all_labels[start_i:end_i] = labels
+            batch_slice = slice(batch_slice.stop, batch_slice.stop + batch_size)
+            all_labels[batch_slice] = labels
             if weighted:
-                all_weights[start_i:end_i] = weights
+                all_weights[batch_slice] = weights
                 weights = weights.to(device, non_blocking=True)
 
             inputs = inputs.to(device, non_blocking=True)
             labels = labels.to(device, non_blocking=True)
             outputs = model(inputs)
 
-            probs = torch.nn.functional.softmax(outputs, dim=1)
-            all_probs[start_i:end_i] = probs.cpu()
+            # Do target mapping on the outputs (unnormalized logits) instead of
+            # the normalized (softmax) probabilities, because the loss function
+            # uses unnormalized logits. Summing probabilities is equivalent to
+            # log-sum-exp of unnormalized logits.
+            if target_mapping is not None:
+                outputs_mapped = torch.zeros(
+                    [batch_size, num_labels], dtype=outputs.dtype,
+                    device=outputs.device)
+                for target, cols in target_mapping.items():
+                    outputs_mapped[:, target] = torch.logsumexp(
+                        outputs[:, cols], dim=1)
+                outputs = outputs_mapped
+
+            probs = torch.nn.functional.softmax(outputs, dim=1).cpu()
+            all_probs[batch_slice] = probs
 
             desc = []
             if loss_fn is not None:
                 loss = loss_fn(outputs, labels)
                 losses.update(loss.mean().item(), n=batch_size)
-                desc.append(f'Loss {losses.val:.4f} ({losses.avg:.4f})')
+                desc.append(f'Loss {losses.val:.3f} ({losses.avg:.3f})')
                 if weights is not None:
                     loss_weighted = (loss * weights).mean()
                     losses_weighted.update(loss_weighted.item(), n=batch_size)
@@ -312,7 +380,7 @@ def test_epoch(model: torch.nn.Module,
                 outputs, labels, weights=None, top=top)
             for k, acc in accuracies_topk.items():
                 acc.update(top_correct[k] * (100. / batch_size), n=batch_size)
-                desc.append(f'Acc@{k} {acc.val:.3f} ({acc.avg:.3f})')
+                desc.append(f'Acc@{k} {acc.val:.2f} ({acc.avg:.2f})')
 
             if weighted:
                 top_correct = train_classifier.correct(
@@ -320,7 +388,7 @@ def test_epoch(model: torch.nn.Module,
                 for k, acc in accs_weighted.items():
                     acc.update(top_correct[k] * (100. / batch_size),
                                n=batch_size)
-                    desc.append(f'Acc_w@{k} {acc.val:.3f} ({acc.avg:.3f})')
+                    desc.append(f'Acc_w@{k} {acc.val:.2f} ({acc.avg:.2f})')
 
             tqdm_loader.set_description(' '.join(desc))
 
@@ -359,13 +427,23 @@ def _parse_args() -> argparse.Namespace:
         help='path to params.json')
     parser.add_argument(
         'ckpt_path',
-        help='path to checkpoint file')
+        help='path to checkpoint file (normal or TorchScript-compiled)')
     parser.add_argument(
         '-o', '--output-dir', required=True,
         help='(required) path to output directory')
     parser.add_argument(
         '--splits', nargs='*', choices=SPLITS, default=SPLITS,
         help='which splits to evaluate model on')
+
+    other_classifier = parser.add_argument_group(
+        'arguments for evaluating a model (e.g., MegaClassifier) on a '
+        'different set of labels than what the model was trained on')
+    other_classifier.add_argument(
+        '--target-mapping',
+        help='path to JSON file mapping target categories to classifier labels')
+    other_classifier.add_argument(
+        '--label-index',
+        help='path to label index JSON file for classifier')
 
     override_group = parser.add_argument_group(
         'optional arguments to override values in params_json')
@@ -389,5 +467,7 @@ if __name__ == '__main__':
     args = _parse_args()
     main(params_json_path=args.params_json, ckpt_path=args.ckpt_path,
          output_dir=args.output_dir, splits=args.splits,
+         target_mapping_json_path=args.target_mapping,
+         label_index_json_path=args.label_index,
          model_name=args.model_name, batch_size=args.batch_size,
          num_workers=args.num_workers, dataset_dir=args.dataset_dir)
