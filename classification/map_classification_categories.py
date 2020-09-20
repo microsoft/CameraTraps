@@ -17,8 +17,8 @@ The mapping is accomplished as follows:
     subset of the target nodes, then map the classifier category to that target.
     Any partial intersection between a target's nodes and a category's nodes
     is considered an error.
-3. Group all classifier categories that have not yet been assigned a target
-    into the "other" target.
+3. If there are any classifier categories that have not yet been assigned a
+    target, group them into the "other" target.
 
 This script outputs a JSON file that maps each target to a list of classifier
 categories.
@@ -116,7 +116,8 @@ def map_target_to_classifier(
             elif 0 < len(overlap) < len(classifier_nodes):  # partial overlap
                 raise ValueError('Only partial overlap between target '
                                  f'{target} and classifier label {label}')
-    target_to_classifier_labels['other'] = remaining_classifier_labels
+    if len(remaining_classifier_labels) > 0:
+        target_to_classifier_labels['other'] = remaining_classifier_labels
     target_to_sorted_labels = {
         target: sorted(labels_set)
         for target, labels_set in target_to_classifier_labels.items()
