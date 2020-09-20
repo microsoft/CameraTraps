@@ -330,6 +330,7 @@ def main(dataset_dir: str,
         img_size = 224
 
     # create dataloaders and log the index_to_label mapping
+    print('Creating dataloaders')
     loaders, label_names = create_dataloaders(
         dataset_csv_path=os.path.join(dataset_dir, 'classification_ds.csv'),
         label_index_json_path=os.path.join(dataset_dir, 'label_index.json'),
