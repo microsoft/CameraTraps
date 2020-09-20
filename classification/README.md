@@ -4,7 +4,7 @@
   * [Installation](#installation)
   * [Directory Structure](#directory-structure)
   * [Environment Variables](#environment-variables)
-* [Running a classifier on new images](#running-a-classifier-on-new-images)
+* [Run a trained classifier on new images](#run-a-trained-classifier-on-new-images)
   1. [Run MegaDetector](#1-run-megadetector)
   2. [Crop images](#2-crop-images)
   3. [Run classifier](#3-run-classifier)
@@ -17,9 +17,9 @@
   4. [Create classification dataset and split into train/val/test sets by location](#4-create-classification-dataset-and-split-image-crops-into-train/val/test-sets-by-location)
   5. [(Optional) Manually inspect dataset](#5-optional-manually-inspect-dataset)
   6. [Train classifier](#6-train-classifier)
-  7. Evaluate classifier.
-  8. Export classification results as JSON.
-  9. (Optional) Identify potentially mislabeled images.
+  7. [Evaluate classifier](#7-evaluate-classifier)
+  8. [Export classification results as JSON](#8-export-classification-results-as-json)
+  9. [(Optional) Identify potentially mislabeled images](#9-optional-identify-potentially-mislabeled-images)
 * [Label Specification Syntax](#label-specification-syntax)
   * [CSV](#csv)
   * [JSON](#json)
@@ -125,16 +125,18 @@ export DETECTION_API_CALLER="[INTERNAL_USE]"
 
 # MegaClassifier
 
-MegaClassifier is an image classifier. MegaClassifier v0.1 is based on an EfficientNet-B3 architecture, [implemented in PyTorch](https://github.com/lukemelas/EfficientNet-PyTorch). It supports 169 categories*, where each category is either a single biological taxon or a group of related taxons. See the [`megaclassifier_label_spec.ipynb`](https://github.com/microsoft/CameraTraps/blob/master/classification/megaclassifier_label_spec.ipynb) notebook for more details on the categories. The taxonomy used is based on the 2020_09 revision of the taxonomy CSV.
+MegaClassifier is an image classifier. MegaClassifier v0.1 is based on an EfficientNet-B3 architecture, [implemented in PyTorch](https://github.com/lukemelas/EfficientNet-PyTorch). It supports 169 categories*, where each category is either a single biological taxon or a group of related taxa. See the [`megaclassifier_label_spec.ipynb`](https://github.com/microsoft/CameraTraps/blob/master/classification/megaclassifier_label_spec.ipynb) notebook for more details on the categories. The taxonomy used is based on the 2020_09 revision of the taxonomy CSV.
 
 The training dataset, splits, and parameters used for v0.1 can be found in `classifier-training/megaclassifier/v0.1_training`.
 
-*Unfortunately, there are some duplicated taxons. Ideally, these should be corrected in the next revision of the taxonomy CSV. The known list of duplicates includes:
+*Unfortunately, there are some duplicated taxa. Ideally, these should be corrected in the next revision of the taxonomy CSV. The known list of duplicates includes:
 * _domestic dogs_: sometimes tagged as species "Canis familiaris" and other times tagged as subspecies "Canis lupus familiaris" (see [Wikipedia](https://en.wikipedia.org/wiki/Dog))
 * _zebras_: usually tagged as a species under the genus "equus" but occasionally tagged under the genus "zebra" (see [Wikipedia](https://en.wikipedia.org/wiki/Zebra) and [GBIF](https://www.gbif.org/species/3239462))
 
 
-# Running a classifier on new images
+# Run a trained classifier on new images
+
+This section explains how to run MegaClassifier on new images. To run MegaClassifier on images already in MegaDB, see the [_Evaluate classifier_](#7-evaluate-classifier) section below.
 
 ## 1. Run MegaDetector
 
@@ -217,11 +219,11 @@ MegaClassifier outputs 100+ categories, but we usually don't care about all of t
 
 **Specify the target categories that we care about.**
 
-Use the [label specification syntax](#label-specification-syntax) to specify the taxons and/or dataset classes that constitute each target category. If using the CSV format, convert it to the JSON specification syntax using `python csv_to_json.py`.
+Use the [label specification syntax](#label-specification-syntax) to specify the taxa and/or dataset classes that constitute each target category. If using the CSV format, convert it to the JSON specification syntax using `python csv_to_json.py`.
 
 **Build a mapping from desired target categories to MegaClassifier labels.**
 
-Run the `map_classification_categories.py` script with the target label specification JSON to create a mapping from target categories to MegaClassifier labels. The output file is another JSON file representing a dictionary whose keys are target categories and whose values are lists of MegaClassifier labels. MegaClassifier labels who are not explictly assigned a target are assigned to a target named "other". Each MegaClassifier label is assigned to exactly one target category.
+Run the `map_classification_categories.py` script with the target label specification JSON to create a mapping from target categories to MegaClassifier labels. The output file is another JSON file representing a dictionary whose keys are target categories and whose values are lists of MegaClassifier labels. MegaClassifier labels who are not explicitly assigned a target are assigned to a target named "other". Each MegaClassifier label is assigned to exactly one target category.
 
 ```bash
 python map_classification_categories.py \
@@ -265,7 +267,7 @@ Before doing any model training, create a directory under `CameraTraps/classific
 
 ## 1. Select classification labels for training
 
-Create a classification label specification JSON file (usually named `label_spec.json`). This file defines the labels that our classifier will be trained to distinguish, as well as the original dataset labels and/or biological taxons that will map to each classification label. See the required format [here](#json).
+Create a classification label specification JSON file (usually named `label_spec.json`). This file defines the labels that our classifier will be trained to distinguish, as well as the original dataset labels and/or biological taxa that will map to each classification label. See the required format [here](#json).
 
 For MegaClassifier, see `megaclassifier_label_spec.ipynb` to see how the label specification JSON file is generated.
 
@@ -407,7 +409,7 @@ python detect_and_crop.py \
 
 ## 4. Create classification dataset and split image crops into train/val/test sets by location
 
-Prepaing a classification dataset for training involves two steps. First, we create a CSV file representing our classification dataset, where each row in this CSV represents a single training example, which is an image crop with its label. Second, we split the training examples into 3 sets (train, val, and test) based on the location the images were taken. Both of these steps are handled by `create_classification_dataset.py`.
+Preparing a classification dataset for training involves two steps. First, we create a CSV file representing our classification dataset, where each row in this CSV represents a single training example, which is an image crop with its label. Second, we split the training examples into 3 sets (train, val, and test) based on the location the images were taken. Both of these steps are handled by `create_classification_dataset.py`.
 
 **Creating the classification dataset CSV**
 
@@ -423,7 +425,7 @@ The classification dataset CSV has the columns listed below. Only image crops in
 The command to create the CSV is shown below. Three arguments merit explanation:
 
 * The `--threshold` argument filters out crops whose detection confidence is below a given threshold. Note, however, that if during the cropping step you only cropped bounding boxes above a detection confidence of 0.9, specifying a threshold of 0.8 here will have the same effect as specifying a threshold of 0.9. This script will not magically go back and crop the bounding boxes with a detection confidence between 0.8 and 0.9.
-* The `--min-locs` argument filters out crops whose label appears in fewer than some number of locations. This is useful for targetting a minimum diversity of locations. Because we split images into train/val/test based on location, at the bare minimum you should consider setting `--min-locs 3`. Otherwise, the label will be entirely excluded from at least one of the 3 splits.
+* The `--min-locs` argument filters out crops whose label appears in fewer than some number of locations. This is useful for targeting a minimum diversity of locations. Because we split images into train/val/test based on location, at the bare minimum you should consider setting `--min-locs 3`. Otherwise, the label will be entirely excluded from at least one of the 3 splits.
 * The `--match-test` argument is useful for trying a new training dataset, but using an existing test set. This argument takes two values: `--match-test CLASSIFICATION_CSV SPLITS_JSON`. After creating the classification dataset (ignoring this argument), the script will append all crops from the given `CLASSIFICATION_CSV` whose "location" appears in the test set from `SPLITS_JSON`.
 
 ```bash
@@ -517,7 +519,7 @@ The following hyperparameters for MegaClassifier seem to work well for both Effi
 
 **Note about TensorFlow implementation**
 
-There is a `train_classifier_tf.py` script in this directory which attempts to mimic the PyTorch training script, but using TensorFlow v2 instead. The reason I tried to do a TensorFlow implementation is because TensorFlow v2.3 introduced an official Keras EfficientNet implementation, whereas the PyTorch code I used was a third-party implementation. However, the TensorFlow implementation proved difficult to implement well, and several features from the PyTorch version are different or remain lacking in the TensorFlow version:
+There is a `train_classifier_tf.py` script in this directory which attempts to mimic the PyTorch training script, but using TensorFlow v2 instead. The reason I tried to do a TensorFlow implementation is because TensorFlow v2.3 introduced an official Keras EfficientNet implementation, whereas the PyTorch EfficientNet was a third-party implementation. However, the TensorFlow implementation proved difficult to implement well, and several features from the PyTorch version are different or remain lacking in the TensorFlow version:
 
 * Training on multiple GPUs is not supported. PyTorch natively supports this by wrapping a model in `torch.nn.DataParallel`. TensorFlow also supports this when using `tf.keras.Model.fit()`. However, I wrote my own training loop in TensorFlow to match the PyTorch version instead of using `model.fit()`. Adopting `model.fit()` would likely require a completely different implementation from the PyTorch code and involve subclassing `tf.keras.Model` to define a new `model.train_step()` method. For now, the TensorFlow code is limited to a single GPU, which means using extremely small batch sizes.
 * `--label-weighted` uses weighted loss instead of weighted data sampling. Weighted data sampling can be implemented in TensorFlow, but it is much more verbose than the equivalent PyTorch code. See the [TensorFlow tutorial](https://www.tensorflow.org/tutorials/structured_data/imbalanced_data#oversampling) on oversampling the minority class.
@@ -528,26 +530,74 @@ Consequently, I recommend against using the TensorFlow training code until these
 
 ## 7. Evaluate classifier
 
-By default, this step is actually already run by the model training code. However, there are two cases where one would want to run this step manually:
+After training a model, we evaluate its performance using `evaluate_model.py`. Technically, this step is actually already run by the model training code (`train_classifier.py`), so usually you do not need to run `evaluate_model.py` on your own. However, there are two situations where you would want to run this step manually:
 
 * if the training code somehow runs into an error during model evaluation, or
-* if you want to evaluate a model on a different dataset than the model was trained on.
+* if you want to evaluate a model (e.g., MegaClassifier) on a different dataset than the model was trained on. See section below on comparing the performance of MegaClassifier vs. a bespoke classifier.
 
-The model evaluation script is `evaluate_model.py`, which compiles a given normal model checkpoint into a TorchScript checkpoint.
+During training, we already output some basic overall statistics about model performance, but during evaluation, we generate a more picture of model performance, captured in the following output files:
 
-TODO
-- explain overrides
-- explain output files
+1. `outputs_{split}.csv`: one file per split, contains columns:
+  * `'path'`: str, path to cropped image
+  * `'label'`: str
+  * `'weight'`: float
+  * `[label names]`: float, confidence in each label
+
+2. `overall_metrics.csv`, contains columns:
+  * `'split'`: str
+  * `'loss'`: float, mean per-example loss over entire epoch
+  * `'acc_top{k}'`: float, accuracy@k over the entire epoch
+  * `'loss_weighted'` and `'acc_weighted_top{k}'`: float, weighted versions
+
+3. `confusion_matrices.npz`: keys are splits (`['train', 'val', 'test']`), values are `np.ndarray` confusion matrices
+
+4. `label_stats.csv`: per-label statistics, columns are `['split', 'label', 'precision', 'recall']`
+
+The `evaluate_model.py` script takes 2 main inputs: a `params.json` file created during model training, and a path to a model checkpoint.
+
+* `params.json`: Passing in a `params.json` file simplifies the number of arguments you need to pass to `evaluate_model.py`, although there are many parameters which can be overridden via command-line arguments (run `evaluate_model.py --help` to see which parameters can be overriden).
+* checkpoint file: This can be either a normal checkpoint or a TorchScript-compiled checkpoint. If the checkpoint is a normal checkpoint, the script will compile a TorchScript checkpoint and save it to the same place as the normal checkpoint, except with a `_compiled` suffix added to the filename.
 
 Note that the classifier evaluation code uses the "accimage" backend for image transformations instead of the "Pillow" or "Pillow-SIMD" backend used during training. The accimage backend empirically improves data loading speed by about 20-50% over Pillow and Pillow-SIMD. However, accimage runs into occasional unpredictable errors every once in a while, so it is impractical for training. For evaluation, it has worked quite well though.
 
 There tends to be a small difference in the val and test accuracies between training and evaluation. This might be due to the differences between Pillow and accimage, although I haven't rigorously tested it to be sure.
 
 ```bash
-python evaluate_model.py $BASE_LOGDIR/$LOGDIR ckpt_XX.pt
+python evaluate_model.py \
+    $BASE_LOGDIR/$LOGDIR/params.json \
+    $BASE_LOGDIR/$LOGDIR/ckpt_XX.pt \
+    --output-dir $BASE_LOGDIR/$LOGDIR \
+    --splits train val test \
+    --batch-size 256
 ```
 
-## 8. Export classification results as JSON.
+**Compare MegaClassifier performance vs. bespoke classifier**
+
+We can also use compare the performance of MegaClassifier vs. a bespoke classifier. First, generate a mapping from MegaClassifier categories to the bespoke classifier's categories using `map_classification_categories.py`. If the bespoke classifier's label specification JSON file was defined using taxa, then you may be able to directly use that JSON file. However, if the label specification was defined using dataset-specific classes, you should consider writing a broader label specification using taxa. See the instructions from [_Map MegaClassifier categories to desired categories_](#4-optional-map-megaclassifier-categories-to-desired-categories)
+
+Next, run `evaluate_mode.py`, passing in the MegaClassifier compiled checkpoint as well as the new category mapping and MegaClassifier's own label index JSON file.
+
+The following script shows example commands. It assumes that the bespoke classifier's log directory is `$BASE_LOGDIR`.
+
+```bash
+python map_classification_categories.py \
+    $BASE_LOGDIR/label_spec.json \
+    /path/to/classifier-training/megaclassifier/v0.1_label_spec.json \
+    /path/to/camera-traps-private/camera_trap_taxonomy_mapping.csv \
+    -o run_idfg4/megaclassifier/target_to_megaclassifier_labels.json \
+    --classifier-label-index /path/to/classifier-training/megaclassifier/v0.1_index_to_name.json
+
+ python evaluate_model.py \
+    $BASE_LOGDIR/$LOGDIR/params.json \
+    /path/to/classifier-training/megaclassifier/v0.1_efficientnet-b3_compiled.pt \
+    --output-dir $BASE_LOGDIR/megaclassifier \
+    --splits test \
+    --target-mapping $BASE_LOGDIR/megaclassifier/target_to_megaclassifier_labels.json \
+    --label-index /path/to/classifier-training/megaclassifier/v0.1_index_to_name.json \
+    --model-name efficientnet-b3 --batch-size 256 --num-workers 12
+```
+
+## 8. Export classification results as JSON
 
 Once we have the `output_{split}.csv.gz` files, we can export our classification results in the Batch Detection API JSON format. The following command generates such a JSON file for the images from the test set, including only classification probabilities greater than 0.1, and also including the true label:
 
@@ -555,14 +605,15 @@ Once we have the `output_{split}.csv.gz` files, we can export our classification
 python merge_classification_detection_output.py \
     $BASE_LOGDIR/$LOGDIR/outputs_test.csv.gz \
     $BASE_LOGDIR/label_index.json \
-    $BASE_LOGDIR/queried_images.json \
-    -n "<classifier_name>" \
-    -c $HOME/classifier-training/mdcache -v "4.1" \
-    -o $BASE_LOGDIR/$LOGDIR/outputs_test.json \
-    --label last -t 0.1
+    --output-json $BASE_LOGDIR/$LOGDIR/outputs_test.json \
+    --classifier-name "myclassifier" \
+    --threshold 0.1 \
+    --queried-images-json $BASE_LOGDIR/queried_images.json \
+    --detector-output-cache-dir /path/to/classifier-training/mdcache --detector-version "4.1" \
+    --label last
 ```
 
-## 9. (Optional) Identify potentially mislabeled images.
+## 9. (Optional) Identify potentially mislabeled images
 
 We can now use our trained classifier to identify potentially mislabeled images by looking at the model's false positives. A "mislabeled candidate" is defined as an image meeting both of the following criteria:
 - according to the ground-truth label, the model made an incorrect prediction
@@ -571,21 +622,23 @@ We can now use our trained classifier to identify potentially mislabeled images 
 At this point, we should have the following folder structure:
 ```
 BASE_LOGDIR/
-    queried_images.json           # generated in step (?)
-    label_index.json              # generated in step (?)
-    LOGDIR/                       # generated in step (?)
+    queried_images.json           # generated in step (2)
+    label_index.json              # generated in step (4)
+    LOGDIR/                       # generated in step (6)
         outputs_{split}.csv.json  # generated in step (7)
 ```
 
 We generate a JSON file that can be loaded into Timelapse to help us review mislabeled candidates. We again use `merge_classification_detection_output.py`. However, instead of outputting raw classification probabilities, we output the margin of error by passing the `--relative-conf` flag.
 
 ```bash
-python merge_classification_detection_output.py $BASE_LOGDIR/$LOGDIR/outputs_test.csv.gz \
+python merge_classification_detection_output.py \
+    $BASE_LOGDIR/$LOGDIR/outputs_test.csv.gz \
     $BASE_LOGDIR/label_index.json \
-    $BASE_LOGDIR/queried_images.json \
-    -n "myclassifier"
-    -c $HOME/classifier-training/mdcache -v "4.1"
-    -o $BASE_LOGDIR/$LOGDIR/outputs_json_test_set_relative_conf.json --relative-conf
+    --output-json $BASE_LOGDIR/$LOGDIR/outputs_json_test_set_relative_conf.json \
+    --classifier-name "myclassifier" \
+    --queried-images-json $BASE_LOGDIR/queried_images.json \
+    --detector-output-cache-dir /path/to/classifier-training/mdcache --detector-version "4.1" \
+    --relative-conf
 ```
 
 If the images are not already on the Timelapse machine, and we don't want to download the entire dataset onto the Timelapse machine, we can instead choose to only download the mislabeled candidate images. We use the `identify_mislabeled_candidates.py` script to generate the lists of images to download, one file per split and dataset: `$LOGDIR/mislabeled_candidates_{split}_{dataset}.txt`. It is recommended to set a high margin >=0.95 in order to restrict ourselves to only the most-likely mislabeled candidates. Then, use either AzCopy or `data_management/megadb/download_images.py` to do the actual downloading.
@@ -602,7 +655,7 @@ python ../data_management/megadb/download_images.py txt \
     --threads 50
 ```
 
-Until AzCopy improves its performance for its undocumented `--list-of-files` option, its performance is generally much slower. However, we can use it as follows:
+Until AzCopy improves its performance for its undocumented `--list-of-files` option, [its performance is generally much slower](https://github.com/Azure/azure-storage-azcopy/issues/1152). However, we can use it as follows:
 
 ```bash
 python identify_mislabeled_candidates.py $BASE_LOGDIR/$LOGDIR \
@@ -621,8 +674,19 @@ Load the images into Timelapse with a template that includes a Flag named "misla
 When you are done identifying mislabeled images, export the Timelapse database to a CSV file `mislabeled_images.csv`. We can now update our list of known mislabeled images with this CSV:
 
 ```bash
-python save_mislabeled.py $HOME/classifier-training /path/to/mislabeled_images.csv
+python save_mislabeled.py /path/to/classifier-training /path/to/mislabeled_images.csv
 ```
+
+
+# Miscellaneous Scripts
+
+* `analyze_failed_images.py`: many scripts in the training pipeline produce log files which list images that either failed during detection, failed to download, or failed to crop. This script analyzes the log files to separate out the images into 5 categories:
+  * `'good'`: no obvious issues
+  * `'nonexistant'`: image file does not exist in Azure Blob Storage
+  * `'non_image'`: file is not a recognized image file (based on file extension)
+  * `'truncated'`: file is truncated but can only be opened by Pillow by setting `PIL.ImageFile.LOAD_TRUNCATED_IMAGES = True`
+  * `'bad'`: file exists, but cannot be opened even when setting `PIL.ImageFile.LOAD_TRUNCATED_IMAGES = True`
+* `json_to_azcopy_list.py`: Given JSON file such as the `queried_images.json` file output from `json_validator.py`, generates one text file `{dataset}_images.txt` for every dataset included. The text file can then be passed to `azcopy` using the [undocumented](https://github.com/Azure/azure-storage-azcopy/wiki/Listing-specific-files-to-transfer) `--list-of-files` argument to be downloaded. However, until AzCopy fixes its [performance issues](https://github.com/Azure/azure-storage-azcopy/issues/1152) with the `--list-of-files` argument, this is not a recommended method for downloading image files from Azure. Instead, consider using the `data_management/megadb/download_images.py` script instead.
 
 
 # Label Specification Syntax
@@ -641,7 +705,7 @@ output_label,type,content
 # select all animals in a taxon across all datasets
 <label>,<taxon_level>,<taxon_name>
 
-# exclude certain rows or taxons
+# exclude certain rows or taxa
 !<label>,...
 
 # set a limit on the number of images to sample for this class
