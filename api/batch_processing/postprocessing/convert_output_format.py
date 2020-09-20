@@ -22,9 +22,11 @@ from data_management.annotations import annotation_constants
 
 CONF_DIGITS = 3
 
+
 #%% Conversion functions
 
-def convert_json_to_csv(input_path,output_path=None,min_confidence=None,omit_bounding_boxes=False):
+def convert_json_to_csv(input_path,output_path=None,min_confidence=None,
+                        omit_bounding_boxes=False,output_encoding=None):
     
     if output_path is None:
         output_path = os.path.splitext(input_path)[0]+'.csv'
@@ -95,7 +97,7 @@ def convert_json_to_csv(input_path,output_path=None,min_confidence=None,omit_bou
     # ...for each image
 
     print('Writing to csv...')
-    with open(output_path, 'w', newline='') as f:
+    with open(output_path, 'w', newline='', encoding=output_encoding) as f:
         writer = csv.writer(f, delimiter=',')
         header = ['image_path', 'max_confidence', 'detections']
         header.extend(category_column_names)
