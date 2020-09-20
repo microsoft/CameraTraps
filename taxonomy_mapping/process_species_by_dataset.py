@@ -91,6 +91,8 @@ class TaxonomicMatch:
             f'taxonomic_level={self.taxonomic_level}, '
             f'source={self.source}')
 
+# Prefer iNat matches over GBIF matches
+taxonomy_preference = 'inat'
 
 def get_preferred_taxonomic_match(query: str) -> TaxonomicMatch:
     """
@@ -117,8 +119,17 @@ def get_preferred_taxonomic_match(query: str) -> TaxonomicMatch:
     source = ''
     taxonomy_string = ''
 
-    # Prefer iNat matches; they're considerably less quirky
-    if len(inat_matches) > 0:
+    n_inat_matches = len(inat_matches)
+    n_gbif_matches = len(gbif_matches)
+    
+    selected_matches = None
+    
+    if n_inat_matches > 0 and taxonomy_preference == 'inat':
+        selected_matches = 'inat'
+    elif n_gbif_matches > 0:
+        selected_matches = 'gbif'
+        
+    if selected_matches == 'inat':
 
         i_match = 0
 
@@ -167,11 +178,11 @@ def get_preferred_taxonomic_match(query: str) -> TaxonomicMatch:
 
     # ...if we had iNat matches
 
-    # If we didn't match to iNat, try GBIF
+    # If we either prefer GBIF or didn't have iNat matches
     #
     # Code is deliberately redundant here; I'm expecting some subtleties in how
     # handle GBIF and iNat.
-    elif len(gbif_matches) > 0:
+    elif selected_matches == 'gbif':
 
         i_match = 0
 
@@ -237,8 +248,17 @@ initialize_taxonomy_lookup()
 
 if False:
     #%%
-    matches = get_taxonomic_info('lion')
+    matches = get_taxonomic_info('equus quagga')
     print_taxonomy_matches(matches)
+    #%%
+    q = 'equus quagga'
+    # q = "grevy's zebra"
+    taxonomy_preference = 'gbif'
+    m = get_preferred_taxonomic_match(q)
+    print(m.source)
+    print(m.taxonomy_string)
+    import clipboard
+    clipboard.copy(m.taxonomy_string)
 
 
 #%% Read the input data
