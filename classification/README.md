@@ -21,6 +21,7 @@
   8. [Analyze classification results](#8-analyze-classification-results)
   9. [Export classification results as JSON](#9-export-classification-results-as-json)
   10. [(Optional) Identify potentially mislabeled images](#10-optional-identify-potentially-mislabeled-images)
+* [Miscellaneous Scripts](#miscellaneous-scripts)
 * [Label Specification Syntax](#label-specification-syntax)
   * [CSV](#csv)
   * [JSON](#json)
@@ -521,7 +522,13 @@ The following hyperparameters for MegaClassifier seem to work well for both Effi
 * `--epochs 50`: test-set accuracy will likely plateau before the full 50 epochs
 * `--weight-by-detection-conf /path/to/mdv4_1_isotonic_calibration.npz`
 * `--lr 3e-5`
-* `--weight-decay 1e-6`
+* `--weight-decay 1e-6`: values between `1e-5` and `1e-6` are generally OK
+
+During training, logs are written to TensorBoard at the end of each epoch. View the logs by running the following command. Setting `--samples_per_plugin` to a large number (e.g., 10,000) prevents TensorBoard from omitting images. However, this may incur high RAM usage.
+
+```bash
+tensorboard --logdir $BASE_LOGDIR --bind_all --samples_per_plugin images=10000
+```
 
 **Note about TensorFlow implementation**
 
