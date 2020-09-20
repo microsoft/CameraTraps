@@ -225,7 +225,8 @@ def process_queried_images(
         queried_images_js = json.load(f)
 
     merged_js: Dict[str, Any] = {
-        'images': {}  # start as dict, will convert to list later
+        'images': {},  # start as dict, will convert to list later
+        'info': {}
     }
     images = merged_js['images']
 
