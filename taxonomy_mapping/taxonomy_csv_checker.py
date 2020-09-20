@@ -7,13 +7,20 @@ Checks the taxonomy CSV file to make sure that for each row:
 
 Prints out any mismatches.
 """
-import argparse
 
+#%% Imports
+
+import argparse
 import pandas as pd
 
 
+#%% Taxnomy checking
+
 def check_taxonomy_csv(csv_path: str) -> None:
-    """See module docstring."""
+    """
+    See module docstring.
+    """
+    
     taxonomy_df = pd.read_csv(csv_path)
 
     num_taxon_level_errors = 0
@@ -55,7 +62,10 @@ def check_taxonomy_csv(csv_path: str) -> None:
     print('num scientific name errors:', num_scientific_name_errors)
 
 
+#%% Command-line driver
+    
 if __name__ == '__main__':
+    
     parser = argparse.ArgumentParser()
     parser.add_argument(
         'taxonomy_csv_path',
@@ -63,3 +73,14 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     check_taxonomy_csv(args.taxonomy_csv_path)
+
+
+#%% Interactive driver
+    
+if False:
+    
+    #%%
+    
+    csv_path = r"C:\git\ai4edev\camera-traps-private\camera_trap_taxonomy_mapping.csv"
+    check_taxonomy_csv(csv_path)
+    
