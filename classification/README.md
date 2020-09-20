@@ -126,9 +126,14 @@ export DETECTION_API_CALLER="[INTERNAL_USE]"
 
 # MegaClassifier
 
-MegaClassifier is an image classifier. MegaClassifier v0.1 is based on an EfficientNet-B3 architecture, [implemented in PyTorch](https://github.com/lukemelas/EfficientNet-PyTorch). It supports 169 categories*, where each category is either a single biological taxon or a group of related taxa. See the [`megaclassifier_label_spec.ipynb`](https://github.com/microsoft/CameraTraps/blob/master/classification/megaclassifier_label_spec.ipynb) notebook for more details on the categories. The taxonomy used is based on the 2020_09 revision of the taxonomy CSV.
+MegaClassifier is an image classifier. MegaClassifier v0.1 is based on an EfficientNet architecture, [implemented in PyTorch](https://github.com/lukemelas/EfficientNet-PyTorch). It supports 169 categories*, where each category is either a single biological taxon or a group of related taxa. See the [`megaclassifier_label_spec.ipynb`](https://github.com/microsoft/CameraTraps/blob/master/classification/megaclassifier_label_spec.ipynb) notebook for more details on the categories. The taxonomy used is based on the 2020_09 revision of the taxonomy CSV.
 
-The training dataset, splits, and parameters used for v0.1 can be found in `classifier-training/megaclassifier/v0.1_training`.
+The training dataset, splits, and parameters used for v0.1 can be found in `classifier-training/megaclassifier/v0.1_training`. There are two variants of MegaClassifier v0.1. Their average top-1 accuracy (recall) and average top-3 accuracy on the test set across all 169 categories are shown in this table:
+
+model name           | architecture    | avg top-1 acc | avg top-3 acc
+---------------------|-----------------|---------------|--------------
+v0.1_efficientnet-b1 | EfficientNet-B1 | 80.973%       | 91.540%
+v0.1_efficientnet-b3 | EfficientNet-B3 | 82.755%       | 92.615%
 
 *Unfortunately, there are some duplicated taxa. Ideally, these should be corrected in the next revision of the taxonomy CSV. The known list of duplicates includes:
 * _domestic dogs_: sometimes tagged as species "Canis familiaris" and other times tagged as subspecies "Canis lupus familiaris" (see [Wikipedia](https://en.wikipedia.org/wiki/Dog))
