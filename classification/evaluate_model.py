@@ -185,6 +185,9 @@ def main(params_json_path: str, ckpt_path: str, output_dir: str,
             assert target_names == set(label_names) | {'other'}
             label_names.append('other')
 
+            with open(os.path.join(output_dir, 'label_index.json'), 'w') as f:
+                json.dump(dict(enumerate(label_names)), f)
+
         with open(label_index_json_path, 'r') as f:
             idx_to_label = json.load(f)
         classifier_name_to_idx = {
