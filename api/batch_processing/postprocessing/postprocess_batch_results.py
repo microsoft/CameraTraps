@@ -1,4 +1,7 @@
 """
+
+postprocess_batch_results.py
+
 Given a .json or .csv file representing the output from the batch detection API,
 do one or more of the following:
 
@@ -10,6 +13,7 @@ do one or more of the following:
     available)
 
 Ground truth, if available, must be in the COCO Camera Traps format.
+
 """
 
 
@@ -46,8 +50,7 @@ import path_utils
 # Assumes the cameratraps repo root is on the path
 import visualization.visualization_utils as vis_utils
 import visualization.plot_utils as plot_utils
-from data_management.cct_json_utils import (
-    CameraTrapJsonUtils, IndexedJsonDb, JSONObject)
+from data_management.cct_json_utils import (CameraTrapJsonUtils, IndexedJsonDb)
 from api.batch_processing.postprocessing.load_api_results import load_api_results
 from ct_utils import args_to_object
 
@@ -159,9 +162,11 @@ class PostProcessingResults:
 ##%% Helper classes and functions
 
 class DetectionStatus(IntEnum):
-    """Flags used to mark images as positive or negative for P/R analysis
+    """
+    Flags used to mark images as positive or negative for P/R analysis
     (according to ground truth and/or detector output)
     """
+    
     DS_NEGATIVE = 0
     DS_POSITIVE = 1
 
@@ -196,6 +201,7 @@ def mark_detection_status(
 
     returns (n_negative, n_positive, n_unknown, n_ambiguous)
     """
+    
     negative_classes = set(negative_classes)
     unknown_classes = set(unknown_classes)
 
@@ -276,6 +282,7 @@ def is_sas_url(s: str) -> bool:
     Placeholder for a more robust way to verify that a link is a SAS URL.
     99.999% of the time this will suffice for what we're using it for right now.
     """
+    
     return (s.startswith(('http://', 'https://')) and ('core.windows.net' in s)
             and ('?' in s))
 
@@ -285,6 +292,7 @@ def relative_sas_url(folder_url: str, relative_path: str) -> Optional[str]:
     Given a container-level or folder-level SAS URL, create a SAS URL to the
     specified relative path.
     """
+    
     relative_path = relative_path.replace('%','%25')
     relative_path = relative_path.replace(' ','%20')
 
@@ -351,7 +359,7 @@ def render_bounding_boxes(
         try:
             image = vis_utils.open_image(image_full_path)
         except:
-            print(f'Warning: could not open image file {image_full_path}')
+            print('Warning: could not open image file {}'.format(image_full_path))
             return ''
 
         if options.viz_target_width is not None:
@@ -382,7 +390,7 @@ def render_bounding_boxes(
                 raise
 
     # Use slashes regardless of os
-    file_name = f'{res}/{sample_name}'
+    file_name = '{}/{}'.format(res,sample_name)
 
     return {
         'filename': file_name,
@@ -400,6 +408,7 @@ def prepare_html_subpages(images_html, output_dir, options=None):
     image_html is a dictionary mapping an html page name (e.g. "fp") to a list
     of image structs friendly to write_html_image_list
     """
+    
     if options is None:
             options = PostProcessingOptions()
 
@@ -521,7 +530,7 @@ def process_batch_results(options: PostProcessingOptions
 
     if options.include_almost_detections:
         n_almosts = sum(detections_df[det_status] == DetectionStatus.DS_ALMOST)
-        print(f'...and {n_almosts} almost-positives')
+        print('...and {} almost-positives'.format(n_almosts))
 
 
     ##%% If we have ground truth, remove images we can't match to ground truth
@@ -539,7 +548,7 @@ def process_batch_results(options: PostProcessingOptions
         assert len(detector_files) > 0, (
             'No detection files available, possible path issue?')
 
-        print(f'Trimmed detection results to {len(detector_files)} files')
+        print('Trimmed detection results to {} files'.format(len(detector_files))
 
 
     ##%% Sample images for visualization
@@ -867,7 +876,7 @@ def process_batch_results(options: PostProcessingOptions
             if len(rendered_image_html_info) > 0:
                 image_result = [[res, rendered_image_html_info]]
                 for gt_class in gt_classes:
-                    image_result.append([f'class_{gt_class}', rendered_image_html_info])
+                    image_result.append(['class_{}'.format(gt_class), rendered_image_html_info])
 
             return image_result
 
@@ -878,7 +887,7 @@ def process_batch_results(options: PostProcessingOptions
             if options.parallelize_rendering_n_cores is None:
                 pool = ThreadPool()
             else:
-                print(f'Rendering images with {options.parallelize_rendering_n_cores} workers')
+                print('Rendering images with {} workers'.format(options.parallelize_rendering_n_cores))
                 pool = ThreadPool(options.parallelize_rendering_n_cores)
             rendering_results = list(tqdm(pool.imap(render_image_with_gt, files_to_render), total=len(files_to_render)))
         else:
@@ -900,7 +909,7 @@ def process_batch_results(options: PostProcessingOptions
         # Prepare the individual html image files
         image_counts = prepare_html_subpages(images_html, output_dir)
 
-        print(f'{image_rendered_count} images rendered (of {image_count})')
+        print('{} images rendered (of {})'.format(image_rendered_count,image_count))
 
         # Write index.html
         all_tp_count = image_counts['tp'] + image_counts['tpc'] + image_counts['tpi']
@@ -988,7 +997,7 @@ def process_batch_results(options: PostProcessingOptions
             for cname in sorted(classname_to_idx.keys()):
                 index_page += '<a href="class_{0}.html">{0}</a> ({1})<br>'.format(
                     cname,
-                    len(images_html[f'class_{cname}']))
+                    len(images_html['class_{}'.format(cname)]))
             index_page += '</div>'
 
         # Close body and html tags
@@ -997,7 +1006,7 @@ def process_batch_results(options: PostProcessingOptions
         with open(output_html_file, 'w') as f:
             f.write(index_page)
 
-        print(f'Finished writing html to {output_html_file}')
+        print('Finished writing html to {}'.format(output_html_file))
 
     # ...for each image
 
@@ -1138,7 +1147,7 @@ def process_batch_results(options: PostProcessingOptions
                         # confidence threshold
                         if (options.classification_confidence_threshold < 0) or \
                             (top1_class_score >= options.classification_confidence_threshold):
-                            image_result.append([f'class_{top1_class_name}',
+                            image_result.append(['class_{}'.format(top1_class_name),
                                                  rendered_image_html_info])
                         else:
                             image_result.append(['class_unreliable',
@@ -1203,10 +1212,10 @@ def process_batch_results(options: PostProcessingOptions
 
         if options.allow_missing_images:
             if total_images != image_count:
-                print(f'Warning: image_count is {total_images}, total_images is {image_count}')
+                print('Warning: image_count is {}, total_images is {}'.format(total_images,image_count))
             else:
                 assert total_images == image_count, \
-                    f'Error: image_count is {total_images}, total_images is {image_count}'
+                    'Error: image_count is {}, total_images is {}'.format(total_images,image_count)
 
         almost_detection_string = ''
         if options.include_almost_detections:
@@ -1254,7 +1263,7 @@ def process_batch_results(options: PostProcessingOptions
                 class_names.append('unreliable')
 
             for cname in class_names:
-                ccount = len(images_html[f'class_{cname}'])
+                ccount = len(images_html['class_{}'.format(cname)])
                 if ccount > 0:
                     index_page += '<a href="class_{}.html">{}</a> ({})<br/>\n'.format(
                         cname, cname.lower(), ccount)
@@ -1265,7 +1274,7 @@ def process_batch_results(options: PostProcessingOptions
         with open(output_html_file, 'w') as f:
             f.write(index_page)
 
-        print(f'Finished writing html to {output_html_file}')
+        print('Finished writing html to {}'.format(output_html_file))
 
         # os.startfile(output_html_file)
 
@@ -1300,6 +1309,7 @@ if False:
 #%% Command-line driver
 
 def main():
+    
     options = PostProcessingOptions()
 
     parser = argparse.ArgumentParser()
