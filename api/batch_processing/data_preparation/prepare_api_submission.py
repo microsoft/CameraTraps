@@ -1,4 +1,7 @@
 """
+
+prepare_api_submission.py
+
 This module defines the Task class and helper methods that are useful for
 submitting tasks to the AI for Earth Camera Trap Batch Detection API.
 
@@ -35,7 +38,12 @@ Here's the stuff we usually do before submitting a task:
     find_repeat_detections.py
     subset_json_detector_output.py
     postprocess_batch_results.py
+    
 """
+
+
+#%% Imports
+
 from enum import Enum
 import json
 import os
@@ -50,12 +58,16 @@ import ai4e_azure_utils  # from ai4eutils
 import path_utils  # from ai4eutils
 
 
+#%% Constants
+
 MAX_FILES_PER_API_TASK = 1_000_000
 IMAGES_PER_SHARD = 2000
 
 VALID_REQUEST_NAME_CHARS = f'-_{string.ascii_letters}{string.digits}'
 REQUEST_NAME_CHAR_LIMIT = 92
 
+
+#%% Classes
 
 class BatchAPISubmissionError(Exception):
     pass
@@ -73,7 +85,8 @@ class TaskStatus(str, Enum):
 
 
 class Task:
-    """Represents a Batch Detection API task.
+    """
+    Represents a Batch Detection API task.
 
     Given the Batch Detection API URL, assumes that the endpoints are:
         /request_detections
@@ -99,7 +112,8 @@ class Task:
     def __init__(self, name: str, task_id: Optional[str] = None,
                  images_list_path: Optional[str] = None,
                  validate: bool = True, api_url: Optional[str] = None):
-        """Initializes a Task.
+        """
+        Initializes a Task.
 
         If desired, validates that the images list does not exceed the maximum
         length and that all files in the images list are actually images.
@@ -123,6 +137,7 @@ class Task:
                 than MAX_FILES_PER_API_TASK entries, or if one of the entries
                 is not a supported image file type
         """
+        
         clean_name = clean_request_name(name)
         if name != clean_name:
             print(f'Warning: renamed {name} to {clean_name}')
@@ -156,15 +171,18 @@ class Task:
                     if not is_image_file_or_url(path_or_url):
                         raise ValueError(f'{path_or_url} is not an image')
 
+
     def __repr__(self) -> str:
         return 'Task(name={name}, id={id}, status={status})'.format(
             name=self.name,
             id=getattr(self, 'id', None),
             status=getattr(self, 'status', None))
 
+
     def upload_images_list(self, account: str, container: str, sas_token: str,
                            blob_name: Optional[str] = None) -> None:
-        """Uploads the local images list to an Azure Blob Storage container.
+        """
+        Uploads the local images list to an Azure Blob Storage container.
 
         Sets self.remote_images_list_url to the blob URL of the uploaded file.
 
@@ -176,6 +194,7 @@ class Task:
             blob_name: optional str, defaults to basename of
                 self.local_images_list_path if blob_name is not given
         """
+        
         if blob_name is None:
             blob_name = os.path.basename(self.local_images_list_path)
         self.remote_images_list_url = ai4e_azure_utils.upload_file_to_blob(
@@ -183,13 +202,15 @@ class Task:
             local_path=self.local_images_list_path, blob_name=blob_name,
             sas_token=sas_token)
 
+
     def generate_api_request(self,
                              caller: str,
                              input_container_url: Optional[str] = None,
                              image_path_prefix: Optional[str] = None,
                              **kwargs: Any
                              ) -> Dict[str, Any]:
-        """Generate API request JSON.
+        """
+        Generate API request JSON.
 
         Sets self.api_request to the request JSON. For complete list of API
         input parameters, see:
@@ -207,6 +228,7 @@ class Task:
 
         Returns: dict, represents the JSON request to be submitted
         """
+        
         request = kwargs
         request.update({
             'request_name': self.name,
@@ -222,8 +244,10 @@ class Task:
         self.api_request = request
         return request
 
+
     def submit(self) -> str:
-        """Submit this task to the Batch Detection API.
+        """
+        Submit this task to the Batch Detection API.
 
         Sets self.id to the returned request ID. Only run this method after
         generate_api_request().
@@ -234,6 +258,7 @@ class Task:
             requests.HTTPError, if an HTTP error occurred
             BatchAPISubmissionError, if request returns an error
         """
+        
         request_endpoint = posixpath.join(self.api_url, self.request_endpoint)
         r = requests.post(request_endpoint, json=self.api_request)
         r.raise_for_status()
@@ -248,8 +273,10 @@ class Task:
         self.id = response['request_id']
         return self.id
 
+
     def check_status(self) -> Dict[str, Any]:
-        """Checks the task status.
+        """
+        Checks the task status.
 
         Sets self.response and self.status.
 
@@ -259,6 +286,7 @@ class Task:
             requests.HTTPError, if an HTTP error occurred
             BatchAPIResponseError, if response task ID does not match self.id
         """
+        
         url = posixpath.join(self.api_url, self.task_status_endpoint, self.id)
         r = requests.get(url)
 
@@ -273,8 +301,10 @@ class Task:
         self.status = TaskStatus(self.response['Status']['request_status'])
         return self.response
 
+
     def get_missing_images(self, verbose: bool = False) -> List[str]:
-        """Compares the submitted and processed images lists to find missing
+        """
+        Compares the submitted and processed images lists to find missing
         images. Double-checks that 'failed_images' is a subset of the missing
         images.
 
@@ -287,6 +317,7 @@ class Task:
 
         Returns: list of str, sorted list of missing image paths
         """
+        
         assert self.status == TaskStatus.COMPLETED
         message = self.response['Status']['message']
 
@@ -331,6 +362,7 @@ def divide_chunks(l: Sequence[Any], n: int) -> List[Sequence[Any]]:
     Divide list *l* into chunks of size *n*, with the last chunk containing
     <= n items.
     """
+    
     # https://www.geeksforgeeks.org/break-list-chunks-size-n-python/
     chunks = [l[i * n:(i + 1) * n] for i in range((len(l) + n - 1) // n)]
     return chunks
@@ -340,7 +372,8 @@ def divide_list_into_tasks(file_list: Sequence[str],
                            save_path: str,
                            n_files_per_task: int = MAX_FILES_PER_API_TASK
                            ) -> Tuple[List[str], List[Sequence[Any]]]:
-    """Divides a list of filenames into a set of JSON files, each containing a
+    """
+    Divides a list of filenames into a set of JSON files, each containing a
     list of length *n_files_per_task* (the last file will contain <=
     *n_files_per_task* files).
 
@@ -357,6 +390,7 @@ def divide_list_into_tasks(file_list: Sequence[str],
         output_files: list of str, output JSON file names
         chunks: list of list of str, chunks[i] is the content of output_files[i]
     """
+    
     chunks = divide_chunks(file_list, n_files_per_task)
     output_files = []
 
@@ -373,9 +407,11 @@ def divide_list_into_tasks(file_list: Sequence[str],
 def divide_files_into_tasks(file_list_json: str,
                             n_files_per_task: int = MAX_FILES_PER_API_TASK
                             ) -> Tuple[List[str], List[Sequence[Any]]]:
-    """Convenience wrapper around divide_list_into_tasks() when the file_list
+    """
+    Convenience wrapper around divide_list_into_tasks() when the file_list
     itself is already saved as a JSON file.
     """
+    
     with open(file_list_json) as f:
         file_list = json.load(f)
     return divide_list_into_tasks(file_list, save_path=file_list_json,
@@ -385,13 +421,17 @@ def divide_files_into_tasks(file_list_json: str,
 def clean_request_name(request_name: str,
                        whitelist: str = VALID_REQUEST_NAME_CHARS,
                        char_limit: int = REQUEST_NAME_CHAR_LIMIT) -> str:
-    """Removes invalid characters from an API request name."""
+    """
+    Removes invalid characters from an API request name.
+    """
     return path_utils.clean_filename(
         filename=request_name, whitelist=whitelist, char_limit=char_limit)
 
 
 def download_url(url: str, save_path: str, verbose: bool = False) -> None:
-    """Download a URL to a local file."""
+    """
+    Download a URL to a local file.
+    """
     if verbose:
         print(f'Downloading {url} to {save_path}')
     urllib.request.urlretrieve(url, save_path)
@@ -399,7 +439,8 @@ def download_url(url: str, save_path: str, verbose: bool = False) -> None:
 
 
 def is_image_file_or_url(path_or_url: str) -> bool:
-    """Checks (via file extension) whether a file path or URL is an image.
+    """
+    Checks (via file extension) whether a file path or URL is an image.
 
     If path_or_url is a URL, strip away any query strings '?...'. This should
     have no adverse effect on local paths.
@@ -410,42 +451,43 @@ def is_image_file_or_url(path_or_url: str) -> bool:
 
 #%% Interactive driver
 
-# if False:
+if False:
 
-#     #%%
-#     account_name = ''
-#     sas_token = 'st=...'
-#     container_name = ''
-#     rmatch = None # '^Y53'
-#     output_file = r'output.json'
-
-#     blobs = ai4e_azure_utils.enumerate_blobs_to_file(
-#         output_file=output_file,
-#         account_name=account_name,
-#         sas_token=sas_token,
-#         container_name=container_name,
-#         rsearch=rsearch)
-
-#     #%%
-
-#     file_list_json = r"D:\temp\idfg_20190801-hddrop_image_list.json"
-#     task_files = divide_files_into_tasks(file_list_json)
-
-#     #%%
-
-#     file_list_sas_urls = [
-#         '','',''
-#     ]
-
-#     input_container_sas_url = ''
-#     request_name_base = ''
-#     caller = 'blah@blah.com'
-
-#     request_strings,request_dicts = generate_api_queries(
-#         input_container_sas_url,
-#         file_list_sas_urls,
-#         request_name_base,
-#         caller)
-
-#     for s in request_strings:
-#         print(s)
+    #%%
+    
+    account_name = ''
+    sas_token = 'st=...'
+    container_name = ''
+    rsearch = None # '^Y53'
+    output_file = r'output.json'
+    
+    blobs = ai4e_azure_utils.enumerate_blobs_to_file(
+        output_file=output_file,
+        account_name=account_name,
+        sas_token=sas_token,
+        container_name=container_name,
+        rsearch=rsearch)
+    
+    #%%
+    
+    file_list_json = r"D:\temp\idfg_20190801-hddrop_image_list.json"
+    task_files = divide_files_into_tasks(file_list_json)
+    
+    #%%
+    
+    file_list_sas_urls = [
+        '','',''
+    ]
+    
+    input_container_sas_url = ''
+    request_name_base = ''
+    caller = 'blah@blah.com'
+    
+    request_strings,request_dicts = generate_api_queries(
+        input_container_sas_url,
+        file_list_sas_urls,
+        request_name_base,
+        caller)
+    
+    for s in request_strings:
+        print(s)

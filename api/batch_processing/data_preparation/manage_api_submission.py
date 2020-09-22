@@ -1,13 +1,18 @@
 """
-Semi-automated process for submitting and managing camera trap API tasks.
 
-Terminology:
-- taskgroup: a group of requests
-    usually 1 Azure Blob Storage container = 1 taskgroup, but we can also
-    specify individual folders inside a container to constitute a taskgroup
-- request: an individual call to the Batch Processing API, also known as a task
-- task: a request
+    manage_api_submission.py
+    
+    Semi-automated process for submitting and managing camera trap API tasks.
+    
+    Terminology:
+    - taskgroup: a group of requests
+        usually 1 Azure Blob Storage container = 1 taskgroup, but we can also
+        specify individual folders inside a container to constitute a taskgroup
+    - request: an individual call to the Batch Processing API, also known as a task
+    - task: a request
+    
 """
+
 #%% Imports
 
 import json
@@ -46,14 +51,15 @@ base_task_name = 'institution-20191215'
 base_output_folder_name = r'f:\institution'
 
 # Shared Access Signature (SAS) tokens for the Azure Blob Storage container.
-# These should NOT start with a '?'.
+# Leading question mark is optional.
+#
 # The read-only token is used for accessing images; the write-enabled token is
 # used for writing file lists.
-read_only_sas_token = 'st=2019-12...'
-read_write_sas_token = 'st=2019-12...'
+read_only_sas_token = '?st=2019-12...'
+read_write_sas_token = '?st=2019-12...'
 
 caller = 'caller'
-ENDPOINT_BASE = 'http://blah.endpoint.com:6022/v3/camera-trap/detection-batch'
+endpoint_base = 'http://blah.endpoint.com:6022/v3/camera-trap/detection-batch'
 
 ### Typically left as default
 
@@ -155,7 +161,7 @@ file_lists_by_folder = []
 # folder_name = folder_names[0]
 for folder_name in folder_names:
     clean_folder_name = path_utils.clean_filename(folder_name)
-    json_filename = f'{base_task_name}_{clean_folder_name}_all.json'
+    json_filename = '{}_{}_all.json'.format(base_task_name,clean_folder_name)
     list_file = os.path.join(filename_base, json_filename)
 
     # If this is intended to be a folder, it needs to end in '/', otherwise
@@ -185,10 +191,10 @@ folder_chunks = []
 for list_file in file_lists_by_folder:
     chunked_files, chunks = prepare_api_submission.divide_files_into_tasks(
         list_file)
-    print('Divided images into files:')
+    print('Divided images for task {} into files:'.format(list_file))
     for i_fn, fn in enumerate(chunked_files):
         new_fn = chunked_files[i_fn].replace('__', '_').replace('_all', '')
-        os.rename(fn, new_fn)
+        os.replace(fn, new_fn)
         chunked_files[i_fn] = new_fn
         print(fn, len(chunks[i_fn]))
     folder_chunks.append(chunked_files)
@@ -209,21 +215,22 @@ for i, taskgroup_json_paths in enumerate(folder_chunks):
         # periods not allowed in task names
         task_json_filename = ntpath.basename(task_json_path)
         task_json_filename_root = os.path.splitext(task_json_filename)[0]
-        task_name = f'{base_task_name}_{task_json_filename_root}'.replace(
+        task_name = '{}_{}'.format(base_task_name,task_json_filename_root).replace(
             '.', '_')
-        if task_name > max_task_name_length:
+        if len(task_name) > max_task_name_length:
             long_task_name = task_name
             task_name = task_name[:max_task_name_length]
-            print(f'Warning: task name {long_task_name} too long, shortened to '
-                  f'{task_name}.')
+            print('Warning: task name {} too long, shortened to {}'.format(
+                long_task_name,task_name))                  
         assert task_name not in task_names
         task_names.add(task_name)
         task = prepare_api_submission.Task(
             name=task_name, images_list_path=task_json_path,
-            api_url=ENDPOINT_BASE)
+            api_url=endpoint_base)
 
-        blob_name = f'api_inputs/{base_task_name}/{task_json_filename}'
-        print(f'Task {task_name}: uploading {task_json_path} to {blob_name}')
+        blob_name = 'api_inputs/{}/{}'.format(base_task_name,task_json_filename)
+        print('Task {}: uploading {} to {}'.format(
+            task_name,task_json_path,blob_name))
         task.upload_images_list(
             account=storage_account_name, container=container_name,
             sas_token=read_write_sas_token, blob_name=blob_name)
@@ -270,11 +277,11 @@ for fn in file_lists_by_folder:
         images = json.load(f)
     n_images += len(images)
 
-print(f'Processing a total of {n_images} images')
+print('Processing a total of {} images'.format(n_images))
 
 # Around 0.8s/image on 16 GPUs
 expected_seconds = (0.8 / 16) * n_images
-print(f'Expected time: {humanfriendly.format_timespan(expected_seconds)}')
+print('Expected time: {}'.format(humanfriendly.format_timespan(expected_seconds)))
 
 
 #%% Manually define task groups if we ran the tasks manually
@@ -343,7 +350,7 @@ for i_taskgroup, taskgroup in enumerate(taskgroups):
         blob_name = f'api_inputs/{base_task_name}/{task_name}.json'
         new_task = prepare_api_submission.Task(
             name=task_name, images_list_path=missing_images_fn,
-            api_url=ENDPOINT_BASE)
+            api_url=endpoint_base)
         print(f'Task {task_name}: uploading {missing_images_fn} to {blob_name}')
         new_task.upload_images_list(
             account=storage_account_name, container=container_name,
