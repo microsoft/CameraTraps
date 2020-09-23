@@ -307,51 +307,90 @@ for taskgroup in taskgroups:
         print(response)
 
 
+#%% Manually create responses for one or more tasks if tasks didn't properly complete
+        
+if False:
+    
+    # Simulate response messages
+    msg0 = prepare_api_submission.create_response_message(0,
+                            failed_images_url='',
+                            images_url='',
+                            detections_url='',
+                            task_id='')
+    print(msg0)
+    
+    
+    msg1 = prepare_api_submission.create_response_message(0,
+                            failed_images_url='',
+                            images_url='',
+                            detections_url='',
+                            task_id='')
+    print(msg1)
+        
+    # Create tasks
+    task0 = prepare_api_submission.Task(name='task0',task_id=msg0['request_id'],
+                                        api_url=endpoint_base,validate=False)
+    task1 = prepare_api_submission.Task(name='task1',task_id=msg1['request_id'],
+                                       api_url=endpoint_base,validate=False)
+    task0.force_completion(msg0)
+    task1.force_completion(msg1)
+
+    # Stick those tasks in the taskgroup list
+    taskgroups = [[task0],[task1]]
+
+
 #%% Look for failed shards or missing images, start new tasks if necessary
 
 n_resubmissions = 0
+
+# This will be a list of lists of tasks, with either one or zero
+# elements per taskgroup.
 resubmitted_tasks = []
 
-# i_taskgroup = 0; taskgroup = taskgroups[i_taskgroup]; task_id = taskgroup[0]
+# i_taskgroup = 0; taskgroup = taskgroups[i_taskgroup];
 for i_taskgroup, taskgroup in enumerate(taskgroups):
 
-    tasks = list(taskgroup)  # make a copy, because we append to taskgroup
+    resubmitted_tasks_this_taskgroup = []
+    
+    # Make a copy, because we append to taskgroup
+    tasks = list(taskgroup)  
+    
+    # i_task = 0; task = tasks[i_task]
     for task in tasks:
-
+            
         response = task.check_status()
 
         n_failed_shards = response['Status']['message']['num_failed_shards']
         if n_failed_shards != 0:
-            print(f'Warning: {n_failed_shards} failed shards for task '
-                  f'{task.id}')
-
-        output_file_urls = response['Status']['message']['output_file_urls']
+            print('Warning: {} failed shards for task {}'.format(n_failed_shards,task.id))
+            
+        output_file_urls = task.get_output_file_urls()
         detections_url = output_file_urls['detections']
-        fn = url_to_filename(detections_url)
+        detections_fn = url_to_filename(detections_url)
 
         # Each taskgroup corresponds to one of our folders
         folder_name = folder_names[i_taskgroup]
         clean_folder_name = prepare_api_submission.clean_request_name(
             folder_name)
-        assert (folder_name in fn) or (clean_folder_name in fn)
-        assert 'chunk' in fn
+        assert (folder_name in detections_fn) or (clean_folder_name in detections_fn)
+        assert 'chunk' in detections_fn
 
         missing_images_fn = os.path.join(
-            raw_api_output_folder, fn.replace('.json', '_missing.json'))
+            raw_api_output_folder, detections_fn.replace('.json', '_missing.json'))
 
-        missing_imgs = task.get_missing_images(verbose=True)
-        ai4e_azure_utils.write_list_to_file(missing_images_fn, missing_imgs)
-        num_missing_imgs = len(missing_imgs)
-        if num_missing_imgs < max_tolerable_missing_images:
+        missing_images = task.get_missing_images(verbose=True)
+        ai4e_azure_utils.write_list_to_file(missing_images_fn, missing_images)
+        num_missing_images = len(missing_images)
+        if num_missing_images < max_tolerable_missing_images:
             continue
 
-        print(f'Warning: {missing_imgs} missing images for task {task.id}')
-        task_name = f'{base_task_name}_{folder_name}_{task.id}_missing_images'
-        blob_name = f'api_inputs/{base_task_name}/{task_name}.json'
+        print('Warning: {} missing images for task {}'.format(missing_images,task.id))
+        task_name = '{}_{}_{}_missing_images'.format(base_task_name,folder_name,task.id)
+        blob_name = 'api_inputs/{}/{}.json'.format(base_task_name,task_name)
         new_task = prepare_api_submission.Task(
             name=task_name, images_list_path=missing_images_fn,
             api_url=endpoint_base)
-        print(f'Task {task_name}: uploading {missing_images_fn} to {blob_name}')
+        print('Task {}: uploading {} to {}'.format(task_name,missing_images_fn,blob_name))
         new_task.upload_images_list(
             account=storage_account_name, container=container_name,
             blob_name=blob_name, sas_token=read_write_sas_token)
@@ -359,20 +398,24 @@ for i_taskgroup, taskgroup in enumerate(taskgroups):
             caller=caller, input_container_url=read_only_sas_url,
             image_path_prefix=None, **additional_task_args)
 
-        taskgroup.append(new_task)
-        resubmitted_tasks.append(new_task)
+        # Do not append here; do this manually in the next cell if we actually decide
+        # to run the resubmitted task.
+        # taskgroup.append(new_task)
+        resubmitted_tasks_this_taskgroup.append(new_task)
 
         # automatic submission
         # new_task.submit()
 
         # manual submission
-        print(f'\nResbumission task for {task_id}:\n')
+        print('\nResbumission task for {}:\n'.format(task_id))
         print(json.dumps(request, indent=1))
 
         n_resubmissions += 1
 
     # ...for each task
 
+    resubmitted_tasks.append(resubmitted_tasks_this_taskgroup)
+    
 # ...for each task group
 
 if n_resubmissions == 0:
@@ -407,14 +450,9 @@ for i_taskgroup, taskgroup in enumerate(taskgroups):
 
     for task in taskgroup:
 
-        response = task.check_status()
-
-        output_file_urls = response['Status']['message']['output_file_urls']
+        output_file_urls = task.get_output_file_urls()
         detections_url = output_file_urls['detections']
         fn = url_to_filename(detections_url)
-
-        # n_failed_shards = response['status']['message']['num_failed_shards']
-        # assert n_failed_shards == 0
 
         # Each taskgroup corresponds to one of our folders
         folder_name = folder_names[i_taskgroup]
@@ -440,7 +478,7 @@ for i_taskgroup, taskgroup in enumerate(taskgroups):
 
     folder_name_raw = folder_names[i_taskgroup]
     folder_name = path_utils.clean_filename(folder_name_raw)
-    print(f'Combining results for {folder_name}')
+    print('Combining results for {}'.format(folder_name))
 
     results_files = []
     for task in taskgroup:
@@ -449,9 +487,9 @@ for i_taskgroup, taskgroup in enumerate(taskgroups):
 
     combined_api_output_file = os.path.join(
         combined_api_output_folder,
-        f'{base_task_name}{folder_name}_detections.json')
+        '{}{}_detections.json'.format(base_task_name,folder_name))
 
-    print(f'Combining the following into {combined_api_output_file}')
+    print('Combining the following into {}:'.format(combined_api_output_file))
     pprint.pprint(results_files)
 
     combine_api_outputs.combine_api_output_files(
@@ -468,8 +506,7 @@ for i_taskgroup, taskgroup in enumerate(taskgroups):
     missing_files = requested_images_set - result_images_set
     missing_images = path_utils.find_image_strings(missing_files)
     if len(missing_images) > 0:
-        print(f'Warning: {len(missing_images)} missing images for folder '
-              f'[{folder_name}]')
+        print('Warning: {} missing images for folder {}'.format(len(missing_images),folder_name))              
     assert len(missing_images) < max_tolerable_missing_images
 
     # Something has gone bonkers if there are images in the results that
