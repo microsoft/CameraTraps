@@ -81,7 +81,7 @@ class TaskStatus(str, Enum):
     RUNNING = 'running'
     FAILED = 'failed'
     PROBLEM = 'problem'
-    COMPLETED = 'completed'
+    COMPLETED = 'completed'    
 
 
 class Task:
@@ -108,6 +108,7 @@ class Task:
     id: str
     response: Dict[str, Any]  # decoded response JSON
     status: TaskStatus
+    bypass_status_check: bool # set when we manually complete a task
 
     def __init__(self, name: str, task_id: Optional[str] = None,
                  images_list_path: Optional[str] = None,
@@ -137,6 +138,7 @@ class Task:
                 than MAX_FILES_PER_API_TASK entries, or if one of the entries
                 is not a supported image file type
         """
+        self.bypass_status_check = False
         
         clean_name = clean_request_name(name)
         if name != clean_name:
@@ -177,10 +179,12 @@ class Task:
 
 
     def __repr__(self) -> str:
-        return 'Task(name={name}, id={id}, status={status})'.format(
+        return 'Task(name={name}, id={id})'.format(
             name=self.name,
-            id=getattr(self, 'id', None),
-            status=getattr(self, 'status', None))
+            id=getattr(self, 'id', None))
+            # Commented out as a reminder: don't check task status (which is a rest API call)
+            # in __repr__; require the caller to explicitly request status     
+            # status=getattr(self, 'status', None))
 
 
     def upload_images_list(self, account: str, container: str, sas_token: str,
@@ -291,6 +295,9 @@ class Task:
             BatchAPIResponseError, if response task ID does not match self.id
         """
         
+        if self.bypass_status_check:
+            return self.response
+        
         url = posixpath.join(self.api_url, self.task_status_endpoint, self.id)
         r = requests.get(url)
 
@@ -306,6 +313,27 @@ class Task:
         return self.response
 
 
+    def force_completion(self,response) -> None:
+        """
+        Simulate completion of a task by passing a manually-created response
+        string.
+        """
+        self.response = response
+        self.status = TaskStatus(self.response['Status']['request_status'])
+        self.bypass_status_check = True
+        
+        
+    def get_output_file_urls(self, verbose: bool = False) -> List[str]:
+        """
+        Retrieves the dictionary of URLs for the three output files for this task
+        """
+        
+        assert self.status == TaskStatus.COMPLETED
+        message = self.response['Status']['message']
+        output_file_urls = message['output_file_urls']
+        return output_file_urls
+        
+        
     def get_missing_images(self, verbose: bool = False) -> List[str]:
         """
         Compares the submitted and processed images lists to find missing
@@ -327,8 +355,7 @@ class Task:
 
         # estimate # of failed images from failed shards
         n_failed_shards = message['num_failed_shards']
-        estimated_failed_shard_images = n_failed_shards * IMAGES_PER_SHARD
-
+        
         # Download all three JSON urls to memory
         output_file_urls = message['output_file_urls']
         for url in output_file_urls.values():
@@ -338,20 +365,48 @@ class Task:
         submitted_images = requests.get(output_file_urls['images']).json()
         detections = requests.get(output_file_urls['detections']).json()
         failed_images = requests.get(output_file_urls['failed_images']).json()
+        
+        return get_missing_images_from_json(submitted_images,detections,failed_images,n_failed_shards,verbose)
+    
+    
+def create_response_message(n_failed_shards,failed_images_url,images_url,detections_url,task_id):
+    """
+    Manually create a response message in the format of the batch API.  Used when tasks hang or fail
+    and we need to simulate their completion by directly pulling the results from the AML output.
+    """
+    output_file_urls = {
+        'failed_images':failed_images_url,
+        'images':images_url,
+        'detections':detections_url
+        }
+    message = {'num_failed_shards':n_failed_shards,'output_file_urls':output_file_urls}
+    status = {'message':message,'request_status':str(TaskStatus.COMPLETED.value)}
+    response = {}
+    response['Status'] = status
+    response['request_id'] = task_id
+    return response
+    
 
+def get_missing_images_from_json(submitted_images,detections,failed_images,n_failed_shards,verbose=False):
+        """
+        Given the json-encoded results for the lists of submitted images, detections,
+        and failed images, find and return the list of images missing in the list 
+        of detections.
+        """
         assert all(is_image_file_or_url(s) for s in submitted_images)
         assert all(is_image_file_or_url(s) for s in failed_images)
 
         # Diff submitted and processed images
         processed_images = [d['file'] for d in detections['images']]
         missing_images = sorted(set(submitted_images) - set(processed_images))
-
+        
         if verbose:
+            estimated_failed_shard_images = n_failed_shards * IMAGES_PER_SHARD
             print('Submitted {} images'.format(len(submitted_images)))
             print('Received results for {} images'.format(len(processed_images)))
             print('{} failed images'.format(len(failed_images)))
             print(f'{n_failed_shards} failed shards '
-                  f'(~approx. {estimated_failed_shard_images} images)')
+                  f'(~approx {estimated_failed_shard_images} images)')
             print('{} images not in results'.format(len(missing_images)))
 
         # Confirm that the failed images are a subset of the missing images
@@ -360,7 +415,7 @@ class Task:
 
         return missing_images
 
-
+    
 def divide_chunks(l: Sequence[Any], n: int) -> List[Sequence[Any]]:
     """
     Divide list *l* into chunks of size *n*, with the last chunk containing
