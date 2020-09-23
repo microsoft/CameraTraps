@@ -140,7 +140,7 @@ class Task:
         
         clean_name = clean_request_name(name)
         if name != clean_name:
-            print(f'Warning: renamed {name} to {clean_name}')
+            print('Warning: renamed {} to {}'.format(name,clean_name))
         self.name = clean_name
 
         if api_url is None:
@@ -165,11 +165,15 @@ class Task:
                         images_list = json.load(f)
 
                 if len(images_list) > MAX_FILES_PER_API_TASK:
-                    raise ValueError('images list has too many files')
+                    raise ValueError('Images list has too many files')
 
-                for path_or_url in images_list:
-                    if not is_image_file_or_url(path_or_url):
-                        raise ValueError(f'{path_or_url} is not an image')
+                # Leaving this commented out to remind us that we don't want this check here; let
+                # the API fail on these images.  It's a huge hassle to remove non-image
+                # files.
+                    #
+                # for path_or_url in images_list:
+                #     if not is_image_file_or_url(path_or_url):
+                #         raise ValueError('{} is not an image'.format(path_or_url))
 
 
     def __repr__(self) -> str:
@@ -269,7 +273,7 @@ class Task:
             raise BatchAPISubmissionError(response['error'])
         if 'request_id' not in response:
             raise BatchAPISubmissionError(
-                f'"request_id" not in API response: {response}')
+                '"request_id" not in API response: {}'.format(response))
         self.id = response['request_id']
         return self.id
 
@@ -330,7 +334,7 @@ class Task:
         for url in output_file_urls.values():
             if self.id not in url:
                 raise BatchAPIResponseError(
-                    f'Task ID missing from output URL: {url}')
+                    'Task ID missing from output URL: {}'.format(url))
         submitted_images = requests.get(output_file_urls['images']).json()
         detections = requests.get(output_file_urls['detections']).json()
         failed_images = requests.get(output_file_urls['failed_images']).json()
@@ -343,12 +347,12 @@ class Task:
         missing_images = sorted(set(submitted_images) - set(processed_images))
 
         if verbose:
-            print(f'Submitted {len(submitted_images)} images')
-            print(f'Received results for {len(processed_images)} images')
-            print(f'{len(failed_images)} failed images')
+            print('Submitted {} images'.format(len(submitted_images)))
+            print('Received results for {} images'.format(len(processed_images)))
+            print('{} failed images'.format(len(failed_images)))
             print(f'{n_failed_shards} failed shards '
                   f'(~approx. {estimated_failed_shard_images} images)')
-            print(f'{len(missing_images)} images not in results')
+            print('{} images not in results'.format(len(missing_images)))
 
         # Confirm that the failed images are a subset of the missing images
         assert set(failed_images) <= set(missing_images), (
@@ -395,7 +399,7 @@ def divide_list_into_tasks(file_list: Sequence[str],
     output_files = []
 
     for i_chunk, chunk in enumerate(chunks):
-        chunk_id = f'chunk{i_chunk:0>3d}'
+        chunk_id = 'chunk{:0>3d}'.format(i_chunk)
         output_file = path_utils.insert_before_extension(
             save_path, chunk_id)
         output_files.append(output_file)
@@ -433,7 +437,7 @@ def download_url(url: str, save_path: str, verbose: bool = False) -> None:
     Download a URL to a local file.
     """
     if verbose:
-        print(f'Downloading {url} to {save_path}')
+        print('Downloading {} to {}'.format(url,save_path))
     urllib.request.urlretrieve(url, save_path)
     assert os.path.isfile(save_path)
 
