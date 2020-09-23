@@ -176,7 +176,6 @@ for folder_name in folder_names:
         container_name=container_name,
         sas_token=read_only_sas_token,
         blob_prefix=prefix)
-    assert all(path_utils.is_image_file(s) for s in file_list)
     file_lists_by_folder.append(list_file)
 
 assert len(file_lists_by_folder) == len(folder_names)
@@ -258,6 +257,7 @@ for taskgroup in taskgroups:
 
 pprint.pprint(request_strings)
 
+# clipboard.copy(request_strings[0])
 clipboard.copy('\n\n'.join(request_strings))
 
 

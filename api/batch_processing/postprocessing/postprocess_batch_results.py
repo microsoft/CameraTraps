@@ -548,7 +548,7 @@ def process_batch_results(options: PostProcessingOptions
         assert len(detector_files) > 0, (
             'No detection files available, possible path issue?')
 
-        print('Trimmed detection results to {} files'.format(len(detector_files))
+        print('Trimmed detection results to {} files'.format(len(detector_files)))
 
 
     ##%% Sample images for visualization
