@@ -154,12 +154,14 @@ class Task:
             self.id = task_id
 
         if images_list_path is not None:
+            
             if images_list_path.startswith('http'):
                 self.remote_images_list_url = images_list_path
             else:
                 self.local_images_list_path = images_list_path
 
             if validate:
+                
                 if images_list_path.startswith('http'):
                     images_list = requests.get(images_list_path).json()
                 else:
