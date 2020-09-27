@@ -44,12 +44,19 @@ Install [miniconda3](https://docs.conda.io/en/latest/miniconda.html). Then creat
 conda env update -f environment-classifier.yml --prune
 ```
 
-Verify that *Pillow-SIMD* (installed from PyPI) overshadows the normal *Pillow* package (installed from conda). Open up a Python interpreter and run the following code. Make sure that the *Pillow* version ends in `'.postX'`, which indicates *Pillow-SIMD*.
+Activate this conda environment:
 
-```python
-import PIL
-print(PIL.__version__)
+```bash
+conda activate cameratraps-classifier
 ```
+
+Verify that *Pillow-SIMD* (installed from PyPI) overshadows the normal *Pillow* package (installed from conda) by running:
+
+```bash
+python -c "import PIL; print(PIL.__version__)"
+```
+
+Make sure that the *Pillow* version ends in `'.postX'`, which indicates *Pillow-SIMD*.
 
 If this is running on a VM, enable remote Jupyter notebook access by doing the following. For more information, see the [Jupyter notebook server guide](https://jupyter-notebook.readthedocs.io/en/stable/public_server.html).
 
