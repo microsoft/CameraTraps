@@ -28,7 +28,7 @@ Of course, a machine learning model isn&rsquo;t useful to most ecologists by its
 
 &nbsp;&nbsp;&nbsp;&nbsp;<https://github.com/microsoft/CameraTraps/blob/master/api/batch_processing/integration/timelapse.md>
 
-We have a more beta integration with the <a href="http://emammal.si.edu">eMammal</a> desktop applications:
+We have a more beta integration with the <a href="http://emammal.si.edu">eMammal</a> desktop application:
 
 &nbsp;&nbsp;&nbsp;&nbsp;<https://github.com/microsoft/CameraTraps/blob/master/api/batch_processing/integration/eMammal>
 
