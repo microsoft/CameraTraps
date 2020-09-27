@@ -28,6 +28,10 @@ Of course, a machine learning model isn&rsquo;t useful to most ecologists by its
 
 &nbsp;&nbsp;&nbsp;&nbsp;<https://github.com/microsoft/CameraTraps/blob/master/api/batch_processing/integration/timelapse.md>
 
+We have a more beta integration with the <a href="http://emammal.si.edu">eMammal</a> desktop applications:
+
+&nbsp;&nbsp;&nbsp;&nbsp;<https://github.com/microsoft/CameraTraps/blob/master/api/batch_processing/integration/eMammal>
+
 In some cases, we also train species classifiers for specific ecosystems, and we have tools for training classifiers (we actually train classifiers on individual animals found by our detector, not on whole images):
 
 &nbsp;&nbsp;&nbsp;&nbsp;<https://github.com/microsoft/CameraTraps/blob/master/classification/TUTORIAL.md>

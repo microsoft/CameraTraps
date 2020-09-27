@@ -18,6 +18,8 @@ Conservation biologists invest a huge amount of time reviewing camera trap image
 
 To this end, this page hosts a model we've trained to detect animals, people, and vehicles in camera trap images, using several hundred thousand bounding boxes from a variety of ecosystems.  It does not identify animals, it just finds them.  The current model is based on Faster-RCNN with an InceptionResNetv2 base network, and was trained with the TensorFlow Object Detection API.  We use this model as our first stage for classifier training and inference.
 
+This page is about the technical elements of MegaDetector; if you are an ecologist looking to use MegaDetector, you may prefer to start at our [MegaDetector collaborations page](collaborations.md).
+
 ## Our ask to MegaDetector users
 
 MegaDetector is free, and it makes us super-happy when people use it, so we put it out there as a downloadable model that is easy to use in a variety of conservation scenarios.  That means we don't know who's using it unless you contact us (or we happen to run into you), so please please pretty-please email us at [cameratraps@microsoft.com](mailto:cameratraps@microsoft.com) if you find it useful!
