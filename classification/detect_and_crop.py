@@ -599,13 +599,19 @@ def download_and_crop(
         images_missing_detections: Optional[Iterable[str]] = None
         ) -> Tuple[List[str], int, int]:
     """
-    Saves crops to a file with the same name as the original image, except the
-    ending is changed from ".jpg" (for example) to:
-    - if image has ground truth bboxes: "_cropXX.jpg", where "XX" indicates the
-        bounding box index
-    - if image has bboxes from MegaDetector: "_mdvY.Y_cropXX.jpg", where
+    Saves crops to a file with the same name as the original image with an
+    additional suffix appended, starting with 3 underscores:
+    - if image has ground truth bboxes: "___cropXX.jpg", where "XX" indicates
+        the bounding box index
+    - if image has bboxes from MegaDetector: "___cropXX_mdvY.Y.jpg", where
         "Y.Y" indicates the MegaDetector version
     See module docstring for more info and examples.
+
+    Note: this function is very similar to the "download_and_crop()" function in
+        crop_detections.py. The main difference is that this function uses
+        MegaDB to look up Azure Storage container information for images based
+        on the dataset, whereas the crop_detections.py version has no concept
+        of a "dataset" and "ground-truth" bounding boxes from MegaDB.
 
     Args:
         queried_images_json: dict, represents JSON output of json_validator.py,
@@ -678,6 +684,9 @@ def download_and_crop(
         container_client = container_clients[ds]
 
         # get bounding boxes
+        # we must include the dataset <ds> in <crop_path_template> because
+        #    '{img_path}' actually gets populated with <img_file> in
+        #    load_and_crop()
         is_ground_truth = ('bbox' in info_dict)
         if is_ground_truth:  # ground-truth bounding boxes
             bbox_dicts = info_dict['bbox']
