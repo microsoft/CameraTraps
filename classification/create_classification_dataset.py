@@ -543,7 +543,7 @@ def _parse_args() -> argparse.Namespace:
         '-v', '--detector-version',
         help='(required) detector version string, e.g., "4.1"')
     csv_group.add_argument(
-        '-t', '--confidence-threshold', type=float, default=0.8,
+        '-t', '--threshold', type=float, default=0.8,
         help='confidence threshold above which to crop bounding boxes')
     csv_group.add_argument(
         '--min-locs', type=int,
@@ -583,7 +583,7 @@ if __name__ == '__main__':
          cropped_images_dir=args.cropped_images_dir,
          detector_version=args.detector_version,
          detector_output_cache_base_dir=args.detector_output_cache_dir,
-         confidence_threshold=args.confidence_threshold,
+         confidence_threshold=args.threshold,
          min_locs=args.min_locs,
          val_frac=args.val_frac,
          test_frac=args.test_frac,
