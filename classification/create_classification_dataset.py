@@ -239,10 +239,10 @@ def create_classification_csv(
     all_rows = []
 
     # True for ground truth, False for MegaDetector
-    # always save as JPG for consistency
+    # always save as .jpg for consistency
     crop_path_template = {
-        True: '{img_path_root}_crop{n:>02d}.jpg',
-        False: '{img_path_root}_mdv{v}_crop{n:>02d}.jpg'
+        True: '{img_path}___crop{n:>02d}.jpg',
+        False: '{img_path}___crop{n:>02d}_' + f'mdv{detector_version}.jpg'
     }
 
     for img_path, img_info in tqdm(js.items()):
@@ -273,9 +273,8 @@ def create_classification_csv(
             if bbox_dict['category'] != 'animal':
                 tqdm.write(f'Bbox {i} of {img_path} is non-animal. Skipping.')
                 continue
-            img_path_root = os.path.splitext(img_path)[0]
             crop_path = crop_path_template[is_ground_truth].format(
-                img_path_root=img_path_root, v=detector_version, n=i)
+                img_path=img_path, n=i)
             full_crop_path = os.path.join(cropped_images_dir, crop_path)
             if not os.path.exists(full_crop_path):
                 images_missing_crop.append((img_path, i))
