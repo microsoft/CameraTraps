@@ -298,6 +298,7 @@ def load_and_crop(img_path: str,
             use container_client in any context manager
         bbox_dicts: list of dicts, each dict contains info on a bounding box
         confidence_threshold: float, only crop bounding boxes above this value
+        crop_path_template: str, contains placeholders {img_path} and {n}
         save_full_images: bool, whether to save downloaded images to images_dir,
             images_dir must be given and must exist if save_full_images=True
         square_crops: bool, whether to crop bounding boxes as squares
