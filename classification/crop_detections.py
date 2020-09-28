@@ -441,7 +441,7 @@ def _parse_args() -> argparse.Namespace:
         '--check-crops-valid', action='store_true',
         help='load each crop to ensure file is valid (i.e., not truncated)')
     parser.add_argument(
-        '-t', '--confidence-threshold', type=float, default=0.0,
+        '-t', '--threshold', type=float, default=0.0,
         help='confidence threshold above which to crop bounding boxes')
     parser.add_argument(
         '-n', '--threads', type=int, default=1,
@@ -462,6 +462,6 @@ if __name__ == '__main__':
          save_full_images=args.save_full_images,
          square_crops=args.square_crops,
          check_crops_valid=args.check_crops_valid,
-         confidence_threshold=args.confidence_threshold,
+         confidence_threshold=args.threshold,
          threads=args.threads,
          logdir=args.logdir)
