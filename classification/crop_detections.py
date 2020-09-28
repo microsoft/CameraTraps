@@ -40,7 +40,7 @@ python crop_detections.py \
     --images-dir /path/to/images \
     --container-url "https://account.blob.core.windows.net/container?sastoken" \
     --detector-version "4.1" \
-    --confidence-threshold 0.8 \
+    --threshold 0.8 \
     --save-full-images --square-crops \
     --threads 50 \
     --logdir "."
