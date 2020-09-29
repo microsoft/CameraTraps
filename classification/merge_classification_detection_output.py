@@ -1,18 +1,21 @@
 r"""
 Merges classification results with Batch Detection API outputs.
 
-Takes as input a CSV containing columns:
-- 'path': str, path to cropped image
-    - if passing in a detections JSON, must match
-        <img_file>___cropXX_mdvY.Y.jpg
-    - if passing in a queried images JSON, must match
-        <dataset>/<img_file>___cropXX_mdvY.Y.jpg or
-        <dataset>/<img_file>___cropXX.jpg
-- 'label': str, label assigned to this crop
-- [label names]: float, confidence in each label
-
-The 'label' and [label names] columns are optional, but at least one of them
-must be proided.
+This script takes 2 main files as input:
+1) Either a "dataset CSV" (output of create_classification_dataset.py) or a
+    "classification results CSV" (output of evaluate_model.py). The CSV is
+    expected to have columns listed below. The 'label' and [label names] columns
+    are optional, but at least one of them must be proided.
+    - 'path': str, path to cropped image
+        - if passing in a detections JSON, must match
+            <img_file>___cropXX_mdvY.Y.jpg
+        - if passing in a queried images JSON, must match
+            <dataset>/<img_file>___cropXX_mdvY.Y.jpg or
+            <dataset>/<img_file>___cropXX.jpg
+    - 'label': str, label assigned to this crop
+    - [label names]: float, confidence in each label
+2) Either a "detections JSON" (output of MegaDetector) or a "queried images
+    JSON" (output of json_validatory.py).
 
 If the CSV contains [label names] columns (e.g., output of evaluate_model.py),
 then each crop's "classifications" output will have one value per category.
@@ -47,13 +50,14 @@ label catgory is placed first in the results.
 
 Example usage:
     python merge_classification_detection_output.py \
-        run_idfg_moredata/20200814_084806/outputs_test.csv.gz \
-        run_idfg_moredata/20200814_084806/label_index.json \
-        run_idfg_moredata/queried_images.json \
-        -n "efficientnet-b3-idfg-moredata" \
-        -c $HOME/classifier-training/mdcache -v "4.1" \
-        -o run_idfg_moredata/20200814_084806/classifier_results.json \
-        -d idfg idfg_swwlf_2019
+        BASE_LOGDIR/LOGDIR/outputs_test.csv.gz \
+        BASE_LOGDIR/label_index.json \
+        BASE_LOGDIR/queried_images.json \
+        --classifier-name "efficientnet-b3-idfg-moredata" \
+        --detector-output-cache-dir $HOME/classifier-training/mdcache \
+        --detector-version "4.1" \
+        --output-json BASE_LOGDIR/LOGDIR/classifier_results.json \
+        --datasets idfg idfg_swwlf_2019
 """
 import argparse
 import datetime
@@ -131,6 +135,7 @@ def main(classification_csv_path: str,
          seed: int,
          label_pos: Optional[str],
          relative_conf: bool) -> None:
+    """Main function."""
     # input validation
     assert os.path.exists(classification_csv_path)
     assert os.path.exists(label_names_json_path)
@@ -197,7 +202,30 @@ def process_queried_images(
          samples_per_label: Optional[int] = None,
          seed: int = 123
          ) -> Dict[str, Any]:
-    """Main function."""
+    """Creates a detection JSON object roughly in the Batch API detection
+    format.
+
+    Detections are either ground-truth (from the queried images JSON) or
+    retrieved from the detector output cache. Only images corresponding to crop
+    paths from the given pd.DataFrame are included in the detection JSON.
+
+    Args:
+        df: pd.DataFrame, either a "classification dataset CSV" or a
+            "classification results CSV",  column 'path' has format
+            <dataset>/<img_file>___cropXX[...].jpg
+        queried_images_json_path: str, path to queried images JSON
+        detector_output_cache_base_dir: str
+        detector_version: str
+        datasets: optional list of str, only crops from these datasets will be
+            be included in the output, set to None to include all datasets
+        samples_per_label: optional int, if not None, then randomly sample this
+            many bounding boxes per label (each label must have at least this
+            many examples)
+        seed: int, used for random sampling if samples_per_label is not None
+
+    Returns: dict, detections JSON file, except that the 'images' field is a
+        dict (img_path => dict) instead of a list
+    """
     # input validation
     assert os.path.exists(queried_images_json_path)
     detection_cache_dir = os.path.join(
@@ -259,7 +287,7 @@ def process_queried_images(
         for crop_path in tqdm(ds_df.index):
             # crop_path: <dataset>/<img_file>___cropXX_mdvY.Y.jpg
             #            [----<img_path>----]       [-<suffix>--]
-            img_path, suffix = crop_path.split('___crop')[0]
+            img_path, suffix = crop_path.split('___crop')
             img_file = img_path[img_path.find('/') + 1:]
 
             # file has detection entry
@@ -296,10 +324,13 @@ def combine_classification_with_detection(
         label_pos: Optional[str] = None,
         relative_conf: bool = False
         ) -> Dict[str, Any]:
-    """
+    """Adds classification information to a detection JSON. Classification
+    information may include the true label and/or the predicted confidences
+    of each label.
+
     Args:
-        detection_js: dict, detections JSON file, except that 'images'
-            is dict (img_path => dict) instead of a list
+        detection_js: dict, detections JSON file, except that the 'images'
+            field is a dict (img_path => dict) instead of a list
         df: pd.DataFrame, classification results, indexed by crop path
         idx_to_label: dict, str(label_id) => label name, may also include
             str(label_id + 1e6) => 'label: {label_name}'
@@ -312,7 +343,7 @@ def combine_classification_with_detection(
             None: do not include labels in the output JSON
             'first' / 'last': position in classification list to put the label
         relative_conf: bool, if True then for each class, outputs its relative
-            confidence over the confidence of the true label, requires "label"
+            confidence over the confidence of the true label, requires 'label'
             to be in CSV
 
     Returns: dict, detections JSON file updated with classification results
