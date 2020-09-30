@@ -41,7 +41,7 @@ from api.batch_processing.postprocessing.postprocess_batch_results import (
 max_task_name_length = 92
 
 
-#%% Constants I set per taskgroup
+#%% Constants I set per script
 
 ### Required
 
