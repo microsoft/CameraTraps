@@ -179,7 +179,7 @@ We also do our best to follow [Google's Python Style Guide](http://google.github
 
 # Gratuitous pretty camera trap picture
 
-![alt text](images/nacti.jpg "Bird flying above water")
+![Bird flying above water](images/nacti.jpg)
 
 Image credit USDA, from the [NACTI](http://lila.science/datasets/nacti) data set.
 
