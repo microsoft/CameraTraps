@@ -36,7 +36,7 @@ Speaking of models that might be useful to other people, we have trained a one-c
 
 Here's a "teaser" image of what detector output looks like:
 
-![alt text](images/detector_example.jpg "Red bounding box on fox")
+![Red bounding box on fox](images/detector_example.jpg)
 
 Image credit University of Washington.
 
