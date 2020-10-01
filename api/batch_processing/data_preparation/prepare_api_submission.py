@@ -190,7 +190,7 @@ class Task:
 
 
     def upload_images_list(self, account: str, container: str, sas_token: str,
-                           blob_name: Optional[str] = None) -> None:
+                           blob_name: Optional[str] = None, overwrite: bool=False) -> None:
         """
         Uploads the local images list to an Azure Blob Storage container.
 
@@ -210,7 +210,7 @@ class Task:
         self.remote_images_list_url = ai4e_azure_utils.upload_file_to_blob(
             account_name=account, container_name=container,
             local_path=self.local_images_list_path, blob_name=blob_name,
-            sas_token=sas_token)
+            sas_token=sas_token, overwrite=overwrite)
 
 
     def generate_api_request(self,
