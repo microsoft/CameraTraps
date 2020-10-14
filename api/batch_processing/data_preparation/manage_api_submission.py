@@ -55,8 +55,8 @@ base_output_folder_name = r'f:\institution'
 #
 # The read-only token is used for accessing images; the write-enabled token is
 # used for writing file lists.
-read_only_sas_token = '?st=2019-12...'
-read_write_sas_token = '?st=2019-12...'
+read_only_sas_token = '?sv=2019-12...'
+read_write_sas_token = '?sv=2019-12...'
 
 caller = 'caller'
 endpoint_base = 'http://blah.endpoint.com:6022/v3/camera-trap/detection-batch'
@@ -263,10 +263,13 @@ clipboard.copy('\n\n'.join(request_strings))
 
 #%% Run the tasks (don't run this cell unless you are absolutely sure!)
 
-for taskgroup in taskgroups:
-    for task in taskgroup:
-        task_id = task.submit()
-        print(task.name, task_id)
+# I really want to make sure I'm sure...
+if False:
+    
+    for taskgroup in taskgroups:
+        for task in taskgroup:
+            task_id = task.submit()
+            print(task.name, task_id)
 
 
 #%% Estimate total time
@@ -292,7 +295,7 @@ print('Expected time: {}'.format(humanfriendly.format_timespan(expected_seconds)
 taskgroup_ids = [["9999"]]
 
 # For multiple tasks...
-taskgroup_ids = [["1111"], ["2222"], ["3333"]]
+# taskgroup_ids = [["1111"], ["2222"], ["3333"]]
 
 for i, taskgroup in enumerate(taskgroups):
     for j, task in enumerate(taskgroup):
@@ -311,32 +314,60 @@ for taskgroup in taskgroups:
         
 if False:
     
-    # Simulate response messages
+    #%%
+    
+    base_sas = '?sv=...'
+    
+    task_id_0 = '...'
+    task_id_1 = '...'
+    task_id_2 = '...'
+    
+    images0 = 'https://...'
+    detections0 = 'https://...'
+    failed0 = 'https://...'
+    
+    images1 = 'https://...'
+    detections1 = 'https://...'
+    failed1 = 'https://...'
+    
+    images2 = 'https://....'
+    detections2 = 'https://...'
+    failed2 = 'https://...'
+    
+    #%% 
+    
     msg0 = prepare_api_submission.create_response_message(0,
-                            failed_images_url='',
-                            images_url='',
-                            detections_url='',
-                            task_id='')
-    print(msg0)
-    
-    
+                            failed_images_url=failed0+base_sas,
+                            images_url=images0+base_sas,
+                            detections_url=detections0+base_sas,
+                            task_id=task_id_0)
     msg1 = prepare_api_submission.create_response_message(0,
-                            failed_images_url='',
-                            images_url='',
-                            detections_url='',
-                            task_id='')
-    print(msg1)
-        
-    # Create tasks
+                            failed_images_url=failed1+base_sas,
+                            images_url=images1+base_sas,
+                            detections_url=detections1+base_sas,
+                            task_id=task_id_1)
+    msg2 = prepare_api_submission.create_response_message(0,
+                            failed_images_url=failed2+base_sas,
+                            images_url=images2+base_sas,
+                            detections_url=detections2+base_sas,
+                            task_id=task_id_2)
+    
+    #%%
+    
     task0 = prepare_api_submission.Task(name='task0',task_id=msg0['request_id'],
                                         api_url=endpoint_base,validate=False)
-    task1 = prepare_api_submission.Task(name='task1',task_id=msg1['request_id'],
-                                       api_url=endpoint_base,validate=False)
     task0.force_completion(msg0)
+    
+    task1 = prepare_api_submission.Task(name='task1',task_id=msg1['request_id'],
+                                        api_url=endpoint_base,validate=False)
     task1.force_completion(msg1)
-
+    
+    task2 = prepare_api_submission.Task(name='task2',task_id=msg2['request_id'],
+                                        api_url=endpoint_base,validate=False)
+    task2.force_completion(msg2)
+    
     # Stick those tasks in the taskgroup list
-    taskgroups = [[task0],[task1]]
+    taskgroups = [[task0,task1,task2]]
 
 
 #%% Look for failed shards or missing images, start new tasks if necessary
@@ -445,7 +476,7 @@ if False:
 
 task_id_to_results_file = {}
 
-# i_taskgroup = 0; taskgroup = taskgroups[i_taskgroup]; task_id = taskgroup[0]
+# i_taskgroup = 0; taskgroup = taskgroups[i_taskgroup]; task = taskgroup[0]
 for i_taskgroup, taskgroup in enumerate(taskgroups):
 
     for task in taskgroup:
@@ -462,6 +493,7 @@ for i_taskgroup, taskgroup in enumerate(taskgroups):
         assert 'chunk' in fn or 'missing' in fn
 
         output_file = os.path.join(raw_api_output_folder, fn)
+        print('Downloading {} to {}'.format(detections_url,output_file))
         prepare_api_submission.download_url(detections_url, output_file)
         task_id_to_results_file[task.id] = output_file
 
