@@ -36,7 +36,7 @@ Speaking of models that might be useful to other people, we have trained a one-c
 
 Here's a "teaser" image of what detector output looks like:
 
-![alt text](images/detector_example.jpg "Red bounding box on fox")
+![Red bounding box on fox](images/detector_example.jpg)
 
 Image credit University of Washington.
 
@@ -179,7 +179,7 @@ We also do our best to follow [Google's Python Style Guide](http://google.github
 
 # Gratuitous pretty camera trap picture
 
-![alt text](images/nacti.jpg "Bird flying above water")
+![Bird flying above water](images/nacti.jpg)
 
 Image credit USDA, from the [NACTI](http://lila.science/datasets/nacti) data set.
 
