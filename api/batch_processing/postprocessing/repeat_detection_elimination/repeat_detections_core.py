@@ -432,7 +432,7 @@ def render_images_for_directory(iDir, directoryHtmlFiles, suspiciousDetections, 
                     continue
             else:
                 inputFileName = relative_sas_url(options.imageBase, instance.filename)
-            render_bounding_box(detection, inputFileName, imageOutputFilename, lineWidth=options.lineWidth, 
+            render_bounding_box(detection, inputFileName, imageOutputFilename, lineWidth=options.lineThickness, 
                                 expansion=options.boxExpansion)
 
         # ...for each instance
