@@ -80,7 +80,6 @@ class RepeatDetectionOptions:
     # A list of classes we don't want to treat as suspicious. Each element is an int.
     excludeClasses = []  # [annotation_constants.detector_bbox_category_name_to_id['person']]
 
-    # Set to zero to disable parallelism
     nWorkers = 10  # joblib.cpu_count()
 
     viz_target_width = 800
@@ -239,7 +238,7 @@ def render_bounding_box(detection, inputFileName, outputFileName, lineWidth=5, e
 ##%% Look for matches (one directory) (function)
 
 def find_matches_in_directory(dirName, options, rowsByDirectory):
-    
+        
     if options.pbar is not None:
         options.pbar.update()
 
