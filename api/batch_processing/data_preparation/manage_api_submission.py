@@ -289,17 +289,21 @@ print('Expected time: {}'.format(humanfriendly.format_timespan(expected_seconds)
 
 #%% Manually define task groups if we ran the tasks manually
 
-# The nested lists will make sense below, I promise.
+if False:
 
-# For just one task...
-taskgroup_ids = [["9999"]]
+    #%%    
 
-# For multiple tasks...
-# taskgroup_ids = [["1111"], ["2222"], ["3333"]]
+    # The nested lists will make sense below, I promise.
 
-for i, taskgroup in enumerate(taskgroups):
-    for j, task in enumerate(taskgroup):
-        task.id = taskgroup_ids[i][j]
+    # For just one task...
+    taskgroup_ids = [["9999"]]
+    
+    # For multiple tasks...
+    # taskgroup_ids = [["1111"], ["2222"], ["3333"]]
+    
+    for i, taskgroup in enumerate(taskgroups):
+        for j, task in enumerate(taskgroup):
+            task.id = taskgroup_ids[i][j]
 
 
 #%% Status check
@@ -310,6 +314,108 @@ for taskgroup in taskgroups:
         print(response)
 
 
+#%% Automatically pull results from the AzureML output if output got stalled
+        
+if False:
+
+    #%%        
+    
+    import sas_blob_utils
+    
+    api_container_info_file = r'g:\api_container_info.txt'
+    if api_container_info_file is None:
+        api_result_container_sas = '?sv='
+        api_result_storage_account = ''
+        api_result_container_name = ''
+    else:
+        with open(api_container_info_file,'r') as f:
+            api_container_info = f.readlines()
+            api_container_info = [s.strip() for s in api_container_info]
+            api_result_container_sas = api_container_info[0]
+            api_result_storage_account = api_container_info[1]
+            api_result_container_name = api_container_info[2]
+    
+    container_uri = sas_blob_utils.build_azure_storage_uri(
+                    account=api_result_storage_account, container=api_result_container_name, sas_token=api_result_container_sas)
+            
+    # Maps task IDs to lists of resulting blobs
+    task_to_results = {}
+    
+    # Enumerate files associated with each task
+    #
+    # taskgroup = taskgroups[0]; task = taskgroup[0]
+    for taskgroup in taskgroups:
+        for task in taskgroup:
+            
+            task_id = task.id
+            
+            # Enumerate files associated this this task
+            matched_blobs = sas_blob_utils.list_blobs_in_container(container_uri=container_uri, blob_prefix=task_id)
+            task_to_results[task_id] = matched_blobs
+        
+    # Determine which tasks have finished, build completion messages for each
+            
+    # task_id = (list(task_to_results.keys()))[0];
+    task_id_to_msg = {}        
+    for task_id in task_to_results:
+        
+        results = task_to_results[task_id]
+        
+        if len(results) != 3:
+            print('Task {} is not finished'.format(task_id))
+            task_id_to_msg[task_id] = None
+            continue
+        
+        images_url = ''
+        failed_images_url = ''
+        detections_url = ''
+        
+        # s = results[0]
+        task_id_start = task_id[0:8]
+        for s in results:
+            assert s.startswith(task_id_start)
+            s_url = container_uri.replace('?','/' + s + '?')
+            blob_name = s.split('/')[1]
+            if blob_name.endswith('_images.json'):
+                images_url = s_url
+            elif blob_name.startswith(task_id_start + '_detections'):
+                detections_url = s_url
+            elif blob_name.startswith(task_id_start + '_failed_images'):    
+                failed_images_url = s_url
+            else:
+                raise ValueError('Cannot map blob {}'.format(s))
+        
+            msg = prepare_api_submission.create_response_message(0,
+                                    failed_images_url=failed_images_url,
+                                    images_url=images_url,
+                                    detections_url=detections_url,
+                                    task_id=task_id)
+            
+        # ...for each blob in this folder
+        
+        task_id_to_msg[task_id] = msg
+        
+    # ...for each task
+    
+
+    #%% Replace task group tasks
+    
+    for taskgroup in taskgroups:
+        
+        for i_task,task in enumerate(taskgroup):
+            
+            task_id = task.id
+            msg = task_id_to_msg[task_id]
+            new_task = prepare_api_submission.Task(name=task_id + '_reprise',task_id=msg['request_id'],
+                                            api_url=endpoint_base,validate=False)
+            new_task.force_completion(msg) 
+            taskgroup[i_task] = new_task
+            
+        # ...for each task
+            
+    # ...for each task group
+
+        
 #%% Manually create responses for one or more tasks if tasks didn't properly complete
         
 if False:
