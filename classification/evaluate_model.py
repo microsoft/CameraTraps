@@ -29,7 +29,12 @@ Outputs the following files:
 
 
 Example usage:
-    python evaluate_model.py run_idfg/logs/20200803_145515 ckpt_6.pt
+    python evaluate_model.py \
+        $BASE_LOGDIR/$LOGDIR/params.json \
+        $BASE_LOGDIR/$LOGDIR/ckpt_XX.pt \
+        --output-dir $BASE_LOGDIR/$LOGDIR \
+        --splits train val test \
+        --batch-size 256
 """
 import argparse
 import json
@@ -160,7 +165,7 @@ def main(params_json_path: str, ckpt_path: str, output_dir: str,
         augment_train=False)
     num_labels = len(label_names)
 
-    # create model
+    # create model, compile with TorchScript if given checkpoint is not compiled
     print('Loading model from checkpoint')
     try:
         model = torch.jit.load(ckpt_path, map_location='cpu')
@@ -168,6 +173,10 @@ def main(params_json_path: str, ckpt_path: str, output_dir: str,
         compiled_path = trace_model(model_name, ckpt_path, num_labels, img_size)
         model = torch.jit.load(compiled_path, map_location='cpu')
     model, device = train_classifier.prep_device(model)
+
+    if len(splits) == 0:
+        print('No splits given! Exiting.')
+        return
 
     target_cols_map = None
     if target_mapping_json_path is not None:
@@ -435,8 +444,10 @@ def _parse_args() -> argparse.Namespace:
         '-o', '--output-dir', required=True,
         help='(required) path to output directory')
     parser.add_argument(
-        '--splits', nargs='*', choices=SPLITS, default=SPLITS,
-        help='which splits to evaluate model on')
+        '--splits', nargs='*', choices=SPLITS, default=[],
+        help='which splits to evaluate model on. If no splits are given, then '
+             'only compiles normal checkpoint file using TorchScript without '
+             'actually running the model.')
 
     other_classifier = parser.add_argument_group(
         'arguments for evaluating a model (e.g., MegaClassifier) on a '
