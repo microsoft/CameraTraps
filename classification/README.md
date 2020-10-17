@@ -275,7 +275,7 @@ python merge_classification_detection_output.py \
 ```
 
 
-# Typical Training Pipeline
+# Typical training pipeline
 
 Before doing any model training, create a directory under `CameraTraps/classification/` for tracking all of our generated files. We refer to this directory with the variable `$BASE_LOGDIR`.
 

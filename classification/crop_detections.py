@@ -91,9 +91,11 @@ def main(detections_json_path: str,
         logdir: str, path to directory to save log file
     """
     # error checking
-    assert 0 <= confidence_threshold <= 1
+    assert 0 <= confidence_threshold <= 1, \
+            'Invalid confidence threshold {}'.format(confidence_threshold)
     if save_full_images:
-        assert images_dir is not None
+        assert images_dir is not None, \
+            'save_full_images specified but no images_dir provided'
         if not os.path.exists(images_dir):
             os.makedirs(images_dir, exist_ok=True)
             print(f'Created images_dir at {images_dir}')
@@ -421,7 +423,7 @@ def _parse_args() -> argparse.Namespace:
         help='path to local directory for saving crops of bounding boxes')
     parser.add_argument(
         '-i', '--images-dir',
-        help='path to local directory where images are saved')
+        help='path to directory where full images are saved, only meaningful if --save-full-images is set')
     parser.add_argument(
         '-c', '--container-url',
         help='URL (including SAS token, if necessary) of Azure Blob Storage '
@@ -433,7 +435,7 @@ def _parse_args() -> argparse.Namespace:
              'cannot be inferred from detections JSON')
     parser.add_argument(
         '--save-full-images', action='store_true',
-        help='if downloading an image, save the full image to --images-dir')
+        help='forces downloading of full images to --images-dir')
     parser.add_argument(
         '--square-crops', action='store_true',
         help='crop bounding boxes as squares')
