@@ -558,16 +558,16 @@ After training a model, we evaluate its performance using `evaluate_model.py`. T
 During training, we already output some basic overall statistics about model performance, but during evaluation, we generate a more picture of model performance, captured in the following output files:
 
 1. `outputs_{split}.csv`: one file per split, contains columns:
-  * `'path'`: str, path to cropped image
-  * `'label'`: str
-  * `'weight'`: float
-  * `[label names]`: float, confidence in each label
+    * `'path'`: str, path to cropped image
+    * `'label'`: str
+    * `'weight'`: float
+    * `[label names]`: float, confidence in each label
 
 2. `overall_metrics.csv`, contains columns:
-  * `'split'`: str
-  * `'loss'`: float, mean per-example loss over entire epoch
-  * `'acc_top{k}'`: float, accuracy@k over the entire epoch
-  * `'loss_weighted'` and `'acc_weighted_top{k}'`: float, weighted versions
+    * `'split'`: str
+    * `'loss'`: float, mean per-example loss over entire epoch
+    * `'acc_top{k}'`: float, accuracy@k over the entire epoch
+    * `'loss_weighted'` and `'acc_weighted_top{k}'`: float, weighted versions
 
 3. `confusion_matrices.npz`: keys are splits (`['train', 'val', 'test']`), values are `np.ndarray` confusion matrices
 
@@ -575,7 +575,7 @@ During training, we already output some basic overall statistics about model per
 
 The `evaluate_model.py` script takes 2 main inputs: a `params.json` file created during model training, and a path to a model checkpoint.
 
-* `params.json`: Passing in a `params.json` file simplifies the number of arguments you need to pass to `evaluate_model.py`, although there are many parameters which can be overridden via command-line arguments (run `evaluate_model.py --help` to see which parameters can be overriden).
+* `params.json`: Passing in a `params.json` file simplifies the number of arguments you need to pass to `evaluate_model.py`, although there are many parameters which can be overridden via command-line arguments (run `evaluate_model.py --help` to see which parameters can be overridden).
 * checkpoint file: This can be either a normal checkpoint or a TorchScript-compiled checkpoint. If the checkpoint is a normal checkpoint, the script will compile a TorchScript checkpoint and save it to the same place as the normal checkpoint, except with a `_compiled` suffix added to the filename.
 
 Note that the classifier evaluation code uses the "accimage" backend for image transformations instead of the "Pillow" or "Pillow-SIMD" backend used during training. The accimage backend empirically improves data loading speed by about 20-50% over Pillow and Pillow-SIMD. However, accimage runs into occasional unpredictable errors every once in a while, so it is impractical for training. For evaluation, it has worked quite well though.
@@ -593,7 +593,7 @@ python evaluate_model.py \
 
 **Compare MegaClassifier performance vs. bespoke classifier**
 
-We can also use compare the performance of MegaClassifier vs. a bespoke classifier. First, generate a mapping from MegaClassifier categories to the bespoke classifier's categories using `map_classification_categories.py`. If the bespoke classifier's label specification JSON file was defined using taxa, then you may be able to directly use that JSON file. However, if the label specification was defined using dataset-specific classes, you should consider writing a broader label specification using taxa. See the instructions from [_Map MegaClassifier categories to desired categories_](#4-optional-map-megaclassifier-categories-to-desired-categories)
+We can also use compare the performance of MegaClassifier vs. a bespoke classifier. First, generate a mapping from MegaClassifier categories to the bespoke classifier's categories using `map_classification_categories.py`. If the bespoke classifier's label specification JSON file was defined using taxa, then you may be able to directly use that JSON file. However, if the label specification was defined using dataset-specific classes, you should consider writing a broader label specification using taxa. See the instructions from [_Map MegaClassifier categories to desired categories_](#4-optional-map-megaclassifier-categories-to-desired-categories).
 
 Next, run `evaluate_mode.py`, passing in the MegaClassifier compiled checkpoint as well as the new category mapping and MegaClassifier's own label index JSON file.
 
