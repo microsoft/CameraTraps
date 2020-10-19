@@ -721,7 +721,7 @@ options.imageBase = read_only_sas_url
 rde_string = 'rde_{:.2f}_{:.2f}_{}_{:.2f}'.format(
     options.confidenceMin, options.iouThreshold,
     options.occurrenceThreshold, options.maxSuspiciousDetectionSize)
-options.outputBase = os.path.join(filename_base, rde_string)
+options.outputBase = os.path.join(filename_base, rde_string + '_task_{}'.format(task_index))
 options.filenameReplacements = {'':''}
 
 options.debugMaxDir = -1

@@ -1219,7 +1219,8 @@ def process_batch_results(options: PostProcessingOptions
 
         almost_detection_string = ''
         if options.include_almost_detections:
-            almost_detection_string = ' (&ldquo;almost detection&rdquo; threshold at {:.1%})'.format(options.almost_detection_confidence_threshold)
+            almost_detection_string = ' (&ldquo;almost detection&rdquo; threshold at {:.1%})'.format(
+                options.almost_detection_confidence_threshold)
 
         index_page = """<html>\n{}\n<body>\n
         <h2>Visualization of results</h2>\n
@@ -1255,7 +1256,10 @@ def process_batch_results(options: PostProcessingOptions
 
         if has_classification_info:
             index_page += '<h3>Images of detected classes</h3>'
-            index_page += '<p>The same image might appear under multiple classes if multiple species were detected.</p>\n<div class="contentdiv">\n'
+            index_page += '<p>The same image might appear under multiple classes if multiple species were detected.</p>\n'
+            index_page += '<p>Classifications with confidence less than {:.1%} confidence are considered "unreliable".</p>\n'.format(
+                options.classification_confidence_threshold)
+            index_page += '<div class="contentdiv">\n'
 
             # Add links to all available classes
             class_names = sorted(classification_categories.values())
