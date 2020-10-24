@@ -337,22 +337,53 @@ if False:
     
     container_uri = sas_blob_utils.build_azure_storage_uri(
                     account=api_result_storage_account, container=api_result_container_name, sas_token=api_result_container_sas)
-            
-    # Maps task IDs to lists of resulting blobs
-    task_to_results = {}
     
-    # Enumerate files associated with each task
-    #
-    # taskgroup = taskgroups[0]; task = taskgroup[0]
-    for taskgroup in taskgroups:
-        for task in taskgroup:
-            
-            task_id = task.id
-            
-            # Enumerate files associated this this task
-            matched_blobs = sas_blob_utils.list_blobs_in_container(container_uri=container_uri, blob_prefix=task_id)
-            task_to_results[task_id] = matched_blobs
+    #%%
+    
+    if False:
         
+        #%% 
+        
+        # Use this when you don't know the task ID, typically because this notebook closed
+        
+        matched_blobs = sas_blob_utils.list_blobs_in_container(container_uri=container_uri)
+        task_blobs = [s for s in matched_blobs if base_task_name in s]
+        task_id = task_blobs[0].split('/')[0]
+        matched_blobs = sas_blob_utils.list_blobs_in_container(container_uri=container_uri,blob_prefix=task_id)
+    
+        task_to_results = {}
+        task_to_results[task_id] = matched_blobs
+        
+        taskgroups = None
+        
+        #%%
+        
+    if False:
+        
+        #%%
+        
+        # Use this when you still have the taskgroups and Task IDs, typically because
+        # this notebook is fine, but the job stalled
+
+        # Maps task IDs to lists of resulting blobs
+        task_to_results = {}
+        
+        # Enumerate files associated with each task
+        #
+        # taskgroup = taskgroups[0]; task = taskgroup[0]
+        for taskgroup in taskgroups:
+            for task in taskgroup:
+                
+                task_id = task.id
+                
+                # Enumerate files associated this this task
+                matched_blobs = sas_blob_utils.list_blobs_in_container(container_uri=container_uri, blob_prefix=task_id)
+                task_to_results[task_id] = matched_blobs
+        
+        #%%
+                
+    #%% 
+            
     # Determine which tasks have finished, build completion messages for each
             
     # task_id = (list(task_to_results.keys()))[0];
@@ -400,22 +431,44 @@ if False:
 
     #%% Replace task group tasks
     
-    for taskgroup in taskgroups:
+    if False:
         
-        for i_task,task in enumerate(taskgroup):
-            
-            task_id = task.id
-            msg = task_id_to_msg[task_id]
-            new_task = prepare_api_submission.Task(name=task_id + '_reprise',task_id=msg['request_id'],
-                                            api_url=endpoint_base,validate=False)
-            new_task.force_completion(msg) 
-            taskgroup[i_task] = new_task
-            
-        # ...for each task
-            
-    # ...for each task group
+        #%%
+        
+        # Use this if you're building taskgroups from scratch, typically because this notebook closed
+        
+        msg = task_id_to_msg[task_id]
+        new_task = prepare_api_submission.Task(name=task_id + '_reprise',task_id=msg['request_id'],
+                                        api_url=endpoint_base,validate=False)
+        new_task.force_completion(msg) 
+        taskgroups = [[new_task]]
 
+        #%%
         
+    if False:
+        
+        #%%
+        
+        # Use this if you still have taskgroups, typically because the job stalled
+
+        for taskgroup in taskgroups:
+        
+            for i_task,task in enumerate(taskgroup):
+                
+                task_id = task.id
+                msg = task_id_to_msg[task_id]
+                new_task = prepare_api_submission.Task(name=task_id + '_reprise',task_id=msg['request_id'],
+                                                api_url=endpoint_base,validate=False)
+                new_task.force_completion(msg) 
+                taskgroup[i_task] = new_task
+            
+            # ...for each task
+                
+        # ...for each task group
+                
+        #%%
+
+                
 #%% Manually create responses for one or more tasks if tasks didn't properly complete
         
 if False:
