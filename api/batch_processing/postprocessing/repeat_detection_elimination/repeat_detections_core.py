@@ -276,7 +276,11 @@ def find_matches_in_directory(dirName, options, rowsByDirectory):
 
             confidence = detection['conf']
             
-            assert confidence >= 0.0 and confidence <= 1.0
+            # This is no longer strictly true; I sometimes run RDE in stages, so
+            # some probabilities have already been made negative
+            # assert confidence >= 0.0 and confidence <= 1.0
+            assert confidence >= -1.0 and confidence <= 1.0
+            
             if confidence < options.confidenceMin:
                 continue
             if confidence > options.confidenceMax:
@@ -542,12 +546,16 @@ def update_detection_table(RepeatDetectionResults, options, outputFilename=None)
             continue
 
         maxPOriginal = float(row['max_detection_conf'])
-        assert maxPOriginal >= 0
+        
+        # No longer strictly true; sometimes I run RDE on RDE output
+        # assert maxPOriginal >= 0
+        assert maxPOriginal >= -1.0
 
         maxP = None
         nNegative = 0
 
         for iDetection, detection in enumerate(detections):
+            
             p = detection['conf']
 
             if p < 0:
@@ -565,7 +573,7 @@ def update_detection_table(RepeatDetectionResults, options, outputFilename=None)
 
             nProbChanges += 1
 
-            if maxP < 0:
+            if (maxP < 0) and (maxPOriginal >= 0):
                 nProbChangesToNegative += 1
 
             if maxPOriginal >= options.confidenceMin and maxP < options.confidenceMin:
