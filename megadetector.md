@@ -145,7 +145,7 @@ Then you can do the following, changing "tensorflow" to "tensorflow-gpu" if you 
 
 ```batch
 pip install tensorflow==1.13.1
-pip install pillow humanfriendly matplotlib tqdm
+pip install pillow humanfriendly matplotlib tqdm jsonpickle
 python where_you_downloaded_the_script/run_tf_detector.py where_you_downloaded_the_detector_file/md_v4.1.0.pb --image_file some_image_file.jpg
 ```
 
