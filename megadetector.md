@@ -129,7 +129,7 @@ wget https://lilablobssc.blob.core.windows.net/models/camera_traps/megadetector/
 pip install tensorflow==1.13.1
 
 # Install other dependencies
-pip install pillow humanfriendly matplotlib tqdm jsonpickle statistics
+pip install pillow humanfriendly matplotlib tqdm jsonpickle statistics requests
 
 # Run MegaDetector
 python run_tf_detector.py md_v4.1.0.pb --image_file some_image_file.jpg
@@ -145,7 +145,7 @@ Then you can do the following, changing "tensorflow" to "tensorflow-gpu" if you 
 
 ```batch
 pip install tensorflow==1.13.1
-pip install pillow humanfriendly matplotlib tqdm jsonpickle statistics
+pip install pillow humanfriendly matplotlib tqdm jsonpickle statistics requests
 python where_you_downloaded_the_script/run_tf_detector.py where_you_downloaded_the_detector_file/md_v4.1.0.pb --image_file some_image_file.jpg
 ```
 
@@ -175,7 +175,7 @@ wget -O ~/md_v4.1.0.pb https://lilablobssc.blob.core.windows.net/models/camera_t
 pip install tensorflow==1.13.1
 
 # Install other dependencies
-pip install humanfriendly Pillow pandas tqdm
+pip install pandas tqdm pillow humanfriendly matplotlib tqdm jsonpickle statistics requests
 
 # Run MegaDetector
 python CameraTraps/detection/run_tf_detector_batch.py ~/md_v4.1.0.pb some_image_file.jpg some_output_file.json
@@ -194,7 +194,7 @@ git clone https://github.com/microsoft/CameraTraps/
 git clone https://github.com/microsoft/ai4eutils/
 set PYTHONPATH=c:\git\cameratraps;c:\git\ai4eutils
 pip install tensorflow==1.13.1
-pip install humanfriendly Pillow pandas tqdm
+pip install pandas tqdm pillow humanfriendly matplotlib tqdm jsonpickle statistics requests
 python CameraTraps/detection/run_tf_detector_batch.py wherever_you_put_the_detector_file/md_v4.1.0.pb some_image_file.jpg some_output_file.json
 ```
 
