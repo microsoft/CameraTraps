@@ -902,12 +902,21 @@ from api.batch_processing.postprocessing.separate_detections_into_folders import
     separate_detections_into_folders, SeparateDetectionsIntoFoldersOptions)
 
 default_threshold = 0.8
-options = SeparateDetectionsIntoFoldersOptions()
+base_output_folder = r"e:\organization-out"
+base_input_folder = "z:\\"
 
-options.results_file = r"blah-20200629_detections.json"
-options.base_input_folder = "z:\\"
-options.base_output_folder = r"E:\blah-out"
-options.n_threads = 100
-options.allow_existing_directory = False
+# i_folder = 0; folder_name_raw = folder_names[i_folder]
+for i_folder, folder_name_raw in enumerate(folder_names):
 
-separate_detections_into_folders(options)
+    options = SeparateDetectionsIntoFoldersOptions()
+    
+    folder_name = path_utils.clean_filename(folder_name_raw)
+    api_output_file = folder_name_to_combined_output_file[folder_name]
+
+    options.results_file = api_output_file
+    options.base_input_folder = base_input_folder
+    options.base_output_folder = os.path.join(base_output_folder,folder_name)
+    options.n_threads = 100
+    options.allow_existing_directory = False
+    
+    separate_detections_into_folders(options)
