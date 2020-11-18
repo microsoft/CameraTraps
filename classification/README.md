@@ -33,7 +33,7 @@ This README describes how to train and run an animal "species" classifier. "Spec
 
 This guide is written for internal use at Microsoft AI for Earth. Certain services, such as MegaDB and various private repos are only accessible interally within Microsoft. However, this guide may still be of interest to more technical users of the AI for Earth Camera Trap services.
 
-The classifiers trained with this pipeline are intended to be used in conjunction with the <a href="https://github.com/microsoft/CameraTraps/blob/master/megadetector.md">MegaDetector</a>, i.e., we use MegaDetector to find animals and crop them out, and we train/run our classifiers on those crops.
+The classifiers trained with this pipeline are intended to be used in conjunction with <a href="https://github.com/microsoft/CameraTraps/blob/master/megadetector.md">MegaDetector</a>, i.e., we use MegaDetector to find animals and crop them out, and we train/run our classifiers on those crops.
 
 
 # Setup
