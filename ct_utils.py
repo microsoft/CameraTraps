@@ -159,11 +159,11 @@ def get_iou(bb1, bb2):
     bb1 = convert_xywh_to_xyxy(bb1)
     bb2 = convert_xywh_to_xyxy(bb2)
 
-    assert bb1[0] < bb1[2]
-    assert bb1[1] < bb1[3]
+    assert bb1[0] < bb1[2], 'Malformed bounding box (x2 >= x1)'
+    assert bb1[1] < bb1[3], 'Malformed bounding box (y2 >= y1)'
 
-    assert bb2[0] < bb2[2]
-    assert bb2[1] < bb2[3]
+    assert bb2[0] < bb2[2], 'Malformed bounding box (x2 >= x1)'
+    assert bb2[1] < bb2[3], 'Malformed bounding box (y2 >= y1)'
 
     # Determine the coordinates of the intersection rectangle
     x_left = max(bb1[0], bb2[0])
@@ -186,6 +186,6 @@ def get_iou(bb1, bb2):
     # area and dividing it by the sum of prediction + ground-truth
     # areas - the intersection area.
     iou = intersection_area / float(bb1_area + bb2_area - intersection_area)
-    assert iou >= 0.0
-    assert iou <= 1.0
+    assert iou >= 0.0, 'Illegal IOU < 0'
+    assert iou <= 1.0, 'Illegal IOU > 1'
     return iou
