@@ -725,6 +725,10 @@ for i_folder, folder_name_raw in enumerate(folder_names):
     options.ground_truth_json_file = None
     options.separate_detections_by_category = True
 
+    # Omit some pages from the output, useful when animals are rare
+    # options.rendering_bypass_sets = ['detections_person','detections_vehicle',
+    #                                 'detections_person_vehicle']    
+    
     folder_name = path_utils.clean_filename(folder_name_raw)
     if len(folder_name) == 0:
         folder_token = ''
@@ -777,6 +781,9 @@ rde_string = 'rde_{:.2f}_{:.2f}_{}_{:.2f}'.format(
 options.outputBase = os.path.join(filename_base, rde_string + '_task_{}'.format(task_index))
 options.filenameReplacements = {'':''}
 
+# Exclude people and vehicles from RDE
+# options.excludeClasses = [2,3]
+
 options.debugMaxDir = -1
 options.debugMaxRenderDir = -1
 options.debugMaxRenderDetection = -1
@@ -826,6 +833,10 @@ for i_folder, folder_name_raw in enumerate(folder_names):
     options.ground_truth_json_file = None
     options.separate_detections_by_category = True
 
+    # Omit some pages from the output, useful when animals are rare
+    # options.rendering_bypass_sets = ['detections_person','detections_vehicle',
+    #                                 'detections_person_vehicle']    
+    
     folder_name = path_utils.clean_filename(folder_name_raw)
     if len(folder_name) == 0:
         folder_token = ''
