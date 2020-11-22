@@ -58,7 +58,7 @@ Code for hosting our models as an API, either for synchronous operation (e.g. fo
 
 ## classification
 
-Code for training species classifiers on new data sets, generally trained on crops generated via an existing detector.  We'll release some classifiers soon, but more importantly, here's a [tutorial](https://github.com/microsoft/CameraTraps/blob/master/classification/TUTORIAL.md) on training your own classifier using our detector and our training pipeline.
+Code for training species classifiers on new data sets, generally trained on crops generated via an existing detector.  We'll release some classifiers soon, but more importantly, here's a [tutorial](https://github.com/microsoft/CameraTraps/blob/master/archive/classification_marcel/TUTORIAL.md) on training your own classifier using our detector and our training pipeline.
 
 Oh, and here's another "teaser image" of what you get at the end of training a classifier:
 
