@@ -325,7 +325,7 @@ def render_bounding_boxes(
 
     The target image is, for example:
 
-        [options.output_dir] / ['detections' or 'non-detections'] / [filename with slashes turned into tildes]
+        [options.output_dir] / ['detections' or 'non_detections'] / [filename with slashes turned into tildes]
 
     Returns the html info struct for this image in the form that's used for
     write_html_image_list.

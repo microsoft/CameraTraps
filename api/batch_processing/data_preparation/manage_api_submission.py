@@ -729,7 +729,7 @@ for i_folder, folder_name_raw in enumerate(folder_names):
     if render_animals_only:
         # Omit some pages from the output, useful when animals are rare
         options.rendering_bypass_sets = ['detections_person','detections_vehicle',
-                                          'detections_person_vehicle']        
+                                          'detections_person_vehicle','non_detections']
     
     folder_name = path_utils.clean_filename(folder_name_raw)
     if len(folder_name) == 0:
@@ -844,7 +844,7 @@ for i_folder, folder_name_raw in enumerate(folder_names):
     if render_animals_only:
         # Omit some pages from the output, useful when animals are rare
         options.rendering_bypass_sets = ['detections_person','detections_vehicle',
-                                          'detections_person_vehicle']    
+                                          'detections_person_vehicle','non_detections']    
     
     folder_name = path_utils.clean_filename(folder_name_raw)
     if len(folder_name) == 0:
