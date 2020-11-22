@@ -297,10 +297,15 @@ def find_matches_in_directory(dirName, options, rowsByDirectory):
             
             # Is this detection too big to be suspicious?
             w, h = bbox[2], bbox[3]
+            
+            if (w == 0 or h == 0):
+                # print('Illegal zero-size bounding box on image {}'.format(filename))
+                continue
+            
             area = h * w
 
             # These are relative coordinates
-            assert area >= 0.0 and area <= 1.0
+            assert area >= 0.0 and area <= 1.0, 'Illegal bounding box area {}'.format(area)
 
             if area > options.maxSuspiciousDetectionSize:
                 # print('Ignoring very large detection with area {}'.format(area))
@@ -321,6 +326,7 @@ def find_matches_in_directory(dirName, options, rowsByDirectory):
                 try:
                     iou = ct_utils.get_iou(bbox, candidate.bbox)
                 except Exception as e:
+                    import pdb
                     print('Warning: IOU computation error on boxes ({},{},{},{}),({},{},{},{}): {}'.format(
                         bbox[0],bbox[1],bbox[2],bbox[3],
                         candidate.bbox[0],candidate.bbox[1],candidate.bbox[2],candidate.bbox[3], str(e)))
