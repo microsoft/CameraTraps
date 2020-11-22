@@ -710,6 +710,7 @@ for i_taskgroup, taskgroup in enumerate(taskgroups):
 
 #%% Post-processing (no ground truth)
 
+render_animals_only = False
 html_output_files = []
 
 # i_folder = 0; folder_name_raw = folder_names[i_folder]
@@ -725,9 +726,10 @@ for i_folder, folder_name_raw in enumerate(folder_names):
     options.ground_truth_json_file = None
     options.separate_detections_by_category = True
 
-    # Omit some pages from the output, useful when animals are rare
-    # options.rendering_bypass_sets = ['detections_person','detections_vehicle',
-    #                                 'detections_person_vehicle']    
+    if render_animals_only:
+        # Omit some pages from the output, useful when animals are rare
+        options.rendering_bypass_sets = ['detections_person','detections_vehicle',
+                                          'detections_person_vehicle']        
     
     folder_name = path_utils.clean_filename(folder_name_raw)
     if len(folder_name) == 0:
@@ -736,6 +738,9 @@ for i_folder, folder_name_raw in enumerate(folder_names):
         folder_token = folder_name + '_'
     output_base = os.path.join(postprocessing_output_folder, folder_token + \
         base_task_name + '_{:.3f}'.format(options.confidence_threshold))
+    if render_animals_only:
+        output_base = output_base + '_animals_only'
+    
     os.makedirs(output_base, exist_ok=True)
     print('Processing {} to {}'.format(folder_name, output_base))
     api_output_file = folder_name_to_combined_output_file[folder_name]
@@ -818,6 +823,7 @@ remove_repeat_detections.remove_repeat_detections(
 
 #%% Post-processing (post-RDE)
 
+render_animals_only = False
 html_output_files = []
 
 # i_folder = 0; folder_name_raw = folder_names[i_folder]
@@ -833,9 +839,12 @@ for i_folder, folder_name_raw in enumerate(folder_names):
     options.ground_truth_json_file = None
     options.separate_detections_by_category = True
 
-    # Omit some pages from the output, useful when animals are rare
-    # options.rendering_bypass_sets = ['detections_person','detections_vehicle',
-    #                                 'detections_person_vehicle']    
+    render_animals_only = True
+    
+    if render_animals_only:
+        # Omit some pages from the output, useful when animals are rare
+        options.rendering_bypass_sets = ['detections_person','detections_vehicle',
+                                          'detections_person_vehicle']    
     
     folder_name = path_utils.clean_filename(folder_name_raw)
     if len(folder_name) == 0:
@@ -844,7 +853,10 @@ for i_folder, folder_name_raw in enumerate(folder_names):
         folder_token = folder_name + '_'
     output_base = os.path.join(postprocessing_output_folder, folder_token + \
         base_task_name + '_{}_{:.3f}'.format(rde_string, options.confidence_threshold))
+    if render_animals_only:
+        output_base = output_base + '_render_animals_only'
     os.makedirs(output_base, exist_ok=True)
+    
     print('Processing {} to {}'.format(folder_name, output_base))
     # api_output_file = folder_name_to_combined_output_file[folder_name]
 
