@@ -574,7 +574,7 @@ for i_taskgroup, taskgroup in enumerate(taskgroups):
         if num_missing_images < max_tolerable_missing_images:
             continue
 
-        print('Warning: {} missing images for task {}'.format(missing_images,task.id))
+        print('Warning: {} missing images for task {}'.format(len(missing_images),task.id))
         task_name = '{}_{}_{}_missing_images'.format(base_task_name,folder_name,task.id)
         blob_name = 'api_inputs/{}/{}.json'.format(base_task_name,task_name)
         new_task = prepare_api_submission.Task(
