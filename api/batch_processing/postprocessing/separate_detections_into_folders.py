@@ -5,9 +5,6 @@
 # set of results into folders that contain animals/people/vehicles/nothing, 
 # according to per-class thresholds.
 #
-# Places images that are above threshold for multiple classes into 'multiple'
-# folder.
-#
 # Image files are copied, not moved.
 #
 # Preserves relative paths within each of those folders; cannot be used with .json
@@ -31,7 +28,7 @@
 # c:\out\empty\a\b\c\1.jpg
 # c:\out\people\a\b\d\2.jpg
 # c:\out\vehicles\a\b\e\3.jpg
-# c:\out\multiple\a\b\f\4.jpg
+# c:\out\animal_person\a\b\f\4.jpg
 #
 # Hard-coded to work with MDv3 and MDv4 output files.  Not currently future-proofed
 # past the classes in MegaDetector v4, not currently ready for species-level classification.  
@@ -45,6 +42,8 @@ import json
 import os
 import shutil
 import sys
+import itertools
+
 from multiprocessing.pool import ThreadPool
 from functools import partial
         
@@ -81,11 +80,12 @@ class SeparateDetectionsIntoFoldersOptions:
         self.results_file = None
         self.base_input_folder = None
         self.base_output_folder = None
-            
-        # Dictionary mapping categories (plus 'multiple' and 'empty') to output folders
+                  
+        # Dictionary mapping categories (plus combinations of categories, and 'empty') to output folders
         self.category_name_to_folder = None
         self.category_id_to_category_name = None
-    
+        self.debug_max_images = None        
+        
     
 #%% Support functions
     
@@ -136,9 +136,11 @@ def process_detection(d,options):
     
     target_folder = ''
     
+    categories_above_threshold.sort()
+    
     # If this is above multiple thresholds
     if len(categories_above_threshold) > 1:
-        target_folder = options.category_name_to_folder['multiple']
+        target_folder = options.category_name_to_folder['_'.join(categories_above_threshold)]
 
     elif len(categories_above_threshold) == 0:
         target_folder = options.category_name_to_folder['empty']
@@ -159,7 +161,7 @@ def process_detection(d,options):
     
     
 #%% Main function
-    
+
 def separate_detections_into_folders(options):
 
     # Create output folder if necessary
@@ -172,6 +174,7 @@ def separate_detections_into_folders(options):
     os.makedirs(options.base_output_folder,exist_ok=True)    
     
     # Load detection results    
+    print('Loading detection results')
     results = json.load(open(options.results_file))
     detections = results['images']
     
@@ -181,36 +184,54 @@ def separate_detections_into_folders(options):
         
     print('Processing {} detections'.format(len(detections)))
     
-    detection_categories = results['detection_categories']
+    detection_categories = results['detection_categories']    
     options.category_id_to_category_name = detection_categories
     
     # Map class names to output folders
     options.category_name_to_folder = {}
     options.category_name_to_folder['empty'] = os.path.join(options.base_output_folder,'empty')
-    options.category_name_to_folder['multiple'] = os.path.join(options.base_output_folder,'multiple')
     
-    for category_name in detection_categories.values():
+    # Create all combinations of categories
+    category_names = list(detection_categories.values())
+    category_names.sort()
+    
+    target_category_names = []
+    for c in category_names:
+        target_category_names.append(c)
+    
+    for combination_length in range(2,len(category_names)+1):
+        combined_category_names = list(itertools.combinations(category_names,combination_length))
+        for combination in combined_category_names:
+            
+            combined_name = '_'.join(combination)
+            target_category_names.append(combined_name)
+    
+    # Create folder mappings for each category
+    for category_name in target_category_names:
+        
         folder_name = category_name
         if category_name in friendly_folder_names:
             folder_name = friendly_folder_names[category_name]
         options.category_name_to_folder[category_name] = \
             os.path.join(options.base_output_folder,folder_name)
     
+    # Create the actual folders
     for folder in options.category_name_to_folder.values():
         os.makedirs(folder,exist_ok=True)            
         
-    if options.n_threads <= 1:
+    if options.n_threads <= 1 or options.debug_max_images is not None:
     
-        # i_image = 7600; d = detections[i_image]; print(d)
-        for d in tqdm(detections):
+        for i_detection,d in enumerate(tqdm(detections)):
+            if options.debug_max_images is not None and i_detection > options.debug_max_images:
+                break
             process_detection(d,options)
         
     else:
         
         pool = ThreadPool(options.n_threads)        
         
-        process_detection_with_optios = partial(process_detection, options=options)
-        results = list(tqdm(pool.imap(process_detection_with_optios, detections), total=len(detections)))
+        process_detection_with_options = partial(process_detection, options=options)
+        results = list(tqdm(pool.imap(process_detection_with_options, detections), total=len(detections)))
         
         
 #%% Interactive driver

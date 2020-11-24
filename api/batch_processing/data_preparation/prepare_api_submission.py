@@ -311,7 +311,10 @@ class Task:
             raise BatchAPIResponseError(
                 f'Response task ID {self.response["TaskId"]} does not match '
                 f'expected task ID {self.id}.')
-        self.status = TaskStatus(self.response['Status']['request_status'])
+        try:
+            self.status = TaskStatus(self.response['Status']['request_status'])
+        except Exception as e:
+            self.status = 'Exception error: {}'.format(str(e))
         return self.response
 
 
