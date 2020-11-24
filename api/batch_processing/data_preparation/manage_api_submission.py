@@ -20,6 +20,8 @@ import ntpath
 import os
 import posixpath
 import pprint
+import time
+
 from urllib.parse import urlsplit, unquote
 from typing import Any, Dict, List
 
@@ -39,6 +41,7 @@ from api.batch_processing.postprocessing.postprocess_batch_results import (
 #%% Constants
 
 max_task_name_length = 92
+submission_time_between_tasks = 60
 
 
 #%% Constants I set per script
@@ -266,10 +269,13 @@ clipboard.copy('\n\n'.join(request_strings))
 # I really want to make sure I'm sure...
 if False:
     
-    for taskgroup in taskgroups:
-        for task in taskgroup:
+    for i_taskgroup,taskgroup in enumerate(taskgroups):
+        for i_task,task in enumerate(taskgroup):
             task_id = task.submit()
-            print(task.name, task_id)
+            print('Submitted task {} ({})'.format(task.name, task_id))
+            if not ((i_taskgroup == len(taskgroups)-1) and (i_task == len(taskgroup)-1)):
+                print('Sleeping to be extra-safe about rapid submissions')
+                time.sleep(submission_time_between_tasks)                
 
 
 #%% Estimate total time
@@ -292,8 +298,6 @@ print('Expected time: {}'.format(humanfriendly.format_timespan(expected_seconds)
 if False:
 
     #%%    
-
-    # The nested lists will make sense below, I promise.
 
     # For just one task...
     taskgroup_ids = [["9999"]]
@@ -465,70 +469,8 @@ if False:
             # ...for each task
                 
         # ...for each task group
+                        
                 
-        #%%
-
-                
-#%% Manually create responses for one or more tasks if tasks didn't properly complete
-        
-if False:
-    
-    #%%
-    
-    base_sas = '?sv=...'
-    
-    task_id_0 = '...'
-    task_id_1 = '...'
-    task_id_2 = '...'
-    
-    images0 = 'https://...'
-    detections0 = 'https://...'
-    failed0 = 'https://...'
-    
-    images1 = 'https://...'
-    detections1 = 'https://...'
-    failed1 = 'https://...'
-    
-    images2 = 'https://....'
-    detections2 = 'https://...'
-    failed2 = 'https://...'
-    
-    #%% 
-    
-    msg0 = prepare_api_submission.create_response_message(0,
-                            failed_images_url=failed0+base_sas,
-                            images_url=images0+base_sas,
-                            detections_url=detections0+base_sas,
-                            task_id=task_id_0)
-    msg1 = prepare_api_submission.create_response_message(0,
-                            failed_images_url=failed1+base_sas,
-                            images_url=images1+base_sas,
-                            detections_url=detections1+base_sas,
-                            task_id=task_id_1)
-    msg2 = prepare_api_submission.create_response_message(0,
-                            failed_images_url=failed2+base_sas,
-                            images_url=images2+base_sas,
-                            detections_url=detections2+base_sas,
-                            task_id=task_id_2)
-    
-    #%%
-    
-    task0 = prepare_api_submission.Task(name='task0',task_id=msg0['request_id'],
-                                        api_url=endpoint_base,validate=False)
-    task0.force_completion(msg0)
-    
-    task1 = prepare_api_submission.Task(name='task1',task_id=msg1['request_id'],
-                                        api_url=endpoint_base,validate=False)
-    task1.force_completion(msg1)
-    
-    task2 = prepare_api_submission.Task(name='task2',task_id=msg2['request_id'],
-                                        api_url=endpoint_base,validate=False)
-    task2.force_completion(msg2)
-    
-    # Stick those tasks in the taskgroup list
-    taskgroups = [[task0,task1,task2]]
-
-
 #%% Look for failed shards or missing images, start new tasks if necessary
 
 n_resubmissions = 0
@@ -617,10 +559,14 @@ if n_resubmissions == 0:
 if False:
 
     #%%
-    for task in resubmitted_tasks:
-        response = task.check_status()
-        print(response)
-
+    
+    for taskgroup in resubmitted_tasks:
+        for task in taskgroup:
+            response = task.check_status()
+            print(response)
+    
+    #%%
+        
     taskgroup_ids = [['2233', '9484', '1222'], ['1197', '1702', '2764']]
 
     for i, taskgroup in enumerate(taskgroups):
