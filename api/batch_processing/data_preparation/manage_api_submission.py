@@ -316,6 +316,7 @@ for taskgroup in taskgroups:
     for task in taskgroup:
         response = task.check_status()
         print(response)
+        # print(task.id)
 
 
 #%% Automatically pull results from the AzureML output if output got stalled
@@ -785,8 +786,6 @@ for i_folder, folder_name_raw in enumerate(folder_names):
     options.ground_truth_json_file = None
     options.separate_detections_by_category = True
 
-    render_animals_only = True
-    
     if render_animals_only:
         # Omit some pages from the output, useful when animals are rare
         options.rendering_bypass_sets = ['detections_person','detections_vehicle',
