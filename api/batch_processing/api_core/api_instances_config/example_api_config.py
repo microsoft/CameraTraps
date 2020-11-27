@@ -38,8 +38,9 @@ AML_CONFIG = {
     'workspace_name': 'camera_trap_aml_ws_sc',
     'aml_compute_name': 'camera-trap-com',
 
-    'default_model_version': '3',
+    'default_model_version': '4.1',
     'models': {
+        '4.1': 'mdv4_1_run5_step3016k',
         '3': 'megadetector_v3_tf19',  # user input model_version : name of model registered with AML
         '2': 'megadetector_v2',
         'benchmark_190904_cct20_tf19': 'benchmark_190904_cct20_tf19',
