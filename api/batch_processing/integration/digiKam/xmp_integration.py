@@ -24,8 +24,6 @@ from tkinter import ttk, messagebox, filedialog
 
 from tqdm import tqdm
 
-category_mapping = {'person': 'Human', 'animal': 'Animal', 'vehicle': 'Vehicle'}
-
 # Debug-only variable to rename images considered empty
 confidence_threshold = 0.9
 
@@ -73,20 +71,12 @@ def update_xmp_metadata(image, categories, options):
         assert os.path.isfile(img_path), 'Image {} not found'.format(img_path)
         image_categories = []
         for detection in image['detections']:
-            cat = category_mapping[categories[detection['category']]]        
+            cat = categories[detection['category']]
             if cat not in image_categories:
                 image_categories.append(cat)
         img = pyexiv2.Image(r'{0}'.format(img_path))
         img.modify_xmp({'Xmp.lr.hierarchicalSubject': image_categories})
-        
-        if False:
-            # Legacy code to rename files that were marked as empty
-            if len(image['detections']) > 0 and image['max_detection_conf'] < confidence_threshold:
-                parent_folder = os.path.dirname(img_path)
-                file_name = ntpath.basename(img_path)
-                manual_file_name = file_name.split('.')[0]+'_check' + '.' + file_name.split('.')[1]
-                os.rename(img_path, os.path.join(parent_folder, manual_file_name))
-                
+                       
     except Exception as e:
     
         s = 'Error processing image {}: {}'.format(filename,str(e))
@@ -94,14 +84,6 @@ def update_xmp_metadata(image, categories, options):
         traceback.print_exc()
         write_status(options,s)
         
-        if False:
-            # Legacy code to rename files where XMP writing failed
-            parent_folder = os.path.dirname(img_path)
-            file_name = ntpath.basename(img_path)        
-            failed_file_name = file_name.split('.')[0]+'_failed' + '.' + file_name.split('.')[1]
-            os.rename(img_path, os.path.join(
-                parent_folder, failed_file_name))
-
 
 def process_input_data(options):
     """
