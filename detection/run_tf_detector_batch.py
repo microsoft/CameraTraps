@@ -242,6 +242,7 @@ def write_results_to_file(results, output_file, relative_path_base=None):
 #%% Command-line driver
 
 def main():
+    
     parser = argparse.ArgumentParser(
         description='Module to run a TF animal detection model on lots of images')
     parser.add_argument(
