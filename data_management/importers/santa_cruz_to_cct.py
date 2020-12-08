@@ -107,31 +107,32 @@ for json_file in json_files:
             # import pdb;pdb.set_trace()
             images.append(im)
             categories_this_image = set()
-            for category in each['Output']:
-                if 'Object' in list(category['tags']):
-                    category_name = category['tags']['Object']
-                else:
-                    category_name = 'empty'
-                category_name = category_name.strip().lower()
-                categories_this_image.add(category_name)
-        
-                # Have we seen this category before?
-                if category_name in categoriesToCategoryId:
-                    categoryID = categoriesToCategoryId[category_name]
-                    categoriesToCounts[category_name] += 1
-                else:
-                    categoryID = nextCategoryID
-                    categoriesToCategoryId[category_name] = categoryID
-                    categoriesToCounts[category_name] = 0
-                    nextCategoryID += 1
-                # Create an annotation
-                ann = {}
-                
-                ann['id'] = str(uuid.uuid1())
-                ann['image_id'] = im['id']    
-                ann['category_id'] = categoryID
-                ann['bbox'] = get_bbox(category['points'])
-                annotations.append(ann)
+            if each['Output']:
+                for category in each['Output']:
+                    if 'Object' in list(category['tags']):
+                        category_name = category['tags']['Object']
+                    else:
+                        category_name = 'empty'
+                    category_name = category_name.strip().lower()
+                    categories_this_image.add(category_name)
+            
+                    # Have we seen this category before?
+                    if category_name in categoriesToCategoryId:
+                        categoryID = categoriesToCategoryId[category_name]
+                        categoriesToCounts[category_name] += 1
+                    else:
+                        categoryID = nextCategoryID
+                        categoriesToCategoryId[category_name] = categoryID
+                        categoriesToCounts[category_name] = 0
+                        nextCategoryID += 1
+                    # Create an annotation
+                    ann = {}
+                    
+                    ann['id'] = str(uuid.uuid1())
+                    ann['image_id'] = im['id']    
+                    ann['category_id'] = categoryID
+                    ann['bbox'] = get_bbox(category['points'])
+                    annotations.append(ann)
 
 # # Convert categories to a CCT-style dictionary
 
@@ -202,7 +203,7 @@ html_output_file,image_db = visualize_db.process_images(db_path=output_file,
                                                         output_dir=os.path.join(base_directory,'preview'),
                                                         image_base_dir=image_directory,
                                                         options=viz_options)
-os.startfile(html_output_file)
-# import sys, subprocess
-# opener = "open" if sys.platform == "darwin" else "xdg-open"
-# subprocess.call([opener, html_output_file])
+# os.startfile(html_output_file)
+import sys, subprocess
+opener = "open" if sys.platform == "darwin" else "xdg-open"
+subprocess.call([opener, html_output_file])
