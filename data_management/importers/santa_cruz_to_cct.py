@@ -19,6 +19,7 @@ import urllib.request
 import glob
 import ntpath
 import PIL.ExifTags
+import subprocess
 
 # base_directory = r'D:\Projects\Microsoft\Santa_Cruz\SCI Cameratrap Samasource Labels'
 base_directory = r'/home/Vardhan/SCI Cameratrap Samasource Labels'
@@ -41,7 +42,8 @@ def download_image(url):
         os.makedirs(sub_directory)
     fullfilename = os.path.join(sub_directory, filename)
     print(fullfilename)
-    urllib.request.urlretrieve(url, fullfilename)
+    if not os.path.exists(fullfilename):
+        urllib.request.urlretrieve(url, fullfilename)
     return fullfilename, sub_dir[1:]
 
 
@@ -54,6 +56,35 @@ def get_bbox(coords):
     h = coords[2][1] - coords[0][1]
     w = coords[1][0] - coords[0][0]
     return [x, y, w, h]
+
+
+def proces_makernotes(file_path):
+    """
+    Get MakerNotes EXIF data for an image
+    """
+    proc = subprocess.Popen(['exiftool', '-G', file_path],stdout=subprocess.PIPE, encoding='utf8')
+    maker_notes = {}
+    while True:
+        line = proc.stdout.readline()
+        line = line.strip()
+        if not line:
+            break
+        if line.startswith('[MakerNotes]'):
+            if "Sequence" in line:
+                seq = line.split(": ")
+                seq_id, seq_num_frames = seq[1].split(" of ")
+                maker_notes['seq_id'] = seq_id
+                maker_notes['seq_num_frames'] = seq_num_frames
+            if "Serial Number" in line:
+                location = line.split(": ")[1]
+                maker_notes['location'] = location
+            if "Date/Time Original" in line:
+                datetime = line.split(": ")[1]
+                maker_notes['datetime'] = datetime
+    for each in ['seq_id', 'seq_num_frames', 'location', 'datetime']:
+        if not each in list(maker_notes.keys()):
+            maker_notes[each] = None
+    return maker_notes
 
 
 #%% Create CCT dictionaries
@@ -85,6 +116,8 @@ for json_file in json_files:
     with open(json_file) as f:
         data = json.load(f)
         for each in data:
+            if each['url'].endswith("DS_Store"):
+                continue
             file_path, sub_directory = download_image(each['url'])
             contains_human = False
             im = {}
@@ -96,15 +129,12 @@ for json_file in json_files:
             width, height = pilImage.size
             im['width'] = width
             im['height'] = height
+            maker_notes = proces_makernotes(file_path)
+            im['seq_id'] = maker_notes['seq_id']
+            im['seq_num_frames'] = maker_notes['seq_num_frames']
+            im['datetime'] = maker_notes['datetime']
+            im['location'] = maker_notes['location']
             print(im)
-            # exif_data = pilImage._getexif()
-            # exif = {
-            #     PIL.ExifTags.TAGS[k]: v
-            #     for k, v in pilImage._getexif().items()
-            #     if k in PIL.ExifTags.TAGS
-            #     }
-
-            # import pdb;pdb.set_trace()
             images.append(im)
             categories_this_image = set()
             if each['Output']:
