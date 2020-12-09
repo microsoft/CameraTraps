@@ -161,6 +161,7 @@ for json_file in json_files:
                     ann['id'] = str(uuid.uuid1())
                     ann['image_id'] = im['id']    
                     ann['category_id'] = categoryID
+                    ann["sequence_level_annotation"] = False
                     ann['bbox'] = get_bbox(category['points'])
                     annotations.append(ann)
 
