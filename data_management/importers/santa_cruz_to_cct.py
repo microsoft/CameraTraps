@@ -64,6 +64,7 @@ def proces_makernotes(file_path):
     """
     proc = subprocess.Popen(['exiftool', '-G', file_path],stdout=subprocess.PIPE, encoding='utf8')
     maker_notes = {}
+    date_present = False
     while True:
         line = proc.stdout.readline()
         line = line.strip()
@@ -78,9 +79,15 @@ def proces_makernotes(file_path):
             if "Serial Number" in line:
                 location = line.split(": ")[1]
                 maker_notes['location'] = location
-            if "Date/Time Original" in line:
+            if "Time" in line:
                 datetime = line.split(": ")[1]
                 maker_notes['datetime'] = datetime
+                date_present = True
+        if not date_present:
+            if ("DateTime Original" in line or "Date/Time Created" in line or "Date/Time Original" in line):
+                datetime = line.split(": ")[1]
+                maker_notes['datetime'] = datetime
+                date_present = True
     for each in ['seq_id', 'seq_num_frames', 'location', 'datetime']:
         if not each in list(maker_notes.keys()):
             maker_notes[each] = None
