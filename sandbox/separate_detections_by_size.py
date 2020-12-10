@@ -59,7 +59,8 @@ for i_size,size_threshold in enumerate(size_thresholds):
         smallbox_images = []
         bigbox_images = []
         empty_images = []
-    
+        failed_images = []
+        
         # Load the input file
         with open(fn) as f:
             data = json.load(f)
@@ -76,6 +77,7 @@ for i_size,size_threshold in enumerate(size_thresholds):
             
             if 'detections' not in im:
                 print('Warning: no detections for image {}'.format(im['file']))
+                failed_images.append(im)
                 continue
             
             # What's the smallest detection above threshold?
@@ -106,7 +108,7 @@ for i_size,size_threshold in enumerate(size_thresholds):
         # ...for each image in this file
     
         # Make sure the number of images adds up
-        assert len(bigbox_images) + len(smallbox_images) + len(empty_images) == len(images)
+        assert len(bigbox_images) + len(smallbox_images) + len(empty_images) + len(failed_images) == len(images)
         
         # Write out all files
         data['images'] = smallbox_images
