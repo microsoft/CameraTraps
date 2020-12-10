@@ -57,7 +57,7 @@ base_output_folder_name = r'f:\institution'
 # Leading question mark is optional.
 #
 # The read-only token is used for accessing images; the write-enabled token is
-# used for writing file lists.
+# used for writing file lists.  As of 2020.12.07, these tokens cannot use access policies.
 read_only_sas_token = '?sv=2019-12...'
 read_write_sas_token = '?sv=2019-12...'
 
@@ -489,8 +489,10 @@ for i_taskgroup, taskgroup in enumerate(taskgroups):
     tasks = list(taskgroup)  
     
     # i_task = 0; task = tasks[i_task]
-    for task in tasks:
+    for i_task,task in enumerate(tasks):
             
+        print('\n*** Task {} ({} in taskgroup {}) ***\n'.format(task.id,i_task,i_taskgroup))
+        
         response = task.check_status()
 
         n_failed_shards = response['Status']['message']['num_failed_shards']
@@ -540,8 +542,9 @@ for i_taskgroup, taskgroup in enumerate(taskgroups):
         # new_task.submit()
 
         # manual submission
-        print('\nResbumission task for {}:\n'.format(task_id))
+        print('\nResbumission string for task {}:\n'.format(task_id))
         print(json.dumps(request, indent=1))
+        print('')
 
         n_resubmissions += 1
 
