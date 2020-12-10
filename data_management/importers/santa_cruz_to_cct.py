@@ -123,7 +123,7 @@ for json_file in json_files:
     with open(json_file) as f:
         data = json.load(f)
         for each in data:
-            if each['url'].endswith("DS_Store"):
+            if each['url'].endswith("DS_Store") or each['url'].endswith("dropbox.device"):
                 continue
             file_path, sub_directory = download_image(each['url'])
             contains_human = False
