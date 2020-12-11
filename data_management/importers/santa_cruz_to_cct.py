@@ -154,8 +154,11 @@ for json_file in json_files:
                     else:
                         category_name = 'empty'
                     category_name = category_name.strip().lower()
+                    if category_name == 'none':
+                        category_name = 'empty'
+
                     categories_this_image.add(category_name)
-            
+
                     # Have we seen this category before?
                     if category_name in categoriesToCategoryId:
                         categoryID = categoriesToCategoryId[category_name]
