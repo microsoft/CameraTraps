@@ -90,7 +90,10 @@ def proces_makernotes(file_path):
                 date_present = True
     for each in ['seq_id', 'seq_num_frames', 'location', 'datetime']:
         if not each in list(maker_notes.keys()):
-            maker_notes[each] = None
+            if each == 'location':
+                maker_notes[each] = ''
+            else:
+                maker_notes[each] = None
     return maker_notes
 
 
