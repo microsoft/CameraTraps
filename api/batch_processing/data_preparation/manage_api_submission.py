@@ -73,6 +73,10 @@ container_prefix = ''
 # taskgroup.
 folder_names = [''] # ['folder1', 'folder2', 'folder3']
 
+# If your "folders" are really logical folders corresponding to multiple folders,
+# map them here
+folder_prefixes = None # {'stuff':['a','b','c']}
+
 # This is only necessary if you will be performing postprocessing steps that
 # don't yet support SAS URLs, specifically the "subsetting" step, or in some
 # cases the splitting of files into multiple output directories for
@@ -163,23 +167,39 @@ file_lists_by_folder = []
 
 # folder_name = folder_names[0]
 for folder_name in folder_names:
+    
     clean_folder_name = path_utils.clean_filename(folder_name)
     json_filename = '{}_{}_all.json'.format(base_task_name,clean_folder_name)
     list_file = os.path.join(filename_base, json_filename)
 
+    prefix = container_prefix + folder_name
+    
+    # Handle the case where a "folder" is really a list of folders
+    rsearch = None
+    if folder_prefixes is not None:
+        prefix = container_prefix
+        rsearch = []
+        prefix_list = folder_prefixes[folder_name]
+        for p in prefix_list:
+            rsearch.append('^' + p)
+                    
     # If this is intended to be a folder, it needs to end in '/', otherwise
     # files that start with the same string will match too
     folder_name = folder_name.replace('\\', '/')
     if len(folder_name) > 0 and (not folder_name.endswith('/')):
         folder_name = folder_name + '/'
-    prefix = container_prefix + folder_name
+                
     file_list = ai4e_azure_utils.enumerate_blobs_to_file(
         output_file=list_file,
         account_name=storage_account_name,
         container_name=container_name,
         sas_token=read_only_sas_token,
-        blob_prefix=prefix)
+        blob_prefix=prefix,
+        rsearch=rsearch)
+    
     file_lists_by_folder.append(list_file)
+
+# ...for each folder
 
 assert len(file_lists_by_folder) == len(folder_names)
 
@@ -670,7 +690,7 @@ for i_folder, folder_name_raw in enumerate(folder_names):
     options.image_base_dir = read_only_sas_url
     options.parallelize_rendering = True
     options.include_almost_detections = True
-    options.num_images_to_sample = 5000
+    options.num_images_to_sample = 7500
     options.confidence_threshold = 0.8
     options.almost_detection_confidence_threshold = options.confidence_threshold - 0.05
     options.ground_truth_json_file = None
@@ -783,7 +803,7 @@ for i_folder, folder_name_raw in enumerate(folder_names):
     options.image_base_dir = read_only_sas_url
     options.parallelize_rendering = True
     options.include_almost_detections = True
-    options.num_images_to_sample = 5000
+    options.num_images_to_sample = 7500
     options.confidence_threshold = 0.8
     options.almost_detection_confidence_threshold = options.confidence_threshold - 0.05
     options.ground_truth_json_file = None
