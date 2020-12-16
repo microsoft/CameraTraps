@@ -13,6 +13,25 @@
     
 """
 
+"""
+
+# Not yet automated:
+#
+# * Mounting the image source, only necessary for folder splitting or occasional
+#   sanity-checking.  But FWIW, here's the gist of it:
+#
+#   import clipboard; clipboard.copy(read_only_sas_url)
+#   configure mount point with rclone config
+#   rclone mount mountname: z:
+#
+# * Pushing the final results to shared storage and generating a SAS URL to
+#   share with the collaborator
+#
+# * Pushing the previews to shared storage
+#
+
+"""
+
 #%% Imports
 
 import json
@@ -21,9 +40,11 @@ import os
 import posixpath
 import pprint
 import time
+import itertools
 
 from urllib.parse import urlsplit, unquote
 from typing import Any, Dict, List
+from tqdm import tqdm
 
 import clipboard
 import humanfriendly
@@ -128,19 +149,6 @@ os.makedirs(postprocessing_output_folder, exist_ok=True)
 # Turn warnings into errors if more than this many images are missing
 max_tolerable_missing_images = 20
 
-# import clipboard; clipboard.copy(read_only_sas_url)
-# configure mount point with rclone config
-# rclone mount mountname: z:
-
-# Not yet automated:
-# - Mounting the image source (see comment above)
-# - Submitting the tasks (code written below, but it doesn't really work)
-# - Handling failed tasks/shards/images (though most of the code exists in
-#     generate_resubmission_list)
-# - Pushing the final results to shared storage and generating a SAS URL to
-#     share with the collaborator
-# - Pushing the previews to shared storage
-
 
 #%% Support functions
 
@@ -164,6 +172,9 @@ def url_to_filename(url):
 # file_lists_by_folder will contain a list of local JSON file names,
 # each JSON file contains a list of blob names corresponding to an API taskgroup
 file_lists_by_folder = []
+
+# A flat list of blob paths for each folder
+images_by_folder = []
 
 # folder_name = folder_names[0]
 for folder_name in folder_names:
@@ -189,7 +200,7 @@ for folder_name in folder_names:
     if len(folder_name) > 0 and (not folder_name.endswith('/')):
         folder_name = folder_name + '/'
                 
-    file_list = ai4e_azure_utils.enumerate_blobs_to_file(
+    images = ai4e_azure_utils.enumerate_blobs_to_file(
         output_file=list_file,
         account_name=storage_account_name,
         container_name=container_name,
@@ -198,12 +209,73 @@ for folder_name in folder_names:
         rsearch=rsearch)
     
     file_lists_by_folder.append(list_file)
+    images_by_folder.append(images)
 
 # ...for each folder
 
 assert len(file_lists_by_folder) == len(folder_names)
 
 
+#%% Some just-to-be-safe double-checking around enumeration
+
+# Make sure each folder has at least one image matched; the opposite is usually a sign of a copy/paste issue
+
+all_images = list(itertools.chain.from_iterable(images_by_folder))
+
+for folder_name in folder_names:
+    
+    if folder_prefixes is not None:
+        prefixes = folder_prefixes[folder_name]
+    else:
+        prefixes = [folder_name]
+        
+    for p in prefixes:
+        
+        found_image = False
+        
+        for fn in all_images:
+            if fn.startswith(p):
+                found_image = True
+                break
+        # ...for each image
+            
+        assert found_image, 'Could not find image for prefix {}'.format(p)
+        
+    # ...for each prefix
+    
+# ...for each folder
+
+# Make sure each image comes from one of our folders; the opposite is usually a sign of a bug up above
+        
+for fn in tqdm(all_images):
+    
+    found_folder = False
+    
+    for folder_name in folder_names:
+        
+        if folder_prefixes is not None:
+            prefixes = folder_prefixes[folder_name]
+        else:
+            prefixes = [folder_name]
+            
+        for p in prefixes:        
+            
+            if fn.startswith(p):
+                found_folder = True
+                break
+            
+        # ...for each prefix
+            
+        if found_folder:
+            break
+    
+    # ...for each folder
+        
+    assert found_folder, 'Could not find folder for image {}'.format(fn)
+
+# ...for each image
+        
+        
 #%% Divide images into chunks for each folder
 
 # The JSON file at folder_chunks[i][j] corresponds to task j of taskgroup i
