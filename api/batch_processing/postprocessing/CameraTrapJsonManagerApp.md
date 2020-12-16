@@ -13,7 +13,7 @@ The app is functionally the same as the Python script [subset_json_detector_outp
 
 ## Download
 
-Download the application <a href="https://lilablobssc.blob.core.windows.net/models/apps/CameraTrapApiOutputManager.1.02.zip">here</a>.
+Download the application <a href="https://lilablobssc.blob.core.windows.net/models/apps/CameraTrapApiOutputManager.1.2.0.0.zip">here</a>.
 
 
 ## User guide
