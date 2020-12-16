@@ -54,6 +54,7 @@ import sys
 import copy
 import json
 import os
+import re
 
 from tqdm import tqdm
 
@@ -75,7 +76,7 @@ class SubsetJsonDetectorOutputOptions:
     # Should we split output into individual .json files for each folder?
     split_folders = False
     
-    # Folder level to use for splitting ['bottom','top','n_from_bottom','dict']
+    # Folder level to use for splitting ['bottom','top','n_from_bottom','n_from_top','dict']
     #
     # 'dict' requires 'split_folder_param' to be a dictionary mapping each filename
     # to a token.
@@ -84,6 +85,8 @@ class SubsetJsonDetectorOutputOptions:
     # When using the 'n_from_bottom' parameter to define folder splitting, this
     # defines the number of directories from the bottom.  'n_from_bottom' with
     # a parameter of zero is the same as 'bottom'.
+    #
+    # Same story with 'n_from_top'.
     #
     # When 'split_folder_mode' is 'dict', this should be a dictionary mapping each filename
     # to a token.
@@ -374,20 +377,47 @@ def subset_json_detector_output(input_filename, output_filename, options, data=N
         
         # im = data['images'][0]
         for im in tqdm(data['images']):
+            
             fn = im['file']
+            
             if options.split_folder_mode == 'bottom':
+                                
                 dirname = os.path.dirname(fn)
+                
             elif options.split_folder_mode == 'n_from_bottom':
+                
                 dirname = os.path.dirname(fn)
                 for n in range(0, options.split_folder_param):
                     dirname = os.path.dirname(dirname)
+                    
+            elif options.split_folder_mode == 'n_from_top':
+                
+                # Split string into folders, keeping delimiters
+                
+                # Don't use this, it removes delimiters
+                # tokens = split_path(fn)
+                tokens = re.split(r'([\\/])',fn)
+                
+                n_tokens_to_keep = ((options.split_folder_param + 1) * 2) - 1;
+                
+                if n_tokens_to_keep > len(tokens):
+                    raise ValueError('Cannot walk {} folders from the top in path {}'.format(
+                                options.split_folder_param, fn))
+                dirname = ''.join(tokens[0:n_tokens_to_keep])
+                
             elif options.split_folder_mode == 'top':
+                
                 dirname = top_level_folder(fn)                
+                
             elif options.split_folder_mode == 'dict':
+                
                 assert isinstance(options.split_folder_param, dict)
                 dirname = options.split_folder_param[fn]
+                
             else:
+                
                 raise ValueError('Unrecognized folder split mode {}'.format(options.split_folder_mode))
+                
             folders_to_images.setdefault(dirname, []).append(im)
         
         print('Found {} unique folders'.format(len(folders_to_images)))
@@ -442,38 +472,36 @@ if False:
 
     #%%
     
-    data = None
-    
     #%% Subset a file without splitting
     
-    input_filename = r"D:\temp\idfg\1800_idfg_statewide_wolf_detections_w_classifications.json"
-    output_filename = r"D:\temp\idfg\1800_detections_S2.json"
+    input_filename = r"c:\temp\sample.json"
+    output_filename = r"c:\temp\output.json"
      
     options = SubsetJsonDetectorOutputOptions()
     options.replacement = None
     options.query = 'S2'
         
-    data = subset_json_detector_output(input_filename,output_filename,options,data)
+    data = subset_json_detector_output(input_filename,output_filename,options,None)
     
 
     #%% Subset and split, but don't copy to individual folders
     
-    # input_filename = r"D:\temp\idfg\1800_detections_S2.json"
-    # input_filename = r"D:\temp\idfg\detections_idfg_20190625_refiltered.json"
-    input_filename = r"C:\temp\amapa-20200712_detections.json"
-    output_filename = r"C:\temp\amapa\output"
+    input_filename = r"C:\temp\tnc-hardage-20201028_detections.filtered_rde_0.60_0.85_10_0.05_r2_export\tnc-hardage-20201028_detections.filtered_rde_0.60_0.85_10_0.05_r2_export.json"
+    output_filename = r"c:\temp\out"
     
     options = SubsetJsonDetectorOutputOptions()
     options.split_folders = True    
     options.make_folder_relative = True
+    options.split_folder_mode = 'n_from_top'
+    options.split_folder_param = 1
     
-    data = subset_json_detector_output(input_filename,output_filename,options,data)
+    data = subset_json_detector_output(input_filename,output_filename,options,None)
     
     
     #%% Subset and split, copying to individual folders
     
-    input_filename = r"D:\temp\sulross\detections_kitfox_20190620_refiltered.json"
-    output_filename = r"D:\temp\sulross\output_to_folders"
+    input_filename = r"c:\temp\sample.json"
+    output_filename = r"c:\temp\out"
      
     options = SubsetJsonDetectorOutputOptions()
     options.split_folders = True    
