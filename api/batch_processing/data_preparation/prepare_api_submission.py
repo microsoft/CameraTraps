@@ -328,7 +328,7 @@ class Task:
         self.bypass_status_check = True
         
         
-    def get_output_file_urls(self, verbose: bool = False) -> List[str]:
+    def get_output_file_urls(self, verbose: bool = False) -> Dict[str, str]:
         """
         Retrieves the dictionary of URLs for the three output files for this task
         """
