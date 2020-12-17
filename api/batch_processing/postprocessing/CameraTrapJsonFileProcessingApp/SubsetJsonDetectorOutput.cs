@@ -413,6 +413,7 @@ namespace CameraTrapJsonManagerApp
                     //
                     // GetRelativePath("a/b/c/d/e.jpg","a/b/c") == "d/e.jpg"
                     string relativePath = GetRelativePath(image.file, dirname);
+                    relativePath = relativePath.Replace("%20", " ");
                     Debug.Assert(!(relativePath.Contains(@"\\")));
                     image.file = relativePath;
                 }
