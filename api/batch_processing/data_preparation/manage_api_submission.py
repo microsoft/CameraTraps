@@ -572,6 +572,10 @@ n_resubmissions = 0
 # elements per taskgroup.
 resubmitted_tasks = []
 
+# List of lists of paths.  Neither are used explicitly, but are handy for debugging.
+missing_images_by_task = []
+failed_images_by_task = []
+
 # i_taskgroup = 0; taskgroup = taskgroups[i_taskgroup];
 for i_taskgroup, taskgroup in enumerate(taskgroups):
 
@@ -604,9 +608,19 @@ for i_taskgroup, taskgroup in enumerate(taskgroups):
 
         missing_images_fn = os.path.join(
             raw_api_output_folder, detections_fn.replace('.json', '_missing.json'))
-
         missing_images = task.get_missing_images(verbose=True)
+        missing_images_by_task.append(missing_images)
         ai4e_azure_utils.write_list_to_file(missing_images_fn, missing_images)
+        
+        failed_images_fn = os.path.join(
+            raw_api_output_folder, detections_fn.replace('.json', '_failed.json'))
+        failed_images_url = task.get_output_file_urls()['failed_images']
+        prepare_api_submission.download_url(failed_images_url, failed_images_fn)
+        with open(failed_images_fn,'r') as failf:
+            failed_images = json.load(failf)
+            assert isinstance(failed_images,list)
+        failed_images_by_task.append(failed_images)
+        
         num_missing_images = len(missing_images)
         if num_missing_images < max_tolerable_missing_images:
             continue
@@ -620,7 +634,7 @@ for i_taskgroup, taskgroup in enumerate(taskgroups):
         print('Task {}: uploading {} to {}'.format(task_name,missing_images_fn,blob_name))
         new_task.upload_images_list(
             account=storage_account_name, container=container_name,
-            blob_name=blob_name, sas_token=read_write_sas_token)
+            blob_name=blob_name, sas_token=read_write_sas_token, overwrite=True)
         request = new_task.generate_api_request(
             caller=caller, input_container_url=read_only_sas_url,
             image_path_prefix=None, **additional_task_args)
@@ -649,6 +663,25 @@ for i_taskgroup, taskgroup in enumerate(taskgroups):
 if n_resubmissions == 0:
     print('No resubmissions necessary')
 
+
+#%% See what's up with failed/missing images (debugging cell)
+    
+if False:
+
+    #%%
+    
+    n_missing = sum([len(x) for x in missing_images_by_task])
+    n_failed = sum([len(x) for x in failed_images_by_task])
+    print('{} missing images total ({} failed)'.format(n_missing,n_failed))
+    
+    #%%
+    
+    failed_images_flat = list(itertools.chain.from_iterable(failed_images_by_task))
+    i_image = 100
+    sample_image_path = failed_images_flat[i_image]
+    url = read_only_sas_url.replace('?','/'+sample_image_path+'?')
+    clipboard.copy(url)
+    
 
 #%% Resubmit tasks for failed shards, add to appropriate task groups
 
