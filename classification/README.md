@@ -773,10 +773,10 @@ A CSV label specification file can be converted to the [JSON label specification
         // select animals to include based on dataset labels
         "dataset_labels": {
             "idfg": ["deer", "elk", "prong"],
-            "idfg_swwlf_2019": ["elk", "muledeer", "whitetaileddeer"],
+            "idfg_swwlf_2019": ["elk", "muledeer", "whitetaileddeer"]
         },
 
-        "max_count": 50000  // only include up to this many images (not crops)
+        "max_count": 50000,  // only include up to this many images (not crops)
 
         // prioritize images from certain datasets over others,
         // only used if "max_count" is given
@@ -784,7 +784,7 @@ A CSV label specification file can be converted to the [JSON label specification
             ["idfg_swwlf_2019"],  // give 1st priority to images from this list of datasets
             ["idfg"]  // give 2nd priority to images from this list of datasets
             // give remaining priority to images from all other datasets
-        ],
+        ]
 
     },
 
@@ -793,7 +793,7 @@ A CSV label specification file can be converted to the [JSON label specification
         "taxa": [
             {
                 "level": "class",
-                "name": "aves",
+                "name": "aves"
             }
         ],
         "dataset_labels": {

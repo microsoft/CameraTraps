@@ -11,7 +11,7 @@ that the following conditions hold:
     taxa is actually a part of our master taxonomy.
 3) If the 'prioritize' key is found for a given label, then the label must
     also have a 'max_count' key.
-4) If --allow_multilabel=False, then no dataset label is included in more than
+4) If --allow-multilabel=False, then no dataset label is included in more than
     one classification label.
 
 If --output-dir <output_dir> is given, then we query MegaDB for images
@@ -171,33 +171,12 @@ def main(label_spec_json_path: str,
         json.dump(image_counts_by_label, f, indent=1)
 
 
-def parse_taxa(taxa_dicts: List[Dict[str, Any]],
-               taxonomy_dict: Dict[Tuple[str, str], TaxonNode]
-               ) -> Set[Tuple[str, str]]:
-    """Gathers the dataset labels requested by a "taxa" specification.
-
-    Args:
-        taxa_dicts: list of dict, corresponds to the "taxa" key in JSON, e.g.,
-            [
-                {'level': 'family', 'name': 'cervidae', 'datasets': ['idfg']},
-                {'level': 'genus',  'name': 'meleagris'}
-            ]
-        taxonomy_dict: dict, maps (taxon_level, taxon_name) to a TaxonNode
-
-    Returns: set of (ds, ds_label), dataset labels requested by the taxa spec
-    """
-    results = set()
-    for taxon in taxa_dicts:
-        key = (taxon['level'].lower(), taxon['name'].lower())
-        datasets = taxon.get('datasets', None)
-        results |= taxonomy_dict[key].get_dataset_labels(datasets)
-    return results
-
-
 def parse_spec(spec_dict: Mapping[str, Any],
                taxonomy_dict: Dict[Tuple[str, str], TaxonNode]
                ) -> Set[Tuple[str, str]]:
-    """
+    """Gathers the dataset labels corresponding to a particular classification
+    label specification.
+
     Args:
         spec_dict: dict, contains keys ['taxa', 'dataset_labels']
         taxonomy_dict: dict, maps (taxon_level, taxon_name) to a TaxonNode
@@ -208,11 +187,26 @@ def parse_spec(spec_dict: Mapping[str, Any],
     """
     results = set()
     if 'taxa' in spec_dict:
-        results |= parse_taxa(spec_dict['taxa'], taxonomy_dict)
+        # spec_dict['taxa']: list of dict
+        #   [
+        #       {'level': 'family', 'name': 'cervidae', 'datasets': ['idfg']},
+        #       {'level': 'genus',  'name': 'meleagris'}
+        #   ]
+        for taxon in spec_dict['taxa']:
+            key = (taxon['level'].lower(), taxon['name'].lower())
+            datasets = taxon.get('datasets', None)
+            results |= taxonomy_dict[key].get_dataset_labels(datasets)
+
     if 'dataset_labels' in spec_dict:
+        # spec_dict['dataset_labels']: dict, dataset => list of dataset_label
+        #    {
+        #       "idfg": ["deer", "elk", "prong"],
+        #       "idfg_swwlf_2019": ["elk", "muledeer", "whitetaileddeer"]
+        #    }
         for ds, ds_labels in spec_dict['dataset_labels'].items():
             for ds_label in ds_labels:
                 results.add((ds, ds_label))
+
     if len(results) == 0:
         raise ValueError('specification matched no dataset labels')
     return results
