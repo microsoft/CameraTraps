@@ -97,7 +97,7 @@ def check_taxonomy_csv(csv_path: str) -> None:
             p0_is_ancestor_of_p1 = p1 in nx.descendants(graph, p0)
             p1_is_ancestor_of_p0 = p0 in nx.descendants(graph, p1)
             if not p0_is_ancestor_of_p1 and not p1_is_ancestor_of_p0:
-                print('Node with 2 ambiguous parents:', node)
+                print('Node with two ambiguous parents:', node)
                 print('\t', p0)
                 print('\t\t', p0.parents)
                 print('\t', p1)
