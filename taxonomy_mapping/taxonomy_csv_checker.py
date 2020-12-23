@@ -18,7 +18,7 @@ from typing import Optional
 import networkx as nx
 import pandas as pd
 
-from taxonomy_mapping.taxonomy_graph import TaxonNode
+from taxonomy_mapping.taxonomy_graph import TaxonNode, dag_to_tree
 
 
 #%% Taxnomy checking
@@ -46,8 +46,9 @@ def check_taxonomy_csv(csv_path: str) -> None:
 
         taxa_ancestry = row['taxonomy_string']
         if pd.isna(taxa_ancestry):
-            # taxonomy CSV rows without 'taxonomy_string' entries can only be
-            # added to the JSON via the 'dataset_labels' key
+            # taxonomy CSV rows without 'taxonomy_string' entries are excluded
+            # from the taxonomy graph, but can be included in a classification
+            # label specification JSON via the 'dataset_labels' key
             continue
         else:
             taxa_ancestry = eval(taxa_ancestry)  # pylint: disable=eval-used
@@ -87,7 +88,7 @@ def check_taxonomy_csv(csv_path: str) -> None:
             
     assert nx.is_directed_acyclic_graph(graph)
 
-    for i, node in enumerate(graph.nodes):
+    for node in graph.nodes:
         assert len(node.parents) <= 2
         if len(node.parents) == 2:
             p0 = node.parents[0]
@@ -102,6 +103,13 @@ def check_taxonomy_csv(csv_path: str) -> None:
                 print('\t\t', p0.parents)
                 print('\t', p1)
                 print('\t\t', p1.parents)
+
+    try:
+        dag_to_tree(graph, taxon_to_node)
+        print('All ambiguous parents have hard-coded resolution in '
+              'dag_to_tree().')
+    except AssertionError as e:
+        print(f'At least one node has unresolved ambiguous parents: {e}')
 
     print('num taxon level errors:', num_taxon_level_errors)
     print('num scientific name errors:', num_scientific_name_errors)
