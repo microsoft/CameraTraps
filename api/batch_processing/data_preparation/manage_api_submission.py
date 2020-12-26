@@ -439,9 +439,27 @@ if False:
     
     if False:
         
+        #%%
+                
+        # Use this when you have the task IDs, but no taskgroup objects, typically because you recorded them
+        # manually somewhere
+        task_ids = []
+        task_to_results = {}
+        
+        # Enumerate files associated with each task
+        for task_id in task_ids:
+            
+            # Enumerate files associated this this task
+            matched_blobs = sas_blob_utils.list_blobs_in_container(container_uri=container_uri, blob_prefix=task_id)
+            task_to_results[task_id] = matched_blobs
+            
+        #%%
+        
+    if False:
+        
         #%% 
         
-        # Use this when you don't know the task ID, typically because this notebook closed
+        # Use this when you don't know the task ID(s), typically because this notebook closed
         
         matched_blobs = sas_blob_utils.list_blobs_in_container(container_uri=container_uri)
         task_blobs = [s for s in matched_blobs if base_task_name in s]
