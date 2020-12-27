@@ -13,6 +13,25 @@
     
 """
 
+"""
+
+# Not yet automated:
+#
+# * Mounting the image source, only necessary for folder splitting or occasional
+#   sanity-checking.  But FWIW, here's the gist of it:
+#
+#   import clipboard; clipboard.copy(read_only_sas_url)
+#   configure mount point with rclone config
+#   rclone mount mountname: z:
+#
+# * Pushing the final results to shared storage and generating a SAS URL to
+#   share with the collaborator
+#
+# * Pushing the previews to shared storage
+#
+
+"""
+
 #%% Imports
 
 import json
@@ -21,9 +40,11 @@ import os
 import posixpath
 import pprint
 import time
+import itertools
 
 from urllib.parse import urlsplit, unquote
 from typing import Any, Dict, List
+from tqdm import tqdm
 
 import clipboard
 import humanfriendly
@@ -57,7 +78,7 @@ base_output_folder_name = r'f:\institution'
 # Leading question mark is optional.
 #
 # The read-only token is used for accessing images; the write-enabled token is
-# used for writing file lists.
+# used for writing file lists.  As of 2020.12.07, these tokens cannot use access policies.
 read_only_sas_token = '?sv=2019-12...'
 read_write_sas_token = '?sv=2019-12...'
 
@@ -72,6 +93,10 @@ container_prefix = ''
 # separate surveys. The typical case is to do the whole container as a single
 # taskgroup.
 folder_names = [''] # ['folder1', 'folder2', 'folder3']
+
+# If your "folders" are really logical folders corresponding to multiple folders,
+# map them here
+folder_prefixes = None # {'stuff':['a','b','c']}
 
 # This is only necessary if you will be performing postprocessing steps that
 # don't yet support SAS URLs, specifically the "subsetting" step, or in some
@@ -124,19 +149,6 @@ os.makedirs(postprocessing_output_folder, exist_ok=True)
 # Turn warnings into errors if more than this many images are missing
 max_tolerable_missing_images = 20
 
-# import clipboard; clipboard.copy(read_only_sas_url)
-# configure mount point with rclone config
-# rclone mount mountname: z:
-
-# Not yet automated:
-# - Mounting the image source (see comment above)
-# - Submitting the tasks (code written below, but it doesn't really work)
-# - Handling failed tasks/shards/images (though most of the code exists in
-#     generate_resubmission_list)
-# - Pushing the final results to shared storage and generating a SAS URL to
-#     share with the collaborator
-# - Pushing the previews to shared storage
-
 
 #%% Support functions
 
@@ -161,29 +173,109 @@ def url_to_filename(url):
 # each JSON file contains a list of blob names corresponding to an API taskgroup
 file_lists_by_folder = []
 
+# A flat list of blob paths for each folder
+images_by_folder = []
+
 # folder_name = folder_names[0]
 for folder_name in folder_names:
+    
     clean_folder_name = path_utils.clean_filename(folder_name)
     json_filename = '{}_{}_all.json'.format(base_task_name,clean_folder_name)
     list_file = os.path.join(filename_base, json_filename)
 
+    prefix = container_prefix + folder_name
+    
+    # Handle the case where a "folder" is really a list of folders
+    rsearch = None
+    if folder_prefixes is not None:
+        prefix = container_prefix
+        rsearch = []
+        prefix_list = folder_prefixes[folder_name]
+        for p in prefix_list:
+            rsearch.append('^' + p)
+                    
     # If this is intended to be a folder, it needs to end in '/', otherwise
     # files that start with the same string will match too
     folder_name = folder_name.replace('\\', '/')
     if len(folder_name) > 0 and (not folder_name.endswith('/')):
         folder_name = folder_name + '/'
-    prefix = container_prefix + folder_name
-    file_list = ai4e_azure_utils.enumerate_blobs_to_file(
+                
+    images = ai4e_azure_utils.enumerate_blobs_to_file(
         output_file=list_file,
         account_name=storage_account_name,
         container_name=container_name,
         sas_token=read_only_sas_token,
-        blob_prefix=prefix)
+        blob_prefix=prefix,
+        rsearch=rsearch)
+    
     file_lists_by_folder.append(list_file)
+    images_by_folder.append(images)
+
+# ...for each folder
 
 assert len(file_lists_by_folder) == len(folder_names)
 
 
+#%% Some just-to-be-safe double-checking around enumeration
+
+# Make sure each folder has at least one image matched; the opposite is usually a sign of a copy/paste issue
+
+all_images = list(itertools.chain.from_iterable(images_by_folder))
+
+for folder_name in folder_names:
+    
+    if folder_prefixes is not None:
+        prefixes = folder_prefixes[folder_name]
+    else:
+        prefixes = [folder_name]
+        
+    for p in prefixes:
+        
+        found_image = False
+        
+        for fn in all_images:
+            if fn.startswith(p):
+                found_image = True
+                break
+        # ...for each image
+            
+        assert found_image, 'Could not find image for prefix {}'.format(p)
+        
+    # ...for each prefix
+    
+# ...for each folder
+
+# Make sure each image comes from one of our folders; the opposite is usually a sign of a bug up above
+        
+for fn in tqdm(all_images):
+    
+    found_folder = False
+    
+    for folder_name in folder_names:
+        
+        if folder_prefixes is not None:
+            prefixes = folder_prefixes[folder_name]
+        else:
+            prefixes = [folder_name]
+            
+        for p in prefixes:        
+            
+            if fn.startswith(p):
+                found_folder = True
+                break
+            
+        # ...for each prefix
+            
+        if found_folder:
+            break
+    
+    # ...for each folder
+        
+    assert found_folder, 'Could not find folder for image {}'.format(fn)
+
+# ...for each image
+        
+        
 #%% Divide images into chunks for each folder
 
 # The JSON file at folder_chunks[i][j] corresponds to task j of taskgroup i
@@ -293,21 +385,19 @@ expected_seconds = (0.8 / 16) * n_images
 print('Expected time: {}'.format(humanfriendly.format_timespan(expected_seconds)))
 
 
-#%% Manually define task groups if we ran the tasks manually
+#%% Manually create task groups if we ran the tasks manually
 
 if False:
 
     #%%    
 
-    # For just one task...
-    taskgroup_ids = [["9999"]]
-    
-    # For multiple tasks...
-    # taskgroup_ids = [["1111"], ["2222"], ["3333"]]
-    
-    for i, taskgroup in enumerate(taskgroups):
-        for j, task in enumerate(taskgroup):
-            task.id = taskgroup_ids[i][j]
+    task_ids = ["1111", "2222", "3333"]
+    taskgroup = []
+    for task_id in task_ids:
+        task = prepare_api_submission.Task(name=task_id + '_reprise',task_id=task_id,
+                                            api_url=endpoint_base,validate=False)
+        taskgroup.append(task)
+    taskgroups = [taskgroup]
 
 
 #%% Status check
@@ -347,9 +437,27 @@ if False:
     
     if False:
         
+        #%%
+                
+        # Use this when you have the task IDs, but no taskgroup objects, typically because you recorded them
+        # manually somewhere
+        task_ids = []
+        task_to_results = {}
+        
+        # Enumerate files associated with each task
+        for task_id in task_ids:
+            
+            # Enumerate files associated this this task
+            matched_blobs = sas_blob_utils.list_blobs_in_container(container_uri=container_uri, blob_prefix=task_id)
+            task_to_results[task_id] = matched_blobs
+            
+        #%%
+        
+    if False:
+        
         #%% 
         
-        # Use this when you don't know the task ID, typically because this notebook closed
+        # Use this when you don't know the task ID(s), typically because this notebook closed
         
         matched_blobs = sas_blob_utils.list_blobs_in_container(container_uri=container_uri)
         task_blobs = [s for s in matched_blobs if base_task_name in s]
@@ -480,6 +588,10 @@ n_resubmissions = 0
 # elements per taskgroup.
 resubmitted_tasks = []
 
+# List of lists of paths.  Neither are used explicitly, but are handy for debugging.
+missing_images_by_task = []
+failed_images_by_task = []
+
 # i_taskgroup = 0; taskgroup = taskgroups[i_taskgroup];
 for i_taskgroup, taskgroup in enumerate(taskgroups):
 
@@ -489,8 +601,10 @@ for i_taskgroup, taskgroup in enumerate(taskgroups):
     tasks = list(taskgroup)  
     
     # i_task = 0; task = tasks[i_task]
-    for task in tasks:
+    for i_task,task in enumerate(tasks):
             
+        print('\n*** Task {} ({} in taskgroup {}) ***\n'.format(task.id,i_task,i_taskgroup))
+        
         response = task.check_status()
 
         n_failed_shards = response['Status']['message']['num_failed_shards']
@@ -510,9 +624,19 @@ for i_taskgroup, taskgroup in enumerate(taskgroups):
 
         missing_images_fn = os.path.join(
             raw_api_output_folder, detections_fn.replace('.json', '_missing.json'))
-
         missing_images = task.get_missing_images(verbose=True)
+        missing_images_by_task.append(missing_images)
         ai4e_azure_utils.write_list_to_file(missing_images_fn, missing_images)
+        
+        failed_images_fn = os.path.join(
+            raw_api_output_folder, detections_fn.replace('.json', '_failed.json'))
+        failed_images_url = task.get_output_file_urls()['failed_images']
+        prepare_api_submission.download_url(failed_images_url, failed_images_fn)
+        with open(failed_images_fn,'r') as failf:
+            failed_images = json.load(failf)
+            assert isinstance(failed_images,list)
+        failed_images_by_task.append(failed_images)
+        
         num_missing_images = len(missing_images)
         if num_missing_images < max_tolerable_missing_images:
             continue
@@ -526,7 +650,7 @@ for i_taskgroup, taskgroup in enumerate(taskgroups):
         print('Task {}: uploading {} to {}'.format(task_name,missing_images_fn,blob_name))
         new_task.upload_images_list(
             account=storage_account_name, container=container_name,
-            blob_name=blob_name, sas_token=read_write_sas_token)
+            blob_name=blob_name, sas_token=read_write_sas_token, overwrite=True)
         request = new_task.generate_api_request(
             caller=caller, input_container_url=read_only_sas_url,
             image_path_prefix=None, **additional_task_args)
@@ -540,8 +664,9 @@ for i_taskgroup, taskgroup in enumerate(taskgroups):
         # new_task.submit()
 
         # manual submission
-        print('\nResbumission task for {}:\n'.format(task_id))
+        print('\nResbumission string for task {}:\n'.format(task_id))
         print(json.dumps(request, indent=1))
+        print('')
 
         n_resubmissions += 1
 
@@ -554,6 +679,25 @@ for i_taskgroup, taskgroup in enumerate(taskgroups):
 if n_resubmissions == 0:
     print('No resubmissions necessary')
 
+
+#%% See what's up with failed/missing images (debugging cell)
+    
+if False:
+
+    #%%
+    
+    n_missing = sum([len(x) for x in missing_images_by_task])
+    n_failed = sum([len(x) for x in failed_images_by_task])
+    print('{} missing images total ({} failed)'.format(n_missing,n_failed))
+    
+    #%%
+    
+    failed_images_flat = list(itertools.chain.from_iterable(failed_images_by_task))
+    i_image = 100
+    sample_image_path = failed_images_flat[i_image]
+    url = read_only_sas_url.replace('?','/'+sample_image_path+'?')
+    clipboard.copy(url)
+    
 
 #%% Resubmit tasks for failed shards, add to appropriate task groups
 
@@ -667,7 +811,7 @@ for i_folder, folder_name_raw in enumerate(folder_names):
     options.image_base_dir = read_only_sas_url
     options.parallelize_rendering = True
     options.include_almost_detections = True
-    options.num_images_to_sample = 5000
+    options.num_images_to_sample = 7500
     options.confidence_threshold = 0.8
     options.almost_detection_confidence_threshold = options.confidence_threshold - 0.05
     options.ground_truth_json_file = None
@@ -780,7 +924,7 @@ for i_folder, folder_name_raw in enumerate(folder_names):
     options.image_base_dir = read_only_sas_url
     options.parallelize_rendering = True
     options.include_almost_detections = True
-    options.num_images_to_sample = 5000
+    options.num_images_to_sample = 7500
     options.confidence_threshold = 0.8
     options.almost_detection_confidence_threshold = options.confidence_threshold - 0.05
     options.ground_truth_json_file = None
