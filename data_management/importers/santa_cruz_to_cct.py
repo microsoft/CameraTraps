@@ -3,36 +3,216 @@
 #
 # Convert the Santa Cruz data set to a COCO-camera-traps .json file
 #
+# Uses the command-line tool ExifTool (exiftool.org/) to pull EXIF tags from images,
+# because every Python package we tried failed to pull the "Maker Notes" field properly.
+# Consequently, we assume that exiftool (or exiftool.exe) is on the system path.
+#
 
-#%% Constants and environment
+#%% Imports
 
 import os
 import json
 import uuid
 import time
 import humanfriendly
-import numpy as np
-from PIL import Image
-from tqdm import tqdm
 import urllib
 import urllib.request
 import glob
 import ntpath
-import PIL.ExifTags
 import subprocess
 
-# base_directory = r'D:\Projects\Microsoft\Santa_Cruz\SCI Cameratrap Samasource Labels'
-base_directory = r'/home/Vardhan/SCI Cameratrap Samasource Labels'
-output_file = os.path.join(base_directory,'santa_cruz.json')
-image_directory = os.path.join(base_directory,'images')
-os.makedirs(image_directory,exist_ok=True)
+from shutil import which
+from PIL import Image
+from tqdm import tqdm
 
+
+#%% Constants
+
+required_input_annotation_fields = set([
+    'task_id','batch_id','name','url','Object','Output','teams','task_url','Step A Agent'
+    ])
+
+
+#%% Path setup
+
+input_base = r'e:\santa-cruz-in'
+input_annotation_folder = os.path.join(input_base,'SCI Cameratrap Samasource Labels')
+input_image_folder = os.path.join(input_base,'images')
+
+assert os.path.isdir(input_base)
+assert os.path.isdir(input_annotation_folder)
+assert os.path.isdir(input_image_folder)
+assert not input_annotation_folder.endswith('/')
+
+output_base = r'e:\santa-cruz-out'
+output_file = os.path.join(output_base,'santa_cruz_camera_traps.json')
+output_image_folder = os.path.join(output_base,'images')
+
+os.makedirs(output_base,exist_ok=True)
+os.makedirs(output_image_folder,exist_ok=True)
+
+
+# Confirm that exiftool is available
+assert which('exiftool') is not None, 'Could not locate the ExifTool executable'
+
+
+#%% Load information from every .json file
+
+json_files = glob.glob(input_annotation_folder+'/**/*.json', recursive=True)
+print('Found {} .json files'.format(len(json_files)))
+
+# Ignore the sample file
+sample_files = [fn for fn in json_files if 'sample' in fn]
+assert len(sample_files) == 1
+
+json_files = [fn for fn in json_files if 'sample' not in fn]
+input_annotations = []
+
+json_basenames = set()
+
+# json_file = json_files[0]
+for json_file in tqdm(json_files):
+    
+    json_filename = os.path.basename(json_file)
+    assert json_filename not in json_basenames
+    json_basenames.add(json_filename)
+    
+    with open(json_file,'r') as f:        
+        annotations = json.load(f)
+                
+    # ann = annotations[0]
+    for ann in annotations:
+        
+        assert isinstance(ann,dict)
+        ann_keys = set(ann.keys())
+        assert required_input_annotation_fields == ann_keys
+        ann['json_filename'] = json_filename
+        input_annotations.append(ann)
+        
+    # ...for each annotation in this file
+
+# ...for each .json file
+        
+print('Loaded {} annotations from {} .json files'.format(len(input_annotations),len(json_files)))
+
+image_urls = [ann['url'] for ann in input_annotations]
+
+
+#%% Download files (functions)
+
+# https://www.quickprogrammingtips.com/python/how-to-download-multiple-files-concurrently-in-python.html
+import requests
+from multiprocessing.pool import ThreadPool
+from urllib.parse import urlparse
+
+def download_relative_url(url,overwrite=False):
+    """
+    Download:
+        
+    https://somestuff.com/my/relative/path/image.jpg
+    
+    ...to:
+        
+    [input_image_folder]/my/relative/path/image.jpg
+    """
+    
+    parsed_url = urlparse(url)
+    relative_path = parsed_url.path
+    
+    # This is returned with a leading slash, remove it
+    relative_path = relative_path[1:]
+    
+    target_file = os.path.join(input_image_folder,relative_path).replace('\\','/')
+    
+    if os.path.isfile(target_file and not overwrite):
+        print('{} exists, skipping'.format(target_file))
+        return url
+    
+    os.makedirs(os.path.dirname(target_file),exist_ok=True)  
+    
+    print('Downloading {} to {}'.format(url, target_file))
+    
+    r = requests.get(url, stream=True)
+    if r.status_code == requests.codes.ok:
+        with open(target_file, 'wb') as f:
+            for data in r:
+                f.write(data)
+    return url
+ 
+def download_relative_urls(urls,n_threads = 10) :    
+    
+    if n_threads == 1:    
+        results = []
+        for url in urls:
+            results.append(download_relative_url(url))
+    else:
+        results = ThreadPool(n_threads).imap(download_relative_url, urls)        
+    return results
+    
+
+#%% Download files (execution)
+    
+download_relative_urls(image_urls)
+
+
+#%% Read EXIF data (functions)
+
+def process_makernotes(file_path):
+    """
+    Get MakerNotes EXIF data for an image
+    """
+    
+    proc = subprocess.Popen(['exiftool', '-G', file_path],stdout=subprocess.PIPE, encoding='utf8')
+    exif_lines = proc.stdout.readlines()
+    exif_lines = [s.strip() for s in exif_lines]
+    
+    maker_notes = {}
+    date_present = False
+    
+    for line in exif_lines:
+        if not line:
+            break
+        if line.startswith('[MakerNotes]'):
+            if 'Sequence' in line:
+                seq = line.split(": ")
+                seq_id, seq_num_frames = seq[1].split(" of ")
+                maker_notes['seq_id'] = seq_id
+                maker_notes['seq_num_frames'] = seq_num_frames
+            if 'Serial Number' in line:
+                location = line.split(': ')[1]
+                maker_notes['location'] = location
+            if 'Time' in line:
+                datetime = line.split(': ')[1]
+                maker_notes['datetime'] = datetime
+                date_present = True
+        if not date_present:
+            if ('DateTime Original' in line or 'Date/Time Created' in line or 'Date/Time Original' in line):
+                datetime = line.split(": ")[1]
+                maker_notes['datetime'] = datetime
+                date_present = True
+                
+    for required_field in ['seq_id', 'seq_num_frames', 'location', 'datetime']:
+        
+        if not required_field in list(maker_notes.keys()):
+            if required_field == 'location':
+                maker_notes[required_field] = ''
+            else:
+                maker_notes[required_field] = None
+                
+    return maker_notes
+
+
+#%% Read EXIF data (execution)
+
+
+#%% Create output filenames for each image
+    
 
 #%% Support functions
 
 def download_image(url):
     """
-    Download the image from the URL.
+    Download the image from the URL
     """
     print(url)
     path = urllib.parse.urlparse(url).path
@@ -58,45 +238,6 @@ def get_bbox(coords):
     return [x, y, w, h]
 
 
-def proces_makernotes(file_path):
-    """
-    Get MakerNotes EXIF data for an image
-    """
-    proc = subprocess.Popen(['exiftool', '-G', file_path],stdout=subprocess.PIPE, encoding='utf8')
-    maker_notes = {}
-    date_present = False
-    while True:
-        line = proc.stdout.readline()
-        line = line.strip()
-        if not line:
-            break
-        if line.startswith('[MakerNotes]'):
-            if "Sequence" in line:
-                seq = line.split(": ")
-                seq_id, seq_num_frames = seq[1].split(" of ")
-                maker_notes['seq_id'] = seq_id
-                maker_notes['seq_num_frames'] = seq_num_frames
-            if "Serial Number" in line:
-                location = line.split(": ")[1]
-                maker_notes['location'] = location
-            if "Time" in line:
-                datetime = line.split(": ")[1]
-                maker_notes['datetime'] = datetime
-                date_present = True
-        if not date_present:
-            if ("DateTime Original" in line or "Date/Time Created" in line or "Date/Time Original" in line):
-                datetime = line.split(": ")[1]
-                maker_notes['datetime'] = datetime
-                date_present = True
-    for each in ['seq_id', 'seq_num_frames', 'location', 'datetime']:
-        if not each in list(maker_notes.keys()):
-            if each == 'location':
-                maker_notes[each] = ''
-            else:
-                maker_notes[each] = None
-    return maker_notes
-
-
 #%% Create CCT dictionaries
 
 images = []
@@ -115,12 +256,6 @@ categoriesToCounts['empty'] = 0
 # this is also a loop over annotations.
 
 startTime = time.time()
-json_files = []
-for folder in os.listdir(base_directory):
-    for file in glob.glob(base_directory+"/"+folder+'**/*.json'):
-        json_files.append(file)
-    for file in glob.glob(base_directory+"/"+folder+'**/**/*.json'):
-        json_files.append(file)
 
 for json_file in json_files:
     with open(json_file) as f:
@@ -199,8 +334,7 @@ print('Finished creating CCT dictionaries in {}'.format(
 info = {}
 info['year'] = 2020
 info['version'] = 1.0
-info['description'] = 'Cameratrap data collected from the Channel Islands, California'
-info['secondary_contributor'] = 'Converted to COCO .json by Vardhan Duvvuri'
+info['description'] = 'Camera trap data collected from the Channel Islands, California'
 info['contributor'] = 'The Nature Conservancy of California'
 
 
