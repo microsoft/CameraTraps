@@ -227,8 +227,9 @@ def build_taxonomy_graph(taxonomy_df: pd.DataFrame
         id_source = row['source']
         taxa_ancestry = row['taxonomy_string']
         if pd.isna(taxa_ancestry):
-            # taxonomy CSV rows without 'taxonomy_string' entries can only be
-            # added to the JSON via the 'dataset_labels' key
+            # taxonomy CSV rows without 'taxonomy_string' entries are excluded
+            # from the taxonomy graph, but can be included in a classification
+            # label specification JSON via the 'dataset_labels' key
             continue
         else:
             taxa_ancestry = eval(taxa_ancestry)  # pylint: disable=eval-used

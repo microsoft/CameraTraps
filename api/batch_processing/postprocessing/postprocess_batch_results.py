@@ -294,6 +294,7 @@ def relative_sas_url(folder_url: str, relative_path: str) -> Optional[str]:
     """
     
     relative_path = relative_path.replace('%','%25')
+    relative_path = relative_path.replace('#','%23')
     relative_path = relative_path.replace(' ','%20')
 
     if not is_sas_url(folder_url):
