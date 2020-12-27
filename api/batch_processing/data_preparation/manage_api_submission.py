@@ -385,21 +385,19 @@ expected_seconds = (0.8 / 16) * n_images
 print('Expected time: {}'.format(humanfriendly.format_timespan(expected_seconds)))
 
 
-#%% Manually define task groups if we ran the tasks manually
+#%% Manually create task groups if we ran the tasks manually
 
 if False:
 
     #%%    
 
-    # For just one task...
-    taskgroup_ids = [["9999"]]
-    
-    # For multiple tasks...
-    # taskgroup_ids = [["1111"], ["2222"], ["3333"]]
-    
-    for i, taskgroup in enumerate(taskgroups):
-        for j, task in enumerate(taskgroup):
-            task.id = taskgroup_ids[i][j]
+    task_ids = ["1111", "2222", "3333"]
+    taskgroup = []
+    for task_id in task_ids:
+        task = prepare_api_submission.Task(name=task_id + '_reprise',task_id=task_id,
+                                            api_url=endpoint_base,validate=False)
+        taskgroup.append(task)
+    taskgroups = [taskgroup]
 
 
 #%% Status check
