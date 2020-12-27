@@ -328,7 +328,7 @@ class Task:
         self.bypass_status_check = True
         
         
-    def get_output_file_urls(self, verbose: bool = False) -> List[str]:
+    def get_output_file_urls(self, verbose: bool = False) -> Dict[str, str]:
         """
         Retrieves the dictionary of URLs for the three output files for this task
         """
@@ -393,32 +393,40 @@ def create_response_message(n_failed_shards,failed_images_url,images_url,detecti
     
 
 def get_missing_images_from_json(submitted_images,detections,failed_images,n_failed_shards,verbose=False):
-        """
-        Given the json-encoded results for the lists of submitted images, detections,
-        and failed images, find and return the list of images missing in the list 
-        of detections.
-        """
-        assert all(is_image_file_or_url(s) for s in submitted_images)
-        assert all(is_image_file_or_url(s) for s in failed_images)
+    """
+    Given the json-encoded results for the lists of submitted images, detections,
+    and failed images, find and return the list of images missing in the list 
+    of detections.
+    """
+    assert all(is_image_file_or_url(s) for s in submitted_images)
+    assert all(is_image_file_or_url(s) for s in failed_images)
 
-        # Diff submitted and processed images
-        processed_images = [d['file'] for d in detections['images']]
-        missing_images = sorted(set(submitted_images) - set(processed_images))
-        
-        if verbose:
-            estimated_failed_shard_images = n_failed_shards * IMAGES_PER_SHARD
-            print('Submitted {} images'.format(len(submitted_images)))
-            print('Received results for {} images'.format(len(processed_images)))
-            print('{} failed images'.format(len(failed_images)))
-            print(f'{n_failed_shards} failed shards '
-                  f'(~approx {estimated_failed_shard_images} images)')
-            print('{} images not in results'.format(len(missing_images)))
+    # Diff submitted and processed images
+    processed_images = [d['file'] for d in detections['images']]
+    missing_images = sorted(set(submitted_images) - set(processed_images))
+    
+    if verbose:
+        estimated_failed_shard_images = n_failed_shards * IMAGES_PER_SHARD
+        print('Submitted {} images'.format(len(submitted_images)))
+        print('Received results for {} images'.format(len(processed_images)))
+        print('{} failed images'.format(len(failed_images)))
+        print(f'{n_failed_shards} failed shards '
+              f'(~approx {estimated_failed_shard_images} images)')
+        print('{} images not in results'.format(len(missing_images)))
 
-        # Confirm that the failed images are a subset of the missing images
-        assert set(failed_images) <= set(missing_images), (
-            'Failed images should be a subset of missing images')
+    # Confirm that the failed images are a subset of the missing images
+    assert set(failed_images) <= set(missing_images), (
+        'Failed images should be a subset of missing images')
 
-        return missing_images
+        # Confirm that the procesed images are a subset of the submitted images
+    assert set(processed_images) <= set(submitted_images), (
+        'Failed images should be a subset of missing images')
+    
+    # Confirm that the failed images are a subset of the submitted images
+    assert set(failed_images) <= set(submitted_images), (
+        'Failed images should be a subset of missing images')
+    
+    return missing_images
 
     
 def divide_chunks(l: Sequence[Any], n: int) -> List[Sequence[Any]]:
