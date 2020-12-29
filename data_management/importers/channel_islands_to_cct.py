@@ -9,26 +9,24 @@
 
 #%% Imports, constants, paths
 
-# Imports
+## Imports ##
 
 import os
 import json
 import uuid
-import time
 import datetime
-import humanfriendly
 import glob
-import ntpath
 import subprocess
 import requests
 
 from multiprocessing.pool import ThreadPool
+from collections import defaultdict 
 from urllib.parse import urlparse
-from PIL import Image
+from shutil import copyfile
 from tqdm import tqdm
 
 
-# Constants
+## Constants ##
 
 required_input_annotation_fields = set([
     'task_id','batch_id','name','url','Object','Output','teams','task_url','Step A Agent'
@@ -36,12 +34,13 @@ required_input_annotation_fields = set([
 
 n_download_threads = 10
 n_exif_threads = 20
+n_copy_threads = n_exif_threads
 
 
-# Paths
+## Paths ##
 
-input_base = r'e:\santa-cruz-in'
-output_base = r'g:\santa-cruz-out'
+input_base = r'e:\channel-islands-in'
+output_base = r'g:\channel-islands-out'
 exiftool_command_name = r'c:\exiftool-12.13\exiftool(-k).exe'
 
 input_annotation_folder = os.path.join(input_base,'SCI Cameratrap Samasource Labels')
@@ -58,12 +57,13 @@ output_image_folder = os.path.join(output_base,'images')
 os.makedirs(output_base,exist_ok=True)
 os.makedirs(output_image_folder,exist_ok=True)
 
-
 # Confirm that exiftool is available
 # assert which(exiftool_command_name) is not None, 'Could not locate the ExifTool executable'
 assert os.path.isfile(exiftool_command_name), 'Could not locate the ExifTool executable'
 
 parsed_input_file = os.path.join(output_base,'parsed_input.json')
+exif_load_results_file = os.path.join(output_base,'exif_load_results.json')
+sequence_info_results_file = os.path.join(output_base,'sequence_info_results.json')
 
 
 #%% Load information from every .json file
@@ -115,9 +115,13 @@ output_images = []
 
 urls = set()
 for im in tqdm(input_images):
+    
     url = im['url']
+    
     if url in urls:        
+        
         for existing_im in input_images:
+            
             # Have we already added this image?
             if url == existing_im['url']:
                 
@@ -144,10 +148,18 @@ for im in tqdm(input_images):
                     obj2 = existing_im['Output'][0]['tags']['Object'].replace('_partial','')
                     if obj1 != obj2:
                         print('Warning: image {} tagged with {} and {}'.format(url,obj1,obj2))
+                        
+        # ...for each image we've already added
+                        
     else:
+        
         urls.add(url)
         output_images.append(im)
+        
+    # ...if this URL is/isn't in the list of URLs we've already processed
 
+# ...for each image
+        
 print('Kept {} of {} annotation records'.format(len(output_images),len(input_images)))
 
 images = output_images
@@ -157,11 +169,16 @@ images = output_images
 
 with open(parsed_input_file,'w') as f:
     json.dump(images,f,indent=1)
+
+#%%
     
 if False:
+    
     #%%
+    
     with open(parsed_input_file,'r') as f:
         images = json.load(f)
+        assert not any(['exif_tags' in im for im in images])
         
 
 #%% Download files (functions)
@@ -205,8 +222,11 @@ def download_relative_url(url,overwrite=False):
         
     return url
  
-def download_relative_urls(urls,n_threads = n_download_threads):    
     
+def download_relative_urls(urls,n_threads = n_download_threads):    
+    """
+    Download all URLs in [urls]
+    """
     if n_threads == 1:    
         results = []
         for url in urls:
@@ -221,7 +241,7 @@ def download_relative_urls(urls,n_threads = n_download_threads):
 download_relative_urls(image_urls)
 
 
-#%% Read required fields from EXIF data (function)
+#%% Read required fields from EXIF data (functions)
 
 def process_exif(file_path):
     """
@@ -241,7 +261,12 @@ def process_exif(file_path):
     exif_lines = [s.strip() for s in exif_lines]
     assert exif_lines is not None and len(exif_lines) > 0, 'Failed to read EXIF data from {}'.format(file_path)
     
+    # If we don't get any EXIF information, this probably isn't an image
+    assert any([s.lower().startswith('[exif]') for s in exif_lines])
+    
     exif_tags = {}
+    
+    found_makernotes = False
     
     # line_raw = exif_lines[0]
     for line_raw in exif_lines:
@@ -257,6 +282,8 @@ def process_exif(file_path):
         
         if field_name.startswith('[makernotes]'):
             
+            found_makernotes = True
+            
             if 'sequence' in field_name:
                 # Typically:
                 #
@@ -269,7 +296,7 @@ def process_exif(file_path):
             elif 'serial number' in line:
                 exif_tags['location'] = field_value            
 
-            elif ('date/time original' in line):
+            elif ('date/time original' in line and '[file]' not in line and '[composite]' not in line):
                 
                 previous_dt = None
                 
@@ -289,7 +316,8 @@ def process_exif(file_path):
                     assert 'datetime' not in exif_tags
                     exif_tags['datetime'] = field_value
                     
-        if ('datetime original' in line) or ('create date' in line) or ('date/time created' in line) or ('date/time original' in line):
+        if (('datetime original' in line) or ('create date' in line) or ('date/time created' in line) or ('date/time original' in line)) \
+            and ('[file]' not in line) and ('[composite]' not in line):
             
             previous_dt = None
             
@@ -312,24 +340,62 @@ def process_exif(file_path):
         
         if 'temperature' in line and not 'fahrenheit' in line:
             exif_tags['temperature'] = field_value
-                            
-    for required_field in ['frame_num', 'seq_num_frames', 'location', 'datetime', 'temperature']:
-        assert required_field in exif_tags, 'File {} missing field {}'.format(file_path,required_field)
+    
+    # ...for each line in the exiftool output
+            
+    makernotes_fields = ['frame_num', 'seq_num_frames', 'location', 'temperature']
+    
+    if not found_makernotes:        
+        
+        print('Warning: could not find maker notes in {}'.format(file_path))
+        
+        # This isn't directly related to the lack of maker notes, but it happens that files that are missing
+        # maker notes also happen to be missing EXIF date information
+        if not 'datetime' in exif_tags:
+            print('Warning: could not find datetime information in {}'.format(file_path))
+        
+        for field_name in makernotes_fields:
+            assert field_name not in exif_tags
+            exif_tags[field_name] = 'unknown'
+            
+    else:
+        
+        assert 'datetime' in exif_tags, 'Could not find datetime information in {}'.format(file_path)    
+        for field_name in makernotes_fields:
+            assert field_name in exif_tags, 'Could not find {} in {}'.format(field_name,file_path)
     
     return exif_tags
 
+# ...process_exif()
+    
 
-def add_exif_data(im):
+def get_image_local_path(im):
     
     url = im['url']
+    parsed_url = urlparse(url)
+    relative_path = parsed_url.path
+    
+    # This is returned with a leading slash, remove it
+    relative_path = relative_path[1:]    
+    
+    absolute_path = os.path.join(input_image_folder,relative_path).replace('\\','/')
+    return absolute_path
+
+    
+def add_exif_data(im, overwrite=False):
+    
+    if ('exif_tags' in im) and (overwrite==False):
+        return None
+    
+    url = im['url']
+    
+    # Ignore non-image files
+    if url.lower().endswith('ds_store') or ('dropbox.device' in url.lower()):
+        im['exif_tags'] = None
+        return
+    
     try:
-        parsed_url = urlparse(url)
-        relative_path = parsed_url.path
-        
-        # This is returned with a leading slash, remove it
-        relative_path = relative_path[1:]    
-        
-        input_image_path = os.path.join(input_image_folder,relative_path).replace('\\','/')
+        input_image_path = get_image_local_path(im)
         assert os.path.isfile(input_image_path)
         exif_tags = process_exif(input_image_path)
         im['exif_tags'] = exif_tags
@@ -340,7 +406,6 @@ def add_exif_data(im):
     return None
 
 
-
 #%% Read EXIF data (execution)
 
 if n_exif_threads == 1:        
@@ -349,11 +414,70 @@ if n_exif_threads == 1:
         add_exif_data(im)
 else:
     pool = ThreadPool(n_exif_threads)
-    r = list(tqdm(pool.imap(add_exif_data, images), total=len(images)))
+    exif_read_results = list(tqdm(pool.imap(add_exif_data, images), total=len(images)))
 
 
+#%% Save progress
+
+with open(exif_load_results_file,'w') as f:
+    
+    # Use default=str to handle datetime objects
+    json.dump(images, f, indent=1, default=str)
+
+#%% 
+    
+if False:
+    
+    #%%
+    
+    with open(exif_load_results_file,'r') as f:
+        # Not deserializing datetimes yet, will do this if I actually need to run this
+        images = json.load(f)
+        
+    
 #%% Check for EXIF read errors
 
+for i_result,result in enumerate(exif_read_results):
+    
+    if result is not None:
+                
+        print('\nError found on image {}: {}'.format(i_result,result))
+        im = images[i_result]
+        file_path = get_image_local_path(im)
+        assert images[i_result] == im
+        result = add_exif_data(im)
+        assert result is None
+        print('\nFixed!\n')
+        exif_read_results[i_result] = result
+        
+        
+#%% Remove junk
+        
+images_out = []
+for im in images:
+    
+    url = im['url']
+    
+    # Ignore non-image files
+    if ('ds_store' in url.lower()) or ('dropbox.device' in url.lower()):
+        continue
+    images_out.append(im)
+    
+images = images_out
+   
+
+#%% Fill in some None values 
+
+# ...so we can sort by datetime later, and let None's be sorted arbitrarily
+
+for im in images:
+    if 'exif_tags' not in im:
+        im['exif_tags'] = None
+    if 'datetime' not in im['exif_tags']:
+        im['exif_tags']['datetime'] = None
+        
+images = sorted(images, key = lambda im: im['url'])
+                
 
 #%% Find unique locations
     
@@ -366,7 +490,7 @@ for ann in tqdm(images):
     assert location is not None and len(location) > 0
     locations.add(location)
         
-    
+
 #%% Synthesize sequence information        
 
 print('Found {} locations'.format(len(locations)))
@@ -374,10 +498,11 @@ print('Found {} locations'.format(len(locations)))
 locations = list(locations)
 
 sequences = set()
+sequence_to_images = defaultdict(list) 
 images = images
 max_seconds_within_sequence = 10
 
-# Sort images by time within each folder
+# Sort images by time within each location
 # i_location=0; location = locations[i_location]
 for i_location,location in enumerate(locations):
     
@@ -385,51 +510,141 @@ for i_location,location in enumerate(locations):
     sorted_images_this_location = sorted(images_this_location, key = lambda im: im['exif_tags']['datetime'])
     
     current_sequence_id = None
-    next_sequence_index = 0
+    next_frame_number = 0
     previous_datetime = None
         
     # previous_datetime = sorted_images_this_location[0]['datetime']
     # im = sorted_images_this_camera[1]
-    for im in sorted_images_this_location:
+    for i_image,im in enumerate(sorted_images_this_location):
+
+        # Timestamp for this image, may be None
+        dt = im['exif_tags']['datetime']
         
-        if previous_datetime is None:
+        # Start a new sequence if:
+        #
+        # * This image has no timestamp
+        # * This iamge has a frame number of zero
+        # * We have no previous image timestamp
+        #
+        if dt is None:
+            delta = None
+        elif previous_datetime is None:
             delta = None
         else:
-            delta = (im['datetime'] - previous_datetime).total_seconds()
+            assert isinstance(dt,datetime.datetime)
+            delta = (dt - previous_datetime).total_seconds()
         
         # Start a new sequence if necessary
         if delta is None or delta > max_seconds_within_sequence:
-            next_sequence_index = 0
+            next_frame_number = 0
             current_sequence_id = str(uuid.uuid4())
             sequences.add(current_sequence_id)
-            
+        assert current_sequence_id is not None
+        
         im['seq_id'] = current_sequence_id
-        assert im['exif_tags']['frame_num'] == next_sequence_index + 1
-        next_sequence_index = next_sequence_index + 1
-        previous_datetime = im['datetime']
+        im['synthetic_frame_number'] = next_frame_number
+        next_frame_number = next_frame_number + 1
+        previous_datetime = dt
+        sequence_to_images[im['seq_id']].append(im)
     
     # ...for each image in this location
 
 # ...for each location
 
+
+#%% Count frames in each sequence
+        
 print('Created {} sequences from {} images'.format(len(sequences),len(images)))
 
-# Double-check seq_num_frames
 num_frames_per_sequence = {}
 for seq_id in sequences:
-    images_this_sequence = [im for im in images if im['seq_id'] == seq_id]
+    # images_this_sequence = [im for im in images if im['seq_id'] == seq_id]
+    images_this_sequence = sequence_to_images[seq_id]
     num_frames_per_sequence[seq_id] = len(images_this_sequence)
     for im in images_this_sequence:
-        assert im['exif_tags']['seq_num_frames'] == len(images_this_sequence)
+        im['synthetic_seq_num_frames'] = len(images_this_sequence)
 
     
-#%% Create output filenames for each image
-    
-# Handle partials
+#%% Create output filenames for each image, store original filenames
         
-#%% Support functions
+images_per_folder = 1000
+output_paths = set()
 
-def get_bbox(coords):
+# i_location = 0; location = locations[i_location]
+for i_location,location in enumerate(locations):
+    
+    images_this_location = [im for im in images if im['exif_tags']['location'] == location]
+    sorted_images_this_location = sorted(images_this_location, key = lambda im: im['exif_tags']['datetime'])
+
+    # i_image = 0; im = sorted_images_this_location[i_image]
+    for i_image,im in enumerate(sorted_images_this_location):
+    
+        url = im['url']
+        parsed_url = urlparse(url)
+        relative_path = parsed_url.path
+        relative_path = relative_path[1:]
+        im['original_relative_path'] = relative_path
+        image_id = uuid.uuid4()
+        im['id'] = image_id
+        folder_number = i_image // images_per_folder
+        image_number = i_image % images_per_folder
+        output_relative_path = 'loc-' + location + '/' + '{0:03d}'.format(folder_number) + '/' + '{0:03d}'.format(image_number) + '.jpg'
+        im['output_relative_path'] = output_relative_path
+        assert output_relative_path not in output_paths
+        output_paths.add(output_relative_path)
+        
+assert len(output_paths) == len(images)
+
+
+#%% Save progress
+
+with open(sequence_info_results_file,'w') as f:
+    
+    # Use default=str to handle datetime objects
+    json.dump(images, f, indent=1, default=str)
+
+#%% 
+    
+if False:
+    
+    #%%
+    
+    with open(sequence_info_results_file,'r') as f:
+        # Not deserializing datetimes yet, will do this if I actually need to run this
+        images = json.load(f)
+        
+        
+#%% Copy images to their output files (functions)
+
+def copy_image_to_output(im):
+    
+    source_path = os.path.join(input_image_folder,im['original_relative_path'])
+    assert(os.path.isfile(source_path))
+    dest_path = os.path.join(output_image_folder,im['output_relative_path'])
+    os.makedirs(os.path.dirname(dest_path),exist_ok=True)
+    copyfile(source_path,dest_path)
+    print('Copying {} to {}'.format(source_path,dest_path))
+    return None
+
+
+#%% Copy images to output files (execution)
+
+if n_copy_threads == 1:        
+    for im in tqdm(images):
+        copy_image_to_output(im)
+else:
+    pool = ThreadPool(n_copy_threads)
+    copy_image_results = list(tqdm(pool.imap(copy_image_to_output, images), total=len(images)))
+
+
+#%% Rename the main image list for consistency with other scripts
+    
+all_image_info = images
+
+
+#%% Create CCT dictionaries
+
+def transform_bbox(coords):
     """
     Derive the bounding boxes from the provided coordinates
     """
@@ -439,97 +654,15 @@ def get_bbox(coords):
     w = coords[1][0] - coords[0][0]
     return [x, y, w, h]
 
-
-#%% Create CCT dictionaries
+# Handle partials
 
 images = []
 annotations = []
-
-# Map categories to integer IDs (that's what COCO likes)
-nextCategoryID = 1
-categoriesToCategoryId = {}
-categoriesToCategoryId['empty'] = 0
-categoriesToCounts = {}
-categoriesToCounts['empty'] = 0
-
-# For each image
-#
-# Because in practice images are 1:1 with annotations in this data set,
-# this is also a loop over annotations.
-
-startTime = time.time()
-
-for json_file in json_files:
-    with open(json_file) as f:
-        data = json.load(f)
-        for each in data:
-            if each['url'].endswith("DS_Store") or each['url'].endswith("dropbox.device"):
-                continue
-            file_path, sub_directory = download_image(each['url'])
-            contains_human = False
-            im = {}
-            im['id'] = str(uuid.uuid1()) #filename.split('.')[0]
-            filename = ntpath.basename(file_path)
-            im['file_name'] = os.path.join(sub_directory, filename)
-            # Check image height and width
-            pilImage = Image.open(file_path)
-            width, height = pilImage.size
-            im['width'] = width
-            im['height'] = height
-            maker_notes = proces_makernotes(file_path)
-            im['seq_id'] = maker_notes['seq_id']
-            im['seq_num_frames'] = maker_notes['seq_num_frames']
-            im['datetime'] = maker_notes['datetime']
-            im['location'] = maker_notes['location']
-            print(im)
-            images.append(im)
-            categories_this_image = set()
-            if each['Output']:
-                for category in each['Output']:
-                    if 'Object' in list(category['tags']):
-                        category_name = category['tags']['Object']
-                    else:
-                        category_name = 'empty'
-                    category_name = category_name.strip().lower()
-                    if category_name == 'none':
-                        category_name = 'empty'
-
-                    categories_this_image.add(category_name)
-
-                    # Have we seen this category before?
-                    if category_name in categoriesToCategoryId:
-                        categoryID = categoriesToCategoryId[category_name]
-                        categoriesToCounts[category_name] += 1
-                    else:
-                        categoryID = nextCategoryID
-                        categoriesToCategoryId[category_name] = categoryID
-                        categoriesToCounts[category_name] = 0
-                        nextCategoryID += 1
-                    # Create an annotation
-                    ann = {}
-                    
-                    ann['id'] = str(uuid.uuid1())
-                    ann['image_id'] = im['id']    
-                    ann['category_id'] = categoryID
-                    ann["sequence_level_annotation"] = False
-                    ann['bbox'] = get_bbox(category['points'])
-                    annotations.append(ann)
-
-# # Convert categories to a CCT-style dictionary
-
 categories = []
 
-for category in categoriesToCounts:
-    print('Category {}, count {}'.format(category, categoriesToCounts[category]))
-    categoryID = categoriesToCategoryId[category]
-    cat = {}
-    cat['name'] = category
-    cat['id'] = categoryID
-    categories.append(cat)    
-    
-elapsed = time.time() - startTime
-print('Finished creating CCT dictionaries in {}'.format(
-      humanfriendly.format_timespan(elapsed)))
+
+#%% Move human images
+
 
 #%% Create info struct
 
@@ -553,15 +686,13 @@ print('Finished writing .json file with {} images, {} annotations, and {} catego
         len(images),len(annotations),len(categories)))
 
 
-
-
 #%% Validate output
 
 from data_management.databases import sanity_check_json_db
 
 fn = output_file
 options = sanity_check_json_db.SanityCheckOptions()
-options.baseDir = image_directory
+options.baseDir = output_image_folder
 options.bCheckImageSizes = False
 options.bCheckImageExistence = True
 options.bFindUnusedImages = True
@@ -580,10 +711,7 @@ viz_options.add_search_links = True
 viz_options.sort_by_filename = False
 viz_options.parallelize_rendering = True
 html_output_file,image_db = visualize_db.process_images(db_path=output_file,
-                                                        output_dir=os.path.join(base_directory,'preview'),
-                                                        image_base_dir=image_directory,
+                                                        output_dir=os.path.join(output_base,'preview'),
+                                                        image_base_dir=output_image_folder,
                                                         options=viz_options)
-# os.startfile(html_output_file)
-import sys, subprocess
-opener = "open" if sys.platform == "darwin" else "xdg-open"
-subprocess.call([opener, html_output_file])
+os.startfile(html_output_file)
