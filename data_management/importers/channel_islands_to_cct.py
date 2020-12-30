@@ -52,7 +52,7 @@ assert os.path.isdir(input_annotation_folder)
 assert os.path.isdir(input_image_folder)
 assert not input_annotation_folder.endswith('/')
 
-output_file = os.path.join(output_base,'santa_cruz_camera_traps.json')
+output_file = os.path.join(output_base,'channel_islands_camera_traps.json')
 output_image_folder = os.path.join(output_base,'images')
 output_image_folder_humans = os.path.join(output_base,'human_images')
 
@@ -696,6 +696,14 @@ for i_image,input_im in tqdm(enumerate(all_image_info),total=len(all_image_info)
     output_im['frame_num'] = input_im['synthetic_frame_number']
     output_im['original_relative_path'] = input_im['original_relative_path']
     
+    # This issue only impacted one image that wasn't a real image, it was just a screenshot 
+    # showing "no images available for this camera"
+    if 'location' not in input_im['exif_tags'] or input_im['exif_tags']['location'] == 'unknown':        
+        print('Warning: no location for image {}, skipping'.format(
+            input_im['url']))
+        continue
+    output_im['location'] = input_im['exif_tags']['location']
+    
     assert output_im['id'] not in image_ids_to_images
     image_ids_to_images[output_im['id']] = output_im
     
@@ -830,6 +838,13 @@ for im in tqdm(images):
     shutil.move(source_path,target_path)
     
     
+#%% Count images by location
+
+locations_to_images = defaultdict(list)
+for im in tqdm(images):
+    locations_to_images[im['location']].append(im)
+
+    
 #%% Write output
 
 info = {}
@@ -856,9 +871,9 @@ from data_management.databases import sanity_check_json_db
 fn = output_file
 options = sanity_check_json_db.SanityCheckOptions()
 options.baseDir = output_image_folder
-options.bCheckImageSizes = True
-options.bCheckImageExistence = True
-options.bFindUnusedImages = True
+options.bCheckImageSizes = False
+options.bCheckImageExistence = False
+options.bFindUnusedImages = False
     
 sortedCategories, data, error = sanity_check_json_db.sanity_check_json_db(fn,options)
 
@@ -868,8 +883,9 @@ sortedCategories, data, error = sanity_check_json_db.sanity_check_json_db(fn,opt
 from visualization import visualize_db
 
 viz_options = visualize_db.DbVizOptions()
-viz_options.num_to_visualize = 5000
-viz_options.classes_to_exclude = [0]
+viz_options.num_to_visualize = 159
+# viz_options.classes_to_exclude = [0]
+viz_options.classes_to_include = ['other']
 viz_options.trim_to_images_with_bboxes = False
 viz_options.add_search_links = False
 viz_options.sort_by_filename = False
