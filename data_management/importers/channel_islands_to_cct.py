@@ -815,6 +815,18 @@ categories = list(category_name_to_category.values())
 print('Loaded {} annotations in {} categories for {} images'.format(
     len(annotations),len(categories),len(images)))
 
+
+#%% Change *two* annotations on images that I discovered contains a human after running MDv4
+
+manual_human_ids = ['a07fc88a-6dd8-4d66-b552-d21d50fa39d0','285363f9-d76d-4727-b530-a6bd401bb4c7']
+human_id = [cat['id'] for cat in categories if cat['name'] == 'human'][0]
+for ann in tqdm(annotations):
+    if ann['image_id'] in manual_human_ids:
+        old_cat_id = ann['category_id']
+        print('Changing annotation for image {} from {} to {}'.format(
+            ann['image_id'],old_cat_id,human_id))
+        ann['category_id'] = human_id
+    
     
 #%% Move human images
 
@@ -832,6 +844,8 @@ for im in tqdm(images):
     if im['id'] not in human_image_ids:
         continue
     source_path = os.path.join(output_image_folder,im['file_name'])
+    if not os.path.isfile(source_path):
+        continue
     target_path = os.path.join(output_image_folder_humans,im['file_name'])
     print('Moving {} to {}'.format(source_path,target_path))    
     os.makedirs(os.path.dirname(target_path),exist_ok=True)
