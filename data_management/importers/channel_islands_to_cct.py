@@ -24,6 +24,7 @@ from collections import defaultdict
 from urllib.parse import urlparse
 from shutil import copyfile
 from tqdm import tqdm
+from PIL import Image
 
 
 ## Constants ##
@@ -537,7 +538,7 @@ for i_location,location in enumerate(locations):
         # Start a new sequence if necessary
         if delta is None or delta > max_seconds_within_sequence:
             next_frame_number = 0
-            current_sequence_id = str(uuid.uuid4())
+            current_sequence_id = str(uuid.uuid1())
             sequences.add(current_sequence_id)
         assert current_sequence_id is not None
         
@@ -584,7 +585,7 @@ for i_location,location in enumerate(locations):
         relative_path = parsed_url.path
         relative_path = relative_path[1:]
         im['original_relative_path'] = relative_path
-        image_id = uuid.uuid4()
+        image_id = uuid.uuid1()
         im['id'] = image_id
         folder_number = i_image // images_per_folder
         image_number = i_image % images_per_folder
@@ -646,21 +647,163 @@ all_image_info = images
 
 def transform_bbox(coords):
     """
-    Derive the bounding boxes from the provided coordinates
+    Derive CCT-formatted bounding boxes from the SamaSource coordinate system.
+    
+    SamaSource provides a list of four points (x,y) that should make a box.
+    
+    CCT coordinates are absolute, with the origin at the upper-left, as x,y,w,h.
     """
+    
+    # Make sure this is really a box
+    assert len(coords) == 4
+    assert all(len(coord) == 2 for coord in coords)
+    assert coords[0][1] == coords[1][1]
+    assert coords[2][1] == coords[3][1]
+    assert coords[0][0] == coords[2][0]
+    assert coords[1][0] == coords[3][0]
+    
+    # Transform to CCT format
     x = coords[0][0]
     y = coords[0][1]
     h = coords[2][1] - coords[0][1]
     w = coords[1][0] - coords[0][0]
     return [x, y, w, h]
 
-# Handle partials
-
-images = []
 annotations = []
-categories = []
+image_ids_to_images = {}
+category_name_to_category = {}
 
+# Force the empty category to be ID 0
+empty_category = {}
+empty_category['name'] = 'empty'
+empty_category['id'] = 0
+empty_category['common_name'] = 'empty'
+category_name_to_category['empty'] = empty_category
+next_category_id = 1
 
+default_annotation = {}
+default_annotation['tags'] = {}
+default_annotation['tags']['Object'] = None
+
+# i_image = 0; input_im = all_image_info[0]
+for i_image,input_im in tqdm(enumerate(all_image_info),total=len(all_image_info)):
+
+    output_im = {}
+    output_im['id'] = input_im['id']
+    output_im['file_name'] = input_im['output_relative_path']
+    output_im['seq_id'] = input_im['seq_id']
+    output_im['seq_num_frames'] = input_im['synthetic_seq_num_frames']
+    output_im['frame_num'] = input_im['synthetic_frame_number']
+    output_im['original_relative_path'] = input_im['original_relative_path']
+    
+    assert output_im['id'] not in image_ids_to_images
+    image_ids_to_images[output_im['id']] = output_im
+    
+    exif_tags = input_im['exif_tags']
+    
+    # Convert datetime if necessary
+    dt = exif_tags['datetime']
+    if dt is not None and isinstance(dt,str):
+        dt = datetime.datetime.strptime(dt, '%Y-%m-%d %H:%M:%S')
+    
+    # Process temperature if available
+    output_im['temperature'] = exif_tags['temperature'] if 'temperature' in exif_tags else None
+    
+    # Read width and height if necessary
+    w = None
+    h = None
+    
+    if 'width' in exif_tags:    
+        w = exif_tags['width']
+    if 'height' in exif_tags:    
+        h = exif_tags['width']
+        
+    output_image_full_path = os.path.join(output_image_folder,input_im['output_relative_path'])
+        
+    if w is None or h is None:
+        pil_image = Image.open(output_image_full_path)        
+        w, h = pil_image.size
+        
+    output_im['width'] = w
+    output_im['height'] = h
+
+    # I don't know what this field is; confirming that it's always None
+    assert input_im['Object'] is None
+    
+    # Process object and bbox
+    input_annotations = input_im['Output']
+    
+    if input_annotations is None:
+        input_annotations = [default_annotation]
+        
+    # os.startfile(output_image_full_path)
+    
+    for i_ann,input_annotation in enumerate(input_annotations):
+        
+        bbox = None
+        
+        assert isinstance(input_annotation,dict)
+        
+        if input_annotation['tags']['Object'] is None:
+        
+            # Zero is hard-coded as the empty category, but check to be safe
+            category_id = 0
+            assert category_name_to_category['empty']['id'] == category_id
+        
+        else:
+            
+            # I can't figure out the 'index' field, but I'm not losing sleep about it
+            # assert input_annotation['index'] == 1+i_ann
+            
+            points = input_annotation['points']
+            assert points is not None and len(points) == 4
+            bbox = transform_bbox(points)
+            assert len(input_annotation['tags']) == 1 and 'Object' in input_annotation['tags']
+            
+            # Some annotators (but not all) included "_partial" when animals were partially obscured
+            category_name = input_annotation['tags']['Object'].replace('_partial','').lower().strip()
+            
+            category_id = None
+            
+            # If we've seen this category before...
+            if category_name in category_name_to_category:
+                    
+                category = category_name_to_category[category_name]
+                category_id = category['id'] 
+              
+            # If this is a new category...
+            else:
+                
+                category_id = next_category_id
+                category = {}
+                category['id'] = category_id
+                category['name'] = category_name
+                category_name_to_category[category_name] = category
+                next_category_id += 1
+        
+        # ...if this is an empty/non-empty annotation
+                
+        # Create an annotation
+        annotation = {}        
+        annotation['id'] = str(uuid.uuid1())
+        annotation['image_id'] = output_im['id']    
+        annotation['category_id'] = category_id
+        annotation['sequence_level_annotation'] = False
+        if bbox is not None:
+            annotation['bbox'] = bbox
+            
+        annotations.append(annotation)
+        
+    # ...for each annotation on this image
+        
+# ...for each image
+
+#%%
+    
+images = list(image_ids_to_images.values())
+categories = list(category_name_to_category.values())
+
+    
 #%% Move human images
 
 
