@@ -18,11 +18,11 @@ import datetime
 import glob
 import subprocess
 import requests
+import shutil
 
 from multiprocessing.pool import ThreadPool
 from collections import defaultdict 
 from urllib.parse import urlparse
-from shutil import copyfile
 from tqdm import tqdm
 from PIL import Image
 
@@ -54,9 +54,11 @@ assert not input_annotation_folder.endswith('/')
 
 output_file = os.path.join(output_base,'santa_cruz_camera_traps.json')
 output_image_folder = os.path.join(output_base,'images')
+output_image_folder_humans = os.path.join(output_base,'human_images')
 
 os.makedirs(output_base,exist_ok=True)
 os.makedirs(output_image_folder,exist_ok=True)
+os.makedirs(output_image_folder_humans,exist_ok=True)
 
 # Confirm that exiftool is available
 # assert which(exiftool_command_name) is not None, 'Could not locate the ExifTool executable'
@@ -611,7 +613,6 @@ if False:
     #%%
     
     with open(sequence_info_results_file,'r') as f:
-        # Not deserializing datetimes yet, will do this if I actually need to run this
         images = json.load(f)
         
         
@@ -623,7 +624,7 @@ def copy_image_to_output(im):
     assert(os.path.isfile(source_path))
     dest_path = os.path.join(output_image_folder,im['output_relative_path'])
     os.makedirs(os.path.dirname(dest_path),exist_ok=True)
-    copyfile(source_path,dest_path)
+    shutil.copyfile(source_path,dest_path)
     print('Copying {} to {}'.format(source_path,dest_path))
     return None
 
@@ -675,9 +676,8 @@ category_name_to_category = {}
 
 # Force the empty category to be ID 0
 empty_category = {}
-empty_category['name'] = 'empty'
 empty_category['id'] = 0
-empty_category['common_name'] = 'empty'
+empty_category['name'] = 'empty'
 category_name_to_category['empty'] = empty_category
 next_category_id = 1
 
@@ -716,7 +716,7 @@ for i_image,input_im in tqdm(enumerate(all_image_info),total=len(all_image_info)
     if 'width' in exif_tags:    
         w = exif_tags['width']
     if 'height' in exif_tags:    
-        h = exif_tags['width']
+        h = exif_tags['height']
         
     output_image_full_path = os.path.join(output_image_folder,input_im['output_relative_path'])
         
@@ -763,6 +763,10 @@ for i_image,input_im in tqdm(enumerate(all_image_info),total=len(all_image_info)
             # Some annotators (but not all) included "_partial" when animals were partially obscured
             category_name = input_annotation['tags']['Object'].replace('_partial','').lower().strip()
             
+            # Annotators *mostly* used 'none', but sometimes 'empty'.  'empty' is CCT-correct.
+            if category_name == 'none':
+                category_name = 'empty'
+                
             category_id = None
             
             # If we've seen this category before...
@@ -798,16 +802,35 @@ for i_image,input_im in tqdm(enumerate(all_image_info),total=len(all_image_info)
         
 # ...for each image
 
-#%%
-    
 images = list(image_ids_to_images.values())
 categories = list(category_name_to_category.values())
+print('Loaded {} annotations in {} categories for {} images'.format(
+    len(annotations),len(categories),len(images)))
 
     
 #%% Move human images
 
+human_image_ids = set()
+human_id = [cat['id'] for cat in categories if cat['name'] == 'human'][0]
 
-#%% Create info struct
+# ann = annotations[0]
+for ann in tqdm(annotations):
+    if ann['category_id'] == human_id:
+        human_image_ids.add(ann['image_id'])
+
+print('\nFound {} human images'.format(len(human_image_ids)))
+
+for im in tqdm(images):
+    if im['id'] not in human_image_ids:
+        continue
+    source_path = os.path.join(output_image_folder,im['file_name'])
+    target_path = os.path.join(output_image_folder_humans,im['file_name'])
+    print('Moving {} to {}'.format(source_path,target_path))    
+    os.makedirs(os.path.dirname(target_path),exist_ok=True)
+    shutil.move(source_path,target_path)
+    
+    
+#%% Write output
 
 info = {}
 info['year'] = 2020
@@ -815,15 +838,12 @@ info['version'] = 1.0
 info['description'] = 'Camera trap data collected from the Channel Islands, California'
 info['contributor'] = 'The Nature Conservancy of California'
 
-
-#%% Write output
-
 json_data = {}
 json_data['images'] = images
 json_data['annotations'] = annotations
 json_data['categories'] = categories
 json_data['info'] = info
-json.dump(json_data, open(output_file, 'w'), indent=2)
+json.dump(json_data, open(output_file, 'w'), indent=1)
 
 print('Finished writing .json file with {} images, {} annotations, and {} categories'.format(
         len(images),len(annotations),len(categories)))
@@ -836,7 +856,7 @@ from data_management.databases import sanity_check_json_db
 fn = output_file
 options = sanity_check_json_db.SanityCheckOptions()
 options.baseDir = output_image_folder
-options.bCheckImageSizes = False
+options.bCheckImageSizes = True
 options.bCheckImageExistence = True
 options.bFindUnusedImages = True
     
@@ -848,9 +868,10 @@ sortedCategories, data, error = sanity_check_json_db.sanity_check_json_db(fn,opt
 from visualization import visualize_db
 
 viz_options = visualize_db.DbVizOptions()
-viz_options.num_to_visualize = None
+viz_options.num_to_visualize = 5000
+viz_options.classes_to_exclude = [0]
 viz_options.trim_to_images_with_bboxes = False
-viz_options.add_search_links = True
+viz_options.add_search_links = False
 viz_options.sort_by_filename = False
 viz_options.parallelize_rendering = True
 html_output_file,image_db = visualize_db.process_images(db_path=output_file,
