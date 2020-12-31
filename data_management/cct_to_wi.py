@@ -59,8 +59,8 @@ project_info['initiative_id'] = ''
 project_info['metadata_license'] = 'CC0'
 project_info['image_license'] = 'CC0'
 
-project_info['project_blank_images'] = ''
-project_info['project_sensor_cluster'] = ''
+project_info['project_blank_images'] = 'No'
+project_info['project_sensor_cluster'] = 'No'
 
 camera_info = {}
 camera_info['project_id'] = project_info['project_id'] 
