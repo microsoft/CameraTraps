@@ -113,7 +113,9 @@ def main(detections_json_path: str,
             assert api_det_version == detector_version
         else:
             detector_version = api_det_version
-    assert detector_version is not None
+    # assert detector_version is not None
+    if detector_version is None:
+        detector_version = 'md_unknown'
 
     # convert from category ID to category name
     images_missing_detections = []
@@ -423,7 +425,7 @@ def _parse_args() -> argparse.Namespace:
         help='path to local directory for saving crops of bounding boxes')
     parser.add_argument(
         '-i', '--images-dir',
-        help='path to directory where full images are saved, only meaningful if --save-full-images is set')
+        help='path to directory where full images are already available, or where images will be written if --save-full-images is set')
     parser.add_argument(
         '-c', '--container-url',
         help='URL (including SAS token, if necessary) of Azure Blob Storage '
