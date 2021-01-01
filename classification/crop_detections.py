@@ -115,7 +115,7 @@ def main(detections_json_path: str,
             detector_version = api_det_version
     # assert detector_version is not None
     if detector_version is None:
-        detector_version = 'md_unknown'
+        detector_version = 'unknown'
 
     # convert from category ID to category name
     images_missing_detections = []
