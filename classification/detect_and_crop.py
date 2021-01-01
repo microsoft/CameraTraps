@@ -50,9 +50,11 @@ flag. This will always generate a square crop whose size is the larger of the
 bounding box width or height. In the case that the square crop boundaries exceed
 the original image size, the crop is padded with 0s.
 
-MegaDetector can be run locally or via the Batch Detection API. If running
-through the Batch Detection API, set the following environment variables for
-the Azure Blob Storage container in which we save the intermediate task lists:
+This script currently only supports running MegaDetector via the Batch Detection
+API. See the classification README for instructions on running MegaDetector
+locally. If running the Batch Detection API, set the following environment
+variables for the Azure Blob Storage container in which we save the intermediate
+task lists:
 
     BATCH_DETECTION_API_URL                  # API URL
     CLASSIFICATION_BLOB_STORAGE_ACCOUNT      # storage account name
@@ -153,7 +155,7 @@ def main(queried_images_json_path: str,
         threads: int, number of threads to use for downloading images
         resume_file_path: optional str, path to save JSON file with list of info
             dicts on running tasks, or to resume from running tasks, only used
-            if detector=='batchapi'
+            if run_detector=True
     """
     # error checking
     assert 0 <= confidence_threshold <= 1
@@ -665,7 +667,7 @@ def download_and_crop(
     future_to_img_path = {}
     images_failed_download = []
 
-    print(f'Getting bbox info for {len(queried_images_json)} images...')
+    print(f'Getting bbox info for {len(valid_img_paths)} images...')
     for img_path in tqdm(sorted(valid_img_paths)):
         # we already did all error checking above, so we don't do any here
         info_dict = queried_images_json[img_path]
@@ -743,7 +745,7 @@ def _parse_args() -> argparse.Namespace:
         help='path to JSON file mapping image paths and classification info')
     parser.add_argument(
         'output_dir',
-        help='path to directory to save log file. If --detector=batchapi, then '
+        help='path to directory to save log file. If --run-detector, then '
              'task lists and status responses are also saved here.')
     parser.add_argument(
         '-c', '--detector-output-cache-dir', required=True,
