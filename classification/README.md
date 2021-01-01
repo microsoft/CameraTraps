@@ -324,6 +324,7 @@ Example usage of `json_validator.py`:
 python json_validator.py \
     $BASE_LOGDIR/label_spec.json \
     /path/to/camera-traps-private/camera_trap_taxonomy_mapping.csv \
+    --output-dir $BASE_LOGDIR \
     --json-indent 1 \
     --mislabeled-images /path/to/classifier-training/megab_mislabeled
 ```
