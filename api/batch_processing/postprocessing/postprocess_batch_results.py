@@ -556,7 +556,7 @@ def process_batch_results(options: PostProcessingOptions
 
     images_to_visualize = detections_df
 
-    if options.num_images_to_sample > 0:
+    if options.num_images_to_sample is not None and options.num_images_to_sample > 0:
         images_to_visualize = images_to_visualize.sample(
             n=min(options.num_images_to_sample, len(images_to_visualize)),
             random_state=options.sample_seed)
