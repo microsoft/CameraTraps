@@ -157,6 +157,11 @@ def main(queried_images_json_path: str,
             dicts on running tasks, or to resume from running tasks, only used
             if run_detector=True
     """
+    
+    # This dictionary will get written out at the end of this process; store
+    # diagnostic variables here 
+    log: Dict[str, Any] = {}
+    
     # error checking
     assert 0 <= confidence_threshold <= 1
     if save_full_images:
@@ -179,6 +184,9 @@ def main(queried_images_json_path: str,
     print(f'{len(images_to_detect)} images not in detection cache')
 
     if run_detector:
+        
+        log['images_submitted_for_detection'] = images_to_detect
+        
         assert resume_file_path is not None
         assert not os.path.isdir(resume_file_path)
         batch_detection_api_url = os.environ['BATCH_DETECTION_API_URL']
@@ -199,6 +207,7 @@ def main(queried_images_json_path: str,
                 caller=os.environ['DETECTION_API_CALLER'],
                 batch_detection_api_url=batch_detection_api_url,
                 resume_file_path=resume_file_path)
+            
         wait_for_tasks(tasks_by_dataset, detector_output_cache_dir,
                        output_dir=output_dir)
 
@@ -209,9 +218,10 @@ def main(queried_images_json_path: str,
             detector_output_cache_dir=detector_output_cache_dir)
         print(f'{len(images_to_detect)} images not in detection cache')
 
-    log: Dict[str, Any] = {'images_missing_detections': images_to_detect}
+    log['images_missing_detections'] = images_to_detect
 
     if cropped_images_dir is not None:
+        
         images_failed_dload_crop, num_downloads, num_crops = download_and_crop(
             queried_images_json=js,
             detection_cache=detection_cache,
