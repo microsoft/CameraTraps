@@ -14,7 +14,7 @@
   1. [Select classification labels for training](#1-select-classification-labels-for-training)
   2. [Query MegaDB for labeled images](#2-query-megadb-for-labeled-images)
   3. [For images without ground-truth bounding boxes, generate bounding boxes using MegaDetector](#3-for-images-without-ground-truth-bounding-boxes-generate-bounding-boxes-using-megadetector)
-  4. [Create classification dataset and split into train/val/test sets by location](#4-create-classification-dataset-and-split-image-crops-into-train/val/test-sets-by-location)
+  4. [Create classification dataset and split into train/val/test sets by location](#4-create-classification-dataset-and-split-image-crops-into-trainvaltest-sets-by-location)
   5. [(Optional) Manually inspect dataset](#5-optional-manually-inspect-dataset)
   6. [Train classifier](#6-train-classifier)
   7. [Evaluate classifier](#7-evaluate-classifier)
@@ -342,7 +342,12 @@ This step consists of 3 sub-steps:
 <details>
     <summary>To run MegaDetector locally</summary>
 
-This option is only recommended if there are not too many images (<1 million) and all of your image files are from a single dataset in a single Azure container. Download all of the images to `/path/to/images/name_of_dataset`. Then, follow the instructions from the [MegaDetector README](https://github.com/microsoft/CameraTraps/blob/master/megadetector.md) to run MegaDetector. Finally, cache the detection results. The commands should be roughly as follows, assuming your terminal is in the `CameraTraps/` folder:
+This option is only recommended if you meet all of the following criteria:
+- there are not too many images (<1 million)
+- all of your image files are from a single dataset in a single Azure container
+- none of the images already have cached MegaDetector results
+
+Download all of the images to `/path/to/images/name_of_dataset`. Then, follow the instructions from the [MegaDetector README](https://github.com/microsoft/CameraTraps/blob/master/megadetector.md) to run MegaDetector. Finally, cache the detection results. The commands should be roughly as follows, assuming your terminal is in the `CameraTraps/` folder:
 
 ```bash
 # Download the MegaDetector model file
@@ -383,7 +388,7 @@ python detect_and_crop.py \
     --save-full-images --images-dir /path/to/images --threads 50
 ```
 
-However, because the Batch Detection API often returns incorrect responses, in practice we often need to call `detect_and_crop.py` multiple times. It is important to understand the 2 different "modes" of the script.
+However, because the Batch Detection API sometimes returns incorrect responses, in practice we may need to call `detect_and_crop.py` multiple times. It is important to understand the 2 different "modes" of the script.
 
 1. Call the Batch Detection API, and cache the results.
     * To run this mode: set the `--run-detector` flag
@@ -392,7 +397,7 @@ However, because the Batch Detection API often returns incorrect responses, in p
     * To run this mode: set `--cropped-images-dir /path/to/crops`
     * To skip this mode: omit `--cropped-images-dir`
 
-Thus, we will first call the Batch Detection API. This will save a `resume.json` file that contains all of the task IDs. Because the Batch Detection API does not always respond with the correct task status, the only real way to verify if a task has finished running is to check the `async-api-*` Azure Storage container and see if the 3 output files are there.
+Thus, we will first call the Batch Detection API. This saves a `resume.json` file that contains all of the task IDs. Because the Batch Detection API does not always respond with the correct task status, the only real way to verify if a task has finished running is to check the `async-api-*` Azure Storage container and see if the 3 output files are there.
 
 ```bash
 python detect_and_crop.py \
@@ -410,8 +415,13 @@ python cache_batchapi_outputs.py \
     --dataset dataset \
     --detector-output-cache-dir /path/to/classifier-training/mdcache --detector-version 4.1
 ```
+</details>
 
-Finally, we download and crop the images based on the ground truth and detected bounding boxes. On a VM, expect this download and cropping step to run at ~60 images per second (~5 hours for 1 million images). Unless you have a good reason not to, use the `--square-crops` flag, which crops the tightest square enclosing each bounding box (which may have an arbitrary aspect ratio). Because images are resized to a square during training, using square crops guarantees that the model does not see a distorted aspect ratio of the animal.
+Once we have detection results (whether from running MegaDetector locally or via the Batch Detection API), the following command crops the images based on the ground truth and detected bounding boxes.
+- If the full images are already locally available (e.g., if MegaDetector was run locally), provide their location via `--images-dir` argument.
+- If the full images are not locally available (e.g., if using the Batch Detection API), the script will download the images from Azure Blob Storage before cropping them. In this case, if the `--save-full-images` flag is set, the full images are saved to the `--images-dir` folder. If `--save-full-images` is not set, then the full images are discarded after cropping.
+
+On a VM, expect this download and cropping step to run at ~60 images per second (~5 hours for 1 million images). Unless you have a good reason not to, use the `--square-crops` flag, which crops the tightest square enclosing each bounding box (which may have an arbitrary aspect ratio). Because images are resized to a square during training, using square crops guarantees that the model does not see a distorted aspect ratio of the animal.
 
 ```bash
 python detect_and_crop.py \
@@ -421,8 +431,6 @@ python detect_and_crop.py \
     --cropped-images-dir /path/to/crops --square-crops --threshold 0.9 \
     --save-full-images --images-dir /path/to/images --threads 50
 ```
-</details>
-
 
 ## 4. Create classification dataset and split image crops into train/val/test sets by location
 
