@@ -23,9 +23,16 @@ import traceback
 from tkinter import ttk, messagebox, filedialog
 
 from tqdm import tqdm
+from multiprocessing import Pool
+from multiprocessing.pool import ThreadPool
+from functools import partial
+
+
+category_mapping = {'person': 'Human', 'animal': 'Animal', 'vehicle': 'Vehicle'}
+cnt = 0
 
 # Debug-only variable to rename images considered empty
-confidence_threshold = 0.9
+# confidence_threshold = 0.9
 
 
 #%% Class definitions
@@ -35,12 +42,18 @@ class xmp_gui:
     root = None
     textarea_status = None
     textarea_removepath = None
+    textarea_rename_conf = None
+    textarea_rename_cats = None
+    no_threads = 1
     
 class xmp_integration_options:
     
     image_folder = None
     input_file = None
     remove_path = None
+    rename_conf = None
+    rename_cat = None
+    no_threads = 1
     xmp_gui = None
     
     
@@ -53,14 +66,16 @@ def write_status(options,s):
     options.xmp_gui.textarea_status.configure(state="normal")
     options.xmp_gui.textarea_status.insert(tkinter.END, s + '\n')
     options.xmp_gui.textarea_status.configure(state="disabled")
+
     
     
-def update_xmp_metadata(image, categories, options):
+def update_xmp_metadata(categories, options, rename_cats, n_images, image):
     """
     Update the XMP metadata for a single image
     """
     filename = ''
     img_path = ''
+    global cnt
     
     try:
         
@@ -70,13 +85,30 @@ def update_xmp_metadata(image, categories, options):
         img_path = os.path.join(options.image_folder, filename)
         assert os.path.isfile(img_path), 'Image {} not found'.format(img_path)
         image_categories = []
+        original_image_cats = []
         for detection in image['detections']:
-            cat = categories[detection['category']]
+            cat = category_mapping[categories[detection['category']]]        
             if cat not in image_categories:
                 image_categories.append(cat)
+                original_image_cats.append(categories[detection['category']])
         img = pyexiv2.Image(r'{0}'.format(img_path))
         img.modify_xmp({'Xmp.lr.hierarchicalSubject': image_categories})
-                       
+        
+        if not (options.rename_conf is None and options.rename_cat is None):
+            matching_cats = set(rename_cats).intersection(set(original_image_cats))
+            if len(image['detections']) > 0 and len(options.rename_conf) > 0 and image['max_detection_conf'] < float(options.rename_conf) and len(matching_cats) > 0:
+                parent_folder = os.path.dirname(img_path)
+                file_name = ntpath.basename(img_path)
+                manual_file_name = file_name.split('.')[0]+'_check' + '.' + file_name.split('.')[1]
+                os.rename(img_path, os.path.join(parent_folder, manual_file_name))
+        if options.xmp_gui is not None:
+            cnt += 1
+            percentage = round((cnt)/n_images*100)
+            options.xmp_gui.progress_bar['value'] = percentage
+            options.xmp_gui.root.update_idletasks()
+            options.xmp_gui.style.configure('text.Horizontal.Tprogress_bar',
+                            text='{:g} %'.format(percentage))
+                
     except Exception as e:
     
         s = 'Error processing image {}: {}'.format(filename,str(e))
@@ -84,6 +116,14 @@ def update_xmp_metadata(image, categories, options):
         traceback.print_exc()
         write_status(options,s)
         
+        if False:
+            # Legacy code to rename files where XMP writing failed
+            parent_folder = os.path.dirname(img_path)
+            file_name = ntpath.basename(img_path)        
+            failed_file_name = file_name.split('.')[0]+'_failed' + '.' + file_name.split('.')[1]
+            os.rename(img_path, os.path.join(
+                parent_folder, failed_file_name))
+
 
 def process_input_data(options):
     """
@@ -99,6 +139,9 @@ def process_input_data(options):
                 title='Error', message='No MegaDetector .json file selected')
             sys.exit()
         options.remove_path = options.xmp_gui.textarea_removepath.get()
+        options.rename_conf = options.xmp_gui.textarea_rename_conf.get()
+        options.rename_cat = options.xmp_gui.textarea_rename_cats.get()
+        options.no_threads = options.xmp_gui.textarea_no_threads.get()
             
     try:
         
@@ -110,18 +153,22 @@ def process_input_data(options):
     
         images = data['images']
         n_images = len(images)
-        if options.xmp_gui is None:
-            for index, image in tqdm(enumerate(images),total=n_images):
-                update_xmp_metadata(image, categories, options)
+        if not (options.rename_conf is None and options.rename_cat is None):
+            rename_cats = options.rename_cat.split(",")
+            if rename_cats[0] == 'all':
+                rename_cats = list(category_mapping.keys())
         else:
-            
-            for index, image in enumerate(images):
-                percentage = round((index+1)/n_images*100)
-                options.xmp_gui.progress_bar['value'] = percentage
-                options.xmp_gui.root.update_idletasks()
-                options.xmp_gui.style.configure('text.Horizontal.Tprogress_bar',
-                                text='{:g} %'.format(percentage))
-                update_xmp_metadata(image, categories, options)
+            rename_cats = []
+        if options.xmp_gui is None:
+            func = partial(update_xmp_metadata, categories, options, rename_cats, n_images)
+            with Pool(10) as p:
+                with tqdm(total=n_images) as pbar:
+                    for i, _ in enumerate(p.imap_unordered(func, images)):
+                        pbar.update()
+        else:
+            func = partial(update_xmp_metadata, categories, options, rename_cats, n_images)
+            with ThreadPool(10) as p:
+                p.map(func, images)
             s = 'Successfully processed {} images'.format(n_images)
             print(s)
             write_status(options,s)
@@ -213,9 +260,36 @@ def create_gui(options):
     textarea_removepath.configure(highlightbackground='grey', highlightcolor='grey')
     textarea_removepath.grid(row=2, column=2)
 
+    l4 = tkinter.Label(frame, text='Confidence level to move images requires manual check (optional)') 
+    l4.configure(background='white')
+    l4.grid(row=3, column=0)
+
+    textarea_rename_conf = tkinter.Entry(frame, width=50, highlightthickness=1)
+    textarea_rename_conf.configure(highlightbackground='grey', highlightcolor='grey')
+    textarea_rename_conf.grid(row=3, column=2)
+
+
+    l5 = tkinter.Label(frame, text='Categories to check for the confidence (optional)') 
+    l5.configure(background='white')
+    l5.grid(row=4, column=0)
+
+    textarea_rename_cats = tkinter.Entry(frame, width=50, highlightthickness=1)
+    textarea_rename_cats.configure(highlightbackground='grey', highlightcolor='grey')
+    textarea_rename_cats.grid(row=4, column=2)
+
+    l6 = tkinter.Label(frame, text='Number of threads to run (optional)') 
+    l6.configure(background='white')
+    l6.grid(row=5, column=0)
+
+    textarea_no_threads = tkinter.Entry(frame, width=50, highlightthickness=1)
+    textarea_no_threads.configure(highlightbackground='grey', highlightcolor='grey')
+    textarea_no_threads.grid(row=5, column=2)
+    
+    
+
     sb = tkinter.Button(frame, text='Submit', fg='black',
                 command=lambda: start_input_processing(options), padx=10)
-    sb.grid(row=3, column=2, padx=10, pady=10)
+    sb.grid(row=6, column=2, padx=10, pady=10)
 
     style = tkinter.ttk.Style(root)
     style.layout('text.Horizontal.Tprogress_bar',
@@ -227,7 +301,7 @@ def create_gui(options):
     style.configure('text.Horizontal.Tprogress_bar', text='0 %')
 
     progress_bar = tkinter.ttk.Progressbar(root, style='text.Horizontal.Tprogress_bar', length=700,
-                                maximum=100, value=0)
+                                maximum=100, value=0, mode='determinate')
     progress_bar.pack(pady=10)
 
     group2 = tkinter.LabelFrame(root, text='Status', padx=5, pady=5)
@@ -240,6 +314,9 @@ def create_gui(options):
     options.xmp_gui = xmp_gui()
     options.xmp_gui.root = root
     options.xmp_gui.textarea_removepath = textarea_removepath
+    options.xmp_gui.textarea_rename_conf = textarea_rename_conf
+    options.xmp_gui.textarea_rename_cats = textarea_rename_cats
+    options.xmp_gui.textarea_no_threads = textarea_no_threads
     options.xmp_gui.textarea_status = textarea_status
     options.xmp_gui.progress_bar = progress_bar
     options.xmp_gui.style = style
@@ -277,6 +354,9 @@ def main():
     parser.add_argument('--input_file', help = 'Path to the MegaDetector .json file', default=None)
     parser.add_argument('--image_folder', help = 'Path to the folder containing images', default=None)
     parser.add_argument('--remove_path', help = 'Prefix to remove from image paths in the .json file (optional)', default=None)
+    parser.add_argument('--rename_conf', help = 'Below this confidence level images requires manual check (optional)', default=None)
+    parser.add_argument('--rename_cat', help = 'Categories to check for below confidence level(optional)', default=None)
+    parser.add_argument('--no_threads', help = 'Number of threads to Run(optional)', default=1)
     parser.add_argument('--gui', help = 'Run in GUI mode', action='store_true')
     
     options = xmp_integration_options()
@@ -287,6 +367,9 @@ def main():
         assert options.input_file is None, 'Command-line argument specified in GUI mode'
         assert options.image_folder is None, 'Command-line argument specified in GUI mode'
         assert options.remove_path is None, 'Command-line argument specified in GUI mode'
+        assert options.rename_conf is None, 'Command-line argument specified in GUI mode'
+        assert options.rename_cat is None, 'Command-line argument specified in GUI mode'
+        assert options.no_threads == 1, 'Command-line argument specified in GUI mode'
         create_gui(options)    
     else:
         process_input_data(options)
