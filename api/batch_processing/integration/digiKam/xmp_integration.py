@@ -11,6 +11,7 @@
 
 import argparse
 import tkinter
+from tkinter import ttk, messagebox, filedialog
 import inspect
 import os
 import sys
@@ -89,22 +90,27 @@ def update_xmp_metadata(categories, options, rename_cats, n_images, image):
         assert os.path.isfile(img_path), 'Image {} not found'.format(img_path)
         image_categories = []
         original_image_cats = []
+        original_image_cats_conf = {}
         for detection in image['detections']:
             cat = category_mapping[categories[detection['category']]]        
             if cat not in image_categories:
                 image_categories.append(cat)
                 original_image_cats.append(categories[detection['category']])
+                original_image_cats_conf[categories[detection['category']]] = detection['conf']
         img = pyexiv2.Image(r'{0}'.format(img_path))
         img.modify_xmp({'Xmp.lr.hierarchicalSubject': image_categories})
         
         if not (options.rename_conf is None and options.rename_cats is None):
             
             matching_cats = set(rename_cats).intersection(set(original_image_cats))
-            
-            if len(image['detections']) > 0 and \
-                len(options.rename_conf) > 0 and \
-                image['max_detection_conf'] < float(options.rename_conf) and \
-                    len(matching_cats) > 0:
+            is_conf_low = False
+            for matching_cat in matching_cats:
+                if original_image_cats_conf[matching_cat] < float(options.rename_conf):
+                    is_conf_low = True
+            if len(image['detections']) == 0 or \
+                (len(options.rename_conf) > 0 and \
+                is_conf_low is True and \
+                    len(matching_cats) > 0):
                         
                 parent_folder = os.path.dirname(img_path)
                 file_name = ntpath.basename(img_path)
@@ -165,7 +171,7 @@ def process_input_data(options):
         images = data['images']
         n_images = len(images)
         if not (options.rename_conf is None and options.rename_cats is None):
-            rename_cats = options.rename_cat.split(",")
+            rename_cats = options.rename_cats.split(",")
             if rename_cats[0] == 'all':
                 rename_cats = list(category_mapping.keys())
         else:
