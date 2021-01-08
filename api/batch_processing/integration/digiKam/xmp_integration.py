@@ -11,7 +11,7 @@
 
 import argparse
 import tkinter
-from tkinter import ttk, messagebox, filedialog
+
 import inspect
 import os
 import sys
@@ -35,7 +35,7 @@ class xmp_gui:
     
     root = None
     textarea_status = None
-    textarea_removepath = None
+    textarea_remove_path = None
     textarea_rename_conf = None
     textarea_rename_cats = None
     num_threads = 1
@@ -52,9 +52,11 @@ class xmp_integration_options:
     # prefix that was added during MegaDetector processing
     remove_path = None
     
-    # Optionally *rename* (not copy) all images that are marked as empty but
-    # have a con
+    # Optionally *rename* (not copy) all images that have no detections
+    # above [rename_conf] for the categories in rename_cats from x.jpg to x.check.jpg
     rename_conf = None
+    
+    # Comma-deleted list of category names (or "all")
     rename_cats = None
     num_threads = 1
     xmp_gui = None
@@ -77,8 +79,13 @@ def update_xmp_metadata(categories, options, rename_cats, n_images, image):
     """
     Update the XMP metadata for a single image
     """
+    
+    # Relative image path
     filename = ''
+    
+    # Absolute image path
     img_path = ''
+    
     global n_images_processed
     
     try:
@@ -156,7 +163,7 @@ def process_input_data(options):
             tkinter.messagebox.showerror(
                 title='Error', message='No MegaDetector .json file selected')
             sys.exit()
-        options.remove_path = options.xmp_gui.textarea_removepath.get()
+        options.remove_path = options.xmp_gui.textarea_remove_path.get()
         options.rename_conf = options.xmp_gui.textarea_rename_conf.get()
         options.rename_cats = options.xmp_gui.textarea_rename_cats.get()
         options.num_threads = options.xmp_gui.textarea_num_threads.get()
@@ -279,9 +286,9 @@ def create_gui(options):
     l3.configure(background='white')
     l3.grid(row=2, column=0)
     
-    textarea_removepath = tkinter.Entry(frame, width=50, highlightthickness=1)
-    textarea_removepath.configure(highlightbackground='grey', highlightcolor='grey')
-    textarea_removepath.grid(row=2, column=2)
+    textarea_remove_path = tkinter.Entry(frame, width=50, highlightthickness=1)
+    textarea_remove_path.configure(highlightbackground='grey', highlightcolor='grey')
+    textarea_remove_path.grid(row=2, column=2)
 
     l4 = tkinter.Label(frame, text='Confidence level to move images requires manual check (optional)') 
     l4.configure(background='white')
@@ -336,7 +343,7 @@ def create_gui(options):
     
     options.xmp_gui = xmp_gui()
     options.xmp_gui.root = root
-    options.xmp_gui.textarea_removepath = textarea_removepath
+    options.xmp_gui.textarea_remove_path = textarea_remove_path
     options.xmp_gui.textarea_rename_conf = textarea_rename_conf
     options.xmp_gui.textarea_rename_cats = textarea_rename_cats
     options.xmp_gui.textarea_num_threads = textarea_num_threads
