@@ -95,16 +95,25 @@ def update_xmp_metadata(categories, options, rename_cats, n_images, image):
             filename = filename.replace(options.remove_path, '')
         img_path = os.path.join(options.image_folder, filename)
         assert os.path.isfile(img_path), 'Image {} not found'.format(img_path)
+        
+        # List of categories to write to XMP metadata
         image_categories = []
+        
+        # Categories present at *any* confidence in the .json file
         original_image_cats = []
+        
+        # Maximum confidence 
         original_image_cats_conf = {}
+        
+        # Find 
         for detection in image['detections']:
             cat = category_mapping[categories[detection['category']]]        
             if cat not in image_categories:
                 image_categories.append(cat)
                 original_image_cats.append(categories[detection['category']])
-                if detection['conf'] < original_image_cats_conf.get(categories[detection['category']], 1):
-                    original_image_cats_conf[categories[detection['category']]] = detection['conf']
+            if detection['conf'] > original_image_cats_conf.get(categories[detection['category']], 1):
+                original_image_cats_conf[categories[detection['category']]] = detection['conf']
+                
         img = pyexiv2.Image(r'{0}'.format(img_path))
         img.modify_xmp({'Xmp.lr.hierarchicalSubject': image_categories})
         
