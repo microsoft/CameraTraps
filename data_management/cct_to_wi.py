@@ -7,11 +7,12 @@
 # Also see:
 #
 # https://github.com/ConservationInternational/Wildlife-Insights----Data-Migration
-
+#
 
 #%% Imports
 
 import os
+import json
 
 
 #%% Paths
@@ -28,10 +29,10 @@ os.makedirs(output_base,exist_ok = True)
 
 #%% Constants
 
-projects_file_name = 'projects.csv'
-deployments_file_name = 'deployments.csv'
-images_file_name = 'images.csv'
-cameras_file_name = 'cameras.csv'
+projects_file_name = os.path.join(output_base,'projects.csv')
+deployments_file_name = os.path.join(output_base,'deployments.csv')
+images_file_name = os.path.join(output_base,'images.csv')
+cameras_file_name = os.path.join(output_base,'cameras.csv')
 
 
 #%% Project information
@@ -96,8 +97,6 @@ deployment_info['height_other'] = ''
 deployment_info['sensor_orientation'] = 'Parallel'
 deployment_info['orientation_other'] = ''
 deployment_info['recorded_by'] = 'Dan Morris'
-
-image_blank_fields = ['uncertainty']
 
 
 #%% Read templates
@@ -165,7 +164,14 @@ write_table(cameras_file_name,camera_info,cameras_fields)
 #%% Deployment file
 
 compare_info_to_template(deployment_info,deployments_fields,'deployment')
-write_table(projects_file_name,deployment_info,deployments_fields)
+write_table(deployments_file_name,deployment_info,deployments_fields)
 
 
-#%% 
+#%% Images file
+
+# Read .json file with image information
+with open(input_file,'r') as f:
+    input_data = json.load(f)
+    
+# Populate output information
+
