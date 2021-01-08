@@ -96,7 +96,8 @@ def update_xmp_metadata(categories, options, rename_cats, n_images, image):
             if cat not in image_categories:
                 image_categories.append(cat)
                 original_image_cats.append(categories[detection['category']])
-                original_image_cats_conf[categories[detection['category']]] = detection['conf']
+                if detection['conf'] < original_image_cats_conf.get(categories[detection['category']], 1):
+                    original_image_cats_conf[categories[detection['category']]] = detection['conf']
         img = pyexiv2.Image(r'{0}'.format(img_path))
         img.modify_xmp({'Xmp.lr.hierarchicalSubject': image_categories})
         
@@ -176,15 +177,20 @@ def process_input_data(options):
                 rename_cats = list(category_mapping.keys())
         else:
             rename_cats = []
+        if len(options.num_threads) > 0:
+            num_threads = int(options.num_threads)
+        else:
+            num_threads = 1
+        print(num_threads)
         if options.xmp_gui is None:
             func = partial(update_xmp_metadata, categories, options, rename_cats, n_images)
-            with Pool(10) as p:
+            with Pool(num_threads) as p:
                 with tqdm(total=n_images) as pbar:
                     for i, _ in enumerate(p.imap_unordered(func, images)):
                         pbar.update()
         else:
             func = partial(update_xmp_metadata, categories, options, rename_cats, n_images)
-            with ThreadPool(10) as p:
+            with ThreadPool(num_threads) as p:
                 p.map(func, images)
             s = 'Successfully processed {} images'.format(n_images)
             print(s)
