@@ -8,17 +8,27 @@
 #
 # https://github.com/ConservationInternational/Wildlife-Insights----Data-Migration
 #
+# https://data.naturalsciences.org/wildlife-insights/taxonomy/search
+#
 
 #%% Imports
 
 import os
 import json
+import pandas as pd
+from collections import defaultdict 
 
 
 #%% Paths
 
+# A COCO camera traps file with information about this dataset
 input_file = r'c:\temp\camera_trap_images_no_people\bellevue_camera_traps.2020-12-26.json'
 assert os.path.isfile(input_file)
+
+# A .json dictionary mapping common names in this dataset to dictionaries with the 
+# WI taxonomy fields: common_name, wi_taxon_id, class, orer, family, genus, species
+taxonomy_file = r'c:\temp\camera_trap_images_no_people\belleve_camera_traps_to_wi.json'
+assert os.path.isfile(taxonomy_file)
 
 templates_dir = r'c:\temp\wi_batch_upload_templates'
 assert os.path.isdir(templates_dir)
@@ -26,13 +36,14 @@ assert os.path.isdir(templates_dir)
 output_base = r'c:\temp\wi_output'
 os.makedirs(output_base,exist_ok = True)
 
-
+    
+    
 #%% Constants
 
-projects_file_name = os.path.join(output_base,'projects.csv')
-deployments_file_name = os.path.join(output_base,'deployments.csv')
-images_file_name = os.path.join(output_base,'images.csv')
-cameras_file_name = os.path.join(output_base,'cameras.csv')
+projects_file_name = 'projects.csv'
+deployments_file_name = 'deployments.csv'
+images_file_name = 'images.csv'
+cameras_file_name = 'cameras.csv'
 
 
 #%% Project information
@@ -97,6 +108,9 @@ deployment_info['height_other'] = ''
 deployment_info['sensor_orientation'] = 'Parallel'
 deployment_info['orientation_other'] = ''
 deployment_info['recorded_by'] = 'Dan Morris'
+
+image_info = {}
+image_info['identified_by'] = 'Dan Morris'
 
 
 #%% Read templates
@@ -172,6 +186,73 @@ write_table(deployments_file_name,deployment_info,deployments_fields)
 # Read .json file with image information
 with open(input_file,'r') as f:
     input_data = json.load(f)
-    
-# Populate output information
 
+# Read taxonomy dictionary
+with open(taxonomy_file,'r') as f:
+    taxonomy_mapping = json.load(f)
+    
+url_base = taxonomy_mapping['url_base']
+taxonomy_mapping = taxonomy_mapping['taxonomy']
+
+# Populate output information
+# df = pd.DataFrame(columns = images_fields)
+
+category_id_to_name = {cat['id']:cat['name'] for cat in input_data['categories']}
+
+image_id_to_annotations = defaultdict(list)
+
+annotations = input_data['annotations']
+                         
+# annotation = annotations[0]
+for annotation in annotations:
+    image_id_to_annotations[annotation['image_id']].append(
+        category_id_to_name[annotation['category_id']])
+
+rows = []
+
+# im = input_data['images'][0]
+for im in input_data['images']:
+
+    row = {}
+    
+    url = url_base + im['file_name'].replace('\\','/')
+    row['project_id'] = project_info['project_id']
+    row['deployment_id'] = deployment_info['deployment_id']
+    row['image_id'] = im['id']
+    row['location'] = url
+    row['identified_by'] = image_info['identified_by']
+    
+    category_names = image_id_to_annotations[im['id']]
+    assert len(category_names) == 1
+    category_name = category_names[0]
+    
+    taxon_info = taxonomy_mapping[category_name]
+    
+    assert len(taxon_info.keys()) == 7
+    
+    for s in taxon_info.keys():
+        row[s] = taxon_info[s]
+    
+    
+    # We don't have counts, but we can differentiate between zero and 1
+    if category_name == 'empty':
+        row['number_of_objects'] = 0
+    else:
+        row['number_of_objects'] = 1
+        
+    row['uncertainty'] = None
+    row['timestamp'] = im['datetime']; assert isinstance(im['datetime'],str)
+    row['highlighted'] = 0
+    row['age'] = None
+    row['sex'] = None
+    row['animal_recognizable'] = 'No'
+    row['individual_id'] = None
+    row['individual_animal_notes'] = None
+    row['markings'] = None
+    
+    assert len(row) == len(images_fields)
+    rows.append(row)
+    
+df = pd.DataFrame(rows)
+
+df.to_csv(os.path.join(output_base,images_file_name))
