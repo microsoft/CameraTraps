@@ -55,13 +55,18 @@ class xmp_integration_options:
     remove_path = None
     
     # Optionally *rename* (not copy) all images that have no detections
-    # above [rename_conf] for the categories in rename_cats from x.jpg to x.check.jpg
+    # above [rename_conf] for the categories in rename_cats from x.jpg to
+    # x.check.jpg
     rename_conf = None
     
-    # Comma-deleted list of category names (or "all")
+    # Comma-deleted list of category names (or "all") to apply the rename_conf
+    # behavior to.
     rename_cats = None
-    num_threads = 1
+    
+    # Minimum detection threshold (applies to all classes, defaults to None,
+    # i.e. 0.0
     min_threshold = None
+    num_threads = 1
     xmp_gui = None
     
     
@@ -102,28 +107,48 @@ def update_xmp_metadata(categories, options, rename_cats, n_images, image):
         # List of categories to write to XMP metadata
         image_categories = []
         
-        # Categories present at *any* confidence in the .json file
+        # Categories with above-threshold detections present for
+        # this image
         original_image_cats = []
         
-        # Maximum confidence 
+        # Maximum confidence for each category
         original_image_cats_conf = {}
         
-        # Find 
         for detection in image['detections']:
-            cat = category_mapping[categories[detection['category']]]        
+            
+            cat = category_mapping[categories[detection['category']]]
+            
+            # Have we already added this to the list of categories to
+            # write out to this image?
             if cat not in image_categories:
-                if len(options.min_threshold) > 0 and options.min_threshold != None:
-                    if float(options.min_threshold) < float(detection['conf']):
+                
+                # If we're supposed to compare to a threshold...
+                if len(options.min_threshold) > 0 and \
+                    options.min_threshold != None:
+                    if float(detection['conf']) > float(options.min_threshold):
                         image_categories.append(cat)
-                        original_image_cats.append(categories[detection['category']])
+                        original_image_cats.append(
+                            categories[detection['category']])
+                        
+                # Else we treat *any* detection as valid...
                 else:
                     image_categories.append(cat)
                     original_image_cats.append(categories[detection['category']])
-            if options.min_threshold != None and len(options.min_threshold) > 0 and detection['conf'] > original_image_cats_conf.get(categories[detection['category']], 0):
-                original_image_cats_conf[categories[detection['category']]] = detection['conf']
+
+            # Keep track of the highest-confidence detection for this class                
+            if options.min_threshold != None and \
+                len(options.min_threshold) > 0 and \
+                    detection['conf'] > \
+                        original_image_cats_conf.get(
+                            categories[detection['category']], 0):
+                            
+                original_image_cats_conf[categories[detection['category']]] = \
+                    detection['conf']
+                    
         img = pyexiv2.Image(r'{0}'.format(img_path))
         img.modify_xmp({'Xmp.lr.hierarchicalSubject': image_categories})
         
+        # If we're doing the rename/.check behavior...
         if not (options.rename_conf is None and options.rename_cats is None):
             
             matching_cats = set(rename_cats).intersection(set(original_image_cats))
@@ -132,7 +157,9 @@ def update_xmp_metadata(categories, options, rename_cats, n_images, image):
                 for matching_cat in matching_cats:
                     if original_image_cats_conf[matching_cat] < float(options.rename_conf):
                         is_conf_low = True
-            if options.min_threshold != None and len(options.min_threshold) > 0 and len(image['detections']) == 0 or \
+            if options.min_threshold != None and \
+                len(options.min_threshold) > 0 and \
+                    len(image['detections']) == 0 or \
                 (len(options.rename_conf) > 0 and \
                 is_conf_low is True and \
                     len(matching_cats) > 0):
@@ -159,6 +186,7 @@ def update_xmp_metadata(categories, options, rename_cats, n_images, image):
         write_status(options,s)
         
         if False:
+            
             # Legacy code to rename files where XMP writing failed
             parent_folder = os.path.dirname(img_path)
             file_name = ntpath.basename(img_path)        
@@ -171,6 +199,7 @@ def process_input_data(options):
     """
     Main function to loop over images and modify XMP data
     """
+    
     if options.xmp_gui is not None:
         
         if (options.image_folder is None) or (len(options.image_folder) == 0):
@@ -341,8 +370,6 @@ def create_gui(options):
     textarea_num_threads.configure(highlightbackground='grey', highlightcolor='grey')
     textarea_num_threads.grid(row=6, column=2)
     
-    
-
     sb = tkinter.Button(frame, text='Submit', fg='black',
                 command=lambda: start_input_processing(options), padx=10)
     sb.grid(row=7, column=2, padx=10, pady=10)
@@ -410,11 +437,11 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--input_file', help = 'Path to the MegaDetector .json file', default=None)
     parser.add_argument('--image_folder', help = 'Path to the folder containing images', default=None)
-    parser.add_argument('--min_threshold', help = 'Minimum confidence to consider a category', default=None)
-    parser.add_argument('--remove_path', help = 'Prefix to remove from image paths in the .json file (optional)', default=None)
-    parser.add_argument('--rename_conf', help = 'Below this confidence level images requires manual check (optional)', default=None)
-    parser.add_argument('--rename_cat', help = 'Category (or comma-delimited categories) below which images should be renamed (optional)', default=None)
-    parser.add_argument('--num_threads', help = 'Number of threads to Run(optional)', default=1)
+    parser.add_argument('--min_threshold', help = 'Minimum detection confidence that will be treated as a detection event', default=None)
+    parser.add_argument('--remove_path', help = 'Prefix to remove from image paths in the .json file', default=None)
+    parser.add_argument('--rename_conf', help = 'Below this confidence level, images will be renamed for manual check', default=None)
+    parser.add_argument('--rename_cat', help = 'Category (or comma-delimited categories) to apply renaming behavior to', default=None)
+    parser.add_argument('--num_threads', help = 'Number of threads to use for image processing', default=1)
     parser.add_argument('--gui', help = 'Run in GUI mode', action='store_true')
     
     options = xmp_integration_options()
