@@ -34,6 +34,7 @@ category_mapping = {'person': 'Human', 'animal': 'Animal', 'vehicle': 'Vehicle'}
 class xmp_gui:
     
     root = None
+    textarea_min_threshold = None
     textarea_status = None
     textarea_removepath = None
     textarea_rename_conf = None
@@ -57,6 +58,7 @@ class xmp_integration_options:
     rename_conf = None
     rename_cats = None
     num_threads = 1
+    min_threshold = None
     xmp_gui = None
     
     
@@ -94,10 +96,16 @@ def update_xmp_metadata(categories, options, rename_cats, n_images, image):
         for detection in image['detections']:
             cat = category_mapping[categories[detection['category']]]        
             if cat not in image_categories:
-                image_categories.append(cat)
-                original_image_cats.append(categories[detection['category']])
-                if detection['conf'] < original_image_cats_conf.get(categories[detection['category']], 1):
-                    original_image_cats_conf[categories[detection['category']]] = detection['conf']
+                if len(options.min_threshold) > 0 and options.min_threshold != None:
+                    if float(options.min_threshold) < float(detection['conf']):
+                        image_categories.append(cat)
+                        original_image_cats.append(categories[detection['category']])
+                else:
+                    image_categories.append(cat)
+                    original_image_cats.append(categories[detection['category']])
+            if options.min_threshold != None and len(options.min_threshold) > 0 and detection['conf'] > original_image_cats_conf.get(categories[detection['category']], 0):
+                original_image_cats_conf[categories[detection['category']]] = detection['conf']
+        # import pdb;pdb.set_trace()
         img = pyexiv2.Image(r'{0}'.format(img_path))
         img.modify_xmp({'Xmp.lr.hierarchicalSubject': image_categories})
         
@@ -105,10 +113,11 @@ def update_xmp_metadata(categories, options, rename_cats, n_images, image):
             
             matching_cats = set(rename_cats).intersection(set(original_image_cats))
             is_conf_low = False
-            for matching_cat in matching_cats:
-                if original_image_cats_conf[matching_cat] < float(options.rename_conf):
-                    is_conf_low = True
-            if len(image['detections']) == 0 or \
+            if options.min_threshold != None and len(options.min_threshold) > 0:
+                for matching_cat in matching_cats:
+                    if original_image_cats_conf[matching_cat] < float(options.rename_conf):
+                        is_conf_low = True
+            if options.min_threshold != None and len(options.min_threshold) > 0 and len(image['detections']) == 0 or \
                 (len(options.rename_conf) > 0 and \
                 is_conf_low is True and \
                     len(matching_cats) > 0):
@@ -160,6 +169,7 @@ def process_input_data(options):
         options.rename_conf = options.xmp_gui.textarea_rename_conf.get()
         options.rename_cats = options.xmp_gui.textarea_rename_cats.get()
         options.num_threads = options.xmp_gui.textarea_num_threads.get()
+        options.min_threshold = options.xmp_gui.textarea_min_threshold.get()
             
     try:
         
@@ -274,45 +284,53 @@ def create_gui(options):
     
     b2 = tkinter.Button(frame, text='Browse', fg='blue', command=lambda: browse_file(options,file_path_var))
     b2.grid(row=1, column=5, padx=10)
+
+    l6 = tkinter.Label(frame, text='Minimum confidence to consider a category') 
+    l6.configure(background='white')
+    l6.grid(row=2, column=0)
+    
+    textarea_min_threshold = tkinter.Entry(frame, width=50, highlightthickness=1)
+    textarea_min_threshold.configure(highlightbackground='grey', highlightcolor='grey')
+    textarea_min_threshold.grid(row=2, column=2)
     
     l3 = tkinter.Label(frame, text='Prefix to remove from image paths (optional)') 
     l3.configure(background='white')
-    l3.grid(row=2, column=0)
+    l3.grid(row=3, column=0)
     
     textarea_removepath = tkinter.Entry(frame, width=50, highlightthickness=1)
     textarea_removepath.configure(highlightbackground='grey', highlightcolor='grey')
-    textarea_removepath.grid(row=2, column=2)
+    textarea_removepath.grid(row=3, column=2)
 
     l4 = tkinter.Label(frame, text='Confidence level to move images requires manual check (optional)') 
     l4.configure(background='white')
-    l4.grid(row=3, column=0)
+    l4.grid(row=4, column=0)
 
     textarea_rename_conf = tkinter.Entry(frame, width=50, highlightthickness=1)
     textarea_rename_conf.configure(highlightbackground='grey', highlightcolor='grey')
-    textarea_rename_conf.grid(row=3, column=2)
+    textarea_rename_conf.grid(row=4, column=2)
 
 
     l5 = tkinter.Label(frame, text='Categories to check for the confidence (optional)') 
     l5.configure(background='white')
-    l5.grid(row=4, column=0)
+    l5.grid(row=5, column=0)
 
     textarea_rename_cats = tkinter.Entry(frame, width=50, highlightthickness=1)
     textarea_rename_cats.configure(highlightbackground='grey', highlightcolor='grey')
-    textarea_rename_cats.grid(row=4, column=2)
+    textarea_rename_cats.grid(row=5, column=2)
 
     l6 = tkinter.Label(frame, text='Number of threads to run (optional)') 
     l6.configure(background='white')
-    l6.grid(row=5, column=0)
+    l6.grid(row=6, column=0)
 
     textarea_num_threads = tkinter.Entry(frame, width=50, highlightthickness=1)
     textarea_num_threads.configure(highlightbackground='grey', highlightcolor='grey')
-    textarea_num_threads.grid(row=5, column=2)
+    textarea_num_threads.grid(row=6, column=2)
     
     
 
     sb = tkinter.Button(frame, text='Submit', fg='black',
                 command=lambda: start_input_processing(options), padx=10)
-    sb.grid(row=6, column=2, padx=10, pady=10)
+    sb.grid(row=7, column=2, padx=10, pady=10)
 
     style = tkinter.ttk.Style(root)
     style.layout('text.Horizontal.Tprogress_bar',
@@ -336,6 +354,7 @@ def create_gui(options):
     
     options.xmp_gui = xmp_gui()
     options.xmp_gui.root = root
+    options.xmp_gui.textarea_min_threshold = textarea_min_threshold
     options.xmp_gui.textarea_removepath = textarea_removepath
     options.xmp_gui.textarea_rename_conf = textarea_rename_conf
     options.xmp_gui.textarea_rename_cats = textarea_rename_cats
@@ -376,6 +395,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--input_file', help = 'Path to the MegaDetector .json file', default=None)
     parser.add_argument('--image_folder', help = 'Path to the folder containing images', default=None)
+    parser.add_argument('--min_threshold', help = 'Minimum confidence to consider a category', default=None)
     parser.add_argument('--remove_path', help = 'Prefix to remove from image paths in the .json file (optional)', default=None)
     parser.add_argument('--rename_conf', help = 'Below this confidence level images requires manual check (optional)', default=None)
     parser.add_argument('--rename_cat', help = 'Category (or comma-delimited categories) below which images should be renamed (optional)', default=None)
@@ -389,6 +409,7 @@ def main():
     if options.gui:
         assert options.input_file is None, 'Command-line argument specified in GUI mode'
         assert options.image_folder is None, 'Command-line argument specified in GUI mode'
+        assert options.min_threshold is None, 'Command-line argument specified in GUI mode'
         assert options.remove_path is None, 'Command-line argument specified in GUI mode'
         assert options.rename_conf is None, 'Command-line argument specified in GUI mode'
         assert options.rename_cat is None, 'Command-line argument specified in GUI mode'
