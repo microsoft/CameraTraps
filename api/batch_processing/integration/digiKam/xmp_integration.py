@@ -11,6 +11,7 @@
 
 import argparse
 import tkinter
+from tkinter import ttk, messagebox, filedialog
 
 import inspect
 import os
@@ -313,7 +314,7 @@ def create_gui(options):
     
     textarea_remove_path = tkinter.Entry(frame, width=50, highlightthickness=1)
     textarea_remove_path.configure(highlightbackground='grey', highlightcolor='grey')
-    textarea_remove_path.grid(row=2, column=2)
+    textarea_remove_path.grid(row=3, column=2)
 
     l4 = tkinter.Label(frame, text='Confidence level to move images requires manual check (optional)') 
     l4.configure(background='white')
