@@ -1,0 +1,14 @@
+# conda activate cameratraps-batch-api
+#
+# conda env update --name cameratraps-batch-api --file api/batch_processing/environment.yml
+name: cameratraps-batch-api
+
+dependencies:
+- python>=3.6
+- nb_conda_kernels
+- humanfriendly
+- requests
+- pip
+- pip:
+  - azure-storage-blob>=12.3.0
+  - azure-batch>=4.0.0    # known-compatible 10.0.0
