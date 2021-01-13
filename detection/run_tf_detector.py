@@ -64,6 +64,9 @@ warnings.filterwarnings('ignore', 'Metadata warning', UserWarning)
 # Numpy FutureWarnings from tensorflow import
 warnings.filterwarnings('ignore', category=FutureWarning)
 
+# Useful hack to force CPU inference
+# os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+
 import tensorflow as tf
 
 print('TensorFlow version:', tf.__version__)
