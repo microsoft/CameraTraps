@@ -58,7 +58,7 @@ project_info['project_species_individual'] = ''
 project_info['project_sensor_layout'] = 'Convenience'
 project_info['project_sensor_layout_targeted_type'] = ''
 project_info['project_bait_use'] = 'No'
-project_info['project_bait_type'] = ''
+project_info['project_bait_type'] = 'None'
 project_info['project_stratification'] = 'No'
 project_info['project_stratification_type'] = ''
 project_info['project_sensor_method'] = 'Sensor Detection'
@@ -76,7 +76,7 @@ project_info['project_sensor_cluster'] = 'No'
 
 camera_info = {}
 camera_info['project_id'] = project_info['project_id'] 
-camera_info['camera_id'] = ''
+camera_info['camera_id'] = '0000'
 camera_info['make'] = ''
 camera_info['model'] = ''
 camera_info['serial_number'] = ''
@@ -255,4 +255,4 @@ for im in input_data['images']:
     
 df = pd.DataFrame(rows)
 
-df.to_csv(os.path.join(output_base,images_file_name))
+df.to_csv(os.path.join(output_base,images_file_name),index=False)
