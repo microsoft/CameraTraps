@@ -5,6 +5,8 @@
 #
 # http://lila.science/wp-content/uploads/2020/03/lila_sas_urls.txt
 #
+# Update: that file is manually maintained now, it can't be programmatically generated
+#
 
 #%% Imports
 
