@@ -13,11 +13,25 @@ Classifiers and detectors are trained using TensorFlow.
 
 This repo is maintained by folks in the [Microsoft AI for Earth](http://aka.ms/aiforearth) program who like looking at pictures of animals.  I mean, we want to use machine learning to support conservation too, but we also really like looking at pictures of animals.
 
-# How we work with ecologists
+# Who is using the AI for Earth camera trap tools?
 
 We work with ecologists all over the world to help them spend less time annotating images and more time thinking about conservation.  You can read a little more about how this works on our [AI for Earth camera trap collaborations page](collaborations.md).
 
 You can also read about what we do to support camera trap researchers in our recent [blog post](https://medium.com/microsoftazure/accelerating-biodiversity-surveys-with-azure-machine-learning-9be53f41e674).
+
+Here are a few of the organizations that have used AI for Earth camera trap tools... we're only listing organizations who (a) we know about and (b) have generously allowed us to refer to them here, so if you're using MegaDetector or other tools from this repo and would like to be added to this list, <a href="mailto:cameratraps@microsoft.com">email us</a>!
+
+* Idaho Department of Fish and Game
+* San Diego Zoo Global
+* University of Washington Quantitative Ecology Lab
+* University of Idaho
+* Borderlands Research Institute at Sul Ross State University
+* Borneo Nature Foundation
+* Parks Canada
+* Australian Wildlife Conservancy
+* Lab of Dr. Bilal Habib at the Wildlife Institute of India
+* Royal Society for the Protection of Birds (RSPB)
+* Wildlife Protection Solutions
 
 
 # Data
