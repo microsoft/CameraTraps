@@ -191,6 +191,49 @@ if False:
         output_path = input_path + '.csv'
         convert_json_to_csv(input_path,output_path,min_confidence=min_confidence,omit_bounding_boxes=True)
     
+    #%%
+    
+    base_path = r'c:\temp\json'
+    input_paths = os.listdir(base_path)
+    input_paths = [os.path.join(base_path,s) for s in input_paths]
+    
+    min_confidence = None    
+    for input_path in input_paths:
+        output_path = input_path + '.csv'
+        convert_json_to_csv(input_path,output_path,min_confidence=min_confidence,omit_bounding_boxes=True)
+    
+    
+    #%% Concatenate .csv files from a folder
+
+    import glob
+    csv_files = glob.glob(os.path.join(base_path,'*.json.csv' ))
+    master_csv = os.path.join(base_path,'all.csv')
+    
+    print('Concatenating {} files to {}'.format(len(csv_files),master_csv))
+    
+    header = None
+    with open(master_csv, 'w') as fout:
+        
+        for filename in tqdm(csv_files):
+            
+            with open(filename) as fin:
+                
+                lines = fin.readlines()
+                
+                if header is not None:
+                    assert lines[0] == header
+                else:
+                    header = lines[0]
+                    fout.write(header)
+                    
+                for line in lines[1:]:
+                    if len(line.strip()) == 0:
+                        continue                    
+                    fout.write(line)
+                    
+        # ...for each .csv file
+        
+    # with open(master_csv)
     
 #%% Command-line driver
         
