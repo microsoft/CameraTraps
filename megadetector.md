@@ -2,12 +2,13 @@
 
 1. [MegaDetector overview](#megadetector-overview)
 2. [Our ask to MegaDetector users](#our-ask-to-megadetector-users)
-3. [Downloading the model(s)](#downloading-the-models)
-4. [Using the models](#using-the-models)
-5. [Tell me more about why detectors are a good first step for camera trap images](#tell-me-more-about-why-detectors-are-a-good-first-step-for-camera-trap-images)
-6. [Pretty picture](#pretty-picture)
-7. [Mesmerizing video](#mesmerizing-video)
-8. [Can you share the training data?](#can-you-share-the-training-data)
+3. [Who is using MegaDetector?](#who-is-using-megadetector)
+4. [Downloading the model(s)](#downloading-the-models)
+5. [Using the models](#using-the-models)
+6. [Tell me more about why detectors are a good first step for camera trap images](#tell-me-more-about-why-detectors-are-a-good-first-step-for-camera-trap-images)
+7. [Pretty picture](#pretty-picture)
+8. [Mesmerizing video](#mesmerizing-video)
+9. [Can you share the training data?](#can-you-share-the-training-data)
 
 
 ## MegaDetector overview
@@ -23,6 +24,11 @@ This page is about the technical elements of MegaDetector; if you are an ecologi
 ## Our ask to MegaDetector users
 
 MegaDetector is free, and it makes us super-happy when people use it, so we put it out there as a downloadable model that is easy to use in a variety of conservation scenarios.  That means we don't know who's using it unless you contact us (or we happen to run into you), so please please pretty-please email us at [cameratraps@microsoft.com](mailto:cameratraps@microsoft.com) if you find it useful!
+
+
+## Who is using MegaDetector?
+
+See <a href="https://github.com/microsoft/CameraTraps/#who-is-using-the-ai-for-earth-camera-trap-tools">this list</a> on the repo's main page.
 
 
 ## Downloading the model(s)

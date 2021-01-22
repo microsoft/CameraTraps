@@ -32,6 +32,26 @@ Here are a few of the organizations that have used AI for Earth camera trap tool
 * Lab of Dr. Bilal Habib at the Wildlife Institute of India
 * Royal Society for the Protection of Birds (RSPB)
 * Wildlife Protection Solutions
+* Island Conservation
+* Synthetaic
+* School of Natural Sciences, University of Tasmania
+* Arizona Department of Environmental Quality
+* Wildlife Research, Oregon Department of Fish and Wildlife
+* National Wildlife Refuge System, Southwest Region, US Fish and Wildlife
+* Mammal Spatial Ecology and Conservation Lab at Washington State University
+* Point No Point Treaty Council
+* SPEA (Portuguese Society for the Study of Birds)
+* Ghost Cat Analytics
+* EcoLogic Consultants Ltd.
+* Smithsonian Northern Great Plains Program
+* Federal University of Amapá, Ecology and Conservation of Amazonian Vertebrates Research Group
+* Hamaarag, The Steinhardt Museum of Natural History, Tel Aviv University
+* Czech University of Life Sciences Prague
+* Ramat Hanadiv Nature Park, Israel
+* TU Berlin, Department of Ecology
+* DC Cat Count, a project of the Humane Rescue Alliance
+* Camelot
+* Snapshot USA
 
 
 # Data
