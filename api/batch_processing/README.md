@@ -4,14 +4,12 @@ We offer a service for processing a large quantity of camera trap images using o
 
 You can process a batch of up to two million images in one request to the API. If in addition you have some images that are labeled, we can evaluate the performance of the MegaDetector on your labeled images (see [Post-processing tools](#post-processing-tools)).
 
-If you would like to try automating species identification as well, we can train a project-specific classifier based on the output of this detector API and the labels you provide. The species classification predictions will be added to the detector API output json file.
-
 All references to &ldquo;container&rdquo; in this document refer to [Azure Blob Storage](https://azure.microsoft.com/en-us/services/storage/blobs/) containers. 
 
 
 ## Processing time
 
-It takes about 0.8 seconds per image per machine, and we have at most 16 machines that can process them in parallel. So if no one else is using the service and you&rsquo;d like to process 1 million images, it will take 1,000,000 * 0.8 / (16 * 60 * 60) = 14 hours. 
+It takes about 0.6 seconds per image per machine, and we have at most 16 machines that can process them in parallel. So if no one else is using the service and you&rsquo;d like to process 1 million images, it will take 1,000,000 * 0.6 / (16 * 60 * 60) = 10.5 hours. 
 
 
 ## API
@@ -29,10 +27,10 @@ To submit a request for batch processing, make a POST call to
 
 ```http://URL/v3/camera-trap/detection-batch/request_detections```.
 
-with a json body containing input fields defined below. The API will return with a json response very quickly to give you a RequestID (UUID4) representing the request you have submitted, for example:
+with a json body containing input fields defined below. The API will return with a json response very quickly to give you a RequestID (UUID4 hex) representing the request you have submitted, for example:
 ```json
 {
-  "request_id": "ea26326e-7e0d-4524-a9ea-f57a5799d4ba"
+  "request_id": "f940ecd58c7746b1bde89bd6ba5a5202"
 }
 ```
 or an error message, if your inputs are not acceptable:

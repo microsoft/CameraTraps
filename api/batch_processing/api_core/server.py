@@ -12,8 +12,10 @@ import urllib.parse
 import uuid
 from datetime import datetime
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, Response
 
+from server_utils import *
+from job_status_table import JobStatusTable
 
 #%% constants
 
@@ -21,7 +23,7 @@ from flask import Flask, request, jsonify
 API_PREFIX = '/v4/camera-trap/detection-batch'
 
 # configurations
-API_INSTANCE_NAME = 'api_internal'
+API_INSTANCE_NAME = 'internal'  # 'internal', 'cm', 'camelot', 'zooniverse'
 POOL_ID = 'internal_1'
 
 OUTPUT_FORMAT_VERSION = '1.1'
@@ -74,6 +76,9 @@ print('server.py, creating Flask application...')
 
 app = Flask(__name__)
 
+app_config = AppConfig(API_INSTANCE_NAME)
+job_status_table = JobStatusTable(API_INSTANCE_NAME)
+
 
 @app.route(f'{API_PREFIX}/')
 def hello():
@@ -81,12 +86,20 @@ def hello():
 
 
 @app.route(f'{API_PREFIX}/request_detections', methods=['POST'])
-def request_detections():
-    pass
+def request_detections() -> Response:
+    if not request.is_json:
+        msg = 'Body needs to have a JSON mimetype (e.g., application/json).'
+        return make_error(415, msg)
+
+    try:
+        post_body = request.get_json()
+    except Exception as e:
+        return make_error(415, f'Error occurred reading POST request body: {e}.')
+
 
 
 @app.route(f'{API_PREFIX}/task')
-def get_job_status():
+def get_job_status() -> Response:
     """
     Retains the /task endpoint name.
     """
@@ -94,15 +107,15 @@ def get_job_status():
 
 
 @app.route(f'{API_PREFIX}/cancel_request', methods=['POST'])
-def cancel_request():
+def cancel_request() -> Response:
     pass
 
 
 @app.route(f'{API_PREFIX}/default_model_version')
-def get_default_model_version():
+def get_default_model_version() -> str:
     return DEFAULT_MD_VERSION
 
 
 @app.route(f'{API_PREFIX}/supported_model_versions')
-def get_supported_model_versions():
+def get_supported_model_versions() -> str:
     return jsonify(sorted(list(MD_VERSIONS_TO_REL_PATH.keys())))
