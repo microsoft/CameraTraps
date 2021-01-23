@@ -8,9 +8,10 @@ dependencies:
 - nb_conda_kernels
 - humanfriendly
 - requests
-- flask  # known-compatible 1.1.2
+- flask>=1.1.0  # known-compatible 1.1.2
 - pip
 - pip:
   - azure-storage-blob>=12.3.0  # known-compatible 12.7.1
   - azure-batch>=4.0.0    # known-compatible 10.0.0
   - azure-cosmos  # known-compatible 4.2.0
+  - azure-appconfiguration  # known-compatible 1.1.1
