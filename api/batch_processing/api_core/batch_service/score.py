@@ -1,22 +1,23 @@
-import os
-import glob
+import argparse
 import io
 import json
 import math
-import argparse
+import os
 import sys
+from datetime import datetime
 from io import BytesIO
 from typing import Union
-from datetime import datetime
 
-import requests
 import PIL.Image as Image
 import numpy as np
+import requests
 import tensorflow as tf
 from azure.storage.blob import ContainerClient
 
 print('score.py, tensorflow version:', tf.__version__)
 print('score.py, tf.test.is_gpu_available:', tf.test.is_gpu_available())
+
+PRINT_EVERY = 500
 
 
 #%% Helper functions *copied* from ct_utils.py and visualization/visualization_utils.py
@@ -293,9 +294,6 @@ class BatchScorer:
         Returns:
             PIL image loaded
         """
-
-        print(f'score.py BatchScorer, download_images(), use_url: {self.use_url}, metadata_available: {self.metadata_available}')
-
         if not self.use_url:
             downloader = self.input_container_client.download_blob(image_file)
             image_file = io.BytesIO()
@@ -325,61 +323,49 @@ class BatchScorer:
                     'failure': TFDetector.FAILURE_IMAGE_OPEN
                 }
             else:
-                result = self.detector.generate_detections_one_image(image, image_id, self.detection_threshold)
+                result = self.detector.generate_detections_one_image(
+                    image, image_id, detection_threshold=self.detection_threshold)
 
             if self.metadata_available:
                 result['meta'] = image_metadata
 
             detections.append(result)
+            if len(detections) % PRINT_EVERY == 0:
+                print(f'scored {len(detections)} images')
+
         return detections
 
 
 def main():
     print('score.py, main()')
 
-    parser = argparse.ArgumentParser(
-        description='Scoring script for a Task')
-    parser.add_argument(
-        'begin_index',
-        type=int,
-        default=0,
-        help='index of image in the list to start processing from'
-    )
-    parser.add_argument(
-        'end_index',
-        type=int,
-        default=0
-    )
-    parser.add_argument(
-        '--input_container_sas',
-        help='read and list enabled SAS to container storing the images to score'
-    )
-    parser.add_argument(
-        '--use_url',
-        help='use public URLs to download images, instead of from Azure blobs'
-    )
-    parser.add_argument(
-        '--detection_threshold',
-        type=float,
-        default=0.05)
-    args = parser.parse_args()
-
-    # bool(any string) is True
-    if args.use_url and str(args.use_url).lower() in ['true', 't', 'yes', 'y', '1']:
-        args.use_url = True
-    else:
-        args.use_url = False
-
-    print('score.py, main(), args to the scripts are', str(args))
-
-    # input and output locations
+    # information to determine input and output locations
     api_instance_name = os.environ['API_INSTANCE_NAME']
     job_id = os.environ['AZ_BATCH_JOB_ID']
     task_id = os.environ['AZ_BATCH_TASK_ID']
     mount_point = os.environ['AZ_BATCH_NODE_MOUNTS_DIR']
 
+    # other parameters for the task
+    begin_index = int(os.environ['TASK_BEGIN_INDEX'])
+    end_index = int(os.environ['TASK_END_INDEX'])
+    input_container_sas = os.environ['JOB_CONTAINER_SAS']
+    use_url = os.environ['JOB_USE_URL']
+    if use_url and use_url.lower() in ['true', 't', 'yes', 'y', '1']:  # bool of any non-empty string is True
+        use_url = True
+    else:
+        use_url = False
+
+    detection_threshold = float(os.environ['DETECTION_CONF_THRESHOLD'])
+
+    print(f'score.py, main(), api_instance_name: {api_instance_name}, job_id: {job_id}, task_id: {task_id}, '
+          f'mount_point: {mount_point}, begin_index: {begin_index}, end_index: {end_index}, '
+          f'input_container_sas: {input_container_sas}, use_url (parsed): {use_url}'
+          f'detection_threshold: {detection_threshold}')
+
     job_folder_mounted = os.path.join(mount_point, 'batch-api', api_instance_name, f'job_{job_id}')
-    task_output_path = os.path.join(job_folder_mounted, 'task_outputs', f'job_{job_id}_task_{task_id}.json')
+    task_out_dir = os.path.join(job_folder_mounted, 'task_outputs')
+    os.makedirs(task_out_dir, exist_ok=True)
+    task_output_path = os.path.join(task_out_dir, f'job_{job_id}_task_{task_id}.json')
 
     # test that we can write to output path; also in case there is no image to process
     with open(task_output_path, 'w') as f:
@@ -396,13 +382,12 @@ def main():
         sys.exit(0)
 
     # items in this list can be strings or [image_id, metadata]
-    list_images = list_images[args.begin_index: args.end_index]
+    list_images = list_images[begin_index: end_index]
     if len(list_images) == 0:
         print('score.py, main(), zero images in the shard, exiting')
         sys.exit(0)
 
-    print(f'score.py, main(), begin_index {args.begin_index}, end_index {args.end_index}, '
-          f'processing {len(list_images)} images in this Task')
+    print(f'score.py, main(), processing {len(list_images)} images in this Task')
 
     # model path
     # Path to .pb TensorFlow detector model file, relative to the
@@ -414,9 +399,9 @@ def main():
     # score the images
     scorer = BatchScorer(
         detector_path=detector_path,
-        use_url=args.use_url,
-        input_container_sas=args.input_container_sas,
-        detection_threshold=args.detection_threshold,
+        use_url=use_url,
+        input_container_sas=input_container_sas,
+        detection_threshold=detection_threshold,
         image_ids_to_score=list_images
     )
 
@@ -424,7 +409,7 @@ def main():
         tick = datetime.now()
         detections = scorer.score_images()
         duration = datetime.now() - tick
-        print(f'score.py, main(), score_images() took {duration} seconds')
+        print(f'score.py, main(), score_images() duration: {duration}')
     except Exception as e:
         raise RuntimeError(f'score.py, main(), exception in score_images(): {e}')
 
