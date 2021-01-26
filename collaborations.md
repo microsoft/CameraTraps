@@ -14,7 +14,7 @@ Basically this page is the response we give when someone emails us and says &ldq
 
 You can see a list of some of the organizations who have used our tools here:
 
-<a href="https://github.com/microsoft/CameraTraps/#who-is-using-the-ai-for-earth-camera-trap-tools">https://github.com/microsoft/CameraTraps/#who-is-using-the-ai-for-earth-camera-trap-tools</a>
+&nbsp;&nbsp;&nbsp;&nbsp;<https://github.com/microsoft/CameraTraps/#who-is-using-the-ai-for-earth-camera-trap-tools>
 
 ## Information about our camera trap work
 
