@@ -12,6 +12,10 @@ This page summarizes what we do to help our collaborators, typically ecologists,
 
 Basically this page is the response we give when someone emails us and says &ldquo;I have too many camera trap images!  Can you help me?!?!&rdquo;.  If you&rsquo;re an ecologist reading this page, and that sounds familiar, feel free to answer the questions below in an email to <a href="mailto:cameratraps@microsoft.com">cameratraps@microsoft.com</a>.
 
+You can see a list of some of the organizations who have used our tools here:
+
+<a href="https://github.com/microsoft/CameraTraps/#who-is-using-the-ai-for-earth-camera-trap-tools">https://github.com/microsoft/CameraTraps/#who-is-using-the-ai-for-earth-camera-trap-tools</a>
+
 ## Information about our camera trap work
 
 All of our work in this space is open-sourced here:
