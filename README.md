@@ -49,7 +49,7 @@ Here are a few of the organizations that have used AI for Earth camera trap tool
 * Czech University of Life Sciences Prague
 * Ramat Hanadiv Nature Park, Israel
 * TU Berlin, Department of Ecology
-* DC Cat Count, a project of the Humane Rescue Alliance
+* DC Cat Count, led by the Humane Rescue Alliance
 * Center for Biodiversity and Conservation at the American Museum of Natural History
 * Camelot
 * Graeme Shannon's Research Group at Bangor University 
