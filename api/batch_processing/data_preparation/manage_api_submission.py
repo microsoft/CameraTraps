@@ -698,7 +698,12 @@ if False:
     url = read_only_sas_url.replace('?','/'+sample_image_path+'?')
     clipboard.copy(url)
     
-
+    import ai4e_azure_utils
+    failed_images_file = os.path.join(filename_base,'failed_images.txt')
+    ai4e_azure_utils.write_list_to_file(failed_images_file, failed_images_flat)
+    print('Wrote {} failed images to {}'.format(len(failed_images_flat),failed_images_file))
+    
+    
 #%% Resubmit tasks for failed shards, add to appropriate task groups
 
 if False:
@@ -1014,7 +1019,7 @@ from api.batch_processing.postprocessing.separate_detections_into_folders import
     separate_detections_into_folders, SeparateDetectionsIntoFoldersOptions)
 
 default_threshold = 0.8
-base_output_folder = r"e:\organization-out"
+base_output_folder = r"e:\organization-{}-separated".format(default_threshold)
 base_input_folder = "z:\\"
 
 # i_folder = 0; folder_name_raw = folder_names[i_folder]
