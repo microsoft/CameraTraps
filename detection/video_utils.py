@@ -87,8 +87,14 @@ def frames_to_video(images, Fs, output_file_name):
     cv2.destroyAllWindows()
 
 
-# https://stackoverflow.com/questions/33311153/python-extracting-and-saving-video-frames
+def get_video_fs(input_video_file):
+    assert os.path.isfile(input_video_file), 'File {} not found'.format(input_video_file)    
+    vidcap = cv2.VideoCapture(input_video_file)
+    Fs = vidcap.get(cv2.CAP_PROP_FPS)
+    vidcap.release()
+    return Fs
 
+# https://stackoverflow.com/questions/33311153/python-extracting-and-saving-video-frames
 def video_to_frames(input_video_file, output_folder):
     """
     Render every frame of [input_video_file] to a .jpg in [output_folder]
@@ -117,12 +123,14 @@ def video_to_frames(input_video_file, output_folder):
             cv2.imwrite(frame_filename,image)
             assert os.path.isfile(frame_filename)
         except KeyboardInterrupt:
+            vidcap.release()
             raise
         except Exception as e:
             print('Error on frame {} of {}: {}'.format(frame_number,n_frames,str(e)))
 
     print('\nExtracted {} of {} frames'.format(len(frame_filenames),n_frames))
 
+    vidcap.release()    
     return frame_filenames,Fs
 
 
@@ -174,8 +182,11 @@ if False:
     input_folder = 'z:\\'
     frame_folder_base = r'e:\video_test\frames'
     detected_frame_folder_base = r'e:\video_test\detected_frames'
+    rendered_videos_folder_base = r'e:\video_test\rendered_videos'
+    
     results_file = r'results.json'
     os.makedirs(detected_frame_folder_base,exist_ok=True)
+    os.makedirs(rendered_videos_folder_base,exist_ok=True)
     
     
     #%% Split videos into frames
@@ -243,11 +254,20 @@ if False:
     #%% Render output videos
             
     # folder = list(folders)[0]
-    for folder in folders:
+    for folder in tqdm(folders):
         
         folder_relative = folder.replace((frame_folder_base + '/').replace('\\','/'),'')
         rendered_detector_output_folder = os.path.join(detected_frame_folder_base,folder_relative)
+        assert os.path.isdir(rendered_detector_output_folder)
         
-        # frames_to_video
-    
-    
+        frame_files_relative = os.listdir(rendered_detector_output_folder)
+        frame_files_absolute = [os.path.join(rendered_detector_output_folder,s) for s in frame_files_relative]
+        
+        output_video_filename = os.path.join(rendered_videos_folder_base,folder_relative)
+        os.makedirs(os.path.dirname(output_video_filename),exist_ok=True)
+        
+        original_video_filename = output_video_filename.replace(rendered_videos_folder_base,input_folder)
+        assert os.path.isfile(original_video_filename)
+        Fs = get_video_fs(original_video_filename)
+                
+        frames_to_video(frame_files_absolute, Fs, output_video_filename)
