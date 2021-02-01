@@ -14,73 +14,11 @@ import tempfile
 import shutil
 import argparse
 
-from tqdm import tqdm
-
-import cv2
-
 from detection import run_tf_detector_batch
 from visualization import visualize_detector_output
 from ct_utils import args_to_object
-
-
-#%% Function for rendering frames to video and vice-versa
-
-# http://tsaith.github.io/combine-images-into-a-video-with-python-3-and-opencv-3.html
-
-def frames_to_video(images, Fs, output_file_name):
-
-    if len(images) == 0:
-        return
-
-    # Determine the width and height from the first image
-    frame = cv2.imread(images[0])
-    cv2.imshow('video',frame)
-    height, width, channels = frame.shape
-
-    # Define the codec and create VideoWriter object
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v') # Be sure to use lower case
-    out = cv2.VideoWriter(output_file_name, fourcc, Fs, (width, height))
-
-    for image in images:
-        frame = cv2.imread(image)
-        out.write(frame)
-
-    out.release()
-    cv2.destroyAllWindows()
-
-
-# https://stackoverflow.com/questions/33311153/python-extracting-and-saving-video-frames
-
-def video_to_frames(input_video_file,output_folder):
-
-    vidcap = cv2.VideoCapture(input_video_file)
-    n_frames = int(vidcap.get(cv2.CAP_PROP_FRAME_COUNT))
-    Fs = vidcap.get(cv2.CAP_PROP_FPS)
-    print('Reading {} frames at {} Hz from {}'.format(n_frames,Fs,input_video_file))
-
-    frame_filenames = []
-
-    for frame_number in tqdm(range(0,n_frames)):
-
-        success,image = vidcap.read()
-        if not success:
-            print('Read terminating at frame {} of {}'.format(frame_number,n_frames))
-            break
-
-        frame_filename = 'frame{:05d}.jpg'.format(frame_number)
-        frame_filename = os.path.join(output_folder,frame_filename)
-        frame_filenames.append(frame_filename)
-        try:
-            cv2.imwrite(frame_filename,image)
-            assert os.path.isfile(frame_filename)
-        except KeyboardInterrupt:
-            raise
-        except Exception as e:
-            print('Error on frame {} of {}: {}'.format(frame_number,n_frames,str(e)))
-
-    print('\nExtracted {} of {} frames'.format(len(frame_filenames),n_frames))
-
-    return frame_filenames,Fs
+from detection.video_utils import video_to_frames
+from detection.video_utils import frames_to_video
 
 
 #%% Main function

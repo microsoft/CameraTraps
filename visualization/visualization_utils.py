@@ -15,8 +15,15 @@ import requests
 from PIL import Image, ImageFile, ImageFont, ImageDraw
 
 from data_management.annotations import annotation_constants
+from data_management.annotations.annotation_constants import (
+    detector_bbox_category_id_to_name)  # here id is int
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
+
+# convert category ID from int to str
+DEFAULT_DETECTOR_LABEL_MAP = {
+    str(k): v for k, v in detector_bbox_category_id_to_name.items()
+}
 
 
 #%% Functions
@@ -568,3 +575,21 @@ def render_db_bounding_boxes(boxes, classes, image, original_size=None,
     display_boxes = np.array(display_boxes)
     draw_bounding_boxes_on_image(image, display_boxes, classes, display_strs=display_strs,
                                  thickness=thickness, expansion=expansion)
+
+
+def draw_bounding_boxes_on_file(input_file, output_file, detections, confidence_threshold=0.0,
+                                detector_label_map=DEFAULT_DETECTOR_LABEL_MAP):
+    """
+    Render detection bounding boxes on an image loaded from file, writing the results to a
+    new images file.  "detections" is in the API results format.
+    """
+    
+    image = open_image(input_file)
+
+    render_detection_bounding_boxes(
+            detections, image, label_map=detector_label_map,
+            confidence_threshold=confidence_threshold)
+
+    image.save(output_file)        
+
+        
