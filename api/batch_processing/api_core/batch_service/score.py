@@ -1,4 +1,3 @@
-import argparse
 import io
 import json
 import math
@@ -65,7 +64,7 @@ def open_image(input_file: Union[str, BytesIO]) -> Image.Image:
             response = requests.get(input_file)
             image = Image.open(BytesIO(response.content))
         except Exception as e:
-            print('Error opening image {}: {}'.format(input_file,str(e)))
+            print('Error opening image {}: {}'.format(input_file, str(e)))
             raise
     else:
         image = Image.open(input_file)
@@ -263,7 +262,6 @@ class BatchScorer:
     """
     Coordinates scoring images in this Task.
 
-    TODO - download and score in separate threads
     1. have a synchronized queue that download tasks enqueue and scoring function dequeues - but need to be able to
     limit the size of the queue. We do not want to write the image to disk and then load it in the scoring func.
     """
@@ -285,7 +283,6 @@ class BatchScorer:
         # determine if there is metadata attached to each image_id
         self.metadata_available = True if isinstance(self.image_ids_to_score[0], list) else False
 
-
     def _download_image(self, image_file) -> Image:
         """
         Args:
@@ -301,7 +298,6 @@ class BatchScorer:
 
         image = open_image(image_file)
         return image
-
 
     def score_images(self) -> list:
         detections = []
@@ -348,9 +344,11 @@ def main():
     # other parameters for the task
     begin_index = int(os.environ['TASK_BEGIN_INDEX'])
     end_index = int(os.environ['TASK_END_INDEX'])
-    input_container_sas = os.environ['JOB_CONTAINER_SAS']
-    use_url = os.environ['JOB_USE_URL']
-    if use_url and use_url.lower() in ['true', 't', 'yes', 'y', '1']:  # bool of any non-empty string is True
+
+    input_container_sas = os.environ.get('JOB_CONTAINER_SAS', None)  # could be None if use_url
+    use_url = os.environ.get('JOB_USE_URL', None)
+
+    if use_url and use_url.lower() == 'true':  # bool of any non-empty string is True
         use_url = True
     else:
         use_url = False
@@ -362,7 +360,7 @@ def main():
           f'input_container_sas: {input_container_sas}, use_url (parsed): {use_url}'
           f'detection_threshold: {detection_threshold}')
 
-    job_folder_mounted = os.path.join(mount_point, 'batch-api', api_instance_name, f'job_{job_id}')
+    job_folder_mounted = os.path.join(mount_point, 'batch-api', f'api_{api_instance_name}', f'job_{job_id}')
     task_out_dir = os.path.join(job_folder_mounted, 'task_outputs')
     os.makedirs(task_out_dir, exist_ok=True)
     task_output_path = os.path.join(task_out_dir, f'job_{job_id}_task_{task_id}.json')
