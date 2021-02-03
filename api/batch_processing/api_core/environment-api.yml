@@ -8,7 +8,8 @@ dependencies:
 - nb_conda_kernels
 - humanfriendly
 - requests
-- flask>=1.1.0  # known-compatible 1.1.2
+- flask>=1.1.0  # known-compatible Flask 1.1.2, Werkzeug 1.0.1
+- tqdm  # required by sas_blob_utils.py
 - pip
 - pip:
   - azure-storage-blob>=12.3.0  # known-compatible 12.7.1

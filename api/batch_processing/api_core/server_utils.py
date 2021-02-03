@@ -3,134 +3,376 @@ This script will be run when all Tasks in this Job have finished and the Job is 
 Complete. It aggregates the model outputs from each task into one JSON file.
 """
 
+import io
 import json
-import os
-from datetime import datetime
-from typing import Tuple
+import time
+import urllib.parse
+from datetime import datetime, timedelta
+from random import shuffle
+from typing import Tuple, Any, Sequence, Optional
 
-from azure.appconfiguration import AzureAppConfigurationClient
+import sas_blob_utils  # from ai4eutils
+from azure.storage.blob import ContainerClient, BlobSasPermissions, generate_blob_sas
+from tqdm import tqdm
 
-#%% constants
-
-# copied from TFDetector class in detection/run_tf_detector.py
-DEFAULT_DETECTOR_LABEL_MAP = {
-    '1': 'animal',
-    '2': 'person',
-    '3': 'vehicle'
-}
+import server_api_config as api_config
+from server_batch import BatchJobManager
+from server_job_status_table import JobStatusTable
 
 
-#%% small helper functions
+#%% helper classes and functions
 
-def make_error(error_code: int, error_message, str) -> Tuple[dict, int]:
+def make_error(error_code: int, error_message: str) -> Tuple[dict, int]:
     # TODO log exception
-    return ({'error': error_message}, error_code)
+    print(f'Error {error_code} - {error_message}')
+    return {'error': error_message}, error_code
 
 
-#%% helper classes
-
-class AppConfig:
-    """Wrapper around the Azure App Configuration client"""
-
-    def __int__(self, api_instance):
-        APP_CONFIG_CONNECTION_STR = os.environ['APP_CONFIG_CONNECTION_STR']
-        self.client = AzureAppConfigurationClient.from_connection_string(APP_CONFIG_CONNECTION_STR)
-
-        self.api_instance = api_instance
-
-        # sentinel should change if new configurations are available
-        self.sentinel = self._get_sentinel()
-        self.allowlist = self._get_allowlist()
+def print_job(job_id, msg):
+    # TODO use this func for logging
+    print(f'job_id={job_id}. {msg}')
 
 
-    def _get_sentinel(self):
-        return self.client.get_configuration_setting(key='batch_api:sentinel').value
+def check_data_container_sas(input_container_sas: str) -> Optional[Tuple[int, str]]:
+    """
+    Returns a tuple (error_code, msg) if not a usable SAS URL, else returns None
+    """
+    # TODO check that the expiry date of input_container_sas is at least a month
+    # into the future
+    permissions = sas_blob_utils.get_permissions_from_uri(input_container_sas)
+    data = sas_blob_utils.get_all_query_parts(input_container_sas)
 
+    msg = ('input_container_sas provided does not have both read and list '
+           'permissions.')
+    if 'read' not in permissions or 'list' not in permissions:
+        if 'si' in data:
+            # if no permission specified explicitly but has an access policy, assumes okay
+            # TODO - check based on access policy as well
+            return None
 
-    def _get_allowlist(self):
-        filtered_listed = self.client.list_configuration_settings(key_filter='batch_api_allow:*')
-        allowlist = []
-        for item in filtered_listed:
-            if item.value == self.api_instance:
-                allowlist.append(item.key.split('batch_api_allow:')[1])
-        return allowlist
+        return 400, msg
 
-
-    def get_allowlist(self):
-        cur_sentinel = self._get_sentinel()
-        if cur_sentinel == self.sentinel:
-            # configs have not changed
-            return self.allowlist
-        else:
-            self.sentinel = cur_sentinel
-            self.allowlist = self._get_allowlist()
-            return self.allowlist
+    return None
 
 
 def get_utc_time() -> str:
     # return current UTC time in string format, e.g., '2019-05-19 08:57:43'
     return datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
 
-def aggregate_results(task_outputs_folder):
-    """Merge output from each scoring task into one JSON"""
 
-    all_detections = []
-    task_outputs = 0
-    for fn in os.listdir(task_outputs_folder):
-        if not fn.endswith('.json'):
-            continue
-
-        task_outputs += 1
-        # error entries are included too
-        task_detections = json.load(os.path.join(task_outputs_folder, fn))
-        all_detections.extend(task_detections)
-
-    print(f'complete_job.py, aggregate_results(), {task_outputs} task output files found')
-    print(f'complete_job.py, aggregate_results(), total detection entries aggregated: {len(all_detections)}')
-    return all_detections
-
-
-def main():
-    print('complete_job.py, main()')
-
-    job_id = os.environ['AZ_BATCH_JOB_ID']
-    # https://docs.microsoft.com/en-us/azure/batch/virtual-file-mount
-    mount_point = os.environ['AZ_BATCH_NODE_MOUNTS_DIR']
-
-    api_instance_name = os.environ['API_INSTANCE_NAME']
-    model_version = os.environ['DETECTOR_VERSION']
-    output_format_version = os.environ['OUTPUT_FORMAT_VERSION']
-    user_suffix = os.environ['USER_SUFFIX']
-    user_submission_time = os.environ['USER_SUBMISSION_TIME']
-
-    assert len(api_instance_name) > 0, 'api_instance_name not found as an env variable'
-    assert len(model_version) > 0, 'model_version not found as an env variable'
-    assert len(output_format_version) > 0, 'output_format_version not found as an env variable'
-    assert len(user_submission_time) > 0, 'user_submission_time not found as an env variable'
-
-    job_folder_mounted = os.path.join(mount_point, 'batch-api', api_instance_name, f'job_{job_id}')
-    task_outputs_folder = os.path.join(job_folder_mounted, 'task_outputs')
-    all_detections = aggregate_results(task_outputs_folder)
-
-    detection_output_content = {
-        'info': {
-            'detector': f'megadetector_v{model_version}',
-            'detection_completion_time': get_utc_time(),
-            'format_version': output_format_version
-        },
-        'detection_categories': DEFAULT_DETECTOR_LABEL_MAP,
-        'images': all_detections
+def get_job_status(request_status: str, message: Any) -> dict:
+    return {
+        'request_status': request_status,
+        'time': get_utc_time(),
+        'message': message
     }
 
-    api_output_path = os.path.join(job_folder_mounted,
-                                   f'{job_id}_detections_{user_suffix}_{user_submission_time}.json')
-    print(f'complete_job.py, main(), api_output_path: {api_output_path}')
 
-    with open(api_output_path, 'w') as f:
-        json.dump(detection_output_content, f, indent=1)
+def validate_provided_image_paths(image_paths: Sequence[Any]) -> Tuple[Optional[str], bool]:
+    """Given a list of image_paths (list length at least 1), validate them and
+    determine if metadata is available.
+    Args:
+        image_paths: a list of string (image_id) or a list of 2-item lists
+            ([image_id, image_metadata])
+    Returns:
+        error: None if checks passed, otherwise a string error message
+        metadata_available: bool, True if available
+    """
+    # image_paths will have length at least 1, otherwise would have ended before this step
+    first_item = image_paths[0]
+    metadata_available = False
+    if isinstance(first_item, str):
+        for i in image_paths:
+            if not isinstance(i, str):
+                error = 'Not all items in image_paths are of type string.'
+                return error, metadata_available
+        return None, metadata_available
+    elif isinstance(first_item, list):
+        metadata_available = True
+        for i in image_paths:
+            if len(i) != 2:  # i should be [image_id, metadata_string]
+                error = ('Items in image_paths are lists, but not all lists '
+                         'are of length 2 [image locator, metadata].')
+                return error, metadata_available
+        return None, metadata_available
+    else:
+        error = 'image_paths contain items that are not strings nor lists.'
+        return error, metadata_available
 
-    print('complete_job.py, main(), output written to mounted file. Done!')
+
+#%% Batch job submission
+
+def create_batch_job(job_id: str, body: dict):
+    """
+    This is the target to be run in a thread to submit a batch processing job and monitor progress
+    """
+    job_status_table = JobStatusTable()
+    try:
+        print(f'server_utils, create_batch_job, job_id {job_id}, {body}')
+
+        input_container_sas = body.get('input_container_sas', None)
+
+        use_url = body.get('use_url', False)
+
+        images_requested_json_sas = body.get('images_requested_json_sas', None)
+
+        image_path_prefix = body.get('image_path_prefix', None)
+
+        first_n = body.get('first_n', None)
+        first_n = int(first_n) if first_n else None
+
+        sample_n = body.get('sample_n', None)
+        sample_n = int(sample_n) if sample_n else None
+
+        model_version = body.get('model_version', '')
+        if model_version == '':
+            model_version = api_config.DEFAULT_MD_VERSION
+
+        # request_name and request_submission_timestamp are for appending to
+        # output file names
+        job_name = body.get('request_name', '')  # in earlier versions we used "request" to mean a "job"
+        job_submission_timestamp = get_utc_time()
+
+        # image_paths can be a list of strings (Azure blob names or public URLs)
+        # or a list of length-2 lists where each is a [image_id, metadata] pair
+        job_status = get_job_status('running', 'Listing all images to process.')
+        job_status_table.update_job_status(job_id, job_status)
+
+        # Case 1: listing all images in the container
+        # - not possible to have attached metadata if listing images in a blob
+        if images_requested_json_sas is None:
+            print('server_utils, create_batch_job, running - listing all images to process.')
+
+            # list all images to process
+            image_paths = sas_blob_utils.list_blobs_in_container(
+                container_uri=input_container_sas,
+                blob_prefix=image_path_prefix,
+                blob_suffix=api_config.IMAGE_SUFFIXES_ACCEPTED,
+                limit=api_config.MAX_NUMBER_IMAGES_ACCEPTED_PER_JOB + 1
+                # + 1 so if the number of images listed > MAX_NUMBER_IMAGES_ACCEPTED_PER_JOB
+                # we will know and not proceed
+            )
+
+        # Case 2: user supplied a list of images to process; can include metadata
+        else:
+            print('server_utils, create_batch_job, running - using provided list of images.')
+            output_stream, blob_properties = sas_blob_utils.download_blob_to_stream(images_requested_json_sas)
+            image_paths = json.load(output_stream)
+            print('server_utils, create_batch_job, length of image_paths provided by the user: {}'.format(
+                len(image_paths)))
+            if len(image_paths) == 0:
+                job_status = get_job_status(
+                    'completed', '0 images found in provided list of images.')
+                job_status_table.update_job_status(job_id, job_status)
+                return
+
+            error, metadata_available = validate_provided_image_paths(image_paths)
+            if error is not None:
+                msg = 'image paths provided in the json are not valid: {}'.format(error)
+                raise ValueError(msg)
+
+            # filter down to those conforming to the provided prefix and accepted suffixes (image file types)
+            valid_image_paths = []
+            for p in image_paths:
+                locator = p[0] if metadata_available else p
+
+                if image_path_prefix is not None and not locator.startswith(image_path_prefix):
+                    continue
+
+                # Although urlparse(p).path preserves the extension on local paths, it will not work for
+                # blob file names that contains "#", which will be treated as indication of a query.
+                # If the URL is generated via Azure Blob Storage, the "#" char will be properly encoded
+                path = urllib.parse.urlparse(locator).path.lower() if use_url else locator
+
+                if path.endswith(api_config.IMAGE_SUFFIXES_ACCEPTED):
+                    valid_image_paths.append(p)
+            image_paths = valid_image_paths
+            print_job(job_id, ('server_utils, create_batch_job, length of image_paths provided by user, '
+                               f'after filtering to jpg: {len(image_paths)}'))
+
+        # apply the first_n and sample_n filters
+        if first_n:
+            assert first_n > 0, 'parameter first_n is 0.'
+            # OK if first_n > total number of images
+            image_paths = image_paths[:first_n]
+
+        if sample_n:
+            assert sample_n > 0, 'parameter sample_n is 0.'
+            if sample_n > len(image_paths):
+                msg = ('parameter sample_n specifies more images than '
+                       'available (after filtering by other provided params).')
+                raise ValueError(msg)
+
+            # sample by shuffling image paths and take the first sample_n images
+            print('First path before shuffling:', image_paths[0])
+            shuffle(image_paths)
+            print('First path after shuffling:', image_paths[0])
+            image_paths = image_paths[:sample_n]
+
+        num_images = len(image_paths)
+        print(f'server_utils, create_batch_job, num_images after applying all filters: {num_images}')
+
+        if num_images < 1:
+            job_status = get_job_status('completed', (
+                'Zero images found in container or in provided list of images '
+                'after filtering with the provided parameters.'))
+            job_status_table.update_job_status(job_id, job_status)
+            return
+        if num_images > api_config.MAX_NUMBER_IMAGES_ACCEPTED_PER_JOB:
+            job_status = get_job_status(
+                'failed',
+                (f'The number of images ({num_images}) requested for processing exceeds the maximum '
+                 f'accepted {api_config.MAX_NUMBER_IMAGES_ACCEPTED_PER_JOB} in one call'))
+            job_status_table.update_job_status(job_id, job_status)
+            return
+
+        # upload the image list to the container, which is also mounted on all nodes
+        # all sharding and scoring use the uploaded list
+        images_list_str_as_bytes = bytes(json.dumps(image_paths), 'utf-8')
+
+        container_url = sas_blob_utils.build_azure_storage_uri(account=api_config.STORAGE_ACCOUNT_NAME,
+                                                               container=api_config.STORAGE_CONTAINER_API)
+        with ContainerClient.from_container_url(container_url,
+                                                credential=api_config.STORAGE_ACCOUNT_KEY) as api_container_client:
+            _ = api_container_client.upload_blob(
+                name=f'api_{api_config.API_INSTANCE_NAME}/job_{job_id}/{job_id}_images.json',
+                data=images_list_str_as_bytes)
+
+        job_status = get_job_status('running', f'{num_images} images listed; submitting the job...')
+        job_status_table.update_job_status(job_id, job_status)
+
+    except Exception as e:
+        job_status = get_job_status('failed', f'Error occurred while preparing the Batch job: {e}')
+        job_status_table.update_job_status(job_id, job_status)
+        print(f'server_utils, create_batch_job, Error occurred while preparing the Batch job: {e}')
+        return  # do not start monitoring
+
+    try:
+        batch_job_manager = BatchJobManager()
+
+        model_rel_path = api_config.MD_VERSIONS_TO_REL_PATH[model_version]
+        batch_job_manager.create_job(job_id,
+                                     model_rel_path,
+                                     input_container_sas,
+                                     use_url)
+
+        num_tasks, task_ids_failed_to_submit = batch_job_manager.submit_tasks(job_id, num_images)
+
+        job_status = get_job_status('running',
+                                    (f'Submitted {num_images} images to cluster in {num_tasks} shards. '
+                                     f'Number of shards failed to be submitted: {len(task_ids_failed_to_submit)}'))
+        job_status_table.update_job_status(job_id, job_status)
+    except Exception as e:
+        job_status = get_job_status('problem', f'Error occurred while submitting the Batch job: {e}')
+        job_status_table.update_job_status(job_id, job_status)
+        print(f'server_utils, create_batch_job, Error occurred while submitting the Batch job: {e}')
+        return
+
+    try:
+        num_checks = 0
+
+        while True:
+            time.sleep(api_config.MONITOR_PERIOD_MINUTES * 60)
+            num_checks += 1
+
+            # a completed Task could have a non-zero error code TODO check how many failed
+            num_tasks_completed = batch_job_manager.get_num_completed_tasks(job_id)
+            job_status = get_job_status('running',
+                                        (f'Check number {num_checks}, '
+                                         f'{num_tasks_completed} out of {num_tasks} shards have completed'))
+            job_status_table.update_job_status(job_id, job_status)
+            print(f'Check number {num_checks}, {num_tasks_completed} out of {num_tasks} shards have completed')
+
+            if num_tasks_completed >= num_tasks:
+                break
+
+            if num_checks > api_config.MAX_MONITOR_CYCLES:
+                job_status = get_job_status('problem',
+                    (
+                        f'Job unfinished after {num_checks} x {api_config.MONITOR_PERIOD_MINUTES} minutes, '
+                        f'please contact us to retrieve the results. Number of completed tasks: {num_tasks_completed}')
+                    )
+                job_status_table.update_job_status(job_id, job_status)
+                print(f'server_utils, create_batch_job, MAX_MONITOR_CYCLES reached, ending thread')
+                break  # still aggregate the Tasks' outputs
+
+    except Exception as e:
+        job_status = get_job_status('problem', f'Error occurred while monitoring the Batch job: {e}')
+        job_status_table.update_job_status(job_id, job_status)
+        print(f'server_utils, create_batch_job, Error occurred while monitoring the Batch job: {e}')
+        return
+
+    try:
+        output_sas_url = aggregate_results(job_id, model_version, job_name, job_submission_timestamp)
+        # preserving format from before, but SAS URL to 'failed_images' and 'images' are no longer provided
+        # failures should be contained in the output entries, indicated by an 'error' field
+        msg = {
+            'output_file_urls': {
+                'detections': output_sas_url
+            }
+        }
+        job_status = get_job_status('completed', msg)
+        job_status_table.update_job_status(job_id, job_status)
+
+    except Exception as e:
+        job_status = get_job_status('problem',
+                        f'Please contact us to retrieve the results. Error occurred while aggregating results: {e}')
+        job_status_table.update_job_status(job_id, job_status)
+        print(f'server_utils, create_batch_job, Error occurred while aggregating results: {e}')
+        return
 
 
-if __name__ == '__main__':
-    main()
+def aggregate_results(job_id, model_version, job_name, job_submission_timestamp):
+    task_outputs_dir = f'api_{api_config.API_INSTANCE_NAME}/job_{job_id}/task_outputs/'
+
+    container_url = sas_blob_utils.build_azure_storage_uri(account=api_config.STORAGE_ACCOUNT_NAME,
+                                                           container=api_config.STORAGE_CONTAINER_API)
+
+    all_results = []
+
+    with ContainerClient.from_container_url(container_url,
+                                            credential=api_config.STORAGE_ACCOUNT_KEY) as container_client:
+        generator = container_client.list_blobs(name_starts_with=task_outputs_dir)
+
+        blobs = [i for i in generator if i.name.endswith('.json')]
+
+        for blob_props in tqdm(blobs):
+            with container_client.get_blob_client(blob_props) as blob_client:
+                stream = io.BytesIO()
+                blob_client.download_blob().readinto(stream)
+                stream.seek(0)
+                task_results = json.load(stream)
+                all_results.extend(task_results)
+
+        api_output = {
+            'info': {
+                'detector': f'megadetector_v{model_version}',
+                'detection_completion_time': get_utc_time(),
+                'format_version': api_config.OUTPUT_FORMAT_VERSION
+            },
+            'detection_categories': api_config.DETECTOR_LABEL_MAP,
+            'images': all_results
+        }
+
+        # upload the output JSON to the Job folder
+        api_output_as_bytes = bytes(json.dumps(api_output, indent=1), 'utf-8')
+        output_file_path = f'api_{api_config.API_INSTANCE_NAME}/job_{job_id}/{job_id}_detections_{job_name}_{job_submission_timestamp}.json'
+        _ = container_client.upload_blob(name=output_file_path, data=api_output_as_bytes)
+
+    output_sas = generate_blob_sas(
+        account_name=api_config.STORAGE_ACCOUNT_NAME,
+        container_name=api_config.STORAGE_CONTAINER_API,
+        blob_name=output_file_path,
+        account_key=api_config.STORAGE_ACCOUNT_KEY,
+        permission=BlobSasPermissions(read=True, write=False),
+        expiry=datetime.utcnow() + timedelta(days=api_config.OUTPUT_SAS_EXPIRATION_DAYS)
+    )
+    output_sas_url = sas_blob_utils.build_azure_storage_uri(
+        account=api_config.STORAGE_ACCOUNT_NAME,
+        container=api_config.STORAGE_CONTAINER_API,
+        blob=output_file_path,
+        sas_token=output_sas
+    )
+    print(f'aggregate_results done, job_id: {job_id}')
+    print(f'output_sas_url: {output_sas_url}')
+    return output_sas_url
