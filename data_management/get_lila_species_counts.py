@@ -1,18 +1,21 @@
 #
 # get_lila_species_counts.py
 #
-# Example of how to create a csv of species counts per dataset (at '<output_dir> + species_counts.xlsx')
-# and a coco_file (at'<output_dir> + compiled_coco.json')
-# for all identified images of the given species over the given datasets.
+# Example of how to create a csv of species counts per dataset (at '<output_dir> + 
+# species_counts.xlsx') and a coco_file (at'<output_dir> + compiled_coco.json') for
+# all identified images of the given  species over the given datasets.
 #
 # You can constrain the species and datasets looked at in code below.
-# Columns in the csv are: number of images labeled with given species(im_cnt),
-# number of images with a bbox labeled with given species (bbox_im_cnt),
-# number of bbox's labeled with given species (bbox_cnt).
 #
+# Columns in the csv are:
+#   number of images labeled with given species(im_cnt)
+#   number of images with a bbox labeled with given species (bbox_im_cnt)
+#   number of bbox's labeled with given species (bbox_cnt)
 #
 # This script also outputs two pickle files which contain dictionaries.
+#
 # The 'total_species_counts_by_set.pkl' file contains a dictionary of dictionaries of the form:
+#
 # {<dataset-with-image-level-annotations>:
 #            {<species> : { 'image_urls': [<image-urls-of-images-with-species>],
 #                           'im_cnt :<number>},
@@ -25,6 +28,7 @@
 #  <dataset3>: ...}
 #
 # The 'total_species_counts.pkl' file contains a dictionary of dictionaries of the form:
+#
 # {<species> : { 'image_urls': [<image-urls-of-images-with-species>],
 #                'im_cnt :<number,
 #                'bbox_im_cnt :<number>},
@@ -32,12 +36,19 @@
 #  <species2>: ...}
 #
 #
-# When choosing the datasets to look at give caution to the names.
-# Those with '_bbox' appended are supposed to have bounding box level annotations
-# while those without are to have image-level annotations. The mapping has proved
-# to be not gauraunteed however so it's most likely best to include both versions
+# Data set names with '_bbox' appended are supposed to have bounding box level annotations
+# while those without are to have image-level annotations. The mapping is not 
+# guarauteed, however, so it's most likely best to include both versions
 # and let the csv and pickle outputs seperate the images for you correctly.
-# Options: 'Caltech Camera Traps', 'Caltech Camera Traps_bbox', 'ENA24_bbox', 'Missouri Camera Traps_bbox', 'NACTI', 'NACTI_bbox', 'WCS Camera Traps', 'WCS Camera Traps_bbox', 'Wellington Camera Traps', 'Island Conservation Camera Traps_bbox', 'Channel Islands Camera Traps_bbox', 'Snapshot Serengeti', 'Snapshot Serengeti_bbox', 'Snapshot Karoo', 'Snapshot Kgalagadi', 'Snapshot Enonkishu', 'Snapshot Camdeboo', 'Snapshot Mountain Zebra', 'Snapshot Kruger'
+#
+# Options:
+#
+#'Caltech Camera Traps', 'Caltech Camera Traps_bbox', 'ENA24_bbox',
+# 'Missouri Camera Traps_bbox', 'NACTI', 'NACTI_bbox', 'WCS Camera Traps', 'WCS Camera Traps_bbox',
+# 'Wellington Camera Traps', 'Island Conservation Camera Traps_bbox', 'Channel Islands Camera Traps_bbox',
+# 'Snapshot Serengeti', 'Snapshot Serengeti_bbox', 'Snapshot Karoo', 'Snapshot Kgalagadi',
+# 'Snapshot Enonkishu', 'Snapshot Camdeboo', 'Snapshot Mountain Zebra', 'Snapshot Kruger'
+#
 
 #%% Constants and imports
 
@@ -47,23 +58,35 @@ import tempfile
 import zipfile
 import os
 
-from tqdm import tqdm
-from multiprocessing.pool import ThreadPool
+import pickle
+import pandas as pd
+
 from urllib.parse import urlparse
 
 # LILA camera trap master metadata file
 metadata_url = 'http://lila.science/wp-content/uploads/2020/03/lila_sas_urls.txt'
 
-# dictionary to fill for output
-total_species_counts = {} # species count over all datasets
-total_species_counts_by_set = {} # species count seperated by datasets
+## dictionaries to fill for output
 
-# Datasets and Species to look at
-use_all_datasets = True # if False, will only collect data for species in species_of_interest
-datasets_of_interest = [] # only need if restrict_species is false.
+# species count over all datasets
+total_species_counts = {} 
 
-use_all_species = False # if False, will only collect data for species in species_of_interest
-species_of_interest = ["aardvark", "aardvarkantbear", "orycteropus afer"]  # only need if restrict_species is false
+# species count seperated by datasets
+total_species_counts_by_set = {} 
+
+## datasets and species to look at
+
+# if False, will only collect data for species in species_of_interest
+use_all_datasets = True 
+
+# only meaningful if restrict_species is false
+datasets_of_interest = [] 
+
+# if False, will only collect data for species in species_of_interest
+use_all_species = False 
+
+# only need if restrict_species is false
+species_of_interest = ['aardvark', 'aardvarkantbear', 'orycteropus afer']  
 
 # how the species should be labeled in the csv. key is label in lila dataset, value is label to use in csv
 species_mapping = {'aardvark': 'antelope, aardvark',
@@ -74,8 +97,6 @@ species_mapping = {'aardvark': 'antelope, aardvark',
 output_dir = r'c:\temp\lila_downloads_by_species'
 os.makedirs(output_dir,exist_ok=True)
 
-
-overwrite_files = False
 
 #%% Support functions
 
@@ -107,6 +128,7 @@ def download_url(url, destination_filename=None, force_download=False, verbose=T
         
     return destination_filename
 
+
 def unzip_file(input_file, output_folder=None):
     """
     Unzip a zipfile to the specified output folder, defaulting to the same location as
@@ -118,6 +140,7 @@ def unzip_file(input_file, output_folder=None):
         
     with zipfile.ZipFile(input_file, 'r') as zf:
         zf.extractall(output_folder)
+
 
 #%% Download and parse the metadata file
 
@@ -154,8 +177,11 @@ for s in metadata_lines:
     assert 'https' in url_mapping['sas_url']
     assert 'https' in url_mapping['json_url']
 
+
 #%% Download and extract metadata for the datasets we're interested in
+
 if use_all_datasets: datasets_of_interest = list(metadata_table.keys())
+
 for ds_name in datasets_of_interest:
     
     assert ds_name in metadata_table
@@ -182,12 +208,16 @@ for ds_name in datasets_of_interest:
     
 # ...for each dataset of interest
 
+
 #%% Count species
+
 coco_annotations = []
 coco_images = []
 coco_category_names = {}
 coco_category_id = 0
+
 for ds_name in datasets_of_interest:
+    
     print('counting species in: ' + ds_name)
     
     json_filename = metadata_table[ds_name]['json_filename']
@@ -212,23 +242,29 @@ for ds_name in datasets_of_interest:
     annotations = data['annotations']
     images = data['images']
     
-    ## Double check the annotations url provided corresponds to that implied by ds_name, or else fix
-    if 'bbox' in annotations[0]: # only need to look at first entry b/c json files with image-level annotations are seperated from those with box-level
+    # Double check the annotations url provided corresponds to that implied by ds_name, or else fix
+    
+    # only need to look at first entry b/c json files with image-level annotations
+    # are seperated from those with box-level
+    if 'bbox' in annotations[0]: 
         if ds_name.split('_')[-1] != 'bbox': 
             ds_name = ds_name + '_bbox'
     else:
         if ds_name.split('_')[-1] == 'bbox': 
             ds_name = ds_name.split('_')[0]
             
-    ## Build a list of image files (relative path names) that match the target species
+    # Build a list of image files (relative path names) that match the target species
     if ds_name not in total_species_counts_by_set.keys():
         total_species_counts_by_set[ds_name] = {}
+        
     for category_id in category_ids:
+        
         species = category_id_to_name[category_id]
         if not use_all_species: 
             if species not in species_of_interest: 
                 continue
         species = species_mapping[species]    
+        
         # add species entry to total_species_counts if not already present
         if species not in total_species_counts.keys(): 
             coco_category_names[species] = coco_category_id
@@ -238,6 +274,7 @@ for ds_name in datasets_of_interest:
             total_species_counts[species]['bbox_im_cnt'] = 0
             total_species_counts[species]['bbox_cnt'] = 0
             total_species_counts[species]['image_urls'] = []
+            
         if species not in total_species_counts_by_set[ds_name].keys():
             total_species_counts_by_set[ds_name][species] = {}
             total_species_counts_by_set[ds_name][species]['image_urls'] = []
@@ -281,24 +318,24 @@ for ds_name in datasets_of_interest:
             new_image['id'] = ds_name + '_' + im['id']
             coco_images.append(new_image)
 
-#%% Save outpuut coco files
 
-import json
+#%% Save output coco files
+
 
 coco_categories = [{'id':v, 'name':k} for k,v in coco_category_names.items()]
 coco = {'categories':coco_categories, 'annotations':coco_annotations, 'images':coco_images}
 
 json_data = json.dumps(coco)
-with open(os.path.join(output_dir,"compiled_coco.json"),"w") as f:
+with open(os.path.join(output_dir,'compiled_coco.json'),'w') as f:
     f.write(json_data)
+
 
 #%% Save species counts to csv
 
-import csv
-import pandas as pd
-
 writer = pd.ExcelWriter(os.path.join(output_dir,'species_counts.xlsx'), engine='xlsxwriter')
+
 for species in total_species_counts.keys():
+    
     col0, col1, col2, col3 = [], [], [], []
     for dataset in total_species_counts_by_set.keys():
         if species in total_species_counts_by_set[dataset]:
@@ -314,13 +351,14 @@ for species in total_species_counts.keys():
             
     df = pd.DataFrame({'dataname': col0, 'im_cnt': col1, 'bbox_im_cnt': col2, 'bbox_cnt':col3})
     df.to_excel(writer, sheet_name=species)
+    
 writer.save()
 
 
-#%% Save dictionary of species counts and imae urls to file
-import pickle
-with open(os.path.join(output_dir,"total_species_counts_by_set.pkl"),"wb") as f:
+#%% Save dictionary of species counts and image urls to file
+
+with open(os.path.join(output_dir,'total_species_counts_by_set.pkl'),'wb') as f:
     pickle.dump(total_species_counts_by_set,f)
 
-with open(os.path.join(output_dir,"total_species_counts.pkl"),"wb") as f:
+with open(os.path.join(output_dir,'total_species_counts.pkl'),'wb') as f:
     pickle.dump(total_species_counts,f)
