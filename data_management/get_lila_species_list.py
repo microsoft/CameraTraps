@@ -4,14 +4,18 @@
 #
 # Example of making a text file listing all species names in given datasets
 #
-# When choosing the datasets to look at in the `datasets_of_interest` variable
-# give caution to the names.
-# Those with '_bbox' appended are supposed to have bounding box level annotations
-# while those without are to have image-level annotations. The mapping has proved
-# to be not gauraunteed however so it's most likely best to include both versions
+# Data set names with '_bbox' appended are supposed to have bounding box level annotations
+# while those without are to have image-level annotations. The mapping is not 
+# guarauteed, however, so it's most likely best to include both versions
 # and let the csv and pickle outputs seperate the images for you correctly.
-# Options: 'Caltech Camera Traps', 'Caltech Camera Traps_bbox', 'ENA24_bbox', 'Missouri Camera Traps_bbox', 'NACTI', 'NACTI_bbox', 'WCS Camera Traps', 'WCS Camera Traps_bbox', 'Wellington Camera Traps', 'Island Conservation Camera Traps_bbox', 'Channel Islands Camera Traps_bbox', 'Snapshot Serengeti', 'Snapshot Serengeti_bbox', 'Snapshot Karoo', 'Snapshot Kgalagadi', 'Snapshot Enonkishu', 'Snapshot Camdeboo', 'Snapshot Mountain Zebra', 'Snapshot Kruger'
-
+#
+# Options:
+#
+#'Caltech Camera Traps', 'Caltech Camera Traps_bbox', 'ENA24_bbox',
+# 'Missouri Camera Traps_bbox', 'NACTI', 'NACTI_bbox', 'WCS Camera Traps', 'WCS Camera Traps_bbox',
+# 'Wellington Camera Traps', 'Island Conservation Camera Traps_bbox', 'Channel Islands Camera Traps_bbox',
+# 'Snapshot Serengeti', 'Snapshot Serengeti_bbox', 'Snapshot Karoo', 'Snapshot Kgalagadi',
+# 'Snapshot Enonkishu', 'Snapshot Camdeboo', 'Snapshot Mountain Zebra', 'Snapshot Kruger'
 #
 
 #%% Constants and imports
@@ -22,8 +26,6 @@ import tempfile
 import zipfile
 import os
 
-from tqdm import tqdm
-from multiprocessing.pool import ThreadPool
 from urllib.parse import urlparse
 
 # LILA camera trap master metadata file
@@ -32,15 +34,18 @@ metadata_url = 'http://lila.science/wp-content/uploads/2020/03/lila_sas_urls.txt
 # array to fill for output
 species_list = []
 
-# Datasets and Species to look at
-use_all_datasets = True # if False, will only collect data for species in species_of_interest
-datasets_of_interest = [] # only need if restrict_species is false.
+## datasets and species to look at
+
+# if False, will only collect data for species in species_of_interest
+use_all_datasets = True 
+
+# only need if restrict_species is false
+datasets_of_interest = [] 
 
 # We'll write images, metadata downloads, and temporary files here
 output_dir = r'c:\temp\lila_downloads_by_species'
 os.makedirs(output_dir,exist_ok=True)
-
-overwrite_files = False
+output_file = os.path.join(output_dir,'species_list.txt')
 
 
 #%% Support functions
@@ -133,7 +138,9 @@ for s in metadata_lines:
     assert 'https' in url_mapping['sas_url']
     assert 'https' in url_mapping['json_url']
 
+
 #%% Download and extract metadata for the datasets we're interested in
+
 if use_all_datasets: datasets_of_interest = list(metadata_table.keys())
 for ds_name in datasets_of_interest:
     
@@ -163,6 +170,7 @@ for ds_name in datasets_of_interest:
 
 
 #%% Get species names
+
 for ds_name in datasets_of_interest:
     
     json_filename = metadata_table[ds_name]['json_filename']
@@ -174,24 +182,26 @@ for ds_name in datasets_of_interest:
     sas_token = sas_url.split('?')[1]
     assert not sas_token.startswith('?')
     
-    ## Open the metadata file
+    # Open the metadata file
     
     with open(json_filename, 'r') as f:
         data = json.load(f)
     
-    ## Collect list of categories and mappings to species name
+    # Collect list of categories and mappings to species name
     categories = data['categories']
     category_ids = [c['id'] for c in categories]
     for c in categories:
         c['name'] = c['name'].lower()
         category_id_to_name = {c['id']:c['name'] for c in categories}
     
-    ## Append species to species_list
+    # Append species to species_list
     for category_id in category_ids:
         species = category_id_to_name[category_id]
         if species not in species_list: species_list.append(species)
 
+
 #%% Save possible species to file
-with open(os.path.join(output_dir,"species_list.txt"), "w") as txt_file:
+
+with open(output_file, 'w') as txt_file:
     for line in species_list:
-        txt_file.write(line + "\n")
+        txt_file.write(line + '\n')
