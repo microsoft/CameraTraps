@@ -195,21 +195,23 @@ def create_batch_job(job_id: str, body: dict):
             num_checks += 1
 
             # a completed Task could have a non-zero error code TODO check how many failed
-            num_tasks_completed = batch_job_manager.get_num_completed_tasks(job_id)
+            num_tasks_succeeded, num_tasks_failed = batch_job_manager.get_num_completed_tasks(job_id)
             job_status = get_job_status('running',
                                         (f'Check number {num_checks}, '
-                                         f'{num_tasks_completed} out of {num_tasks} shards have completed'))
+                                         f'{num_tasks_succeeded} out of {num_tasks} shards have completed '
+                                         f'successfully, {num_tasks_failed} shards have failed.'))
             job_status_table.update_job_status(job_id, job_status)
-            print(f'Check number {num_checks}, {num_tasks_completed} out of {num_tasks} shards have completed')
+            print(f'Check number {num_checks}, {num_tasks_succeeded} out of {num_tasks} shards have completed '
+                  f'successfully, {num_tasks_failed} shards have failed.')
 
-            if num_tasks_completed >= num_tasks:
+            if (num_tasks_succeeded + num_tasks_failed) >= num_tasks:
                 break
 
             if num_checks > api_config.MAX_MONITOR_CYCLES:
                 job_status = get_job_status('problem',
                     (
                         f'Job unfinished after {num_checks} x {api_config.MONITOR_PERIOD_MINUTES} minutes, '
-                        f'please contact us to retrieve the results. Number of completed tasks: {num_tasks_completed}')
+                        f'please contact us to retrieve the results. Number of succeeded shards: {num_tasks_succeeded}')
                     )
                 job_status_table.update_job_status(job_id, job_status)
                 print(f'server_utils, create_batch_job, MAX_MONITOR_CYCLES reached, ending thread')
@@ -226,6 +228,7 @@ def create_batch_job(job_id: str, body: dict):
         # preserving format from before, but SAS URL to 'failed_images' and 'images' are no longer provided
         # failures should be contained in the output entries, indicated by an 'error' field
         msg = {
+            'num_failed_shards': num_tasks_failed,
             'output_file_urls': {
                 'detections': output_sas_url
             }
