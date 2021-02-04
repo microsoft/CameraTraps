@@ -44,7 +44,6 @@ class BatchJobManager:
                 EnvironmentSetting(name='DETECTION_CONF_THRESHOLD', value=api_config.DETECTION_CONF_THRESHOLD)
             ]
         )
-
         self.batch_client.job.add(job)
 
     def submit_tasks(self, job_id: str, num_images: int) -> Tuple[int, list]:
@@ -136,14 +135,20 @@ class BatchJobManager:
 
         return task_ids_failed_to_submit
 
-    def get_num_completed_tasks(self, job_id):
+    def get_num_completed_tasks(self, job_id: str) -> Tuple[int, int]:
         tasks = self.batch_client.task.list(job_id,
                                             task_list_options=TaskListOptions(
                                                 filter='state eq \'completed\'',
-                                                select='id'  # only the id field will be non-empty
+                                                select='id, executionInfo'  # only the id field will be non-empty
                                             ))
-        completed_task_ids = [task.id for task in tasks]
-        return len(completed_task_ids)
+        num_succeeded, num_failed = 0, 0
+        for task in tasks:
+            exit_code: int = task.execution_info.exit_code
+            if exit_code == 0:
+                num_succeeded += 1
+            else:
+                num_failed += 1
+        return num_succeeded, num_failed
 
-    def cancel_batch_job(self, job_id):
+    def cancel_batch_job(self, job_id: str):
         self.batch_client.job.terminate(job_id, terminate_reason='APIUserCanceled')
