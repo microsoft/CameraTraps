@@ -8,9 +8,12 @@ from threading import Thread
 import sas_blob_utils  # from ai4eutils
 from flask import Flask, request, jsonify
 
+import server_api_config as api_config
 from server_app_config import AppConfig
+from server_batch import BatchJobManager
+from server_job import create_batch_job
+from server_job_status_table import JobStatusTable
 from server_utils import *
-
 
 #%% Helper classes
 app_config = AppConfig()
@@ -173,7 +176,7 @@ def cancel_request():
             'request_status': 'canceled',
             'message': 'Request has been canceled by the user.'
         })
-    return (200, 'Canceling signal has been sent. You can verify the status at the /task endpoint')
+    return 200, 'Canceling signal has been sent. You can verify the status at the /task endpoint'
 
 
 @app.route(f'{API_PREFIX}/task/<job_id>')
