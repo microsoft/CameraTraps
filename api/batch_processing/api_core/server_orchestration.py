@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 """
 Functions to submit images to the Azure Batch node pool for processing, monitor
 the Job and fetch results when completed.
@@ -5,10 +8,14 @@ the Job and fetch results when completed.
 
 import io
 import json
+import threading
 import time
+import logging
+import os
 import urllib.parse
 from datetime import timedelta
 from random import shuffle
+from typing import Union
 
 import sas_blob_utils  # from ai4eutils
 from azure.storage.blob import ContainerClient, BlobSasPermissions, generate_blob_sas
@@ -16,8 +23,11 @@ from tqdm import tqdm
 
 from server_utils import *
 import server_api_config as api_config
-from server_batch import BatchJobManager
+from server_batch_job_manager import BatchJobManager
 from server_job_status_table import JobStatusTable
+
+
+log = logging.getLogger(os.environ['FLASK_APP'])
 
 
 def create_batch_job(job_id: str, body: dict):
@@ -26,7 +36,7 @@ def create_batch_job(job_id: str, body: dict):
     """
     job_status_table = JobStatusTable()
     try:
-        print(f'server_utils, create_batch_job, job_id {job_id}, {body}')
+        log.info(f'server_job, create_batch_job, job_id {job_id}, {body}')
 
         input_container_sas = body.get('input_container_sas', None)
 
@@ -53,13 +63,13 @@ def create_batch_job(job_id: str, body: dict):
 
         # image_paths can be a list of strings (Azure blob names or public URLs)
         # or a list of length-2 lists where each is a [image_id, metadata] pair
-        job_status = get_job_status('running', 'Listing all images to process.')
+        job_status = get_job_status('created', 'Listing all images to process.')
         job_status_table.update_job_status(job_id, job_status)
 
         # Case 1: listing all images in the container
         # - not possible to have attached metadata if listing images in a blob
         if images_requested_json_sas is None:
-            print('server_utils, create_batch_job, running - listing all images to process.')
+            log.info('server_job, create_batch_job, listing all images to process.')
 
             # list all images to process
             image_paths = sas_blob_utils.list_blobs_in_container(
@@ -73,10 +83,10 @@ def create_batch_job(job_id: str, body: dict):
 
         # Case 2: user supplied a list of images to process; can include metadata
         else:
-            print('server_utils, create_batch_job, running - using provided list of images.')
+            log.info('server_job, create_batch_job, using provided list of images.')
             output_stream, blob_properties = sas_blob_utils.download_blob_to_stream(images_requested_json_sas)
             image_paths = json.load(output_stream)
-            print('server_utils, create_batch_job, length of image_paths provided by the user: {}'.format(
+            log.info('server_job, create_batch_job, length of image_paths provided by the user: {}'.format(
                 len(image_paths)))
             if len(image_paths) == 0:
                 job_status = get_job_status(
@@ -106,7 +116,7 @@ def create_batch_job(job_id: str, body: dict):
                 if path.lower().endswith(api_config.IMAGE_SUFFIXES_ACCEPTED):
                     valid_image_paths.append(p)
             image_paths = valid_image_paths
-            print_job(job_id, ('server_utils, create_batch_job, length of image_paths provided by user, '
+            log.info(job_id, ('server_job, create_batch_job, length of image_paths provided by user, '
                                f'after filtering to jpg: {len(image_paths)}'))
 
         # apply the first_n and sample_n filters
@@ -123,13 +133,13 @@ def create_batch_job(job_id: str, body: dict):
                 raise ValueError(msg)
 
             # sample by shuffling image paths and take the first sample_n images
-            print('First path before shuffling:', image_paths[0])
+            log.info('First path before shuffling:', image_paths[0])
             shuffle(image_paths)
-            print('First path after shuffling:', image_paths[0])
+            log.info('First path after shuffling:', image_paths[0])
             image_paths = image_paths[:sample_n]
 
         num_images = len(image_paths)
-        print(f'server_utils, create_batch_job, num_images after applying all filters: {num_images}')
+        log.info(f'server_job, create_batch_job, num_images after applying all filters: {num_images}')
 
         if num_images < 1:
             job_status = get_job_status('completed', (
@@ -157,13 +167,13 @@ def create_batch_job(job_id: str, body: dict):
                 name=f'api_{api_config.API_INSTANCE_NAME}/job_{job_id}/{job_id}_images.json',
                 data=images_list_str_as_bytes)
 
-        job_status = get_job_status('running', f'{num_images} images listed; submitting the job...')
+        job_status = get_job_status('created', f'{num_images} images listed; submitting the job...')
         job_status_table.update_job_status(job_id, job_status)
 
     except Exception as e:
         job_status = get_job_status('failed', f'Error occurred while preparing the Batch job: {e}')
         job_status_table.update_job_status(job_id, job_status)
-        print(f'server_utils, create_batch_job, Error occurred while preparing the Batch job: {e}')
+        log.error(f'server_job, create_batch_job, Error occurred while preparing the Batch job: {e}')
         return  # do not start monitoring
 
     try:
@@ -177,15 +187,50 @@ def create_batch_job(job_id: str, body: dict):
 
         num_tasks, task_ids_failed_to_submit = batch_job_manager.submit_tasks(job_id, num_images)
 
+        # now request_status moves from created to running
         job_status = get_job_status('running',
                                     (f'Submitted {num_images} images to cluster in {num_tasks} shards. '
                                      f'Number of shards failed to be submitted: {len(task_ids_failed_to_submit)}'))
+
+        # an extra field to allow the monitoring thread to restart after an API restart: total number of tasks
+        job_status['num_tasks'] = num_tasks
+
         job_status_table.update_job_status(job_id, job_status)
     except Exception as e:
         job_status = get_job_status('problem', f'Error occurred while submitting the Batch job: {e}')
         job_status_table.update_job_status(job_id, job_status)
-        print(f'server_utils, create_batch_job, Error occurred while submitting the Batch job: {e}')
+        log.error(f'server_job, create_batch_job, Error occurred while submitting the Batch job: {e}')
         return
+
+    # start the monitor thread with the same name
+    try:
+        thread = threading.Thread(
+            target=monitor_batch_job,
+            name=f'job_{job_id}',
+            kwargs={
+                'job_id': job_id,
+                'num_tasks': num_tasks,
+                'model_version': model_version,
+                'job_name': job_name,
+                'job_submission_timestamp': job_submission_timestamp
+            }
+        )
+        thread.start()
+    except Exception as e:
+        job_status = get_job_status('problem', f'Error occurred while starting the monitoring thread: {e}')
+        job_status_table.update_job_status(job_id, job_status)
+        log.error(f'server_job, create_batch_job, Error occurred while starting the monitoring thread: {e}')
+        return
+
+
+def monitor_batch_job(job_id: str,
+                      num_tasks: int,
+                      model_version: str,
+                      job_name: str,
+                      job_submission_timestamp: str):
+
+    job_status_table = JobStatusTable()
+    batch_job_manager = BatchJobManager()
 
     try:
         num_checks = 0
@@ -194,14 +239,14 @@ def create_batch_job(job_id: str, body: dict):
             time.sleep(api_config.MONITOR_PERIOD_MINUTES * 60)
             num_checks += 1
 
-            # a completed Task could have a non-zero error code TODO check how many failed
+            # both succeeded and failed tasks are marked "completed" on Batch
             num_tasks_succeeded, num_tasks_failed = batch_job_manager.get_num_completed_tasks(job_id)
             job_status = get_job_status('running',
                                         (f'Check number {num_checks}, '
                                          f'{num_tasks_succeeded} out of {num_tasks} shards have completed '
                                          f'successfully, {num_tasks_failed} shards have failed.'))
             job_status_table.update_job_status(job_id, job_status)
-            print(f'Check number {num_checks}, {num_tasks_succeeded} out of {num_tasks} shards have completed '
+            log.info(f'Check number {num_checks}, {num_tasks_succeeded} out of {num_tasks} shards have completed '
                   f'successfully, {num_tasks_failed} shards have failed.')
 
             if (num_tasks_succeeded + num_tasks_failed) >= num_tasks:
@@ -214,13 +259,13 @@ def create_batch_job(job_id: str, body: dict):
                         f'please contact us to retrieve the results. Number of succeeded shards: {num_tasks_succeeded}')
                     )
                 job_status_table.update_job_status(job_id, job_status)
-                print(f'server_utils, create_batch_job, MAX_MONITOR_CYCLES reached, ending thread')
+                log.warning(f'server_job, create_batch_job, MAX_MONITOR_CYCLES reached, ending thread')
                 break  # still aggregate the Tasks' outputs
 
     except Exception as e:
         job_status = get_job_status('problem', f'Error occurred while monitoring the Batch job: {e}')
         job_status_table.update_job_status(job_id, job_status)
-        print(f'server_utils, create_batch_job, Error occurred while monitoring the Batch job: {e}')
+        log.error(f'server_job, create_batch_job, Error occurred while monitoring the Batch job: {e}')
         return
 
     try:
@@ -240,7 +285,7 @@ def create_batch_job(job_id: str, body: dict):
         job_status = get_job_status('problem',
                         f'Please contact us to retrieve the results. Error occurred while aggregating results: {e}')
         job_status_table.update_job_status(job_id, job_status)
-        print(f'server_utils, create_batch_job, Error occurred while aggregating results: {e}')
+        log.error(f'server_job, create_batch_job, Error occurred while aggregating results: {e}')
         return
 
 
@@ -295,6 +340,6 @@ def aggregate_results(job_id, model_version, job_name, job_submission_timestamp)
         blob=output_file_path,
         sas_token=output_sas
     )
-    print(f'aggregate_results done, job_id: {job_id}')
-    print(f'output_sas_url: {output_sas_url}')
+    log.info(f'server_job, aggregate_results done, job_id: {job_id}')
+    log.info(f'output_sas_url: {output_sas_url}')
     return output_sas_url
