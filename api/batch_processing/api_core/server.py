@@ -3,32 +3,32 @@
 
 import string
 import uuid
-from threading import Thread
+import threading
 
-import sas_blob_utils  # from ai4eutils
 from flask import Flask, request, jsonify
 
 import server_api_config as api_config
 from server_app_config import AppConfig
-from server_batch import BatchJobManager
-from server_job import create_batch_job
+from server_batch_job_manager import BatchJobManager
+from server_orchestration import create_batch_job, monitor_batch_job
 from server_job_status_table import JobStatusTable
 from server_utils import *
 
-#%% Helper classes
-app_config = AppConfig()
-job_status_table = JobStatusTable()
-batch_job_manager = BatchJobManager()
-print('server.py, finished instantiating helper classes')
-
-
-#%% Flask app and endpoints
-
-print('server.py, creating Flask application...')
+# %% Flask app
 
 app = Flask(__name__)
 API_PREFIX = api_config.API_PREFIX
+app.logger.info('server, created Flask application...')
 
+# %% Helper classes
+
+app_config = AppConfig()
+job_status_table = JobStatusTable()
+batch_job_manager = BatchJobManager()
+app.logger.info('server, finished instantiating helper classes')
+
+
+# %% Flask endpoints
 
 @app.route(f'{API_PREFIX}/')
 def hello():
@@ -95,7 +95,7 @@ def request_detections():
     model_version = post_body.get('model_version', '')
     if model_version != '':
         model_version = str(model_version)  # in case user used an int
-        if model_version not in api_config.MD_VERSIONS_TO_REL_PATH:  # TODO check AppConfig
+        if model_version not in api_config.MD_VERSIONS_TO_REL_PATH:  # TODO use AppConfig to store model version info
             return make_error(400, f'model_version {model_version} is not supported.')
 
     # check request_name has only allowed characters
@@ -109,10 +109,9 @@ def request_detections():
                    'digits, - and _ are allowed).')
             return make_error(400, msg)
 
-    # optional params for telemetry collection
+    # optional params for telemetry collection - logged to status table for now as part of call_params
     country = post_body.get('country', None)
     organization_name = post_body.get('organization_name', None)
-    # TODO log this request to Insights
 
     try:
         job_id = uuid.uuid4().hex
@@ -125,7 +124,11 @@ def request_detections():
         return make_error(500, f'Error creating a job status entry: {e}')
 
     try:
-        thread = Thread(target=create_batch_job, kwargs={'job_id': job_id, 'body': post_body})
+        thread = threading.Thread(
+            target=create_batch_job,
+            name=f'job_{job_id}',
+            kwargs={'job_id': job_id, 'body': post_body}
+        )
         thread.start()
     except Exception as e:
         return make_error(500, f'Error creating or starting the batch processing thread: {e}')
@@ -145,6 +148,8 @@ def cancel_request():
         post_body = request.get_json()
     except Exception as e:
         return make_error(415, f'Error occurred reading POST request body: {e}.')
+
+    app.logger.info(f'server, cancel_request received, body: {post_body}')
 
     # required fields
     job_id = post_body.get('task_id', None)
@@ -176,11 +181,11 @@ def cancel_request():
             'request_status': 'canceled',
             'message': 'Request has been canceled by the user.'
         })
-    return 200, 'Canceling signal has been sent. You can verify the status at the /task endpoint'
+    return 'Canceling signal has been sent. You can verify the status at the /task endpoint'
 
 
 @app.route(f'{API_PREFIX}/task/<job_id>')
-def get_job_status(job_id):
+def get_job_status(job_id: str):
     """
     Does not require the "caller" field to avoid checking the allowlist in App Configurations.
     Retains the /task endpoint name to be compatible with previous versions.
@@ -188,12 +193,45 @@ def get_job_status(job_id):
     item_read = job_status_table.read_job_status(job_id)
     if item_read is None:
         return make_error(404, 'Task is not found.')
-    if 'status' not in item_read or 'last_updated' not in item_read:
+    if 'status' not in item_read or 'last_updated' not in item_read or 'call_params' not in item_read:
         return make_error(404, 'Something went wrong. This task does not have a valid status.')
 
+    # If the status is running, it could be a Job submitted before the last restart of this
+    # API instance. If that is the case, we should start to monitor its progress again.
+    status = item_read['status']
+    if isinstance(status, dict) and \
+            'request_status' in status and \
+            status['request_status'] in ['running', 'problem'] and \
+            'num_tasks' in status and \
+            job_id not in get_thread_names():
+        # WARNING model_version could be wrong (a newer version number gets written to the output file) around
+        # the time that  the model is updated, if this request was submitted before the model update
+        # and the API restart; this should be quite rare
+        model_version = item_read['call_params'].get('model_version', api_config.DEFAULT_MD_VERSION)
+
+        num_tasks = status['num_tasks']
+        job_name = item_read['call_params'].get('request_name', '')
+        job_submission_timestamp = item_read.get('job_submission_time', '')
+
+        thread = threading.Thread(
+            target=monitor_batch_job,
+            name=f'job_{job_id}',
+            kwargs={
+                'job_id': job_id,
+                'num_tasks': num_tasks,
+                'model_version': model_version,
+                'job_name': job_name,
+                'job_submission_timestamp': job_submission_timestamp
+            }
+        )
+        thread.start()
+        app.logger.info(f'server, started a new thread to monitor job {job_id}')
+
     # conform to previous schemes
+    if 'num_tasks' in status:
+        del status['num_tasks']
     item_to_return = {
-        'Status': item_read['status'],
+        'Status': status,
         'Endpoint': f'{API_PREFIX}/request_detections',
         'TaskId': job_id,
         'Timestamp': item_read['last_updated']
@@ -209,3 +247,20 @@ def get_default_model_version() -> str:
 @app.route(f'{API_PREFIX}/supported_model_versions')
 def get_supported_model_versions() -> str:
     return jsonify(sorted(list(api_config.MD_VERSIONS_TO_REL_PATH.keys())))
+
+
+# %% undocumented endpoints
+
+def get_thread_names() -> list:
+    thread_names = []
+    for thread in threading.enumerate():
+        if thread.name.startswith('job_'):
+            thread_names.append(thread.name.split('_')[1])
+    return sorted(thread_names)
+
+
+@app.route(f'{API_PREFIX}/all_jobs')
+def get_all_jobs():
+    """List all Jobs being monitored since this API instance started"""
+    thread_names = get_thread_names()
+    return jsonify(thread_names)

@@ -177,12 +177,9 @@ When all shards have finished processing, the `status` returned by the `/task` e
         "message": {
             "num_failed_shards": 0,
             "output_file_urls": {
-                "detections": "https://cameratrap.blob.core.windows.net/async-api-internal/ee26326e-7e0d-4524-a9ea-f57a5799d4ba/ee26326e-7e0d-4524-a9ea-f57a5799d4ba_detections_4_1_on_test_images_20200709211752.json?sv=2019-02-02&sr=b&sig=key1",
-                "failed_images": "https://cameratrap.blob.core.windows.net/async-api-internal/ee26326e-7e0d-4524-a9ea-f57a5799d4ba/ee26326e-7e0d-4524-a9ea-f57a5799d4ba_failed_images_4_1_on_test_images_20200709211752.json?sv=2019-02-02&sr=b&sig=key2",
-                "images": "https://cameratrap.blob.core.windows.net/async-api-internal/ee26326e-7e0d-4524-a9ea-f57a5799d4ba/ee26326e-7e0d-4524-a9ea-f57a5799d4ba_images.json?sv=2019-02-02&sr=b&sig=key3"
+                "detections": "https://cameratrap.blob.core.windows.net/async-api-internal/ee26326e-7e0d-4524-a9ea-f57a5799d4ba/ee26326e-7e0d-4524-a9ea-f57a5799d4ba_detections_4_1_on_test_images_20200709211752.json?sv=2019-02-02&sr=b&sig=key1"
             }
-        },
-        "time": "2020-07-09 21:27:17"
+        }
     },
     "Timestamp": "2020-07-09 21:27:17",
     "Endpoint": "/v3/camera-trap/detection-batch/request_detections",
@@ -197,27 +194,22 @@ assert task_status['request_status'] == 'completed'
 message = task_status['message']
 assert message['num_failed_shards'] == 0
 
-output_files = message['output_file_urls']
-url_to_result = output_files['detections']
-url_to_failed_images = output_files['failed_images']
-url_to_all_images_processed = output_files['images']
-
+url_to_results_file = message['output_file_urls']['detections']
 ```
 Note that the field `Status` in the returned body is capitalized (since July 2020).
 
-These URLs are valid for 90 days from the time the request has finished. If you neglected to retrieve them before the links expired, contact us with the RequestID and we can send the results to you. Here are the 3 files to expect:
+These URL to the results file is valid for 180 days from the time the request has finished. If you neglected to retrieve them before the links expired, contact us with the RequestID and we can send the results to you. 
 
-
-| File name                | Description | 
-|--------------------------|-------------|
-| requestID_detections_requestName_timestamp.json | Contains the predictions produced by the detector, in the format defined below.   |
-| requestID_failed_images_requestName_timestamp.json | Contains a list of full paths to images in the blob that the API failed to open or process, possibly because they are corrupted. |
-| requestID_images.json | Contains a list of the full paths to all images that the API was supposed to process, based on the content of the container at the time the API was called and the filtering parameters provided. |
+The results file is a JSON in the format described below, last updated in February 2021 (`"format_version": "1.1"`).
 
 
 #### Batch processing API output format
 
-The output of the detector is saved in `requestID_detections_requestName_timestamp.json`. The `classifications` fields will be added if a classifier was trained for your project and applied to the images. Example output with both detection and classification results:
+The output of the detector is saved in `requestID_detections_requestName_timestamp.json`. The `classifications` fields will be added if a classifier was trained for your project and applied to the images. 
+
+If an image could not be opened or an error occurred when applying the model to it, it will still have an entry in the output file images list, but it will have a `failure` field indicating the type of error (see last entry in the example below). However, if the API run into problems processing an entire shard of images (usually 2000 images per shard), they will not have an entry in the results file.
+
+Example output with both detection and classification results:
 
 ```json
 {
@@ -226,7 +218,7 @@ The output of the detector is saved in `requestID_detections_requestName_timesta
         "detection_completion_time": "2019-05-22 02:12:19",
         "classifier": "ecosystem1_v2",
         "classification_completion_time": "2019-05-26 01:52:08",
-        "format_version": "1.0"
+        "format_version": "1.1"
     },
     "detection_categories": {
         "1": "animal",
@@ -268,6 +260,10 @@ The output of the detector is saved in `requestID_detections_requestName_timesta
             "meta": "",
             "max_detection_conf": 0,
             "detections": []
+        },
+        {
+            "file": "/path/from/base/dir2/corrupted.jpg",
+            "failure": "Failure image access"
         }
     ]
 }

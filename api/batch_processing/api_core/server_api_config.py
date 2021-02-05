@@ -1,3 +1,10 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
+"""
+A module to hold the configurations specific to an instance of the API.
+"""
+
 import os
 
 

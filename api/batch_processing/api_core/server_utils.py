@@ -1,24 +1,32 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
 """
 Helper functions for the batch processing API.
 """
 
+import logging
+import os
 from datetime import datetime
 from typing import Tuple, Any, Sequence, Optional
 
 import sas_blob_utils  # from ai4eutils
 
 
+log = logging.getLogger(os.environ['FLASK_APP'])
+
+
 #%% helper classes and functions
 
 def make_error(error_code: int, error_message: str) -> Tuple[dict, int]:
-    # TODO log exception
-    print(f'Error {error_code} - {error_message}')
+    # TODO log exception when we have more telemetry
+    log.error(f'Error {error_code} - {error_message}')
     return {'error': error_message}, error_code
 
 
 def print_job(job_id, msg):
     # TODO use this func for logging
-    print(f'job_id={job_id}. {msg}')
+    log.info(f'job_id={job_id}. {msg}')
 
 
 def check_data_container_sas(input_container_sas: str) -> Optional[Tuple[int, str]]:
@@ -51,7 +59,6 @@ def get_utc_time() -> str:
 def get_job_status(request_status: str, message: Any) -> dict:
     return {
         'request_status': request_status,
-        'time': get_utc_time(),
         'message': message
     }
 
