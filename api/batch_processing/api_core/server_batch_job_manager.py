@@ -5,6 +5,8 @@
 A class wrapping the Azure Batch client.
 """
 
+import logging
+import os
 import math
 from typing import Tuple
 
@@ -13,6 +15,9 @@ from azure.batch.models import *
 from azure.common.credentials import ServicePrincipalCredentials
 
 import server_api_config as api_config
+
+
+log = logging.getLogger(os.environ['FLASK_APP'])
 
 
 class BatchJobManager:
@@ -30,7 +35,7 @@ class BatchJobManager:
 
     def create_job(self, job_id: str, detector_model_rel_path: str,
                    input_container_sas: str, use_url: bool):
-        print(f'BatchJobManager, create_job, job_id: {job_id}')
+        log.info(f'BatchJobManager, create_job, job_id: {job_id}')
         job = JobAddParameter(
             id=job_id,
             pool_info=PoolInformation(pool_id=api_config.POOL_ID),
@@ -57,7 +62,7 @@ class BatchJobManager:
             num_task: total number of Tasks that should be in this Job
             task_ids_failed_to_submit: which Tasks from the above failed to be submitted
         """
-        print('BatchJobManager, submit_tasks')
+        log.info('BatchJobManager, submit_tasks')
 
         # cannot execute the scoring script that is in the mounted directory; has to be copied to cwd
         # not luck giving the commandline arguments via formatted string - set as env vars instead
@@ -101,12 +106,12 @@ class BatchJobManager:
                                                            2)
 
             if len(task_ids_failed_to_submit) > 0:
-                print('BatchJobManager, submit_tasks, after retry, '
+                log.info('BatchJobManager, submit_tasks, after retry, '
                       f'len of task_ids_failed_to_submit: {len(task_ids_failed_to_submit)}')
             else:
-                print('BatchJobManager, submit_tasks, after retry, all Tasks submitted')
+                log.info('BatchJobManager, submit_tasks, after retry, all Tasks submitted')
         else:
-            print('BatchJobManager, submit_tasks, all Tasks submitted after first try')
+            log.info('BatchJobManager, submit_tasks, all Tasks submitted after first try')
 
         # Change the Job's on_all_tasks_complete option to 'terminateJob' so the Job's status changes automatically
         # after all submitted tasks are done
@@ -130,7 +135,7 @@ class BatchJobManager:
                 if task_result.status is not TaskAddStatus.success:
                     # actually we should probably only re-submit if it's a server_error
                     task_ids_failed_to_submit.append(task_result.task_id)
-                    print(f'task {task_result.task_id} failed to submitted after {n_th_try} try/tries, '
+                    log.info(f'task {task_result.task_id} failed to submitted after {n_th_try} try/tries, '
                           f'status: {task_result.status}, error: {task_result.error}')
 
         return task_ids_failed_to_submit
