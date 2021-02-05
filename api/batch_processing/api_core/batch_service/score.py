@@ -411,8 +411,8 @@ def main():
     except Exception as e:
         raise RuntimeError(f'score.py, main(), exception in score_images(): {e}')
 
-    with open(task_output_path, 'w') as f:
-        json.dump(detections, f)
+    with open(task_output_path, 'w', encoding='utf-8') as f:
+        json.dump(detections, f, ensure_ascii=False)
 
 
 if __name__ == '__main__':

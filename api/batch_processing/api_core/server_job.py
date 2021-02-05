@@ -64,8 +64,8 @@ def create_batch_job(job_id: str, body: dict):
             # list all images to process
             image_paths = sas_blob_utils.list_blobs_in_container(
                 container_uri=input_container_sas,
-                blob_prefix=image_path_prefix,
-                blob_suffix=api_config.IMAGE_SUFFIXES_ACCEPTED,
+                blob_prefix=image_path_prefix,  # check will be case-sensitive
+                blob_suffix=api_config.IMAGE_SUFFIXES_ACCEPTED,  # check will be case-insensitive
                 limit=api_config.MAX_NUMBER_IMAGES_ACCEPTED_PER_JOB + 1
                 # + 1 so if the number of images listed > MAX_NUMBER_IMAGES_ACCEPTED_PER_JOB
                 # we will know and not proceed
@@ -101,7 +101,7 @@ def create_batch_job(job_id: str, body: dict):
                 # Although urlparse(p).path preserves the extension on local paths, it will not work for
                 # blob file names that contains "#", which will be treated as indication of a query.
                 # If the URL is generated via Azure Blob Storage, the "#" char will be properly encoded
-                path = urllib.parse.urlparse(locator).path.lower() if use_url else locator
+                path = urllib.parse.urlparse(locator).path if use_url else locator
 
                 if path.lower().endswith(api_config.IMAGE_SUFFIXES_ACCEPTED):
                     valid_image_paths.append(p)
@@ -147,7 +147,7 @@ def create_batch_job(job_id: str, body: dict):
 
         # upload the image list to the container, which is also mounted on all nodes
         # all sharding and scoring use the uploaded list
-        images_list_str_as_bytes = bytes(json.dumps(image_paths), 'utf-8')
+        images_list_str_as_bytes = bytes(json.dumps(image_paths, ensure_ascii=False), encoding='utf-8')
 
         container_url = sas_blob_utils.build_azure_storage_uri(account=api_config.STORAGE_ACCOUNT_NAME,
                                                                container=api_config.STORAGE_CONTAINER_API)
@@ -277,7 +277,7 @@ def aggregate_results(job_id, model_version, job_name, job_submission_timestamp)
         }
 
         # upload the output JSON to the Job folder
-        api_output_as_bytes = bytes(json.dumps(api_output, indent=1), 'utf-8')
+        api_output_as_bytes = bytes(json.dumps(api_output, ensure_ascii=False, indent=1), encoding='utf-8')
         output_file_path = f'api_{api_config.API_INSTANCE_NAME}/job_{job_id}/{job_id}_detections_{job_name}_{job_submission_timestamp}.json'
         _ = container_client.upload_blob(name=output_file_path, data=api_output_as_bytes)
 

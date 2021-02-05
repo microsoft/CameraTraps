@@ -136,6 +136,7 @@ class BatchJobManager:
         return task_ids_failed_to_submit
 
     def get_num_completed_tasks(self, job_id: str) -> Tuple[int, int]:
+        # docs: # https://docs.microsoft.com/en-us/rest/api/batchservice/odata-filters-in-batch#list-tasks
         tasks = self.batch_client.task.list(job_id,
                                             task_list_options=TaskListOptions(
                                                 filter='state eq \'completed\'',
