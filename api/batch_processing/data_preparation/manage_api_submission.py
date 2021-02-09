@@ -42,6 +42,7 @@ import pprint
 import time
 import itertools
 
+from datetime import date
 from urllib.parse import urlsplit, unquote
 from typing import Any, Dict, List
 from tqdm import tqdm
@@ -71,8 +72,10 @@ submission_time_between_tasks = 60
 
 storage_account_name = 'blah'
 container_name = 'blah'
-base_task_name = 'institution-20191215'
-base_output_folder_name = r'f:\institution'
+country = 'country'
+organization_name = 'institution'
+base_task_name = 'institution-' + date.today().strftime('%Y-%m-%d')
+base_output_folder_name = 'g:\\' + organization_name
 
 # Shared Access Signature (SAS) tokens for the Azure Blob Storage container.
 # Leading question mark is optional.
@@ -111,6 +114,8 @@ folder_prefixes = None # {'stuff':['a','b','c']}
 image_base = 'x:\\'
 
 additional_task_args: Dict[str, Any] = {}
+additional_task_args['country'] = country
+additional_task_args['organization_name'] = organization_name
 
 # Supported model_versions: '4', '3', '4_prelim'
 #
