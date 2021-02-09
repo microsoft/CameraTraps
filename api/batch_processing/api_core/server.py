@@ -79,9 +79,12 @@ def request_detections():
 
     images_requested_json_sas = post_body.get('images_requested_json_sas', None)
     if images_requested_json_sas is not None:
-        exists = sas_blob_utils.check_blob_exists(images_requested_json_sas)
+        try:
+            exists = sas_blob_utils.check_blob_exists(images_requested_json_sas)
+        except Exception as e:
+            return make_error(400, 'images_requested_json_sas is not valid.')
         if not exists:
-            return make_error(400, 'images_requested_json_sas does not point to a valid file.')
+            return make_error(400, 'images_requested_json_sas points to a non-existent file.')
 
     # if use_url, then images_requested_json_sas is required
     if use_url:
@@ -117,7 +120,7 @@ def request_detections():
         job_id = uuid.uuid4().hex
         job_status_table.create_job_status(
             job_id=job_id,
-            status='created',
+            status= get_job_status('created', 'Request received. Listing images next...'),
             call_params=post_body
         )
     except Exception as e:
@@ -185,7 +188,7 @@ def cancel_request():
 
 
 @app.route(f'{API_PREFIX}/task/<job_id>')
-def get_job_status(job_id: str):
+def retrieve_job_status(job_id: str):
     """
     Does not require the "caller" field to avoid checking the allowlist in App Configurations.
     Retains the /task endpoint name to be compatible with previous versions.
