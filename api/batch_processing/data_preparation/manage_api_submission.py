@@ -505,33 +505,26 @@ if False:
         
         results = task_to_results[task_id]
         
-        if len(results) != 3:
+        if len(results) != 1:
             print('Task {} is not finished'.format(task_id))
             task_id_to_msg[task_id] = None
             continue
         
-        images_url = ''
-        failed_images_url = ''
         detections_url = ''
         
         # s = results[0]
+        assert False, 'Need to revisit this section for the new API'
         task_id_start = task_id[0:8]
         for s in results:
             assert s.startswith(task_id_start)
             s_url = container_uri.replace('?','/' + s + '?')
             blob_name = s.split('/')[1]
-            if blob_name.endswith('_images.json'):
-                images_url = s_url
-            elif blob_name.startswith(task_id_start + '_detections'):
+            if blob_name.startswith(task_id_start + '_detections'):
                 detections_url = s_url
-            elif blob_name.startswith(task_id_start + '_failed_images'):    
-                failed_images_url = s_url
             else:
                 raise ValueError('Cannot map blob {}'.format(s))
         
             msg = prepare_api_submission.create_response_message(0,
-                                    failed_images_url=failed_images_url,
-                                    images_url=images_url,
                                     detections_url=detections_url,
                                     task_id=task_id)
             
@@ -622,20 +615,16 @@ for i_taskgroup, taskgroup in enumerate(taskgroups):
         assert (folder_name in detections_fn) or (clean_folder_name in detections_fn)
         assert 'chunk' in detections_fn
 
+        # Check that we have (almost) all the images
+        list_file = task.local_images_list_path
+        with open(list_file, 'r') as f:
+            submitted_images = json.load(f)
+        
         missing_images_fn = os.path.join(
-            raw_api_output_folder, detections_fn.replace('.json', '_missing.json'))
-        missing_images = task.get_missing_images(verbose=True)
+            raw_api_output_folder, detections_fn.replace('.json', '_missing.json').replace(':','_'))
+        missing_images = task.get_missing_images(submitted_images=submitted_images,verbose=True)
         missing_images_by_task.append(missing_images)
         ai4e_azure_utils.write_list_to_file(missing_images_fn, missing_images)
-        
-        failed_images_fn = os.path.join(
-            raw_api_output_folder, detections_fn.replace('.json', '_failed.json'))
-        failed_images_url = task.get_output_file_urls()['failed_images']
-        prepare_api_submission.download_url(failed_images_url, failed_images_fn)
-        with open(failed_images_fn,'r') as failf:
-            failed_images = json.load(failf)
-            assert isinstance(failed_images,list)
-        failed_images_by_task.append(failed_images)
         
         num_missing_images = len(missing_images)
         if num_missing_images < max_tolerable_missing_images:
@@ -738,7 +727,7 @@ for i_taskgroup, taskgroup in enumerate(taskgroups):
 
         output_file_urls = task.get_output_file_urls()
         detections_url = output_file_urls['detections']
-        fn = url_to_filename(detections_url)
+        fn = url_to_filename(detections_url).replace(':','_')
 
         # Each taskgroup corresponds to one of our folders
         folder_name = folder_names[i_taskgroup]
