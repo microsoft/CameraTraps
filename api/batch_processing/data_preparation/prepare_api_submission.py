@@ -339,10 +339,9 @@ class Task:
         return output_file_urls
         
         
-    def get_missing_images(self, verbose: bool = False) -> List[str]:
+    def get_missing_images(self, submitted_images, verbose: bool = False) -> List[str]:
         """
         Compares the submitted and processed images lists to find missing
-        images. Double-checks that 'failed_images' is a subset of the missing
         images.
 
         "missing": an image from the submitted list that was not processed,
@@ -359,7 +358,10 @@ class Task:
         message = self.response['Status']['message']
 
         # estimate # of failed images from failed shards
-        n_failed_shards = message['num_failed_shards']
+        if 'num_failed_shards' in message:
+            n_failed_shards = message['num_failed_shards']
+        else:
+            n_failed_shards = 0
         
         # Download all three JSON urls to memory
         output_file_urls = message['output_file_urls']
@@ -367,21 +369,17 @@ class Task:
             if self.id not in url:
                 raise BatchAPIResponseError(
                     'Task ID missing from output URL: {}'.format(url))
-        submitted_images = requests.get(output_file_urls['images']).json()
         detections = requests.get(output_file_urls['detections']).json()
-        failed_images = requests.get(output_file_urls['failed_images']).json()
         
-        return get_missing_images_from_json(submitted_images,detections,failed_images,n_failed_shards,verbose)
+        return get_missing_images_from_json(submitted_images,detections,n_failed_shards,verbose)
     
     
-def create_response_message(n_failed_shards,failed_images_url,images_url,detections_url,task_id):
+def create_response_message(n_failed_shards,detections_url,task_id):
     """
     Manually create a response message in the format of the batch API.  Used when tasks hang or fail
     and we need to simulate their completion by directly pulling the results from the AML output.
     """
     output_file_urls = {
-        'failed_images':failed_images_url,
-        'images':images_url,
         'detections':detections_url
         }
     message = {'num_failed_shards':n_failed_shards,'output_file_urls':output_file_urls}
@@ -392,15 +390,23 @@ def create_response_message(n_failed_shards,failed_images_url,images_url,detecti
     return response
     
 
-def get_missing_images_from_json(submitted_images,detections,failed_images,n_failed_shards,verbose=False):
+def get_missing_images_from_json(submitted_images,detections,n_failed_shards,verbose=False):
     """
-    Given the json-encoded results for the lists of submitted images, detections,
-    and failed images, find and return the list of images missing in the list 
-    of detections.
+    Given the json-encoded results for the lists of submitted images and detections,
+    find and return the list of images missing in the list of detections.
     """
-    assert all(is_image_file_or_url(s) for s in submitted_images)
-    assert all(is_image_file_or_url(s) for s in failed_images)
-
+    
+    # Remove files that were submitted but don't appear to be images
+    # assert all(is_image_file_or_url(s) for s in submitted_images)
+    non_image_files_submitted = [s for s in submitted_images if not is_image_file_or_url(s)]
+    if len(non_image_files_submitted) > 0:
+        print('Warning, {} non-image files submitted:\n'.format(len(non_image_files_submitted)))
+        for k in range(0,min(10,len(non_image_files_submitted))):
+            print(non_image_files_submitted[k])
+        print('...')
+        
+    submitted_images = [s for s in submitted_images if is_image_file_or_url(s)]
+            
     # Diff submitted and processed images
     processed_images = [d['file'] for d in detections['images']]
     missing_images = sorted(set(submitted_images) - set(processed_images))
@@ -409,21 +415,12 @@ def get_missing_images_from_json(submitted_images,detections,failed_images,n_fai
         estimated_failed_shard_images = n_failed_shards * IMAGES_PER_SHARD
         print('Submitted {} images'.format(len(submitted_images)))
         print('Received results for {} images'.format(len(processed_images)))
-        print('{} failed images'.format(len(failed_images)))
         print(f'{n_failed_shards} failed shards '
               f'(~approx {estimated_failed_shard_images} images)')
         print('{} images not in results'.format(len(missing_images)))
 
-    # Confirm that the failed images are a subset of the missing images
-    assert set(failed_images) <= set(missing_images), (
-        'Failed images should be a subset of missing images')
-
-        # Confirm that the procesed images are a subset of the submitted images
+    # Confirm that the procesed images are a subset of the submitted images
     assert set(processed_images) <= set(submitted_images), (
-        'Failed images should be a subset of missing images')
-    
-    # Confirm that the failed images are a subset of the submitted images
-    assert set(failed_images) <= set(submitted_images), (
         'Failed images should be a subset of missing images')
     
     return missing_images
@@ -497,7 +494,7 @@ def clean_request_name(request_name: str,
     Removes invalid characters from an API request name.
     """
     return path_utils.clean_filename(
-        filename=request_name, whitelist=whitelist, char_limit=char_limit)
+        filename=request_name, whitelist=whitelist, char_limit=char_limit).replace(':','_')
 
 
 def download_url(url: str, save_path: str, verbose: bool = False) -> None:
