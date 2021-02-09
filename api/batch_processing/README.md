@@ -4,14 +4,12 @@ We offer a service for processing a large quantity of camera trap images using o
 
 You can process a batch of up to two million images in one request to the API. If in addition you have some images that are labeled, we can evaluate the performance of the MegaDetector on your labeled images (see [Post-processing tools](#post-processing-tools)).
 
-If you would like to try automating species identification as well, we can train a project-specific classifier based on the output of this detector API and the labels you provide. The species classification predictions will be added to the detector API output json file.
-
 All references to &ldquo;container&rdquo; in this document refer to [Azure Blob Storage](https://azure.microsoft.com/en-us/services/storage/blobs/) containers. 
 
 
 ## Processing time
 
-It takes about 0.8 seconds per image per machine, and we have at most 16 machines that can process them in parallel. So if no one else is using the service and you&rsquo;d like to process 1 million images, it will take 1,000,000 * 0.8 / (16 * 60 * 60) = 14 hours. 
+It takes about 0.6 seconds per image per machine, and we have at most 16 machines that can process them in parallel. So if no one else is using the service and you&rsquo;d like to process 1 million images, it will take 1,000,000 * 0.6 / (16 * 60 * 60) = 10.5 hours. 
 
 
 ## API
@@ -21,18 +19,18 @@ It takes about 0.8 seconds per image per machine, and we have at most 16 machine
 The endpoints of this API are available at
 
 ```
-http://URL/v3/camera-trap/detection-batch
+http://URL/v4/camera-trap/detection-batch
 ```
 
 #### `/request_detections`
 To submit a request for batch processing, make a POST call to
 
-```http://URL/v3/camera-trap/detection-batch/request_detections```.
+```http://URL/v4/camera-trap/detection-batch/request_detections```.
 
-with a json body containing input fields defined below. The API will return with a json response very quickly to give you a RequestID (UUID4) representing the request you have submitted, for example:
+with a json body containing input fields defined below. The API will return with a json response very quickly to give you a RequestID (UUID4 hex) representing the request you have submitted, for example:
 ```json
 {
-  "request_id": "ea26326e-7e0d-4524-a9ea-f57a5799d4ba"
+  "request_id": "f940ecd58c7746b1bde89bd6ba5a5202"
 }
 ```
 or an error message, if your inputs are not acceptable:
@@ -46,34 +44,37 @@ or an error message, if your inputs are not acceptable:
 #### `/task`
 Check the status of your request by calling the `/task` endpoint via a GET call, passing in your RequestID:
 
-```http://URL/v3/camera-trap/detection-batch/task/RequestID```
+```http://URL/v4/camera-trap/detection-batch/task/RequestID```
 
 This returns a json with the fields `Status`, `TaskId` (which is the `request_id` in this document), and a few others. The `Status` field is a json object with the following fields: 
 
-- `request_status`: one of `running`, `failed`, `problem`, and `completed`. 
+- `request_status`: one of `running`, `failed`, `problem`, `completed`, and `canceled`. 
 
     - The status `failed` indicates that the images have not been submitted to the cluster for processing, and so you can go ahead and call the endpoint again, correcting your inputs according to the error message returned with the status. 
     - The status `problem` indicates that the images have already been submitted for processing but the API encountered an error while monitoring progress; in this case, *please do not retry*; contact us to retrieve your results so that no unnecessary processing would occupy the cluster (`message` field will mention "please contact us").
+    - `canceled` if your call to the `/cancel_request` endpoint took effect.
 
 - `message`: a longer string describing the `request_status` and any errors; when the request is completed, the URLs to the output files will also be here (see [Outputs](#23-outputs) section below).
-
-- `time`: timestamp in UTC.
 
 
 #### `/supported_model_versions`
 Check which versions of the MegaDetector are supported by this API by making a GET call to 
 
-```http://URL/v3/camera-trap/detection-batch/supported_model_versions```
+```http://URL/v4/camera-trap/detection-batch/supported_model_versions```
 
 
 #### `/default_model_version`
 Check which versions of the MegaDetector is used by default by making a GET call to
 
-```http://URL/v3/camera-trap/detection-batch/default_model_version```
+```http://URL/v4/camera-trap/detection-batch/default_model_version```
 
 
-#### Canceling a request
-Not yet supported. If you have accidentally submitted a request, please contact us to cancel it.
+#### `/cancel_request`
+If you have submitted a request by mistake or realized the wrong inputs were used, you can make a POST call to
+
+```http://URL/v4/camera-trap/detection-batch/cancel_request```
+
+The body should contain the `caller` (see next section on _API inputs_) and `task_id` fields. You should get back a response immediately with status code 200 if the signal was successfully sent. You can verify that the request has been canceled at the `/task` endpoint. 
 
 
 ### API inputs
@@ -87,8 +88,11 @@ Not yet supported. If you have accidentally submitted a request, please contact 
 | sample_n                | No          | int | Randomly select `sample_n` images to process. |
 | model_version           | No          | string | Version of the MegaDetector model to use. Default is the most updated stable version (check using the `/default_model_version` endpoint). Supported versions are available at the `/supported_model_versions` endpoint.|
 | request_name            | No          | string | A string (letters, digits, `_`, `-` allowed, max length 92 characters) that will be appended to the output file names to help you identify the resulting files. A timestamp in UTC (`%Y%m%d%H%M%S`) of the time of submission will be appended to the resulting files automatically. |
-| use_url                  | No         | bool | Please set to `true` if you are providing public image URLs. |
+| use_url                  | No         | bool | Set to `true` if you are providing public image URLs. |
 | caller                  | Yes         | string | An identifier that we use to whitelist users for now. |
+| country                  | No (but recommended) | string | Country where the majority of the images in this batch are taken. Use an [ISO 3166-1 alpha-3 code](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-3#Officially_assigned_code_elements), such as "BWA" for Botswana and "USA" for the United States |
+| organization_name | No (but recommended) | string | Organization conducting the survey. |
+
 
 <sup>1</sup> There are two ways of giving the API access to your images. 
 
@@ -117,7 +121,7 @@ We can store a (short) string of metadata with each image path or URL. The json 
 
 #### Other notes and example  
 
-- Only images with file name ending in &lsquo;.jpg&rsquo; (case insensitive) will be processed, so please make sure the file names are compliant before you upload them to the container (you cannot rename a blob without copying it entirely once it is in Blob Storage). 
+- Only images with file name ending in ".jpg" or ".png" (case insensitive) will be processed, so please make sure the file names are compliant before you upload them to the container (you cannot rename a blob without copying it entirely once it is in Blob Storage). 
 
 - By default we process all such images in the specified container. You can choose to only process a subset of them by specifying the other input parameters, and the images will be filtered out accordingly in this order:
     - `images_requested_json_sas`
@@ -173,12 +177,9 @@ When all shards have finished processing, the `status` returned by the `/task` e
         "message": {
             "num_failed_shards": 0,
             "output_file_urls": {
-                "detections": "https://cameratrap.blob.core.windows.net/async-api-internal/ee26326e-7e0d-4524-a9ea-f57a5799d4ba/ee26326e-7e0d-4524-a9ea-f57a5799d4ba_detections_4_1_on_test_images_20200709211752.json?sv=2019-02-02&sr=b&sig=key1",
-                "failed_images": "https://cameratrap.blob.core.windows.net/async-api-internal/ee26326e-7e0d-4524-a9ea-f57a5799d4ba/ee26326e-7e0d-4524-a9ea-f57a5799d4ba_failed_images_4_1_on_test_images_20200709211752.json?sv=2019-02-02&sr=b&sig=key2",
-                "images": "https://cameratrap.blob.core.windows.net/async-api-internal/ee26326e-7e0d-4524-a9ea-f57a5799d4ba/ee26326e-7e0d-4524-a9ea-f57a5799d4ba_images.json?sv=2019-02-02&sr=b&sig=key3"
+                "detections": "https://cameratrap.blob.core.windows.net/async-api-internal/ee26326e-7e0d-4524-a9ea-f57a5799d4ba/ee26326e-7e0d-4524-a9ea-f57a5799d4ba_detections_4_1_on_test_images_20200709211752.json?sv=2019-02-02&sr=b&sig=key1"
             }
-        },
-        "time": "2020-07-09 21:27:17"
+        }
     },
     "Timestamp": "2020-07-09 21:27:17",
     "Endpoint": "/v3/camera-trap/detection-batch/request_detections",
@@ -193,27 +194,22 @@ assert task_status['request_status'] == 'completed'
 message = task_status['message']
 assert message['num_failed_shards'] == 0
 
-output_files = message['output_file_urls']
-url_to_result = output_files['detections']
-url_to_failed_images = output_files['failed_images']
-url_to_all_images_processed = output_files['images']
-
+url_to_results_file = message['output_file_urls']['detections']
 ```
 Note that the field `Status` in the returned body is capitalized (since July 2020).
 
-These URLs are valid for 90 days from the time the request has finished. If you neglected to retrieve them before the links expired, contact us with the RequestID and we can send the results to you. Here are the 3 files to expect:
+These URL to the results file is valid for 180 days from the time the request has finished. If you neglected to retrieve them before the links expired, contact us with the RequestID and we can send the results to you. 
 
-
-| File name                | Description | 
-|--------------------------|-------------|
-| requestID_detections_requestName_timestamp.json | Contains the predictions produced by the detector, in the format defined below.   |
-| requestID_failed_images_requestName_timestamp.json | Contains a list of full paths to images in the blob that the API failed to open or process, possibly because they are corrupted. |
-| requestID_images.json | Contains a list of the full paths to all images that the API was supposed to process, based on the content of the container at the time the API was called and the filtering parameters provided. |
+The results file is a JSON in the format described below, last updated in February 2021 (`"format_version": "1.1"`).
 
 
 #### Batch processing API output format
 
-The output of the detector is saved in `requestID_detections_requestName_timestamp.json`. The `classifications` fields will be added if a classifier was trained for your project and applied to the images. Example output with both detection and classification results:
+The output of the detector is saved in `requestID_detections_requestName_timestamp.json`. The `classifications` fields will be added if a classifier was trained for your project and applied to the images. 
+
+If an image could not be opened or an error occurred when applying the model to it, it will still have an entry in the output file images list, but it will have a `failure` field indicating the type of error (see last entry in the example below). However, if the API run into problems processing an entire shard of images (usually 2000 images per shard), they will not have an entry in the results file.
+
+Example output with both detection and classification results:
 
 ```json
 {
@@ -222,7 +218,7 @@ The output of the detector is saved in `requestID_detections_requestName_timesta
         "detection_completion_time": "2019-05-22 02:12:19",
         "classifier": "ecosystem1_v2",
         "classification_completion_time": "2019-05-26 01:52:08",
-        "format_version": "1.0"
+        "format_version": "1.1"
     },
     "detection_categories": {
         "1": "animal",
@@ -264,6 +260,10 @@ The output of the detector is saved in `requestID_detections_requestName_timesta
             "meta": "",
             "max_detection_conf": 0,
             "detections": []
+        },
+        {
+            "file": "/path/from/base/dir2/corrupted.jpg",
+            "failure": "Failure image access"
         }
     ]
 }
