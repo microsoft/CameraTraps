@@ -1,46 +1,59 @@
 # Camera trap batch processing API developer readme
 
 
-## Build
+## Building the Docker image for Batch node pools
 
-Navigate to the current directory `api/batch_processing/api_core`.
+We need to build a Docker image with the necessary packages (mainly TensorFlow) to run the scoring script. Azure Batch will pull this image from a private registry, which needs to be in the same region as the Batch account. 
 
-Modify the Docker image tag `-t` and the configuration file name `API_CONFIG` of the instance you want to build (see the `api_instances_config` folder)
+Navigate to the subdirectory `batch_service` (otherwise you need to specify the Docker context).
 
-```bash
-export IMAGE_NAME=yasiyu.azurecr.io/camera-trap/3.0-detection-batch-internal:1
-
-sudo docker build . --build-arg API_CONFIG=api_config_internal.py -t $IMAGE_NAME
+Build the image from the Dockerfile in this folder:
+```commandline
+export IMAGE_NAME=***REMOVED***.azurecr.io/tensorflow:1.14.0-gpu-py3
+export REGISTRY_NAME=***REMOVED***
+sudo docker image build --rm --tag $IMAGE_NAME --file ./Dockerfile .
 ```
 
-If you need to debug the environment set up interactively, comment out the entry point line at the end of the Dockerfile, build the Docker image, and start it interactively:
-```bash
-sudo docker run -p 6011:1212 -it $IMAGE_NAME /bin/bash
+Test the scoring file (you should see the TensorFlow version and GPU availability printed out before the script errors out):
+```commandline
+sudo docker run --gpus all -it --rm $IMAGE_NAME /bin/bash
+
+python /app/score.py 
+``` 
+You can now exit/stop the container.
+
+Log in to the Azure Container Registry for the batch API project and push the image; you may have to `az login` first:
+```commandline
+sudo az acr login --name $REGISTRY_NAME
+
+sudo docker image push $IMAGE_NAME
 ```
 
-And start the gunicorn server program manually:
-```bash
-gunicorn -b 0.0.0.0:1212 runserver:app
+## Create a Batch node pool
+
+We create a separate node pool for each instance of the API. For example, our `internal` instance of the API has one node pool.
+
+Follow the notebook `create_batch_node_pool.ipynb` to create one. You should only need to do this for new instances of the API or if the node pool needs to be re-started completely.
+
+
+## Flask app
+
+The API endpoints are in a Flask web application, which needs to be run in a conda environment specified by [environment-api.yml](environment-api.yml). In addition, the API uses the `sas_blob_utils` module from the `ai4eutils` [repo](https://github.com/microsoft/ai4eutils), so the repo folder should be on the PYTHONPATH. 
+
+To start the Flask app in development mode, first source `start_batch_api.sh` to retrieve secrets required for the various Azure services from KeyVault and export them as environment variables in the current shell:
+
+```commandline
+source start_batch_api.sh
 ```
 
-To upload the Docker image:
-```bash
-sudo az acr login --name <name_of_registry>
+You will be prompted to authenticate via AAD (you should have access to the AI4E engineering subscription).
 
-sudo docker push $IMAGE_NAME
+To start the app (local):
+```commandline
+flask run -p 5000 --eager-loading --no-reload
 ```
 
-
-## Deploy
-
-Modify the port number to expose from this server VM (set to `6011` below). The second port number is the port exposed by the Docker container, specified in [Dockerfile](Dockerfile).
-
-Can also specify a new path for the log file to append logs to. 
-
-```bash
-sudo docker run -p 6011:1212 $IMAGE_NAME |& tee -a /home/username/foldername/batch_api_logs/log_internal_20200707.txt
-
+To start the app (on a VM)
+```commandline
+flask run -h 0.0.0.0 -p 6011 --eager-loading --no-reload
 ```
-
-## Testing
-
