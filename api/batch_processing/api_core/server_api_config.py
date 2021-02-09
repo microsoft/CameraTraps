@@ -13,13 +13,13 @@ import os
 API_INSTANCE_NAME = 'internal'  # 'internal', 'cm', 'camelot', 'zooniverse'
 POOL_ID = 'internal_0'  # name of the Batch pool created for this API instance
 
-MAX_NUMBER_IMAGES_ACCEPTED_PER_JOB = 5 * 1000 * 1000  # inclusive
+MAX_NUMBER_IMAGES_ACCEPTED_PER_JOB = 20 * 1000 * 1000  # inclusive
 
 
 #%% general API settings
 API_PREFIX = '/v4/camera-trap/detection-batch'  # URL to root is http://127.0.0.1:5000/v4/camera-trap/detection-batch/
 
-MONITOR_PERIOD_MINUTES = 5
+MONITOR_PERIOD_MINUTES = 10
 
 # if this number of times the thread wakes up to check is exceeded, stop the monitoring thread
 MAX_MONITOR_CYCLES = 4 * 7 * int((60 * 24) / MONITOR_PERIOD_MINUTES)  # 4 weeks
