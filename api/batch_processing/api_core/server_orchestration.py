@@ -15,7 +15,6 @@ import os
 import urllib.parse
 from datetime import timedelta
 from random import shuffle
-from typing import Union
 
 import sas_blob_utils  # from ai4eutils
 from azure.storage.blob import ContainerClient, BlobSasPermissions, generate_blob_sas
@@ -63,8 +62,6 @@ def create_batch_job(job_id: str, body: dict):
 
         # image_paths can be a list of strings (Azure blob names or public URLs)
         # or a list of length-2 lists where each is a [image_id, metadata] pair
-        job_status = get_job_status('created', 'Listing all images to process.')
-        job_status_table.update_job_status(job_id, job_status)
 
         # Case 1: listing all images in the container
         # - not possible to have attached metadata if listing images in a blob
@@ -116,8 +113,8 @@ def create_batch_job(job_id: str, body: dict):
                 if path.lower().endswith(api_config.IMAGE_SUFFIXES_ACCEPTED):
                     valid_image_paths.append(p)
             image_paths = valid_image_paths
-            log.info(job_id, ('server_job, create_batch_job, length of image_paths provided by user, '
-                               f'after filtering to jpg: {len(image_paths)}'))
+            log.info(('server_job, create_batch_job, length of image_paths provided by user, '
+                      f'after filtering to jpg: {len(image_paths)}'))
 
         # apply the first_n and sample_n filters
         if first_n:
@@ -194,10 +191,12 @@ def create_batch_job(job_id: str, body: dict):
 
         # an extra field to allow the monitoring thread to restart after an API restart: total number of tasks
         job_status['num_tasks'] = num_tasks
+        # also record the number of images to process for reporting
+        job_status['num_images'] = num_images
 
         job_status_table.update_job_status(job_id, job_status)
     except Exception as e:
-        job_status = get_job_status('problem', f'Error occurred while submitting the Batch job: {e}')
+        job_status = get_job_status('problem', f'Please contact us. Error occurred while submitting the Batch job: {e}')
         job_status_table.update_job_status(job_id, job_status)
         log.error(f'server_job, create_batch_job, Error occurred while submitting the Batch job: {e}')
         return
@@ -246,8 +245,9 @@ def monitor_batch_job(job_id: str,
                                          f'{num_tasks_succeeded} out of {num_tasks} shards have completed '
                                          f'successfully, {num_tasks_failed} shards have failed.'))
             job_status_table.update_job_status(job_id, job_status)
-            log.info(f'Check number {num_checks}, {num_tasks_succeeded} out of {num_tasks} shards have completed '
-                  f'successfully, {num_tasks_failed} shards have failed.')
+            log.info(f'job_id {job_id}. '
+                f'Check number {num_checks}, {num_tasks_succeeded} out of {num_tasks} shards completed, '
+                f'{num_tasks_failed} shards failed.')
 
             if (num_tasks_succeeded + num_tasks_failed) >= num_tasks:
                 break
@@ -290,6 +290,8 @@ def monitor_batch_job(job_id: str,
 
 
 def aggregate_results(job_id, model_version, job_name, job_submission_timestamp):
+    log.info(f'server_job, aggregate_results starting, job_id: {job_id}')
+
     task_outputs_dir = f'api_{api_config.API_INSTANCE_NAME}/job_{job_id}/task_outputs/'
 
     container_url = sas_blob_utils.build_azure_storage_uri(account=api_config.STORAGE_ACCOUNT_NAME,
