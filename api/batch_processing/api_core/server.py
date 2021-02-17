@@ -116,6 +116,15 @@ def request_detections():
     country = post_body.get('country', None)
     organization_name = post_body.get('organization_name', None)
 
+    # All API instances / node pools share a quota on total number of active Jobs;
+    # we cannot accept new Job submissions if we are at the quota
+    try:
+        num_active_jobs = batch_job_manager.get_num_active_jobs()
+        if num_active_jobs >= api_config.MAX_BATCH_ACCOUNT_ACTIVE_JOBS:
+            return make_error(503, f'Too many active jobs, please try again later')
+    except Exception as e:
+        return make_error(500, f'Error checking number of active jobs: {e}')
+
     try:
         job_id = uuid.uuid4().hex
         job_status_table.create_job_status(
@@ -155,9 +164,9 @@ def cancel_request():
     app.logger.info(f'server, cancel_request received, body: {post_body}')
 
     # required fields
-    job_id = post_body.get('task_id', None)
+    job_id = post_body.get('request_id', None)
     if job_id is None:
-        return make_error(400, 'task_id is a required field.')
+        return make_error(400, 'request_id is a required field.')
 
     caller_id = post_body.get('caller', None)
     if caller_id is None or caller_id not in app_config.get_allowlist():
