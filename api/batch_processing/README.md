@@ -1,10 +1,12 @@
 # Camera trap batch processing API user guide
 
-We offer a service for processing a large quantity of camera trap images using our [MegaDetector](https://github.com/Microsoft/CameraTraps#megadetector) by calling an API, documented here. The output is most helpful for separating empty from non-empty images based on some detector confidence threshold that you select, and putting bounding boxes around animals so that manual review can proceed faster.
+We offer a service for processing a large quantity of camera trap images using our [MegaDetector](https://github.com/Microsoft/CameraTraps#megadetector) by calling an API, documented here. The output is most helpful for separating empty from non-empty images based on some detector confidence threshold that you select, and putting bounding boxes around animals, people and vehicles to help manual review proceed more quickly.
 
-You can process a batch of up to two million images in one request to the API. If in addition you have some images that are labeled, we can evaluate the performance of the MegaDetector on your labeled images (see [Post-processing tools](#post-processing-tools)).
+You can process a batch of up to a few million images in one request to the API. If in addition you have some images that are labeled, we can evaluate the performance of the MegaDetector on your labeled images (see [Post-processing tools](#post-processing-tools)).
 
-All references to &ldquo;container&rdquo; in this document refer to [Azure Blob Storage](https://azure.microsoft.com/en-us/services/storage/blobs/) containers. 
+All references to &ldquo;container&rdquo; in this document refer to [Azure Blob Storage](https://azure.microsoft.com/en-us/services/storage/blobs/) containers.
+
+We have referred to one submission of images as a "request" in this documentation but as a "job" elsewhere in the source code and emails; confusingly, the endpoint for checking the status of a request/job is called `\task` and the RequestID is called `task_id`. Consider "request" and "job" interchangeable, and the `\task` endpoint a legacy issue. Note that the terms "job" and "task" mean different things in the source code (in the context of Azure Batch).
 
 
 ## Processing time
@@ -23,11 +25,7 @@ http://URL/v4/camera-trap/detection-batch
 ```
 
 #### `/request_detections`
-To submit a request for batch processing, make a POST call to
-
-```http://URL/v4/camera-trap/detection-batch/request_detections```.
-
-with a json body containing input fields defined below. The API will return with a json response very quickly to give you a RequestID (UUID4 hex) representing the request you have submitted, for example:
+To submit a request for batch processing, make a POST call to this endpoint with a json body containing input fields defined below. The API will return with a json response very quickly to give you a RequestID (UUID4 hex) representing the request you have submitted, for example:
 ```json
 {
   "request_id": "f940ecd58c7746b1bde89bd6ba5a5202"
@@ -39,6 +37,7 @@ or an error message, if your inputs are not acceptable:
   "error": "error message."
 }
 ```
+In particular the endpoint will return a 503 error if the queue of requests is full. Please re-try later in that case.
 
 
 #### `/task`
@@ -50,31 +49,23 @@ This returns a json with the fields `Status`, `TaskId` (which is the `request_id
 
 - `request_status`: one of `running`, `failed`, `problem`, `completed`, and `canceled`. 
 
-    - The status `failed` indicates that the images have not been submitted to the cluster for processing, and so you can go ahead and call the endpoint again, correcting your inputs according to the error message returned with the status. 
-    - The status `problem` indicates that the images have already been submitted for processing but the API encountered an error while monitoring progress; in this case, *please do not retry*; contact us to retrieve your results so that no unnecessary processing would occupy the cluster (`message` field will mention "please contact us").
+    - The status `failed` indicates that the images have not been submitted to the cluster for processing, and so you can go ahead and call the `\request_detections` endpoint again, correcting your inputs according to the error message returned with the status. 
+    - The status `problem` indicates that the images have already been submitted for processing but the API encountered an error while monitoring progress; in this case, please contact us to retrieve your results so that no unnecessary processing would occupy the cluster (`message` field will mention "please contact us").
     - `canceled` if your call to the `/cancel_request` endpoint took effect.
 
 - `message`: a longer string describing the `request_status` and any errors; when the request is completed, the URLs to the output files will also be here (see [Outputs](#23-outputs) section below).
 
 
 #### `/supported_model_versions`
-Check which versions of the MegaDetector are supported by this API by making a GET call to 
-
-```http://URL/v4/camera-trap/detection-batch/supported_model_versions```
-
+Check which versions of the MegaDetector are supported by this API by making a GET call to this endpoint.
 
 #### `/default_model_version`
-Check which versions of the MegaDetector is used by default by making a GET call to
-
-```http://URL/v4/camera-trap/detection-batch/default_model_version```
-
+Check which version of the MegaDetector is used by default by making a GET call to this endpoint.
 
 #### `/cancel_request`
-If you have submitted a request by mistake or realized the wrong inputs were used, you can make a POST call to
+If you have submitted a request by mistake, you can make a POST call to this endpoint to cancel it.
 
-```http://URL/v4/camera-trap/detection-batch/cancel_request```
-
-The body should contain the `caller` (see next section on _API inputs_) and `task_id` fields. You should get back a response immediately with status code 200 if the signal was successfully sent. You can verify that the request has been canceled at the `/task` endpoint. 
+The body should contain the `caller` (see next section on _API inputs_) and `request_id` fields. You should get back a response immediately with status code 200 if the signal was successfully sent. You can verify that the request has been canceled using the `/task` endpoint. 
 
 
 ### API inputs
@@ -90,7 +81,7 @@ The body should contain the `caller` (see next section on _API inputs_) and `tas
 | request_name            | No          | string | A string (letters, digits, `_`, `-` allowed, max length 92 characters) that will be appended to the output file names to help you identify the resulting files. A timestamp in UTC (`%Y%m%d%H%M%S`) of the time of submission will be appended to the resulting files automatically. |
 | use_url                  | No         | bool | Set to `true` if you are providing public image URLs. |
 | caller                  | Yes         | string | An identifier that we use to whitelist users for now. |
-| country                  | No (but recommended) | string | Country where the majority of the images in this batch are taken. Use an [ISO 3166-1 alpha-3 code](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-3#Officially_assigned_code_elements), such as "BWA" for Botswana and "USA" for the United States |
+| country                  | No (but recommended) | string | Country where the majority of the images in this batch are taken. Preferably use an [ISO 3166-1 alpha-3 code](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-3#Officially_assigned_code_elements), such as "BWA" for Botswana and "USA" for the United States |
 | organization_name | No (but recommended) | string | Organization conducting the survey. |
 
 
@@ -103,12 +94,12 @@ The body should contain the `caller` (see next section on _API inputs_) and `tas
   "Season1/Location1/Camera1/image2.jpg"
 ]
 ```
-Only images whose paths are listed here will be processed.
+Only images whose paths are listed here will be processed if you provide this list.
 
-2 - If your images are stored elsewhere and you can provide a publicly accessible URL to each of them, you do not need to specify `input_container_sas`. Instead, list the URLs to all the images (instead of their paths) you&rsquo;d like to process in the json at `images_requested_json_sas`.
+2 - If your images are stored elsewhere and you can provide a publicly accessible URL to each, you do not need to specify `input_container_sas`. Instead, list the URLs to all the images (instead of their paths) you&rsquo;d like to process in the json at `images_requested_json_sas`.
 
 
-#### Storing metadata
+#### Attaching metadata
 
 We can store a (short) string of metadata with each image path or URL. The json at `images_requested_json_sas` should then look like:
 ```json
@@ -117,13 +108,14 @@ We can store a (short) string of metadata with each image path or URL. The json 
   ["Season1/Location1/Camera1/image2.jpg", "metadata_string2"]
 ]
 ``` 
+The metadata string will be copied to the `meta` field in the image's entry in the output file (format see below).
 
 
 #### Other notes and example  
 
 - Only images with file name ending in ".jpg" or ".png" (case insensitive) will be processed, so please make sure the file names are compliant before you upload them to the container (you cannot rename a blob without copying it entirely once it is in Blob Storage). 
 
-- By default we process all such images in the specified container. You can choose to only process a subset of them by specifying the other input parameters, and the images will be filtered out accordingly in this order:
+- By default we process all such images in the specified container. You can choose to only process a subset of them by specifying the other input parameters. The images will be filtered out accordingly in this order:
     - `images_requested_json_sas`
     - `image_path_prefix`
     - `first_n`
@@ -151,7 +143,7 @@ You can manually call the API using applications such as Postman:
 
 #### How to obtain a SAS token
 
-You can easily generate a [SAS token](https://docs.microsoft.com/en-us/azure/storage/common/storage-dotnet-shared-access-signature-part-1) to a container or a particular blob (a file in blob storage) using the desktop app [Azure Storage Explorer](https://azure.microsoft.com/en-us/features/storage-explorer/) (available on Windows, macOS and Linux). You can also issue SAS tokens programmatically by using the [Azure Storage SDK for Python](https://azure-storage.readthedocs.io/ref/azure.storage.blob.baseblobservice.html#azure.storage.blob.baseblobservice.BaseBlobService.generate_blob_shared_access_signature).
+You can easily generate a [SAS token](https://docs.microsoft.com/en-us/azure/storage/common/storage-dotnet-shared-access-signature-part-1) to a container using the desktop app [Azure Storage Explorer](https://azure.microsoft.com/en-us/features/storage-explorer/) (available on Windows, macOS and Linux). You can also issue SAS tokens programmatically by using the [Azure Storage SDK](https://azure-storage.readthedocs.io/ref/azure.storage.blob.baseblobservice.html#azure.storage.blob.baseblobservice.BaseBlobService.generate_blob_shared_access_signature).
 
 
 Using Storage Explorer, right click on the container or blob you&rsquo;d like to grant access for, and choose &ldquo;Get Shared Access Signature...&rdquo;. On the dialog window that appears, 
@@ -166,9 +158,9 @@ Click &ldquo;Create&rdquo;, and the &ldquo;URL&rdquo; field on the next screen i
 
 ### API outputs
 
-Once your request is submitted and parameters validated, the API divides all images into shards of about 2000 images each, and send them to an Azure Machine Learning Service compute cluster for processing. Another process will monitor how many shards have been evaluated, checking every 15 minutes, and update the status of the request, which you can check via the `/task` endpoint. 
+Once your request is submitted and parameters validated, the API divides all images into shards of about 2000 images each, and send them to an [Azure Batch](https://azure.microsoft.com/en-us/services/batch/) node pool to be scored by the model. Another process will monitor how many shards have been evaluated, checking every 15 minutes, and update the status of the request, which you can check via the `/task` endpoint. 
 
-When all shards have finished processing, the `status` returned by the `/task` endpoint will have the `request_status` field as `completed`, and the `message` field contain a string that can be loaded as a json with 3 fields, each containing an URL to a downloadable file. The returned body looks like
+When all shards have finished processing, the `status` returned by the `/task` endpoint will have the `request_status` field as `completed`, and the `message` field will contain a URL to the output file. The returned body looks like
 
 ```json
 {
@@ -187,7 +179,7 @@ When all shards have finished processing, the `status` returned by the `/task` e
 }
 ```
  
- You can parse it to obtain the URLs:
+To obtain the URL of the output file:
 ```python
 task_status = body['Status']
 assert task_status['request_status'] == 'completed'
@@ -198,16 +190,16 @@ url_to_results_file = message['output_file_urls']['detections']
 ```
 Note that the field `Status` in the returned body is capitalized (since July 2020).
 
-These URL to the results file is valid for 180 days from the time the request has finished. If you neglected to retrieve them before the links expired, contact us with the RequestID and we can send the results to you. 
+The URL to the output file is valid for 180 days from the time the request has finished. If you neglected to retrieve them before the link expired, contact us with the RequestID and we can send the results to you. 
 
-The results file is a JSON in the format described below, last updated in February 2021 (`"format_version": "1.1"`).
+The output file is a JSON in the format described below, last updated in February 2021 (`"format_version": "1.1"`).
 
 
 #### Batch processing API output format
 
 The output of the detector is saved in `requestID_detections_requestName_timestamp.json`. The `classifications` fields will be added if a classifier was trained for your project and applied to the images. 
 
-If an image could not be opened or an error occurred when applying the model to it, it will still have an entry in the output file images list, but it will have a `failure` field indicating the type of error (see last entry in the example below). However, if the API run into problems processing an entire shard of images (usually 2000 images per shard), they will not have an entry in the results file.
+If an image could not be opened or an error occurred when applying the model to it, it will still have an entry in the output file images list, but it will have a `failure` field indicating the type of error (see last entry in the example below). However, if the API runs into problems processing an entire shard of images (usually 2000 images per shard), they will not have entries in the results file - this should be very rare.
 
 Example output with both detection and classification results:
 
@@ -288,7 +280,7 @@ Detection categories not listed here are allowed by this format specification, b
 
 When the detector model detects no animal (or person or vehicle), the confidence `conf` is shown as 0.0 (not confident that there is an object of interest) and the `detections` field is an empty list.
 
-All detections above confidence threshold 0.05 or 0.1 (depending on the version of the API) are recorded in the output file.
+All detections above the confidence threshold of 0.1 are recorded in the output file.
 
 
 ##### Classifier outputs
