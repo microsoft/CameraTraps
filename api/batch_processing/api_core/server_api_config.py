@@ -9,6 +9,7 @@ import os
 
 
 #%% instance-specific API settings
+
 # you likely need to modify these when deploying a new instance of the API
 API_INSTANCE_NAME = 'internal'  # 'internal', 'cm', 'camelot', 'zooniverse'
 POOL_ID = 'internal_0'  # name of the Batch pool created for this API instance
@@ -32,6 +33,10 @@ OUTPUT_FORMAT_VERSION = '1.1'
 NUM_IMAGES_PER_TASK = 2000
 
 OUTPUT_SAS_EXPIRATION_DAYS = 180
+
+# quota of active Jobs in our Batch account, which all node pools i.e. API instances share;
+# cannot accept job submissions if there are this many active Jobs already
+MAX_BATCH_ACCOUNT_ACTIVE_JOBS = 300
 
 
 #%% MegaDetector info
