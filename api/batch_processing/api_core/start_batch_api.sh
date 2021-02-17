@@ -74,4 +74,4 @@ export FLASK_ENV=development
 #flask run -p 5000 --eager-loading --no-reload
 
 # VM:
-#flask run -h 0.0.0.0 -p 6011 --eager-loading --no-reload
+#flask run -h 0.0.0.0 -p 6011 --eager-loading --no-reload |& tee -a /home/otter/camtrap/batch_api_logs/log_internal_dev_20210216.txt

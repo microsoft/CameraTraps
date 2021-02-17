@@ -141,6 +141,10 @@ class BatchJobManager:
         return task_ids_failed_to_submit
 
     def get_num_completed_tasks(self, job_id: str) -> Tuple[int, int]:
+        """
+        Returns the number of completed tasks for the job of job_id, as a tuple:
+        (number of succeeded jobs, number of failed jobs) - both are considered "completed".=
+        """
         # docs: # https://docs.microsoft.com/en-us/rest/api/batchservice/odata-filters-in-batch#list-tasks
         tasks = self.batch_client.task.list(job_id,
                                             task_list_options=TaskListOptions(
@@ -158,3 +162,12 @@ class BatchJobManager:
 
     def cancel_batch_job(self, job_id: str):
         self.batch_client.job.terminate(job_id, terminate_reason='APIUserCanceled')
+
+    def get_num_active_jobs(self) -> int:
+        jobs_generator = self.batch_client.job.list(
+            job_list_options=JobListOptions(
+                filter='state eq \'active\'',
+                select='id'
+            ))
+        jobs_list = [j for j in jobs_generator]
+        return len(jobs_list)
