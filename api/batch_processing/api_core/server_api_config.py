@@ -9,12 +9,16 @@ import os
 
 
 #%% instance-specific API settings
-
 # you likely need to modify these when deploying a new instance of the API
-API_INSTANCE_NAME = 'internal'  # 'internal', 'cm', 'camelot', 'zooniverse'
-POOL_ID = 'internal_0'  # name of the Batch pool created for this API instance
 
-MAX_NUMBER_IMAGES_ACCEPTED_PER_JOB = 20 * 1000 * 1000  # inclusive
+API_INSTANCE_NAME = 'cm'  # 'internal', 'cm', 'camelot', 'zooniverse'
+POOL_ID = 'cm_0'  # name of the Batch pool created for this API instance
+
+MAX_NUMBER_IMAGES_ACCEPTED_PER_JOB = 4 * 1000 * 1000  # inclusive
+
+# Azure Batch for batch processing
+BATCH_ACCOUNT_NAME = 'cameratrapssc'
+BATCH_ACCOUNT_URL = 'https://cameratrapssc.southcentralus.batch.azure.com'
 
 
 #%% general API settings
@@ -83,10 +87,6 @@ STORAGE_ACCOUNT_KEY = os.environ['STORAGE_ACCOUNT_KEY']
 
 # STORAGE_CONTAINER_MODELS = 'models'  # names of the two containers supporting Batch
 STORAGE_CONTAINER_API = 'batch-api'
-
-# Azure Batch for batch processing
-BATCH_ACCOUNT_NAME = os.environ['BATCH_ACCOUNT_NAME']
-BATCH_ACCOUNT_URL = os.environ['BATCH_ACCOUNT_URL']
 
 # Azure Container Registry for Docker image used by our Batch node pools
 REGISTRY_SERVER = os.environ['REGISTRY_SERVER']
