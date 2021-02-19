@@ -289,44 +289,53 @@ def monitor_batch_job(job_id: str,
         return
 
 
-def aggregate_results(job_id, model_version, job_name, job_submission_timestamp):
+def aggregate_results(job_id: str,
+                      model_version: str,
+                      job_name: str,
+                      job_submission_timestamp: str) -> str:
     log.info(f'server_job, aggregate_results starting, job_id: {job_id}')
-
-    task_outputs_dir = f'api_{api_config.API_INSTANCE_NAME}/job_{job_id}/task_outputs/'
 
     container_url = sas_blob_utils.build_azure_storage_uri(account=api_config.STORAGE_ACCOUNT_NAME,
                                                            container=api_config.STORAGE_CONTAINER_API)
-
-    all_results = []
+    # when people download this, the timestamp will have : replaced by _
+    output_file_path = f'api_{api_config.API_INSTANCE_NAME}/job_{job_id}/{job_id}_detections_{job_name}_{job_submission_timestamp}.json'
 
     with ContainerClient.from_container_url(container_url,
                                             credential=api_config.STORAGE_ACCOUNT_KEY) as container_client:
-        generator = container_client.list_blobs(name_starts_with=task_outputs_dir)
+        # check if the result blob has already been written (could be another instance of the API / worker thread)
+        # and if so, skip aggregating and uploading the results, and just generate the SAS URL, which
+        # could be needed still if the previous request_status was `problem`.
+        blob_client = container_client.get_blob_client(output_file_path)
+        if blob_client.exists():
+            log.warning(f'The output file already exists, likely because another monitoring thread already wrote it.')
+        else:
+            task_outputs_dir = f'api_{api_config.API_INSTANCE_NAME}/job_{job_id}/task_outputs/'
+            generator = container_client.list_blobs(name_starts_with=task_outputs_dir)
 
-        blobs = [i for i in generator if i.name.endswith('.json')]
+            blobs = [i for i in generator if i.name.endswith('.json')]
 
-        for blob_props in tqdm(blobs):
-            with container_client.get_blob_client(blob_props) as blob_client:
-                stream = io.BytesIO()
-                blob_client.download_blob().readinto(stream)
-                stream.seek(0)
-                task_results = json.load(stream)
-                all_results.extend(task_results)
+            all_results = []
+            for blob_props in tqdm(blobs):
+                with container_client.get_blob_client(blob_props) as blob_client:
+                    stream = io.BytesIO()
+                    blob_client.download_blob().readinto(stream)
+                    stream.seek(0)
+                    task_results = json.load(stream)
+                    all_results.extend(task_results)
 
-        api_output = {
-            'info': {
-                'detector': f'megadetector_v{model_version}',
-                'detection_completion_time': get_utc_time(),
-                'format_version': api_config.OUTPUT_FORMAT_VERSION
-            },
-            'detection_categories': api_config.DETECTOR_LABEL_MAP,
-            'images': all_results
-        }
+            api_output = {
+                'info': {
+                    'detector': f'megadetector_v{model_version}',
+                    'detection_completion_time': get_utc_time(),
+                    'format_version': api_config.OUTPUT_FORMAT_VERSION
+                },
+                'detection_categories': api_config.DETECTOR_LABEL_MAP,
+                'images': all_results
+            }
 
-        # upload the output JSON to the Job folder
-        api_output_as_bytes = bytes(json.dumps(api_output, ensure_ascii=False, indent=1), encoding='utf-8')
-        output_file_path = f'api_{api_config.API_INSTANCE_NAME}/job_{job_id}/{job_id}_detections_{job_name}_{job_submission_timestamp}.json'
-        _ = container_client.upload_blob(name=output_file_path, data=api_output_as_bytes)
+            # upload the output JSON to the Job folder
+            api_output_as_bytes = bytes(json.dumps(api_output, ensure_ascii=False, indent=1), encoding='utf-8')
+            _ = container_client.upload_blob(name=output_file_path, data=api_output_as_bytes)
 
     output_sas = generate_blob_sas(
         account_name=api_config.STORAGE_ACCOUNT_NAME,

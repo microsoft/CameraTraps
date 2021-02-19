@@ -1,6 +1,9 @@
+# Conda environment file for running the batch API.
+#
 # conda activate cameratraps-batch-api
 #
-# conda env update --name cameratraps-batch-api --file api/batch_processing/environment.yml
+# conda env update --name cameratraps-batch-api --file environment-batch-api.yml --prune
+
 name: cameratraps-batch-api
 
 dependencies:
@@ -9,6 +12,7 @@ dependencies:
 - humanfriendly
 - requests
 - flask>=1.1.0  # known-compatible Flask 1.1.2, Werkzeug 1.0.1
+- gunicorn
 - tqdm  # required by sas_blob_utils.py
 - pip
 - pip:

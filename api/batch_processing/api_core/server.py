@@ -4,6 +4,7 @@
 import string
 import uuid
 import threading
+from datetime import timedelta
 
 from flask import Flask, request, jsonify
 
@@ -32,7 +33,7 @@ app.logger.info('server, finished instantiating helper classes')
 
 @app.route(f'{API_PREFIX}/')
 def hello():
-    return 'Camera traps batch processing API'
+    return f'Camera traps batch processing API. Instance: {api_config.API_INSTANCE_NAME}'
 
 
 @app.route(f'{API_PREFIX}/request_detections', methods=['POST'])
@@ -202,7 +203,7 @@ def retrieve_job_status(job_id: str):
     Does not require the "caller" field to avoid checking the allowlist in App Configurations.
     Retains the /task endpoint name to be compatible with previous versions.
     """
-    item_read = job_status_table.read_job_status(job_id)
+    item_read = job_status_table.read_job_status(job_id)  # just what the monitoring thread wrote to the DB
     if item_read is None:
         return make_error(404, 'Task is not found.')
     if 'status' not in item_read or 'last_updated' not in item_read or 'call_params' not in item_read:
@@ -211,11 +212,17 @@ def retrieve_job_status(job_id: str):
     # If the status is running, it could be a Job submitted before the last restart of this
     # API instance. If that is the case, we should start to monitor its progress again.
     status = item_read['status']
+
+    last_updated = datetime.fromisoformat(item_read['last_updated'][:-1])  # get rid of "Z" (required by Cosmos DB)
+    time_passed = datetime.utcnow() - last_updated
+    job_is_unmonitored = True if time_passed > timedelta(minutes=(api_config.MONITOR_PERIOD_MINUTES + 1)) else False
+
     if isinstance(status, dict) and \
             'request_status' in status and \
             status['request_status'] in ['running', 'problem'] and \
             'num_tasks' in status and \
-            job_id not in get_thread_names():
+            job_id not in get_thread_names() and \
+            job_is_unmonitored:
         # WARNING model_version could be wrong (a newer version number gets written to the output file) around
         # the time that  the model is updated, if this request was submitted before the model update
         # and the API restart; this should be quite rare
