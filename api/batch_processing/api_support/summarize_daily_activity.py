@@ -125,22 +125,28 @@ def send_message():
 
 
 def main():
+    """
+    Wake up at 5 minutes past midnight UTC to send a summary of yesterday's activities if there were any.
+    Then goes in a loop to wake up and send a summary every 24 hours.
+    """
+    current = datetime.utcnow()
+    future = current.replace(day=current.day, hour=0, minute=5, second=0, microsecond=0) + timedelta(
+        days=1)  # current has been modified
+
+    current = datetime.utcnow()
+    duration = future - current
+
+    duration_hours = duration.seconds / (60 * 60)
+    print(f'Current time: {current}')
+    print(f'Will wake up at {future}, in {duration_hours} hours')
+    print('')
+
+    time.sleep(duration.seconds)
+
     while True:
-        current = datetime.utcnow()
-        future = current.replace(day=current.day, hour=0, minute=1, second=0, microsecond=0) + timedelta(days=1)  # current has been modified
-
-        current = datetime.utcnow()
-        duration = future - current
-
-        duration_hours = duration.seconds / (60 * 60)
-        print(f'Current time: {current}')
-        print(f'Will wake up at {future}, in {duration_hours} hours')
-        print('')
-
-        time.sleep(duration.seconds)
-
         print(f'Woke up at {datetime.utcnow()}')
         send_message()
+        time.sleep(24 * 60 * 60)
 
 
 if __name__ == '__main__':
