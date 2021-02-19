@@ -41,11 +41,6 @@ echo STORAGE_ACCOUNT_KEY read from KeyVault
 export STORAGE_ACCOUNT_KEY
 
 
-# Azure Batch
-export BATCH_ACCOUNT_NAME=cameratrapssc
-export BATCH_ACCOUNT_URL=https://cameratrapssc.southcentralus.batch.azure.com
-
-
 # Azure Container Registry - Azure Batch gets the Docker image from here
 export REGISTRY_SERVER=***REMOVED***.azurecr.io
 
@@ -66,12 +61,3 @@ export COSMOS_ENDPOINT
 COSMOS_WRITE_KEY=$(az keyvault secret show --name cosmos-db-read-write-key --subscription $SUBSCRIPTION --vault-name $KEY_VAULT_NAME --query value -o tsv)
 export COSMOS_WRITE_KEY
 echo COSMOS_ENDPOINT and COSMOS_WRITE_KEY read from KeyVault
-
-# Flask
-export FLASK_APP=server
-export FLASK_ENV=development
-
-#flask run -p 5000 --eager-loading --no-reload
-
-# VM:
-#flask run -h 0.0.0.0 -p 6011 --eager-loading --no-reload |& tee -a /home/otter/camtrap/batch_api_logs/log_internal_dev_20210216.txt
