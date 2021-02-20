@@ -40,7 +40,7 @@ def combine_api_output_files(input_files: List[str],
     input_dicts = []
     print('Loading input files')
     for fn in input_files:
-        with open(fn, 'r') as f:
+        with open(fn, 'r', encoding='utf-8') as f:
             input_dicts.append(json.load(f))
 
     print('Merging results')
