@@ -352,6 +352,8 @@ class Task:
         Only run this method when task.status == TaskStatus.COMPLETED.
 
         Returns: list of str, sorted list of missing image paths
+        
+        Ignores non-image filenames.
         """
         
         assert self.status == TaskStatus.COMPLETED
@@ -393,7 +395,8 @@ def create_response_message(n_failed_shards,detections_url,task_id):
 def get_missing_images_from_json(submitted_images,detections,n_failed_shards,verbose=False):
     """
     Given the json-encoded results for the lists of submitted images and detections,
-    find and return the list of images missing in the list of detections.
+    find and return the list of images missing in the list of detections.  Ignores
+    non-image filenames.
     """
     
     # Remove files that were submitted but don't appear to be images
@@ -403,7 +406,7 @@ def get_missing_images_from_json(submitted_images,detections,n_failed_shards,ver
         print('Warning, {} non-image files submitted:\n'.format(len(non_image_files_submitted)))
         for k in range(0,min(10,len(non_image_files_submitted))):
             print(non_image_files_submitted[k])
-        print('...')
+        print('...\n')
         
     submitted_images = [s for s in submitted_images if is_image_file_or_url(s)]
             
