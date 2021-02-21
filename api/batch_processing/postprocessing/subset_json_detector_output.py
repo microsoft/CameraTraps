@@ -110,6 +110,9 @@ class SubsetJsonDetectorOutputOptions:
     # Threshold on confidence
     confidence_threshold = None
     
+    # Should we remove failed images?
+    remove_failed_images = True
+    
     debug_max_images = -1
     
     
@@ -227,6 +230,33 @@ def subset_json_detector_output_by_confidence(data, options):
     data['images'] = images_out    
     print('done, found {} matches (of {}), {} max conf changes'.format(
             len(data['images']),len(images_in),n_max_changes))
+    
+    return data
+
+def remove_failed_images(data,options):
+    """
+    Removed failed images from [data]
+    """
+    images_in = data['images']
+    images_out = []    
+    
+    if not options.remove_failed_images:
+        return data
+        
+    print('Removing failed images...', end='')
+    
+    # i_image = 0; im = images_in[0]
+    for i_image, im in tqdm(enumerate(images_in), total=len(images_in)):
+        
+        if 'failure' in im and isinstance(im['failure'],str()):
+            continue
+        else:
+            images_out.append(im)
+        
+    # ...for each image        
+    
+    data['images'] = images_out    
+    print('done, removed {} of {}'.format(len(data['images']), len(images_in)))
     
     return data
 
@@ -359,6 +389,10 @@ def subset_json_detector_output(input_filename, output_filename, options, data=N
         
         data = subset_json_detector_output_by_query(data, options)
     
+    if options.remove_failed_images:
+        
+        data = remove_failed_images(data, options)
+        
     if options.confidence_threshold is not None:
         
         data = subset_json_detector_output_by_confidence(data, options)

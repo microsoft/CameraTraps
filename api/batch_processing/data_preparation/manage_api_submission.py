@@ -41,6 +41,7 @@ import posixpath
 import pprint
 import time
 import itertools
+import jsonpickle
 
 from datetime import date
 from urllib.parse import urlsplit, unquote
@@ -73,8 +74,8 @@ submission_time_between_tasks = 60
 storage_account_name = 'blah'
 container_name = 'blah'
 country = 'country'
-organization_name = 'institution'
-base_task_name = 'institution-' + date.today().strftime('%Y-%m-%d')
+organization_name = 'organization'
+base_task_name = organization_name + '-' + date.today().strftime('%Y-%m-%d')
 base_output_folder_name = 'g:\\' + organization_name
 
 # Shared Access Signature (SAS) tokens for the Azure Blob Storage container.
@@ -128,6 +129,10 @@ additional_task_args['organization_name'] = organization_name
 # additional_task_args = {"model_version":"4_prelim"}
 #
 
+# file_lists_by_folder will contain a list of local JSON file names,
+# each JSON file contains a list of blob names corresponding to an API taskgroup
+file_lists_by_folder = []
+
 
 #%% Derived variables, path setup
 
@@ -145,6 +150,7 @@ filename_base = os.path.join(base_output_folder_name, base_task_name)
 raw_api_output_folder = os.path.join(filename_base, 'raw_api_outputs')
 combined_api_output_folder = os.path.join(filename_base, 'combined_api_outputs')
 postprocessing_output_folder = os.path.join(filename_base, 'postprocessing')
+task_cache_path = os.path.join(filename_base,'task_info.json')
 
 os.makedirs(filename_base, exist_ok=True)
 os.makedirs(raw_api_output_folder, exist_ok=True)
@@ -152,7 +158,8 @@ os.makedirs(combined_api_output_folder, exist_ok=True)
 os.makedirs(postprocessing_output_folder, exist_ok=True)
 
 # Turn warnings into errors if more than this many images are missing
-max_tolerable_missing_images = 20
+max_tolerable_missing_images = 0
+max_tolerable_failed_images = 100
 
 
 #%% Support functions
@@ -173,10 +180,6 @@ def url_to_filename(url):
 
 
 #%% Enumerate blobs to files
-
-# file_lists_by_folder will contain a list of local JSON file names,
-# each JSON file contains a list of blob names corresponding to an API taskgroup
-file_lists_by_folder = []
 
 # A flat list of blob paths for each folder
 images_by_folder = []
@@ -405,6 +408,13 @@ if False:
     taskgroups = [taskgroup]
 
 
+#%% Write task information out to disk, in case we need to resume
+    
+s = jsonpickle.encode(taskgroups)
+with open(task_cache_path,'w') as f:
+    f.write(s)
+
+
 #%% Status check
 
 for taskgroup in taskgroups:
@@ -414,172 +424,19 @@ for taskgroup in taskgroups:
         # print(task.id)
 
 
-#%% Automatically pull results from the AzureML output if output got stalled
-        
+#%% Resume jobs if this notebook closes
+    
 if False:
-
-    #%%        
-    
-    import sas_blob_utils
-    
-    api_container_info_file = r'g:\api_container_info.txt'
-    if api_container_info_file is None:
-        api_result_container_sas = '?sv='
-        api_result_storage_account = ''
-        api_result_container_name = ''
-    else:
-        with open(api_container_info_file,'r') as f:
-            api_container_info = f.readlines()
-            api_container_info = [s.strip() for s in api_container_info]
-            api_result_container_sas = api_container_info[0]
-            api_result_storage_account = api_container_info[1]
-            api_result_container_name = api_container_info[2]
-    
-    container_uri = sas_blob_utils.build_azure_storage_uri(
-                    account=api_result_storage_account, container=api_result_container_name, sas_token=api_result_container_sas)
     
     #%%
     
-    if False:
+    with open(task_cache_path,'r') as f:
+        s =  f.read()
+    taskgroups = jsonpickle.decode(s)
         
-        #%%
-                
-        # Use this when you have the task IDs, but no taskgroup objects, typically because you recorded them
-        # manually somewhere
-        task_ids = []
-        task_to_results = {}
-        
-        # Enumerate files associated with each task
-        for task_id in task_ids:
-            
-            # Enumerate files associated this this task
-            matched_blobs = sas_blob_utils.list_blobs_in_container(container_uri=container_uri, blob_prefix=task_id)
-            task_to_results[task_id] = matched_blobs
-            
-        #%%
-        
-    if False:
-        
-        #%% 
-        
-        # Use this when you don't know the task ID(s), typically because this notebook closed
-        
-        matched_blobs = sas_blob_utils.list_blobs_in_container(container_uri=container_uri)
-        task_blobs = [s for s in matched_blobs if base_task_name in s]
-        task_id = task_blobs[0].split('/')[0]
-        matched_blobs = sas_blob_utils.list_blobs_in_container(container_uri=container_uri,blob_prefix=task_id)
-    
-        task_to_results = {}
-        task_to_results[task_id] = matched_blobs
-        
-        taskgroups = None
-        
-        #%%
-        
-    if False:
-        
-        #%%
-        
-        # Use this when you still have the taskgroups and Task IDs, typically because
-        # this notebook is fine, but the job stalled
-
-        # Maps task IDs to lists of resulting blobs
-        task_to_results = {}
-        
-        # Enumerate files associated with each task
-        #
-        # taskgroup = taskgroups[0]; task = taskgroup[0]
-        for taskgroup in taskgroups:
-            for task in taskgroup:
-                
-                task_id = task.id
-                
-                # Enumerate files associated this this task
-                matched_blobs = sas_blob_utils.list_blobs_in_container(container_uri=container_uri, blob_prefix=task_id)
-                task_to_results[task_id] = matched_blobs
-        
-        #%%
-                
-    #%% 
-            
-    # Determine which tasks have finished, build completion messages for each
-            
-    # task_id = (list(task_to_results.keys()))[0];
-    task_id_to_msg = {}        
-    for task_id in task_to_results:
-        
-        results = task_to_results[task_id]
-        
-        if len(results) != 1:
-            print('Task {} is not finished'.format(task_id))
-            task_id_to_msg[task_id] = None
-            continue
-        
-        detections_url = ''
-        
-        # s = results[0]
-        assert False, 'Need to revisit this section for the new API'
-        task_id_start = task_id[0:8]
-        for s in results:
-            assert s.startswith(task_id_start)
-            s_url = container_uri.replace('?','/' + s + '?')
-            blob_name = s.split('/')[1]
-            if blob_name.startswith(task_id_start + '_detections'):
-                detections_url = s_url
-            else:
-                raise ValueError('Cannot map blob {}'.format(s))
-        
-            msg = prepare_api_submission.create_response_message(0,
-                                    detections_url=detections_url,
-                                    task_id=task_id)
-            
-        # ...for each blob in this folder
-        
-        task_id_to_msg[task_id] = msg
-        
-    # ...for each task
-    
-
-    #%% Replace task group tasks
-    
-    if False:
-        
-        #%%
-        
-        # Use this if you're building taskgroups from scratch, typically because this notebook closed
-        
-        msg = task_id_to_msg[task_id]
-        new_task = prepare_api_submission.Task(name=task_id + '_reprise',task_id=msg['request_id'],
-                                        api_url=endpoint_base,validate=False)
-        new_task.force_completion(msg) 
-        taskgroups = [[new_task]]
-
-        #%%
-        
-    if False:
-        
-        #%%
-        
-        # Use this if you still have taskgroups, typically because the job stalled
-
-        for taskgroup in taskgroups:
-        
-            for i_task,task in enumerate(taskgroup):
-                
-                task_id = task.id
-                msg = task_id_to_msg[task_id]
-                new_task = prepare_api_submission.Task(name=task_id + '_reprise',task_id=msg['request_id'],
-                                                api_url=endpoint_base,validate=False)
-                new_task.force_completion(msg) 
-                taskgroup[i_task] = new_task
-            
-            # ...for each task
-                
-        # ...for each task group
-                        
                 
 #%% Look for failed shards or missing images, start new tasks if necessary
-
+    
 n_resubmissions = 0
 
 # This will be a list of lists of tasks, with either one or zero
@@ -599,8 +456,8 @@ for i_taskgroup, taskgroup in enumerate(taskgroups):
     tasks = list(taskgroup)  
     
     # i_task = 0; task = tasks[i_task]
-    for i_task,task in enumerate(tasks):
-            
+    for i_task,task in enumerate(tasks):        
+        
         print('\n*** Task {} ({} in taskgroup {}) ***\n'.format(task.id,i_task,i_taskgroup))
         
         response = task.check_status()
@@ -611,8 +468,8 @@ for i_taskgroup, taskgroup in enumerate(taskgroups):
             
         output_file_urls = task.get_output_file_urls()
         detections_url = output_file_urls['detections']
-        detections_fn = url_to_filename(detections_url)
-
+        detections_fn = url_to_filename(detections_url).replace(':','_')
+    
         # Each taskgroup corresponds to one of our folders
         folder_name = folder_names[i_taskgroup]
         clean_folder_name = prepare_api_submission.clean_request_name(
@@ -626,99 +483,39 @@ for i_taskgroup, taskgroup in enumerate(taskgroups):
             submitted_images = json.load(f)
         
         missing_images_fn = os.path.join(
-            raw_api_output_folder, detections_fn.replace('.json', '_missing.json').replace(':','_'))
+            raw_api_output_folder, detections_fn.replace('.json', '_missing.json'))
         missing_images = task.get_missing_images(submitted_images=submitted_images,verbose=True)
         missing_images_by_task.append(missing_images)
         ai4e_azure_utils.write_list_to_file(missing_images_fn, missing_images)
         
         num_missing_images = len(missing_images)
-        if num_missing_images < max_tolerable_missing_images:
-            continue
-
-        print('Warning: {} missing images for task {}'.format(len(missing_images),task.id))
-        task_name = '{}_{}_{}_missing_images'.format(base_task_name,folder_name,task.id)
-        blob_name = 'api_inputs/{}/{}.json'.format(base_task_name,task_name)
-        new_task = prepare_api_submission.Task(
-            name=task_name, images_list_path=missing_images_fn,
-            api_url=endpoint_base)
-        print('Task {}: uploading {} to {}'.format(task_name,missing_images_fn,blob_name))
-        new_task.upload_images_list(
-            account=storage_account_name, container=container_name,
-            blob_name=blob_name, sas_token=read_write_sas_token, overwrite=True)
-        request = new_task.generate_api_request(
-            caller=caller, input_container_url=read_only_sas_url,
-            image_path_prefix=None, **additional_task_args)
-
-        # Do not append here; do this manually in the next cell if we actually decide
-        # to run the resubmitted task.
-        # taskgroup.append(new_task)
-        resubmitted_tasks_this_taskgroup.append(new_task)
-
-        # automatic submission
-        # new_task.submit()
-
-        # manual submission
-        print('\nResbumission string for task {}:\n'.format(task_id))
-        print(json.dumps(request, indent=1))
-        print('')
-
-        n_resubmissions += 1
-
-    # ...for each task
-
-    resubmitted_tasks.append(resubmitted_tasks_this_taskgroup)
-    
-# ...for each task group
-
-if n_resubmissions == 0:
-    print('No resubmissions necessary')
-
-
-#%% See what's up with failed/missing images (debugging cell)
-    
-if False:
-
-    #%%
-    
-    n_missing = sum([len(x) for x in missing_images_by_task])
-    n_failed = sum([len(x) for x in failed_images_by_task])
-    print('{} missing images total ({} failed)'.format(n_missing,n_failed))
-    
-    #%%
-    
-    failed_images_flat = list(itertools.chain.from_iterable(failed_images_by_task))
-    i_image = 100
-    sample_image_path = failed_images_flat[i_image]
-    url = read_only_sas_url.replace('?','/'+sample_image_path+'?')
-    clipboard.copy(url)
-    
-    import ai4e_azure_utils
-    failed_images_file = os.path.join(filename_base,'failed_images.txt')
-    ai4e_azure_utils.write_list_to_file(failed_images_file, failed_images_flat)
-    print('Wrote {} failed images to {}'.format(len(failed_images_flat),failed_images_file))
-    
-    
-#%% Resubmit tasks for failed shards, add to appropriate task groups
-
-if False:
-
-    #%%
-    
-    for taskgroup in resubmitted_tasks:
-        for task in taskgroup:
-            response = task.check_status()
-            print(response)
-    
-    #%%
+        assert num_missing_images <= max_tolerable_missing_images,\
+            'Error: {} images missing from task {}'.format(num_missing_images,task.id)
+                
+        # Now look for failed images
+        detections_path = os.path.join(raw_api_output_folder,detections_fn)
+        prepare_api_submission.download_url(detections_url, detections_path)
         
-    taskgroup_ids = [['2233', '9484', '1222'], ['1197', '1702', '2764']]
-
-    for i, taskgroup in enumerate(taskgroups):
-        for j, task in enumerate(taskgroup):
-            if hasattr(task, 'id'):
-                assert task.id == taskgroup_ids[i][j]
-            else:
-                task.id = taskgroup_ids[i][j]
+        with open(detections_path,'r') as f:
+            detections = json.load(f)
+        detections = detections['images']                
+        
+        failed_images = []
+        for im in detections:
+            if 'failure' in im:
+                file = im['file']
+                print('Image {} failed: {}'.format(file,im['failure']))
+                failed_images.append(im)
+        failed_images_by_task.append(failed_images)
+        
+        num_failed_images = len(failed_images)
+        assert num_failed_images <= max_tolerable_failed_images,\
+            'Error: {} images failed for task {}'.format(num_failed_images,task.id)
+        print('{} failed images'.format(num_failed_images))
+        
+    # ...for each task
+                
+# ...for each task group
 
 
 #%% Pull results
@@ -762,7 +559,9 @@ for i_taskgroup, taskgroup in enumerate(taskgroups):
     print('Combining results for {}'.format(folder_name))
 
     results_files = []
+    image_list_files = []
     for task in taskgroup:
+        image_list_files.append(task.local_images_list_path)
         raw_output_file = task_id_to_results_file[task.id]
         results_files.append(raw_output_file)
 
@@ -778,17 +577,25 @@ for i_taskgroup, taskgroup in enumerate(taskgroups):
     folder_name_to_combined_output_file[folder_name] = combined_api_output_file
 
     # Check that we have (almost) all the images
-    list_file = file_lists_by_folder[i_taskgroup]
-    with open(list_file, 'r') as f:
-        requested_images_set = set(json.load(f))
+    requested_images_set = set()
+    for list_file in image_list_files:
+        with open(list_file, 'r') as f:
+            requested_images_set_this_task = set(json.load(f))
+            for s in requested_images_set_this_task:
+                assert s not in requested_images_set
+            requested_images_set = requested_images_set.union(requested_images_set_this_task)
+        
     with open(combined_api_output_file, 'r') as f:
         results = json.load(f)
         result_images_set = set(im['file'] for im in results['images'])
+        
     missing_files = requested_images_set - result_images_set
+    
+    # There may be non-image files in the request list, ignore those
     missing_images = path_utils.find_image_strings(missing_files)
     if len(missing_images) > 0:
         print('Warning: {} missing images for folder {}'.format(len(missing_images),folder_name))              
-    assert len(missing_images) < max_tolerable_missing_images
+    assert len(missing_images) <= max_tolerable_missing_images
 
     # Something has gone bonkers if there are images in the results that
     # aren't in the request
@@ -854,6 +661,8 @@ for fn in html_output_files:
 
 #%% Repeat detection elimination, phase 1
 
+folder_name_to_filered_output_filename = {}
+
 # Deliberately leaving these imports here, rather than at the top, because this cell is not
 # typically executed
 from api.batch_processing.postprocessing.repeat_detection_elimination import repeat_detections_core
@@ -884,8 +693,10 @@ options.debugMaxRenderDir = -1
 options.debugMaxRenderDetection = -1
 options.debugMaxRenderInstance = -1
 
-api_output_filename = list(folder_name_to_combined_output_file.values())[task_index]
+folder_name = folder_names[task_index]
+api_output_filename = folder_name_to_combined_output_file[folder_name]
 filtered_output_filename = path_utils.insert_before_extension(api_output_filename, 'filtered_{}'.format(rde_string))
+folder_name_to_filered_output_filename[folder_name] = filtered_output_filename
 
 suspiciousDetectionResults = repeat_detections_core.find_repeat_detections(api_output_filename,
                                                                            None,
@@ -939,15 +750,25 @@ for i_folder, folder_name_raw in enumerate(folder_names):
         folder_token = ''
     else:
         folder_token = folder_name + '_'
-    output_base = os.path.join(postprocessing_output_folder, folder_token + \
-        base_task_name + '_{}_{:.3f}'.format(rde_string, options.confidence_threshold))
+    
+    if folder_name in folder_name_to_filered_output_filename:
+        filtered_output_filename = folder_name_to_filered_output_filename[folder_name]
+        output_base = os.path.join(postprocessing_output_folder, folder_token + \
+            base_task_name + '_{}_{:.3f}'.format(rde_string, options.confidence_threshold))    
+    else:
+        # print('No RDE file available for {}, skipping'.format(folder_name))
+        #continue
+        print('No RDE file available for {}, defaulting to pre-RDE'.format(folder_name))
+        filtered_output_filename = folder_name_to_combined_output_file[folder_name]
+        output_base = os.path.join(postprocessing_output_folder, folder_token + \
+            base_task_name + '_{:.3f}'.format(options.confidence_threshold))
+                  
     if render_animals_only:
         output_base = output_base + '_render_animals_only'
     os.makedirs(output_base, exist_ok=True)
     
     print('Processing {} to {}'.format(folder_name, output_base))
-    # api_output_file = folder_name_to_combined_output_file[folder_name]
-
+    
     options.api_output_file = filtered_output_filename
     options.output_dir = output_base
     ppresults = process_batch_results(options)

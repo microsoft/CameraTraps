@@ -494,14 +494,18 @@ def process_batch_results(options: PostProcessingOptions
         detections_df = options.api_detection_results
         other_fields = options.api_other_fields
 
+    # Remove failed rows
+    n_failures = 0
+    if 'failure' in detections_df.columns:
+        n_failures = detections_df['failure'].count()
+        print('Warning: {} failed images'.format(n_failures))
+        detections_df = detections_df[detections_df['failure'].isna()]
+    
     assert other_fields is not None
 
     detection_categories = other_fields['detection_categories']
 
     # Convert keys and values to lowercase
-    #
-    # In practice, keys are string integers, but I'm angry at variable casing
-    # so I'm converting those to lowercase too just to pound my fist.
     classification_categories = other_fields.get('classification_categories', {})
     classification_categories = {
         k.lower(): v.lower()
@@ -1067,6 +1071,8 @@ def process_batch_results(options: PostProcessingOptions
         # i_row = 0; row = images_to_visualize.iloc[0]
         for _, row in images_to_visualize.iterrows():
 
+            assert isinstance(row['detections'],list)
+            
             # Filenames should already have been normalized to either '/' or '\'
             files_to_render.append([row['file'],
                                     row['max_detection_conf'],
@@ -1225,12 +1231,17 @@ def process_batch_results(options: PostProcessingOptions
 
         index_page = """<html>\n{}\n<body>\n
         <h2>Visualization of results</h2>\n
-        <p>A sample of {} images (of {} total), annotated with detections above {:.1%} confidence{}.</p>\n
+        <p>A sample of {} images (of {} total)FAILURE_PLACEHOLDER, annotated with detections above {:.1%} confidence{}.</p>\n
         <h3>Sample images</h3>\n
         <div class="contentdiv">\n""".format(
             style_header, image_count, len(detections_df), options.confidence_threshold,
             almost_detection_string)
 
+        failure_string = ''
+        if n_failures is not None:
+            failure_string = ' ({} failures)'.format(n_failures)        
+        index_page = index_page.replace('FAILURE_PLACEHOLDER',failure_string)
+        
         def result_set_name_to_friendly_name(result_set_name):
             friendly_name = ''
             friendly_name = result_set_name.replace('_','-')
