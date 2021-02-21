@@ -267,6 +267,11 @@ def find_matches_in_directory(dirName, options, rowsByDirectory):
         #                                                           all in relative coordinates and length
         # }
         detections = row['detections']
+        if isinstance(detections,float):
+            assert isinstance(row['failure'],str)
+            print('Skipping failed image {} ({})'.format(filename,row['failure']))
+            continue
+        
         assert len(detections) > 0
 
         # For each detection in this image
@@ -548,6 +553,10 @@ def update_detection_table(RepeatDetectionResults, options, outputFilename=None)
     for iRow, row in detectionResults.iterrows():
 
         detections = row['detections']
+        if isinstance(detections,float):
+            assert isinstance(row['failure'],str)
+            continue
+        
         if len(detections) == 0:
             continue
 
