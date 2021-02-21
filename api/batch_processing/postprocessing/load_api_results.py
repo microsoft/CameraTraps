@@ -1,7 +1,8 @@
 #
 # load_api_results.py
 #
-# Loads the output of the batch processing API (json).
+# Loads the output of the batch processing API (json) into a pandas dataframe.
+#
 # Also functions to group entries by seq_id.
 #
 # Includes the deprecated functions that worked with the old CSV API output format.
@@ -33,7 +34,8 @@ def caltech_file_to_file_name(f):
 
 
 def api_results_groupby(api_output_path, gt_db_indexed, file_to_image_id, field='seq_id'):
-    """Given the output file of the API, groupby (currently only seq_id).
+    """
+    Given the output file of the API, groupby (currently only seq_id).
 
     Args:
         api_output_path: path to the API output json file
@@ -63,7 +65,8 @@ def api_results_groupby(api_output_path, gt_db_indexed, file_to_image_id, field=
 def load_api_results(api_output_path: str, normalize_paths: bool = True,
                      filename_replacements: Optional[Mapping[str, str]] = None
                      ) -> Tuple[pd.DataFrame, Dict]:
-    """Loads the json formatted results from the batch processing API to a
+    """
+    Loads the json formatted results from the batch processing API to a
     Pandas DataFrame, mainly useful for various postprocessing functions.
 
     Args:
@@ -74,11 +77,8 @@ def load_api_results(api_output_path: str, normalize_paths: bool = True,
             the original blob structure
 
     Returns:
-        detection_results: pd.DataFrame, contains columns
-                ['file', 'max_detection_conf', 'detections']
-            which correspond to the old column names
-                ['image_path', 'max_confidence', 'detections'].
-            It may also include a 'meta' column.
+        detection_results: pd.DataFrame, contains at least the columns:
+                ['file', 'max_detection_conf', 'detections','failure']            
         other_fields: a dict containing fields in the dict
     """
     print(f'Loading API results from {api_output_path}')
@@ -114,12 +114,6 @@ def load_api_results(api_output_path: str, normalize_paths: bool = True,
 
             replacement_string = filename_replacements[string_to_replace]
 
-            # TODO: hit some silly issues with vectorized str() and escaped
-            # characters, vectorize this later.
-            #
-            # detection_results['image_path'].str.replace(
-            #     string_to_replace, replacement_string)
-            # i_row = 0
             for i_row in range(len(detection_results)):
                 row = detection_results.iloc[i_row]
                 fn = row['file']
@@ -141,7 +135,6 @@ def write_api_results(detection_results_table, other_fields, out_path):
 
     fields = other_fields
 
-    # TODO: read double_precision from a config elsewhere
     images = detection_results_table.to_json(orient='records',
                                              double_precision=3)
     images = json.loads(images)
