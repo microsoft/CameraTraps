@@ -32,7 +32,7 @@
 
 """
 
-#%% Imports
+#%% Imports and constants
 
 import json
 import ntpath
@@ -60,9 +60,6 @@ from api.batch_processing.postprocessing import combine_api_outputs
 from api.batch_processing.postprocessing.postprocess_batch_results import (
     PostProcessingOptions, process_batch_results)
 
-
-#%% Constants
-
 max_task_name_length = 92
 submission_time_between_tasks = 60
 
@@ -74,9 +71,11 @@ submission_time_between_tasks = 60
 storage_account_name = 'blah'
 container_name = 'blah'
 country = 'country'
-organization_name = 'organization'
-base_task_name = organization_name + '-' + date.today().strftime('%Y-%m-%d')
-base_output_folder_name = 'g:\\' + organization_name
+organization_name_long = 'university of awesome'
+organization_name_short = 'uawesome-smith'
+
+base_task_name = organization_name_short + '-' + date.today().strftime('%Y-%m-%d')
+base_output_folder_name = 'g:\\' + organization_name_short
 
 # Shared Access Signature (SAS) tokens for the Azure Blob Storage container.
 # Leading question mark is optional.
@@ -116,7 +115,7 @@ image_base = 'x:\\'
 
 additional_task_args: Dict[str, Any] = {}
 additional_task_args['country'] = country
-additional_task_args['organization_name'] = organization_name
+additional_task_args['organization_name'] = organization_name_long
 
 # Supported model_versions: '4', '3', '4_prelim'
 #
