@@ -11,6 +11,9 @@
 import os
 import cv2
 import glob
+import json
+
+from collections import defaultdict
 
 # from ai4eutils
 import path_utils
@@ -88,16 +91,23 @@ def frames_to_video(images, Fs, output_file_name, codec_spec='h264'):
 
 
 def get_video_fs(input_video_file):
+    """
+    Get the frame rate of [input_video_file]
+    """
     assert os.path.isfile(input_video_file), 'File {} not found'.format(input_video_file)    
     vidcap = cv2.VideoCapture(input_video_file)
     Fs = vidcap.get(cv2.CAP_PROP_FPS)
     vidcap.release()
     return Fs
 
-# https://stackoverflow.com/questions/33311153/python-extracting-and-saving-video-frames
+
 def video_to_frames(input_video_file, output_folder):
     """
     Render every frame of [input_video_file] to a .jpg in [output_folder]
+    
+    With help from:
+        
+    https://stackoverflow.com/questions/33311153/python-extracting-and-saving-video-frames
     """
     
     assert os.path.isfile(input_video_file), 'File {} not found'.format(input_video_file)
@@ -169,6 +179,92 @@ def video_folder_to_frames(input_folder:str, output_folder_base:str, recursive:b
         fs_by_video.append(fs)
     
     return frame_filenames_by_video,fs_by_video
+  
+
+class FrameToVideoOptions:
+    
+    # zero-indexed
+    nth_highest_confidence = 1
+    
+    
+def frame_results_to_video_results(input_file,output_file,options):
+    """
+    Given an API output file produced at the *frame* level, corresponding to a directory 
+    created with video_folder_to_frames, map those frame-level results back to the 
+    video level for use in Timelapse.
+    """
+
+    # Load results
+    with open(input_file,'r') as f:
+        input_data = json.load(f)
+
+    images = input_data['images']
+    detection_categories = input_data['detection_categories']
+    
+    ## Break into videos
+    
+    video_to_frames = defaultdict(list) 
+    
+    # im = images[0]
+    for im in tqdm(images):
+        
+        fn = im['file']
+        video_name = os.path.dirname(fn)
+        assert is_video_file(video_name)
+        video_to_frames[video_name].append(im)
+    
+    output_images = []
+    
+    ## For each video...
+    
+    # video_name = list(video_to_frames.keys())[0]
+    for video_name in tqdm(video_to_frames):
+        
+        frames = video_to_frames[video_name]
+        
+        all_detections_this_video = []
+        
+        # frame = frames[0]
+        for frame in frames:
+            all_detections_this_video.extend(frame['detections'])
+            
+        # At most one detection for each category for the whole video
+        canonical_detections = []
+            
+        # category_id = list(detection_categories.keys())[0]
+        for category_id in detection_categories:
+            
+            category_detections = [det for det in all_detections_this_video if det['category'] == category_id]
+            
+            # Find the nth-highest-confidence video to choose a confidence value
+            if len(category_detections) > options.nth_highest_confidence:
+                
+                category_detections_by_confidence = sorted(category_detections, key = lambda i: i['conf'],reverse=True)
+                canonical_detection = category_detections_by_confidence[options.nth_highest_confidence]
+                canonical_detections.append(canonical_detection)
+                                      
+        # Prepare the output representation for this video
+        im_out = {}
+        im_out['file'] = video_name
+        im_out['detections'] = canonical_detections
+        im_out['max_detection_conf'] = 0
+        if len(canonical_detections) > 0:
+            confidences = [d['conf'] for d in canonical_detections]
+            im_out['max_detection_conf'] = max(confidences)
+        
+        output_images.append(im_out)
+        
+    # ...for each video
+    
+    output_data = input_data
+    output_data['images'] = output_images
+    s = json.dumps(output_data,indent=1)
+    
+    # Write the output file
+    with open(output_file,'w') as f:
+        f.write(s)
+    
+    #%%
     
     
 #%% Test driver
