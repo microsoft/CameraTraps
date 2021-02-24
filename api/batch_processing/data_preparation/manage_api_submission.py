@@ -472,7 +472,7 @@ for i_taskgroup, taskgroup in enumerate(taskgroups):
         # Each taskgroup corresponds to one of our folders
         folder_name = folder_names[i_taskgroup]
         clean_folder_name = prepare_api_submission.clean_request_name(
-            folder_name)
+            folder_name.replace('.','-'))
         assert (folder_name in detections_fn) or (clean_folder_name in detections_fn)
         assert 'chunk' in detections_fn
 
@@ -533,7 +533,7 @@ for i_taskgroup, taskgroup in enumerate(taskgroups):
         # Each taskgroup corresponds to one of our folders
         folder_name = folder_names[i_taskgroup]
         clean_folder_name = prepare_api_submission.clean_request_name(
-            folder_name)
+            folder_name.replace('.','-'))
         assert (folder_name in fn) or (clean_folder_name in fn)
         assert 'chunk' in fn or 'missing' in fn
 
@@ -625,7 +625,7 @@ for i_folder, folder_name_raw in enumerate(folder_names):
     if render_animals_only:
         # Omit some pages from the output, useful when animals are rare
         options.rendering_bypass_sets = ['detections_person','detections_vehicle',
-                                          'detections_person_vehicle','non_detections']
+                                         'detections_person_vehicle','non_detections']
     
     folder_name = path_utils.clean_filename(folder_name_raw)
     if len(folder_name) == 0:
