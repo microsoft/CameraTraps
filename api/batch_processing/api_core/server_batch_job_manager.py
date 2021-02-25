@@ -17,6 +17,7 @@ from azure.common.credentials import ServicePrincipalCredentials
 import server_api_config as api_config
 
 
+# Gunicorn logger handler will get attached if needed in server.py
 log = logging.getLogger(os.environ['FLASK_APP'])
 
 

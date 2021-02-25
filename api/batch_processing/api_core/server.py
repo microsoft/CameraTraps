@@ -16,8 +16,14 @@ from server_job_status_table import JobStatusTable
 from server_utils import *
 
 # %% Flask app
-
 app = Flask(__name__)
+
+# reference: https://trstringer.com/logging-flask-gunicorn-the-manageable-way/
+if __name__ != '__main__':
+    gunicorn_logger = logging.getLogger('gunicorn.error')
+    app.logger.handlers = gunicorn_logger.handlers
+    app.logger.setLevel(gunicorn_logger.level)
+
 API_PREFIX = api_config.API_PREFIX
 app.logger.info('server, created Flask application...')
 
@@ -50,6 +56,8 @@ def request_detections():
         post_body = request.get_json()
     except Exception as e:
         return make_error(415, f'Error occurred reading POST request body: {e}.')
+
+    app.logger.info(f'server, request_detections, post_body: {post_body}')
 
     # required params
 
