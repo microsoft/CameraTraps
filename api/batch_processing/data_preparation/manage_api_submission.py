@@ -660,7 +660,7 @@ for fn in html_output_files:
 
 #%% Repeat detection elimination, phase 1
 
-folder_name_to_filered_output_filename = {}
+folder_name_to_filtered_output_filename = {}
 
 # Deliberately leaving these imports here, rather than at the top, because this cell is not
 # typically executed
@@ -695,7 +695,7 @@ options.debugMaxRenderInstance = -1
 folder_name = folder_names[task_index]
 api_output_filename = folder_name_to_combined_output_file[folder_name]
 filtered_output_filename = path_utils.insert_before_extension(api_output_filename, 'filtered_{}'.format(rde_string))
-folder_name_to_filered_output_filename[folder_name] = filtered_output_filename
+folder_name_to_filtered_output_filename[folder_name] = filtered_output_filename
 
 suspiciousDetectionResults = repeat_detections_core.find_repeat_detections(api_output_filename,
                                                                            None,
@@ -750,8 +750,8 @@ for i_folder, folder_name_raw in enumerate(folder_names):
     else:
         folder_token = folder_name + '_'
     
-    if folder_name in folder_name_to_filered_output_filename:
-        filtered_output_filename = folder_name_to_filered_output_filename[folder_name]
+    if folder_name in folder_name_to_filtered_output_filename:
+        filtered_output_filename = folder_name_to_filtered_output_filename[folder_name]
         output_base = os.path.join(postprocessing_output_folder, folder_token + \
             base_task_name + '_{}_{:.3f}'.format(rde_string, options.confidence_threshold))    
     else:
