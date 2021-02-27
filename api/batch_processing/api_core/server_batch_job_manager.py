@@ -9,7 +9,10 @@ import logging
 import os
 import math
 from typing import Tuple
+from datetime import datetime, timedelta
 
+import sas_blob_utils  # from ai4eutils
+from azure.storage.blob import ContainerClient, ContainerSasPermissions, generate_container_sas
 from azure.batch import BatchServiceClient
 from azure.batch.models import *
 from azure.common.credentials import ServicePrincipalCredentials
@@ -74,11 +77,52 @@ class BatchJobManager:
         # form shards of images and assign each shard to a Task
         num_tasks = math.ceil(num_images / num_images_per_task)
 
-        tasks = []
+        # for persisting stdout and stderr
+        permissions = ContainerSasPermissions(read=True, write=True, list=True)
+        access_duration_hrs = api_config.MONITOR_PERIOD_MINUTES * api_config.MAX_MONITOR_CYCLES / 60
+        container_sas_token = generate_container_sas(
+            account_name=api_config.STORAGE_ACCOUNT_NAME,
+            container_name=api_config.STORAGE_CONTAINER_API,
+            account_key=api_config.STORAGE_ACCOUNT_KEY,
+            permission=permissions,
+            expiry=datetime.utcnow() + timedelta(hours=access_duration_hrs))
+        container_sas_url = sas_blob_utils.build_azure_storage_uri(
+            account=api_config.STORAGE_ACCOUNT_NAME,
+            container=api_config.STORAGE_CONTAINER_API,
+            sas_token=container_sas_token)
 
+        tasks = []
         for task_id in range(num_tasks):
             begin_index = task_id * num_images_per_task
             end_index = begin_index + num_images_per_task
+
+            # persist stdout and stderr (will be removed when node removed)
+            # paths are relative to the Task working directory
+            stderr_destination = OutputFileDestination(
+                container=OutputFileBlobContainerDestination(
+                    container_url=container_sas_url,
+                    path=f'api_{api_config.API_INSTANCE_NAME}/job_{job_id}/task_logs/job_{job_id}_task_{task_id}_stderr.txt'
+                )
+            )
+            stdout_destination = OutputFileDestination(
+                container=OutputFileBlobContainerDestination(
+                    container_url=container_sas_url,
+                    path=f'api_{api_config.API_INSTANCE_NAME}/job_{job_id}/task_logs/job_{job_id}_task_{task_id}_stdout.txt'
+                )
+            )
+            std_err_and_out = [
+                OutputFile(
+                    file_pattern='../stderr.txt',  # stderr.txt is at the same level as wd
+                    destination=stderr_destination,
+                    upload_options=OutputFileUploadOptions(upload_condition=OutputFileUploadCondition.task_completion)
+                    # can also just upload on failure
+                ),
+                OutputFile(
+                    file_pattern='../stdout.txt',
+                    destination=stdout_destination,
+                    upload_options=OutputFileUploadOptions(upload_condition=OutputFileUploadCondition.task_completion)
+                )
+            ]
 
             task = TaskAddParameter(
                 id=str(task_id),
@@ -90,7 +134,8 @@ class BatchJobManager:
                 environment_settings=[
                     EnvironmentSetting(name='TASK_BEGIN_INDEX', value=begin_index),
                     EnvironmentSetting(name='TASK_END_INDEX', value=end_index),
-                ]
+                ],
+                output_files=std_err_and_out
             )
             tasks.append(task)
 
@@ -129,6 +174,7 @@ class BatchJobManager:
 
         for i in range(0, len(tasks), num_tasks_per_submission):
             tasks_to_submit = tasks[i: i + num_tasks_per_submission]
+
             # return type: TaskAddCollectionResult
             collection_results = self.batch_client.task.add_collection(job_id, tasks_to_submit, threads=10)
 

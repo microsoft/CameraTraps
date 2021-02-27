@@ -65,6 +65,7 @@ export FLASK_APP=server
 
 To start the app locally in debug mode:
 ```commandline
+export FLASK_ENV=development
 flask run -p 5000 --eager-loading --no-reload
 ```
 
