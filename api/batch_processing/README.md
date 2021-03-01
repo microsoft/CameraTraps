@@ -113,7 +113,7 @@ The metadata string will be copied to the `meta` field in the image's entry in t
 
 #### Other notes and example  
 
-- Only images with file name ending in ".jpg" or ".png" (case insensitive) will be processed, so please make sure the file names are compliant before you upload them to the container (you cannot rename a blob without copying it entirely once it is in Blob Storage). 
+- Only images with file name ending in ".jpg", ".jpeg" or ".png" (case insensitive) will be processed, so please make sure the file names are compliant before you upload them to the container (you cannot rename a blob without copying it entirely once it is in Blob Storage). 
 
 - By default we process all such images in the specified container. You can choose to only process a subset of them by specifying the other input parameters. The images will be filtered out accordingly in this order:
     - `images_requested_json_sas`
