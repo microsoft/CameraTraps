@@ -132,7 +132,9 @@ Example body of the POST request:
   "first_n": 100000,
   "request_name": "Alberta_2020",
   "model_version": "4.1",
-  "caller": "allowlisted_user_x"
+  "caller": "allowlisted_user_x",
+  "country": "CAN",
+  "organization_name": "Name of Organization"
 }
 ```
 
