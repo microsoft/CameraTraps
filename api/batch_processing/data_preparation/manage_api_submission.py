@@ -833,8 +833,8 @@ from api.batch_processing.postprocessing.separate_detections_into_folders import
     separate_detections_into_folders, SeparateDetectionsIntoFoldersOptions)
 
 default_threshold = 0.8
-base_output_folder = r"e:\organization-{}-separated".format(default_threshold)
-base_input_folder = "z:\\"
+base_output_folder = r'e:\{}-{}-separated'.format(base_task_name,default_threshold)
+base_input_folder = 'z:\\'
 
 # i_folder = 0; folder_name_raw = folder_names[i_folder]
 for i_folder, folder_name_raw in enumerate(folder_names):
@@ -842,7 +842,9 @@ for i_folder, folder_name_raw in enumerate(folder_names):
     options = SeparateDetectionsIntoFoldersOptions()
     
     folder_name = path_utils.clean_filename(folder_name_raw)
-    api_output_file = folder_name_to_combined_output_file[folder_name]
+    
+    api_output_file = folder_name_to_filtered_output_filename[folder_name]
+    # api_output_file = folder_name_to_combined_output_file[folder_name]
 
     options.results_file = api_output_file
     options.base_input_folder = base_input_folder
