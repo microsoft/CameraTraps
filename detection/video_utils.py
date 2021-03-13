@@ -213,6 +213,9 @@ def frame_results_to_video_results(input_file,output_file,options):
         assert is_video_file(video_name)
         video_to_frames[video_name].append(im)
     
+    print('Found {} unique videos in {} frame-level results'.format(
+        len(video_to_frames),len(images)))
+    
     output_images = []
     
     ## For each video...
@@ -305,11 +308,8 @@ if False:
     folders = [s.replace('\\','/') for s in folders]
     print('Found {} folders for {} files'.format(len(folders),len(frame_files)))
     
-    
-    
+        
     #%% Load detector output
-    
-    import json
     
     with open(results_file,'r') as f:
         detection_results = json.load(f)
@@ -367,3 +367,5 @@ if False:
         Fs = get_video_fs(original_video_filename)
                 
         frames_to_video(frame_files_absolute, Fs, output_video_filename)
+
+    # ...for each video
