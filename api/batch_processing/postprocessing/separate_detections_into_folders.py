@@ -62,15 +62,15 @@ invalid_category_epsilon = 0.00001
 #%% Options class
 
 default_threshold = 0.725
-        
+            
 class SeparateDetectionsIntoFoldersOptions:
-    
-    def __init__(self):
+
+    def __init__(self,threshold=default_threshold):
         
         self.category_name_to_threshold = {
-            'animal': default_threshold,
-            'person': default_threshold,
-            'vehicle': default_threshold
+            'animal': threshold,
+            'person': threshold,
+            'vehicle': threshold
         }
         
         self.n_threads = 1
@@ -92,7 +92,10 @@ class SeparateDetectionsIntoFoldersOptions:
 def path_is_abs(p): return (len(p) > 1) and (p[0] == '/' or p[1] == ':')
     
 def process_detection(d,options):
-
+    """
+    Process detections for a single image
+    """
+    
     relative_filename = d['file']
     detections = d['detections']
     
@@ -100,7 +103,7 @@ def process_detection(d,options):
     category_names = options.category_id_to_category_name.values()
     for category_name in category_names:
         category_name_to_max_confidence[category_name] = 0.0
-        
+    
     # Find the maximum confidence for each category
     #
     # det = detections[0]
@@ -195,6 +198,15 @@ def separate_detections_into_folders(options):
     category_names = list(detection_categories.values())
     category_names.sort()
     
+    for category_name in category_names:        
+
+        threshold = default_threshold
+        
+        # Do we have a custom threshold for this category?
+        if category_name in options.category_name_to_threshold:
+            threshold = options.category_name_to_threshold[category_name]
+        print('Processing category {} at threshold {}'.format(category_name,threshold))
+            
     target_category_names = []
     for c in category_names:
         target_category_names.append(c)
@@ -228,8 +240,7 @@ def separate_detections_into_folders(options):
         
     else:
         
-        pool = ThreadPool(options.n_threads)        
-        
+        pool = ThreadPool(options.n_threads)
         process_detection_with_options = partial(process_detection, options=options)
         results = list(tqdm(pool.imap(process_detection_with_options, detections), total=len(detections)))
         
