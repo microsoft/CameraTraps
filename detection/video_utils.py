@@ -14,13 +14,13 @@ import glob
 import json
 
 from collections import defaultdict
+from multiprocessing.pool import ThreadPool
+from tqdm import tqdm
+from typing import Container,Iterable,List
 
 # from ai4eutils
 import path_utils
     
-from tqdm import tqdm
-from typing import Container,Iterable,List
-
 from visualization import visualization_utils as vis_utils
 
 
@@ -94,6 +94,7 @@ def get_video_fs(input_video_file):
     """
     Get the frame rate of [input_video_file]
     """
+    
     assert os.path.isfile(input_video_file), 'File {} not found'.format(input_video_file)    
     vidcap = cv2.VideoCapture(input_video_file)
     Fs = vidcap.get(cv2.CAP_PROP_FPS)
@@ -101,7 +102,7 @@ def get_video_fs(input_video_file):
     return Fs
 
 
-def video_to_frames(input_video_file, output_folder):
+def video_to_frames(input_video_file, output_folder, overwrite=True):
     """
     Render every frame of [input_video_file] to a .jpg in [output_folder]
     
@@ -115,6 +116,37 @@ def video_to_frames(input_video_file, output_folder):
     vidcap = cv2.VideoCapture(input_video_file)
     n_frames = int(vidcap.get(cv2.CAP_PROP_FRAME_COUNT))
     Fs = vidcap.get(cv2.CAP_PROP_FPS)
+    
+    # If we're not over-writing, check whether all frame images already exist
+    if overwrite == False:
+        
+        missing_frame_number = None
+        frame_filenames = []
+        
+        for frame_number in range(0,n_frames):
+            
+            frame_filename = 'frame{:05d}.jpg'.format(frame_number)
+            frame_filename = os.path.join(output_folder,frame_filename)
+            frame_filenames.append(frame_filename)
+            if os.path.isfile(frame_filename):
+                continue
+            else:
+                missing_frame_number = frame_number
+                break
+    
+        # OpenCV seems to over-report the number of frames by 1 in some cases, or fails
+        # to read the last frame; either way, I'm allowing one missing frame.
+        allow_last_frame_missing = True
+        
+        if missing_frame_number is None or \
+            (allow_last_frame_missing and (missing_frame_number == n_frames-1)):
+            print('Skipping video {}, all output frames exist'.format(input_video_file))
+            return frame_filenames,Fs
+        else:
+            print("Rendering video, couldn't find {}".format(missing_frame_number))
+    
+    # ...if we need to check whether to skip this video entirely
+        
     print('Reading {} frames at {} Hz from {}'.format(n_frames,Fs,input_video_file))
 
     frame_filenames = []
@@ -123,20 +155,26 @@ def video_to_frames(input_video_file, output_folder):
 
         success,image = vidcap.read()
         if not success:
+            assert image is None
             print('Read terminating at frame {} of {}'.format(frame_number,n_frames))
             break
 
         frame_filename = 'frame{:05d}.jpg'.format(frame_number)
         frame_filename = os.path.join(output_folder,frame_filename)
         frame_filenames.append(frame_filename)
-        try:
-            cv2.imwrite(frame_filename,image)
-            assert os.path.isfile(frame_filename)
-        except KeyboardInterrupt:
-            vidcap.release()
-            raise
-        except Exception as e:
-            print('Error on frame {} of {}: {}'.format(frame_number,n_frames,str(e)))
+        
+        if overwrite == False and os.path.isfile(frame_filename):
+            # print('Skipping frame {}'.format(frame_filename))
+            pass            
+        else:
+            try:
+                cv2.imwrite(frame_filename,image)
+                assert os.path.isfile(frame_filename)
+            except KeyboardInterrupt:
+                vidcap.release()
+                raise
+            except Exception as e:
+                print('Error on frame {} of {}: {}'.format(frame_number,n_frames,str(e)))
 
     print('\nExtracted {} of {} frames'.format(len(frame_filenames),n_frames))
 
@@ -144,7 +182,9 @@ def video_to_frames(input_video_file, output_folder):
     return frame_filenames,Fs
 
 
-def video_folder_to_frames(input_folder:str, output_folder_base:str, recursive:bool=True):
+def video_folder_to_frames(input_folder:str, output_folder_base:str, 
+                           recursive:bool=True, overwrite:bool=True,
+                           n_threads:int=1):
     """
     For every video file in input_folder, create a folder within output_folder_base, and 
     render every frame of the video to .jpg in that folder.
@@ -160,24 +200,38 @@ def video_folder_to_frames(input_folder:str, output_folder_base:str, recursive:b
     frame_filenames_by_video = []
     fs_by_video = []
     
-    # For each video
-    # input_fn_relative = input_files_relative_paths[0]
-    for i_video,input_fn_relative in enumerate(input_files_relative_paths):
+    def process_video(relative_fn):
         
-        print('Processing video {} of {}'.format(i_video,len(input_files_relative_paths)))
-        
-        input_fn_absolute = os.path.join(input_folder,input_fn_relative)
+        input_fn_absolute = os.path.join(input_folder,relative_fn)
         assert os.path.isfile(input_fn_absolute)
     
         # Create the target output folder
-        output_folder_video = os.path.join(output_folder_base,input_fn_relative)
+        output_folder_video = os.path.join(output_folder_base,relative_fn)
         os.makedirs(output_folder_video,exist_ok=True)
     
         # Render frames
-        frame_filenames,fs = video_to_frames(input_fn_absolute,output_folder_video)
-        frame_filenames_by_video.append(frame_filenames)
-        fs_by_video.append(fs)
+        frame_filenames,fs = video_to_frames(input_fn_absolute,output_folder_video,overwrite=overwrite)
+        
+        return frame_filenames,fs
     
+    if n_threads == 1:
+        # For each video
+        #
+        # input_fn_relative = input_files_relative_paths[0]
+        for input_fn_relative in input_files_relative_paths:
+        
+            frame_filenames,fs = process_video(input_fn_relative)
+            frame_filenames_by_video.append(frame_filenames)
+            fs_by_video.append(fs)
+    else:
+        pool = ThreadPool(n_threads)
+        # process_detection_with_options = partial(process_detection, options=options)
+        results = list(tqdm(pool.imap(process_video, 
+                                      input_files_relative_paths), 
+                            total=len(input_files_relative_paths)))
+        frame_filenames_by_video = [x[0] for x in results]
+        fs_by_video = [x[1] for x in results]
+        
     return frame_filenames_by_video,fs_by_video
   
 
