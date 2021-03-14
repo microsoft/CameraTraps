@@ -839,7 +839,7 @@ base_input_folder = 'z:\\'
 # i_folder = 0; folder_name_raw = folder_names[i_folder]
 for i_folder, folder_name_raw in enumerate(folder_names):
 
-    options = SeparateDetectionsIntoFoldersOptions()
+    options = SeparateDetectionsIntoFoldersOptions(default_threshold)
     
     folder_name = path_utils.clean_filename(folder_name_raw)
     
