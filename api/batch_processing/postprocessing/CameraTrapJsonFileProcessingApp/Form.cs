@@ -78,7 +78,7 @@ namespace CameraTrapJsonManagerApp
             textboxInputFile.Text = @"C:\temp\json_test.json";
             textboxOutputFolderFile.Text = @"c:\temp\out";
             textboxConfidenceThreshold.Text = "0.5";
-            textBoxSplitParameter.Text = "10";
+            textBoxSplitParameter.Text = "1";
             comboBoxSplitFolderMode.SelectedItem = "NFromTop";
             checkBoxMakeFolderRelative.Checked = true;
             checkBoxOverwriteJsonFiles.Checked = true;

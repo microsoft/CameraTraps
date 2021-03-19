@@ -1,520 +1,565 @@
-#
-# prepare_api_submission.py
-#
-# This module is somewhere between "documentation" and "code".  It is intended to 
-# capture the steps the precede running a job via the AI for Earth Camera Trap
-# Image Processing API, and it automates a couple of those steps.  We hope to 
-# gradually automate all of these.
-#
-# Here's the stuff we usually do before submitting a job:
-#
-# 1) Upload data to Azure... we do this with azcopy, not addressed in this script
-#
-# 2) List the files you want the API to process... this module supports that via
-#    enumerate_blobs_to_file.
-#
-# 3) Divide that list into chunks that will become individual API submissions...
-#    this module supports that via divide_files_into_tasks.
+"""
 
-# 3) Put each .json file in a blob container, and generate a read-only SAS 
-#    URL for it.  Not automated right now.
-#
-# 4) Generate the API query(ies) you'll submit to the API... this module supports that
-#    via generate_api_queries.
-#
-# 5) Submit the API query... I currently do this with Postman.
-#
-# 6) Monitor task status
-#
-# 7) Combine multiple API outputs
-#
-# 8) We're now into what we really call "postprocessing", rather than "data_preparation", 
-#    but... possibly do some amount of partner-specific renaming, folder manipulation, etc.  
-#    This is very partner-specific, but generally done via:
-#
-#    find_repeat_detections.py
-#    subset_json_detector_output.py.
-#    postprocess_batch_results.py
-#
+prepare_api_submission.py
 
-#%% Imports and constants
+This module defines the Task class and helper methods that are useful for
+submitting tasks to the AI for Earth Camera Trap Batch Detection API.
 
+Here's the stuff we usually do before submitting a task:
+
+1) Upload images to Azure Blob Storage... we do this with azcopy, not addressed
+    in this script.
+
+2) List the files you want the API to process.
+    ai4eutils.ai4e_azure_utils.enumerate_blobs_to_file()
+
+3) Divide that list into chunks that will become individual API submissions.
+    divide_files_into_tasks()
+
+3) Put each .json file in a blob container and get a read-only SAS URL for it.
+    Task.upload_images_list()
+
+4) Generate the API query(ies) you'll submit to the API.
+    Task.generate_api_request()
+
+5) Submit the API query. This can be done manually with Postman as well.
+    Task.submit()
+
+6) Monitor task status
+    Task.check_status()
+
+7) Combine multiple API outputs
+
+8) We're now into what we really call "postprocessing", rather than
+    "data_preparation", but... possibly do some amount of partner-specific
+    renaming, folder manipulation, etc. This is very partner-specific, but
+    generally done via:
+
+    find_repeat_detections.py
+    subset_json_detector_output.py
+    postprocess_batch_results.py
+    
+"""
+
+
+#%% Imports
+
+from enum import Enum
 import json
-import re
+import os
+import posixpath
 import string
-import unicodedata
+from typing import Any, ClassVar, Dict, List, Optional, Sequence, Tuple
+import urllib
 
-from azure.storage.blob import BlobServiceClient
+import requests
 
-# assumes ai4eutils is on the path
-import path_utils
-
-default_n_files_per_api_task = 1000000
+import ai4e_azure_utils  # from ai4eutils
+import path_utils  # from ai4eutils
 
 
-#%% File enumeration
+#%% Constants
 
-def concatenate_json_string_lists(input_files,output_file=None):
+MAX_FILES_PER_API_TASK = 1_000_000
+IMAGES_PER_SHARD = 2000
+
+VALID_REQUEST_NAME_CHARS = f'-_{string.ascii_letters}{string.digits}'
+REQUEST_NAME_CHAR_LIMIT = 92
+
+
+#%% Classes
+
+class BatchAPISubmissionError(Exception):
+    pass
+
+
+class BatchAPIResponseError(Exception):
+    pass
+
+
+class TaskStatus(str, Enum):
+    RUNNING = 'running'
+    FAILED = 'failed'
+    PROBLEM = 'problem'
+    COMPLETED = 'completed'    
+
+
+class Task:
     """
-    Given several files that contain json-formatted lists of strings (typically filenames),
-    concatenate them into one new file.
-    """
-    output_list = []
-    for fn in input_files:
-        file_list = json.load(open(fn)) 
-        output_list.extend(file_list)
-    if output_file is not None:
-        s = json.dumps(output_list,indent=1)
-        with open(output_file,'w') as f:
-            f.write(s)
-    return output_list
+    Represents a Batch Detection API task.
 
+    Given the Batch Detection API URL, assumes that the endpoints are:
+        /request_detections
+            for submitting tasks
+        /task/<task.id>
+            for checking on task status
+    """
+
+    # class variables
+    request_endpoint: ClassVar[str] = 'request_detections'  # submit tasks
+    task_status_endpoint: ClassVar[str] = 'task'            # check task status
+
+    # instance variables, in order of when they are typically set
+    name: str
+    api_url: str
+    local_images_list_path: str
+    remote_images_list_url: str  # includes SAS token if uploaded with one
+    api_request: Dict[str, Any]  # request object before JSON serialization
+    id: str
+    response: Dict[str, Any]  # decoded response JSON
+    status: TaskStatus
+    bypass_status_check: bool # set when we manually complete a task
+
+    def __init__(self, name: str, task_id: Optional[str] = None,
+                 images_list_path: Optional[str] = None,
+                 validate: bool = True, api_url: Optional[str] = None):
+        """
+        Initializes a Task.
+
+        If desired, validates that the images list does not exceed the maximum
+        length and that all files in the images list are actually images.
+
+        Args:
+            name: str, name of the request
+            task_id: optional str, ID of submitted task
+            images_list_path: str, path or URL to a JSON file containing a list
+                of image paths, must start with 'http' if a URL
+            local: bool, set to True if images_list_path is a local path,
+                set to False if images_list_path is a URL
+            validate: bool, whether to validate the given images list,
+                only used if images_list_path is not None
+            api_url: optional str, Batch Detection API URL,
+                defaults to environment variable BATCH_DETECTION_API_URL
+
+        Raises:
+            requests.HTTPError: if images_list_path is a URL but an error
+                occurred trying to fetch it
+            ValueError: if images_list_path is given, but the file contains more
+                than MAX_FILES_PER_API_TASK entries, or if one of the entries
+                is not a supported image file type
+        """
+        self.bypass_status_check = False
         
-def write_list_to_file(output_file,strings):
-    """
-    Writes a list of strings to file, either .json or text depending on extension
-    """
-    if output_file.endswith('.json'):
-        s = json.dumps(strings,indent=1)
-        with open(output_file,'w') as f:
-            f.write(s)
-    else:
-        with open(output_file,'w') as f:
-            for fn in strings:
-                f.write(fn + '\n')
+        clean_name = clean_request_name(name)
+        if name != clean_name:
+            print('Warning: renamed {} to {}'.format(name,clean_name))
+        self.name = clean_name
+
+        if api_url is None:
+            api_url = os.environ['BATCH_DETECTION_API_URL']
+        assert api_url is not None and api_url != ''
+        self.api_url = api_url
+
+        if task_id is not None:
+            self.id = task_id
+
+        if images_list_path is not None:
+            
+            if images_list_path.startswith('http'):
+                self.remote_images_list_url = images_list_path
+            else:
+                self.local_images_list_path = images_list_path
+
+            if validate:
                 
-    # print('Finished writing list {}'.format(output_file))
-    
-   
-def read_list_from_file(filename):
-    """
-    Reads a json-formatted list of strings from *filename*
-    """
-    assert filename.endswith('.json')
-    file_list = json.load(open(filename))             
-    assert isinstance(file_list,list)
-    for s in file_list:
-        assert isinstance(s,str)
-    return file_list
-    
+                if images_list_path.startswith('http'):
+                    images_list = requests.get(images_list_path).json()
+                else:
+                    with open(images_list_path, 'r') as f:
+                        images_list = json.load(f)
 
-def account_name_to_url(account_name):
-    storage_account_url_blob = 'https://' + account_name + '.blob.core.windows.net'
-    return storage_account_url_blob
+                if len(images_list) > MAX_FILES_PER_API_TASK:
+                    raise ValueError('Images list has too many files')
+
+                # Leaving this commented out to remind us that we don't want this check here; let
+                # the API fail on these images.  It's a huge hassle to remove non-image
+                # files.
+                    #
+                # for path_or_url in images_list:
+                #     if not is_image_file_or_url(path_or_url):
+                #         raise ValueError('{} is not an image'.format(path_or_url))
 
 
-def copy_file_to_blob(account_name,sas_token,container_name,
-                      local_path,remote_path):
-    """
-    Copies a local file to blob storage
-    """
-    blob_service_client = BlobServiceClient(account_url=account_name_to_url(account_name), 
-                                            credential=sas_token)
-    
-    container_client = blob_service_client.get_container_client(container_name)
+    def __repr__(self) -> str:
+        return 'Task(name={name}, id={id})'.format(
+            name=self.name,
+            id=getattr(self, 'id', None))
+            # Commented out as a reminder: don't check task status (which is a rest API call)
+            # in __repr__; require the caller to explicitly request status     
+            # status=getattr(self, 'status', None))
 
-    with open(local_path, 'rb') as data:
-        container_client.upload_blob(remote_path, data)
-    
-    
-def enumerate_blobs(account_name,sas_token,container_name,rmatch=None,prefix=None):
-    """
-    Enumerates blobs in a container, optionally filtering with a regex
-    
-    Using the prefix parameter is faster than using a regex starting with ^
-    
-    sas_token should start with st=
-    """
-    
-    folder_string = '{}/{}'.format(account_name,container_name)
-    if prefix is not None:
-        folder_string += '/{}'.format(prefix)
-    if rmatch is not None:
-        folder_string += ' (matching {})'.format(rmatch)
-    print('Enumerating blobs from {}'.format(folder_string))
+
+    def upload_images_list(self, account: str, container: str, sas_token: str,
+                           blob_name: Optional[str] = None, overwrite: bool=False) -> None:
+        """
+        Uploads the local images list to an Azure Blob Storage container.
+
+        Sets self.remote_images_list_url to the blob URL of the uploaded file.
+
+        Args:
+            account: str, Azure Storage account name
+            container: str, Azure Blob Storage container name
+            sas_token: str, Shared Access Signature (SAS) with write permission,
+                does not start with '?'
+            blob_name: optional str, defaults to basename of
+                self.local_images_list_path if blob_name is not given
+        """
         
-    blob_service_client = BlobServiceClient(account_url=account_name_to_url(account_name), 
-                                            credential=sas_token)
+        if blob_name is None:
+            blob_name = os.path.basename(self.local_images_list_path)
+        self.remote_images_list_url = ai4e_azure_utils.upload_file_to_blob(
+            account_name=account, container_name=container,
+            local_path=self.local_images_list_path, blob_name=blob_name,
+            sas_token=sas_token, overwrite=overwrite)
+
+
+    def generate_api_request(self,
+                             caller: str,
+                             input_container_url: Optional[str] = None,
+                             image_path_prefix: Optional[str] = None,
+                             **kwargs: Any
+                             ) -> Dict[str, Any]:
+        """
+        Generate API request JSON.
+
+        Sets self.api_request to the request JSON. For complete list of API
+        input parameters, see:
+        https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing#api-inputs
+
+        Args:
+            caller: str
+            input_container_url: optional str, URL to Azure Blob Storage
+                container where images are stored. URL must include SAS token
+                with read and list permissions if the container is not public.
+                Only provide this parameter when the image paths in
+                self.remote_images_list_url are relative to a container.
+            image_path_prefix: optional str, TODO
+            kwargs: additional API input parameters
+
+        Returns: dict, represents the JSON request to be submitted
+        """
+        
+        request = kwargs
+        request.update({
+            'request_name': self.name,
+            'caller': caller,
+            'images_requested_json_sas': self.remote_images_list_url
+        })
+        if input_container_url is None:
+            request['use_url'] = True
+        else:
+            request['input_container_sas'] = input_container_url
+        if image_path_prefix is not None:
+            request['image_path_prefix'] = image_path_prefix
+        self.api_request = request
+        return request
+
+
+    def submit(self) -> str:
+        """
+        Submit this task to the Batch Detection API.
+
+        Sets self.id to the returned request ID. Only run this method after
+        generate_api_request().
+
+        Returns: str, task ID
+
+        Raises:
+            requests.HTTPError, if an HTTP error occurred
+            BatchAPISubmissionError, if request returns an error
+        """
+        
+        request_endpoint = posixpath.join(self.api_url, self.request_endpoint)
+        r = requests.post(request_endpoint, json=self.api_request)
+        r.raise_for_status()
+        assert r.status_code == requests.codes.ok
+
+        response = r.json()
+        if 'error' in response:
+            raise BatchAPISubmissionError(response['error'])
+        if 'request_id' not in response:
+            raise BatchAPISubmissionError(
+                '"request_id" not in API response: {}'.format(response))
+        self.id = response['request_id']
+        return self.id
+
+
+    def check_status(self) -> Dict[str, Any]:
+        """
+        Checks the task status.
+
+        Sets self.response and self.status.
+
+        Returns: dict, contains fields ['Status', 'TaskId'] and possibly others
+
+        Raises:
+            requests.HTTPError, if an HTTP error occurred
+            BatchAPIResponseError, if response task ID does not match self.id
+        """
+        
+        if self.bypass_status_check:
+            return self.response
+        
+        url = posixpath.join(self.api_url, self.task_status_endpoint, self.id)
+        r = requests.get(url)
+
+        r.raise_for_status()
+        assert r.status_code == requests.codes.ok
+
+        self.response = r.json()
+        if self.response['TaskId'] != self.id:
+            raise BatchAPIResponseError(
+                f'Response task ID {self.response["TaskId"]} does not match '
+                f'expected task ID {self.id}.')
+        try:
+            self.status = TaskStatus(self.response['Status']['request_status'])
+        except Exception as e:
+            self.status = 'Exception error: {}'.format(str(e))
+        return self.response
+
+
+    def force_completion(self,response) -> None:
+        """
+        Simulate completion of a task by passing a manually-created response
+        string.
+        """
+        self.response = response
+        self.status = TaskStatus(self.response['Status']['request_status'])
+        self.bypass_status_check = True
+        
+        
+    def get_output_file_urls(self, verbose: bool = False) -> Dict[str, str]:
+        """
+        Retrieves the dictionary of URLs for the three output files for this task
+        """
+        
+        assert self.status == TaskStatus.COMPLETED
+        message = self.response['Status']['message']
+        output_file_urls = message['output_file_urls']
+        return output_file_urls
+        
+        
+    def get_missing_images(self, submitted_images, verbose: bool = False) -> List[str]:
+        """
+        Compares the submitted and processed images lists to find missing
+        images.
+
+        "missing": an image from the submitted list that was not processed,
+            for whatever reason
+        "failed": a missing image explicitly marked as 'failed' by the
+            batch detection API
+
+        Only run this method when task.status == TaskStatus.COMPLETED.
+
+        Returns: list of str, sorted list of missing image paths
+        
+        Ignores non-image filenames.
+        """
+        
+        assert self.status == TaskStatus.COMPLETED
+        message = self.response['Status']['message']
+
+        # estimate # of failed images from failed shards
+        if 'num_failed_shards' in message:
+            n_failed_shards = message['num_failed_shards']
+        else:
+            n_failed_shards = 0
+        
+        # Download all three JSON urls to memory
+        output_file_urls = message['output_file_urls']
+        for url in output_file_urls.values():
+            if self.id not in url:
+                raise BatchAPIResponseError(
+                    'Task ID missing from output URL: {}'.format(url))
+        detections = requests.get(output_file_urls['detections']).json()
+        
+        return get_missing_images_from_json(submitted_images,detections,n_failed_shards,verbose)
     
-    container_client = blob_service_client.get_container_client(container_name)
     
-    generator = container_client.list_blobs(name_starts_with=prefix)
-    matched_blobs = []
-
-    i_blob = 0
-    for blob in generator:
-        blob_name = blob.name
-        if rmatch is not None:
-            m = re.match(rmatch,blob_name)
-            if m is None:
-                continue
-        matched_blobs.append(blob.name)
-        i_blob += 1
-        if (i_blob % 1000) == 0:
-            print('.',end='')
-        if (i_blob % 50000) == 0:
-            print('{} blobs enumerated ({} matches)'.format(i_blob,len(matched_blobs)))
-                
-    print('Enumerated {} matching blobs (of {} total) from {}/{}'.format(len(matched_blobs),
-          i_blob,account_name,container_name))
-
-    return matched_blobs
-
-
-def enumerate_blobs_to_file(output_file,account_name,sas_token,container_name,account_key=None,rmatch=None,prefix=None):
+def create_response_message(n_failed_shards,detections_url,task_id):
     """
-    Enumerates to a .json string if output_file ends in ".json", otherwise enumerates to a 
-    newline-delimited list.
-    
-    See enumerate_blobs for parameter information.
-    """        
-    
-    matched_blobs = enumerate_blobs(account_name=account_name,
-                                    sas_token=sas_token,
-                                    container_name=container_name,
-                                    rmatch=rmatch,
-                                    prefix=prefix)
-    
-    write_list_to_file(output_file,matched_blobs)
-    return matched_blobs
-
-
-def enumerate_image_blobs(account_name,sas_token,container_name,
-                                         account_key=None,rmatch=None,prefix=None):    
+    Manually create a response message in the format of the batch API.  Used when tasks hang or fail
+    and we need to simulate their completion by directly pulling the results from the AML output.
     """
-    Enumerates files from a blob container, returning only files with image extensions
-    
-    See enumerate_blobs for parameter information.
-    """        
-    matched_blobs = enumerate_blobs(account_name,sas_token,container_name,account_key=None,rmatch=None,prefix=None)
-    matched_blobs = path_utils.find_image_strings(matched_blobs)
-    return matched_blobs
-    
-
-def enumerate_image_blobs_fo_file(output_file,account_name,sas_token,container_name,
-                                         account_key=None,rmatch=None,prefix=None):    
-    """
-    Enumerates files from a blob container, returning only files with image extensions
-    
-    See enumerate_blobs for parameter information.
-    """        
-    matched_blobs = enumerate_blobs(account_name,sas_token,container_name,account_key=None,rmatch=None,prefix=None)
-    matched_blobs = path_utils.find_image_strings(matched_blobs)
-    write_list_to_file(output_file,matched_blobs)
-    return matched_blobs
+    output_file_urls = {
+        'detections':detections_url
+        }
+    message = {'num_failed_shards':n_failed_shards,'output_file_urls':output_file_urls}
+    status = {'message':message,'request_status':str(TaskStatus.COMPLETED.value)}
+    response = {}
+    response['Status'] = status
+    response['request_id'] = task_id
+    return response
     
 
-#%% Dividing files into multiple tasks
+def get_missing_images_from_json(submitted_images,detections,n_failed_shards,verbose=False):
+    """
+    Given the json-encoded results for the lists of submitted images and detections,
+    find and return the list of images missing in the list of detections.  Ignores
+    non-image filenames.
+    """
+    
+    # Remove files that were submitted but don't appear to be images
+    # assert all(is_image_file_or_url(s) for s in submitted_images)
+    non_image_files_submitted = [s for s in submitted_images if not is_image_file_or_url(s)]
+    if len(non_image_files_submitted) > 0:
+        print('Warning, {} non-image files submitted:\n'.format(len(non_image_files_submitted)))
+        for k in range(0,min(10,len(non_image_files_submitted))):
+            print(non_image_files_submitted[k])
+        print('...\n')
+        
+    submitted_images = [s for s in submitted_images if is_image_file_or_url(s)]
+            
+    # Diff submitted and processed images
+    processed_images = [d['file'] for d in detections['images']]
+    missing_images = sorted(set(submitted_images) - set(processed_images))
+    
+    if verbose:
+        estimated_failed_shard_images = n_failed_shards * IMAGES_PER_SHARD
+        print('Submitted {} images'.format(len(submitted_images)))
+        print('Received results for {} images'.format(len(processed_images)))
+        print(f'{n_failed_shards} failed shards '
+              f'(~approx {estimated_failed_shard_images} images)')
+        print('{} images not in results'.format(len(missing_images)))
 
-def divide_chunks(l, n): 
+    # Confirm that the procesed images are a subset of the submitted images
+    assert set(processed_images) <= set(submitted_images), (
+        'Failed images should be a subset of missing images')
+    
+    return missing_images
+
+    
+def divide_chunks(l: Sequence[Any], n: int) -> List[Sequence[Any]]:
     """
-    Divide list *l* into chunks of size *n*, with the last chunk containing <= n items.
+    Divide list *l* into chunks of size *n*, with the last chunk containing
+    <= n items.
     """
-    # https://www.geeksforgeeks.org/break-list-chunks-size-n-python/    
-    chunks = [l[i * n:(i + 1) * n] for i in range((len(l) + n - 1) // n )]
+    
+    # https://www.geeksforgeeks.org/break-list-chunks-size-n-python/
+    chunks = [l[i * n:(i + 1) * n] for i in range((len(l) + n - 1) // n)]
     return chunks
-        
 
-def divide_files_into_tasks(file_list_json,n_files_per_task=default_n_files_per_api_task):
+
+def divide_list_into_tasks(file_list: Sequence[str],
+                           save_path: str,
+                           n_files_per_task: int = MAX_FILES_PER_API_TASK
+                           ) -> Tuple[List[str], List[Sequence[Any]]]:
     """
-    Divides the file *file_list_json*, which should contain a single json-encoded list
-    of strings, into a set of json files, each containing *n_files_per_task* files
-    (the last file will contain <= *n_files_per_task* files).
+    Divides a list of filenames into a set of JSON files, each containing a
+    list of length *n_files_per_task* (the last file will contain <=
+    *n_files_per_task* files).
+
+    Output JSON files are saved to *save_path* except the extension is replaced
+    with `*.chunkXXX.json`. For example, if *save_path* is `blah.json`, output
+    files will be `blah.chunk000.json`, `blah.chunk001.json`, etc.
+
+    Args:
+        file_list: list of str, filenames to split across multiple JSON files
+        save_path: str, base path to save the chunked lists
+        n_files_per_task: int, max number of files to include in each API task
+
+    Returns:
+        output_files: list of str, output JSON file names
+        chunks: list of list of str, chunks[i] is the content of output_files[i]
+    """
     
-    If the input .json is blah.json, output_files will be blah.chunk000.json,
-    blah.chunk001.json, etc.
-    
-    Returns the list of .json filenames and the list of lists of files.
-    
-    return output_files,chunks
+    chunks = divide_chunks(file_list, n_files_per_task)
+    output_files = []
+
+    for i_chunk, chunk in enumerate(chunks):
+        chunk_id = 'chunk{:0>3d}'.format(i_chunk)
+        output_file = path_utils.insert_before_extension(
+            save_path, chunk_id)
+        output_files.append(output_file)
+        with open(output_file, 'w') as f:
+            json.dump(chunk, f, indent=1)
+    return output_files, chunks
+
+
+def divide_files_into_tasks(file_list_json: str,
+                            n_files_per_task: int = MAX_FILES_PER_API_TASK
+                            ) -> Tuple[List[str], List[Sequence[Any]]]:
+    """
+    Convenience wrapper around divide_list_into_tasks() when the file_list
+    itself is already saved as a JSON file.
     """
     
     with open(file_list_json) as f:
         file_list = json.load(f)
-    
-    chunks = divide_chunks(file_list,n_files_per_task)
-    
-    output_files = []
-    
-    # i_chunk = 0; chunk = chunks[0]
-    for i_chunk,chunk in enumerate(chunks):
-        chunk_id = 'chunk{0:0>3d}'.format(i_chunk)
-        output_file = path_utils.insert_before_extension(file_list_json,chunk_id)
-        output_files.append(output_file)
-        s = json.dumps(chunk,indent=1)
-        with open(output_file,'w') as f:
-            f.write(s)
-    
-    return output_files,chunks    
+    return divide_list_into_tasks(file_list, save_path=file_list_json,
+                                  n_files_per_task=n_files_per_task)
 
-valid_request_name_chars = "-_%s%s" % (string.ascii_letters, string.digits)
-request_name_char_limit = 100
 
-def clean_request_name(request_name, whitelist=valid_request_name_chars):
+def clean_request_name(request_name: str,
+                       whitelist: str = VALID_REQUEST_NAME_CHARS,
+                       char_limit: int = REQUEST_NAME_CHAR_LIMIT) -> str:
     """
-    Removes invalid characters from an API request name
-    """    
-    cleaned_name = unicodedata.normalize('NFKD', request_name).encode('ASCII', 'ignore').decode()
-    
-    # keep only whitelisted chars
-    cleaned_name = ''.join([c for c in cleaned_name if c in whitelist])
-    return cleaned_name[:request_name_char_limit]  
-
-
-def generate_api_queries(input_container_sas_url,file_list_sas_urls,request_name_base,
-                         caller,additional_args={},image_path_prefixes=None):
+    Removes invalid characters from an API request name.
     """
-    Generate .json-formatted API input from input parameters.  file_list_sas_urls is
-    a list of SAS URLs to individual file lists (all relative to the same container).
-    
-    request_name_base is a request name for the set; if the base name is 'blah', individual
-    requests will get request names of 'blah_chunk000', 'blah_chunk001', etc.
-    
-    additional_args is a dictionary of custom arguments to be added to each query (to specify
-    different custom args per query, use multiple calls to generate_api_query())
-    
-    image_path_prefixes, if supplied, can be a single string or a list of strings 
-    (one per request)
-    
-    Returns both strings and Python dicts
-    
-    return request_strings,request_dicts
+    return path_utils.clean_filename(
+        filename=request_name, whitelist=whitelist, char_limit=char_limit).replace(':','_')
+
+
+def download_url(url: str, save_path: str, verbose: bool = False) -> None:
     """
-    
-    assert isinstance(file_list_sas_urls,list)        
-
-    request_name_original = request_name_base
-    request_name_base = clean_request_name(request_name_base)
-    if request_name_base != request_name_original:
-        print('Warning: renamed {} to {}'.format(request_name_original,request_name_base))
-        
-    request_dicts = []
-    request_strings = []
-    # i_url = 0; file_list_sas_url = file_list_sas_urls[0]
-    for i_url,file_list_sas_url in enumerate(file_list_sas_urls):
-        
-        d = {}
-        d['input_container_sas'] = input_container_sas_url
-        d['images_requested_json_sas'] = file_list_sas_url
-        if len(file_list_sas_urls) > 1:
-            chunk_id = '_chunk{0:0>3d}'.format(i_url)
-            request_name = request_name_base + chunk_id
-        else:
-            request_name = request_name_base
-        d['request_name'] = request_name
-        d['caller'] = caller
-        
-        for k in additional_args.keys():
-            d[k] = additional_args[k]
-            
-        if image_path_prefixes is not None:
-            if not isinstance(image_path_prefixes,list):
-                d['image_path_prefix'] = image_path_prefixes
-            else:
-                d['image_path_prefix'] = image_path_prefixes[i_url]
-        request_dicts.append(d)
-        request_strings.append(json.dumps(d,indent=1))
-    
-    return request_strings,request_dicts
-
-
-def generate_api_query(input_container_sas_url,file_list_sas_url,request_name,caller,
-                       additional_args={},image_path_prefix=None):
-    """
-    Convenience function to call generate_api_queries for a single batch.
-    
-    See generate_api_queries, and s/lists/single items.
-    """
-    
-    file_list_sas_urls = [file_list_sas_url]
-    image_path_prefixes = [image_path_prefix]
-    request_strings,request_dicts = generate_api_queries(input_container_sas_url,
-                                                         file_list_sas_urls,
-                                                         request_name,
-                                                         caller,
-                                                         additional_args,
-                                                         image_path_prefixes)
-    return request_strings[0],request_dicts[0]
-
-
-#%% Tools for working with API output
-
-# I suspect this whole section will move to a separate file at some point,
-# so leaving these imports and constants here for now.
-from posixpath import join as urljoin
-
-import urllib
-import tempfile    
-import os
-import requests
-    
-ct_api_temp_dir = os.path.join(tempfile.gettempdir(),'camera_trap_api')
-IMAGES_PER_SHARD = 2000
-
-def fetch_task_status(endpoint_url,task_id):
-    """
-    Currently a very thin wrapper to fetch the .json content from the task URL
-    
-    Returns status dictionary,status code
-    """
-    response = requests.get(urljoin(endpoint_url,str(task_id)))
-    return response.json(),response.status_code
-
-
-def get_output_file_urls(response):
-    """
-    Given the dictionary returned by fetch_task_status, get the set of
-    URLs returned at the end of the task, or None if they're not available.
-    """
-    try:
-        output_file_urls = response['Status']['message']['output_file_urls']
-    except:
-        return None
-    assert 'detections' in output_file_urls
-    assert 'failed_images' in output_file_urls
-    assert 'images' in output_file_urls
-    return output_file_urls
-    
-
-def download_url(url, destination_filename, verbose=False):
-    """
-    Download a URL to a local file
+    Download a URL to a local file.
     """
     if verbose:
-        print('Downloading {} to {}'.format(url,destination_filename))
-    urllib.request.urlretrieve(url, destination_filename)  
-    assert(os.path.isfile(destination_filename))
-    return destination_filename
+        print('Downloading {} to {}'.format(url,save_path))
+    urllib.request.urlretrieve(url, save_path)
+    assert os.path.isfile(save_path)
 
 
-def get_temporary_filename():
-    os.makedirs(ct_api_temp_dir,exist_ok=True)
-    fn = os.path.join(ct_api_temp_dir,next(tempfile._get_candidate_names()))
-    return fn
-
-        
-def download_to_temporary_file(url):
-    return download_url(url,get_temporary_filename())
-
-
-def get_missing_images(response,verbose=False):
+def is_image_file_or_url(path_or_url: str) -> bool:
     """
-    Downloads and parses the list of submitted and processed images for a task,
-    and compares them to find missing images.  Double-checks that 'failed_images'
-    is a subset of the missing images.
-    """
-    output_file_urls = get_output_file_urls(response)
-    if output_file_urls is None:
-        return None
-    
-    # Download all three urls to temporary files
-    #
-    # detections, failed_images, images
-    temporary_files = {}
-    for s in output_file_urls.keys():
-        temporary_files[s] = download_to_temporary_file(output_file_urls[s])
-        
-    # Load all three files
-    results = {}
-    for s in temporary_files.keys():
-        with open(temporary_files[s]) as f:
-            results[s] = json.load(f)
-    
-    # Diff submitted and processed images
-    submitted_images = results['images']
-    if verbose:
-        print('Submitted {} images'.format(len(submitted_images)))
-    
-    detections = results['detections']
-    processed_images = [detection['file'] for detection in detections['images']]
-    if verbose:
-        print('Received results for {} images'.format(len(processed_images)))
-    
-    failed_images = results['failed_images']
-    if verbose:
-        print('{} failed images'.format(len(failed_images)))
-    
-    n_failed_shards = int(response['Status']['message']['num_failed_shards'])
-    estimated_failed_shard_images = n_failed_shards * IMAGES_PER_SHARD
-    if verbose:
-        print('{} failed shards (approimately {} images)'.format(n_failed_shards,estimated_failed_shard_images))
-            
-    missing_images = list(set(submitted_images) - set(processed_images))
-    if verbose:
-        print('{} images not in results'.format(len(missing_images)))
-    
-    # Confirm that the failed images are a subset of the missing images
-    assert len(set(failed_images) - set(missing_images)) == 0, 'Failed images should be a subset of missing images'
-        
-    for fn in temporary_files.values():
-        os.remove(fn)
-        
-    return missing_images
-        
+    Checks (via file extension) whether a file path or URL is an image.
 
-def download_detection_results(endpoint_url,task_id,output_file):
+    If path_or_url is a URL, strip away any query strings '?...'. This should
+    have no adverse effect on local paths.
     """
-    Download the detection results .json file for a task
-    """
-    response,_ = fetch_task_status(endpoint_url,task_id)
-    output_file_urls = get_output_file_urls(response)
-    if output_file_urls is None:
-        return None
-    detection_url = output_file_urls['detections']
-    download_url(detection_url,output_file)
-    return response
-
-
-def generate_resubmission_list(endpoint_url,task_id,resubmission_file_list_name):
-    """
-    Finds all the image files that failed to process in a job and writes them to a file.
-    """
-    response,_ = fetch_task_status(endpoint_url,task_id)
-    missing_files = get_missing_images(response)
-    missing_images = path_utils.find_image_strings(missing_files)
-    non_images = list(set(missing_files) - set(missing_images))
-    write_list_to_file(resubmission_file_list_name,missing_images)
-    return missing_images,non_images
+    stripped_path_or_url = urllib.parse.urlparse(path_or_url).path
+    return path_utils.is_image_file(stripped_path_or_url)
 
 
 #%% Interactive driver
-        
+
 if False:
 
     #%%
-    from api.batch_processing.data_preparation import prepare_api_submission
     
-    #%%
     account_name = ''
     sas_token = 'st=...'
     container_name = ''
-    rmatch = None # '^Y53'
+    rsearch = None # '^Y53'
     output_file = r'output.json'
     
-    blobs = prepare_api_submission.enumerate_blobs_to_file(output_file=output_file,
-                                                account_name=account_name,
-                                                sas_token=sas_token,
-                                                container_name=container_name,
-                                                rmatch=rmatch)
-
+    blobs = ai4e_azure_utils.enumerate_blobs_to_file(
+        output_file=output_file,
+        account_name=account_name,
+        sas_token=sas_token,
+        container_name=container_name,
+        rsearch=rsearch)
+    
     #%%
     
     file_list_json = r"D:\temp\idfg_20190801-hddrop_image_list.json"
-    task_files = prepare_api_submission.divide_files_into_tasks(file_list_json)
-
+    task_files = divide_files_into_tasks(file_list_json)
+    
     #%%
     
     file_list_sas_urls = [
         '','',''
-    ]    
+    ]
     
     input_container_sas_url = ''
     request_name_base = ''
     caller = 'blah@blah.com'
     
-    request_strings,request_dicts = \
-        generate_api_queries(input_container_sas_url,file_list_sas_urls,request_name_base,caller)
-       
+    request_strings,request_dicts = generate_api_queries(
+        input_container_sas_url,
+        file_list_sas_urls,
+        request_name_base,
+        caller)
+    
     for s in request_strings:
         print(s)
-        

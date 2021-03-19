@@ -13,11 +13,47 @@ Classifiers and detectors are trained using TensorFlow.
 
 This repo is maintained by folks in the [Microsoft AI for Earth](http://aka.ms/aiforearth) program who like looking at pictures of animals.  I mean, we want to use machine learning to support conservation too, but we also really like looking at pictures of animals.
 
-# How we work with ecologists
+# Who is using the AI for Earth camera trap tools?
 
 We work with ecologists all over the world to help them spend less time annotating images and more time thinking about conservation.  You can read a little more about how this works on our [AI for Earth camera trap collaborations page](collaborations.md).
 
 You can also read about what we do to support camera trap researchers in our recent [blog post](https://medium.com/microsoftazure/accelerating-biodiversity-surveys-with-azure-machine-learning-9be53f41e674).
+
+Here are a few of the organizations that have used AI for Earth camera trap tools... we're only listing organizations who (a) we know about and (b) have generously allowed us to refer to them here, so if you're using MegaDetector or other tools from this repo and would like to be added to this list, <a href="mailto:cameratraps@microsoft.com">email us</a>!
+
+* Idaho Department of Fish and Game
+* San Diego Zoo Global
+* University of Washington Quantitative Ecology Lab
+* University of Idaho
+* Borderlands Research Institute at Sul Ross State University
+* Borneo Nature Foundation
+* Parks Canada
+* Australian Wildlife Conservancy
+* Lab of Dr. Bilal Habib at the Wildlife Institute of India
+* Royal Society for the Protection of Birds (RSPB)
+* Wildlife Protection Solutions
+* Island Conservation
+* Synthetaic
+* School of Natural Sciences, University of Tasmania
+* Arizona Department of Environmental Quality
+* Wildlife Research, Oregon Department of Fish and Wildlife
+* National Wildlife Refuge System, Southwest Region, US Fish and Wildlife
+* Mammal Spatial Ecology and Conservation Lab at Washington State University
+* Point No Point Treaty Council
+* SPEA (Portuguese Society for the Study of Birds)
+* Ghost Cat Analytics
+* EcoLogic Consultants Ltd.
+* Smithsonian Northern Great Plains Program
+* Federal University of Amapá, Ecology and Conservation of Amazonian Vertebrates Research Group
+* Hamaarag, The Steinhardt Museum of Natural History, Tel Aviv University
+* Czech University of Life Sciences Prague
+* Ramat Hanadiv Nature Park, Israel
+* TU Berlin, Department of Ecology
+* DC Cat Count, led by the Humane Rescue Alliance
+* Center for Biodiversity and Conservation at the American Museum of Natural History
+* Camelot
+* Graeme Shannon's Research Group at Bangor University 
+* Snapshot USA
 
 
 # Data
@@ -36,7 +72,7 @@ Speaking of models that might be useful to other people, we have trained a one-c
 
 Here's a "teaser" image of what detector output looks like:
 
-![alt text](images/detector_example.jpg "Red bounding box on fox")
+![Red bounding box on fox](images/detector_example.jpg)
 
 Image credit University of Washington.
 
@@ -58,7 +94,7 @@ Code for hosting our models as an API, either for synchronous operation (e.g. fo
 
 ## classification
 
-Code for training species classifiers on new data sets, generally trained on crops generated via an existing detector.  We'll release some classifiers soon, but more importantly, here's a [tutorial](https://github.com/microsoft/CameraTraps/blob/master/classification/TUTORIAL.md) on training your own classifier using our detector and our training pipeline.
+Code for training species classifiers on new data sets, generally trained on crops generated via an existing detector.  We'll release some classifiers soon, but more importantly, here's a [tutorial](https://github.com/microsoft/CameraTraps/blob/master/archive/classification_marcel/TUTORIAL.md) on training your own classifier using our detector and our training pipeline.
 
 Oh, and here's another "teaser image" of what you get at the end of training a classifier:
 
@@ -179,7 +215,7 @@ We also do our best to follow [Google's Python Style Guide](http://google.github
 
 # Gratuitous pretty camera trap picture
 
-![alt text](images/nacti.jpg "Bird flying above water")
+![Bird flying above water](images/nacti.jpg)
 
 Image credit USDA, from the [NACTI](http://lila.science/datasets/nacti) data set.
 

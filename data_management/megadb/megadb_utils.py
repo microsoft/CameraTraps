@@ -75,7 +75,7 @@ class MegadbUtils:
 
     def query_sequences_table(
             self, query: str, partition_key: Optional[str] = None,
-            parameters: Optional[List[Mapping[str, Any]]] = None
+            parameters: Optional[List[Dict[str, Any]]] = None
         ) -> List[Dict[str, Any]]:
         """
         Args:
@@ -86,7 +86,7 @@ class MegadbUtils:
 
         Returns: list of dict, each dict represents a single sequence
         """
-        startTime = datetime.now()
+        start_time = datetime.now()
 
         if partition_key:
             result_iterable = self.container_sequences.query_items(
@@ -96,7 +96,7 @@ class MegadbUtils:
                 query=query, enable_cross_partition_query=True,
                 parameters=parameters)
 
-        duration = datetime.now() - startTime
+        duration = datetime.now() - start_time
         results = list(result_iterable)  # TODO could return the iterable instead
 
         # print('Query took {}. Number of entries in result: {}'.format(

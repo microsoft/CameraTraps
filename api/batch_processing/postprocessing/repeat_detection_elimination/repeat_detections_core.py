@@ -80,7 +80,6 @@ class RepeatDetectionOptions:
     # A list of classes we don't want to treat as suspicious. Each element is an int.
     excludeClasses = []  # [annotation_constants.detector_bbox_category_name_to_id['person']]
 
-    # Set to zero to disable parallelism
     nWorkers = 10  # joblib.cpu_count()
 
     viz_target_width = 800
@@ -106,7 +105,11 @@ class RepeatDetectionOptions:
     debugMaxRenderInstance = -1
     bParallelizeComparisons = True
     bParallelizeRendering = True
-
+    
+    # Determines whether bounding-box rendering errors (typically network errors) should
+    # be treated as failures    
+    bFailOnRenderError = False
+    
     bPrintMissingImageWarnings = True
     missingImageWarningType = 'once'  # 'all'
 
@@ -235,7 +238,7 @@ def render_bounding_box(detection, inputFileName, outputFileName, lineWidth=5, e
 ##%% Look for matches (one directory) (function)
 
 def find_matches_in_directory(dirName, options, rowsByDirectory):
-    
+        
     if options.pbar is not None:
         options.pbar.update()
 
@@ -264,6 +267,11 @@ def find_matches_in_directory(dirName, options, rowsByDirectory):
         #                                                           all in relative coordinates and length
         # }
         detections = row['detections']
+        if isinstance(detections,float):
+            assert isinstance(row['failure'],str)
+            print('Skipping failed image {} ({})'.format(filename,row['failure']))
+            continue
+        
         assert len(detections) > 0
 
         # For each detection in this image
@@ -273,7 +281,11 @@ def find_matches_in_directory(dirName, options, rowsByDirectory):
 
             confidence = detection['conf']
             
-            assert confidence >= 0.0 and confidence <= 1.0
+            # This is no longer strictly true; I sometimes run RDE in stages, so
+            # some probabilities have already been made negative
+            # assert confidence >= 0.0 and confidence <= 1.0
+            assert confidence >= -1.0 and confidence <= 1.0
+            
             if confidence < options.confidenceMin:
                 continue
             if confidence > options.confidenceMax:
@@ -290,10 +302,15 @@ def find_matches_in_directory(dirName, options, rowsByDirectory):
             
             # Is this detection too big to be suspicious?
             w, h = bbox[2], bbox[3]
+            
+            if (w == 0 or h == 0):
+                # print('Illegal zero-size bounding box on image {}'.format(filename))
+                continue
+            
             area = h * w
 
             # These are relative coordinates
-            assert area >= 0.0 and area <= 1.0
+            assert area >= 0.0 and area <= 1.0, 'Illegal bounding box area {}'.format(area)
 
             if area > options.maxSuspiciousDetectionSize:
                 # print('Ignoring very large detection with area {}'.format(area))
@@ -311,7 +328,14 @@ def find_matches_in_directory(dirName, options, rowsByDirectory):
             for iCandidate, candidate in enumerate(candidateDetections):
 
                 # Is this a match?                    
-                iou = ct_utils.get_iou(bbox, candidate.bbox)
+                try:
+                    iou = ct_utils.get_iou(bbox, candidate.bbox)
+                except Exception as e:
+                    import pdb
+                    print('Warning: IOU computation error on boxes ({},{},{},{}),({},{},{},{}): {}'.format(
+                        bbox[0],bbox[1],bbox[2],bbox[3],
+                        candidate.bbox[0],candidate.bbox[1],candidate.bbox[2],candidate.bbox[3], str(e)))
+                    continue
 
                 if iou >= options.iouThreshold:
                     
@@ -422,7 +446,7 @@ def render_images_for_directory(iDir, directoryHtmlFiles, suspiciousDetections, 
                     continue
             else:
                 inputFileName = relative_sas_url(options.imageBase, instance.filename)
-            render_bounding_box(detection, inputFileName, imageOutputFilename, lineWidth=options.lineWidth, 
+            render_bounding_box(detection, inputFileName, imageOutputFilename, lineWidth=options.lineThickness, 
                                 expansion=options.boxExpansion)
 
         # ...for each instance
@@ -529,16 +553,24 @@ def update_detection_table(RepeatDetectionResults, options, outputFilename=None)
     for iRow, row in detectionResults.iterrows():
 
         detections = row['detections']
+        if isinstance(detections,float):
+            assert isinstance(row['failure'],str)
+            continue
+        
         if len(detections) == 0:
             continue
 
         maxPOriginal = float(row['max_detection_conf'])
-        assert maxPOriginal >= 0
+        
+        # No longer strictly true; sometimes I run RDE on RDE output
+        # assert maxPOriginal >= 0
+        assert maxPOriginal >= -1.0
 
         maxP = None
         nNegative = 0
 
         for iDetection, detection in enumerate(detections):
+            
             p = detection['conf']
 
             if p < 0:
@@ -556,7 +588,7 @@ def update_detection_table(RepeatDetectionResults, options, outputFilename=None)
 
             nProbChanges += 1
 
-            if maxP < 0:
+            if (maxP < 0) and (maxPOriginal >= 0):
                 nProbChangesToNegative += 1
 
             if maxPOriginal >= options.confidenceMin and maxP < options.confidenceMin:
@@ -907,8 +939,14 @@ def find_repeat_detections(inputFilename, outputFilename=None, options=None):
                     inputFullPath = os.path.join(options.imageBase, relativePath)
                     assert (os.path.isfile(inputFullPath)), 'Not a file: {}'.format(inputFullPath)
                     
-                render_bounding_box(detection, inputFullPath, outputFullPath,
-                                    lineWidth=options.lineWidth, expansion=options.boxExpansion)
+                try:
+                    render_bounding_box(detection, inputFullPath, outputFullPath,
+                                        lineWidth=options.lineThickness, expansion=options.boxExpansion)
+                except Exception as e:
+                    print('Warning: error rendering bounding box from {} to {}: {}'.format(
+                        inputFullPath,outputFullPath,e))                    
+                    if options.bFailOnRenderError:
+                        raise
                 detection.sampleImageRelativeFileName = outputRelativePath
 
         # Write out the detection index

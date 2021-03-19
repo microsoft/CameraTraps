@@ -5,7 +5,7 @@
 name: cameratraps-detector
 
 dependencies:
-- python>=3.5
+- python>=3.5, <=3.7.6
 - nb_conda_kernels
 - ipykernel
 # note that tensorflow < 1.13.0 needs CUDA 9.0, and later versions need CUDA 10;

@@ -22,9 +22,11 @@ from data_management.annotations import annotation_constants
 
 CONF_DIGITS = 3
 
+
 #%% Conversion functions
 
-def convert_json_to_csv(input_path,output_path=None,min_confidence=None,omit_bounding_boxes=False):
+def convert_json_to_csv(input_path,output_path=None,min_confidence=None,
+                        omit_bounding_boxes=False,output_encoding=None):
     
     if output_path is None:
         output_path = os.path.splitext(input_path)[0]+'.csv'
@@ -36,11 +38,11 @@ def convert_json_to_csv(input_path,output_path=None,min_confidence=None,omit_bou
     
     # We add an output column for each class other than 'empty', 
     # containing the maximum probability of  that class for each image
-    n_non_empty_categories = len(annotation_constants.bbox_categories) - 1
+    n_non_empty_categories = len(annotation_constants.annotation_bbox_categories) - 1
     category_column_names = []
-    assert annotation_constants.bbox_category_id_to_name[0] == 'empty'
+    assert annotation_constants.annotation_bbox_category_id_to_name[0] == 'empty'
     for cat_id in range(1,n_non_empty_categories+1):
-        cat_name = annotation_constants.bbox_category_id_to_name[cat_id]
+        cat_name = annotation_constants.annotation_bbox_category_id_to_name[cat_id]
         category_column_names.append('max_conf_' + cat_name)
         
     print('Iterating through results...')
@@ -95,7 +97,7 @@ def convert_json_to_csv(input_path,output_path=None,min_confidence=None,omit_bou
     # ...for each image
 
     print('Writing to csv...')
-    with open(output_path, 'w', newline='') as f:
+    with open(output_path, 'w', newline='', encoding=output_encoding) as f:
         writer = csv.writer(f, delimiter=',')
         header = ['image_path', 'max_confidence', 'detections']
         header.extend(category_column_names)
@@ -123,7 +125,7 @@ def convert_csv_to_json(input_path,output_path=None):
     }
     
     classification_categories = {}
-    detection_categories = annotation_constants.bbox_category_id_to_name
+    detection_categories = annotation_constants.annotation_bbox_category_id_to_name
 
     images = []
     
@@ -189,6 +191,49 @@ if False:
         output_path = input_path + '.csv'
         convert_json_to_csv(input_path,output_path,min_confidence=min_confidence,omit_bounding_boxes=True)
     
+    #%%
+    
+    base_path = r'c:\temp\json'
+    input_paths = os.listdir(base_path)
+    input_paths = [os.path.join(base_path,s) for s in input_paths]
+    
+    min_confidence = None    
+    for input_path in input_paths:
+        output_path = input_path + '.csv'
+        convert_json_to_csv(input_path,output_path,min_confidence=min_confidence,omit_bounding_boxes=True)
+    
+    
+    #%% Concatenate .csv files from a folder
+
+    import glob
+    csv_files = glob.glob(os.path.join(base_path,'*.json.csv' ))
+    master_csv = os.path.join(base_path,'all.csv')
+    
+    print('Concatenating {} files to {}'.format(len(csv_files),master_csv))
+    
+    header = None
+    with open(master_csv, 'w') as fout:
+        
+        for filename in tqdm(csv_files):
+            
+            with open(filename) as fin:
+                
+                lines = fin.readlines()
+                
+                if header is not None:
+                    assert lines[0] == header
+                else:
+                    header = lines[0]
+                    fout.write(header)
+                    
+                for line in lines[1:]:
+                    if len(line.strip()) == 0:
+                        continue                    
+                    fout.write(line)
+                    
+        # ...for each .csv file
+        
+    # with open(master_csv)
     
 #%% Command-line driver
         

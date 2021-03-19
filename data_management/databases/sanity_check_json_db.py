@@ -42,6 +42,7 @@ class SanityCheckOptions:
     bCheckImageSizes = False
     bCheckImageExistence = False
     bFindUnusedImages = False
+    bRequireLocation = True
     iMaxNumImages = -1
     
 # This is used in a medium-hacky way to share modified options across threads
@@ -79,7 +80,7 @@ def sanity_check_json_db(jsonFile, options=None):
     '''
     jsonFile can be a filename or an already-loaded json database
     
-    returns sortedCategories, data
+    return sortedCategories, data, errorInfo
     '''
     
     if options is None:   
@@ -193,6 +194,9 @@ def sanity_check_json_db(jsonFile, options=None):
         if 'width' in image:
             assert 'height' in image, 'Image with width but no height: {}'.format(image['id'])
 
+        if options.bRequireLocation:
+            assert 'location' in image, 'No location available for: {}'.format(image['id'])
+            
         if 'location' in image:
             # We previously supported ints here; this should be strings now
             # assert isinstance(image['location'], str) or isinstance(image['location'], int), 'Illegal image location type'

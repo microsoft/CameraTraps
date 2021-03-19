@@ -12,6 +12,10 @@ This page summarizes what we do to help our collaborators, typically ecologists,
 
 Basically this page is the response we give when someone emails us and says &ldquo;I have too many camera trap images!  Can you help me?!?!&rdquo;.  If you&rsquo;re an ecologist reading this page, and that sounds familiar, feel free to answer the questions below in an email to <a href="mailto:cameratraps@microsoft.com">cameratraps@microsoft.com</a>.
 
+You can see a list of some of the organizations who have used our tools here:
+
+&nbsp;&nbsp;&nbsp;&nbsp;<https://github.com/microsoft/CameraTraps/#who-is-using-the-ai-for-earth-camera-trap-tools>
+
 ## Information about our camera trap work
 
 All of our work in this space is open-sourced here:
@@ -27,6 +31,10 @@ Watch the fun video there and you&rsquo;ll get the idea.  Note that this model d
 Of course, a machine learning model isn&rsquo;t useful to most ecologists by itself, so we “package” this model in a variety of ways.  For most of our collaborators, they send us images (anywhere from thousands to millions), which we run through this detector in the cloud, then we send back a results file, and we&rsquo;ve integrated with a variety of tools that camera trap researchers already use, to make it relatively painless to use our results in the context of a real workflow.  Our most mature integration is with an open-source tool called <a href="http://saul.cpsc.ucalgary.ca/timelapse/">Timelapse</a>:
 
 &nbsp;&nbsp;&nbsp;&nbsp;<https://github.com/microsoft/CameraTraps/blob/master/api/batch_processing/integration/timelapse.md>
+
+We have a more beta integration with the <a href="http://emammal.si.edu">eMammal</a> desktop application:
+
+&nbsp;&nbsp;&nbsp;&nbsp;<https://github.com/microsoft/CameraTraps/blob/master/api/batch_processing/integration/eMammal>
 
 In some cases, we also train species classifiers for specific ecosystems, and we have tools for training classifiers (we actually train classifiers on individual animals found by our detector, not on whole images):
 

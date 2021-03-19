@@ -2,12 +2,13 @@
 
 1. [MegaDetector overview](#megadetector-overview)
 2. [Our ask to MegaDetector users](#our-ask-to-megadetector-users)
-3. [Downloading the model(s)](#downloading-the-models)
-4. [Using the models](#using-the-models)
-5. [Tell me more about why detectors are a good first step for camera trap images](#tell-me-more-about-why-detectors-are-a-good-first-step-for-camera-trap-images)
-6. [Pretty picture](#pretty-picture)
-7. [Mesmerizing video](#mesmerizing-video)
-8. [Can you share the training data?](#can-you-share-the-training-data)
+3. [Who is using MegaDetector?](#who-is-using-megadetector)
+4. [Downloading the model(s)](#downloading-the-models)
+5. [Using the models](#using-the-models)
+6. [Tell me more about why detectors are a good first step for camera trap images](#tell-me-more-about-why-detectors-are-a-good-first-step-for-camera-trap-images)
+7. [Pretty picture](#pretty-picture)
+8. [Mesmerizing video](#mesmerizing-video)
+9. [Can you share the training data?](#can-you-share-the-training-data)
 
 
 ## MegaDetector overview
@@ -18,9 +19,16 @@ Conservation biologists invest a huge amount of time reviewing camera trap image
 
 To this end, this page hosts a model we've trained to detect animals, people, and vehicles in camera trap images, using several hundred thousand bounding boxes from a variety of ecosystems.  It does not identify animals, it just finds them.  The current model is based on Faster-RCNN with an InceptionResNetv2 base network, and was trained with the TensorFlow Object Detection API.  We use this model as our first stage for classifier training and inference.
 
+This page is about the technical elements of MegaDetector; if you are an ecologist looking to use MegaDetector, you may prefer to start at our [MegaDetector collaborations page](collaborations.md).
+
 ## Our ask to MegaDetector users
 
 MegaDetector is free, and it makes us super-happy when people use it, so we put it out there as a downloadable model that is easy to use in a variety of conservation scenarios.  That means we don't know who's using it unless you contact us (or we happen to run into you), so please please pretty-please email us at [cameratraps@microsoft.com](mailto:cameratraps@microsoft.com) if you find it useful!
+
+
+## Who is using MegaDetector?
+
+See <a href="https://github.com/microsoft/CameraTraps/#who-is-using-the-ai-for-earth-camera-trap-tools">this list</a> on the repo's main page.
 
 
 ## Downloading the model(s)
@@ -127,7 +135,7 @@ wget https://lilablobssc.blob.core.windows.net/models/camera_traps/megadetector/
 pip install tensorflow==1.13.1
 
 # Install other dependencies
-pip install Pillow humanfriendly matplotlib tqdm jsonpickle
+pip install pillow humanfriendly matplotlib tqdm jsonpickle statistics requests
 
 # Run MegaDetector
 python run_tf_detector.py md_v4.1.0.pb --image_file some_image_file.jpg
@@ -143,7 +151,7 @@ Then you can do the following, changing "tensorflow" to "tensorflow-gpu" if you 
 
 ```batch
 pip install tensorflow==1.13.1
-pip install Pillow humanfriendly matplotlib tqdm
+pip install pillow humanfriendly matplotlib tqdm jsonpickle statistics requests
 python where_you_downloaded_the_script/run_tf_detector.py where_you_downloaded_the_detector_file/md_v4.1.0.pb --image_file some_image_file.jpg
 ```
 
@@ -173,7 +181,7 @@ wget -O ~/md_v4.1.0.pb https://lilablobssc.blob.core.windows.net/models/camera_t
 pip install tensorflow==1.13.1
 
 # Install other dependencies
-pip install humanfriendly Pillow pandas tqdm
+pip install pandas tqdm pillow humanfriendly matplotlib tqdm jsonpickle statistics requests
 
 # Run MegaDetector
 python CameraTraps/detection/run_tf_detector_batch.py ~/md_v4.1.0.pb some_image_file.jpg some_output_file.json
@@ -192,7 +200,7 @@ git clone https://github.com/microsoft/CameraTraps/
 git clone https://github.com/microsoft/ai4eutils/
 set PYTHONPATH=c:\git\cameratraps;c:\git\ai4eutils
 pip install tensorflow==1.13.1
-pip install humanfriendly Pillow pandas tqdm
+pip install pandas tqdm pillow humanfriendly matplotlib tqdm jsonpickle statistics requests
 python CameraTraps/detection/run_tf_detector_batch.py wherever_you_put_the_detector_file/md_v4.1.0.pb some_image_file.jpg some_output_file.json
 ```
 

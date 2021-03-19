@@ -15,8 +15,15 @@ import requests
 from PIL import Image, ImageFile, ImageFont, ImageDraw
 
 from data_management.annotations import annotation_constants
+from data_management.annotations.annotation_constants import (
+    detector_bbox_category_id_to_name)  # here id is int
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
+
+# convert category ID from int to str
+DEFAULT_DETECTOR_LABEL_MAP = {
+    str(k): v for k, v in detector_bbox_category_id_to_name.items()
+}
 
 
 #%% Functions
@@ -39,6 +46,12 @@ def open_image(input_file: Union[str, BytesIO]) -> Image:
             and input_file.startswith(('http://', 'https://'))):
         response = requests.get(input_file)
         image = Image.open(BytesIO(response.content))
+        try:
+            response = requests.get(input_file)
+            image = Image.open(BytesIO(response.content))
+        except Exception as e:
+            print('Error opening image {}: {}'.format(input_file,str(e)))
+            raise
     else:
         image = Image.open(input_file)
     if image.mode not in ('RGBA', 'RGB', 'L'):
@@ -60,8 +73,7 @@ def load_image(input_file: Union[str, BytesIO]) -> Image:
         input_file: str or BytesIO, either a path to an image file (anything
             that PIL can open), or an image as a stream of bytes
 
-    Returns:
-        an PIL image object in RGB mode
+    Returns: PIL.Image.Image, in RGB mode
     """
     image = open_image(input_file)
     image.load()
@@ -116,30 +128,30 @@ def show_images_in_a_row(images):
 # https://github.com/tensorflow/models/blob/master/research/object_detection/utils/visualization_utils.py
 
 COLORS = [
-        'AliceBlue', 'Red', 'RoyalBlue', 'Gold', 'Chartreuse', 'Aqua', 'Azure',
-        'Beige', 'Bisque', 'BlanchedAlmond', 'BlueViolet', 'BurlyWood', 'CadetBlue',
-        'AntiqueWhite', 'Chocolate', 'Coral', 'CornflowerBlue', 'Cornsilk', 'Crimson',
-        'Cyan', 'DarkCyan', 'DarkGoldenRod', 'DarkGrey', 'DarkKhaki', 'DarkOrange',
-        'DarkOrchid', 'DarkSalmon', 'DarkSeaGreen', 'DarkTurquoise', 'DarkViolet',
-        'DeepPink', 'DeepSkyBlue', 'DodgerBlue', 'FireBrick', 'FloralWhite',
-        'ForestGreen', 'Fuchsia', 'Gainsboro', 'GhostWhite', 'GoldenRod',
-        'Salmon', 'Tan', 'HoneyDew', 'HotPink', 'IndianRed', 'Ivory', 'Khaki',
-        'Lavender', 'LavenderBlush', 'LawnGreen', 'LemonChiffon', 'LightBlue',
-        'LightCoral', 'LightCyan', 'LightGoldenRodYellow', 'LightGray', 'LightGrey',
-        'LightGreen', 'LightPink', 'LightSalmon', 'LightSeaGreen', 'LightSkyBlue',
-        'LightSlateGray', 'LightSlateGrey', 'LightSteelBlue', 'LightYellow', 'Lime',
-        'LimeGreen', 'Linen', 'Magenta', 'MediumAquaMarine', 'MediumOrchid',
-        'MediumPurple', 'MediumSeaGreen', 'MediumSlateBlue', 'MediumSpringGreen',
-        'MediumTurquoise', 'MediumVioletRed', 'MintCream', 'MistyRose', 'Moccasin',
-        'NavajoWhite', 'OldLace', 'Olive', 'OliveDrab', 'Orange', 'OrangeRed',
-        'Orchid', 'PaleGoldenRod', 'PaleGreen', 'PaleTurquoise', 'PaleVioletRed',
-        'PapayaWhip', 'PeachPuff', 'Peru', 'Pink', 'Plum', 'PowderBlue', 'Purple',
-        'RosyBrown', 'Aquamarine', 'SaddleBrown', 'Green', 'SandyBrown',
-        'SeaGreen', 'SeaShell', 'Sienna', 'Silver', 'SkyBlue', 'SlateBlue',
-        'SlateGray', 'SlateGrey', 'Snow', 'SpringGreen', 'SteelBlue', 'GreenYellow',
-        'Teal', 'Thistle', 'Tomato', 'Turquoise', 'Violet', 'Wheat', 'White',
-        'WhiteSmoke', 'Yellow', 'YellowGreen'
-    ]
+    'AliceBlue', 'Red', 'RoyalBlue', 'Gold', 'Chartreuse', 'Aqua', 'Azure',
+    'Beige', 'Bisque', 'BlanchedAlmond', 'BlueViolet', 'BurlyWood', 'CadetBlue',
+    'AntiqueWhite', 'Chocolate', 'Coral', 'CornflowerBlue', 'Cornsilk', 'Crimson',
+    'Cyan', 'DarkCyan', 'DarkGoldenRod', 'DarkGrey', 'DarkKhaki', 'DarkOrange',
+    'DarkOrchid', 'DarkSalmon', 'DarkSeaGreen', 'DarkTurquoise', 'DarkViolet',
+    'DeepPink', 'DeepSkyBlue', 'DodgerBlue', 'FireBrick', 'FloralWhite',
+    'ForestGreen', 'Fuchsia', 'Gainsboro', 'GhostWhite', 'GoldenRod',
+    'Salmon', 'Tan', 'HoneyDew', 'HotPink', 'IndianRed', 'Ivory', 'Khaki',
+    'Lavender', 'LavenderBlush', 'LawnGreen', 'LemonChiffon', 'LightBlue',
+    'LightCoral', 'LightCyan', 'LightGoldenRodYellow', 'LightGray', 'LightGrey',
+    'LightGreen', 'LightPink', 'LightSalmon', 'LightSeaGreen', 'LightSkyBlue',
+    'LightSlateGray', 'LightSlateGrey', 'LightSteelBlue', 'LightYellow', 'Lime',
+    'LimeGreen', 'Linen', 'Magenta', 'MediumAquaMarine', 'MediumOrchid',
+    'MediumPurple', 'MediumSeaGreen', 'MediumSlateBlue', 'MediumSpringGreen',
+    'MediumTurquoise', 'MediumVioletRed', 'MintCream', 'MistyRose', 'Moccasin',
+    'NavajoWhite', 'OldLace', 'Olive', 'OliveDrab', 'Orange', 'OrangeRed',
+    'Orchid', 'PaleGoldenRod', 'PaleGreen', 'PaleTurquoise', 'PaleVioletRed',
+    'PapayaWhip', 'PeachPuff', 'Peru', 'Pink', 'Plum', 'PowderBlue', 'Purple',
+    'RosyBrown', 'Aquamarine', 'SaddleBrown', 'Green', 'SandyBrown',
+    'SeaGreen', 'SeaShell', 'Sienna', 'Silver', 'SkyBlue', 'SlateBlue',
+    'SlateGray', 'SlateGrey', 'Snow', 'SpringGreen', 'SteelBlue', 'GreenYellow',
+    'Teal', 'Thistle', 'Tomato', 'Turquoise', 'Violet', 'Wheat', 'White',
+    'WhiteSmoke', 'Yellow', 'YellowGreen'
+]
 
 
 def crop_image(detections, image, confidence_threshold=0.8, expansion=0):
@@ -565,3 +577,19 @@ def render_db_bounding_boxes(boxes, classes, image, original_size=None,
     display_boxes = np.array(display_boxes)
     draw_bounding_boxes_on_image(image, display_boxes, classes, display_strs=display_strs,
                                  thickness=thickness, expansion=expansion)
+
+
+def draw_bounding_boxes_on_file(input_file, output_file, detections, confidence_threshold=0.0,
+                                detector_label_map=DEFAULT_DETECTOR_LABEL_MAP):
+    """
+    Render detection bounding boxes on an image loaded from file, writing the results to a
+    new images file.  "detections" is in the API results format.
+    """
+    
+    image = open_image(input_file)
+
+    render_detection_bounding_boxes(
+            detections, image, label_map=detector_label_map,
+            confidence_threshold=confidence_threshold)
+
+    image.save(output_file)
