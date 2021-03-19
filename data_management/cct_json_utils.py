@@ -129,7 +129,8 @@ class IndexedJsonDb:
         json_filename can also be an existing json db
         '''
         if isinstance(json_filename, str):
-            self.db = json.load(open(json_filename))
+            with open(json_filename) as f:
+                self.db = json.load(f)
         else:
             self.db = json_filename
 
