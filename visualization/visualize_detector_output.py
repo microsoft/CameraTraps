@@ -71,7 +71,6 @@ def visualize_detector_output(detector_output_path: str,
 
     os.makedirs(out_dir, exist_ok=True)
 
-
     #%% Load detector output
 
     with open(detector_output_path) as f:
@@ -196,7 +195,7 @@ def main() -> None:
     parser.add_argument(
         '-w', '--output_image_width', type=int, default=700,
         help='Integer, desired width in pixels of the output annotated images. '
-             'Use -1 to not resize.')
+             'Use -1 to not resize. Default: 700.')
     parser.add_argument(
         '-r', '--random_seed', type=int, default=None,
         help='Integer, for deterministic order of image sampling')
