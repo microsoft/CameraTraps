@@ -213,6 +213,9 @@ def retrieve_job_status(job_id: str):
     Does not require the "caller" field to avoid checking the allowlist in App Configurations.
     Retains the /task endpoint name to be compatible with previous versions.
     """
+    # Fix for Zooniverse - deleting any "-" characters in the job_id
+    job_id = job_id.replace('-', '')
+
     item_read = job_status_table.read_job_status(job_id)  # just what the monitoring thread wrote to the DB
     if item_read is None:
         return make_error(404, 'Task is not found.')
