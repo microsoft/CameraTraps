@@ -48,7 +48,6 @@ Check the status of your request by calling the `/task` endpoint via a GET call,
 This returns a json with the fields `Status`, `TaskId` (which is the `request_id` in this document), and a few others. The `Status` field is a json object with the following fields: 
 
 - `request_status`: one of `running`, `failed`, `problem`, `completed`, and `canceled`. 
-
     - The status `failed` indicates that the images have not been submitted to the cluster for processing, and so you can go ahead and call the `\request_detections` endpoint again, correcting your inputs according to the error message returned with the status. 
     - The status `problem` indicates that the images have already been submitted for processing but the API encountered an error while monitoring progress; in this case, please contact us to retrieve your results so that no unnecessary processing would occupy the cluster (`message` field will mention "please contact us").
     - `canceled` if your call to the `/cancel_request` endpoint took effect.
@@ -173,7 +172,8 @@ When all shards have finished processing, the `status` returned by the `/task` e
             "output_file_urls": {
                 "detections": "https://cameratrap.blob.core.windows.net/async-api-internal/ee26326e-7e0d-4524-a9ea-f57a5799d4ba/ee26326e-7e0d-4524-a9ea-f57a5799d4ba_detections_4_1_on_test_images_20200709211752.json?sv=2019-02-02&sr=b&sig=key1"
             }
-        }
+        },
+        "time": "2020-07-09 21:27:17"
     },
     "Timestamp": "2020-07-09 21:27:17",
     "Endpoint": "/v3/camera-trap/detection-batch/request_detections",

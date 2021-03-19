@@ -59,7 +59,6 @@ You will be prompted to authenticate via AAD (you need to have access to the AI4
 Set the logs directory as needed, and the name of the Flask app:
 ```
 export LOGS_DIR=/home/otter/camtrap/batch_api_logs
-
 export FLASK_APP=server
 ```
 
