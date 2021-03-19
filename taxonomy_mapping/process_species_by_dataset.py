@@ -101,7 +101,7 @@ def get_preferred_taxonomic_match(query: str) -> TaxonomicMatch:
     """
 
     query = query.lower().strip().replace('_', ' ')
-    
+
     # query = 'person'
     matches = get_taxonomic_info(query)
 
@@ -502,7 +502,7 @@ for i_row, row in df.iterrows():
         if common_name == '':
             print('Warning: manual row with no common name: {}.{}'.format(
                 row.dataset_name, row.query))
-            
+
         scientific_name = row.scientific_name
         taxonomic_match = get_preferred_taxonomic_match(scientific_name)
         if taxonomic_match.source == '':

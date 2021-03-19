@@ -28,7 +28,7 @@ DEFAULT_DETECTOR_LABEL_MAP = {
 
 #%% Functions
 
-def open_image(input_file: Union[str, BytesIO]) -> Image.Image:
+def open_image(input_file: Union[str, BytesIO]) -> Image:
     """Opens an image in binary format using PIL.Image and converts to RGB mode.
 
     This operation is lazy; image will not be actually loaded until the first
@@ -44,6 +44,8 @@ def open_image(input_file: Union[str, BytesIO]) -> Image.Image:
     """
     if (isinstance(input_file, str)
             and input_file.startswith(('http://', 'https://'))):
+        response = requests.get(input_file)
+        image = Image.open(BytesIO(response.content))
         try:
             response = requests.get(input_file)
             image = Image.open(BytesIO(response.content))
@@ -61,7 +63,7 @@ def open_image(input_file: Union[str, BytesIO]) -> Image.Image:
     return image
 
 
-def load_image(input_file: Union[str, BytesIO]) -> Image.Image:
+def load_image(input_file: Union[str, BytesIO]) -> Image:
     """Loads the image at input_file as a PIL Image into memory.
 
     Image.open() used in open_image() is lazy and errors will occur downstream
@@ -590,6 +592,4 @@ def draw_bounding_boxes_on_file(input_file, output_file, detections, confidence_
             detections, image, label_map=detector_label_map,
             confidence_threshold=confidence_threshold)
 
-    image.save(output_file)        
-
-        
+    image.save(output_file)
