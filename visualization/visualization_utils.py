@@ -493,6 +493,9 @@ def render_iMerit_boxes(boxes, classes, image,
     display_boxes = []
     display_strs = []  # list of list, one list of strings for each bounding box (to accommodate multiple labels)
     for box, clss in zip(boxes, classes):
+        if len(box) == 0:
+            assert clss == 5
+            continue
         x_rel, y_rel, w_rel, h_rel = box
         ymin, xmin = y_rel, x_rel
         ymax = ymin + h_rel
