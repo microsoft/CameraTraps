@@ -5,156 +5,146 @@
 # Spot-check the annotations received from iMerit by visualizing annotated bounding 
 # boxes on a sample of images and display them in HTML.
 #
+# Modified in 2021 March to use the new format (iMerit batch 12 onwards), which is a
+# COCO formatted JSON with relative coordinates for the bbox.
+#
 #####
-
-#%% Imports
-
+import argparse
+import io
 import json
 import os
-import re
 
-import pandas as pd
+from collections import defaultdict
+from random import sample
+
 from tqdm import tqdm
+from write_html_image_list import write_html_image_list # Assumes ai4eutils is on the path
 
-# Assumes ai4eutils is on the path (github.com/Microsoft/ai4eutils)
-from write_html_image_list import write_html_image_list
-
-import visualization_utils as vis_utils
-
-
-#%% Settings - change everything in this section to match your task
-
-num_to_visualize = None  # None if visualize all images
-
-viz_size = (675, 450)   # width by height, in pixels
-
-pandas_random_seed = None  # seed for sampling images from all annotation entries
-
-incoming_annotation_path = './temp/batch8a_IDFG.json'
-output_dir = '/home/yasiyu/yasiyu_temp/201904_iMerit_verification/batch8_IDFG_group'
-os.makedirs(os.path.join(output_dir, 'rendered_images'), exist_ok=True)
-
-images_dir = '/datadrive/IDFG/IDFG_20190104_images_to_annotate'
-# '/datadrive/SS_annotated/imerit_batch7_snapshotserengeti_2018_10_26/images'
-# '/home/yasiyu/mnt/wildlifeblobssc/rspb/gola/gola_camtrapr_data'
-# '/datadrive/IDFG/IDFG_20190104_images_to_annotate'
-# '/datadrive/emammal'
-
-# functions for translating from image_id in the annotation files to path to images in images_dir
-def default_image_id_to_path(image_id, images_dir):
-    
-    return os.path.join(images_dir, image_id)
+#from data_management.megadb.schema import sequences_schema_check
+from data_management.megadb.megadb_utils import MegadbUtils
+from data_management.cct_json_utils import IndexedJsonDb
+from visualization import visualization_utils as vis_utils
 
 
-def emammal_image_id_to_path(image_id, images_dir):
-    
-    # the dash between seq and frame is different among the batches
-    pattern = re.compile('^datasetemammal\.project(.+?)\.deployment(.+?)\.seq(.+?)[-_]frame(.+?)\.img(.+?)\.')
-    match = pattern.match(image_id)
-    project_id, deployment_id, seq_id, frame_order, image_id = match.group(1, 2, 3, 4, 5)
-    img_path1 = os.path.join(images_dir, '{}{}/{}.jpg'.format(project_id, deployment_id, image_id))
-    img_path2 = os.path.join(images_dir, '{}{}/{}.JPG'.format(project_id, deployment_id, image_id))
-    img_path = img_path1 if os.path.exists(img_path1) else img_path2
-    return img_path
+def get_image_rel_path(dataset_seq_images, dataset_name, seq_id, frame_num):
+    images = dataset_seq_images[dataset_name][seq_id]
+    for im in images:
+        if im['frame_num'] == frame_num:
+            return im['file']
+    return None
 
 
-def rspb_image_id_to_path(image_id, images_dir):
-    
-    parts = image_id.split('__')
-    return os.path.join(images_dir, parts[0], parts[1], image_id)
+def visualize_incoming_annotations(args):
+    print('Connecting to MegaDB to get the datasets table...')
+    megadb_utils = MegadbUtils()
+    datasets_table = megadb_utils.get_datasets_table()
 
+    print('Loading the MegaDB entries...')
+    with open(args.megadb_entries) as f:
+        sequences = json.load(f)
+    print(f'Total number of sequences: {len(sequences)}')
+    dataset_seq_images = defaultdict(dict)
+    for seq in sequences:
+        dataset_seq_images[seq['dataset']][seq['seq_id']] = seq['images']
 
-def ss_batch5_image_id_to_path(image_id, images_dir):
-    
-    return os.path.join(images_dir, image_id.replace('-frame', '.frame'))
+    print('Loading incoming annotation entries...')
+    incoming = IndexedJsonDb(args.incoming_annotation)
+    print(f'Number of images in this annotation file: {len(incoming.image_id_to_image)}')
 
-# specify which of the above functions to use for your dataset
-image_id_to_path_func = ss_batch5_image_id_to_path
+    if args.num_to_visualize != -1 and args.num_to_visualize <= len(incoming.image_id_to_image):
+        incoming_id_to_anno = sample(list(incoming.image_id_to_annotations.items()),
+                                     args.num_to_visualize)
+    else:
+        incoming_id_to_anno = incoming.image_id_to_annotations.items()
 
+    # The file_name field in the incoming json looks like alka_squirrels.seq2020_05_07_25C.frame119221.jpg
+    # we need to use the dataset, sequence and frame info to find the actual path in blob storage
+    # using the sequences
+    images_html = []
+    for image_id, annotations in tqdm(incoming_id_to_anno):
+        if args.trim_to_images_bboxes_labeled and annotations[0]['category_id'] == 5:
+            # category_id 5 is No Object Visible
+            continue
 
-#%% Read in the annotations
+        anno_file_name = incoming.image_id_to_image[image_id]['file_name']
+        parts = anno_file_name.split('.')
+        dataset_name = parts[0]
+        seq_id = parts[1].split('seq')[1]
+        frame_num = int(parts[2].split('frame')[1])
 
-with open(incoming_annotation_path, 'r') as f:
-    content = f.readlines()
+        im_rel_path = get_image_rel_path(dataset_seq_images, dataset_name, seq_id, frame_num)
+        if im_rel_path is None:
+            print(f'Not found in megadb entries: dataset {dataset_name},'
+                  f' seq_id {seq_id}, frame_num {frame_num}')
+            continue
 
-print('Incoming annotations at {} has {} rows.'.format(incoming_annotation_path, len(content)))
+        im_full_path = megadb_utils.get_full_path(datasets_table, dataset_name, im_rel_path)
 
-# put the annotations in a dataframes so we can select all annotations for a given image
-annotations = []
-images = []
-for row in content:
-    entry = json.loads(row)
-    annotations.extend(entry['annotations'])
-    images.extend(entry['images'])
+        # download the image
+        container_client = megadb_utils.get_storage_client(datasets_table, dataset_name)
+        downloader = container_client.download_blob(im_full_path)
+        image_file = io.BytesIO()
+        blob_props = downloader.download_to_stream(image_file)
+        image = vis_utils.open_image(image_file)
 
-df_anno = pd.DataFrame(annotations)
-df_img = pd.DataFrame(images)
+        boxes = [anno['bbox'] for anno in annotations]
+        classes = [anno['category_id'] for anno in annotations]
+        vis_utils.render_iMerit_boxes(boxes, classes, image)
 
+        file_name = '{}_gtbbox.jpg'.format(os.path.splitext(anno_file_name)[0].replace('/', '~'))
+        image = vis_utils.resize_image(image, args.output_image_width)
+        image.save(os.path.join(args.output_dir, 'rendered_images', file_name))
 
-#%% Get a numerical to English label map; note that both the numerical key and the name are str
-
-label_map = {}
-for cat in entry['categories']:
-    label_map[int(cat['id'])] = cat['name']
-
-
-#%% Visualize the bboxes on a sample of images
-    
-if num_to_visualize is not None:
-    df_img = df_img.sample(n=num_to_visualize, random_state=pandas_random_seed)
-
-images_html = []
-for i in tqdm(range(len(df_img))):
-    img_name = df_img.iloc[i]['file_name']
-    img_path = image_id_to_path_func(img_name, images_dir)
-
-    if not os.path.exists(img_path):
-        print('Image {} cannot be found at the path.'.format(img_path))
-        continue
-
-    annos_i = df_anno.loc[df_anno['image_id'] == img_name, :]  # all annotations on this image
-
-    # if len(annos_i) < 20:
-    #     continue
-
-    # if len(images_html) > 400:  # cap on maximum to save
-    #     break
-
-    try:
-        image = vis_utils.open_image(img_path).resize(viz_size)
-    except Exception as e:
-        print('Image {} failed to open. Error: {}'.format(img_path, e))
-        continue
-
-    # only save images with a particular class
-    # classes = list(annos_i.loc[:, 'category_id'])
-    # classes = [str(i) for i in classes]
-    # if '3' not in classes:  # only save images with the 'group' class
-    #     continue
-
-    if len(annos_i) > 0:
-        bboxes = list(annos_i.loc[:, 'bbox'])
-        classes = list(annos_i.loc[:, 'category_id'])
-        vis_utils.render_iMerit_boxes(bboxes, classes, image, label_map)  # image changed in place
-
-    file_name = '{}_gtbbox.jpg'.format(img_name.lower().split('.jpg')[0])
-    image.save(os.path.join(output_dir, 'rendered_images', file_name))
-
-    images_html.append({
-        'filename': '{}/{}'.format('rendered_images', file_name),
-        'title': '{}, number of boxes: {}'.format(img_name, len(annos_i)),
-        'textStyle': 'font-family:verdana,arial,calibri;font-size:80%;text-align:left;margin-top:20;margin-bottom:5'
-    })
-
-
-#%% Write to HTML
-    
-images_html = sorted(images_html, key=lambda x: x['filename'])
-write_html_image_list(
-        filename=os.path.join(output_dir, 'index.html'),
-        images=images_html,
-        options={
-            'headerHtml': '<h1>Sample annotations from {}</h1>'.format(incoming_annotation_path)
+        images_html.append({
+            'filename': '{}/{}'.format('rendered_images', file_name),
+            'title': '{}, number of boxes: {}'.format(anno_file_name, len([b for b in boxes if len(b) > 0])),
+            'textStyle': 'font-family:verdana,arial,calibri;font-size:80%;text-align:left;margin-top:20;margin-bottom:5'
         })
 
-print('Visualized {} images.'.format(len(images_html)))
+    # Write to HTML
+    images_html = sorted(images_html, key=lambda x: x['filename'])
+    write_html_image_list(
+        filename=os.path.join(args.output_dir, 'index.html'),
+        images=images_html,
+        options={
+            'headerHtml': '<h1>Sample annotations from {}</h1>'.format(args.incoming_annotation)
+        })
+
+    print('Visualized {} images.'.format(len(images_html)))
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        'incoming_annotation', type=str,
+        help='Path to a json in the COCO format with relative coordinates for the bbox from annotators')
+    parser.add_argument(
+        'megadb_entries', type=str,
+        help='Path to a json list of MegaDB entries to look up image path in blob storage')
+    parser.add_argument(
+        'output_dir', action='store', type=str,
+        help='Output directory for html and rendered images')
+    parser.add_argument(
+        '--trim_to_images_bboxes_labeled', action='store_true',
+        help='Only include images that have been sent for bbox labeling (but '
+             'may be actually empty). Turn this on if QAing annotations.')
+    parser.add_argument(
+        '--num_to_visualize', action='store', type=int, default=200,
+        help='Number of images to visualize. If trim_to_images_bboxes_labeled, there may be fewer than specified')
+    parser.add_argument(
+        '-w', '--output_image_width', type=int, default=700,
+        help='an integer indicating the desired width in pixels of the output '
+             'annotated images. Use -1 to not resize.')
+
+    args = parser.parse_args()
+
+    assert 'COSMOS_ENDPOINT' in os.environ and 'COSMOS_KEY' in os.environ
+
+    os.makedirs(args.output_dir, exist_ok=True)
+    os.makedirs(os.path.join(args.output_dir, 'rendered_images'), exist_ok=True)
+
+    visualize_incoming_annotations(args)
+
+
+if __name__ == '__main__':
+    main()
