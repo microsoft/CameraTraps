@@ -65,6 +65,7 @@ export FLASK_APP=server
 
 To start the app locally in debug mode:
 ```commandline
+export FLASK_ENV=development
 flask run -p 5000 --eager-loading --no-reload
 ```
 
@@ -75,7 +76,7 @@ flask run -h 0.0.0.0 -p 6011 --eager-loading --no-reload |& tee -a $LOGS_DIR/log
 
 To start the app using the production server:
 ```commandline
-gunicorn -w 1 -b 0.0.0.0:6011 --threads 4 --access-logfile $LOGS_DIR/log_internal_dev_20210218_access.txt --log-file $LOGS_DIR/log_internal_dev_20210218_error.txt --capture-output server:app
+gunicorn -w 1 -b 0.0.0.0:6011 --threads 4 --access-logfile $LOGS_DIR/log_internal_dev_20210218_access.txt --log-file $LOGS_DIR/log_internal_dev_20210218_error.txt --capture-output server:app --log-level=info
 ```
 The logs will only be written to these two log files and will not show in the console.
 
