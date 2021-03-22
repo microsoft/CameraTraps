@@ -450,12 +450,12 @@ failed_images_by_task = []
 for i_taskgroup, taskgroup in enumerate(taskgroups):
 
     resubmitted_tasks_this_taskgroup = []
-    
+
     # Make a copy, because we append to taskgroup
     tasks = list(taskgroup)  
     
     # i_task = 0; task = tasks[i_task]
-    for i_task,task in enumerate(tasks):        
+    for i_task,task in enumerate(tasks):
         
         print('\n*** Task {} ({} in taskgroup {}) ***\n'.format(task.id,i_task,i_taskgroup))
         
@@ -851,5 +851,5 @@ for i_folder, folder_name_raw in enumerate(folder_names):
     options.base_output_folder = os.path.join(base_output_folder,folder_name)
     options.n_threads = 100
     options.allow_existing_directory = False
-    
+
     separate_detections_into_folders(options)
