@@ -46,14 +46,18 @@ from tqdm import tqdm
 # from multiprocessing.pool import ThreadPool as workerpool
 from multiprocessing.pool import Pool as workerpool
 
+# Useful hack to force CPU inference
+#
+# Need to do this before any TF imports
+force_cpu = False
+if force_cpu:
+    os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+
 from detection.run_tf_detector import ImagePathUtils, TFDetector
 import visualization.visualization_utils as viz_utils
 
 # Numpy FutureWarnings from tensorflow import
 warnings.filterwarnings('ignore', category=FutureWarning)
-
-# Useful hack to force CPU inference
-os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
 import tensorflow as tf
 
