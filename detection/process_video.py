@@ -92,6 +92,24 @@ def process_video(options):
 
 if False:
 
+    #%%
+    
+    model_file = r'c:\temp\models\md_v4.1.0.pb'
+    input_dir = r'C:\temp\bellevue_test\videos'
+    video_files = os.listdir(input_dir)
+    video_files = [os.path.join(input_dir,s) for s in video_files]
+    
+    for input_video_file in video_files:
+        
+        options = ProcessVideoOptions()
+        options.model_file = model_file
+        options.input_video_file = input_video_file
+        options.output_video_file = input_video_file.replace('.avi','.detections.mp4')
+        options.output_json_file = input_video_file.replace('.avi','.detections.json')
+        options.render_output_video = True
+        options.n_cores = 6
+        process_video(options)
+        
     #%% Load video and split into frames
 
     model_file = r'c:\temp\models\md_v4.0.0.pb'

@@ -5,10 +5,15 @@
 A class wrapping the Azure App Configuration client to get configurations
 for each instance of the API.
 """
+import logging
+import os
 
 from server_api_config import APP_CONFIG_CONNECTION_STR, API_INSTANCE_NAME
 
 from azure.appconfiguration import AzureAppConfigurationClient
+
+
+log = logging.getLogger(os.environ['FLASK_APP'])
 
 
 class AppConfig:
@@ -20,7 +25,7 @@ class AppConfig:
         self.api_instance = API_INSTANCE_NAME
 
         # sentinel should change if new configurations are available
-        self.sentinel = self._get_sentinel()
+        self.sentinel = self._get_sentinel()  # get initial sentinel and allowlist values
         self.allowlist = self._get_allowlist()
 
     def _get_sentinel(self):
@@ -35,11 +40,16 @@ class AppConfig:
         return allowlist
 
     def get_allowlist(self):
-        cur_sentinel = self._get_sentinel()
-        if cur_sentinel == self.sentinel:
-            # configs have not changed
-            return self.allowlist
-        else:
-            self.sentinel = cur_sentinel
-            self.allowlist = self._get_allowlist()
+        try:
+            cur_sentinel = self._get_sentinel()
+            if cur_sentinel == self.sentinel:
+                # configs have not changed
+                return self.allowlist
+            else:
+                self.sentinel = cur_sentinel
+                self.allowlist = self._get_allowlist()
+                return self.allowlist
+
+        except Exception as e:
+            log.error(f'AppConfig, get_allowlist, exception so using old allowlist: {e}')
             return self.allowlist

@@ -29,7 +29,7 @@ MONITOR_PERIOD_MINUTES = 10
 # if this number of times the thread wakes up to check is exceeded, stop the monitoring thread
 MAX_MONITOR_CYCLES = 4 * 7 * int((60 * 24) / MONITOR_PERIOD_MINUTES)  # 4 weeks
 
-IMAGE_SUFFIXES_ACCEPTED = ('.jpg', '.png')  # case-insensitive
+IMAGE_SUFFIXES_ACCEPTED = ('.jpg', '.jpeg', '.png')  # case-insensitive
 assert isinstance(IMAGE_SUFFIXES_ACCEPTED, tuple)
 
 OUTPUT_FORMAT_VERSION = '1.1'

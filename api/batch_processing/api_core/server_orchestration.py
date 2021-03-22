@@ -26,6 +26,7 @@ from server_batch_job_manager import BatchJobManager
 from server_job_status_table import JobStatusTable
 
 
+# Gunicorn logger handler will get attached if needed in server.py
 log = logging.getLogger(os.environ['FLASK_APP'])
 
 

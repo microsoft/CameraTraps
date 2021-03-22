@@ -6,6 +6,7 @@ import uuid
 import threading
 from datetime import timedelta
 
+import sas_blob_utils  # from ai4eutils
 from flask import Flask, request, jsonify
 
 import server_api_config as api_config
@@ -16,8 +17,15 @@ from server_job_status_table import JobStatusTable
 from server_utils import *
 
 # %% Flask app
-
 app = Flask(__name__)
+
+# reference: https://trstringer.com/logging-flask-gunicorn-the-manageable-way/
+if __name__ != '__main__':
+    gunicorn_logger = logging.getLogger('gunicorn.error')
+    app.logger.handlers = gunicorn_logger.handlers
+    app.logger.setLevel(gunicorn_logger.level)
+
+
 API_PREFIX = api_config.API_PREFIX
 app.logger.info('server, created Flask application...')
 
@@ -50,6 +58,8 @@ def request_detections():
         post_body = request.get_json()
     except Exception as e:
         return make_error(415, f'Error occurred reading POST request body: {e}.')
+
+    app.logger.info(f'server, request_detections, post_body: {post_body}')
 
     # required params
 
@@ -203,6 +213,9 @@ def retrieve_job_status(job_id: str):
     Does not require the "caller" field to avoid checking the allowlist in App Configurations.
     Retains the /task endpoint name to be compatible with previous versions.
     """
+    # Fix for Zooniverse - deleting any "-" characters in the job_id
+    job_id = job_id.replace('-', '')
+
     item_read = job_status_table.read_job_status(job_id)  # just what the monitoring thread wrote to the DB
     if item_read is None:
         return make_error(404, 'Task is not found.')
