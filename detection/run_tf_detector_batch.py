@@ -53,7 +53,7 @@ import visualization.visualization_utils as viz_utils
 warnings.filterwarnings('ignore', category=FutureWarning)
 
 # Useful hack to force CPU inference
-os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
 import tensorflow as tf
 
