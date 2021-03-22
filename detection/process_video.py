@@ -19,6 +19,7 @@ from visualization import visualize_detector_output
 from ct_utils import args_to_object
 from detection.video_utils import video_to_frames
 from detection.video_utils import frames_to_video
+from detection.video_utils import find_videos
 
 
 #%% Main function
@@ -33,6 +34,7 @@ class ProcessVideoOptions:
 
     render_output_video = False
     delete_output_frames = True
+    reuse_results_if_available = False
 
     confidence_threshold = 0.8
     n_cores = 1
@@ -60,14 +62,19 @@ def process_video(options):
     if options.debug_max_frames > 0:
         image_file_names = image_file_names[0:options.debug_max_frames]
 
-    results = run_tf_detector_batch.load_and_run_detector_batch(
-        options.model_file, image_file_names,
-        confidence_threshold=options.confidence_threshold,
-        n_cores=options.n_cores)
-
-    run_tf_detector_batch.write_results_to_file(
-        results, options.output_json_file,
-        relative_path_base=frame_output_folder)
+    if options.reuse_results_if_available and \
+        os.path.isfile(options.output_json_file):
+            print('Loading results from {}'.format(options.output_json_file))
+            results = None
+    else:
+        results = run_tf_detector_batch.load_and_run_detector_batch(
+            options.model_file, image_file_names,
+            confidence_threshold=options.confidence_threshold,
+            n_cores=options.n_cores)
+    
+        run_tf_detector_batch.write_results_to_file(
+            results, options.output_json_file,
+            relative_path_base=frame_output_folder)
 
 
     if options.render_output_video:
@@ -90,24 +97,34 @@ def process_video(options):
 
 #%% Interactive driver
 
+
 if False:
 
-    #%%
+    #%% Process a folder of videos
     
+    import re
+
     model_file = r'c:\temp\models\md_v4.1.0.pb'
     input_dir = r'C:\temp\bellevue_test\videos'
-    video_files = os.listdir(input_dir)
-    video_files = [os.path.join(input_dir,s) for s in video_files]
     
+    video_files = find_videos(input_dir)
+    video_files = [s for s in video_files if 'detections' not in s]
+    
+    # input_video_file = video_files[1]
     for input_video_file in video_files:
         
+        print('Processing file {}'.format(input_video_file))
+        
         options = ProcessVideoOptions()
+        options.reuse_results_if_available = True
         options.model_file = model_file
         options.input_video_file = input_video_file
-        options.output_video_file = input_video_file.replace('.avi','.detections.mp4')
-        options.output_json_file = input_video_file.replace('.avi','.detections.json')
+        options.output_video_file = re.sub('.avi','.detections.mp4',input_video_file,flags=re.I)
+        options.output_json_file = re.sub('.avi','.detections.json',input_video_file,flags=re.I)
         options.render_output_video = True
-        options.n_cores = 6
+        options.n_cores = 1
+        options.confidence_threshold = 0.55
+        options.delete_output_frames = True
         process_video(options)
         
     #%% Load video and split into frames
