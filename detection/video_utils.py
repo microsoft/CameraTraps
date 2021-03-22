@@ -241,13 +241,16 @@ class FrameToVideoOptions:
     nth_highest_confidence = 1
     
     
-def frame_results_to_video_results(input_file,output_file,options):
+def frame_results_to_video_results(input_file,output_file,options:FrameToVideoOptions = None):
     """
     Given an API output file produced at the *frame* level, corresponding to a directory 
     created with video_folder_to_frames, map those frame-level results back to the 
     video level for use in Timelapse.
     """
 
+    if options is None:
+        options = FrameToVideoOptions()
+        
     # Load results
     with open(input_file,'r') as f:
         input_data = json.load(f)
