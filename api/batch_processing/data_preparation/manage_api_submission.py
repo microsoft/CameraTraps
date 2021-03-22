@@ -472,8 +472,8 @@ for i_taskgroup, taskgroup in enumerate(taskgroups):
         # Each taskgroup corresponds to one of our folders
         folder_name = folder_names[i_taskgroup]
         clean_folder_name = prepare_api_submission.clean_request_name(
-            folder_name.replace('.','-'))
-        assert (folder_name in detections_fn) or (clean_folder_name in detections_fn)
+            folder_name.replace('.','').replace('_',''))
+        assert (folder_name in detections_fn) or (clean_folder_name in detections_fn.replace('_',''))
         assert 'chunk' in detections_fn
 
         # Check that we have (almost) all the images
@@ -533,8 +533,8 @@ for i_taskgroup, taskgroup in enumerate(taskgroups):
         # Each taskgroup corresponds to one of our folders
         folder_name = folder_names[i_taskgroup]
         clean_folder_name = prepare_api_submission.clean_request_name(
-            folder_name.replace('.','-'))
-        assert (folder_name in fn) or (clean_folder_name in fn)
+            folder_name.replace('.','').replace('_',''))
+        assert (folder_name in fn) or (clean_folder_name in fn.replace('.','').replace('_',''))
         assert 'chunk' in fn or 'missing' in fn
 
         output_file = os.path.join(raw_api_output_folder, fn)
