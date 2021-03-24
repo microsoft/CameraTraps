@@ -254,7 +254,7 @@ if False:
     #%%
     
     default_threshold = 0.8
-    options = SeparateDetectionsIntoFoldersOptions()    
+    options = SeparateDetectionsIntoFoldersOptions(default_threshold)
     
     options.results_file = r"G:\x\x-20200407\combined_api_outputs\x-20200407_detections.filtered_rde_0.60_0.85_5_0.05.json"
     options.base_input_folder = "z:\\"
@@ -288,13 +288,13 @@ def main():
     parser.add_argument('base_output_folder', type=str, help='Output image folder')
 
     parser.add_argument('--animal_threshold', type=float, default=default_threshold,
-                        help='Confidence threshold for the animal category')
+                        help='Confidence threshold for the animal category (default={})'.format(default_threshold))
     parser.add_argument('--human_threshold', type=float, default=default_threshold,
-                        help='Confidence threshold for the human category')
+                        help='Confidence threshold for the human category (default={})'.format(default_threshold))
     parser.add_argument('--vehicle_threshold', type=float, default=default_threshold,
-                        help='Confidence threshold for vehicle category')
+                        help='Confidence threshold for vehicle category (default={})'.format(default_threshold))
     parser.add_argument('--n_threads', type=int, default=1,
-                        help='Number of threads to use for parallel operation')
+                        help='Number of threads to use for parallel operation (default=1)')
     parser.add_argument('--allow_existing_directory', action='store_true', 
                         help='Proceed even if the target directory exists and is not empty')
     
