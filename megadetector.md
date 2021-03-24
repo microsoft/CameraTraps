@@ -106,6 +106,7 @@ mkdir c:\git
 cd c:\git
 git clone https://github.com/Microsoft/cameratraps
 git clone https://github.com/Microsoft/ai4eutils
+pip install pillow humanfriendly matplotlib tqdm jsonpickle statistics requests
 set PYTHONPATH=c:\git\cameratraps;c:\git\ai4eutils
 ```
 
