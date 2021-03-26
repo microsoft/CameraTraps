@@ -412,6 +412,3 @@ if False:
     for jsonFile in jsonFiles:
         
         sortedCategories,data = sanity_check_json_db(jsonFile, options)
-        
-    
-      
