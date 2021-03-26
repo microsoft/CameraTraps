@@ -45,6 +45,7 @@ class DbVizOptions:
     trim_to_images_with_bboxes = False
     random_seed = 0 # None
     add_search_links = False
+    include_filename_links = False
     
     # These are mutually exclusive
     classes_to_exclude = None
@@ -183,8 +184,11 @@ def process_images(db_path,output_dir,image_base_dir,options=None):
     # iImage = 0
     for iImage in tqdm(range(len(df_img))):
         
-        img_id = df_img.iloc[iImage]['id']
-        img_relative_path = df_img.iloc[iImage]['file_name']
+        img = df_img.iloc[iImage]
+        
+        img_id = img['id']
+        img_relative_path = img['file_name']
+        
         img_path = os.path.join(image_base_dir, image_filename_to_path(img_relative_path, image_base_dir))
     
         annos_i = df_anno.loc[df_anno['image_id'] == img_id, :]  # all annotations on this image
@@ -239,6 +243,13 @@ def process_images(db_path,output_dir,image_base_dir,options=None):
         if len(annotationLevelForImage) > 0:
             labelLevelString = ' (annotation level: {})'.format(annotationLevelForImage)
             
+        if 'frame_num' in img and 'seq_num_frames' in img:
+            frameString = ' frame: {} of {}, '.format(img['frame_num'],img['seq_num_frames'])
+        
+        filename_text = img_relative_path
+        if options.include_filename_links:
+            filename_text = '<a href="{}">{}</a>'.format(img_path,img_relative_path)
+            
         # We're adding html for an image before we render it, so it's possible this image will
         # fail to render.  For applications where this script is being used to debua a database
         # (the common case?), this is useful behavior, for other applications, this is annoying.
@@ -246,7 +257,8 @@ def process_images(db_path,output_dir,image_base_dir,options=None):
         # TODO: optionally write html only for images where rendering succeeded
         images_html.append({
             'filename': '{}/{}'.format('rendered_images', file_name),
-            'title': '{}<br/>{}, number of boxes: {}, class labels: {}{}'.format(img_relative_path,img_id, len(bboxes), imageClasses, labelLevelString),
+            'title': '{}<br/>{}, num boxes: {}, {}class labels: {}{}'.format(
+                filename_text, img_id, len(bboxes), frameString, imageClasses, labelLevelString),
             'textStyle': 'font-family:verdana,arial,calibri;font-size:80%;text-align:left;margin-top:20;margin-bottom:5'
         })
     
