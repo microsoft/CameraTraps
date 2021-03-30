@@ -46,18 +46,19 @@ This script outputs 3 files to <output_dir>:
 
 2) label_index.json: maps integer to label name
     - keys are string representations of Python integers (JSON requires keys to
-        be strings), numbered from 0 to num_labels
+        be strings), numbered from 0 to num_labels-1
     - values are strings, label names
 
-2) splits.json: serialization of a Python dict that maps each split
+3) splits.json: serialization of a Python dict that maps each split
     ['train', 'val', 'test'] to a list of length-2 lists, where each inner list
     is [<dataset>, <location>]
 
 Example usage:
     python create_classification_dataset.py \
-        run_idfg2/queried_images.json /ssd/crops_sq \
-        -c $HOME/classifier-training/mdcache -v "4.1" -t 0.8 \
-        -d run_idfg2/classifcation_ds.csv -s run_idfg2/splits.json
+        run_idfg2 \
+        --queried-images-json run_idfg2/queried_images.json \
+        --cropped-images-dir /ssd/crops_sq \
+        -d $HOME/classifier-training/mdcache -v "4.1" -t 0.8
 """
 import argparse
 import json
@@ -206,7 +207,6 @@ def create_classification_csv(
 
     Returns:
         df: pd.DataFrame, the classification dataset
-        class_names: list of str, names of the classification classes
         log: dict, with the following keys
             'images missing detections': list of str, images without ground
                 truth bboxes and not in detection cache
@@ -328,7 +328,11 @@ def create_splits_random(df: pd.DataFrame, val_frac: float,
         df: pd.DataFrame, contains columns ['dataset', 'location', 'label']
             each row is a single image
             assumes each image is assigned exactly 1 label
-        test_split: optional set of (dataset, location) tuples
+        val_frac: float, desired fraction of dataset to use for val set
+        test_frac: float, desired fraction of dataset to use for test set,
+            must be 0 if test_split is given
+        test_split: optional set of (dataset, location) tuples to use as test
+            split
 
     Returns: dict, keys are ['train', 'val', 'test'], values are lists of locs,
         where each loc is a tuple (dataset, location)
@@ -339,7 +343,6 @@ def create_splits_random(df: pd.DataFrame, val_frac: float,
     targets = {'train': train_frac, 'val': val_frac, 'test': test_frac}
 
     # merge dataset and location into a single string '<dataset>/<location>'
-    # - use string instead of tuple because TODO
     df['dataset_location'] = df['dataset'] + '/' + df['location']
 
     # create DataFrame of counts. rows = locations, columns = labels
@@ -358,14 +361,14 @@ def create_splits_random(df: pd.DataFrame, val_frac: float,
 
         # generate a new split
         num_train = int(num_locs * (train_frac + np.random.uniform(-.03, .03)))
-        if test_frac == 0:
+        if test_frac > 0:
             num_val = int(num_locs * (val_frac + np.random.uniform(-.03, .03)))
         else:
             num_val = num_locs - num_train
         permuted_locs = loc_label_counts.index[np.random.permutation(num_locs)]
         split_to_locs = {'train': permuted_locs[:num_train],
                          'val': permuted_locs[num_train:num_train + num_val]}
-        if test_frac == 0:
+        if test_frac > 0:
             split_to_locs['test'] = permuted_locs[num_train + num_val:]
 
         # score the split
@@ -409,8 +412,12 @@ def create_splits_smallest_label_first(
         df: pd.DataFrame, contains columns ['dataset', 'location', 'label']
             each row is a single image
             assumes each image is assigned exactly 1 label
+        val_frac: float, desired fraction of dataset to use for val set
+        test_frac: float, desired fraction of dataset to use for test set,
+            must be 0 if test_split is given
         label_spec_json_path: optional str, path to label spec JSON
-        test_split: optional set of (dataset, location) tuples
+        test_split: optional set of (dataset, location) tuples to use as test
+            split
 
     Returns: dict, keys are ['train', 'val', 'test'], values are lists of locs,
         where each loc is a tuple (dataset, location)
