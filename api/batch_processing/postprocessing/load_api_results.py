@@ -81,7 +81,7 @@ def load_api_results(api_output_path: str, normalize_paths: bool = True,
                 ['file', 'max_detection_conf', 'detections','failure']            
         other_fields: a dict containing fields in the dict
     """
-    print(f'Loading API results from {api_output_path}')
+    print('Loading API results from {}'.format(api_output_path))
 
     with open(api_output_path) as f:
         detection_results = json.load(f)
@@ -120,8 +120,8 @@ def load_api_results(api_output_path: str, normalize_paths: bool = True,
                 fn = fn.replace(string_to_replace, replacement_string)
                 detection_results.at[i_row, 'file'] = fn
 
-    print('Finished loading and de-serializing API results for '
-          f'{len(detection_results)} images from {api_output_path}')
+    print('Finished loading and de-serializing API results for {} images from {}'.format(
+            len(detection_results),api_output_path))
 
     return detection_results, other_fields
 
