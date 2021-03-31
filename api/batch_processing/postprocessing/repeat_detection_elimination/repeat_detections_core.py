@@ -259,7 +259,7 @@ def find_matches_in_directory(dirName, options, rowsByDirectory):
         if maxP < options.confidenceMin:
             continue
 
-        # Array of dict, where each element is
+        # Array of dicts, where each element is
         # {
         #   'category': '1',  # str value, category ID
         #   'conf': 0.926,  # confidence of this detections
@@ -331,7 +331,6 @@ def find_matches_in_directory(dirName, options, rowsByDirectory):
                 try:
                     iou = ct_utils.get_iou(bbox, candidate.bbox)
                 except Exception as e:
-                    import pdb
                     print('Warning: IOU computation error on boxes ({},{},{},{}),({},{},{},{}): {}'.format(
                         bbox[0],bbox[1],bbox[2],bbox[3],
                         candidate.bbox[0],candidate.bbox[1],candidate.bbox[2],candidate.bbox[3], str(e)))
@@ -591,7 +590,7 @@ def update_detection_table(RepeatDetectionResults, options, outputFilename=None)
             if (maxP < 0) and (maxPOriginal >= 0):
                 nProbChangesToNegative += 1
 
-            if maxPOriginal >= options.confidenceMin and maxP < options.confidenceMin:
+            if (maxPOriginal >= options.confidenceMin) and (maxP < options.confidenceMin):
                 nProbChangesAcrossThreshold += 1
 
             # Negative probabilities should be the only reason maxP changed, so
@@ -641,11 +640,13 @@ def find_repeat_detections(inputFilename, outputFilename=None, options=None):
     toReturn.detectionResults = detectionResults
     toReturn.otherFields = otherFields
 
-
+    # detectionResults[detectionResults['failure'].notna()]
+        
     # Before doing any real work, make sure we can *probably* access images
     # This is just a cursory check on the first image, but it heads off most 
     # problems related to incorrect mount points, etc.  Better to do this before
     # spending 20 minutes finding repeat detections.  
+    
     if options.bWriteFilteringFolder or options.bRenderHtml:
         if not is_sas_url(options.imageBase):
             row = detectionResults.iloc[0]
@@ -911,7 +912,7 @@ def find_repeat_detections(inputFilename, outputFilename=None, options=None):
     # ...if we're rendering html
 
     toReturn.allRowsFiltered = update_detection_table(toReturn, options, outputFilename)
-
+    
     # Create filtering directory
     if options.bWriteFilteringFolder:
 
