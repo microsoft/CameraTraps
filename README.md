@@ -54,6 +54,7 @@ Here are a few of the organizations that have used AI for Earth camera trap tool
 * Camelot
 * Graeme Shannon's Research Group at Bangor University 
 * Snapshot USA
+* University of British Columbia Wildlife Coexistence Lab
 
 
 # Data

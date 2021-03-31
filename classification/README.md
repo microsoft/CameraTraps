@@ -434,7 +434,12 @@ python detect_and_crop.py \
 
 ## 4. Create classification dataset and split image crops into train/val/test sets by location
 
-Preparing a classification dataset for training involves two steps. First, we create a CSV file representing our classification dataset, where each row in this CSV represents a single training example, which is an image crop with its label. Second, we split the training examples into 3 sets (train, val, and test) based on the location the images were taken. Both of these steps are handled by `create_classification_dataset.py`.
+Preparing a classification dataset for training involves two steps.
+
+1. Create a CSV file (`classification_ds.csv`) representing our classification dataset, where each row in this CSV represents a single training example, which is an image crop with its label. Along with this CSV file, we also create a `label_index.json` JSON file which defines a integer ordering over the string classification label names.
+2. Split the training examples into 3 sets (train, val, and test) based on the geographic location where the images were taken. The split is specified by a JSON file (`splits.json`).
+
+Both of these steps are handled by `create_classification_dataset.py`, and each step is explained in more detail below.
 
 **Creating the classification dataset CSV**
 
@@ -445,13 +450,15 @@ The classification dataset CSV has the columns listed below. Only image crops in
 * 'location': str, location that image was taken, as saved in MegaDB, or `"unknown_location"` if no location is provided in MegaDB
 * 'dataset_class': str, original class assigned to image, as saved in MegaDB
 * 'confidence': float, confidence that this crop is of an actual animal, 1.0 if the crop is a "ground truth bounding box" (i.e., from MegaDB), <= 1.0 if the bounding box was detected by MegaDetector
-* 'label': str, comma-separated list of label(s) assigned to this crop for the sake of classification
+* 'label': str, comma-separated list of label(s) assigned to this crop for classification
 
 The command to create the CSV is shown below. Three arguments merit explanation:
 
 * The `--threshold` argument filters out crops whose detection confidence is below a given threshold. Note, however, that if during the cropping step you only cropped bounding boxes above a detection confidence of 0.9, specifying a threshold of 0.8 here will have the same effect as specifying a threshold of 0.9. This script will not magically go back and crop the bounding boxes with a detection confidence between 0.8 and 0.9.
 * The `--min-locs` argument filters out crops whose label appears in fewer than some number of locations. This is useful for targeting a minimum diversity of locations. Because we split images into train/val/test based on location, at the bare minimum you should consider setting `--min-locs 3`. Otherwise, the label will be entirely excluded from at least one of the 3 splits.
 * The `--match-test` argument is useful for trying a new training dataset, but using an existing test set. This argument takes two values: `--match-test CLASSIFICATION_CSV SPLITS_JSON`. After creating the classification dataset (ignoring this argument), the script will append all crops from the given `CLASSIFICATION_CSV` whose "location" appears in the test set from `SPLITS_JSON`.
+
+The script also creates a `label_index.json` file, which maps integers to label names. The keys are string representations of Python integers (JSON requires keys to be strings), numbered from 0 to `num_labels-1`. The values are the label names (strings).
 
 ```bash
 python create_classification_dataset.py \
@@ -464,15 +471,15 @@ python create_classification_dataset.py \
     --min-locs 20
 ```
 
-**Splitting training examples by location**
+**Splitting training examples by geographic location**
 
-We split training examples by location in order to test the classifier's ability to generalize to unseen locations. Otherwise, the classifier might "memorize" the distribution of known species at each location. This second step assumes that a classification dataset CSV already exists at `$BASE_LOGDIR/classification_ds.csv`.
+We split training examples by geographic location in order to test the classifier's ability to generalize to unseen locations. Otherwise, the classifier might "memorize" the distribution of known species at each location. This second step assumes that a classification dataset CSV (`classification_ds.csv`) already exists and creates a `splits.json` file. This `splits.json` file maps each split `['train', 'val', 'test']` to a list of length-2 lists, where each inner list is `[<dataset>, <location>]`. In other words, each "geographic location" is identified by a (dataset, dataset-location) pair.
 
 Several arguments merit explanation:
 
 * `--val-frac` and `--test-frac`: These arguments specify roughly the fraction of all crops that should be put into the val and test sets, respectively. How this is done depends on the `--method` argument, explained below. Note that `--match-test` and `--test-frac` are mutually exclusive arguments, and `--test-frac` is treated as 0 if it is not given. The size of the train set is `1 - val_frac - test_frac`.
 * `--method`: There are two heuristics to choose from which determine how the splits are made:
-  * The `random` heuristic tries 10,000 different combinations of assigning approximately `--val-frac` and `--test-frac` locations to the val and test sets, with the remaining going to the train set. It then scores each of these combinations on how far each label's distribution of image crops and locations are from the desired train/val/test split. The combination with the lowest score
+  * The `random` heuristic tries 10,000 different combinations of assigning approximately `--val-frac` and `--test-frac` locations to the val and test sets, with the remaining going to the train set. It then scores each of these combinations on how far each label's distribution of image crops and locations are from the desired train/val/test split. The combination with the lowest score (lower is better) is selected.
   * The `smallest_first` heuristic sorts the labels from fewest to most examples, and then sorts the locations for each label from fewest to most examples. Locations are added in order to the test, val, then train sets until each split meets the desired split size.
 * `--label-spec`: This argument is useful for prioritizing certain datasets over others for inclusion in the test set, based on the given label specification JSON file. This argument requires `--method=smallest_first`.
 * The `--match-test` argument is useful for trying a new training dataset, but using an existing test set. This argument takes two values: `--match-test CLASSIFICATION_CSV SPLITS_JSON`. This will simply copy the test set from `SPLITS_JSON`.
@@ -517,7 +524,7 @@ Most command-line options are self-explanatory. However, several merit explanati
 
 * `--pretrained`: Without this argument, the model is trained from scratch. If this argument is used as a flag (without a value), then the model uses pre-trained weights from an ImageNet-trained model. This argument can also take a path to a normal model checkpoint (not a TorchScript-compiled checkpoint) as well. This is useful, for example, to use MegaClassifier's weights as the starting point for a bespoke classifier.
 * `--label-weighted`: Instead of a simple random shuffle, this flag causes training examples to be selected through a weighted sampling procedure. Examples are weighted inversely proportional to number of examples in each label. In other words, all labels get sampled with equal frequency. This effectively balances the dataset. We found that weighted sampling was more effective than weighting each example's loss because the weights varied dramatically between labels (e.g., often exceeding 100x between the smallest and largest labels). If using a weighted loss, certain batches would have an extremely large loss and gradient, which was detrimental to training.
-* `--weight-by-detection`: If used as a flag, this argument weights each example by its detection confidence. This argument optionally takes a path to a compressed numpy archive (`.npz`) file containing the isotonic regression interpolation coordinates for calibrating the detection confidence.
+* `--weight-by-detection-conf`: If used as a flag, this argument weights each example by its detection confidence. This argument optionally takes a path to a compressed numpy archive (`.npz`) file containing the isotonic regression interpolation coordinates for calibrating the detection confidence.
 * `--log-extreme-examples`: This flag specifies the number of true-positive (tp), false-positive (fp), and false-negative (fn) examples of each label to log in TensorBoard during each epoch of training. This flag is very helpful for identifying what images the classifier is struggling with during training. However, it is recommended to turn this flag OFF when training MegaClassifier because its RAM usage is linearly proportional to the number of classes (and MegaClassifier has a lot of classes).
 * `--finetune`: If used as a flag, this argument will only adjust the final fully-connected layer of the model. This argument optionally takes an integer, which specifies the number of epochs for fine-tuning the final layer before enabling all layers to be trained. I found that empirically there was no observable benefit to fine-tuning the final layer first before training all layers, so usually there should be no reason to use this argument.
 
