@@ -185,26 +185,26 @@ def load_dataset_csv(dataset_csv_path: str,
                                ]:
     """
     Args:
-        classification_dataset_csv_path: str, path to CSV file with columns
+        dataset_csv_path: str, path to CSV file with columns
             ['dataset', 'location', 'label', 'confidence'], where label is a
             comma-delimited list of labels
-        label_index_json_path: str, TODO
-        splits_json_path: str, path to JSON file
-        multilabel: bool, TODO
+        label_index_json_path: str, path to label index JSON file
+        splits_json_path: str, path to splits JSON file
+        multilabel: bool, whether a single example can have multiple labels
         weight_by_detection_conf: bool or str
             - if True: assumes classification CSV's 'confidence' column
                 represents calibrated scores
             - if str: path the .npz file containing x/y values for isotonic
                 regression calibration function
-        label_weighted: bool, TODO
+        label_weighted: bool, whether to give each label equal weight
 
     Returns:
         df: pd.DataFrame, with columns
             dataset_location: tuples of (dataset, location)
             label: str if not multilabel, list of str if multilabel
             label_index: int if not multilabel, list of int if multilabel
-            weights: float, column sums to C where C = number of labels,
-                column exists only if label_weighted=True or
+            weights: float, weight for each example
+                column exists if and only if label_weighted=True or
                 weight_by_detection_conf is not False
         label_names: list of str, label names in order of label id
         split_to_locs: dict, maps split to set of (dataset, location) tuples
@@ -253,19 +253,23 @@ def load_dataset_csv(dataset_csv_path: str,
             df['weights'] = 1.0
 
         # treat each split separately
-        # sample_weight[i] = (N / C) / count(i's label)
-        # - N = # of examples in split (weighted by confidence); C = # of labels
-        # - weight allocated to each label is N/C
-        # - within each label, weigh each example as 1/# of examples in label
-        # - sample_weights sums to N
+        # new_weight[i] = confidence[i] * (n / c) / total_confidence(i's label)
+        # - n = # examples in split (weighted by confidence); c = # labels
+        # - weight allocated to each label is n/c
+        # - within each label, weigh each example proportional to confidence
+        # - new weights sum to n
         c = len(label_names)
-        for locs in split_to_locs.values():
+        for split, locs in split_to_locs.items():
             split_mask = df['dataset_location'].isin(locs)
             n = df.loc[split_mask, 'weights'].sum()
-            label_sizes = df[split_mask].groupby('label').size()
-            sample_weights = (n / c) / label_sizes[df.loc[split_mask, 'label']]
-            assert np.isclose(sample_weights.sum(), n)
-            df.loc[split_mask, 'weights'] = sample_weights.to_numpy()
+            per_label_conf = df[split_mask].groupby('label')['weights'].sum()
+            assert len(per_label_conf) == c, (
+                f'{split} split only has {len(per_label_conf)}/{c} labels')
+            scaling = (n / c) / per_label_weight[df.loc[split_mask, 'label']]
+            df.loc[split_mask, 'weights'] *= scaling.to_numpy()
+            w_sum = df.loc[split_mask, 'weights'].sum()
+            assert np.isclose(w_sum, n), (
+                f'Expected {split} weights to sum to {n}, got {w_sum} instead')
 
         # error checking
         assert (df['weights'] > 0).all()
