@@ -213,6 +213,12 @@ Adding this line to your `~/.bashrc` (on Linux) modifies `PYTHONPATH` permanentl
 We also do our best to follow [Google's Python Style Guide](http://google.github.io/styleguide/pyguide.html), and we have adopted their `pylintrc` file, with the following differences:
 - indent code blocks with 4 spaces (instead of 2)
 
+To lint a file, run `pylint` with the CameraTraps repo folder as the current working directory. This allows pylint to recognize the `pylintrc` file. For example,
+
+```bash
+pylint classification/train_classifier.py
+```
+
 
 # Gratuitous pretty camera trap picture
 
