@@ -43,10 +43,13 @@ Detections JSON format:
 Batch Detection API Output Format:
 github.com/microsoft/CameraTraps/tree/master/api/batch_processing#api-outputs
 """
+from __future__ import annotations
+
 import argparse
+from collections.abc import Mapping
 import json
 import os
-from typing import Any, Mapping, Optional
+from typing import Any, Optional
 
 import requests
 
