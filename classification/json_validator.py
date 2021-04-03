@@ -55,16 +55,18 @@ Example usage:
         $HOME/camera-traps-private/camera_trap_taxonomy_mapping.csv \
         --output-dir run --json-indent 2
 """
+from __future__ import annotations
+
 import argparse
 from collections import defaultdict
+from collections.abc import Container, Iterable, Mapping, MutableMapping
 from concurrent import futures
 from datetime import datetime
 import json
 import os
 import pprint
 import random
-from typing import (Any, Container, Dict, Iterable, List, Mapping,
-                    MutableMapping, Optional, Set, Tuple, Union)
+from typing import Any, Optional
 
 import pandas as pd
 import path_utils  # from ai4eutils
@@ -80,7 +82,7 @@ def main(label_spec_json_path: str,
          taxonomy_csv_path: str,
          allow_multilabel: bool = False,
          single_parent_taxonomy: bool = False,
-         check_blob_exists: Union[bool, str] = False,
+         check_blob_exists: bool | str = False,
          min_locs: Optional[int] = None,
          output_dir: Optional[str] = None,
          json_indent: Optional[int] = None,
@@ -126,7 +128,7 @@ def main(label_spec_json_path: str,
     # 1) end in a supported file extension, and
     # 2) actually exist in Azure Blob Storage
     # 3) belong to a label with at least min_locs locations
-    log: Dict[str, Any] = {}
+    log: dict[str, Any] = {}
     remove_non_images(output_js, log)
     if isinstance(check_blob_exists, str):
         remove_nonexistent_images(output_js, log, check_local=check_blob_exists)
@@ -172,8 +174,8 @@ def main(label_spec_json_path: str,
 
 
 def parse_spec(spec_dict: Mapping[str, Any],
-               taxonomy_dict: Dict[Tuple[str, str], TaxonNode]
-               ) -> Set[Tuple[str, str]]:
+               taxonomy_dict: dict[tuple[str, str], TaxonNode]
+               ) -> set[tuple[str, str]]:
     """Gathers the dataset labels corresponding to a particular classification
     label specification.
 
@@ -212,9 +214,9 @@ def parse_spec(spec_dict: Mapping[str, Any],
     return results
 
 
-def validate_json(input_js: Dict[str, Dict[str, Any]],
-                  taxonomy_dict: Dict[Tuple[str, str], TaxonNode],
-                  allow_multilabel: bool) -> Dict[str, Set[Tuple[str, str]]]:
+def validate_json(input_js: dict[str, dict[str, Any]],
+                  taxonomy_dict: dict[tuple[str, str], TaxonNode],
+                  allow_multilabel: bool) -> dict[str, set[tuple[str, str]]]:
     """Validates JSON.
 
     Args:
@@ -231,7 +233,7 @@ def validate_json(input_js: Dict[str, Dict[str, Any]],
         included in two or more classification labels
     """
     # maps output label name to set of (dataset, dataset_label) tuples
-    label_to_inclusions: Dict[str, Set[Tuple[str, str]]] = {}
+    label_to_inclusions: dict[str, set[tuple[str, str]]] = {}
     for label, spec_dict in input_js.items():
         include_set = parse_spec(spec_dict, taxonomy_dict)
         if 'exclude' in spec_dict:
@@ -248,9 +250,9 @@ def validate_json(input_js: Dict[str, Dict[str, Any]],
     return label_to_inclusions
 
 
-def get_output_json(label_to_inclusions: Dict[str, Set[Tuple[str, str]]],
+def get_output_json(label_to_inclusions: dict[str, set[tuple[str, str]]],
                     mislabeled_images_dir: Optional[str] = None
-                    ) -> Dict[str, Dict[str, Any]]:
+                    ) -> dict[str, dict[str, Any]]:
     """Queries MegaDB to get image paths matching dataset_labels.
 
     Args:
@@ -273,7 +275,7 @@ def get_output_json(label_to_inclusions: Dict[str, Set[Tuple[str, str]]],
     #         'dataset_label': [output_label1, output_label2]
     #     }
     # }
-    ds_to_labels: Dict[str, Dict[str, List[str]]] = {}
+    ds_to_labels: dict[str, dict[str, list[str]]] = {}
     for output_label, ds_dslabels_set in label_to_inclusions.items():
         for (ds, ds_label) in ds_dslabels_set:
             if ds not in ds_to_labels:
@@ -379,7 +381,7 @@ def get_output_json(label_to_inclusions: Dict[str, Set[Tuple[str, str]]],
     return output_json
 
 
-def get_image_sas_uris(img_paths: Iterable[str]) -> List[str]:
+def get_image_sas_uris(img_paths: Iterable[str]) -> list[str]:
     """Converts a image paths to Azure Blob Storage blob URIs with SAS tokens.
 
     Args:
@@ -410,7 +412,7 @@ def get_image_sas_uris(img_paths: Iterable[str]) -> List[str]:
     return image_sas_uris
 
 
-def remove_non_images(js: MutableMapping[str, Dict[str, Any]],
+def remove_non_images(js: MutableMapping[str, dict[str, Any]],
                       log: MutableMapping[str, Any]) -> None:
     """Remove images with non-image file extensions. Modifies [js] and [log]
     in-place.
@@ -428,7 +430,7 @@ def remove_non_images(js: MutableMapping[str, Dict[str, Any]],
         log['nonimage_files'] = sorted(nonimg_paths)
 
 
-def remove_nonexistent_images(js: MutableMapping[str, Dict[str, Any]],
+def remove_nonexistent_images(js: MutableMapping[str, dict[str, Any]],
                               log: MutableMapping[str, Any],
                               check_local: Optional[str] = None,
                               num_threads: int = 50) -> None:
@@ -482,7 +484,7 @@ def remove_nonexistent_images(js: MutableMapping[str, Dict[str, Any]],
         log['nonexistent_images'] = sorted(nonexistent_images)
 
 
-def remove_images_insufficient_locs(js: MutableMapping[str, Dict[str, Any]],
+def remove_images_insufficient_locs(js: MutableMapping[str, dict[str, Any]],
                                     log: MutableMapping[str, Any],
                                     min_locs: int) -> None:
     """Removes images that have labels that don't have at least min_locs
@@ -516,7 +518,7 @@ def remove_images_insufficient_locs(js: MutableMapping[str, Dict[str, Any]],
 
 
 def filter_images(output_js: Mapping[str, Mapping[str, Any]], label: str,
-                  datasets: Optional[Container[str]] = None) -> Set[str]:
+                  datasets: Optional[Container[str]] = None) -> set[str]:
     """Finds image files from output_js that have a given label and are from
     a set of datasets.
 
@@ -528,7 +530,7 @@ def filter_images(output_js: Mapping[str, Mapping[str, Any]], label: str,
 
     Returns: set of str, image files that match the filtering criteria
     """
-    img_files: Set[str] = set()
+    img_files: set[str] = set()
     for img_file, img_dict in output_js.items():
         cond1 = (label in img_dict['label'])
         cond2 = (datasets is None or img_dict['dataset'] in datasets)
@@ -538,15 +540,15 @@ def filter_images(output_js: Mapping[str, Mapping[str, Any]], label: str,
 
 
 def sample_with_priority(input_js: Mapping[str, Mapping[str, Any]],
-                         output_js: Mapping[str, Dict[str, Any]]
-                         ) -> Dict[str, Dict[str, Any]]:
+                         output_js: Mapping[str, dict[str, Any]]
+                         ) -> dict[str, dict[str, Any]]:
     """Uses the optional 'max_count' and 'prioritize' keys from the input
     classification labels specifications JSON file to sample images for each
     classification label.
 
     Returns: dict, keys are image file names, sorted alphabetically
     """
-    filtered_imgs: Set[str] = set()
+    filtered_imgs: set[str] = set()
     for label, spec_dict in input_js.items():
         if 'prioritize' in spec_dict and 'max_count' not in spec_dict:
             raise ValueError('prioritize is invalid without a max_count value.')
