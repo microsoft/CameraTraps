@@ -14,9 +14,10 @@ python aggregate_classifier_probs.py \
     --output-csv classifier_output_remapped.csv.gz \
     --output-label-index label_index_remapped.json
 """
+from __future__ import annotations
+
 import argparse
 import json
-from typing import Set
 
 import pandas as pd
 from tqdm import tqdm
@@ -38,7 +39,7 @@ def main(classifier_results_csv_path: str,
         target_mapping = json.load(f)
     target_names = sorted(target_mapping.keys())
 
-    all_classifier_labels: Set[str] = set()
+    all_classifier_labels: set[str] = set()
     for classifier_labels in target_mapping.values():
         assert all_classifier_labels.isdisjoint(classifier_labels)
         all_classifier_labels.update(classifier_labels)

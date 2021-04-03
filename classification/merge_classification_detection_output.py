@@ -59,11 +59,14 @@ Example usage:
         --output-json BASE_LOGDIR/LOGDIR/classifier_results.json \
         --datasets idfg idfg_swwlf_2019
 """
+from __future__ import annotations
+
 import argparse
+from collections.abc import Mapping, Sequence
 import datetime
 import json
 import os
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
+from typing import Any, Optional
 
 import pandas as pd
 from tqdm import tqdm
@@ -77,7 +80,7 @@ def row_to_classification_list(row: Mapping[str, Any],
                                label_pos: Optional[str],
                                threshold: float,
                                relative_conf: bool = False
-                               ) -> List[Tuple[str, float]]:
+                               ) -> list[tuple[str, float]]:
     """Given a mapping from label name to output probability, returns a list of
     tuples, (str(label_id), prob), which can be serialized into the Batch API
     output format.
@@ -201,7 +204,7 @@ def process_queried_images(
          datasets: Optional[Sequence[str]] = None,
          samples_per_label: Optional[int] = None,
          seed: int = 123
-         ) -> Dict[str, Any]:
+         ) -> dict[str, Any]:
     """Creates a detection JSON object roughly in the Batch API detection
     format.
 
@@ -252,7 +255,7 @@ def process_queried_images(
     with open(queried_images_json_path, 'r') as f:
         queried_images_js = json.load(f)
 
-    merged_js: Dict[str, Any] = {
+    merged_js: dict[str, Any] = {
         'images': {},  # start as dict, will convert to list later
         'info': {}
     }
@@ -314,7 +317,7 @@ def process_queried_images(
 
 
 def combine_classification_with_detection(
-        detection_js: Dict[str, Any],
+        detection_js: dict[str, Any],
         df: pd.DataFrame,
         idx_to_label: Mapping[str, str],
         label_names: Sequence[str],
@@ -323,7 +326,7 @@ def combine_classification_with_detection(
         threshold: float,
         label_pos: Optional[str] = None,
         relative_conf: bool = False
-        ) -> Dict[str, Any]:
+        ) -> dict[str, Any]:
     """Adds classification information to a detection JSON. Classification
     information may include the true label and/or the predicted confidences
     of each label.
