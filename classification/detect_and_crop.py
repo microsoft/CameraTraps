@@ -95,15 +95,17 @@ Example command:
         --cropped-images-dir /path/to/crops --square-crops --threshold 0.9 \
         --save-full-images --images-dir /path/to/images --threads 50
 """
+from __future__ import annotations
+
 import argparse
+from collections.abc import Collection, Iterable, Mapping, Sequence
 from concurrent import futures
 from datetime import datetime
 import json
 import os
 import pprint
 import time
-from typing import (Any, Collection, Dict, Iterable, List, Mapping, Optional,
-                    Sequence, Tuple)
+from typing import Any, Optional
 
 from azure.storage.blob import ContainerClient
 import requests
@@ -157,11 +159,11 @@ def main(queried_images_json_path: str,
             dicts on running tasks, or to resume from running tasks, only used
             if run_detector=True
     """
-    
+
     # This dictionary will get written out at the end of this process; store
-    # diagnostic variables here 
-    log: Dict[str, Any] = {}
-    
+    # diagnostic variables here
+    log: dict[str, Any] = {}
+
     # error checking
     assert 0 <= confidence_threshold <= 1
     if save_full_images:
@@ -184,9 +186,8 @@ def main(queried_images_json_path: str,
     print(f'{len(images_to_detect)} images not in detection cache')
 
     if run_detector:
-        
         log['images_submitted_for_detection'] = images_to_detect
-        
+
         assert resume_file_path is not None
         assert not os.path.isdir(resume_file_path)
         batch_detection_api_url = os.environ['BATCH_DETECTION_API_URL']
@@ -207,7 +208,7 @@ def main(queried_images_json_path: str,
                 caller=os.environ['DETECTION_API_CALLER'],
                 batch_detection_api_url=batch_detection_api_url,
                 resume_file_path=resume_file_path)
-            
+
         wait_for_tasks(tasks_by_dataset, detector_output_cache_dir,
                        output_dir=output_dir)
 
@@ -221,7 +222,7 @@ def main(queried_images_json_path: str,
     log['images_missing_detections'] = images_to_detect
 
     if cropped_images_dir is not None:
-        
+
         images_failed_dload_crop, num_downloads, num_crops = download_and_crop(
             queried_images_json=js,
             detection_cache=detection_cache,
@@ -252,9 +253,9 @@ def main(queried_images_json_path: str,
 
 
 def load_detection_cache(detector_output_cache_dir: str,
-                         datasets: Collection[str]) -> Tuple[
-                             Dict[str, Dict[str, Dict[str, Any]]],
-                             Dict[str, str]
+                         datasets: Collection[str]) -> tuple[
+                             dict[str, dict[str, dict[str, Any]]],
+                             dict[str, str]
                          ]:
     """Loads detection cache for a given dataset. Returns empty dictionaries
     if the cache does not exist.
@@ -273,7 +274,7 @@ def load_detection_cache(detector_output_cache_dir: str,
     """
     # cache of Detector outputs: dataset name => {img_path => detection_dict}
     detection_cache = {}
-    detection_categories: Dict[str, str] = {}
+    detection_categories: dict[str, str] = {}
 
     pbar = tqdm(datasets)
     for ds in pbar:
@@ -295,9 +296,9 @@ def load_detection_cache(detector_output_cache_dir: str,
 def filter_detected_images(
         potential_images_to_detect: Iterable[str],
         detector_output_cache_dir: str
-        ) -> Tuple[List[str],
-                   Dict[str, Dict[str, Dict[str, Any]]],
-                   Dict[str, str]]:
+        ) -> tuple[list[str],
+                   dict[str, dict[str, dict[str, Any]]],
+                   dict[str, str]]:
     """Checks image paths against cached Detector outputs, and prepares
     the SAS URIs for each image not in the cache.
 
@@ -333,7 +334,7 @@ def filter_detected_images(
 
 
 def split_images_list_by_dataset(images_to_detect: Iterable[str]
-                                 ) -> Dict[str, List[str]]:
+                                 ) -> dict[str, list[str]]:
     """
     Args:
         images_to_detect: list of str, image paths with the format
@@ -341,7 +342,7 @@ def split_images_list_by_dataset(images_to_detect: Iterable[str]
 
     Returns: dict, maps dataset name to a list of image paths
     """
-    images_by_dataset: Dict[str, List[str]] = {}
+    images_by_dataset: dict[str, list[str]] = {}
     for img_path in images_to_detect:
         dataset = img_path[:img_path.find('/')]
         if dataset not in images_by_dataset:
@@ -359,7 +360,7 @@ def submit_batch_detection_api(images_to_detect: Iterable[str],
                                caller: str,
                                batch_detection_api_url: str,
                                resume_file_path: str
-                               ) -> Dict[str, List[Task]]:
+                               ) -> dict[str, list[Task]]:
     """
     Args:
         images_to_detect: list of str, list of str, image paths with the format
@@ -441,7 +442,7 @@ def submit_batch_detection_api_by_dataset(
         sas_token: str,
         caller: str,
         batch_detection_api_url: str
-        ) -> List[Task]:
+        ) -> list[Task]:
     """
     Args:
         dataset: str, name of dataset
@@ -464,7 +465,7 @@ def submit_batch_detection_api_by_dataset(
 
     # complete task name: 'detect_for_classifier_caltech_20200722_110816_task01'
     task_name_template = 'detect_for_classifier_{dataset}_{date}_task{n:>02d}'
-    tasks: List[Task] = []
+    tasks: list[Task] = []
     for i, task_list_path in enumerate(task_list_paths):
         task = Task(
             name=task_name_template.format(dataset=dataset, date=date, n=i),
@@ -487,7 +488,7 @@ def submit_batch_detection_api_by_dataset(
 
 
 def resume_tasks(resume_file_path: str, batch_detection_api_url: str
-                 ) -> Dict[str, List[Task]]:
+                 ) -> dict[str, list[Task]]:
     """
     Args:
         resume_file_path: str, path to resume file with list of info dicts on
@@ -499,7 +500,7 @@ def resume_tasks(resume_file_path: str, batch_detection_api_url: str
     with open(resume_file_path, 'r') as f:
         resume_json = json.load(f)
 
-    tasks_by_dataset: Dict[str, List[Task]] = {}
+    tasks_by_dataset: dict[str, list[Task]] = {}
     for info_dict in resume_json:
         dataset = info_dict['dataset']
         if dataset not in tasks_by_dataset:
@@ -531,7 +532,7 @@ def wait_for_tasks(tasks_by_dataset: Mapping[str, Iterable[Task]],
             saved to <output_dir>/batchapi_response/{task_id}.json
         poll_interval: int, # of seconds between pinging the task status API
     """
-    remaining_tasks: List[Tuple[str, Task]] = [
+    remaining_tasks: list[tuple[str, Task]] = [
         (dataset, task) for dataset, tasks in tasks_by_dataset.items()
         for task in tasks]
 
@@ -609,7 +610,7 @@ def download_and_crop(
         images_dir: Optional[str] = None,
         threads: int = 1,
         images_missing_detections: Optional[Iterable[str]] = None
-        ) -> Tuple[List[str], int, int]:
+        ) -> tuple[list[str], int, int]:
     """
     Saves crops to a file with the same name as the original image with an
     additional suffix appended, starting with 3 underscores:

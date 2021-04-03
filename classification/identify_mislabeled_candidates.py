@@ -32,11 +32,13 @@ Example usage:
     python identify_mislabeled_candidates.py <base_logdir>/<logdir> \
         --margin 0.5 --splits val test
 """
+from __future__ import annotations
+
 import argparse
 from collections import defaultdict
+from collections.abc import Iterable, Sequence
 import json
 import os
-from typing import Dict, Iterable, Set, Sequence
 
 import pandas as pd
 from tqdm import tqdm
@@ -57,7 +59,7 @@ def main(logdir: str, splits: Iterable[str], margin: float,
         candidates_df = get_candidates_df(outputs_csv_path, label_names, margin)
 
         # dataset => set of img_file
-        candidate_image_files: Dict[str, Set[str]] = defaultdict(set)
+        candidate_image_files: defaultdict[str, set[str]] = defaultdict(set)
 
         for crop_path in tqdm(candidates_df['path']):
             # crop_path: <dataset>/<img_file>___cropXX_mdvY.Y.jpg
