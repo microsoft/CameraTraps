@@ -265,7 +265,7 @@ def load_dataset_csv(dataset_csv_path: str,
             per_label_conf = df[split_mask].groupby('label')['weights'].sum()
             assert len(per_label_conf) == c, (
                 f'{split} split only has {len(per_label_conf)}/{c} labels')
-            scaling = (n / c) / per_label_weight[df.loc[split_mask, 'label']]
+            scaling = (n / c) / per_label_conf[df.loc[split_mask, 'label']]
             df.loc[split_mask, 'weights'] *= scaling.to_numpy()
             w_sum = df.loc[split_mask, 'weights'].sum()
             assert np.isclose(w_sum, n), (
