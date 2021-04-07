@@ -20,7 +20,6 @@ dependencies:
 - jsonschema
 - requests
 - unidecode   # needed sometimes for curating MegaDB entries
-- tensorboard # required for the tensorboard extra on azureml-sdk to work
 - pip         # good to add pip as an explicit dependency
 
 # Some Azure packages or versions are only available from PyPI
@@ -30,6 +29,5 @@ dependencies:
 - pip:        
   - azure-storage-blob
   - azure-cosmos
-  - azureml-sdk[tensorboard]==1.0.83
   - requests-toolbelt  # required to call the sync API
   - locust  # load testing of sync API
