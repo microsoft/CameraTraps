@@ -27,10 +27,17 @@ from visualization import visualization_utils as vis_utils
 
 
 def get_image_rel_path(dataset_seq_images, dataset_name, seq_id, frame_num):
-    images = dataset_seq_images[dataset_name][seq_id]
+    images = dataset_seq_images[dataset_name].get(seq_id, None)
+    if images is None:
+        return None
     for im in images:
-        if im['frame_num'] == frame_num:
+        if im.get('frame_num', None) == frame_num:
             return im['file']
+        
+    # we used frame_num of 1 when sending out images to annotators when it is not explicitly stored (wcs esp.)
+    if frame_num == 1 and len(images) == 1:
+        return images[0]['file']
+
     return None
 
 
@@ -89,7 +96,8 @@ def visualize_incoming_annotations(args):
 
         boxes = [anno['bbox'] for anno in annotations]
         classes = [anno['category_id'] for anno in annotations]
-        vis_utils.render_iMerit_boxes(boxes, classes, image)
+
+        vis_utils.render_iMerit_boxes(boxes, classes, image, label_map=incoming.cat_id_to_name)
 
         file_name = '{}_gtbbox.jpg'.format(os.path.splitext(anno_file_name)[0].replace('/', '~'))
         image = vis_utils.resize_image(image, args.output_image_width)
@@ -132,7 +140,7 @@ def main():
         '--num_to_visualize', action='store', type=int, default=200,
         help='Number of images to visualize. If trim_to_images_bboxes_labeled, there may be fewer than specified')
     parser.add_argument(
-        '-w', '--output_image_width', type=int, default=700,
+        '-w', '--output_image_width', type=int, default=1200,
         help='an integer indicating the desired width in pixels of the output '
              'annotated images. Use -1 to not resize.')
 
