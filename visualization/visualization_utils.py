@@ -56,13 +56,12 @@ def open_image(input_file: Union[str, BytesIO]) -> Image:
             response = requests.get(input_file)
             image = Image.open(BytesIO(response.content))
         except Exception as e:
-            print('Error opening image {}: {}'.format(input_file,str(e)))
+            print(f'Error opening image {input_file}: {e}')
             raise
     else:
         image = Image.open(input_file)
     if image.mode not in ('RGBA', 'RGB', 'L'):
-        raise AttributeError(
-            f'Image {input_file} uses unsupported mode {image.mode}')
+        raise AttributeError(f'Image {input_file} uses unsupported mode {image.mode}')
     if image.mode == 'RGBA' or image.mode == 'L':
         # PIL.Image.convert() returns a converted copy of this image
         image = image.convert(mode='RGB')
