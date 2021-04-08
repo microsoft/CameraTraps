@@ -88,10 +88,12 @@ Example JSON output:
         }
     }
 """
+from __future__ import annotations
+
 import argparse
 from collections import defaultdict
 import json
-from typing import Any, Dict
+from typing import Any
 
 import pandas as pd
 
@@ -122,7 +124,7 @@ def _parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def parse_csv_row(obj: Dict[str, Any], rowtype: str, content: str) -> None:
+def parse_csv_row(obj: dict[str, Any], rowtype: str, content: str) -> None:
     """Parses a row in the CSV."""
     if rowtype == 'row':
         if 'dataset_labels' not in obj:
@@ -162,12 +164,12 @@ def parse_csv_row(obj: Dict[str, Any], rowtype: str, content: str) -> None:
         })
 
 
-def csv_to_jsondict(csv_path: str) -> Dict[str, Dict[str, Any]]:
+def csv_to_jsondict(csv_path: str) -> dict[str, dict[str, Any]]:
     """Converts CSV to json-style dictionary"""
     df = pd.read_csv(csv_path, comment='#', skip_blank_lines=True)
     assert (df.columns == ['output_label', 'type', 'content']).all()
 
-    js: Dict[str, Dict[str, Any]] = defaultdict(dict)
+    js: defaultdict[str, dict[str, Any]] = defaultdict(dict)
 
     for i in df.index:
         label, rowtype, content = df.loc[i]
@@ -183,11 +185,11 @@ def csv_to_jsondict(csv_path: str) -> Dict[str, Dict[str, Any]]:
     return js
 
 
-def order_spec_dict(spec_dict: Dict[str, Any]) -> Dict[str, Any]:
+def order_spec_dict(spec_dict: dict[str, Any]) -> dict[str, Any]:
     """Returns spec_dict with keys in a specific order. Requires Python 3.6+."""
     if 'exclude' in spec_dict:
         spec_dict['exclude'] = order_spec_dict(spec_dict['exclude'])
-    ordered_spec_dict: Dict[str, Any] = {}
+    ordered_spec_dict: dict[str, Any] = {}
     for key in ['dataset_labels', 'taxa', 'exclude', 'max_count', 'prioritize']:
         if key in spec_dict:
             ordered_spec_dict[key] = spec_dict[key]

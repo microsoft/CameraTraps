@@ -1,0 +1,118 @@
+{
+    "openapi": "3.0.1",
+    "info": {
+        "title": "AI for Earth Camera Trap Classification API",
+        "description": "API for classifying animals in camera trap images. The animal classification models supported by this API were trained to work on *crops* of camera trap images that surrounds a detected individual animal. We usually call this API after obtaining detections from the Camera Trap Detection APIs and cropping out the animals based on the bounding boxes that [our detector](https://github.com/microsoft/CameraTraps/blob/master/megadetector.md) outputs.",
+        "version": "1.0"
+    },
+    "servers": [{
+        "url": "https://aiforearth.azure-api.net/v1/camera-trap/classification/sync"
+    }],
+    "paths": {
+        "/available_models": {
+            "get": {
+                "summary": "Returns a list of strings containing the names of the available classification models",
+                "description": "Returns a list of strings, where each string value is a valid value for the 'classifier' parameter in the /classify endpoint. \n",
+                "operationId": "get-available_models",
+                "responses": {
+                    "200": {
+                        "description": "A list of strings, containing names of available classifier models",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Available_modelsGet200TextPlainResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/classify": {
+            "post": {
+                "summary": "Processes the input image(s) using the classification model.",
+                "description": "By passing the classifier name (e.g. `serengeti`, `caltech` or `wellington`) as a parameter and image crop(s) as data, you can have the images processed using one of the animal classification models. The predicted categories and their confidences are returned.\n",
+                "operationId": "post-classify-classifier-classifier",
+                "parameters": [{
+                    "name": "classifier",
+                    "in": "query",
+                    "description": "Enter a value for the classifier to select a classification model. A list of valid values are available at the endpoint /available_models",
+                    "required": true,
+                    "schema": {
+                        "type": "string"
+                    }
+                }],
+                "requestBody": {
+                    "description": "- Send up to 64 image crops to be processed as files in a multipart form. \n\n- The keys (`image_name` in the following example) in the files dictionary should be unique identifiers of the images, as the returned result will also be keyed by these.\n\n- Make sure to set the content media type correctly for each file, as only files of the accepted types will be processed. \n\n- The accepted image types are `image/jpeg`, `image/png`, `application/octet-stream`. Please send jpeg images of usual camera trap images size (500KB - 4MB).\n\nFor example, in Python:\n```\n  import requests\n  import os\n\n  params = {\n      'classifier': 'serengeti'\n  }\n  \n files = {} \n num_images = 0 \n\n for i, image_name in enumerate(sorted(os.listdir(sample_input_dir))): \n\n  if not image_name.lower().endswith('.jpg'):\n     continue\n\n  if num_images >= num_images_to_upload:\n      break \n  else: \n      num_images += 1 \n\n  img_path = os.path.join(sample_input_dir, image_name)\n  files[image_name] = (image_name, open(img_path,'rb'), 'image/jpeg')\n\n  r = requests.post(base_url + 'classify', params=params, files=files)\n",
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "properties": {
+                                    "image_id_1": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Images are successfully processed. The confidences and categories will be returned in a json format \n\nHere is an example of how you can parse the result in Python:\n```\n import json\n\n result = r.json()\n\n for image_name in result:\n    classification_result = result[image_name] \n\n    for item in classification_result:\n       category = item['category']\n       confidence = item['confidence']   \n```\n`classification_result` looks like this:\n```\n[\n    {\n      'category': 'gazelleGrants',\n      'confidence': '0.959687352180481' \n    }, \n    {\n      'category': 'gazelleThomsons',\n      'confidence': '0.033226676285266876' \n    }, \n    {\n      'category': 'impala',\n      'confidence': '0.006978911347687244' \n    }, \n    {\n     'category': 'reedbuck',\n     'confidence': '0.00004209317557979375' \n    }, \n    {\n     'category': 'hartebeest',\n     'confidence': '0.000012802334822481498' \n    }\n]\n\n```\n where the key category represents the animal category and the confidence represents the confidence or accuracy of the prediction \n",
+                        "content": {
+                            "multipart/form-data": {}
+                        }
+                    },
+                    "400": {
+                        "description": "No image(s) of accepted types (image/jpeg, image/png,\napplication/octet-stream) received.\n"
+                    },
+                    "411": {
+                        "description": "No image(s) are sent, or content length cannot be determined.\n"
+                    },
+                    "413": {
+                        "description": "More than 64 image are sent, or the total size of uploaded content is too\nbig.\n"
+                    },
+                    "500": {
+                        "description": "Error occurred reading the images, performing classification on the\nimages, consolidating the results. See the error message to diagnose the issue.        \n    \n"
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "body": {
+                "type": "object",
+                "properties": {
+                    "image_id_1": {
+                        "type": "string",
+                        "format": "binary"
+                    }
+                }
+            },
+            "Available_modelsGet200TextPlainResponse": {
+                "type": "array",
+                "items": {
+                    "type": "string"
+                }
+            }
+        },
+        "securitySchemes": {
+            "apiKeyHeader": {
+                "type": "apiKey",
+                "name": "Ocp-Apim-Subscription-Key",
+                "in": "header"
+            },
+            "apiKeyQuery": {
+                "type": "apiKey",
+                "name": "subscription-key",
+                "in": "query"
+            }
+        }
+    },
+    "security": [{
+        "apiKeyHeader": []
+    }, {
+        "apiKeyQuery": []
+    }]
+}
