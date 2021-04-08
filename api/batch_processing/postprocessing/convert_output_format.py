@@ -47,7 +47,10 @@ def convert_json_to_csv(input_path,output_path=None,min_confidence=None,
         
     print('Iterating through results...')
     for im in tqdm(json_output['images']):
-        
+        if 'failure' in im:
+            print("Skipping failed image", im['failure'])
+            continue
+
         image_id = im['file']
         max_conf = im['max_detection_conf']
         detections = []

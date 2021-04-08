@@ -101,7 +101,7 @@
               "examples": [
                 "P1158/C18/P1158__C18__2011-06-24__15-25-35(15).JPG"
               ],
-              "pattern": "^(.+)(.jpg|.JPG|.jpeg|.JPEG|.bmp|.avi|.tif)$"
+              "pattern": "^(.+)(.jpg|.JPG|.jpeg|.JPEG|.png|.PNG|.bmp|.avi|.tif)$"
             },
             "class": {
               "$id": "#/properties/images/items/properties/class",

@@ -60,10 +60,13 @@ Example usage:
         --cropped-images-dir /ssd/crops_sq \
         -d $HOME/classifier-training/mdcache -v "4.1" -t 0.8
 """
+from __future__ import annotations
+
 import argparse
+from collections.abc import Container, MutableMapping
 import json
 import os
-from typing import Container, Dict, List, MutableMapping, Optional, Set, Tuple
+from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -78,8 +81,8 @@ SPLITS_FILENAME = 'splits.json'
 
 
 def main(output_dir: str,
-         mode: List[str],
-         match_test: Optional[List[str]],
+         mode: list[str],
+         match_test: Optional[list[str]],
          queried_images_json_path: Optional[str],
          cropped_images_dir: Optional[str],
          detector_version: Optional[str],
@@ -175,8 +178,8 @@ def create_classification_csv(
         confidence_threshold: float,
         min_locs: Optional[int] = None,
         append_df: Optional[pd.DataFrame] = None,
-        exclude_locs: Optional[Container[Tuple[str, str]]] = None
-        ) -> Tuple[pd.DataFrame, Dict[str, List]]:
+        exclude_locs: Optional[Container[tuple[str, str]]] = None
+        ) -> tuple[pd.DataFrame, dict[str, list]]:
     """Creates a classification dataset.
 
     The classification dataset is a pd.DataFrame with columns:
@@ -321,8 +324,8 @@ def create_classification_csv(
 
 def create_splits_random(df: pd.DataFrame, val_frac: float,
                          test_frac: float = 0.,
-                         test_split: Optional[Set[Tuple[str, str]]] = None,
-                         ) -> Dict[str, List[Tuple[str, str]]]:
+                         test_split: Optional[set[tuple[str, str]]] = None,
+                         ) -> dict[str, list[tuple[str, str]]]:
     """
     Args:
         df: pd.DataFrame, contains columns ['dataset', 'location', 'label']
@@ -405,8 +408,8 @@ def create_splits_smallest_label_first(
         val_frac: float,
         test_frac: float = 0.,
         label_spec_json_path: Optional[str] = None,
-        test_split: Optional[Set[Tuple[str, str]]] = None,
-        ) -> Dict[str, List[Tuple[str, str]]]:
+        test_split: Optional[set[tuple[str, str]]] = None,
+        ) -> dict[str, list[tuple[str, str]]]:
     """
     Args:
         df: pd.DataFrame, contains columns ['dataset', 'location', 'label']
@@ -439,7 +442,7 @@ def create_splits_smallest_label_first(
     loc_to_label_sizes = df.groupby(['dataset_location', 'label']).size()
 
     seen_locs = set()
-    split_to_locs: Dict[str, List[Tuple[str, str]]] = dict(
+    split_to_locs: dict[str, list[tuple[str, str]]] = dict(
         train=[], val=[], test=[])
     label_sizes_by_split = {
         label: dict(train=0, val=0, test=0)
@@ -450,7 +453,7 @@ def create_splits_smallest_label_first(
         split_to_locs['test'] = list(test_split)
         seen_locs.update(test_split)
 
-    def add_loc_to_split(loc: Tuple[str, str], split: str) -> None:
+    def add_loc_to_split(loc: tuple[str, str], split: str) -> None:
         split_to_locs[split].append(loc)
         for label, label_size in loc_to_label_sizes[loc].items():
             label_sizes_by_split[label][split] += label_size
@@ -486,9 +489,9 @@ def create_splits_smallest_label_first(
     return split_to_locs
 
 
-def sort_locs_by_size(loc_to_size: MutableMapping[Tuple[str, str], int],
+def sort_locs_by_size(loc_to_size: MutableMapping[tuple[str, str], int],
                       prioritize: Optional[Container[str]] = None
-                      ) -> List[Tuple[str, str]]:
+                      ) -> list[tuple[str, str]]:
     """Sorts locations by size, optionally prioritizing locations from certain
     datasets first.
 
