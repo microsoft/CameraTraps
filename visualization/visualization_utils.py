@@ -54,7 +54,7 @@ def open_image(input_file: Union[str, BytesIO]) -> Image:
             raise
     else:
         image = Image.open(input_file)
-    if image.mode not in ('RGBA', 'RGB', 'L'):
+    if image.mode not in ('RGBA', 'RGB', 'L', 'I;16'):
         raise AttributeError(
             f'Image {input_file} uses unsupported mode {image.mode}')
     if image.mode == 'RGBA' or image.mode == 'L':

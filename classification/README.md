@@ -134,6 +134,22 @@ export CLASSIFICATION_BLOB_CONTAINER_WRITE_SAS="[INTERNAL_USE]"
 export DETECTION_API_CALLER="[INTERNAL_USE]"
 ```
 
+
+## Mypy Type Checking
+
+Invoke `mypy` from main CameraTraps repo directory. To type check all files in the classifications folder, run
+
+```bash
+mypy -p classification
+```
+
+To type check a specific script (e.g., `train_classifier.py`) in the classifications folder, run
+
+```bash
+mypy -p classification.train_classifier
+```
+
+
 # MegaClassifier
 
 MegaClassifier is an image classifier. MegaClassifier v0.1 is based on an EfficientNet architecture, [implemented in PyTorch](https://github.com/lukemelas/EfficientNet-PyTorch). It supports 169 categories*, where each category is either a single biological taxon or a group of related taxa. See the [`megaclassifier_label_spec.ipynb`](https://github.com/microsoft/CameraTraps/blob/master/classification/megaclassifier_label_spec.ipynb) notebook for more details on the categories. The taxonomy used is based on the 2020_09 revision of the taxonomy CSV.

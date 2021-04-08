@@ -15,13 +15,15 @@ Example usage:
         --num-workers 12 --seed 123 \
         --logdir run_idfg
 """
+from __future__ import annotations
+
 import argparse
 from collections import defaultdict
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from datetime import datetime
 import json
 import os
-from typing import (Any, Callable, Dict, List, Mapping, MutableMapping,
-                    Optional, Sequence, Tuple, Union)
+from typing import Any, Optional
 
 import numpy as np
 import PIL.Image
@@ -92,7 +94,7 @@ class SimpleDataset(torch.utils.data.Dataset):
         if sample_weights is not None:
             assert len(sample_weights) == self.len
 
-    def __getitem__(self, index: int) -> Tuple[Any, ...]:
+    def __getitem__(self, index: int) -> tuple[Any, ...]:
         """
         Args:
             index: int
@@ -122,11 +124,11 @@ def create_dataloaders(
         img_size: int,
         multilabel: bool,
         label_weighted: bool,
-        weight_by_detection_conf: Union[bool, str],
+        weight_by_detection_conf: bool | str,
         batch_size: int,
         num_workers: int,
         augment_train: bool
-        ) -> Tuple[Dict[str, torch.utils.data.DataLoader], List[str]]:
+        ) -> tuple[dict[str, torch.utils.data.DataLoader], list[str]]:
     """
     Args:
         dataset_csv_path: str, path to CSV file with columns
@@ -219,7 +221,7 @@ def set_finetune(model: torch.nn.Module, model_name: str, finetune: bool
         model.requires_grad_(True)
 
 
-def build_model(model_name: str, num_classes: int, pretrained: Union[bool, str],
+def build_model(model_name: str, num_classes: int, pretrained: bool | str,
                 finetune: bool) -> torch.nn.Module:
     """Creates a model with an EfficientNet or ResNet base. The model outputs
     unnormalized logits.
@@ -259,7 +261,7 @@ def build_model(model_name: str, num_classes: int, pretrained: Union[bool, str],
     return model
 
 
-def prep_device(model: torch.nn.Module) -> Tuple[torch.nn.Module, torch.device]:
+def prep_device(model: torch.nn.Module) -> tuple[torch.nn.Module, torch.device]:
     """Place model on appropriate device.
 
     Args:
@@ -287,10 +289,10 @@ def main(dataset_dir: str,
          cropped_images_dir: str,
          multilabel: bool,
          model_name: str,
-         pretrained: Union[bool, str],
+         pretrained: bool | str,
          finetune: int,
          label_weighted: bool,
-         weight_by_detection_conf: Union[bool, str],
+         weight_by_detection_conf: bool | str,
          epochs: int,
          batch_size: int,
          lr: float,
@@ -376,7 +378,7 @@ def main(dataset_dir: str,
         lr_scheduler = torch.optim.lr_scheduler.StepLR(
             optimizer=optimizer, step_size=8, gamma=0.1)  # lower every 8 epochs
 
-    best_epoch_metrics: Dict[str, float] = {}
+    best_epoch_metrics: dict[str, float] = {}
     for epoch in range(epochs):
         print(f'Epoch: {epoch}')
         writer.add_scalar('lr', lr_scheduler.get_last_lr()[0], epoch)
@@ -454,7 +456,7 @@ def main(dataset_dir: str,
 
 def log_run(split: str, epoch: int, writer: tensorboard.SummaryWriter,
             label_names: Sequence[str], metrics: MutableMapping[str, float],
-            heaps: Optional[Mapping[str, Mapping[int, List[HeapItem]]]],
+            heaps: Optional[Mapping[str, Mapping[int, list[HeapItem]]]],
             cm: np.ndarray) -> None:
     """Logs the outputs (metrics, confusion matrix, tp/fp/fn images) from a
     single epoch run to Tensorboard.
@@ -486,7 +488,7 @@ def log_run(split: str, epoch: int, writer: tensorboard.SummaryWriter,
 
 def log_images_with_confidence(
         writer: tensorboard.SummaryWriter,
-        heap_dict: Mapping[int, List[HeapItem]],
+        heap_dict: Mapping[int, list[HeapItem]],
         label_names: Sequence[str],
         epoch: int,
         tag: str) -> None:
@@ -523,9 +525,9 @@ def log_images_with_confidence(
                         global_step=epoch)
 
 
-def track_extreme_examples(tp_heaps: Dict[int, List[HeapItem]],
-                           fp_heaps: Dict[int, List[HeapItem]],
-                           fn_heaps: Dict[int, List[HeapItem]],
+def track_extreme_examples(tp_heaps: dict[int, list[HeapItem]],
+                           fp_heaps: dict[int, list[HeapItem]],
+                           fn_heaps: dict[int, list[HeapItem]],
                            inputs: torch.Tensor,
                            labels: torch.Tensor,
                            img_files: Sequence[str],
@@ -575,7 +577,7 @@ def track_extreme_examples(tp_heaps: Dict[int, List[HeapItem]],
 
 def correct(outputs: torch.Tensor, labels: torch.Tensor,
             weights: Optional[torch.Tensor] = None,
-            top: Sequence[int] = (1,)) -> Dict[int, float]:
+            top: Sequence[int] = (1,)) -> dict[int, float]:
     """
     Args:
         outputs: torch.Tensor, shape [N, num_classes],
@@ -609,9 +611,9 @@ def run_epoch(model: torch.nn.Module,
               finetune: bool = False,
               optimizer: Optional[torch.optim.Optimizer] = None,
               k_extreme: int = 0
-              ) -> Tuple[
-                  Dict[str, float],
-                  Optional[Dict[str, Dict[int, List[HeapItem]]]],
+              ) -> tuple[
+                  dict[str, float],
+                  Optional[dict[str, dict[int, list[HeapItem]]]],
                   np.ndarray
               ]:
     """Runs for 1 epoch.
@@ -656,9 +658,9 @@ def run_epoch(model: torch.nn.Module,
 
     # for each label, track k_extreme most-confident and least-confident images
     if k_extreme > 0:
-        tp_heaps: Dict[int, List[HeapItem]] = defaultdict(list)
-        fp_heaps: Dict[int, List[HeapItem]] = defaultdict(list)
-        fn_heaps: Dict[int, List[HeapItem]] = defaultdict(list)
+        tp_heaps: dict[int, list[HeapItem]] = defaultdict(list)
+        fp_heaps: dict[int, list[HeapItem]] = defaultdict(list)
+        fn_heaps: dict[int, list[HeapItem]] = defaultdict(list)
 
     all_labels = np.zeros(len(loader.dataset), dtype=np.int32)
     all_preds = np.zeros_like(all_labels)

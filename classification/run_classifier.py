@@ -19,10 +19,13 @@ Example usage:
         /path/to/model.pt \
         --image-size 224
 """
+from __future__ import annotations
+
 import argparse
+from collections.abc import Callable, Sequence
 import json
 import os
-from typing import Any, Callable, Optional, Sequence, Tuple
+from typing import Any, Optional
 
 import pandas as pd
 import PIL
@@ -46,7 +49,7 @@ class SimpleDataset(torch.utils.data.Dataset):
         self.images_dir = images_dir
         self.transform = transform
 
-    def __getitem__(self, index: int) -> Tuple[Any, ...]:
+    def __getitem__(self, index: int) -> tuple[Any, str]:
         """
         Returns: tuple, (img, img_file)
         """
