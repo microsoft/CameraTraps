@@ -45,14 +45,16 @@ python crop_detections.py \
     --threads 50 \
     --logdir "."
 """
+from __future__ import annotations
+
 import argparse
+from collections.abc import Iterable, Mapping, Sequence
 from concurrent import futures
 from datetime import datetime
 import io
 import json
 import os
-from typing import (Any, BinaryIO, Dict, Iterable, List, Mapping, Optional,
-                    Sequence, Tuple, Union)
+from typing import Any, BinaryIO, Optional
 
 from azure.storage.blob import ContainerClient
 from PIL import Image, ImageOps
@@ -166,7 +168,7 @@ def download_and_crop(
         square_crops: bool,
         check_crops_valid: bool,
         threads: int = 1
-        ) -> Tuple[List[str], int, int]:
+        ) -> tuple[list[str], int, int]:
     """
     Saves crops to a file with the same name as the original image with an
     additional suffix appended, starting with 3 underscores:
@@ -263,7 +265,7 @@ def download_and_crop(
     return images_failed_download, total_downloads, total_new_crops
 
 
-def load_local_image(img_path: Union[str, BinaryIO]) -> Optional[Image.Image]:
+def load_local_image(img_path: str |  BinaryIO) -> Optional[Image.Image]:
     """Attempts to load an image from a local path."""
     try:
         with Image.open(img_path) as img:
@@ -283,7 +285,7 @@ def load_and_crop(img_path: str,
                   crop_path_template: str,
                   save_full_image: bool,
                   square_crops: bool,
-                  check_crops_valid: bool) -> Tuple[bool, int]:
+                  check_crops_valid: bool) -> tuple[bool, int]:
     """Given an image and a list of bounding boxes, checks if the crops already
     exist. If not, loads the image locally or Azure Blob Storage, then crops it.
 
@@ -317,7 +319,7 @@ def load_and_crop(img_path: str,
     num_new_crops = 0
 
     # crop_path => normalized bbox coordinates [xmin, ymin, width, height]
-    bboxes_tocrop: Dict[str, List[float]] = {}
+    bboxes_tocrop: dict[str, list[float]] = {}
     for i, bbox_dict in enumerate(bbox_dicts):
         # only ground-truth bboxes do not have a "confidence" value
         if 'conf' in bbox_dict and bbox_dict['conf'] < confidence_threshold:
@@ -425,7 +427,8 @@ def _parse_args() -> argparse.Namespace:
         help='path to local directory for saving crops of bounding boxes')
     parser.add_argument(
         '-i', '--images-dir',
-        help='path to directory where full images are already available, or where images will be written if --save-full-images is set')
+        help='path to directory where full images are already available, '
+             'or where images will be written if --save-full-images is set')
     parser.add_argument(
         '-c', '--container-url',
         help='URL (including SAS token, if necessary) of Azure Blob Storage '

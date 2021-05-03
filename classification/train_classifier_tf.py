@@ -13,13 +13,15 @@ Example usage:
         --seed 123 \
         --logdir run_idfg
 """
+from __future__ import annotations
+
 import argparse
 from collections import defaultdict
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from datetime import datetime
 import json
 import os
-from typing import (Any, Callable, Dict, List, Mapping, MutableMapping,
-                    Optional, Sequence, Tuple, Union)
+from typing import Any, Optional
 import uuid
 
 import numpy as np
@@ -56,7 +58,7 @@ def create_dataset(
         img_base_dir: str = '',
         transform: Optional[Callable[[tf.Tensor], Any]] = None,
         target_transform: Optional[Callable[[Any], Any]] = None,
-        cache: Union[bool, str] = False
+        cache: bool | str = False
         ) -> tf.data.Dataset:
     """Create a tf.data.Dataset.
 
@@ -127,11 +129,11 @@ def create_dataloaders(
         img_size: int,
         multilabel: bool,
         label_weighted: bool,
-        weight_by_detection_conf: Union[bool, str],
+        weight_by_detection_conf: bool | str,
         batch_size: int,
         augment_train: bool,
         cache_splits: Sequence[str]
-        ) -> Tuple[Dict[str, tf.data.Dataset], List[str]]:
+        ) -> tuple[dict[str, tf.data.Dataset], list[str]]:
     """
     Args:
         dataset_csv_path: str, path to CSV file with columns
@@ -195,7 +197,7 @@ def create_dataloaders(
             if not weight_by_detection_conf:
                 assert np.isclose(sum(weights), len(split_df))
 
-        cache: Union[bool, str] = (split in cache_splits)
+        cache: bool | str = (split in cache_splits)
         if split == 'train' and 'train' in cache_splits:
             unique_filename = str(uuid.uuid4())
             os.makedirs('/mnt/tempds/', exist_ok=True)
@@ -253,7 +255,7 @@ def main(dataset_dir: str,
          pretrained: bool,
          finetune: int,
          label_weighted: bool,
-         weight_by_detection_conf: Union[bool, str],
+         weight_by_detection_conf: bool | str,
          epochs: int,
          batch_size: int,
          lr: float,
@@ -329,7 +331,7 @@ def main(dataset_dir: str,
     optimizer = tf.keras.optimizers.RMSprop(
         learning_rate=lr, rho=0.9, momentum=0.9)
 
-    best_epoch_metrics: Dict[str, float] = {}
+    best_epoch_metrics: dict[str, float] = {}
     for epoch in range(epochs):
         print(f'Epoch: {epoch}')
         optimizer.learning_rate = lr_schedule(epoch)
@@ -390,7 +392,7 @@ def main(dataset_dir: str,
 
 def log_run(split: str, epoch: int, writer: tf.summary.SummaryWriter,
             label_names: Sequence[str], metrics: MutableMapping[str, float],
-            heaps: Mapping[str, Mapping[int, List[HeapItem]]], cm: np.ndarray
+            heaps: Mapping[str, Mapping[int, list[HeapItem]]], cm: np.ndarray
             ) -> None:
     """Logs the outputs (metrics, confusion matrix, tp/fp/fn images) from a
     single epoch run to Tensorboard.
@@ -419,7 +421,7 @@ def log_run(split: str, epoch: int, writer: tf.summary.SummaryWriter,
 
 
 def log_images_with_confidence(
-        heap_dict: Mapping[int, List[HeapItem]],
+        heap_dict: Mapping[int, list[HeapItem]],
         label_names: Sequence[str],
         epoch: int,
         tag: str) -> None:
@@ -446,9 +448,9 @@ def log_images_with_confidence(
                         step=epoch)
 
 
-def track_extreme_examples(tp_heaps: Dict[int, List[HeapItem]],
-                           fp_heaps: Dict[int, List[HeapItem]],
-                           fn_heaps: Dict[int, List[HeapItem]],
+def track_extreme_examples(tp_heaps: dict[int, list[HeapItem]],
+                           fp_heaps: dict[int, list[HeapItem]],
+                           fn_heaps: dict[int, list[HeapItem]],
                            inputs: tf.Tensor,
                            labels: tf.Tensor,
                            img_files: tf.Tensor,
@@ -503,9 +505,9 @@ def run_epoch(model: tf.keras.Model,
               finetune: bool = False,
               optimizer: Optional[tf.keras.optimizers.Optimizer] = None,
               return_extreme_images: bool = False
-              ) -> Tuple[
-                  Dict[str, float],
-                  Dict[str, Dict[int, List[HeapItem]]],
+              ) -> tuple[
+                  dict[str, float],
+                  dict[str, dict[int, list[HeapItem]]],
                   np.ndarray
               ]:
     """Runs for 1 epoch.
@@ -557,9 +559,9 @@ def run_epoch(model: tf.keras.Model,
     }
 
     # for each label, track 5 most-confident and least-confident examples
-    tp_heaps: Dict[int, List[HeapItem]] = defaultdict(list)
-    fp_heaps: Dict[int, List[HeapItem]] = defaultdict(list)
-    fn_heaps: Dict[int, List[HeapItem]] = defaultdict(list)
+    tp_heaps: dict[int, list[HeapItem]] = defaultdict(list)
+    fp_heaps: dict[int, list[HeapItem]] = defaultdict(list)
+    fn_heaps: dict[int, list[HeapItem]] = defaultdict(list)
 
     all_labels = []
     all_preds = []

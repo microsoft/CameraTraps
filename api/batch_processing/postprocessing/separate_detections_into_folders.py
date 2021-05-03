@@ -99,58 +99,64 @@ def process_detection(d,options):
     relative_filename = d['file']
     detections = d['detections']
     
-    category_name_to_max_confidence = {}
-    category_names = options.category_id_to_category_name.values()
-    for category_name in category_names:
-        category_name_to_max_confidence[category_name] = 0.0
-    
-    # Find the maximum confidence for each category
-    #
-    # det = detections[0]
-    for det in detections:
+    if detections is None:
         
-        category_id = det['category']
-        
-        # For zero-confidence detections, we occasionally have leftover goop
-        # from COCO classes
-        if category_id not in options.category_id_to_category_name:
-            print('Warning: unrecognized category {} in file {}'.format(
-                category_id,relative_filename))
-            # assert det['conf'] < invalid_category_epsilon
-            continue
-            
-        category_name = options.category_id_to_category_name[category_id]
-        if det['conf'] > category_name_to_max_confidence[category_name]:
-            category_name_to_max_confidence[category_name] = det['conf']
+        assert d['failure'] is not None and len(d['failure']) > 0
+        target_folder = options.category_name_to_folder['failure']
     
-    # Count the number of thresholds exceeded
-    categories_above_threshold = []
-    for category_name in category_names:
-        
-        threshold = default_threshold
-        
-        # Do we have a custom threshold for this category?
-        if category_name in options.category_name_to_threshold:
-            threshold = options.category_name_to_threshold[category_name]
-            
-        max_confidence_this_category = category_name_to_max_confidence[category_name]
-        if max_confidence_this_category > threshold:
-            categories_above_threshold.append(category_name)
-    
-    target_folder = ''
-    
-    categories_above_threshold.sort()
-    
-    # If this is above multiple thresholds
-    if len(categories_above_threshold) > 1:
-        target_folder = options.category_name_to_folder['_'.join(categories_above_threshold)]
-
-    elif len(categories_above_threshold) == 0:
-        target_folder = options.category_name_to_folder['empty']
-        
     else:
-        target_folder = options.category_name_to_folder[categories_above_threshold[0]]
         
+        category_name_to_max_confidence = {}
+        category_names = options.category_id_to_category_name.values()
+        for category_name in category_names:
+            category_name_to_max_confidence[category_name] = 0.0
+        
+        # Find the maximum confidence for each category
+        #
+        # det = detections[0]
+        for det in detections:
+            
+            category_id = det['category']
+            
+            # For zero-confidence detections, we occasionally have leftover goop
+            # from COCO classes
+            if category_id not in options.category_id_to_category_name:
+                print('Warning: unrecognized category {} in file {}'.format(
+                    category_id,relative_filename))
+                # assert det['conf'] < invalid_category_epsilon
+                continue
+                
+            category_name = options.category_id_to_category_name[category_id]
+            if det['conf'] > category_name_to_max_confidence[category_name]:
+                category_name_to_max_confidence[category_name] = det['conf']
+        
+        # Count the number of thresholds exceeded
+        categories_above_threshold = []
+        for category_name in category_names:
+            
+            threshold = default_threshold
+            
+            # Do we have a custom threshold for this category?
+            if category_name in options.category_name_to_threshold:
+                threshold = options.category_name_to_threshold[category_name]
+                
+            max_confidence_this_category = category_name_to_max_confidence[category_name]
+            if max_confidence_this_category > threshold:
+                categories_above_threshold.append(category_name)
+        
+        categories_above_threshold.sort()
+        
+        # If this is above multiple thresholds
+        if len(categories_above_threshold) > 1:
+            target_folder = options.category_name_to_folder['_'.join(categories_above_threshold)]
+    
+        elif len(categories_above_threshold) == 0:
+            target_folder = options.category_name_to_folder['empty']
+            
+        else:
+            target_folder = options.category_name_to_folder[categories_above_threshold[0]]
+        
+    # if this is/isn't a failure case
             
     source_path = os.path.join(options.base_input_folder,relative_filename)
     assert os.path.isfile(source_path), 'Cannot find file {}'.format(source_path)
@@ -193,6 +199,7 @@ def separate_detections_into_folders(options):
     # Map class names to output folders
     options.category_name_to_folder = {}
     options.category_name_to_folder['empty'] = os.path.join(options.base_output_folder,'empty')
+    options.category_name_to_folder['failure'] = os.path.join(options.base_output_folder,'processing_failure')
     
     # Create all combinations of categories
     category_names = list(detection_categories.values())

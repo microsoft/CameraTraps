@@ -33,11 +33,14 @@ Example usage:
         /path/to/classifier/label_spec.json \
         $HOME/camera-traps-private/camera_trap_taxonomy_mapping.csv
 """
+from __future__ import annotations
+
 import argparse
 from collections import defaultdict
+from collections.abc import Mapping
 import json
 import os
-from typing import Any, Dict, List, Mapping, Optional, Set, Tuple
+from typing import Any, Optional
 
 import networkx as nx
 import pandas as pd
@@ -89,9 +92,9 @@ def main(desired_label_spec_json_path: str,
 
 
 def map_target_to_classifier(
-        target_label_to_nodes: Mapping[str, Set[TaxonNode]],
-        classifier_label_to_nodes: Mapping[str, Set[TaxonNode]]
-        ) -> Dict[str, List[str]]:
+        target_label_to_nodes: Mapping[str, set[TaxonNode]],
+        classifier_label_to_nodes: Mapping[str, set[TaxonNode]]
+        ) -> dict[str, list[str]]:
     """For each target, if there is any classifier category whose nodes are a
     subset of the target nodes, then assign the classifier category to that
     target. Any partial intersection between a target's nodes and a category's
@@ -106,7 +109,7 @@ def map_target_to_classifier(
     Returns: dict, maps target label to set of classifier labels
     """
     remaining_classifier_labels = set(classifier_label_to_nodes.keys())
-    target_to_classifier_labels: Dict[str, Set[str]] = defaultdict(set)
+    target_to_classifier_labels: defaultdict[str, set[str]] = defaultdict(set)
     for target, target_nodes in tqdm(target_label_to_nodes.items()):
         for label, classifier_nodes in classifier_label_to_nodes.items():
             overlap = classifier_nodes & target_nodes
@@ -126,9 +129,9 @@ def map_target_to_classifier(
 
 
 def parse_spec(spec_dict: Mapping[str, Any],
-               taxon_to_node: Dict[Tuple[str, str], TaxonNode],
-               label_to_node: Dict[Tuple[str, str], TaxonNode]
-               ) -> Set[TaxonNode]:
+               taxon_to_node: dict[tuple[str, str], TaxonNode],
+               label_to_node: dict[tuple[str, str], TaxonNode]
+               ) -> set[TaxonNode]:
     """
     Args:
         spec_dict: dict, contains keys ['taxa', 'dataset_labels', 'exclude']
@@ -171,10 +174,10 @@ def parse_spec(spec_dict: Mapping[str, Any],
     return result
 
 
-def label_spec_to_nodes(label_spec_js: Dict[str, Dict[str, Any]],
-                        taxon_to_node: Dict[Tuple[str, str], TaxonNode],
-                        label_to_node: Dict[Tuple[str, str], TaxonNode]
-                        ) -> Dict[str, Set[TaxonNode]]:
+def label_spec_to_nodes(label_spec_js: dict[str, dict[str, Any]],
+                        taxon_to_node: dict[tuple[str, str], TaxonNode],
+                        label_to_node: dict[tuple[str, str], TaxonNode]
+                        ) -> dict[str, set[TaxonNode]]:
     """Convert label spec to a mapping from classification labels to a set of
     nodes.
 
@@ -191,8 +194,8 @@ def label_spec_to_nodes(label_spec_js: Dict[str, Dict[str, Any]],
         TaxonNode, or if a node is included in two or more classification labels
     """
     # maps output label name to set of (dataset, dataset_label) tuples
-    seen_nodes: Set[TaxonNode] = set()
-    label_to_nodes: Dict[str, Set[TaxonNode]] = {}
+    seen_nodes: set[TaxonNode] = set()
+    label_to_nodes: dict[str, set[TaxonNode]] = {}
     for label, spec_dict in label_spec_js.items():
         include_set = parse_spec(spec_dict, taxon_to_node, label_to_node)
         if include_set.isdisjoint(seen_nodes):
