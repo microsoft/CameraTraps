@@ -20,6 +20,12 @@ from data_management.annotations.annotation_constants import (
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
+IMAGE_ROTATIONS = {
+    3: 180,
+    6: 270,
+    8: 90
+}
+
 # convert category ID from int to str
 DEFAULT_DETECTOR_LABEL_MAP = {
     str(k): v for k, v in detector_bbox_category_id_to_name.items()
@@ -50,7 +56,7 @@ def open_image(input_file: Union[str, BytesIO]) -> Image:
             response = requests.get(input_file)
             image = Image.open(BytesIO(response.content))
         except Exception as e:
-            print('Error opening image {}: {}'.format(input_file,str(e)))
+            print(f'Error opening image {input_file}: {e}')
             raise
     else:
         image = Image.open(input_file)
@@ -60,6 +66,18 @@ def open_image(input_file: Union[str, BytesIO]) -> Image:
     if image.mode == 'RGBA' or image.mode == 'L':
         # PIL.Image.convert() returns a converted copy of this image
         image = image.convert(mode='RGB')
+
+    # alter orientation as needed according to EXIF tag 0x112 (274) for Orientation
+    # https://gist.github.com/dangtrinhnt/a577ece4cbe5364aad28
+    # https://www.media.mit.edu/pia/Research/deepview/exif.html
+    try:
+        exif = image._getexif()
+        orientation: int = exif.get(274, None)  # 274 is the key for the Orientation field
+        if orientation is not None and orientation in IMAGE_ROTATIONS:
+            image = image.rotate(IMAGE_ROTATIONS[orientation], expand=True)  # returns a rotated copy
+    except Exception:
+        pass
+
     return image
 
 
