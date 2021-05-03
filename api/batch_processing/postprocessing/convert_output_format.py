@@ -47,7 +47,10 @@ def convert_json_to_csv(input_path,output_path=None,min_confidence=None,
         
     print('Iterating through results...')
     for im in tqdm(json_output['images']):
-        
+        if 'failure' in im and im['failure'] is not None:
+            print('Skipping failed image', im['failure'])
+            continue
+
         image_id = im['file']
         max_conf = im['max_detection_conf']
         detections = []
@@ -178,19 +181,10 @@ if False:
     #%%
     
     min_confidence = None
-    input_path = r'd:\wildlife_data\bellevue_camera_traps\706_detections_bellevuecameratraps20190718_20190718162519.json'
+    input_path = r'c:\temp\test.json'
     output_path = input_path + '.csv'
     convert_json_to_csv(input_path,output_path,min_confidence=min_confidence,omit_bounding_boxes=False)
-        
-    #%% 
-    
-    min_confidence = None    
-    input_paths = [r'D:\temp\idfg_json_to_csv\detections_idfg_20190625_refiltered.json',
-                   r'D:\temp\idfg_json_to_csv\idfg_20190801-hddrop_combined.refiltered_trimmed_renamed.json']
-    for input_path in input_paths:
-        output_path = input_path + '.csv'
-        convert_json_to_csv(input_path,output_path,min_confidence=min_confidence,omit_bounding_boxes=True)
-    
+            
     #%%
     
     base_path = r'c:\temp\json'
@@ -200,8 +194,7 @@ if False:
     min_confidence = None    
     for input_path in input_paths:
         output_path = input_path + '.csv'
-        convert_json_to_csv(input_path,output_path,min_confidence=min_confidence,omit_bounding_boxes=True)
-    
+        convert_json_to_csv(input_path,output_path,min_confidence=min_confidence,omit_bounding_boxes=True)    
     
     #%% Concatenate .csv files from a folder
 
@@ -234,6 +227,7 @@ if False:
         # ...for each .csv file
         
     # with open(master_csv)
+    
     
 #%% Command-line driver
         

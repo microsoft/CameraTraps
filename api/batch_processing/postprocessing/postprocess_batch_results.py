@@ -122,7 +122,7 @@ class PostProcessingOptions:
     sort_html_by_filename = True
 
     # Optionally separate detections into categories (animal/vehicle/human)
-    separate_detections_by_category = False
+    separate_detections_by_category = True
 
     # Optionally replace one or more strings in filenames with other strings;
     # useful for taking a set of results generated for one folder structure
