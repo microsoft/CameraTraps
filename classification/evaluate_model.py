@@ -36,11 +36,14 @@ Example usage:
         --splits train val test \
         --batch-size 256
 """
+from __future__ import annotations
+
 import argparse
+from collections.abc import Mapping, Sequence
 import json
 import os
 from pprint import pprint
-from typing import Any, Mapping, Optional, Sequence, Tuple
+from typing import Any, Optional
 
 import numpy as np
 import pandas as pd
@@ -295,7 +298,7 @@ def test_epoch(model: torch.nn.Module,
                top: Sequence[int] = (1, 3),
                loss_fn: Optional[torch.nn.Module] = None,
                target_mapping: Mapping[int, Sequence[int]] = None
-               ) -> Tuple[pd.DataFrame, pd.Series, np.ndarray]:
+               ) -> tuple[pd.DataFrame, pd.Series, np.ndarray]:
     """Runs for 1 epoch.
 
     Args:

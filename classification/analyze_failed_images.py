@@ -3,12 +3,15 @@ Example usage:
     python analyze_failed_images.py failed.json \
         -a ACCOUNT -c CONTAINER -s SAS_TOKEN
 """
+from __future__ import annotations
+
 import argparse
+from collections.abc import Mapping, Sequence
 from concurrent import futures
 import json
 from pprint import pprint
 import threading
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
+from typing import Any, Optional
 
 from PIL import Image, ImageFile
 import requests
@@ -57,7 +60,7 @@ def check_image_condition(img_path: str,
                           container: Optional[str] = None,
                           sas_token: Optional[str] = None,
                           datasets_table: Optional[Mapping[str, Any]] = None
-                          ) -> Tuple[str, str]:
+                          ) -> tuple[str, str]:
     """
     Args:
         img_path: str, either <blob_name> if datasets_table is None, or
@@ -173,7 +176,7 @@ def analyze_images(url_or_path: str, json_keys: Optional[Sequence[str]] = None,
         for k in json_keys:
             img_paths += img_paths_json[k]
 
-    mapping: Dict[str, List[str]] = {
+    mapping: dict[str, list[str]] = {
         status: []
         for status in ['good', 'nonexistant', 'non_image', 'truncated', 'bad']
     }
