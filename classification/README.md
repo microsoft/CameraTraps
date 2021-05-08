@@ -571,7 +571,7 @@ During training, logs are written to TensorBoard at the end of each epoch. View 
 tensorboard --logdir $BASE_LOGDIR --bind_all --samples_per_plugin images=10000
 ```
 
-**Note about TensorFlow implementation**
+### Note about TensorFlow implementation
 
 There is a `train_classifier_tf.py` script in this directory which attempts to mimic the PyTorch training script, but using TensorFlow v2 instead. The reason I tried to do a TensorFlow implementation is because TensorFlow v2.3 introduced an official Keras EfficientNet implementation, whereas the PyTorch EfficientNet was a third-party implementation. However, the TensorFlow implementation proved difficult to implement well, and several features from the PyTorch version are different or remain lacking in the TensorFlow version:
 
