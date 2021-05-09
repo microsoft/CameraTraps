@@ -35,11 +35,10 @@ Whether you are using an image review tool like Timelapse or calling our APIs yo
 
 After that, we'll typically send back a page of sample results; depending on whether you already know the "right" answer for these images, the results will look like one of these:
 
-&nbsp;&nbsp;&nbsp;&nbsp;<http://dolphinvm.westus2.cloudapp.azure.com/data/snapshot-serengeti/s7-eval/postprocessing-no-gt/><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;[with no ground truth, i.e. without knowing the right answers]
-	
-&nbsp;&nbsp;&nbsp;&nbsp;<http://dolphinvm.westus2.cloudapp.azure.com/data/snapshot-serengeti/s7-eval/postprocessing-detection-gt/><br/>
-&nbsp;&nbsp;&nbsp;&nbsp;[with ground truth, i.e. where we know the right answers]
+* A sample of what a results "preview" looks like when we don't know what the right answers are:
+[snapshot-serengeti/s7-eval/postprocessing-no-gt](http://dolphinvm.westus2.cloudapp.azure.com/data/snapshot-serengeti/s7-eval/postprocessing-no-gt)
+* A sample of what a results "preview" looks like when we know what the right answers are, and can compute accuracy:
+[snapshot-serengeti/s7-eval/postprocessing-detection-gt](http://dolphinvm.westus2.cloudapp.azure.com/data/snapshot-serengeti/s7-eval/postprocessing-detection-gt)
 
 
 ## Questions about specific camera trap use cases
