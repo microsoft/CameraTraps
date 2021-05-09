@@ -76,6 +76,6 @@ These questions help us assess how we can best help a new collaborator, and whic
 
 ## Learn more
 
-* We maintain a literature survey on "[everything we know about machine learning for camera traps](https://github.com/agentmorris/camera-trap-ml-survey)"
-* We maintain a repository of public, labeled camera trap data to facilitate training new models (the largest such repository that we're aware of) at [lila.science](http://lila.science/datasets)
-* Our camera trap work is part of our larger efforts in [using machine learning for biodiversity monitoring](http://aka.ms/biodiversitysurveys)
+* We maintain a literature survey on "[everything we know about machine learning for camera traps](https://github.com/agentmorris/camera-trap-ml-survey)".
+* We maintain a repository of public, labeled camera trap data to facilitate training new models (the largest such repository that we're aware of) at [lila.science](http://lila.science/datasets).
+* Our camera trap work is part of our larger efforts in [using machine learning for biodiversity monitoring](http://aka.ms/biodiversitysurveys).
