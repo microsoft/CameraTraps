@@ -40,6 +40,7 @@ After that, we'll typically send back a page of sample results; depending on whe
 * A sample of what a results "preview" looks like when we know what the right answers are, and can compute accuracy:<br/>
 [snapshot-serengeti/s7-eval/postprocessing-detection-gt](http://dolphinvm.westus2.cloudapp.azure.com/data/snapshot-serengeti/s7-eval/postprocessing-detection-gt)
 
+Those pages aren't <i>quite</i> what a real results page would look like: rather than just "detections" and "non-detections", a real results page would have images broken out into separate links for empty/people/vehicle/animal.  But we can't use a data set with people in it for a public demo, so the samples above are simplified to just include images that have animals or are empty (both sample pages are based on public data from the <a href="http://lila.science/datasets/snapshot-serengeti">Snapshot Serengeti</a> project.
 
 ## Questions about specific camera trap use cases
 
