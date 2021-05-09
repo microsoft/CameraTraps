@@ -13,7 +13,7 @@ Conservation biologists invest a huge amount of time reviewing camera trap image
 
 *Machine learning can accelerate this process, letting biologists spend their time on the images that matter.*
 
-To this end, we've trained an AI model - called "MegaDetector" - to detect animals, people, and vehicles in camera trap images.  It does not identify animals, it just finds them.  We've also done a little bit of work on training species classifiers, but 99% of what we do is related to MegaDetector.
+To this end, we've trained an AI model &ndash; called "MegaDetector" &ndash; to detect animals, people, and vehicles in camera trap images.  It does not identify animals, it just finds them.  We've also done a little bit of work on training species classifiers, but 99% of what we do is related to MegaDetector.
 
 This page summarizes what we do with that model to help our collaborators, typically ecologists, more specifically ecologists who are overwhelmed by camera trap images.  This page also includes some questions we ask new collaborators, to help assess whether our tools are useful, and &ndash; if so &ndash; what the right set of tools is for a particular project.
 
