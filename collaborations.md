@@ -35,9 +35,9 @@ Whether you are using an image review tool like Timelapse or calling our APIs yo
 
 After that, we'll typically send back a page of sample results; depending on whether you already know the "right" answer for these images, the results will look like one of these:
 
-* A sample of what a results "preview" looks like when we don't know what the right answers are:
+* A sample of what a results "preview" looks like when we don't know what the right answers are:<br/>
 [snapshot-serengeti/s7-eval/postprocessing-no-gt](http://dolphinvm.westus2.cloudapp.azure.com/data/snapshot-serengeti/s7-eval/postprocessing-no-gt)
-* A sample of what a results "preview" looks like when we know what the right answers are, and can compute accuracy:
+* A sample of what a results "preview" looks like when we know what the right answers are, and can compute accuracy:<br/>
 [snapshot-serengeti/s7-eval/postprocessing-detection-gt](http://dolphinvm.westus2.cloudapp.azure.com/data/snapshot-serengeti/s7-eval/postprocessing-detection-gt)
 
 
