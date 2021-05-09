@@ -1,9 +1,9 @@
-# What&rsquo;s the deal with AI for Earth camera trap collaborations?
+# Working with the AI for Earth Camera Trap Tools
 
 ## Table of contents
 
 1. [Overview](#overview)<br/>
-2. [How people user MegaDetector](#how-people-use-megadetector)<br/>
+2. [How people use MegaDetector](#how-people-use-megadetector)<br/>
 3. [Questions about specific camera trap use cases](#questions-about-specific-camera-trap-use-cases)<br/>
 4. [Learn more](#learn-more)<br/>
 
@@ -17,7 +17,7 @@ To this end, we've trained an AI model - called "MegaDetector" - to detect anima
 
 This page summarizes what we do with that model to help our collaborators, typically ecologists, more specifically ecologists who are overwhelmed by camera trap images.  This page also includes some questions we ask new collaborators, to help assess whether our tools are useful, and &ndash; if so &ndash; what the right set of tools is for a particular project.
 
-Basically this page is the response we give when someone emails us and says &ldquo;I have too many camera trap images!  Can you help me?!?!&rdquo;.  If you&rsquo;re an ecologist reading this page, and that sounds familiar, feel free to answer the questions below in an email to <a href="mailto:cameratraps@microsoft.com">cameratraps@microsoft.com</a>.
+Basically this page is the response we give when someone emails us and says "I have too many camera trap images!  Can you help me?!?!".  If you're an ecologist reading this page, and that sounds familiar, feel free to answer the questions below in an email to <a href="mailto:cameratraps@microsoft.com">cameratraps@microsoft.com</a>.
 
 You can see a list of some of the organizations who have used our tools [here](https://github.com/microsoft/CameraTraps/#who-is-using-the-ai-for-earth-camera-trap-tools).
 
@@ -33,9 +33,9 @@ We have somewhat-less-complete integrations with the [eMammal desktop applicatio
 
 For more programming-inclined users, or for real-time applications (primarily anti-poaching scenarios), we also package our MegaDetector model into two different APIs: a [batch processing API](https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing) for processing large volumes of images with some latency, and a [real-time API](https://aiforearth.portal.azure-api.net/docs/services/ai-for-earth-camera-trap-detection-api/operations/post-detect).
 
-Usually the first step with a new user is just running our model on a few thousand images and seeing what happens, so if you&rsquo;re interested in trying this on your images, we can work out a way to transfer a set of example images.
+Usually the first step with a new user is just running our model on a few thousand images and seeing what happens, so if you're interested in trying this on your images, we can work out a way to transfer a set of example images.
 
-After that, we&rsquo;ll typically send back a page of sample results; depending on whether you already know the &ldquo;right&rdquo; answer for these images, the results will look like one of these:
+After that, we'll typically send back a page of sample results; depending on whether you already know the "right" answer for these images, the results will look like one of these:
 
 &nbsp;&nbsp;&nbsp;&nbsp;<http://dolphinvm.westus2.cloudapp.azure.com/data/snapshot-serengeti/s7-eval/postprocessing-no-gt/><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;[with no ground truth, i.e. without knowing the right answers]
@@ -50,9 +50,9 @@ These questions help us assess how we can best help a new collaborator, and whic
 
 1. Can you provide a short overview of your project?  What ecosystem are you working in, and what are the key species of interest?
 
-2. About how many images do you have that you&rsquo;ve already annotated, from roughly the same environments as the photos you need to process in the future?
+2. About how many images do you have that you've already annotated, from roughly the same environments as the photos you need to process in the future?
 
-3. If you have some images you&rsquo;ve already annotated:
+3. If you have some images you've already annotated:
 
   - Did you keep all the empty images, or only the images with animals?
   - Are they from exactly the same camera locations that you need to process in the future (as in, cameras literally bolted in place), or from similar locations?
@@ -65,20 +65,19 @@ These questions help us assess how we can best help a new collaborator, and whic
 
   - Move images to folders named by species
   - Keep an Excel spreadsheet open and fill it with filenames and species IDs
-  - Use a tool like Timelapse or Reconyx MapView that&rsquo;s specifically for camera traps
-  - Use a tool like Adobe Bridge or digiKam that&rsquo;s for general-purpose image management
+  - Use a tool like Timelapse or Reconyx MapView that's specifically for camera traps
+  - Use a tool like Adobe Bridge or digiKam that's for general-purpose image management
 	
 7. About what percentage of your images are empty?
 
-8. About what percentage of your images typically contain vehicles or people, and what do you want to do with those images?  I.e., do you consider those &ldquo;noise&rdquo; (the same as empty images), or do you need those labeled as well?
+8. About what percentage of your images typically contain vehicles or people, and what do you want to do with those images?  I.e., do you consider those "noise" (the same as empty images), or do you need those labeled as well?
 
 9. What is your level of fluency in Python?  
 
-10. Do you have a GPU available (or access to cloud-based GPUs)?  &ldquo;I don't know what a GPU is&rdquo; is a perfectly good answer.
+10. Do you have a GPU available (or access to cloud-based GPUs)?  "I don't know what a GPU is" is a perfectly good answer.
 
 ## Learn more
 
 * We maintain a literature survey on "[everything we know about machine learning for camera traps](https://github.com/agentmorris/camera-trap-ml-survey)"
 * We maintain a repository of public, labeled camera trap data to facilitate training new models (the largest such repository that we're aware of) at [lila.science](http://lila.science/datasets)
 * Our camera trap work is part of our larger efforts in [using machine learning for biodiversity monitoring](http://aka.ms/biodiversitysurveys)
-
