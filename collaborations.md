@@ -8,8 +8,6 @@
 
 ## Overview
 
-## Overview
-
 Conservation biologists invest a huge amount of time reviewing camera trap images, and &ndash; even worse &ndash; a huge fraction of that time is spent reviewing images they aren't interested in.  This primarily includes empty images, but for many projects, images of people and vehicles are also "noise", or at least need to be handled separately from animals.
 
 *Machine learning can accelerate this process, letting biologists spend their time on the images that matter.*
