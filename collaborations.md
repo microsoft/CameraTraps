@@ -25,15 +25,13 @@ If you are looking for a more technical description of our MegaDetector model, s
 
 ## How people use MegaDetector
 
-An AI model isn't useful to most ecologists by itself, so we "package" this model in a variety of ways.  For most of our collaborators, they send us images (anywhere from thousands to millions), which we run through this model in the cloud, then we send back a results file.  We've integrated with a variety of tools that camera trap researchers already use, to make it relatively painless to use our results in the context of a real workflow.  Our most mature integration is with an open-source tool called <a href="http://saul.cpsc.ucalgary.ca/timelapse/">Timelapse</a>:
-
-&nbsp;&nbsp;&nbsp;&nbsp;<https://github.com/microsoft/CameraTraps/blob/master/api/batch_processing/integration/timelapse.md>
+An AI model isn't useful to most ecologists by itself, so we "package" this model in a variety of ways.  For most of our collaborators, they send us images (anywhere from thousands to millions), which we run through this model in the cloud, then we send back a results file.  We've integrated with a variety of tools that camera trap researchers already use, to make it relatively painless to use our results in the context of a real workflow.  Our most mature integration is with an open-source tool called <a href="http://saul.cpsc.ucalgary.ca/timelapse/">Timelapse</a>; read more about how to use MegaDetector results with Timelapse [here](https://github.com/microsoft/CameraTraps/blob/master/api/batch_processing/integration/timelapse.md).
 
 We have somewhat-less-complete integrations with the [eMammal desktop application](https://github.com/microsoft/CameraTraps/blob/master/api/batch_processing/integration/eMammal) and with [dikiKam](https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing/integration/digiKam).
 
 For more programming-inclined users, or for real-time applications (primarily anti-poaching scenarios), we also package our MegaDetector model into two different APIs: a [batch processing API](https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing) for processing large volumes of images with some latency, and a [real-time API](https://aiforearth.portal.azure-api.net/docs/services/ai-for-earth-camera-trap-detection-api/operations/post-detect).
 
-Usually the first step with a new user is just running our model on a few thousand images and seeing what happens, so if you're interested in trying this on your images, we can work out a way to transfer a set of example images.
+Whether you are using an image review tool like Timelapse or calling our APIs yourself, usually the first step with a new user is just running our model on a few thousand images and seeing what happens, so if you're interested in trying this on your images, we can work out a way to transfer a set of example images.
 
 After that, we'll typically send back a page of sample results; depending on whether you already know the "right" answer for these images, the results will look like one of these:
 
