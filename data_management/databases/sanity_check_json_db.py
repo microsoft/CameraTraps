@@ -395,20 +395,15 @@ if False:
     #%%
     
     # Sanity-check .json files for LILA
-    jsonFiles = [r'd:\temp\CaltechCameraTraps.json',
-                 r'd:\temp\wellington_camera_traps.json',
-                 r'd:\temp\nacti_metadata.json',
-                 r'd:\temp\SnapshotSerengeti.json']
+    jsonFiles = [r"C:\temp\nacti\nacti_metadata.json"]
     
-    # Sanity-check one file with all the bells and whistles    
-    jsonFiles = [r'd:\wildlife_data\mcgill_test\mcgill_test.json']; jsonFile = jsonFiles[0]; baseDir = r'd:\wildlife_data\mcgill_test'
     options = SanityCheckOptions()
-    options.baseDir = baseDir
+    options.baseDir = ''
     options.bCheckImageSizes = False
-    options.bFindUnusedImages = True
+    options.bFindUnusedImages = False
     
     # options.iMaxNumImages = 10    
     
     for jsonFile in jsonFiles:
         
-        sortedCategories,data = sanity_check_json_db(jsonFile, options)
+        sortedCategories,data,_ = sanity_check_json_db(jsonFile, options)
