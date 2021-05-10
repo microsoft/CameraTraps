@@ -395,7 +395,7 @@ if False:
     #%%
     
     # Sanity-check .json files for LILA
-    jsonFiles = [r"C:\temp\nacti\nacti_metadata.json"]
+    jsonFiles = [r'c:\temp\nacti\nacti_metadata.json']
     
     options = SanityCheckOptions()
     options.baseDir = ''
