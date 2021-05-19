@@ -1,211 +1,181 @@
 #
 # add_bounding_boxes_to_megadb.py
 #
-# Given pseudo-jsons containing the bounding box annotations made by iMerit, add them to
-# a list of entries from the MegaDB sequences table.
+# Given COCO-formatted JSONs containing manually labeled bounding box annotations, add them to
+# MegaDB sequence entries, so that they are ready to be ingested into MegaDB.
 
 
+import argparse
 import os
 import json
 from collections import defaultdict
-import urllib
+from typing import Dict, Tuple
+import sys
 
 from tqdm import tqdm
+import path_utils  # ai4eutils
 
-import ct_utils
+from data_management.cct_json_utils import IndexedJsonDb
 
-# the category map that comes in the pseudo-jsons
+
+# the category map that comes in the COCO JSONs for iMerit batch 12 - to check that each
+# JSON
 bbox_categories = [
     {
-      "id": "1",
-      "name": "animal"
+        'id': 1,
+        'name': 'Animal'
     },
     {
-      "id": "2",
-      "name": "person"
+        'id': 2,
+        'name': 'Group'
     },
     {
-      "id": "3",
-      "name": "group"
+        'id': 3,
+        'name': 'Human'
     },
     {
-      "id": "4",
-      "name": "vehicles"
+        'id': 4,
+        'name': 'Vehicle'
+    },
+    {
+        'id': 5,
+        'name': 'No Object Visible'
     }
-  ]
+]
+bbox_categories_str = json.dumps(bbox_categories).lower()  # cct_json_utils also lower()
 
-bbox_cat_map = {int(c['id']): c['name'] for c in bbox_categories}
-bbox_cat_map[4] = 'vehicle'  # change to the singular form to be consistent
+bbox_cat_map = {c['id']: c['name'].lower() for c in bbox_categories[:4]}
+bbox_cat_map[3] = 'person'  # MegaDB categories are "animal", "person" and "vehicle"
+assert bbox_cat_map[4] == 'vehicle'
 
 
-def extract_annotations(annotation_path, dataset_name):
+def file_name_to_parts(image_file_name) -> Tuple[str, str, int]:
     """
-    Extract the bounding box annotations from the pseudo-jsons iMerit sends us for a single dataset.
+    Given the `file_name` field in an iMerit annotation, return the dataset name,
+    sequence id and frame number.
+    """
+    parts = image_file_name.split('.')
+    dataset_name = parts[0]
+    seq_id = parts[1].split('seq')[1]
+    frame_num = int(parts[2].split('frame')[1])
+    return dataset_name, seq_id, frame_num
+
+
+def add_annotations_to_sequences(annotations_dir: str, temp_sequences_dir: str, sequences_dir: str):
+    """
+    Extract the bounding box annotations from the COCO JSONs for all datasets labeled in this round.
 
     Args:
-        annotation_path: a list or string; the list of annotation entries, a path to a directory
-            containing pseudo-jsons with the annotations or a path to a single pseudo-json (cannot have sub-directories)
-        dataset_name: string used to identify this dataset when the images were sent for annotation.
-            Note that this needs to be the same as what's in the annotation files, if different
-            from what's in the `dataset` table
+        annotations_dir: Path to directory with the annotations in COCO JSONs at the root level.
+        temp_sequences_dir: Path to a flat directory of JSONs ending in '_temp.json' which are
+            MegaDB sequences without the bounding box annotations.
+        sequences_dir: Path to a directory to output corresponding bounding box-included sequences
+            in MegaDB format.
 
     Returns:
-        image_filename_to_bboxes: a dict of image filename to the bbox items ready to
-        insert to MegaDB sequences' image objects.
+        None. JSON files will be written to sequences_dir.
     """
-    content = []
-    if type(annotation_path) == str:
-        assert os.path.exists(annotation_path), 'annotation_paths provided does not exist as a dir or file'
+    assert os.path.exists(annotations_dir), \
+        f'annotations_dir {annotations_dir} does not exist'
+    assert os.path.isdir(annotations_dir), \
+        f'annotations_dir {annotations_dir} is not a directory'
+    assert os.path.exists(temp_sequences_dir), \
+        f'temp_sequences_dir {temp_sequences_dir} does not exist'
+    assert os.path.isdir(temp_sequences_dir), \
+        f'temp_sequences_dir {temp_sequences_dir} is not a directory'
+    os.makedirs(sequences_dir, exist_ok=True)
 
-        if os.path.isdir(annotation_path):
-            # annotation_path points to a directory containing annotation pseudo-jsons
-            for file_name in os.listdir(annotation_path):
-                if not file_name.endswith('.json'):
+    temp_megadb_files = path_utils.recursive_file_list(temp_sequences_dir)
+    temp_megadb_files = [i for i in temp_megadb_files if i.endswith('_temp.json')]
+    print(f'{len(temp_megadb_files)} temporary MegaDB dataset files found.')
+
+    annotation_files = path_utils.recursive_file_list(annotations_dir)
+    annotation_files = [i for i in annotation_files if i.endswith('.json')]
+    print(f'{len(annotation_files)} annotation_files found. Extracting annotations...')
+
+    # dataset name : (seq_id, frame_num) : [bbox, bbox]
+    # where bbox is a dict with str 'category' and list 'bbox'
+    all_image_bbox: Dict[str, Dict[Tuple[str, int], list]]
+    all_image_bbox = defaultdict(lambda: {})
+
+    for p in tqdm(annotation_files):
+        incoming_coco = IndexedJsonDb(p)
+        assert bbox_categories_str == json.dumps(incoming_coco.db['categories']), \
+            f'Incoming COCO JSON has a different category mapping! {p}'
+
+        # iterate over image_id_to_image rather than image_id_to_annotations so we include
+        # the confirmed empty images
+        for image_id, image_entry in incoming_coco.image_id_to_image.items():
+            image_file_name = image_entry['file_name']
+            # The file_name field in the incoming json looks like
+            # alka_squirrels.seq2020_05_07_25C.frame119221.jpg
+            dataset_name, seq_id, frame_num = file_name_to_parts(image_file_name)
+            bbox_field = []  # empty meaning this image is confirmed empty
+
+            annotations = incoming_coco.image_id_to_annotations.get(image_id, [])
+            for coco_anno in annotations:
+                if coco_anno['category_id'] == 5:
+                    assert len(coco_anno['bbox']) == 0, f'{coco_anno}'
+
+                    # there seems to be a bug in the annotations where sometimes there's a
+                    # non-empty label along with a label of category_id 5
+                    # ignore the empty label (they seem to be actually non-empty)
                     continue
-                p = os.path.join(annotation_path, file_name)
-                with open(p) as f:
-                    c = f.readlines()
-                    content.extend(c)
-            print('{} files found in directory at annotation_path'.format(len(os.listdir(annotation_path))))
-        else:
-            # annotation_path points to a single annotation pseudo-json
-            with open(annotation_path) as f:
-                content = f.readlines()
 
-    else:
-        assert type(annotation_path) == list, 'annotation_paths provided is not a string (path) or list'
+                assert coco_anno['category_id'] is not None, f'{p} {coco_anno}'
 
-    print('Number of annotation entries found: {}'.format(len(content)))
+                bbox_field.append({
+                    'category': bbox_cat_map[coco_anno['category_id']],
+                    'bbox': coco_anno['bbox']
+                })
+            all_image_bbox[dataset_name][(seq_id, frame_num)] = bbox_field
 
-    image_filename_to_bboxes = defaultdict(list)
-    num_bboxes = 0
-    num_bboxes_skipped = 0
-
-    # each row in this pseudo-json is a COCO formatted entry for an image sequence
-    for row in tqdm(content):
-        entry = json.loads(row)
-
-        entry_categories = entry.get('categories', [])
-        assert json.dumps(bbox_categories, sort_keys=True) == json.dumps(entry_categories, sort_keys=True)
-
-        entry_annotations = entry.get('annotations', [])
-        entry_images = entry.get('images', [])
-
-        images_non_empty = set()
-        for anno in entry_annotations:
-            assert 'image_id' in anno
-            assert 'bbox' in anno
-            assert len(anno['bbox']) == 4
-            assert 'category_id' in anno
-            assert type(anno['category_id']) == int
-
-            # iMerit calls this field image_id; some of these are URL encoded
-            image_ref = urllib.parse.unquote(anno['image_id'])
-
-            # dataset = image_ref.split('dataset')[1].split('.')[0]  # prior to batch 10
-            dataset = image_ref.split('+')[0]
-            if dataset != dataset_name:
-                num_bboxes_skipped += 1
-                continue
-
-            # lower-case all image filenames !
-            # image_filename = image_ref.split('.img')[1].lower()  # prior to batch 10
-            image_filename = image_ref.split('+')[1]
-
-            bbox_coords = anno['bbox']  # [x_rel, y_rel, w_rel, h_rel]
-            bbox_coords = ct_utils.truncate_float_array(bbox_coords, precision=4)
-
-            bbox_entry = {
-                'category': bbox_cat_map[anno['category_id']],
-                'bbox': bbox_coords
-            }
-
-            image_filename_to_bboxes[image_filename].append(bbox_entry)
-            num_bboxes += 1
-            images_non_empty.add(image_ref)  # remember that this image has at least one bbox
-
-        for im in entry_images:
-            image_ref = urllib.parse.unquote(im['file_name'])
-
-            #dataset = image_ref.split('dataset')[1].split('.')[0]  # prior to batch 10
-            dataset = image_ref.split('+')[0]
-            if dataset != dataset_name:
-                continue
-
-            #image_filename = image_ref.split('.img')[1].lower()  # prior to batch 10
-            image_filename = image_ref.split('+')[1]
-            if image_ref not in images_non_empty:
-                image_filename_to_bboxes[image_filename] = []  # to indicate "confirmed emptiness"
-
-
-    print('{} boxes on {} images were in the annotation file(s). {} boxes skipped because they are not for the requested dataset'.format(
-        num_bboxes, len(image_filename_to_bboxes), num_bboxes_skipped))
-
-    # how many boxes of each category?
-    print('\nCategory counts for the bboxes:')
-    category_count = defaultdict(int)
-    for filename, bboxes in image_filename_to_bboxes.items():
-        for b in bboxes:
-            category_count[b['category']] += 1
-    for category, count in sorted(category_count.items()):
-        print('{}: {}'.format(category, count))
-
-    return image_filename_to_bboxes
-
-
-def zsl_image_filename_map_func(db_img_obj):
-    return db_img_obj['id'] + '.jpg'
-
-def bnf_image_filename_map_func(db_img_obj):
-    return str(db_img_obj['image_id']) + '.jpg'
-
-def default_image_filename_map_func(db_img_obj):
-    return db_img_obj['file'].replace('/', '~')
-
-
-def add_annotations_to_sequences(sequences, image_filename_to_bboxes,
-                                 im_id_map_func=default_image_filename_map_func):
-    """
-
-    Args:
-        sequences: a list of entries from the `sequences` table
-        image_filename_to_bboxes: dict returned by extract_annotations
-        im_id_map_func: a function that can take in an image object in the sequence's `images` field and return
-            a string that is a key in image_filename_to_bboxes, which is the image identifier after the .img tag
-            in the image file names sent to get annotated.
-
-    Returns:
-        the original sequences list updated with bbox annotations (not a copy)
-    """
-
-    # check that all sequences are for a single dataset; each may need adjustment to how image
-    # identifiers are mapped
-    datasets_present = set([s['dataset'] for s in sequences])
-    assert len(datasets_present) == 1, 'the sequences provided need to come from a single dataset'
-
-    print('Dataset to which the sequences belong to: {}. The bboxes should also be for this set.'.format(datasets_present.pop()))
-
-    images_updated = []
-    num_images_rewritten = 0
-    num_images_no_anno_added = 0
-
-    for seq in sequences:
-        if 'images' not in seq:
+    print('\nAdding bounding boxes to the MegaDB dataset files...')
+    for p in temp_megadb_files:
+        dataset_name = os.path.basename(p).split('_temp.')[0]
+        print(f'Adding to dataset {dataset_name}')
+        dataset_image_bbox = all_image_bbox.get(dataset_name, None)
+        if dataset_image_bbox is None:
+            print('Skipping, no annotations found for this dataset')
             continue
 
-        for im in seq['images']:
-            im_id = im_id_map_func(im)
-            if im_id in image_filename_to_bboxes:
+        with open(p) as f:
+            sequences = json.load(f)
 
-                if 'bbox' in im:  # if we are overwriting existing bbox annotations
-                    num_images_rewritten += 1
+        num_images_updated = 0
+        for seq in tqdm(sequences):
+            seq_id = seq['seq_id']
+            for im in seq['images']:
+                frame_num = im.get('frame_num', 1)
+                bbox_field = dataset_image_bbox.get((seq_id, frame_num), None)
+                if bbox_field:
+                    im['bbox'] = bbox_field
+                    num_images_updated += 1
+        print(f'Dataset {dataset_name} had {num_images_updated} images updated\n')
 
-                im['bbox'] = image_filename_to_bboxes[im_id]  # reference type updates reflected in original list
-                images_updated.append(im_id)
-            else:
-                num_images_no_anno_added += 1
+        with open(os.path.join(sequences_dir, f'{dataset_name}.json'),
+                  'w', encoding='utf-8') as f:
+            json.dump(sequences, f, indent=1, ensure_ascii=False)
 
-    print('{} images updated; {} images had their bbox overwritten; {} images not updated'.format(
-        len(images_updated), num_images_rewritten, num_images_no_anno_added
-    ))
-    return sequences, images_updated
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        'annotations_dir', type=str,
+        help='Path to directory with the annotations in COCO JSONs at the root level.'
+    )
+    parser.add_argument(
+        'temp_sequences_dir', type=str,
+        help='Path to a flat directory of JSONs of MegaDB sequence entries, ending in _temp.json'
+    )
+    parser.add_argument(
+        'sequences_dir', type=str,
+        help='Path to output directory. Will be created if it does not exist.'
+    )
+    args = parser.parse_args()
+
+    add_annotations_to_sequences(args.annotations_dir, args.temp_sequences_dir, args.sequences_dir)
+
+
+if __name__ == '__main__':
+    main()
