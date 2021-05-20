@@ -110,7 +110,7 @@ def add_annotations_to_sequences(annotations_dir: str, temp_sequences_dir: str, 
             # The file_name field in the incoming json looks like
             # alka_squirrels.seq2020_05_07_25C.frame119221.jpg
             dataset_name, seq_id, frame_num = file_name_to_parts(image_file_name)
-            bbox_field = []  # empty meaning this image is confirmed empty
+            bbox_field = []  # empty means this image is confirmed empty
 
             annotations = incoming_coco.image_id_to_annotations.get(image_id, [])
             for coco_anno in annotations:
@@ -136,7 +136,7 @@ def add_annotations_to_sequences(annotations_dir: str, temp_sequences_dir: str, 
         print(f'Adding to dataset {dataset_name}')
         dataset_image_bbox = all_image_bbox.get(dataset_name, None)
         if dataset_image_bbox is None:
-            print('Skipping, no annotations found for this dataset')
+            print('Skipping, no annotations found for this dataset\n')
             continue
 
         with open(p) as f:
@@ -144,11 +144,12 @@ def add_annotations_to_sequences(annotations_dir: str, temp_sequences_dir: str, 
 
         num_images_updated = 0
         for seq in tqdm(sequences):
+            assert seq['dataset'] == dataset_name
             seq_id = seq['seq_id']
             for im in seq['images']:
                 frame_num = im.get('frame_num', 1)
                 bbox_field = dataset_image_bbox.get((seq_id, frame_num), None)
-                if bbox_field:
+                if bbox_field is not None:  # empty list also evaluates to False
                     im['bbox'] = bbox_field
                     num_images_updated += 1
         print(f'Dataset {dataset_name} had {num_images_updated} images updated\n')
