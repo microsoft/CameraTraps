@@ -2,7 +2,7 @@
 # add_bounding_boxes_to_megadb.py
 #
 # Given COCO-formatted JSONs containing manually labeled bounding box annotations, add them to
-# MegaDB sequence entries, so that they are ready to be ingested into MegaDB.
+# MegaDB sequence entries, which can then be ingested into MegaDB.
 
 
 import argparse
@@ -10,12 +10,12 @@ import os
 import json
 from collections import defaultdict
 from typing import Dict, Tuple
-import sys
 
 from tqdm import tqdm
 import path_utils  # ai4eutils
 
 from data_management.cct_json_utils import IndexedJsonDb
+import ct_utils
 
 
 # the category map that comes in the COCO JSONs for iMerit batch 12 - to check that each
@@ -86,7 +86,7 @@ def add_annotations_to_sequences(annotations_dir: str, temp_sequences_dir: str, 
     os.makedirs(sequences_dir, exist_ok=True)
 
     temp_megadb_files = path_utils.recursive_file_list(temp_sequences_dir)
-    temp_megadb_files = [i for i in temp_megadb_files if i.endswith('_temp.json')]
+    temp_megadb_files = [i for i in temp_megadb_files if i.endswith('.json')]
     print(f'{len(temp_megadb_files)} temporary MegaDB dataset files found.')
 
     annotation_files = path_utils.recursive_file_list(annotations_dir)
@@ -126,13 +126,15 @@ def add_annotations_to_sequences(annotations_dir: str, temp_sequences_dir: str, 
 
                 bbox_field.append({
                     'category': bbox_cat_map[coco_anno['category_id']],
-                    'bbox': coco_anno['bbox']
+                    'bbox': ct_utils.truncate_float_array(coco_anno['bbox'], precision=4)
                 })
             all_image_bbox[dataset_name][(seq_id, frame_num)] = bbox_field
 
     print('\nAdding bounding boxes to the MegaDB dataset files...')
     for p in temp_megadb_files:
-        dataset_name = os.path.basename(p).split('_temp.')[0]
+        basename = os.path.basename(p)
+        dataset_name = basename.split('_temp.')[0] if basename.endswith('_temp.json') \
+            else basename.split('.json')[0]
         print(f'Adding to dataset {dataset_name}')
         dataset_image_bbox = all_image_bbox.get(dataset_name, None)
         if dataset_image_bbox is None:
