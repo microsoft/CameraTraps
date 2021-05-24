@@ -86,8 +86,6 @@ class MegadbUtils:
 
         Returns: list of dict, each dict represents a single sequence
         """
-        start_time = datetime.now()
-
         if partition_key:
             result_iterable = self.container_sequences.query_items(
                 query=query, partition_key=partition_key, parameters=parameters)
@@ -96,14 +94,7 @@ class MegadbUtils:
                 query=query, enable_cross_partition_query=True,
                 parameters=parameters)
 
-        duration = datetime.now() - start_time
-        results = list(result_iterable)  # TODO could return the iterable instead
-
-        # print('Query took {}. Number of entries in result: {}'.format(
-        #     humanfriendly.format_timespan(duration), len(results)
-        # ))
-
-        return results
+        return result_iterable
 
     @staticmethod
     def get_storage_client(datasets_table: Mapping[str, Any],
