@@ -50,8 +50,6 @@ def open_image(input_file: Union[str, BytesIO]) -> Image:
     """
     if (isinstance(input_file, str)
             and input_file.startswith(('http://', 'https://'))):
-        response = requests.get(input_file)
-        image = Image.open(BytesIO(response.content))
         try:
             response = requests.get(input_file)
             image = Image.open(BytesIO(response.content))
