@@ -777,6 +777,17 @@ for fn in html_output_files:
     os.startfile(fn)
 
 
+#%% Create a new category for large boxes
+
+from api.batch_processing.postprocessing import categorize_detections_by_size
+
+options = categorize_detections_by_size.SizeCategorizationOptions()
+options.threshold = 0.85
+input_file = r"g:\organization\file.json"
+size_separated_file = input_file.replace('.json','-size-separated-{}.json'.format(options.threshold))
+d = categorize_detections_by_size.categorize_detections_by_size(input_file,size_separated_file,options)
+
+
 #%% Subsetting
 
 data = None
