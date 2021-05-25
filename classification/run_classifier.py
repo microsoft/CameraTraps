@@ -97,7 +97,7 @@ def create_loader(cropped_images_dir: str,
         detections = {img['file']: img for img in js['images']}
 
         for img_file, info_dict in tqdm(detections.items()):
-            if 'detections' not in info_dict:
+            if 'detections' not in info_dict or info_dict['detections'] is None:
                 continue
             for i in range(len(info_dict['detections'])):
                 crop_filename = img_file + f'___crop{i:02d}_mdv4.1.jpg'
