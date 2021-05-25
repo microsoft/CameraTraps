@@ -42,10 +42,14 @@ def categorize_detections_by_size(input_file,output_file,options=None):
     
     for im in images:
         
+        if im['detections'] is None:
+            assert im['failure'] is not None and len(im['failure']) > 0
+            continue
+            
         # d = im['detections'][0]
         for d in im['detections']:
             
-            if ('bbox' not in d) or (d['bbox'] is None):
+            if (d is None) or ('bbox' not in d) or (d['bbox'] is None):
                 continue
             
             # https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing#detector-outputs
