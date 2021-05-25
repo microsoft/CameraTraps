@@ -121,9 +121,11 @@ def main(detections_json_path: str,
 
     # convert from category ID to category name
     images_missing_detections = []
-    for img_path in list(detections.keys()):  # copy keys to modify dict inplace
+
+    # copy keys to modify dict in-place
+    for img_path in list(detections.keys()):
         info_dict = detections[img_path]
-        if 'detections' not in info_dict:
+        if 'detections' not in info_dict or info_dict['detections'] is None:
             del detections[img_path]
             images_missing_detections.append(img_path)
             continue
