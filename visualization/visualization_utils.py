@@ -8,6 +8,7 @@ Core rendering functions shared across visualization scripts
 
 from io import BytesIO
 from typing import Union
+import time
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -31,6 +32,11 @@ DEFAULT_DETECTOR_LABEL_MAP = {
     str(k): v for k, v in detector_bbox_category_id_to_name.items()
 }
 
+# Retry on blob storage read failures
+n_retries = 10
+retry_sleep_time = 0.01
+error_names_for_retry = ['ConnectionError']
+                
 
 #%% Functions
 
@@ -52,10 +58,28 @@ def open_image(input_file: Union[str, BytesIO]) -> Image:
             and input_file.startswith(('http://', 'https://'))):
         try:
             response = requests.get(input_file)
+        except Exception as e:
+            print(f'Error retrieving image {input_file}: {e}')
+            success = False
+            if e.__class__.__name__ in error_names_for_retry:
+                for i_retry in range(0,n_retries):
+                    try:
+                        time.sleep(retry_sleep_time)
+                        response = requests.get(input_file)        
+                    except Exception as e:
+                        print(f'Error retrieving image {input_file} on retry {i_retry}: {e}')
+                        continue
+                    print('Succeeded on retry {}'.format(i_retry))
+                    success = True
+                    break
+            if not success:
+                raise
+        try:
             image = Image.open(BytesIO(response.content))
         except Exception as e:
             print(f'Error opening image {input_file}: {e}')
             raise
+
     else:
         image = Image.open(input_file)
     if image.mode not in ('RGBA', 'RGB', 'L', 'I;16'):
