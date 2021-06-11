@@ -34,7 +34,7 @@ MegaDetector is free, and it makes us super-happy when people use it, so we put 
 See <a href="https://github.com/microsoft/CameraTraps/#who-is-using-the-ai-for-earth-camera-trap-tools">this list</a> on the repo's main page.
 
 
-## Downloading the model(s)
+## Downloading the model
 
 ### MegaDetector v4.1, 2020.04.27
 
@@ -76,7 +76,7 @@ First MegaDetector release!
 - [Last checkpoint (for resuming training)](https://lilablobssc.blob.core.windows.net/models/camera_traps/megadetector/megadetector_v2_checkpoint.zip)
 
 
-## Using the models
+## Using the model
 
 We provide four ways to apply this model to new images:
 
