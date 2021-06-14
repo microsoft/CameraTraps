@@ -1360,15 +1360,23 @@ def main():
     parser.add_argument(
         '--random_output_sort', action='store_true',
         help='Sort output randomly (defaults to sorting by filename)')
+    parser.add_argument(
+            '--n_cores', type=int, default=1,
+            help='Number of threads to use for rendering (default: 1)')
 
     if len(sys.argv[1:]) == 0:
         parser.print_help()
         parser.exit()
 
     args = parser.parse_args()
-    args.sort_html_by_filename = not args.random_output_sort
+    args.sort_html_by_filename = (not args.random_output_sort)
+    if args.n_cores != 1:
+        assert (args.n_cores > 1), 'Illegal number of cores: {}'.format(args.n_cores)
+        args.parallelize_rendering = True
+        args.parallelize_rendering_n_cores = args.n_cores        
 
     args_to_object(args, options)
+    
     process_batch_results(options)
 
 
