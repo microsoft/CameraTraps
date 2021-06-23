@@ -13,6 +13,8 @@ import cv2
 import glob
 import json
 
+import numpy as np
+
 from collections import defaultdict
 from multiprocessing.pool import ThreadPool
 from tqdm import tqdm
@@ -25,8 +27,6 @@ from visualization import visualization_utils as vis_utils
 
 
 #%% Path utilities
-
-# TODO: migrate into ai4eutils/path_utils if this is sticky
 
 VIDEO_EXTENSIONS = ('.mp4','.avi','.mpeg','.mpg')
 
@@ -168,8 +168,12 @@ def video_to_frames(input_video_file, output_folder, overwrite=True):
             pass            
         else:
             try:
-                cv2.imwrite(frame_filename,image)
-                assert os.path.isfile(frame_filename)
+                if frame_filename.isascii():
+                    cv2.imwrite(os.path.normpath(frame_filename),image)
+                else:
+                    is_success, im_buf_arr = cv2.imencode('.jpg', image)
+                    im_buf_arr.tofile(frame_filename)
+                assert os.path.isfile(frame_filename), 'Output frame {} unavailable'.format(frame_filename)
             except KeyboardInterrupt:
                 vidcap.release()
                 raise
@@ -210,6 +214,7 @@ def video_folder_to_frames(input_folder:str, output_folder_base:str,
         os.makedirs(output_folder_video,exist_ok=True)
     
         # Render frames
+        # input_video_file = input_fn_absolute; output_folder = output_folder_video
         frame_filenames,fs = video_to_frames(input_fn_absolute,output_folder_video,overwrite=overwrite)
         
         return frame_filenames,fs
