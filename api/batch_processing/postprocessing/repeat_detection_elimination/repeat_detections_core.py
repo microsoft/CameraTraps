@@ -653,7 +653,8 @@ def find_repeat_detections(inputFilename, outputFilename=None, options=None):
             relativePath = row['file']
             for s in options.filenameReplacements.keys():
                 relativePath = relativePath.replace(s,options.filenameReplacements[s])
-            assert os.path.isfile(os.path.join(options.imageBase,relativePath))
+            absolutePath = os.path.join(options.imageBase,relativePath)
+            assert os.path.isfile(absolutePath), 'Could not find file {}'.format(absolutePath)
         
         
     ##%% Separate files into directories
