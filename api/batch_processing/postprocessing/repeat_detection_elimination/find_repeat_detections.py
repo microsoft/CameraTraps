@@ -126,6 +126,9 @@ def main():
                         default=defaultOptions.excludeClasses,
                         help='List of classes (ints) to exclude from analysis, separated by spaces')
 
+    parser.add_argument('--nDirLevelsFromLeaf', default=0, type=int,
+                        help='Number of levels from the leaf folders to use for repeat detection (0 == leaves)')
+
     parser.add_argument('--debugMaxDir', action='store', type=int, default=-1)
     parser.add_argument('--debugMaxRenderDir', action='store', type=int, default=-1)
     parser.add_argument('--debugMaxRenderDetection', action='store', type=int, default=-1)
@@ -135,7 +138,7 @@ def main():
                         dest='bParallelizeComparisons')
     parser.add_argument('--forceSerialRendering', action='store_false',
                         dest='bParallelizeRendering')
-
+    
     if len(sys.argv[1:]) == 0:
         parser.print_help()
         parser.exit()
