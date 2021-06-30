@@ -46,6 +46,8 @@ if False:
 
 #%% Command-line driver
 
+import sys
+
 def main():
     
     parser = argparse.ArgumentParser()
@@ -53,6 +55,10 @@ def main():
     parser.add_argument('outputFile', help='.json file to which you want to write the final, filtered API results')
     parser.add_argument('filteringDir', help='directory where you looked at lots of images and decided which ones were really false positives')
     
+    if len(sys.argv[1:]) == 0:
+        parser.print_help()
+        parser.exit()
+
     args = parser.parse_args()
     remove_repeat_detections(args.inputFile, args.outputFile, args.filteringDir)
 
