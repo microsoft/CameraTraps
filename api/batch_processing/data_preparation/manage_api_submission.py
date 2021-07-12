@@ -81,7 +81,7 @@ base_output_folder_name = 'g:\\' + organization_name_short
 # Leading question mark is optional.
 #
 # The read-only token is used for accessing images; the write-enabled token is
-# used for writing file lists.  As of 2020.12.07, these tokens cannot use access policies.
+# used for writing file lists.
 read_only_sas_token = '?sv=2019-12...'
 read_write_sas_token = '?sv=2019-12...'
 
