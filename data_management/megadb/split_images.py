@@ -27,7 +27,7 @@ def look_up_split(splits_table, entry):
     else:
         dataset_name = entry['dataset']
         split_lists = splits_table[dataset_name]
-        if entry['location'] in split_lists[Splits.TRAIN]:
+        if entry['location'] in split_lists[Splits.TRAIN]:  # checks membership in a set
             return Splits.TRAIN
         elif entry['location'] in split_lists[Splits.VAL]:
             return Splits.VAL
@@ -94,7 +94,7 @@ def main():
         download_id = entry['download_id'] + '.jpg'
         origin_path = os.path.join(args.origin_dir, download_id)
         if not os.path.exists(origin_path):
-            # print('Image not found in origin dir at {}'.format(origin_path))
+            print('Image not found in origin dir at {}'.format(origin_path))
             continue
         dest_path = os.path.join(args.dest_dir, which_split, download_id)
         dest = move(origin_path, dest_path)
