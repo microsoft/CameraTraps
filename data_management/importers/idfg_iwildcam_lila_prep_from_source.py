@@ -32,6 +32,7 @@ force_file_enumeration = False
 
 if (os.path.isfile(all_files_list) and (not force_file_enumeration)):
     
+    print('File list exists, bypassing enumeration')
     with open(all_files_list,'r') as f:
         all_files = json.load(f)
         
@@ -88,7 +89,7 @@ csv_files = [s for s in csv_files if s not in csv_files_to_ignore]
 print('Processing {} of {} csv files'.format(len(csv_files),n_csv_original))
 
 
-#%% Parse each .csv file into a .json file (prep)
+#%% Parse each .csv file into sequences (prep)
 
 import dateutil 
 import pandas as pd
@@ -97,11 +98,11 @@ import datetime
 survey_species_presence_columns = ['elkpresent','deerpresent','prongpresent']
 
 presence_to_count_columns = {
-    'otherpresent':['MooseAntlerless','MooseCalf','MooseOther','BlackBearAdult','BlackBearCub','LionAdult',
+    'otherpresent':['MooseAntlerless','MooseCalf','MooseOther','MooseBull','MooseUnkn','BlackBearAdult','BlackBearCub','LionAdult',
                     'LionKitten','WolfAdult','WolfPup','CattleCow','CattleCalf','other'],
-    'elkpresent':['ElkSpike','ElkAntlerless','ElkCalf','ElkRaghorn','ElkMatBull','ElkUnknown'],
-    'deerpresent':['MDbuck','MDantlerless','MDfawn','WTDbuck','WTDantlerless','WTDfawn'],
-    'prongpresent':['PronghornBuck','PronghornFawn']
+    'elkpresent':['ElkSpike','ElkAntlerless','ElkCalf','ElkRaghorn','ElkMatBull','ElkUnkn','ElkPedNub'],
+    'deerpresent':['MDbuck','MDantlerless','MDfawn','WTDbuck','WTDantlerless','WTDfawn','WTDunkn','MDunkn'],
+    'prongpresent':['PronghornBuck','PronghornFawn','PHunkn']
     }
 
 required_columns = ['File','Folder','Date','Time','otherpresent','other','otherwhat']
@@ -119,17 +120,18 @@ def list_is_sorted(l):
 location_names = set()
 
 
-#%% Parse each .csv file into a .json file (function)
+#%% Parse each .csv file into sequences (function)
 
 # csv_file = csv_files[-1]
-def csv_to_json(csv_file):
-        
+def csv_to_sequences(csv_file):
+    
     print('Processing {}'.format(csv_file))
     csv_file_absolute = os.path.join(input_base,csv_file)
     # os.startfile(csv_file_absolute)
     
+    sequences = []
     # survey = csv_file.split('\\')[0]
-    
+
     location_name = '_'.join(csv_file.split('\\')[0:-1]).replace(' ','')
     # assert location_name not in location_names
     location_names.add(location_name)
@@ -242,6 +244,7 @@ def csv_to_json(csv_file):
     
     inconsistent_sequences = []
     
+    
     ## Parse labels for each sequence
     
     # sequence_id = location_sequences[0]
@@ -264,8 +267,9 @@ def csv_to_json(csv_file):
         ## Determine what's present
         
         presence_columns_marked = []
-        other_species_present = []
-            
+        survey_species = []
+        other_species = []
+         
         for presence_column in presence_columns:
                     
             presence_values = list(sequence_df[presence_column])
@@ -277,47 +281,138 @@ def csv_to_json(csv_file):
                 # print('Warning: presence value for {} is inconsistent for {}'.format(presence_column,sequence_id))
                 inconsistent_sequences.append(sequence_id)                
             
-            if presence_values[0]:
+            if any(presence_values):
                 presence_columns_marked.append(presence_column)                
                 
         # ...for each presence column
+        
+        # Tally up the standard (survey) species
+        survey_species = [s.replace('present','') for s in presence_columns_marked if s != 'otherpresent']
         
         # If no presence columns are marked, all counts should be zero
         if len(presence_columns_marked) == 0:
             
             # count_column = count_columns[0]
             for count_column in count_columns:
+                
                 values = list(set(list(sequence_df[count_column])))
-                assert len(values) == 1 and values[0] == 0
+                
+                # Occasionally a count gets entered (correctly) without the presence column being marked
+                # assert len(values) == 1 and values[0] == 0, 'Non-zero counts with no presence columns marked for sequence {}'.format(sequence_id)
+                if (not(len(values) == 1 and values[0] == 0)):
+                    print('Warning: presence and counts are inconsistent for {}'.format(sequence_id))
+                    
+                    # Handle this by virtually checking the "right" box
+                    for presence_column in presence_to_count_columns.keys():
+                        count_columns_this_species = presence_to_count_columns[presence_column]
+                        if count_column in count_columns_this_species:
+                            if presence_column not in presence_columns_marked:
+                                presence_columns_marked.append(presence_column)
+                    
+                    # Make sure we found a match
+                    assert len(presence_columns_marked) > 0
                 
         # Handle 'other' tags
-        elif 'otherpresent' in presence_columns_marked:
+        if 'otherpresent' in presence_columns_marked:
             
-            sequence_otherwhat = None
+            sequence_otherwhats = set()
+            sequence_comments = set()
             
             for i,r in sequence_df.iterrows():            
                 otherwhat = r['otherwhat']
-                if isinstance(otherwhat,float):
-                    assert np.isnan(otherwhat)
-                else:
-                    assert isinstance(otherwhat,str)
-                    sequence_otherwhat = otherwhat
+                if isinstance(otherwhat,str):
+                    otherwhat = otherwhat.strip()
+                    if len(otherwhat) > 0:
+                        sequence_otherwhats.add(otherwhat)
+                comment = r['comment']
+                if isinstance(comment,str):
+                    comment = comment.strip()
+                    if len(comment) > 0:
+                        sequence_comments.add(comment)
+                
+            freetext_species = []
+            for s in sequence_otherwhats:
+                freetext_species.append(s)
+            for s in sequence_comments:
+                freetext_species.append(s)
+                
+            counted_species = []
             
-            other_species_present.append(sequence_otherwhat)
-            assert len(other_species_present) > 0
+            otherpresent_columns = presence_to_count_columns['otherpresent']
             
-        # ...for each "species" marked as present
+            # column_name = otherpresent_columns[0]
+            for column_name in otherpresent_columns:
+            
+                if column_name in sequence_df and column_name != 'other':
+            
+                    column_counts = list(sequence_df[column_name])
+                    column_count_positive = any([c > 0 for c in column_counts])
+                    
+                    if column_count_positive:
+                        # print('Found non-survey counted species column: {}'.format(column_name))
+                        counted_species.append(column_name)
+            
+            # ...for each non-empty presence column
+        
+            # Very rarely, the "otherpresent" column is checked, but no more detail is available
+            if not ( (len(freetext_species) > 0) or (len(counted_species) > 0) ):
+                other_species.append('unknown')
+                
+            other_species += freetext_species
+            other_species += counted_species
+            # other_species_string = ','.join(other_species)
+            # print('Non-survey species found: {}'.format(other_species_string))
+        
+        # ...handling non-survey species
+        
+        all_species = other_species + survey_species
+        if False:
+            if len(all_species) > 0:
+                print('Species found: {}'.format(','.join(all_species)))
+                 
+        # Build the sequence data
+        
+        images = []
+        # i_row = 0; row = sequence_df.iloc[i_row]
+        for i_row,row in sequence_df.iterrows():
+            im = {}
+            im['file_name'] = row['File']
+            im['datetime'] = row['datetime']
+            images.append(im)
+            
+        sequence = {}
+        sequence['csv_source'] = csv_file
+        sequence['sequence_id'] = sequence_id
+        sequence['images'] = images
+        sequence['species_present'] = all_species
+        
+        sequences.append(sequence)
         
     # ...for each sequence
 
-# ...def csv_to_json()
+    return sequences
+
+# ...def csv_to_sequences()
 
 
-#%%
+#%% Parse each .csv file into sequences (loop)
 
-# csv_file = csv_files[-1]
-for csv_file in csv_files:
-    csv_to_json(csv_file)
+from multiprocessing.pool import ThreadPool
+n_threads = 1
+
+if n_threads == 1:
+    
+    # csv_file = csv_files[-1]
+    sequences_by_file = []
+    for csv_file in csv_files:
+        sequences = csv_to_sequences(csv_file)
+        sequences_by_file.append(sequences)
+
+else:
+    
+    pool = ThreadPool(n_threads)    
+    sequences_by_file = list(tqdm(pool.imap(csv_to_sequences, csv_files), total=len(csv_files)))
+    
 
 #%% Prepare info
 
@@ -339,12 +434,6 @@ for c in input_categories:
         category_name = 'pronghorn'
     category_name = category_name.lower()
     output_categories.append({'name':category_name,'id':category_id})
-
-
-#%% Minor adjustments to annotations
-
-for ann in input_data['annotations']:
-    ann['id'] = str(ann['id'])
 
 
 #%% Create output
