@@ -90,6 +90,7 @@ endpoint_base = 'http://blah.endpoint.com:6022/v3/camera-trap/detection-batch'
 
 ### Typically left as default
 
+# Pre-pended to all folder names/prefixes, if they're defined below
 container_prefix = ''
 
 # This is how we break the container up into multiple taskgroups, e.g., for
@@ -190,33 +191,49 @@ for folder_name in folder_names:
     json_filename = '{}_{}_all.json'.format(base_task_name,clean_folder_name)
     list_file = os.path.join(filename_base, json_filename)
 
-    prefix = container_prefix + folder_name
+    prefixes = []
     
-    # Handle the case where a "folder" is really a list of folders
-    rsearch = None
-    if folder_prefixes is not None:
-        prefix = container_prefix
-        rsearch = []
-        prefix_list = folder_prefixes[folder_name]
-        for p in prefix_list:
-            rsearch.append('^' + p)
-                    
-    # If this is intended to be a folder, it needs to end in '/', otherwise
-    # files that start with the same string will match too
-    folder_name = folder_name.replace('\\', '/')
-    if len(folder_name) > 0 and (not folder_name.endswith('/')):
-        folder_name = folder_name + '/'
-                
-    images = ai4e_azure_utils.enumerate_blobs_to_file(
-        output_file=list_file,
-        account_name=storage_account_name,
-        container_name=container_name,
-        sas_token=read_only_sas_token,
-        blob_prefix=prefix,
-        rsearch=rsearch)
+    if (len(container_prefix) > 0 and len(folder_name) > 0 and container_prefix[-1] != '/'):
+        print('Warning: no trailing slash in container prefix {} used with folder name {}'.format(
+            container_prefix,folder_name))
+
+    # If we don't/do have multiple prefixes to enumerate for this "folder"              
+    if folder_prefixes is None or len(folder_prefixes) == 0:
+        
+        # If this is intended to be a folder, it needs to end in '/', otherwise
+        # files that start with the same string will match too
+        folder_name = folder_name.replace('\\', '/')
+        if len(folder_name) > 0 and (not folder_name.endswith('/')):
+            folder_name = folder_name + '/'
+               
+        prefixes = [container_prefix + folder_name]
+        
+    else:
+        
+        prefixes = [container_prefix + s for s in folder_prefixes[folder_name]]
+        
+    folder_images = []
+    
+    for prefix in prefixes:
+        print('Enumerating prefix {} for folder {}'.format(prefix,folder_name))
+        prefix_images = ai4e_azure_utils.enumerate_blobs_to_file(
+            output_file=None,
+            account_name=storage_account_name,
+            container_name=container_name,
+            sas_token=read_only_sas_token,
+            blob_prefix=prefix,
+            rsearch=None)
+        folder_images.extend(prefix_images)
+        
+    # ...for each prefix
+    
+    # Write to file
+    ai4e_azure_utils.write_list_to_file(list_file, folder_images)
+        
+    print('Enumerated {} images for folder {}'.format(len(folder_images),folder_name))
     
     file_lists_by_folder.append(list_file)
-    images_by_folder.append(images)
+    images_by_folder.append(folder_images)
 
 # ...for each folder
 
