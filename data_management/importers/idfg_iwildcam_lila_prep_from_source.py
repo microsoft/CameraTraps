@@ -12,13 +12,22 @@
 import json
 import os
 import numpy as np
+
 from tqdm import tqdm
+from bson import json_util
+
+# Multi-threading for .csv file comparison and image existence validation
+from multiprocessing.pool import ThreadPool as Pool
+n_threads = 15
 
 input_base = r'i:\idfg-images'
 output_base = r'h:\idaho-camera-traps'
 
+output_json_original_locations = os.path.join(output_base,'idaho-camera-traps-tmp.json')
+
 # List of images used in the iWildCam competition
 iwildcam_image_list = r"h:\idaho-camera-traps\v0\iWildCam_IDFG_ml.json"
+sequence_info_cache = os.path.join(output_base,'sequence_info.json')
 
 assert os.path.isfile(iwildcam_image_list)
 assert os.path.isdir(input_base)
@@ -153,14 +162,15 @@ def csv_to_sequences(csv_file):
     
     for s in presence_columns:
         if s not in expected_presence_columns:
-            print('Unexpected presence column {} in {}'.format(s,csv_file))
+            assert 'Unexpected presence column {} in {}'.format(s,csv_file)
     for s in expected_presence_columns:
         if s not in presence_columns:
-            print('Missing presence column {} in {}'.format(s,csv_file))
+            assert 'Missing presence column {} in {}'.format(s,csv_file)
     
-    for s in expected_count_columns:
-        if s not in count_columns:
-            print('Missing count column {} in {}'.format(s,csv_file))
+    if False:
+        for s in expected_count_columns:
+            if s not in count_columns:
+                print('Missing count column {} in {}'.format(s,csv_file))
         
     ## Create datetimes
     
@@ -397,9 +407,6 @@ def csv_to_sequences(csv_file):
 
 #%% Parse each .csv file into sequences (loop)
 
-from multiprocessing.pool import ThreadPool
-n_threads = 1
-
 if n_threads == 1:
     
     # csv_file = csv_files[-1]
@@ -410,44 +417,98 @@ if n_threads == 1:
 
 else:
     
-    pool = ThreadPool(n_threads)    
-    sequences_by_file = list(tqdm(pool.imap(csv_to_sequences, csv_files), total=len(csv_files)))
+    pool = Pool(n_threads)
+    sequences_by_file = list(pool.imap(csv_to_sequences,csv_files))
     
 
-#%% Prepare info
+#%% Save sequence data
+
+with open(sequence_info_cache,'w') as f:
+    json.dump(sequences_by_file,f,indent=2,default=json_util.default)
+    
+
+#%% Validate file mapping (based on the existing enumeration)
+
+missing_images = []
+
+# sequences = sequences_by_file[0]
+for sequences in tqdm(sequences_by_file):
+    
+    assert len(sequences) > 0
+    csv_source = sequences[0]['csv_source']
+    csv_file_absolute = os.path.join(input_base,csv_source)
+    csv_folder = os.path.dirname(csv_file_absolute)
+    assert os.path.isfile(csv_file_absolute)
+    
+    # sequence = sequences[0]
+    for sequence in sequences:
+        
+        assert sequence['csv_source'] == csv_source
+        sequence_id = sequence['sequence_id']
+        species_present = sequence['species_present']
+        images = sequence['images']
+        
+        for im in images:
+            
+            image_file_relative = im['file_name']
+            assert '\\' not in image_file_relative and '/' not in image_file_relative
+            image_file_absolute = os.path.join(csv_folder,image_file_relative)
+            
+            # os.startfile(csv_folder)
+            # assert os.path.isfile(image_file_absolute)
+            if not os.path.isfile(image_file_absolute):
+                print('Warning: can\'t find image {}'.format(image_file_absolute))
+                missing_images.append(image_file_absolute)
+
+        # ...for each image
+
+    # ...for each sequence
+
+# ...for each .csv file            
+
+
+#%% Convert to CCT .json (original location names)
+
+annotations = []
+image_ids_to_images = {}
+category_name_to_category = {}
+
+# Force the empty category to be ID 0
+empty_category = {}
+empty_category['id'] = 0
+empty_category['name'] = 'empty'
+category_name_to_category['empty'] = empty_category
+next_category_id = 1
+
+# For each location
+
+    # For each sequence
+    
+        # For each image
+
+images = list(image_ids_to_images.values())
+categories = list(category_name_to_category.values())
+print('Loaded {} annotations in {} categories for {} images'.format(
+    len(annotations),len(categories),len(images)))
+
+        
+#%% Create output
 
 info = {}
-info['contributor'] = 'Images acquired by the Idaho Department of Fish and Game, dataset curated by Sara Beery'
+info['contributor'] = 'Idaho Department of Fish and Game'
 info['description'] = 'Idaho Camera traps'
 info['version'] = '2021.07.19'
 
-
-#%% Minor adjustments to categories
-
-input_categories = input_data['categories']
-output_categories = []
-
-for c in input_categories:
-    category_name = c['name']
-    category_id = c['id']
-    if category_name == 'prong':
-        category_name = 'pronghorn'
-    category_name = category_name.lower()
-    output_categories.append({'name':category_name,'id':category_id})
-
-
-#%% Create output
-
 output_data = {}
-output_data['images'] = input_data['images']
-output_data['annotations'] = input_data['annotations']
-output_data['categories'] = output_categories
+output_data['images'] = images['images']
+output_data['annotations'] = annotations
+output_data['categories'] = categories
 output_data['info'] = info
 
 
 #%% Write output
 
-with open(output_json,'w') as f:
+with open(output_json_original_locations,'w') as f:
     json.dump(output_data,f,indent=2)
     
 
@@ -456,12 +517,12 @@ with open(output_json,'w') as f:
 from data_management.databases import sanity_check_json_db
 
 options = sanity_check_json_db.SanityCheckOptions()
-options.baseDir = remote_image_base_dir
+options.baseDir = input_base
 options.bCheckImageSizes = False
 options.bCheckImageExistence = False
 options.bFindUnusedImages = False
 
-_, _, _ = sanity_check_json_db.sanity_check_json_db(output_json, options)
+_, _, _ = sanity_check_json_db.sanity_check_json_db(output_json_original_locations, options)
 
 
 #%% Preview labels
@@ -477,10 +538,10 @@ viz_options.parallelize_rendering = True
 viz_options.include_filename_links = True
 
 # viz_options.classes_to_exclude = ['test']
-html_output_file, _ = visualize_db.process_images(db_path=output_json,
+html_output_file, _ = visualize_db.process_images(db_path=output_json_original_locations,
                                                          output_dir=os.path.join(
-                                                         base_folder,'preview'),
-                                                         image_base_dir=remote_image_base_dir,
+                                                         output_base,'preview'),
+                                                         image_base_dir=input_base,
                                                          options=viz_options)
 os.startfile(html_output_file)
 
