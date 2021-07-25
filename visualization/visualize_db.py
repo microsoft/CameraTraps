@@ -47,7 +47,7 @@ class DbVizOptions:
     add_search_links = False
     include_filename_links = False
     
-    # These are mutually exclusive
+    # These are mutually exclusive; both are category names, not IDs
     classes_to_exclude = None
     classes_to_include = None
 
@@ -234,7 +234,7 @@ def process_images(db_path,output_dir,image_base_dir,options=None):
         imageClasses = ', '.join(imageCategories)
                 
         file_name = '{}_gt.jpg'.format(img_id.lower().split('.jpg')[0])
-        file_name = file_name.replace('/', '~').replace('\\','~')
+        file_name = file_name.replace('/', '~').replace('\\','~').replace(':','~')
         
         rendering_info.append({'bboxes':bboxes, 'boxClasses':boxClasses, 'img_path':img_path,
                                'output_file_name':file_name})
