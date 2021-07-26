@@ -40,8 +40,10 @@ assert os.path.isfile(iwildcam_image_list)
 assert os.path.isdir(input_base)
 assert os.path.isdir(output_base)
 
-valid_opstates = ['normal','maintenance']
-
+valid_opstates = ['normal','maintenance','snow on lens','foggy lens','foggy weather',
+                  'malfunction','misdirected','snow on lense','poop/slobber','sun','tilted','vegetation obstruction']
+opstate_mappings = {'snow on lense':'snow on lens','poop/slobber':'lens obscured','maintenance':'human'}
+                
 survey_species_presence_columns = ['elkpresent','deerpresent','prongpresent']
 
 presence_to_count_columns = {
@@ -151,6 +153,14 @@ def csv_to_sequences(csv_file):
     df['datetime'] = None
     df['seq_id'] = None
     df['synthetic_frame_number'] = None
+    
+    # Validate the opstate column
+    opstates = set(df['opstate'])
+    for s in opstates:
+        if isinstance(s,str):
+            s = s.strip()
+            if len(s) > 0:
+                assert s in valid_opstates,'Invalid opstate: {}'.format(s)
     
     column_names = list(df.columns)
     
@@ -281,7 +291,8 @@ def csv_to_sequences(csv_file):
         
         # Be conservative; assume humans are present in all maintenance images
         opstates = set(sequence_df['opstate'])
-        assert all([s in valid_opstates for s in opstates])
+        assert all([ ( (isinstance(s,float)) or (len(s.strip())== 0) or (s.strip() in valid_opstates)) for s in opstates]),\
+            'Invalid optstate in: {}'.format(' | '.join(opstates))
         
         for presence_column in presence_columns:
                     
@@ -301,9 +312,17 @@ def csv_to_sequences(csv_file):
         
         # Tally up the standard (survey) species
         survey_species = [s.replace('present','') for s in presence_columns_marked if s != 'otherpresent']
-        if 'maintenance' in opstates and 'human' not in survey_species:
-            survey_species.append('human')
-        
+        for opstate in opstates:
+            if not isinstance(opstate,str):
+                continue
+            opstate = opstate.strip()
+            if len(opstate) == 0:
+                continue
+            if opstate in opstate_mappings:
+                    opstate = opstate_mappings[opstate]                
+            if (opstate != 'normal') and (opstate not in survey_species):
+                survey_species.append(opstate)
+            
         # If no presence columns are marked, all counts should be zero
         if len(presence_columns_marked) == 0:
             
@@ -530,6 +549,7 @@ if __name__ == "__main__":
         annotations = []
         image_id_to_image = {}
         category_name_to_category = {}
+        warned_categories = set()
         
         # Force the empty category to be ID 0
         empty_category = {}
@@ -573,9 +593,10 @@ if __name__ == "__main__":
                     # label; the "unknown" here doesn't mean "another unknown species", it means
                     # there is some other unknown property about the main species.
                     if 'unknown' in species_present and len(species_present) > 1:
-                        assert all([s in category_mappings for s in species_present if s != 'unknown'])
+                        assert all([((s in category_mappings) or (s in valid_opstates) or (s in opstate_mappings.values()))\
+                                    for s in species_present if s != 'unknown'])
                         species_present = [s for s in species_present if s != 'unknown']
-                        
+                    
                     for category_name_string in species_present:
                         
                         # This piece of text had a lot of complicated syntax in it, and it would have 
@@ -584,7 +605,12 @@ if __name__ == "__main__":
                             print('Ignoring category {}'.format(category_name_string))
                             continue
                         
-                        category_name_string = category_mappings[category_name_string]
+                        if category_name_string not in category_mappings:
+                            if category_name_string not in warned_categories:
+                                print('Warning: category {} not in mappings'.format(category_name_string))
+                                warned_categories.add(category_name_string)
+                        else:
+                            category_name_string = category_mappings[category_name_string]
                         assert ',' not in category_name_string
                         
                         category_names = category_name_string.split('+')
@@ -598,9 +624,8 @@ if __name__ == "__main__":
                             if category_name == 'ignore':
                                 continue
                         
-                            category_name = category_name.replace('"','')
-                            
-                            
+                            category_name = category_name.replace('"','')                            
+                                                                            
                             # If we've seen this category before...
                             if category_name in category_name_to_category:
                                     
@@ -617,6 +642,7 @@ if __name__ == "__main__":
                                 category['name'] = category_name
                                 category_name_to_category[category_name] = category
                                 next_category_id += 1
+                                
                             sequence_category_ids.add(category_id)
                             
                         # ...if we have/haven't seen this species before
