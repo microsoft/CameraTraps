@@ -463,8 +463,9 @@ def process_batch_results(options: PostProcessingOptions
 
     if (options.ground_truth_json_file is not None) and (len(options.ground_truth_json_file) > 0):
 
-        assert (not options.separate_detections_by_category), (
-            "I don't know how to separate categories yet when doing a P/R analysis")
+        if options.separate_detections_by_category:
+            print("Warning: I don't know how to separate categories yet when doing a P/R analysis, disabling category separation")
+            options.separate_detections_by_category = False
 
         ground_truth_indexed_db = IndexedJsonDb(
             options.ground_truth_json_file, b_normalize_paths=True,
