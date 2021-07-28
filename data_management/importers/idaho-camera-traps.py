@@ -29,8 +29,13 @@ n_threads = 14
 
 input_base = r'i:\idfg-images'
 output_base = r'h:\idaho-camera-traps'
+output_image_base = r'j:\idaho-camera-traps'
 assert os.path.isdir(input_base)
 assert os.path.isdir(output_base)
+assert os.path.isdir(output_image_base)
+
+output_image_base_public = os.path.join(output_image_base,'public')
+output_image_base_private = os.path.join(output_image_base,'private')
 
 # We are going to map the original filenames/locations to obfuscated strings, but once
 # we've done that, we will re-use the mappings every time we run this script. 
@@ -1075,7 +1080,7 @@ if __name__ == "__main__":
         json.dump(output_data,f,indent=2)
         
     
-    #%% Validate .json file
+    #%% Validate .json file (original files)
 
     from data_management.databases import sanity_check_json_db
 
@@ -1088,7 +1093,7 @@ if __name__ == "__main__":
     _, _, _ = sanity_check_json_db.sanity_check_json_db(output_json_remapped_ids, options)
     
     
-    #%% Preview labels
+    #%% Preview labels (original files)
             
     from visualization import visualize_db
     
@@ -1114,6 +1119,103 @@ if __name__ == "__main__":
 
     #%% Copy images to final output folder
     
+    force_copy = False
+    
+    with open(output_json_remapped_ids,'r') as f:
+        d = json.load(f)
+        
+    images = d['images']
+    
     private_categories = ['human','domestic dog']
     
-    #%% Validate and preview one more time
+    private_image_ids = set()
+
+    category_id_to_name = {c['id']:c['name'] for c in d['categories']}
+    
+    # ann = d['annotations'][0]
+    for ann in d['annotations']:
+        category_name = category_id_to_name[ann['category_id']]
+        if category_name in private_categories:
+            private_image_ids.add(ann['image_id'])
+    
+    # For each image
+    # im = images[0]
+    for im in tqdm(images):
+    
+        input_relative_path = im['file_name']
+        input_absolute_path = os.path.join(input_base,input_relative_path)
+        
+        if not os.path.isfile(input_absolute_path):
+            print('Warning: file {} is not available'.format(input_absolute_path))
+            continue
+        
+        location = im['location']
+        image_id = im['id']
+        
+        location_folder = 'loc_' + location.zfill(4)
+        assert location_folder in image_id
+        
+        output_relative_path =  location_folder + '/' + image_id + '.jpg'
+        
+        # Is this a public or private image?
+        private_image = (image_id in private_image_ids)
+                
+        # Generate absolute path
+        if private_image:
+            output_absolute_path = os.path.join(output_image_base_private,output_relative_path)
+        else:
+            output_absolute_path = os.path.join(output_image_base_public,output_relative_path)
+                
+        # Copy to output
+        output_dir = os.path.dirname(output_absolute_path)
+        os.makedirs(output_dir,exist_ok=True)
+        
+        if force_copy or (not os.path.isfile(output_absolute_path)):
+            shutil.copyfile(input_absolute_path,output_absolute_path)
+    
+        # Update the filename reference
+        im['file_name'] = output_relative_path
+        
+    # ...for each image
+    
+    # Write output .json
+    with open(output_json,'w') as f:
+        json.dump(d,f,indent=1)
+    
+    
+    #%% Validate .json file (final filenames)
+
+    from data_management.databases import sanity_check_json_db
+
+    options = sanity_check_json_db.SanityCheckOptions()
+    options.baseDir = input_base
+    options.bCheckImageSizes = False
+    options.bCheckImageExistence = False
+    options.bFindUnusedImages = False
+
+    _, _, _ = sanity_check_json_db.sanity_check_json_db(output_json, options)
+    
+    
+    #%% Preview labels (final filenames)
+            
+    from visualization import visualize_db
+    
+    viz_options = visualize_db.DbVizOptions()
+    viz_options.num_to_visualize = 1000
+    viz_options.trim_to_images_with_bboxes = False
+    viz_options.add_search_links = False
+    viz_options.sort_by_filename = False
+    viz_options.parallelize_rendering = True
+    viz_options.include_filename_links = True
+    
+    # viz_options.classes_to_exclude = ['empty','deer','elk']
+    # viz_options.classes_to_include = ['bobcat']
+    viz_options.classes_to_include = [viz_options.multiple_categories_tag] 
+    
+    html_output_file, _ = visualize_db.process_images(db_path=output_json,
+                                                             output_dir=os.path.join(
+                                                             output_base,'final-preview'),
+                                                             image_base_dir=input_base,
+                                                             options=viz_options)
+    os.startfile(html_output_file)
+
