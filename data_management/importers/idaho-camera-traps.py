@@ -15,7 +15,8 @@ import numpy as np
 import dateutil 
 import pandas as pd
 import datetime
- 
+import shutil
+
 from tqdm import tqdm
 from bson import json_util
 
@@ -28,22 +29,54 @@ n_threads = 14
 
 input_base = r'i:\idfg-images'
 output_base = r'h:\idaho-camera-traps'
-category_mapping_file = os.path.join(output_base,'category_mapping.csv')
-
-output_json_original_strings = os.path.join(output_base,'idaho-camera-traps-tmp.json')
-
-# List of images used in the iWildCam competition
-iwildcam_image_list = r"h:\idaho-camera-traps\v0\iWildCam_IDFG_ml.json"
-sequence_info_cache = os.path.join(output_base,'sequence_info.json')
-
-assert os.path.isfile(iwildcam_image_list)
 assert os.path.isdir(input_base)
 assert os.path.isdir(output_base)
+
+# We are going to map the original filenames/locations to obfuscated strings, but once
+# we've done that, we will re-use the mappings every time we run this script. 
+force_generate_mappings = False
+
+# This is the file to which mappings get saved
+id_mapping_file = os.path.join(output_base,'id_mapping.json')
+
+# The maximum time (in seconds) between images within which two images are considered the 
+# same sequence.
+max_gap_within_sequence = 30
+
+# This is a two-column file, where each line is [string in the original metadata],[category name we want to map it to]
+category_mapping_file = os.path.join(output_base,'category_mapping.csv')
+
+# The output file, using the original strings
+output_json_original_strings = os.path.join(output_base,'idaho-camera-traps-original-strings.json')
+
+# The output file, using obfuscated strings for everything but filenamed
+output_json_remapped_ids = os.path.join(output_base,'idaho-camera-traps-remapped-ids.json')
+
+# The output file, using obfuscated strings and obfuscated filenames
+output_json = os.path.join(output_base,'idaho-camera-traps.json')
+
+# One time only, I ran MegaDetector on the whole dataset...
+megadetector_results_file = r'H:\idaho-camera-traps\idfg-2021-07-26idaho-camera-traps_detections.json'
+
+# ...then set aside any images that *may* have contained humans that had not already been
+# annotated as such.  Those went in this folder...
+human_review_folder = os.path.join(output_base,'human_review')
+
+# ...and the ones that *actually* had humans (identified via manual review) got
+# copied to this folder...
+human_review_selection_folder = os.path.join(output_base,'human_review_selections')
+
+# ...which was enumerated to this text file, which is a manually-curated list of
+# images that were flagged as human.
+human_review_list = os.path.join(output_base,'human_flagged_images.txt')
+
+# Unopinionated .json conversion of the .csv metadata
+sequence_info_cache = os.path.join(output_base,'sequence_info.json')
 
 valid_opstates = ['normal','maintenance','snow on lens','foggy lens','foggy weather',
                   'malfunction','misdirected','snow on lense','poop/slobber','sun','tilted','vegetation obstruction']
 opstate_mappings = {'snow on lense':'snow on lens','poop/slobber':'lens obscured','maintenance':'human'}
-                
+
 survey_species_presence_columns = ['elkpresent','deerpresent','prongpresent']
 
 presence_to_count_columns = {
@@ -221,7 +254,6 @@ def csv_to_sequences(csv_file):
     
     # print('Creating sequences')
     
-    max_gap_within_sequence = 10
     current_sequence_id = None
     next_frame_number = 0
     previous_datetime = None
@@ -455,297 +487,633 @@ if __name__ == "__main__":
         
         pool = Pool(n_threads)
         sequences_by_file = list(pool.imap(csv_to_sequences,csv_files))
+
+    
+    #%% Save sequence data
         
-    #%%
+    with open(sequence_info_cache,'w') as f:
+        json.dump(sequences_by_file,f,indent=2,default=json_util.default)
+        
+    
+    #%% Load sequence data
+    
+    if False:
+        
+        #%%
+    
+        with open(sequence_info_cache,'r') as f:
+            sequences_by_file = json.load(f,object_hook=json_util.object_hook)
+        
+        
+    #%% Validate file mapping (based on the existing enumeration)
+    
+    missing_images = []
+    image_files_set = set(image_files)
+    n_images_in_sequences = 0
+    sequence_ids = set()
+    
+    # sequences = sequences_by_file[0]
+    for sequences in tqdm(sequences_by_file):
+        
+        assert len(sequences) > 0
+        csv_source = sequences[0]['csv_source']
+        csv_file_absolute = os.path.join(input_base,csv_source)
+        csv_folder = os.path.dirname(csv_file_absolute)
+        assert os.path.isfile(csv_file_absolute)
+        
+        # sequence = sequences[0]
+        for sequence in sequences:
+            
+            assert sequence['csv_source'] == csv_source
+            sequence_id = sequence['sequence_id']
+            assert sequence_id not in sequence_ids
+            sequence_ids.add(sequence_id)
+            
+            species_present = sequence['species_present']
+            images = sequence['images']
+            
+            for im in images:
+        
+                n_images_in_sequences += 1
+                image_file_relative = im['file_name']
+                
+                # Actually, one folder has relative paths
+                # assert '\\' not in image_file_relative and '/' not in image_file_relative
+                
+                image_file_absolute = os.path.join(csv_folder,image_file_relative)
+                image_file_container_relative = os.path.relpath(image_file_absolute,input_base)
+                
+                # os.startfile(csv_folder)
+                # assert os.path.isfile(image_file_absolute)
+                # found_file = os.path.isfile(image_file_absolute)
+                found_file = image_file_container_relative in image_files_set
+                if not found_file:
+                    print('Warning: can\'t find image {}'.format(image_file_absolute))
+                    missing_images.append(image_file_absolute)
+                    
+            # ...for each image
+    
+        # ...for each sequence
+    
+    # ...for each .csv file            
+    
+    print('{} of {} images missing ({} on disk)'.format(len(missing_images),n_images_in_sequences,
+                                                        len(image_files)))
+            
+    
+    #%% Load manual category mappings
+    
+    with open(category_mapping_file,'r') as f:
+        category_mapping_lines = f.readlines()
+        category_mapping_lines = [s.strip() for s in category_mapping_lines]
+
+    category_mappings = {}
+    for s in category_mapping_lines:
+        tokens = s.split(',',1)
+        category_name = tokens[0].strip()
+        category_value = tokens[1].strip().replace('"','').replace(',','+')
+        assert ',' not in category_name
+        assert ',' not in category_value
+        
+        # The second column is blank when the first column already represents the category name
+        if len(category_value) == 0:
+            category_value = category_name
+        category_mappings[category_name] = category_value
+                
+    
+    #%% Convert to CCT .json (original strings)
+            
+    human_flagged_images = []
+    with open(human_review_list,'r') as f:
+        human_flagged_images = f.readlines()
+        human_flagged_images = [s.strip().replace('/','\\') for s in human_flagged_images]
+        human_flagged_images = set(human_flagged_images)
+    print('Read {} human flagged images'.format(len(human_flagged_images)))
+    
+    annotations = []
+    image_id_to_image = {}
+    category_name_to_category = {}
+    
+    # Force the empty category to be ID 0
+    empty_category_id = 0
+    empty_category = {}
+    empty_category['id'] = empty_category_id
+    empty_category['name'] = 'empty'
+    category_name_to_category['empty'] = empty_category
+    
+    human_category_id = 1
+    human_category = {}
+    human_category['id'] = human_category_id
+    human_category['name'] = 'human'
+    category_name_to_category['human'] = human_category
+    
+    next_category_id = 2
+    
+    annotation_ids = set()
+    
+    if False:
+        target_folder = r'ClearCreek_mustelids\Summer2015\FS-035'
+        for sequences in sequences_by_file:
+            if target_folder in sequences[0]['csv_source']:
+                break
+            
+    # For each .csv file...
+    #
+    # sequences = sequences_by_file[0]
+    for sequences in tqdm(sequences_by_file):
+            
+        # For each sequence...
+        #
+        # sequence = sequences[0]
+        for sequence in sequences:
+        
+            species_present = sequence['species_present']
+            species_present = [s.lower().strip().replace(',',';') for s in species_present]
+            
+            sequence_images = sequence['images']
+            location = sequence['location'].lower().strip()
+            sequence_id = sequence['sequence_id']
+            csv_source = sequence['csv_source']
+            csv_folder_relative = os.path.dirname(csv_source)
+            
+            sequence_category_ids = set()
+            
+            # Find categories for this image                
+            if len(species_present) == 0:
+                
+                sequence_category_ids.add(0)
+                assert category_name_to_category['empty']['id'] == list(sequence_category_ids)[0]
+                
+            else:
+                                
+                # When 'unknown' is used in combination with another label, use that
+                # label; the "unknown" here doesn't mean "another unknown species", it means
+                # there is some other unknown property about the main species.
+                if 'unknown' in species_present and len(species_present) > 1:
+                    assert all([((s in category_mappings) or (s in valid_opstates) or (s in opstate_mappings.values()))\
+                                for s in species_present if s != 'unknown'])
+                    species_present = [s for s in species_present if s != 'unknown']
+                                        
+                # category_name_string = species_present[0]
+                for category_name_string in species_present:
+                    
+                    # This piece of text had a lot of complicated syntax in it, and it would have 
+                    # been too complicated to handle in a general way
+                    if 'coyotoes' in category_name_string:
+                        # print('Ignoring category {}'.format(category_name_string))
+                        continue
+                    
+                    if category_name_string not in category_mappings:
+                        assert category_name_string in valid_opstates or category_name_string in opstate_mappings.values()                            
+                    else:
+                        category_name_string = category_mappings[category_name_string]
+                    assert ',' not in category_name_string
+                    
+                    category_names = category_name_string.split('+')
+                    assert len(category_names) <= 2
+                    
+                    # Don't process redundant labels
+                    category_names = set(category_names)
+                    
+                    # category_name = category_names[0]
+                    for category_name in category_names:
+                    
+                        if category_name == 'ignore':
+                            continue
+                    
+                        category_name = category_name.replace('"','')                            
+                                                                        
+                        # If we've seen this category before...
+                        if category_name in category_name_to_category:
+                                
+                            category = category_name_to_category[category_name]
+                            category_id = category['id'] 
+                          
+                        # If this is a new category...
+                        else:
+                            
+                            # print('Adding new category for {}'.format(category_name))
+                            category_id = next_category_id
+                            category = {}
+                            category['id'] = category_id
+                            category['name'] = category_name
+                            category_name_to_category[category_name] = category
+                            next_category_id += 1
+                            
+                        sequence_category_ids.add(category_id)
+                        
+                    # ...for each category (inner)
+                    
+                # ...for each category (outer)
+                    
+            # ...if we do/don't have species in this sequence
+            
+            # We should have at least one category assigned (which may be "empty" or "unknown")
+            assert len(sequence_category_ids) > 0
+               
+            # assert len(sequence_category_ids) > 0
+                        
+            # Was any image in this sequence manually flagged as human?
+            for i_image,im in enumerate(sequence_images):
+                
+                file_name_relative = os.path.join(csv_folder_relative,im['file_name'])
+                if file_name_relative in human_flagged_images:
+                    # print('Flagging sequence {} as human based on manual review'.format(sequence_id))
+                    assert human_category_id not in sequence_category_ids
+                    sequence_category_ids.add(human_category_id)
+                    break   
+                    
+            # For each image in this sequence...
+            # 
+            # i_image = 0; im = images[i_image]
+            for i_image,im in enumerate(sequence_images):
+                
+                image_id = sequence_id + '_' + im['file_name']
+                assert image_id not in image_id_to_image
+                
+                output_im = {}
+                output_im['id'] = image_id
+                output_im['file_name'] = os.path.join(csv_folder_relative,im['file_name'])
+                output_im['seq_id'] = sequence_id
+                output_im['seq_num_frames'] = len(sequence)
+                output_im['frame_num'] = i_image
+                output_im['datetime'] = str(im['datetime'])
+                output_im['location'] = location
+                
+                image_id_to_image[image_id] = output_im
+                
+                # Create annotations for this image
+                for i_ann,category_id in enumerate(sequence_category_ids):
+                    
+                    ann = {}
+                    ann['id'] = 'ann_' + image_id + '_' + str(i_ann)
+                    assert ann['id'] not in annotation_ids
+                    annotation_ids.add(ann['id'])
+                    ann['image_id'] = image_id
+                    ann['category_id'] = category_id
+                    ann['sequence_level_annotation'] = True
+                    annotations.append(ann)
+
+            # ...for each image in this sequence
+
+        # ...for each sequence
+                    
+    # ...for each .csv file
+    
+    images = list(image_id_to_image.values())
+    categories = list(category_name_to_category.values())
+    print('Loaded {} annotations in {} categories for {} images'.format(
+        len(annotations),len(categories),len(images)))
+    
+    # Verify that all images have annotations
+    image_id_to_annotations = defaultdict(list)
+    
+    # ann = ict_data['annotations'][0]
+    
+    # For debugging only
+    categories_to_counts = defaultdict(int)
+    for ann in tqdm(annotations):
+        image_id_to_annotations[ann['image_id']].append(ann)
+        categories_to_counts[ann['category_id']] = categories_to_counts[ann['category_id']] + 1
+        
+    for im in tqdm(images):        
+        image_annotations = image_id_to_annotations[im['id']]
+        assert len(image_annotations) > 0
+        
+    
+    #%% Create output (original strings)
+    
+    info = {}
+    info['contributor'] = 'Idaho Department of Fish and Game'
+    info['description'] = 'Idaho Camera traps'
+    info['version'] = '2021.07.19'
+    
+    output_data = {}
+    output_data['images'] = images
+    output_data['annotations'] = annotations
+    output_data['categories'] = categories
+    output_data['info'] = info
+            
+    with open(output_json_original_strings,'w') as f:
+        json.dump(output_data,f,indent=1)
+        
+    
+    #%% Validate .json file
+
+    from data_management.databases import sanity_check_json_db
+
+    options = sanity_check_json_db.SanityCheckOptions()
+    options.baseDir = input_base
+    options.bCheckImageSizes = False
+    options.bCheckImageExistence = False
+    options.bFindUnusedImages = False
+
+    _, _, _ = sanity_check_json_db.sanity_check_json_db(output_json_original_strings, options)
+    
+    
+    #%% Preview labels
+            
+    from visualization import visualize_db
+    
+    viz_options = visualize_db.DbVizOptions()
+    viz_options.num_to_visualize = 1000
+    viz_options.trim_to_images_with_bboxes = False
+    viz_options.add_search_links = False
+    viz_options.sort_by_filename = False
+    viz_options.parallelize_rendering = True
+    viz_options.include_filename_links = True
+    
+    viz_options.classes_to_exclude = ['empty','deer','elk']
+    html_output_file, _ = visualize_db.process_images(db_path=output_json_original_strings,
+                                                             output_dir=os.path.join(
+                                                             output_base,'preview'),
+                                                             image_base_dir=input_base,
+                                                             options=viz_options)
+    os.startfile(html_output_file)
+    
+    
+    #%% Look for humans that were found by MegaDetector that haven't already been identified as human
+    
+    # This whole step only needed to get run once
     
     if False:
         
         pass
     
-        #%% Save sequence data
+        #%%
         
-        with open(sequence_info_cache,'w') as f:
-            json.dump(sequences_by_file,f,indent=2,default=json_util.default)
+        human_confidence_threshold = 0.5
+        
+        # Load MD results
+        with open(megadetector_results_file,'r') as f:
+            md_results = json.load(f)
             
+        # Get a list of filenames that MD tagged as human
         
-        #%% Validate file mapping (based on the existing enumeration)
-        
-        missing_images = []
-        image_files_set = set(image_files)
-        n_images_in_sequences = 0
-        sequence_ids = set()
-        
-        # sequences = sequences_by_file[0]
-        for sequences in tqdm(sequences_by_file):
+        human_md_categories =\
+            [category_id for category_id in md_results['detection_categories'] if \
+             ((md_results['detection_categories'][category_id] == 'person') or \
+              (md_results['detection_categories'][category_id] == 'vehicle'))]
+        assert len(human_md_categories) == 2
             
-            assert len(sequences) > 0
-            csv_source = sequences[0]['csv_source']
-            csv_file_absolute = os.path.join(input_base,csv_source)
-            csv_folder = os.path.dirname(csv_file_absolute)
-            assert os.path.isfile(csv_file_absolute)
-            
-            # sequence = sequences[0]
-            for sequence in sequences:
-                
-                assert sequence['csv_source'] == csv_source
-                sequence_id = sequence['sequence_id']
-                assert sequence_id not in sequence_ids
-                sequence_ids.add(sequence_id)
-                
-                species_present = sequence['species_present']
-                images = sequence['images']
-                
-                for im in images:
-            
-                    n_images_in_sequences += 1
-                    image_file_relative = im['file_name']
-                    
-                    # Actually, one folder has relative paths
-                    # assert '\\' not in image_file_relative and '/' not in image_file_relative
-                    
-                    image_file_absolute = os.path.join(csv_folder,image_file_relative)
-                    image_file_container_relative = os.path.relpath(image_file_absolute,input_base)
-                    
-                    # os.startfile(csv_folder)
-                    # assert os.path.isfile(image_file_absolute)
-                    # found_file = os.path.isfile(image_file_absolute)
-                    found_file = image_file_container_relative in image_files_set
-                    if not found_file:
-                        print('Warning: can\'t find image {}'.format(image_file_absolute))
-                        missing_images.append(image_file_absolute)
-                        
-                # ...for each image
+        # im = md_results['images'][0]
+        md_human_images = set()
         
-            # ...for each sequence
-        
-        # ...for each .csv file            
-        
-        print('{} of {} images missing ({} on disk)'.format(len(missing_images),n_images_in_sequences,
-                                                            len(image_files)))
-                
-        
-        #%% Load manual category mappings
-        
-        with open(category_mapping_file,'r') as f:
-            category_mapping_lines = f.readlines()
-            category_mapping_lines = [s.strip() for s in category_mapping_lines]
-
-        category_mappings = {}
-        for s in category_mapping_lines:
-            tokens = s.split(',',1)
-            category_name = tokens[0].strip()
-            category_value = tokens[1].strip().replace('"','').replace(',','+')
-            assert ',' not in category_name
-            assert ',' not in category_value
-            
-            # The second column is blank when the first column already represents the category name
-            if len(category_value) == 0:
-                category_value = category_name
-            category_mappings[category_name] = category_value
-                    
-        
-        #%% Convert to CCT .json (original strings)
-                
-        annotations = []
-        image_id_to_image = {}
-        category_name_to_category = {}
-        warned_categories = set()
-        
-        # Force the empty category to be ID 0
-        empty_category = {}
-        empty_category['id'] = 0
-        empty_category['name'] = 'empty'
-        category_name_to_category['empty'] = empty_category
-        next_category_id = 1
-        
-        annotation_ids = set()
-        
-        # For each .csv file...
-        #
-        # sequences = sequences_by_file[0]
-        for sequences in tqdm(sequences_by_file):
-         
-            # For each sequence...
-            #
-            # sequence = sequences[0]
-            for sequence in sequences:
-            
-                species_present = sequence['species_present']
-                species_present = [s.lower().strip().replace(',',';') for s in species_present]
-                
-                sequence_images = sequence['images']
-                location = sequence['location'].lower().strip()
-                sequence_id = sequence['sequence_id']
-                csv_source = sequence['csv_source']
-                csv_folder_relative = os.path.dirname(csv_source)
-                
-                sequence_category_ids = set()
-                
-                # Find categories for this image                
-                if len(species_present) == 0:
-                    
-                    sequence_category_ids = [0]
-                    assert category_name_to_category['empty']['id'] == sequence_category_ids[0]
-                    
+        for im in md_results['images']:
+            if 'detections' not in im:
+                continue
+            if im['max_detection_conf'] < human_confidence_threshold:
+                  continue
+            for detection in im['detections']:
+                if detection['category'] not in human_md_categories:
+                    continue
+                elif detection['conf'] < human_confidence_threshold:
+                    continue
                 else:
-                    
-                    # When 'unknown' is used in combination with another label, use that
-                    # label; the "unknown" here doesn't mean "another unknown species", it means
-                    # there is some other unknown property about the main species.
-                    if 'unknown' in species_present and len(species_present) > 1:
-                        assert all([((s in category_mappings) or (s in valid_opstates) or (s in opstate_mappings.values()))\
-                                    for s in species_present if s != 'unknown'])
-                        species_present = [s for s in species_present if s != 'unknown']
-                    
-                    for category_name_string in species_present:
-                        
-                        # This piece of text had a lot of complicated syntax in it, and it would have 
-                        # been too complicated to handle in a general way
-                        if 'coyotoes' in category_name_string:
-                            print('Ignoring category {}'.format(category_name_string))
-                            continue
-                        
-                        if category_name_string not in category_mappings:
-                            if category_name_string not in warned_categories:
-                                print('Warning: category {} not in mappings'.format(category_name_string))
-                                warned_categories.add(category_name_string)
-                        else:
-                            category_name_string = category_mappings[category_name_string]
-                        assert ',' not in category_name_string
-                        
-                        category_names = category_name_string.split('+')
-                        assert len(category_names) <= 2
-                        
-                        # Don't process redundant labels
-                        category_names = set(category_names)
-                        
-                        for category_name in category_names:
-                        
-                            if category_name == 'ignore':
-                                continue
-                        
-                            category_name = category_name.replace('"','')                            
-                                                                            
-                            # If we've seen this category before...
-                            if category_name in category_name_to_category:
-                                    
-                                category = category_name_to_category[category_name]
-                                category_id = category['id'] 
-                              
-                            # If this is a new category...
-                            else:
-                                
-                                print('Adding new category for {}'.format(category_name))
-                                category_id = next_category_id
-                                category = {}
-                                category['id'] = category_id
-                                category['name'] = category_name
-                                category_name_to_category[category_name] = category
-                                next_category_id += 1
-                                
-                            sequence_category_ids.add(category_id)
-                            
-                        # ...if we have/haven't seen this species before
-                        
-                    # ...for each species present
-                    
-                # ...if we do/don't have species in this image
-                
-                # For each image...
-                # 
-                # i_image = 0; im = images[i_image]
-                for i_image,im in enumerate(sequence_images):
-                    
-                    image_id = sequence_id + '_' + im['file_name']
-                    assert image_id not in image_id_to_image
-                    
-                    output_im = {}
-                    output_im['id'] = image_id
-                    output_im['file_name'] = os.path.join(csv_folder_relative,im['file_name'])
-                    output_im['seq_id'] = sequence_id
-                    output_im['seq_num_frames'] = len(sequence)
-                    output_im['frame_num'] = i_image
-                    output_im['datetime'] = str(im['datetime'])
-                    output_im['location'] = location
-                    
-                    image_id_to_image[image_id] = output_im
-                    
-                    # Create annotations for this image
-                    for i_ann,category_id in enumerate(sequence_category_ids):
-                        
-                        ann = {}
-                        ann['id'] = 'ann_' + image_id + '_' + str(i_ann)
-                        assert ann['id'] not in annotation_ids
-                        ann['image_id'] = image_id
-                        ann['category_id'] = category_id
-                        ann['sequence_level_annotation'] = True
-                        annotations.append(ann)
-
-                # ...for each image in this sequence
-
-            # ...for each sequence
-
-        # ...for each .csv file
-        
-        images = list(image_id_to_image.values())
-        categories = list(category_name_to_category.values())
-        print('Loaded {} annotations in {} categories for {} images'.format(
-            len(annotations),len(categories),len(images)))
-        
-        if False:
-                        
-            with open(category_mapping_file,'w') as f:
-                for c in categories:
-                    f.write(c['name'].replace(',',';') + ',\n')
-                    
-
-        #%% Create output (original strings)
-        
-        info = {}
-        info['contributor'] = 'Idaho Department of Fish and Game'
-        info['description'] = 'Idaho Camera traps'
-        info['version'] = '2021.07.19'
-        
-        output_data = {}
-        output_data['images'] = images
-        output_data['annotations'] = annotations
-        output_data['categories'] = categories
-        output_data['info'] = info
-                
-        with open(output_json_original_strings,'w') as f:
-            json.dump(output_data,f,indent=1)
+                    md_human_images.add(im['file'])
+                    break
             
+            # ...for each detection
+            
+        # ...for each image
         
-        #%% Validate .json file
+        print('MD found {} potential human images (of {})'.format(len(md_human_images),len(md_results['images'])))    
+    
+        # Map images to annotations in ICT
+        
+        with open(output_json_original_strings,'r') as f:
+            ict_data = json.load(f)
+        
+        category_id_to_name = {c['id']:c['name'] for c in categories}
+        
+        image_id_to_annotations = defaultdict(list)
+        
+        # ann = ict_data['annotations'][0]
+        for ann in tqdm(ict_data['annotations']):
+            image_id_to_annotations[ann['image_id']].append(ann)
+            
+        human_ict_categories = ['human']
+        manual_human_images = set()
+        
+        # For every image
+        # im = ict_data['images'][0]
+        for im in tqdm(ict_data['images']):
+                
+            # Does this image already have a human annotation?
+            manual_human = False
+            
+            annotations = image_id_to_annotations[im['id']]
+            assert len(annotations) > 0
+            
+            for ann in annotations:
+                category_name = category_id_to_name[ann['category_id']]
+                if category_name in human_ict_categories:        
+                    manual_human_images.add(im['file_name'].replace('\\','/'))
+            
+            # ...for each annotation
+            
+        # ...for each image
+        
+        print('{} images identified as human in source metadata'.format(len(manual_human_images)))
+            
+        missing_human_images = []
+        
+        for fn in md_human_images:
+            if fn not in manual_human_images:
+                missing_human_images.append(fn)
+        
+        print('{} potentially untagged human images'.format(len(missing_human_images)))
+    
+    
+        #%% Copy images for review to a new folder
+                
+        os.makedirs(human_review_folder,exist_ok=True)
+        missing_human_images.sort()
+        
+        # fn = missing_human_images[0]
+        for i_image,fn in enumerate(tqdm(missing_human_images)):
+            input_fn_absolute = os.path.join(input_base,fn).replace('\\','/')
+            assert os.path.isfile(input_fn_absolute)
+            output_path = os.path.join(human_review_folder,str(i_image).zfill(4) + '_' + fn.replace('/','~'))
+            shutil.copyfile(input_fn_absolute,output_path)
+        
+        
+        #%% Manual step...
+        
+        # Copy any images from that list that have humans in them to...
+        human_review_folder = r'H:\idaho-camera-traps\human_review_selections'
+        assert os.path.isdir(human_review_folder)
+        
+        
+        #%% Create a list of the images we just manually flagged
+        
+        human_tagged_filenames = os.listdir(human_review_selection_folder)
+        human_tagged_relative_paths = []
+        # fn = human_tagged_filenames[0]
+        for fn in human_tagged_filenames:
+            
+            # E.g. '0000_Beaverhead_elk~AM174~Trip 1~100RECNX~IMG_1397.JPG'
+            relative_path = fn[5:].replace('~','/')
+            human_tagged_relative_paths.append(relative_path)
+        
+        with open(human_review_list,'w') as f:
+            for s in human_tagged_relative_paths:
+                f.write(s + '\n')
+            
 
-        from data_management.databases import sanity_check_json_db
+    #%% Translate location, image, sequence IDs
+    
+    # Load mappings if available        
+    if (not force_generate_mappings) and (os.path.isfile(id_mapping_file)):
+        
+        print('Loading ID mappings from {}'.format(id_mapping_file))
+        
+        with open(id_mapping_file,'r') as f:
+            mappings = json.load(f)
+    
+        image_id_mappings = mappings['image_id_mappings']
+        annotation_id_mappings = mappings['annotation_id_mappings']
+        location_id_mappings = mappings['location_id_mappings']
+        sequence_id_mappings = mappings['sequence_id_mappings']
+        
+    else:
+        
+        # Generate mappings
+        mappings = {}
+        
+        next_location_id = 0
+        location_id_string_to_n_sequences = defaultdict(int)
+        location_id_string_to_n_images = defaultdict(int)
+        
+        image_id_mappings = {}
+        annotation_id_mappings = {}
+        location_id_mappings = {}
+        sequence_id_mappings = {}
+        
+        for im in tqdm(images):
+                            
+            # If we've seen this location before...
+            if im['location'] in location_id_mappings:
+                location_id = location_id_mappings[im['location']]
+            else:
+                # Otherwise assign a string-formatted int as the ID
+                location_id = str(next_location_id)
+                
+                location_id_mappings[im['location']] = location_id
+                next_location_id += 1
+            
+            # If we've seen this sequence before...
+            if im['seq_id'] in sequence_id_mappings:
+                sequence_id = sequence_id_mappings[im['seq_id']]
+            else:
+                # Otherwise assign a string-formatted int as the ID
+                n_sequences_this_location = location_id_string_to_n_sequences[location_id]
+                sequence_id = 'loc_{}_seq_{}'.format(location_id.zfill(4),str(n_sequences_this_location).zfill(6))
+                sequence_id_mappings[im['seq_id']] = sequence_id
+                
+                n_sequences_this_location += 1
+                location_id_string_to_n_sequences[location_id] = n_sequences_this_location
+                
+            assert im['id'] not in image_id_mappings
+            
+            # Assign an image ID
+            
+            n_images_this_location = location_id_string_to_n_images[location_id]                
+            image_id_mappings[im['id']] = 'loc_{}_im_{}'.format(location_id.zfill(4),str(n_images_this_location).zfill(6))
+            
+            n_images_this_location += 1
+            location_id_string_to_n_images[location_id] = n_images_this_location
+        
+        # ...for each image
+        
+        # Assign annotation mappings
+        for i_ann,ann in enumerate(tqdm(annotations)):
+            assert ann['image_id'] in image_id_mappings
+            assert ann['id'] not in annotation_id_mappings
+            annotation_id_mappings[ann['id']] = 'ann_{}'.format(str(i_ann).zfill(8))
+            
+        mappings['image_id_mappings'] = image_id_mappings
+        mappings['annotation_id_mappings'] = annotation_id_mappings
+        mappings['location_id_mappings'] = location_id_mappings
+        mappings['sequence_id_mappings'] = sequence_id_mappings
+                    
+        # Save mappings
+        with open(id_mapping_file,'w') as f:
+            json.dump(mappings,f,indent=2)
+            
+        print('Saved ID mappings to {}'.format(id_mapping_file))
+       
+        # Back this file up, lest we should accidentally re-run this script with force_generate_mappings = True
+        # and overwrite the mappings we used.
+        datestr = str(datetime.datetime.now()).replace(':','-')
+        backup_file = id_mapping_file.replace('.json','_' + datestr + '.json')
+        shutil.copyfile(id_mapping_file,backup_file)
+        
+    # ...if we are/aren't re-generating mappings
+    
+    
+    #%% Apply mappings
+    
+    for im in images:
+        im['id'] = image_id_mappings[im['id']]
+        im['seq_id'] = sequence_id_mappings[im['seq_id']]
+        im['location'] = location_id_mappings[im['location']]
+    for ann in annotations:
+        ann['id'] = annotation_id_mappings[ann['id']]
+        ann['image_id'] = image_id_mappings[ann['image_id']]
+    
+    
+    #%% Write new dictionaries
+    
+    output_data = {}
+    output_data['images'] = images
+    output_data['annotations'] = annotations
+    output_data['categories'] = categories
+    output_data['info'] = info
+    
+    with open(output_json_remapped_ids,'w') as f:
+        json.dump(output_data,f,indent=2)
+        
+    
+    #%% Validate .json file
 
-        options = sanity_check_json_db.SanityCheckOptions()
-        options.baseDir = input_base
-        options.bCheckImageSizes = False
-        options.bCheckImageExistence = False
-        options.bFindUnusedImages = False
+    from data_management.databases import sanity_check_json_db
 
-        _, _, _ = sanity_check_json_db.sanity_check_json_db(output_json_original_strings, options)
-        
-        
-        #%% Preview labels
-        
-        from visualization import visualize_db
-        
-        viz_options = visualize_db.DbVizOptions()
-        viz_options.num_to_visualize = 1000
-        viz_options.trim_to_images_with_bboxes = False
-        viz_options.add_search_links = False
-        viz_options.sort_by_filename = False
-        viz_options.parallelize_rendering = True
-        viz_options.include_filename_links = True
-        
-        viz_options.classes_to_exclude = ['empty','deer','elk']
-        html_output_file, _ = visualize_db.process_images(db_path=output_json_original_strings,
-                                                                 output_dir=os.path.join(
-                                                                 output_base,'preview'),
-                                                                 image_base_dir=input_base,
-                                                                 options=viz_options)
-        os.startfile(html_output_file)
-        
+    options = sanity_check_json_db.SanityCheckOptions()
+    options.baseDir = input_base
+    options.bCheckImageSizes = False
+    options.bCheckImageExistence = False
+    options.bFindUnusedImages = False
+
+    _, _, _ = sanity_check_json_db.sanity_check_json_db(output_json_remapped_ids, options)
+    
+    
+    #%% Preview labels
+            
+    from visualization import visualize_db
+    
+    viz_options = visualize_db.DbVizOptions()
+    viz_options.num_to_visualize = 1000
+    viz_options.trim_to_images_with_bboxes = False
+    viz_options.add_search_links = False
+    viz_options.sort_by_filename = False
+    viz_options.parallelize_rendering = True
+    viz_options.include_filename_links = True
+    
+    # viz_options.classes_to_exclude = ['empty','deer','elk']
+    # viz_options.classes_to_include = ['bobcat']
+    viz_options.classes_to_include = [viz_options.multiple_categories_tag] 
+    
+    html_output_file, _ = visualize_db.process_images(db_path=output_json_remapped_ids,
+                                                             output_dir=os.path.join(
+                                                             output_base,'preview'),
+                                                             image_base_dir=input_base,
+                                                             options=viz_options)
+    os.startfile(html_output_file)
+
+
+    #%% Copy images to final output folder
+    
+    private_categories = ['human','domestic dog']
+    
+    #%% Validate and preview one more time
