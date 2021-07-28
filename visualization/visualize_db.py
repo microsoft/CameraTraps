@@ -50,6 +50,9 @@ class DbVizOptions:
     # These are mutually exclusive; both are category names, not IDs
     classes_to_exclude = None
     classes_to_include = None
+    
+    # Special tag used to say "show me all images with multiple categories"
+    multiple_categories_tag = '*multiple*'
 
     # We sometimes flatten image directories by replacing a path separator with 
     # another character.  Leave blank for the typical case where this isn't necessary.
@@ -146,12 +149,16 @@ def process_images(db_path,output_dir,image_base_dir,options=None):
                     if excludedClass in classes:
                        bValidClass[iImage] = False
                        break
-            elif options.classes_to_include is not None:       
+            elif options.classes_to_include is not None:
                 bValidClass[iImage] = False
-                for c in classes:
-                    if c in options.classes_to_include:
-                        bValidClass[iImage] = True
-                        break                        
+                if options.multiple_categories_tag in options.classes_to_include:
+                    if len(classes) > 1:
+                        bValidClass[iImage] = True        
+                if not bValidClass[iImage]:
+                    for c in classes:
+                        if c in options.classes_to_include:
+                            bValidClass[iImage] = True
+                            break                        
             else:
                 raise ValueError('Illegal include/exclude combination')
                 
