@@ -23,7 +23,7 @@ from collections import defaultdict
 from multiprocessing.pool import Pool as Pool
 from multiprocessing.pool import ThreadPool as ThreadPool
 n_threads = 14
-n_threads_file_copy = 1
+n_threads_file_copy = 20
 
 input_base = r'i:\idfg-images'
 output_base = r'h:\idaho-camera-traps'
@@ -535,7 +535,7 @@ if __name__ == "__main__":
     sequence_ids = set()
     
     # sequences = sequences_by_file[0]
-    for sequences in tqdm(sequences_by_file):
+    for i_sequences,sequences in enumerate(tqdm(sequences_by_file)):
         
         assert len(sequences) > 0
         csv_source = sequences[0]['csv_source']
@@ -544,11 +544,16 @@ if __name__ == "__main__":
         assert os.path.isfile(csv_file_absolute)
         
         # sequence = sequences[0]
-        for sequence in sequences:
+        for i_sequence,sequence in enumerate(sequences):
             
             assert sequence['csv_source'] == csv_source
             sequence_id = sequence['sequence_id']
-            assert sequence_id not in sequence_ids
+            if sequence_id in sequence_ids:
+                print('Warning: duplicate sequence for {}, creating new sequence'.format(sequence_id))
+                sequence['sequence_id'] = sequence['sequence_id'] + '_' + str(i_sequences) + '_' + str(i_sequence)
+                sequence_id = sequence['sequence_id']
+                assert sequence_id not in sequence_ids
+                
             sequence_ids.add(sequence_id)
             
             species_present = sequence['species_present']
@@ -807,7 +812,7 @@ if __name__ == "__main__":
     
     info = {}
     info['contributor'] = 'Idaho Department of Fish and Game'
-    info['description'] = 'Idaho Camera traps'
+    info['description'] = 'Idaho Camera traps'    
     info['version'] = '2021.07.19'
     
     output_data = {}
@@ -1084,8 +1089,10 @@ if __name__ == "__main__":
         ann['id'] = annotation_id_mappings[ann['id']]
         ann['image_id'] = image_id_mappings[ann['image_id']]
     
+    print('Applied mappings')
     
-    #%% Write new dictionaries
+    
+    #%% Write new dictionaries (modified strings, original files)
     
     output_data = {}
     output_data['images'] = images
@@ -1097,7 +1104,7 @@ if __name__ == "__main__":
         json.dump(output_data,f,indent=2)
         
     
-    #%% Validate .json file (original files)
+    #%% Validate .json file (modified strings, original files)
 
     from data_management.databases import sanity_check_json_db
 
@@ -1199,19 +1206,37 @@ if __name__ == "__main__":
     #%% Copy images to final output folder (execution)
         
     # For each image
-    # im = images[0]
     if n_threads_file_copy == 1:
+        # im = images[0]
         for im in tqdm(images):    
             process_image(im)
     else:
         pool = ThreadPool(n_threads_file_copy)
-        pool.imap(process_image,images)
+        pool.map(process_image,images)
 
+    print('Finished copying, writing .json output')
+    
     # Write output .json
     with open(output_json,'w') as f:
         json.dump(d,f,indent=1)
     
     
+    #%% Make sure the right number of images got there
+    
+    from pathlib import Path
+    all_output_files = []
+    all_output_files_list = os.path.join(output_base,'all_output_files.json')
+    
+    for path in Path(output_image_base).rglob('*.*'):
+        path = str(path)
+        path = os.path.relpath(path,output_image_base)
+        all_output_files.append(path)
+    with open(all_output_files_list,'w') as f:
+        json.dump(all_output_files,f,indent=1)
+
+    print('Enumerated {} output files (of {} images)'.format(len(all_output_files),len(images)))
+
+
     #%% Validate .json file (final filenames)
 
     from data_management.databases import sanity_check_json_db
@@ -1230,7 +1255,7 @@ if __name__ == "__main__":
     from visualization import visualize_db
     
     viz_options = visualize_db.DbVizOptions()
-    viz_options.num_to_visualize = None
+    viz_options.num_to_visualize = 1500
     viz_options.trim_to_images_with_bboxes = False
     viz_options.add_search_links = False
     viz_options.sort_by_filename = False
@@ -1241,20 +1266,69 @@ if __name__ == "__main__":
     viz_options.classes_to_include = ['bear','mountain lion']
     # viz_options.classes_to_include = ['horse']
     # viz_options.classes_to_include = [viz_options.multiple_categories_tag] 
-    # viz_options.classes_to_include = ['domestic dog'] 
+    # viz_options.classes_to_include = ['human','vehicle','domestic dog'] 
     
     html_output_file, _ = visualize_db.process_images(db_path=output_json,
                                                              output_dir=os.path.join(
-                                                             output_base,'final-preview'),
+                                                             output_base,'final-preview-01'),
                                                              image_base_dir=output_image_base_public,
                                                              options=viz_options)
     os.startfile(html_output_file)
 
-    #%% Find a thumbnail
+
+    #%% Create zipfiles
+    
+    ## List public files
+    from pathlib import Path
+    all_public_output_files = []
+    all_public_output_files_list = os.path.join(output_base,'all_public_output_files.json')
+    
+    if not os.path.isfile(all_public_output_files_list):
+        for path in Path(output_image_base_public).rglob('*.*'):
+            path = str(path)
+            path = os.path.relpath(path,output_image_base)
+            all_public_output_files.append(path)
+        with open(all_public_output_files_list,'w') as f:
+            json.dump(all_public_output_files,f,indent=1)
+    else:
+        with open(all_public_output_files_list,'r') as f:
+            all_public_output_files = json.load(f)
+            
+    print('Enumerated {} public output files (of {} total)'.format(len(all_public_output_files),len(all_output_files)))
+
+
+    #%% Split into chunks of approximately-equal size
+
+    n_parts = 6
+    
+    file_lists = np.array_split(all_public_output_files,n_parts)
+    file_lists = [list(x) for x in file_lists]
+    
+    assert sum([len(l) for l in file_lists]) == len(all_public_output_files)
         
-    with open(output_json,'r') as f:
-        d = json.load(f)
     
-    #%%
+    #%% Create a zipfile for each chunk
     
-    categories = d['categories']
+    from zipfile import ZipFile
+    import zipfile
+    import os
+    
+    # i_file_list = 0; file_list = file_lists[i_file_list]
+    for i_file_list,file_list in enumerate(file_lists): 
+        
+        print('Processing archive {}'.format(i_file_list))
+        zipfile_name = os.path.join('k:\\idaho-camera-traps-images.part{}.zip'.format(i_file_list))
+        
+        with ZipFile(zipfile_name, 'w') as zipObj:
+            
+            for filename_relative in tqdm(file_list):
+           
+                assert filename_relative.startswith('public')
+                filename_absolute = os.path.join(output_image_base,filename_relative)
+                zipObj.write(filename_absolute.replace('\\','/'), filename_relative, compress_type=zipfile.ZIP_STORED)
+                
+            # ...for each filename
+            
+        # with ZipFile()
+        
+    # ...for each list of files
