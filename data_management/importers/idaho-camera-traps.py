@@ -1,10 +1,7 @@
 #
-# idfg_iwildcam_lila_prep.py
+# idaho-camera-traps.py
 #
-# Adding class labels (from the private test .csv) to the iWildCam 2019 IDFG 
-# test set, in preparation for release on LILA.
-#
-# This version works from the iWildCam source images.
+# Prepare the Idaho Camera Traps dataset for release on LILA.
 #
 
 #%% Imports and constants
@@ -23,13 +20,14 @@ from bson import json_util
 from collections import defaultdict
 
 # Multi-threading for .csv file comparison and image existence validation
-# from multiprocessing.pool import ThreadPool as Pool
 from multiprocessing.pool import Pool as Pool
+from multiprocessing.pool import ThreadPool as ThreadPool
 n_threads = 14
+n_threads_file_copy = 1
 
 input_base = r'i:\idfg-images'
 output_base = r'h:\idaho-camera-traps'
-output_image_base = r'j:\idaho-camera-traps'
+output_image_base = r'j:\idaho-camera-traps-output'
 assert os.path.isdir(input_base)
 assert os.path.isdir(output_base)
 assert os.path.isdir(output_image_base)
@@ -184,7 +182,26 @@ def csv_to_sequences(csv_file):
     sequences = []
     # survey = csv_file.split('\\')[0]
 
-    location_name = '_'.join(csv_file.split('\\')[0:-1]).replace(' ','')
+    # Sample paths from which we need to derive locations:
+    #
+    # St.Joe_elk\AM99\Trip 1\100RECNX\TimelapseData.csv
+    # Beaverhead_elk\AM34\Trip 1\100RECNX\TimelapseData.csv
+    #
+    # ClearCreek_mustelids\Winter2015-16\FS-001-P\FS-001-P.csv
+    # ClearCreek_mustelids\Summer2015\FS-001\FS-001.csv
+    # ClearCreek_mustelids\Summer2016\IDFG-016\IDFG-016.csv
+    #
+    # I:\idfg-images\ClearCreek_mustelids\Summer2016\IDFG-017b
+    # I:\idfg-images\ClearCreek_mustelids\Summer2016\IDFG-017a
+    if 'St.Joe_elk' in csv_file or 'Beaverhead_elk' in csv_file:
+        location_name = '_'.join(csv_file.split('\\')[0:2]).replace(' ','')
+    else:
+        assert 'ClearCreek_mustelids' in csv_file
+        tokens = csv_file.split('\\') 
+        assert 'FS-' in tokens[2] or 'IDFG-' in tokens[2]
+        location_name = '_'.join([tokens[0],tokens[2]]).replace('-P','')
+        if location_name.endswith('017a') or location_name.endswith('017b'):
+            location_name = location_name[:-1]
     
     # Load .csv file
     df = pd.read_csv(csv_file_absolute)
@@ -1117,7 +1134,7 @@ if __name__ == "__main__":
     os.startfile(html_output_file)
 
 
-    #%% Copy images to final output folder
+    #%% Copy images to final output folder (prep)
     
     force_copy = False
     
@@ -1126,7 +1143,7 @@ if __name__ == "__main__":
         
     images = d['images']
     
-    private_categories = ['human','domestic dog']
+    private_categories = ['human','domestic dog','vehicle']
     
     private_image_ids = set()
 
@@ -1138,16 +1155,16 @@ if __name__ == "__main__":
         if category_name in private_categories:
             private_image_ids.add(ann['image_id'])
     
-    # For each image
-    # im = images[0]
-    for im in tqdm(images):
+    print('Moving {} of {} images to the private folder'.format(len(private_image_ids),len(images)))
     
+    def process_image(im):
+        
         input_relative_path = im['file_name']
         input_absolute_path = os.path.join(input_base,input_relative_path)
         
         if not os.path.isfile(input_absolute_path):
             print('Warning: file {} is not available'.format(input_absolute_path))
-            continue
+            return
         
         location = im['location']
         image_id = im['id']
@@ -1175,9 +1192,21 @@ if __name__ == "__main__":
     
         # Update the filename reference
         im['file_name'] = output_relative_path
-        
-    # ...for each image
+
+    # ...def process_image(im)
     
+    
+    #%% Copy images to final output folder (execution)
+        
+    # For each image
+    # im = images[0]
+    if n_threads_file_copy == 1:
+        for im in tqdm(images):    
+            process_image(im)
+    else:
+        pool = ThreadPool(n_threads_file_copy)
+        pool.imap(process_image,images)
+
     # Write output .json
     with open(output_json,'w') as f:
         json.dump(d,f,indent=1)
@@ -1197,11 +1226,11 @@ if __name__ == "__main__":
     
     
     #%% Preview labels (final filenames)
-            
+    
     from visualization import visualize_db
     
     viz_options = visualize_db.DbVizOptions()
-    viz_options.num_to_visualize = 1000
+    viz_options.num_to_visualize = None
     viz_options.trim_to_images_with_bboxes = False
     viz_options.add_search_links = False
     viz_options.sort_by_filename = False
@@ -1209,13 +1238,23 @@ if __name__ == "__main__":
     viz_options.include_filename_links = True
     
     # viz_options.classes_to_exclude = ['empty','deer','elk']
-    # viz_options.classes_to_include = ['bobcat']
-    viz_options.classes_to_include = [viz_options.multiple_categories_tag] 
+    viz_options.classes_to_include = ['bear','mountain lion']
+    # viz_options.classes_to_include = ['horse']
+    # viz_options.classes_to_include = [viz_options.multiple_categories_tag] 
+    # viz_options.classes_to_include = ['domestic dog'] 
     
     html_output_file, _ = visualize_db.process_images(db_path=output_json,
                                                              output_dir=os.path.join(
                                                              output_base,'final-preview'),
-                                                             image_base_dir=input_base,
+                                                             image_base_dir=output_image_base_public,
                                                              options=viz_options)
     os.startfile(html_output_file)
 
+    #%% Find a thumbnail
+        
+    with open(output_json,'r') as f:
+        d = json.load(f)
+    
+    #%%
+    
+    categories = d['categories']
