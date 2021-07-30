@@ -1278,7 +1278,8 @@ if __name__ == "__main__":
 
     #%% Create zipfiles
     
-    ## List public files
+    #%% List public files
+    
     from pathlib import Path
     all_public_output_files = []
     all_public_output_files_list = os.path.join(output_base,'all_public_output_files.json')
@@ -1294,18 +1295,62 @@ if __name__ == "__main__":
         with open(all_public_output_files_list,'r') as f:
             all_public_output_files = json.load(f)
             
-    print('Enumerated {} public output files (of {} total)'.format(len(all_public_output_files),len(all_output_files)))
+    print('Enumerated {} public output files'.format(len(all_public_output_files)))
 
 
+    #%% Find the size of each file
+    
+    filename_to_size = {}
+    
+    all_public_output_sizes_list = os.path.join(output_base,'all_public_output_sizes.json')
+    
+    if not os.path.isfile(all_public_output_sizes_list):
+        # fn = all_public_output_files[0]
+        for fn in tqdm(all_public_output_files):
+            p = os.path.join(output_image_base,fn)
+            assert os.path.isfile(p)
+            filename_to_size[fn] = os.path.getsize(p)
+            
+        with open(all_public_output_sizes_list,'w') as f:
+            json.dump(filename_to_size,f,indent=1)
+    else:
+        with open(all_public_output_sizes_list,'r') as f:
+            filename_to_size = json.load(f)
+                
+    assert len(filename_to_size) == len(all_public_output_files)
+    
+    
     #%% Split into chunks of approximately-equal size
-
-    n_parts = 6
     
-    file_lists = np.array_split(all_public_output_files,n_parts)
-    file_lists = [list(x) for x in file_lists]
+    import humanfriendly
+    total_size = sum(filename_to_size.values())
+    print('{} in {} files'.format(humanfriendly.format_size(total_size),len(all_public_output_files)))
     
+    bytes_per_part = 320e9
+    
+    file_lists = []
+        
+    current_file_list = []
+    n_bytes_current_file_list = 0
+    
+    for fn in all_public_output_files:
+        size = filename_to_size[fn]
+        current_file_list.append(fn)
+        n_bytes_current_file_list += size
+        if n_bytes_current_file_list > bytes_per_part:
+            file_lists.append(current_file_list)
+            current_file_list = []
+            n_bytes_current_file_list = 0
+    # ...for each file
+    
+    file_lists.append(current_file_list)
+            
     assert sum([len(l) for l in file_lists]) == len(all_public_output_files)
         
+    print('List sizes:')
+    for l in file_lists:
+        print(len(l))
+    
     
     #%% Create a zipfile for each chunk
     
@@ -1313,15 +1358,16 @@ if __name__ == "__main__":
     import zipfile
     import os
     
-    # i_file_list = 0; file_list = file_lists[i_file_list]
-    for i_file_list,file_list in enumerate(file_lists): 
+    def create_zipfile(i_file_list):
         
-        print('Processing archive {}'.format(i_file_list))
-        zipfile_name = os.path.join('k:\\idaho-camera-traps-images.part{}.zip'.format(i_file_list))
+        file_list = file_lists[i_file_list]
+        zipfile_name = os.path.join('k:\\idaho-camera-traps-images.part_{}.zip'.format(i_file_list))
+        
+        print('Processing archive {} to file {}'.format(i_file_list,zipfile_name))
         
         with ZipFile(zipfile_name, 'w') as zipObj:
             
-            for filename_relative in tqdm(file_list):
+            for filename_relative in file_list:
            
                 assert filename_relative.startswith('public')
                 filename_absolute = os.path.join(output_image_base,filename_relative)
@@ -1331,4 +1377,16 @@ if __name__ == "__main__":
             
         # with ZipFile()
         
-    # ...for each list of files
+    # ...def create_zipfile()
+    
+    # i_file_list = 0; file_list = file_lists[i_file_list]
+    
+    n_zip_threads = 1 # len(file_lists)
+    if n_zip_threads == 1:
+        for i_file_list in range(0,len(file_lists)):
+            create_zipfile(i_file_list)
+    else:
+        pool = ThreadPool(n_zip_threads)
+        indices = list(range(0,len(file_lists)))
+        pool.map(create_zipfile,indices)
+    
