@@ -1261,7 +1261,10 @@ def process_batch_results(options: PostProcessingOptions
             filename = result_set_name + '.html'
             label = result_set_name_to_friendly_name(result_set_name)
             image_count = image_counts[result_set_name]
-            image_fraction = image_count / total_images
+            if total_images == 0:
+                image_fraction = -1
+            else:
+                image_fraction = image_count / total_images
             index_page += '<a href="{}">{}</a> ({}, {:.1%})<br/>\n'.format(
                 filename,label,image_count,image_fraction)
 
