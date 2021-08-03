@@ -41,7 +41,8 @@ error_names_for_retry = ['ConnectionError']
 #%% Functions
 
 def open_image(input_file: Union[str, BytesIO]) -> Image:
-    """Opens an image in binary format using PIL.Image and converts to RGB mode.
+    """
+    Opens an image in binary format using PIL.Image and converts to RGB mode.
 
     This operation is lazy; image will not be actually loaded until the first
     operation that needs to load it (for example, resizing), so file opening
@@ -89,9 +90,11 @@ def open_image(input_file: Union[str, BytesIO]) -> Image:
         # PIL.Image.convert() returns a converted copy of this image
         image = image.convert(mode='RGB')
 
-    # alter orientation as needed according to EXIF tag 0x112 (274) for Orientation
+    # Alter orientation as needed according to EXIF tag 0x112 (274) for Orientation
+    #
     # https://gist.github.com/dangtrinhnt/a577ece4cbe5364aad28
     # https://www.media.mit.edu/pia/Research/deepview/exif.html
+    #
     try:
         exif = image._getexif()
         orientation: int = exif.get(274, None)  # 274 is the key for the Orientation field
@@ -104,7 +107,8 @@ def open_image(input_file: Union[str, BytesIO]) -> Image:
 
 
 def load_image(input_file: Union[str, BytesIO]) -> Image:
-    """Loads the image at input_file as a PIL Image into memory.
+    """
+    Loads the image at input_file as a PIL Image into memory.
 
     Image.open() used in open_image() is lazy and errors will occur downstream
     if not explicitly loaded.

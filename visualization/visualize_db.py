@@ -47,9 +47,12 @@ class DbVizOptions:
     add_search_links = False
     include_filename_links = False
     
-    # These are mutually exclusive
+    # These are mutually exclusive; both are category names, not IDs
     classes_to_exclude = None
     classes_to_include = None
+    
+    # Special tag used to say "show me all images with multiple categories"
+    multiple_categories_tag = '*multiple*'
 
     # We sometimes flatten image directories by replacing a path separator with 
     # another character.  Leave blank for the typical case where this isn't necessary.
@@ -146,12 +149,16 @@ def process_images(db_path,output_dir,image_base_dir,options=None):
                     if excludedClass in classes:
                        bValidClass[iImage] = False
                        break
-            elif options.classes_to_include is not None:       
+            elif options.classes_to_include is not None:
                 bValidClass[iImage] = False
-                for c in classes:
-                    if c in options.classes_to_include:
-                        bValidClass[iImage] = True
-                        break                        
+                if options.multiple_categories_tag in options.classes_to_include:
+                    if len(classes) > 1:
+                        bValidClass[iImage] = True        
+                if not bValidClass[iImage]:
+                    for c in classes:
+                        if c in options.classes_to_include:
+                            bValidClass[iImage] = True
+                            break                        
             else:
                 raise ValueError('Illegal include/exclude combination')
                 
@@ -234,7 +241,7 @@ def process_images(db_path,output_dir,image_base_dir,options=None):
         imageClasses = ', '.join(imageCategories)
                 
         file_name = '{}_gt.jpg'.format(img_id.lower().split('.jpg')[0])
-        file_name = file_name.replace('/', '~').replace('\\','~')
+        file_name = file_name.replace('/', '~').replace('\\','~').replace(':','~')
         
         rendering_info.append({'bboxes':bboxes, 'boxClasses':boxClasses, 'img_path':img_path,
                                'output_file_name':file_name})
@@ -245,6 +252,8 @@ def process_images(db_path,output_dir,image_base_dir,options=None):
             
         if 'frame_num' in img and 'seq_num_frames' in img:
             frameString = ' frame: {} of {}, '.format(img['frame_num'],img['seq_num_frames'])
+        else:
+            frameString = ' (no sequence information available)'
         
         filename_text = img_relative_path
         if options.include_filename_links:
