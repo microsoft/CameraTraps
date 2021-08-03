@@ -342,7 +342,9 @@ def main():
 
     output_dir = os.path.dirname(args.output_file)
 
-    assert os.path.exists(output_dir), 'Invalid output filename (folder does not exist)'
+    if len(output_dir) > 0:
+        os.makedirs(output_dir,exist_ok=True)
+        
     assert not os.path.isdir(args.output_file), 'Specified output file is a directory'
 
     # Test that we can write to the output_file's dir if checkpointing requested
