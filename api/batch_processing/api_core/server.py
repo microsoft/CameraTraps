@@ -88,20 +88,16 @@ def request_detections():
         if result is not None:
             return make_error(result[0], result[1])
 
+    # can be an URL to a file not hosted in an Azure blob storage container
     images_requested_json_sas = post_body.get('images_requested_json_sas', None)
+
     if images_requested_json_sas is not None:
-        try:
-            exists = sas_blob_utils.check_blob_exists(images_requested_json_sas)
-        except Exception as e:
-            return make_error(400, 'images_requested_json_sas is not valid.')
-        if not exists:
-            return make_error(400, 'images_requested_json_sas points to a non-existent file.')
+        if not images_requested_json_sas.startswith(('http://', 'https://')):
+            return make_error(400, 'images_requested_json_sas needs to be an URL.')
 
     # if use_url, then images_requested_json_sas is required
-    if use_url:
-        if images_requested_json_sas is None:
-            msg = 'images_requested_json_sas is required since use_url is true.'
-            return make_error(400, msg)
+    if use_url and images_requested_json_sas is None:
+            return make_error(400, 'images_requested_json_sas is required since use_url is true.')
 
     # optional params
 
