@@ -12,7 +12,7 @@ import os
 # you likely need to modify these when deploying a new instance of the API
 
 API_INSTANCE_NAME = 'cm'  # 'internal', 'cm', 'camelot', 'zooniverse'
-POOL_ID = 'cm_0'  # name of the Batch pool created for this API instance
+POOL_ID = 'cm_1'  # name of the Batch pool created for this API instance
 
 MAX_NUMBER_IMAGES_ACCEPTED_PER_JOB = 4 * 1000 * 1000  # inclusive
 
