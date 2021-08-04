@@ -17,6 +17,7 @@ from datetime import timedelta
 from random import shuffle
 
 import sas_blob_utils  # from ai4eutils
+import requests
 from azure.storage.blob import ContainerClient, BlobSasPermissions, generate_blob_sas
 from tqdm import tqdm
 
@@ -82,8 +83,10 @@ def create_batch_job(job_id: str, body: dict):
         # Case 2: user supplied a list of images to process; can include metadata
         else:
             log.info('server_job, create_batch_job, using provided list of images.')
-            output_stream, blob_properties = sas_blob_utils.download_blob_to_stream(images_requested_json_sas)
-            image_paths = json.load(output_stream)
+
+            response = requests.get(images_requested_json_sas) # could be a file hosted anywhere
+            image_paths = response.json()
+
             log.info('server_job, create_batch_job, length of image_paths provided by the user: {}'.format(
                 len(image_paths)))
             if len(image_paths) == 0:
