@@ -102,6 +102,18 @@ folder_names = [''] # ['folder1', 'folder2', 'folder3']
 # map them here
 folder_prefixes = None # {'stuff':['a','b','c']}
 
+# A list of .json files to load images from, instead of enumerating.  Formatted as a 
+# dictionary, like folder_prefixes.
+input_file_lists = None
+
+if False:
+    input_file_lists = {'2021.08.11_images':[
+        r"G:\blah\missing_images_21aa60d8aba14757b1f985bed7fd5c07",
+        r"G:\blah\missing_images_e4a0e34c75a24df3b33c0a545030d84c"
+        ]}
+    
+assert (folder_prefixes is None or input_file_lists is None)
+
 # This is only necessary if you will be performing postprocessing steps that
 # don't yet support SAS URLs, specifically the "subsetting" step, or in some
 # cases the splitting of files into multiple output directories for
@@ -178,65 +190,94 @@ def url_to_filename(url):
 
     return basename
 
+#%% Read images from lists or enumerate blobs to files
 
-#%% Enumerate blobs to files
+if input_file_lists is not None:
 
-# A flat list of blob paths for each folder
-images_by_folder = []
-
-# folder_name = folder_names[0]
-for folder_name in folder_names:
+    images_by_folder = []
     
-    clean_folder_name = path_utils.clean_filename(folder_name)
-    json_filename = '{}_{}_all.json'.format(base_task_name,clean_folder_name)
-    list_file = os.path.join(filename_base, json_filename)
+    # folder_name = folder_names[0]
+    for folder_name in folder_names:
+        
+        assert folder_name in input_file_lists
+        
+        # Load file lists for this "folder"
+        #
+        # file_list = input_file_lists[folder][0]
+        
+        folder_images = []
+        for file_list in input_file_lists[folder_name]:
+            with open(file_list,'r') as f:
+                images_this_list = json.load(f)
+            folder_images.extend(images_this_list)
+        print('Read {} images for folder {}'.format(len(folder_images),folder_name))
+        
+        clean_folder_name = path_utils.clean_filename(folder_name)
+        json_filename = '{}_{}_all.json'.format(base_task_name,clean_folder_name)
+        list_file = os.path.join(filename_base, json_filename)
+        
+        # Write to file
+        ai4e_azure_utils.write_list_to_file(list_file, folder_images)
+        file_lists_by_folder.append(list_file)
+        images_by_folder.append(folder_images)
+        
+else:    
 
-    prefixes = []
+    # A flat list of blob paths for each folder
+    images_by_folder = []
     
-    if (len(container_prefix) > 0 and len(folder_name) > 0 and container_prefix[-1] != '/'):
-        print('Warning: no trailing slash in container prefix {} used with folder name {}'.format(
-            container_prefix,folder_name))
-
-    # If we don't/do have multiple prefixes to enumerate for this "folder"              
-    if folder_prefixes is None or len(folder_prefixes) == 0:
+    # folder_name = folder_names[0]
+    for folder_name in folder_names:
         
-        # If this is intended to be a folder, it needs to end in '/', otherwise
-        # files that start with the same string will match too
-        folder_name = folder_name.replace('\\', '/')
-        if len(folder_name) > 0 and (not folder_name.endswith('/')):
-            folder_name = folder_name + '/'
-               
-        prefixes = [container_prefix + folder_name]
-        
-    else:
-        
-        prefixes = [container_prefix + s for s in folder_prefixes[folder_name]]
-        
-    folder_images = []
+        clean_folder_name = path_utils.clean_filename(folder_name)
+        json_filename = '{}_{}_all.json'.format(base_task_name,clean_folder_name)
+        list_file = os.path.join(filename_base, json_filename)
     
-    for prefix in prefixes:
-        print('Enumerating prefix {} for folder {}'.format(prefix,folder_name))
-        prefix_images = ai4e_azure_utils.enumerate_blobs_to_file(
-            output_file=None,
-            account_name=storage_account_name,
-            container_name=container_name,
-            sas_token=read_only_sas_token,
-            blob_prefix=prefix,
-            rsearch=None)
-        folder_images.extend(prefix_images)
+        prefixes = []
         
-    # ...for each prefix
+        if (len(container_prefix) > 0 and len(folder_name) > 0 and container_prefix[-1] != '/'):
+            print('Warning: no trailing slash in container prefix {} used with folder name {}'.format(
+                container_prefix,folder_name))
     
-    # Write to file
-    ai4e_azure_utils.write_list_to_file(list_file, folder_images)
+        # If we don't/do have multiple prefixes to enumerate for this "folder"              
+        if folder_prefixes is None or len(folder_prefixes) == 0:
+            
+            # If this is intended to be a folder, it needs to end in '/', otherwise
+            # files that start with the same string will match too
+            folder_name = folder_name.replace('\\', '/')
+            if len(folder_name) > 0 and (not folder_name.endswith('/')):
+                folder_name = folder_name + '/'
+                   
+            prefixes = [container_prefix + folder_name]
+            
+        else:
+            
+            prefixes = [container_prefix + s for s in folder_prefixes[folder_name]]
+            
+        folder_images = []
         
-    print('Enumerated {} images for folder {}'.format(len(folder_images),folder_name))
+        for prefix in prefixes:
+            print('Enumerating prefix {} for folder {}'.format(prefix,folder_name))
+            prefix_images = ai4e_azure_utils.enumerate_blobs_to_file(
+                output_file=None,
+                account_name=storage_account_name,
+                container_name=container_name,
+                sas_token=read_only_sas_token,
+                blob_prefix=prefix,
+                rsearch=None)
+            folder_images.extend(prefix_images)
+            
+        # ...for each prefix
+        
+        print('Enumerated {} images for folder {}'.format(len(folder_images),folder_name))
+        
+        # Write to file
+        ai4e_azure_utils.write_list_to_file(list_file, folder_images)
+        file_lists_by_folder.append(list_file)
+        images_by_folder.append(folder_images)
     
-    file_lists_by_folder.append(list_file)
-    images_by_folder.append(folder_images)
-
-# ...for each folder
-
+    # ...for each folder
+    
 assert len(file_lists_by_folder) == len(folder_names)
 
 
@@ -455,18 +496,15 @@ if False:
     
 n_resubmissions = 0
 
-# This will be a list of lists of tasks, with either one or zero
-# elements per taskgroup.
-resubmitted_tasks = []
-
 # List of lists of paths.  Neither are used explicitly, but are handy for debugging.
 missing_images_by_task = []
+missing_images_files = []
+
 failed_images_by_task = []
+failed_images_files = []
 
 # i_taskgroup = 0; taskgroup = taskgroups[i_taskgroup];
 for i_taskgroup, taskgroup in enumerate(taskgroups):
-
-    resubmitted_tasks_this_taskgroup = []
 
     # Make a copy, because we append to taskgroup
     tasks = list(taskgroup)  
@@ -504,9 +542,14 @@ for i_taskgroup, taskgroup in enumerate(taskgroups):
         missing_images_by_task.append(missing_images)
         ai4e_azure_utils.write_list_to_file(missing_images_fn, missing_images)
         
+        missing_images_file = os.path.join(filename_base,'missing_images_{}'.format(task.id))
+        with open(missing_images_file,'w') as f:
+            json.dump(missing_images,f,indent=1)
+        missing_images_files.append(missing_images_file)
+        
         num_missing_images = len(missing_images)
-        assert num_missing_images <= max_tolerable_missing_images,\
-            'Error: {} images missing from task {}'.format(num_missing_images,task.id)
+        if num_missing_images >= max_tolerable_missing_images:
+            print('Warning: {} images missing from task {}'.format(num_missing_images,task.id))
                 
         # Now look for failed images
         detections_path = os.path.join(raw_api_output_folder,detections_fn)
@@ -524,6 +567,11 @@ for i_taskgroup, taskgroup in enumerate(taskgroups):
                 failed_images.append(im)
         failed_images_by_task.append(failed_images)
         
+        failed_images_file = os.path.join(filename_base,'failed_images_{}'.format(task.id))
+        with open(failed_images_file,'w') as f:
+            json.dump(failed_images,f,indent=1)
+        failed_images_files.append(failed_images_file)
+                
         num_failed_images = len(failed_images)
         assert num_failed_images <= max_tolerable_failed_images,\
             'Error: {} images failed for task {}'.format(num_failed_images,task.id)
@@ -532,6 +580,12 @@ for i_taskgroup, taskgroup in enumerate(taskgroups):
     # ...for each task
                 
 # ...for each task group
+
+n_total_missing_images = sum([len(x) for x in missing_images_by_task])
+n_total_failed_images = sum([len(x) for x in failed_images_by_task])
+
+assert n_total_missing_images <= max_tolerable_missing_images,\
+    'Error: {} total missing images'.format(n_total_missing_images)
 
 
 #%% Pull results
