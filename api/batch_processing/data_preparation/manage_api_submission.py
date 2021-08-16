@@ -190,6 +190,7 @@ def url_to_filename(url):
 
     return basename
 
+
 #%% Read images from lists or enumerate blobs to files
 
 if input_file_lists is not None:
@@ -257,7 +258,7 @@ else:
         folder_images = []
         
         for prefix in prefixes:
-            print('Enumerating prefix {} for folder {}'.format(prefix,folder_name))
+            print('Enumerating prefix {} for folder [{}]'.format(prefix,folder_name))
             prefix_images = ai4e_azure_utils.enumerate_blobs_to_file(
                 output_file=None,
                 account_name=storage_account_name,
@@ -467,7 +468,7 @@ if False:
 
 #%% Write task information out to disk, in case we need to resume
     
-s = jsonpickle.encode(taskgroups)
+s = jsonpickle.encode(taskgroups,indent=4)
 with open(task_cache_path,'w') as f:
     f.write(s)
 
@@ -645,6 +646,8 @@ for i_taskgroup, taskgroup in enumerate(taskgroups):
 
 folder_name_to_combined_output_file = {}
 
+missing_images_by_task_sets = [set(x) for x in missing_images_by_task]
+
 for i_taskgroup, taskgroup in enumerate(taskgroups):
 
     folder_name_raw = folder_names[i_taskgroup]
@@ -674,8 +677,13 @@ for i_taskgroup, taskgroup in enumerate(taskgroups):
     for list_file in image_list_files:
         with open(list_file, 'r') as f:
             requested_images_set_this_task = set(json.load(f))
+            
+            # The only reason we should ever have a repeated request is the case where an 
+            # image was missing and we reprocessed it
             for s in requested_images_set_this_task:
-                assert s not in requested_images_set
+                if s in requested_images_set:
+                    assert any([s in x for x in missing_images_by_task_sets])
+                    
             requested_images_set = requested_images_set.union(requested_images_set_this_task)
         
     with open(combined_api_output_file, 'r') as f:
