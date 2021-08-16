@@ -485,12 +485,35 @@ for taskgroup in taskgroups:
     
 if False:
     
-    #%%
+    #%% For multiple tasks (use this only when we're merging with another job)
     
-    with open(task_cache_path,'r') as f:
-        s =  f.read()
-    taskgroups = jsonpickle.decode(s)
-        
+    task_cache_paths = [task_cache_path,r"G:\blah\task_info.json"]
+    
+    #%% For just the one task
+    
+    task_cache_path = os.path.join(filename_base,'task_info.json')
+    task_cache_paths = [task_cache_path]
+    
+    #%% Load into separate taskgroups
+    
+    taskgroups = []
+    
+    # p = task_cache_paths[0]
+    for p in task_cache_paths:
+        with open(p,'r') as f:
+            s =  f.read()
+        taskgroup = jsonpickle.decode(s)
+        assert len(taskgroup) == 1
+        taskgroups.append(taskgroup[0])
+    
+    #%% Typically merge everything into one taskgroup
+    
+    import itertools
+    in_length = len(taskgroups)
+    taskgroups = [list(itertools.chain.from_iterable(taskgroups))]
+    assert len(taskgroups) == 1
+    print('Combined {} taskgroups into one, totalling {} tasks'.format(in_length,len(taskgroups[0])))
+    
                 
 #%% Look for failed shards or missing images, start new tasks if necessary
     
