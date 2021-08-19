@@ -968,8 +968,8 @@ if __name__ == "__main__":
         #%% Manual step...
         
         # Copy any images from that list that have humans in them to...
-        human_review_folder = r'H:\idaho-camera-traps\human_review_selections'
-        assert os.path.isdir(human_review_folder)
+        human_review_selection_folder = r'H:\idaho-camera-traps\human_review_selections'
+        assert os.path.isdir(human_review_selection_folder)
         
         
         #%% Create a list of the images we just manually flagged
