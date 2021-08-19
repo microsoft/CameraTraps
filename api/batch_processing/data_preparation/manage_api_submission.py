@@ -488,8 +488,11 @@ if False:
     
     #%% For multiple tasks (use this only when we're merging with another job)
     
-    task_cache_paths = [task_cache_path,r"G:\blah\task_info.json"]
-    
+    task_cache_path = os.path.join(filename_base,'task_info.json')
+    task_cache_paths = [task_cache_path,r'G:\blah\task_info.json']    
+    for fn in task_cache_paths:
+        assert os.path.isfile(fn)
+        
     #%% For just the one task
     
     task_cache_path = os.path.join(filename_base,'task_info.json')
