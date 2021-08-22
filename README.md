@@ -3,9 +3,11 @@
 This repo contains the tools for training, running, and evaluating detectors and classifiers for images collected from motion-triggered camera traps.  The core functionality provided is:
 
 - Data parsing from frequently-used camera trap metadata formats into a common format
-- Training and evaluation of detectors, particularly our "MegaDetector", which does a pretty good job finding terrestrial animals in a variety of ecosystems
+- Training and evaluation of detectors, particularly our "[MegaDetector](https://github.com/microsoft/CameraTraps/blob/master/megadetector.md)", which does a pretty good job finding animals, people, and vechicles (and therefore is pretty good at finding empty images) in a variety of terrestrial ecosystems
+- A [batch processing API](https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing) that runs MegaDetector on large image collections, to accelerate population surveys, which has been integrated into offline tools like [Timelapse](http://saul.cpsc.ucalgary.ca/timelapse/) and online tools like [Camelot](https://camelotproject.org/)
+- A [real-time API](https://github.com/microsoft/CameraTraps/tree/master/api/synchronous) that runs MegaDetector (and some species classifiers) synchronously, primarily to support anti-poaching scenarios ([blog post](https://customers.microsoft.com/en-us/story/1384184517929343083-wildlife-protection-solutions-nonprofit-ai-for-earth) describing how this API supports [Wildlife Protection Solutions](https://wildlifeprotectionsolutions.org/)
+- A [Web-based demo](https://aka.ms/cameratrapdemo) that calls our real-time API
 - Training and evaluation of species-level classifiers for specific data sets
-- A Web-based demo that runs our models via a REST API that hosts them on a Web endpoint
 - Miscellaneous useful tools for manipulating camera trap data
 - Research experiments we're doing around camera trap data (i.e., some directories are highly experimental and you should take them with a grain of salt)
 
