@@ -575,7 +575,7 @@ for i_taskgroup, taskgroup in enumerate(taskgroups):
         missing_images_files.append(missing_images_file)
         
         num_missing_images = len(missing_images)
-        if num_missing_images >= max_tolerable_missing_images:
+        if num_missing_images > max_tolerable_missing_images:
             print('Warning: {} images missing from task {}'.format(num_missing_images,task.id))
                 
         # Now look for failed images
@@ -811,7 +811,7 @@ clipboard.copy(os.path.dirname(suspiciousDetectionResults.filterFile))
 
 #%% Manual RDE step
 
-## DELETE THE ANIMALS ##
+## DELETE THE VALID DETECTIONS ##
 
 
 #%% Re-filtering
