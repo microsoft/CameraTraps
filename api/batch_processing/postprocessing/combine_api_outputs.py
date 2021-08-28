@@ -35,7 +35,8 @@ def combine_api_output_files(input_files: List[str],
     Args:
         input_files: list of str, paths to JSON detection files
         output_file: optional str, path to write merged JSON
-        require_uniqueness: bool, TODO
+        require_uniqueness: bool, whether to require that the images in
+            each input_dict be unique
     """
     input_dicts = []
     print('Loading input files')
@@ -110,11 +111,19 @@ def combine_api_output_dictionaries(input_dicts: Iterable[Mapping[str, Any]],
             im_file = im['file']
             if require_uniqueness:
                 assert im_file not in images, f'Duplicate image: {im_file}'
-            elif im_file in images:
-                n_redundant_images += 1
-                # print(f'Warning, duplicate results for image: {im_file}')
-            images[im_file] = im
-            n_images += 1
+                images[im_file] = im
+                n_images += 1
+            else:
+                if im_file in images:
+                    n_redundant_images += 1
+                    previous_im = images[im_file]
+                    # Replace a previous failure with a success
+                    if ('detections' in im) and ('detections' not in previous_im):
+                        images[im_file] = im
+                        print(f'Replacing previous failure for image: {im_file}')
+                else:
+                    images[im_file] = im
+                    n_images += 1
 
         # Merge info dicts, don't check completion time fields
         if len(info) == 0:

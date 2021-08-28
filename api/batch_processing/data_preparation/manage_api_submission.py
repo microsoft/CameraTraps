@@ -523,12 +523,9 @@ if False:
     
 n_resubmissions = 0
 
-# List of lists of paths.  Neither are used explicitly, but are handy for debugging.
+# List of lists of paths
 missing_images_by_task = []
-missing_images_files = []
-
 failed_images_by_task = []
-failed_images_files = []
 
 # i_taskgroup = 0; taskgroup = taskgroups[i_taskgroup];
 for i_taskgroup, taskgroup in enumerate(taskgroups):
@@ -569,10 +566,9 @@ for i_taskgroup, taskgroup in enumerate(taskgroups):
         missing_images_by_task.append(missing_images)
         ai4e_azure_utils.write_list_to_file(missing_images_fn, missing_images)
         
-        missing_images_file = os.path.join(filename_base,'missing_images_{}'.format(task.id))
+        missing_images_file = os.path.join(filename_base,'missing_images_{}.json'.format(task.id))
         with open(missing_images_file,'w') as f:
             json.dump(missing_images,f,indent=1)
-        missing_images_files.append(missing_images_file)
         
         num_missing_images = len(missing_images)
         if num_missing_images > max_tolerable_missing_images:
@@ -594,10 +590,16 @@ for i_taskgroup, taskgroup in enumerate(taskgroups):
                 failed_images.append(im)
         failed_images_by_task.append(failed_images)
         
-        failed_images_file = os.path.join(filename_base,'failed_images_{}'.format(task.id))
+        failed_images_file = os.path.join(filename_base,'failed_images_{}.json'.format(task.id))
         with open(failed_images_file,'w') as f:
             json.dump(failed_images,f,indent=1)
-        failed_images_files.append(failed_images_file)
+            
+        # Write it out as a flat list as well (without explanation of failures)
+        failed_images_list_file = os.path.join(filename_base,'failed_images_list_{}.json'.format(task.id))
+        failed_image_list = [f['file'] for f in failed_images]
+        with open(failed_images_list_file,'w') as f:
+            json.dump(failed_image_list,f,indent=1)
+        failed_images_by_task.append(failed_image_list)
                 
         num_failed_images = len(failed_images)
         assert num_failed_images <= max_tolerable_failed_images,\
@@ -650,6 +652,7 @@ for i_taskgroup, taskgroup in enumerate(taskgroups):
 folder_name_to_combined_output_file = {}
 
 missing_images_by_task_sets = [set(x) for x in missing_images_by_task]
+failed_images_by_task_sets = [set(x) for x in failed_images_by_task]
 
 for i_taskgroup, taskgroup in enumerate(taskgroups):
 
@@ -672,7 +675,7 @@ for i_taskgroup, taskgroup in enumerate(taskgroups):
     pprint.pprint(results_files)
 
     combine_api_outputs.combine_api_output_files(
-        results_files, combined_api_output_file)
+        results_files, combined_api_output_file, require_uniqueness=False)
     folder_name_to_combined_output_file[folder_name] = combined_api_output_file
 
     # Check that we have (almost) all the images
@@ -682,10 +685,11 @@ for i_taskgroup, taskgroup in enumerate(taskgroups):
             requested_images_set_this_task = set(json.load(f))
             
             # The only reason we should ever have a repeated request is the case where an 
-            # image was missing and we reprocessed it
+            # image was missing and we reprocessed it, or where it failed and later succeeded
             for s in requested_images_set_this_task:
                 if s in requested_images_set:
-                    assert any([s in x for x in missing_images_by_task_sets])
+                    assert (any([s in x for x in missing_images_by_task_sets]) or \
+                            any([s in x for x in failed_images_by_task_sets]))
                     
             requested_images_set = requested_images_set.union(requested_images_set_this_task)
         
