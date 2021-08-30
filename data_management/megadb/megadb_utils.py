@@ -5,14 +5,12 @@ The environment variables COSMOS_ENDPOINT and COSMOS_KEY need to be set
 or passed in to the initializer.
 """
 
-from datetime import datetime
-from enum import Enum
 import os
+from enum import Enum
 from typing import Any, Dict, List, Mapping, Optional, Set
 
 from azure.cosmos.cosmos_client import CosmosClient
 from azure.storage.blob import ContainerClient
-import humanfriendly
 
 
 class Splits(str, Enum):
