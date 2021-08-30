@@ -5,7 +5,7 @@ Download images multi-threaded. Accepts either JSON or text file as input.
     API. It should be a list of entry dicts, where each entry has fields
     - <save_key> (defaults to 'download_id'): str, usually dataset_name+uuid,
         uuid doesn't have to be from the database
-    - 'file': str, either <blob_name> if 'dataset' is in entry, or
+    - 'file': str, either <blob_name> if 'dataset' is in the entry, or
         <dataset>/<blob_name> if 'dataset' is not in entry
     - 'dataset': str, if 'file' is <blob_name>
     - 'new_entry': bool, if setting the --only-new-images flag
@@ -29,11 +29,11 @@ The environment variables COSMOS_ENDPOINT and COSMOS_KEY need to be set to
 access the Datasets table.
 
 The downloading threads may get stuck (request timeouts) and stop downloading.
-Re-start a couple of times until all are downloaded.
+Re-start a couple of times.
 
 Example usage for downloading images queried from MegaDB:
     python download_images.py json file_list.json /save/images/to/dir \
-        --save-key "download_id" --threads 50 --only-new-images
+        --save-key "download_id" --threads 50
 
 Example usage for downloading images from a Batch Detection API output:
     python download_images.py json detections.json /save/images/to/dir \
@@ -115,6 +115,11 @@ def construct_url(img_path: str, datasets_table: Mapping[str, Any],
         account=datasets_table[dataset_name]['storage_account'],
         container=datasets_table[dataset_name]['container'],
         blob=blob, sas_token=sas_token)
+
+    # wiitigers Unicode issue - no good mapping from DB file names to file names in blob URL
+    if dataset_name == 'wiitigers' and 'ï€¨' in img_path:
+        url = url.replace('%C3%AF%E2%82%AC%C2%A8', '%EF%80%A8')
+
     return url
 
 
