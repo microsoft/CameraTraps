@@ -58,6 +58,7 @@ Here are a few of the organizations that have used AI for Earth camera trap tool
 * Snapshot USA
 * University of British Columbia Wildlife Coexistence Lab
 * Michigan Department of Natural Resources, Wildlife Division
+* Serra dos Órgãos National Park / ICMBio
 
 
 # Data
