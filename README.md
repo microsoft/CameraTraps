@@ -60,6 +60,7 @@ Here are a few of the organizations that have used AI for Earth camera trap tool
 * Michigan Department of Natural Resources, Wildlife Division
 * Serra dos Órgãos National Park / ICMBio
 * McLoughlin Lab in Population Ecology, University of Saskatchewan
+* Upper Yellowstone Watershed Group
 
 
 # Data
