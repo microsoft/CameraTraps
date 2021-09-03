@@ -588,7 +588,6 @@ for i_taskgroup, taskgroup in enumerate(taskgroups):
                 file = im['file']
                 print('Image {} failed: {}'.format(file,im['failure']))
                 failed_images.append(im)
-        failed_images_by_task.append(failed_images)
         
         failed_images_file = os.path.join(filename_base,'failed_images_{}.json'.format(task.id))
         with open(failed_images_file,'w') as f:
