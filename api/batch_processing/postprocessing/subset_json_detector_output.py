@@ -248,7 +248,7 @@ def remove_failed_images(data,options):
     # i_image = 0; im = images_in[0]
     for i_image, im in tqdm(enumerate(images_in), total=len(images_in)):
         
-        if 'failure' in im and isinstance(im['failure'],str()):
+        if 'failure' in im and isinstance(im['failure'],str):
             continue
         else:
             images_out.append(im)
@@ -256,7 +256,8 @@ def remove_failed_images(data,options):
     # ...for each image        
     
     data['images'] = images_out    
-    print('done, removed {} of {}'.format(len(data['images']), len(images_in)))
+    n_removed = len(images_in) - len(data['images'])
+    print('Done, removed {} of {}'.format(n_removed, len(images_in)))
     
     return data
 
