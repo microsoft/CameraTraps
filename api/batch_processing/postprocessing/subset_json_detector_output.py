@@ -233,6 +233,7 @@ def subset_json_detector_output_by_confidence(data, options):
     
     return data
 
+
 def remove_failed_images(data,options):
     """
     Removed failed images from [data]
