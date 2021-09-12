@@ -69,14 +69,9 @@ Here are a few of the organizations that have used AI for Earth camera trap tool
 This repo does not directly host camera trap data, but we work with our collaborators to make data and annotations available whenever possible on [lila.science](http://lila.science).
 
 
-# Models
-
-This repo does not extensively host species classification models, though we will release models when they are at a level of generality that they might be useful to other people.  But...
-
-
 ## MegaDetector
 
-Speaking of models that might be useful to other people, we have trained a one-class animal detector trained on several hundred thousand bounding boxes from a variety of ecosystems.  Lots more information &ndash; including download links &ndash; on the [MegaDetector page](megadetector.md).
+The main model that we train and run using tools in this repo is [MegaDetector](megadetector.md), an object detection model that identifies animals, people, and vehicles in camera trap images.  This model is trained on several hundred thousand bounding boxes from a variety of ecosystems.  Lots more information &ndash; including download links &ndash; is available on the [MegaDetector page](megadetector.md).
 
 Here's a "teaser" image of what detector output looks like:
 
@@ -102,9 +97,11 @@ Code for hosting our models as an API, either for synchronous operation (e.g. fo
 
 ## classification
 
-Code for training species classifiers on new data sets, generally trained on crops generated via an existing detector.  We'll release some classifiers soon, but more importantly, here's a [tutorial](https://github.com/microsoft/CameraTraps/blob/master/archive/classification_marcel/TUTORIAL.md) on training your own classifier using our detector and our training pipeline.
+Experimental code for training species classifiers on new data sets, generally trained on MegaDetector crops.  Currently the main pipeline described in this folder relies on a large database of labeled images that is not publicly available; therefore, this folder is not yet set up to facilitate training of your own classifiers.  However, it is useful for <i>users</i> of the classifiers that we train, and contains some useful starting points if you are going to take a "DIY" approach to training classifiers on cropped images.  
 
-Oh, and here's another "teaser image" of what you get at the end of training a classifier:
+The folder also contains a [tutorial](https://github.com/microsoft/CameraTraps/blob/master/archive/classification_marcel/TUTORIAL.md) on training your own classifier using MegaDetector, which has no dependencies on private data, although this tutorial uses somehwat obsolete frameworks and may not be the best starting point for new projects.
+
+All that said, here's another "teaser image" of what you get at the end of training and running a classifier:
 
 <img src="images/warthog_classifications.jpg" width="700">
 
