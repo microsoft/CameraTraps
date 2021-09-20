@@ -63,6 +63,8 @@ Here are a few of the organizations that have used AI for Earth camera trap tool
 * Upper Yellowstone Watershed Group
 * Blumstein lab, UCLA
 * National Park Service Santa Monica Mountains Recreation Area
+* Conservation X Labs
+
 
 # Data
 
