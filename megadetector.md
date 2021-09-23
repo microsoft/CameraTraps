@@ -97,10 +97,11 @@ This section describes how to run the two scripts (options 2 and 3), including i
 When we describe how to run our two inference scripts below, we assume the following:
 
 1. You have Python 3 installed.  We recommend installing [Anaconda](https://www.anaconda.com/products/individual), which is Python plus a zillion useful packages.
-2. You have checked out this git repo, and the [AI for Earth Utilities](http://github.com/microsoft/ai4eutils) repo.  If you're not familiar with git and are on a Windows machine, we recommend installing [Git for Windows](https://git-scm.com/download/win).  Specific instructions for checking out the repo will be rolled into the next step.
-3. You have added both directories where you cloned the two repos to your PYTHONPATH environment variable.  Here's a [good page](https://www.computerhope.com/issues/ch000549.htm) about editing environment variables in Windows.  You will need administrative access to your PC to set an environment variable.
+2. You have downloaded our [MegaDetector model](https://lilablobssc.blob.core.windows.net/models/camera_traps/megadetector/md_v4.1.0/md_v4.1.0.pb) to some location on your computer.
+3. You have cloned this git repo, and the [AI for Earth Utilities](http://github.com/microsoft/ai4eutils) repo.  If you're not familiar with git and are on a Windows machine, we recommend installing [Git for Windows](https://git-scm.com/download/win).  Specific instructions for checking out the repo will be rolled into the next step.
+4. You have added both directories where you cloned the two repos to your PYTHONPATH environment variable.  Here's a [good page](https://www.computerhope.com/issues/ch000549.htm) about editing environment variables in Windows.  You will need administrative access to your PC to set an environment variable.
 
-Here are instructions for steps 2 and 3 that assume you *don't* have administrative access to your PC (if you set the environment variable as per above, you can skip the "set PYTHONPATH" step here).  We're going to clone the repos to "c:\git", but you can use any folder you like.
+Here are Windows instructions for steps 3 and 4 that assume you *don't* have administrative access to your PC (if you set the environment variable as per above, you can skip the "set PYTHONPATH" step here).  We're going to clone the repos to "c:\git", but you can use any folder you like.
 
 After installing git and Anaconda, open an Anaconda Prompt, and run:
 
@@ -109,7 +110,7 @@ mkdir c:\git
 cd c:\git
 git clone https://github.com/Microsoft/cameratraps
 git clone https://github.com/Microsoft/ai4eutils
-pip install pillow humanfriendly matplotlib tqdm jsonpickle statistics requests
+pip install tensorflow pillow humanfriendly matplotlib tqdm jsonpickle statistics requests
 set PYTHONPATH=c:\git\cameratraps;c:\git\ai4eutils
 ```
 
@@ -133,13 +134,8 @@ To try this out (on Linux), assuming you have Python 3 and pip installed, you ca
 wget https://raw.githubusercontent.com/microsoft/CameraTraps/master/detection/run_tf_detector.py
 wget https://lilablobssc.blob.core.windows.net/models/camera_traps/megadetector/md_v4.1.0/md_v4.1.0.pb
 
-# Install TensorFlow
-#
-# If you have a GPU on your computer, change "tensorflow" to "tensorflow-gpu"
-pip install tensorflow==1.13.1
-
-# Install other dependencies
-pip install pillow humanfriendly matplotlib tqdm jsonpickle statistics requests
+# Install dependencies
+pip install tensorflow pillow humanfriendly matplotlib tqdm jsonpickle statistics requests
 
 # Run MegaDetector
 python run_tf_detector.py md_v4.1.0.pb --image_file some_image_file.jpg
@@ -149,14 +145,10 @@ Run `python run_tf_detector.py` for a full list of options.
 
 #### Running run_tf_detector.py on Windows
 
-The "git", "pip", and "Python" lines above will work fine for Windows if you have Anaconda installed, and you will probably want to download the [script](https://raw.githubusercontent.com/microsoft/CameraTraps/master/detection/run_tf_detector.py) and the [MegaDetector model file](https://lilablobssc.blob.core.windows.net/models/camera_traps/megadetector/md_v4.1.0/md_v4.1.0.pb) through your browser.
-
-Then you can do the following, changing "tensorflow" to "tensorflow-gpu" if you have a GPU on your computer:
+This assumes you've run the [prerequisites](#0-prerequisites) steps above.  After that, you can run the following in your Anaconda prompt:
 
 ```batch
-pip install tensorflow==1.13.1
-pip install pillow humanfriendly matplotlib tqdm jsonpickle statistics requests
-python where_you_downloaded_the_script/run_tf_detector.py where_you_downloaded_the_detector_file/md_v4.1.0.pb --image_file some_image_file.jpg
+python c:\git\CameraTraps\detection\run_tf_detector.py c:\wherever\you\downloaded\the\detector\file\md_v4.1.0.pb --image_file some_image_file.jpg
 ```
 
 
@@ -195,17 +187,10 @@ Run `python run_tf_detector_batch.py` for a full list of options.
 
 #### Running run_tf_detector_batch.py on Windows
 
-Once you've gone through the [prerequisites](#0-prerequisites) above, all the `git`, `pip`, and `python` steps in the above instructions should work fine on Windows too.  In the Linux instructions above, we suggest using `wget` to download the model file; on Windows, you'll probably want to download the [MegaDetector model file](https://lilablobssc.blob.core.windows.net/models/camera_traps/megadetector/md_v4.1.0/md_v4.1.0.pb) in your browser.
+This assumes you've run the [prerequisites](#0-prerequisites) steps above.  After that, you can run the following in your Anaconda prompt:
 
-Putting together the prerequisites, package installation, and execution steps for Windows, once you've installed Anaconda, this might look like the following (in your Anaconda prompt):
-
-```cd c:\git
-git clone https://github.com/microsoft/CameraTraps/
-git clone https://github.com/microsoft/ai4eutils/
-set PYTHONPATH=c:\git\cameratraps;c:\git\ai4eutils
-pip install tensorflow==1.13.1
-pip install pandas tqdm pillow humanfriendly matplotlib tqdm jsonpickle statistics requests
-python CameraTraps/detection/run_tf_detector_batch.py wherever_you_put_the_detector_file/md_v4.1.0.pb some_image_file.jpg some_output_file.json
+```
+python c:\git\CameraTraps\detection\run_tf_detector_batch.py c:\wherever\you\downloaded\the\detector\file\md_v4.1.0.pb some_image_folder some_output_file.json --output_relative_filenames --recursive
 ```
 
 
