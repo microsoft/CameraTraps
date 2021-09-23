@@ -108,7 +108,7 @@ After installing git and Anaconda, open an Anaconda Prompt, and run:
 ```batch
 mkdir c:\git
 cd c:\git
-git clone https://github.com/Microsoft/cameratraps
+git clone https://github.com/Microsoft/cameratraps -b tf1-compat
 git clone https://github.com/Microsoft/ai4eutils
 pip install tensorflow pillow humanfriendly matplotlib tqdm jsonpickle statistics requests
 set PYTHONPATH=c:\git\cameratraps;c:\git\ai4eutils
@@ -189,7 +189,7 @@ Run `python run_tf_detector_batch.py` for a full list of options.
 
 This assumes you've run the [prerequisites](#0-prerequisites) steps above.  After that, you can run the following in your Anaconda prompt:
 
-```
+```batch
 python c:\git\CameraTraps\detection\run_tf_detector_batch.py c:\wherever\you\downloaded\the\detector\file\md_v4.1.0.pb some_image_folder some_output_file.json --output_relative_filenames --recursive
 ```
 
