@@ -824,8 +824,7 @@ from api.batch_processing.postprocessing.repeat_detection_elimination import rem
 remove_repeat_detections.remove_repeat_detections(
     inputFile=api_output_filename,
     outputFile=filtered_output_filename,
-    filteringDir=os.path.dirname(suspiciousDetectionResults.filterFile),
-    options=options
+    filteringDir=os.path.dirname(suspiciousDetectionResults.filterFile)
     )
 
 
