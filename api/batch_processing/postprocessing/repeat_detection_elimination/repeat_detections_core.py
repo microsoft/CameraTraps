@@ -621,8 +621,31 @@ def find_repeat_detections(inputFilename, outputFilename=None, options=None):
     ##%% Input handling
 
     if options is None:
+        
         options = RepeatDetectionOptions()
 
+    if options.filterFileToLoad is not None and len(options.filterFileToLoad) > 0:
+    
+        print('Bypassing detection-finding, loading from {}'.format(options.filterFileToLoad))
+
+        # Load the filtering file
+        detectionIndexFileName = options.filterFileToLoad
+        sIn = open(detectionIndexFileName, 'r').read()
+        detectionInfo = jsonpickle.decode(sIn)
+        filteringBaseDir = os.path.dirname(options.filterFileToLoad)
+        suspiciousDetections = detectionInfo['suspiciousDetections']
+        
+        # Load the same options we used when finding repeat detections
+        options = detectionInfo['options']
+        
+        # ...except for things that explicitly tell this function not to
+        # find repeat detections.
+        options.filterFileToLoad = detectionIndexFileName
+        options.bWriteFilteringFolder = False
+        options.bRenderHtml = False        
+        
+    # ...if we're loading from an existing filtering file
+    
     toReturn = RepeatDetectionResults()
 
     
@@ -655,8 +678,8 @@ def find_repeat_detections(inputFilename, outputFilename=None, options=None):
                 relativePath = relativePath.replace(s,options.filenameReplacements[s])
             absolutePath = os.path.join(options.imageBase,relativePath)
             assert os.path.isfile(absolutePath), 'Could not find file {}'.format(absolutePath)
-        
-        
+
+
     ##%% Separate files into directories
 
     # This will be a map from a directory name to smaller data frames
@@ -713,11 +736,11 @@ def find_repeat_detections(inputFilename, outputFilename=None, options=None):
     if options.debugMaxDir > 0:
         dirsToSearch = dirsToSearch[0:options.debugMaxDir]
 
-    # length-nDirs list of lists of DetectionLocation objects
-    suspiciousDetections = [None] * len(dirsToSearch)
-
     # Are we actually looking for matches, or just loading from a file?
     if len(options.filterFileToLoad) == 0:
+
+        # length-nDirs list of lists of DetectionLocation objects
+        suspiciousDetections = [None] * len(dirsToSearch)
 
         # We're actually looking for matches...
         print('Finding similar detections...')
@@ -779,13 +802,6 @@ def find_repeat_detections(inputFilename, outputFilename=None, options=None):
 
     else:
 
-        print('Bypassing detection-finding, loading from {}'.format(options.filterFileToLoad))
-
-        # Load the filtering file
-        detectionIndexFileName = options.filterFileToLoad
-        sIn = open(detectionIndexFileName, 'r').read()
-        suspiciousDetections = jsonpickle.decode(sIn)
-        filteringBaseDir = os.path.dirname(options.filterFileToLoad)
         assert len(suspiciousDetections) == len(dirsToSearch)
 
         nDetectionsRemoved = 0
@@ -954,7 +970,11 @@ def find_repeat_detections(inputFilename, outputFilename=None, options=None):
         # Write out the detection index
         detectionIndexFileName = os.path.join(filteringDir, DETECTION_INDEX_FILE_NAME)
         jsonpickle.set_encoder_options('json', sort_keys=True, indent=4)
-        s = jsonpickle.encode(suspiciousDetections)
+        detectionInfo = {}
+        detectionInfo['suspiciousDetections'] = suspiciousDetections
+        options.pbar = None
+        detectionInfo['options'] = options
+        s = jsonpickle.encode(detectionInfo,make_refs=False)
         with open(detectionIndexFileName, 'w') as f:
             f.write(s)
         toReturn.filterFile = detectionIndexFileName

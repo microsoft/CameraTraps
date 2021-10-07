@@ -20,14 +20,16 @@ from api.batch_processing.postprocessing.repeat_detection_elimination import rep
 
 #%% Main function
 
-def remove_repeat_detections(inputFile,outputFile,filteringDir,options=None):
+def remove_repeat_detections(inputFile,outputFile,filteringDir):
 
     assert os.path.isfile(inputFile), "Can't find file {}".format(inputFile)
     assert os.path.isdir(filteringDir), "Can't find folder {}".format(filteringDir)
-    if options is None:
-        options = repeat_detections_core.RepeatDetectionOptions()
-    options.filterFileToLoad = os.path.join(filteringDir,repeat_detections_core.DETECTION_INDEX_FILE_NAME)
-    options.bWriteFilteringFolder = False
+    options = repeat_detections_core.RepeatDetectionOptions()
+    if os.path.isfile(filteringDir):
+        options.filterFileToLoad = filteringDir
+    else:
+        assert os.path.isdir(filteringDir), '{} is not a valid folder'.format(filteringDir)
+        options.filterFileToLoad = os.path.join(filteringDir,repeat_detections_core.DETECTION_INDEX_FILE_NAME)
     repeat_detections_core.find_repeat_detections(inputFile, outputFile, options)
 
 
