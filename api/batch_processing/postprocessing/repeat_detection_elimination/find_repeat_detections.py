@@ -45,9 +45,9 @@ if False:
     options.filenameReplacements = {}  # {'20190430cameratraps\\':''}
 
     options.confidenceMin = 0.85
-    options.confidenceMax = 1.01  # 0.99
-    options.iouThreshold = 0.93  # 0.95
-    options.occurrenceThreshold = 8  # 10
+    options.confidenceMax = 1.01
+    options.iouThreshold = 0.85
+    options.occurrenceThreshold = 8
     options.maxSuspiciousDetectionSize = 0.2
 
     options.filterFileToLoad = ''
@@ -59,13 +59,10 @@ if False:
     options.debugMaxRenderDetection = -1
     options.debugMaxRenderInstance = -1
 
-    options.bParallelizeComparisons = False  # True
-    options.bParallelizeRendering = False  # True
+    options.bParallelizeComparisons = False
+    options.bParallelizeRendering = False
     options.excludeClasses = [2]
 
-    # inputFilename = os.path.join(baseDir, '5570_blah_detections.json')
-    # outputFilename = mpt.insert_before_extension(inputFilename,
-    #                                                 'filtered')
     inputFilename = os.path.join(baseDir, 'detections_kitfox_20190620_short.json')
     outputFilename = os.path.join(baseDir, 'detections_kitfox_20190620_short_filter.json')
 
@@ -76,15 +73,6 @@ if False:
 
 def main():
     
-    # With HTML (debug)
-    # python find_repeat_detections.py "D:\temp\tigers_20190308_all_output.json" "D:\temp\tigers_20190308_all_output.filtered.json" --renderHtml --debugMaxDir 100 --imageBase "d:\wildlife_data\tigerblobs" --outputBase "d:\temp\repeatDetections"
-
-    # Without HTML (debug)
-    # python find_repeat_detections.py "D:\temp\tigers_20190308_all_output.json" "D:\temp\tigers_20190308_all_output.filtered.json" --debugMaxDir 100 --imageBase "d:\wildlife_data\tigerblobs" --outputBase "d:\temp\repeatDetections"
-
-    # With HTML (for real)
-    # python find_repeat_detections.py "D:\temp\tigers_20190308_all_output.json" "D:\temp\tigers_20190308_all_output.filtered.json" --renderHtml --imageBase "d:\wildlife_data\tigerblobs" --outputBase "d:\temp\repeatDetections"
-
     defaultOptions = repeat_detections_core.RepeatDetectionOptions()
 
     parser = argparse.ArgumentParser()
