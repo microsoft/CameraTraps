@@ -75,7 +75,9 @@ class SeparateDetectionsIntoFoldersOptions:
         
         self.n_threads = 1
         
-        self.allow_existing_directory = False
+        self.allow_existing_directory = False        
+        self.allow_missing_files = False
+        self.overwrite = True
         
         self.results_file = None
         self.base_input_folder = None
@@ -90,11 +92,15 @@ class SeparateDetectionsIntoFoldersOptions:
 #%% Support functions
     
 def path_is_abs(p): return (len(p) > 1) and (p[0] == '/' or p[1] == ':')
+
+printed_missing_file_warning = False
     
 def process_detection(d,options):
     """
     Process detections for a single image
     """
+
+    global printed_missing_file_warning
     
     relative_filename = d['file']
     detections = d['detections']
@@ -159,9 +165,19 @@ def process_detection(d,options):
     # if this is/isn't a failure case
             
     source_path = os.path.join(options.base_input_folder,relative_filename)
-    assert os.path.isfile(source_path), 'Cannot find file {}'.format(source_path)
-    
+    if not os.path.isfile(source_path):
+        if not options.allow_missing_files:
+            raise ValueError('Cannot find file {}'.format(source_path))
+        else:
+            if not printed_missing_file_warning:
+                print('Warning: cannot find at least one file ({})'.format(source_path))    
+                printed_missing_file_warning = True
+            return
+            
     target_path = os.path.join(target_folder,relative_filename)
+    if (not options.overwrite) and (os.path.isfile(target_path)):
+        return
+    
     target_dir = os.path.dirname(target_path)
     os.makedirs(target_dir,exist_ok=True)
     shutil.copyfile(source_path,target_path)
@@ -247,6 +263,7 @@ def separate_detections_into_folders(options):
         
     else:
         
+        print('Starting a pool with {} threads'.format(options.n_threads))
         pool = ThreadPool(options.n_threads)
         process_detection_with_options = partial(process_detection, options=options)
         results = list(tqdm(pool.imap(process_detection_with_options, detections), total=len(detections)))
