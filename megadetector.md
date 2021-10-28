@@ -3,12 +3,13 @@
 1. [MegaDetector overview](#megadetector-overview)
 2. [Our ask to MegaDetector users](#our-ask-to-megadetector-users)
 3. [Who is using MegaDetector?](#who-is-using-megadetector)
-4. [Downloading the model](#downloading-the-model)
-5. [Using the model](#using-the-model)
-6. [Tell me more about why detectors are a good first step for camera trap images](#tell-me-more-about-why-detectors-are-a-good-first-step-for-camera-trap-images)
-7. [Pretty picture](#pretty-picture)
-8. [Mesmerizing video](#mesmerizing-video)
-9. [Can you share the training data?](#can-you-share-the-training-data)
+4. [How fast is MegaDetector, and can I run it on my giant/small computer?](#how-fast-is-megadetector-and-can-i-run-it-on-my-giantsmall-computer)
+5. [Downloading the model](#downloading-the-model)
+6. [Using the model](#using-the-model)
+7. [Tell me more about why detectors are a good first step for camera trap images](#tell-me-more-about-why-detectors-are-a-good-first-step-for-camera-trap-images)
+8. [Pretty picture](#pretty-picture)
+9. [Mesmerizing video](#mesmerizing-video)
+10. [Can you share the training data?](#can-you-share-the-training-data)
 
 
 ## MegaDetector overview
@@ -27,6 +28,29 @@ The current model is based on Faster-RCNN with an InceptionResNetv2 base network
 ## Our ask to MegaDetector users
 
 MegaDetector is free, and it makes us super-happy when people use it, so we put it out there as a downloadable model that is easy to use in a variety of conservation scenarios.  That means we don't know who's using it unless you contact us (or we happen to run into you), so please please pretty-please email us at [cameratraps@microsoft.com](mailto:cameratraps@microsoft.com) if you find it useful!
+
+
+## How fast is MegaDetector, and can I run it on my giant/small computer?
+
+We often run MegaDetector on behalf of users as a free service; see our [MegaDetector collaborations page](collaborations.md) for more information.  But there are many reasons to run MegaDetctor on your own, and how practical this is will depend in part on how many imags you need to process and what kind of computer hardware you have available.  MegaDetector is designed to favor accuracy over speed, and we typically run it on <a href="https://en.wikipedia.org/wiki/Graphics_processing_unit">GPU</a>-enabled computers.  That said, you can run anything on anything if you have enough time, and we're happy to support users who run MegaDetector on their own GPUs (in the cloud or on their own PCs), on their own CPUs, or even on embedded devices.  If you only need to process a few thousand images per week, for example, a typical laptop will be just fine.  If you want to crunch through 20 million images as fast as possible, you'll want at least one GPU.
+
+Here are some good rules of thumb to help you estimate how fast you can run MegaDetector on different types of hardware:
+
+* On a decent laptop (without a fancy deep learning GPU) that is neither the fastest nor slowest laptop you can buy in 2021, MegaDetector takes somewhere between eight and twenty seconds per image, depending on how many CPUs you use.  This works out to being able to process somewhere between 4,000 and 10,000 image per day.  This might be totally fine for scenarios where you have even hundreds of thousands of images, as long as you can wait a few days.
+* On a dedicated deep learning GPU that is neither the fastest nor slowest GPU you can buy in 2021, MegaDetector takes between 0.3 and 0.5 seconds per image, which works out to between 200,000 and 250,000 images per day.  We also include a few <a href="#benchmark-timings">benchmark timings</a> below on some specific GPUs.
+
+We don't typically recommend running MegaDetctor on embedded devices, although <a href="https://www.electromaker.io/project/view/whats-destroying-my-yard-pest-detection-with-raspberry-pi">some folks have done it</a>!  More commonly, for embedded scenarios, it probably makes sense to use MegaDetector to generate bounding boxes on lots of images from your specific ecosystem, then use those boxes to train a smaller model that fits your embedded device's compute budget.
+
+### Benchmark timings
+
+We haven't done a lot of measurement on how long MegaDetector takes to run on "typical" GPUs, because we always use the same GPUs (we typically use 16 NVIDIA V100 GPUs to run large image batches in the cloud).  But we would like to start tracking this to help users make decisions about buying GPUs, so if you are using MegaDetector and have a GPU you're willing to benchmark on, <a href="mailto:cameratraps@microsoft.com">email us</a>!
+
+But with a test batch of around 13,000 images from the public <a href="https://lila.science/datasets/snapshot-karoo">Snapshot Karoo</a> and <a href="http://lila.science/datasets/idaho-camera-traps/">Idaho Camera Traps</a> datasets:
+
+* An <a href="https://www.nvidia.com/en-us/data-center/v100/">NVIDIA V100</a> GPU processes around 2.79 images per second, or around 240,000 images per day
+* An <a href="https://www.nvidia.com/en-us/geforce/graphics-cards/30-series/rtx-3090/">NVIDIA RTX 3090</a> GPU processes around 3.24 images per second, or around 280,000 images per day
+
+If you want to run this benchmark on your own, here are <a href="download_megadetector_timing_benchmark_set.bat">azcopy commands</a> to download those 13,226 images, and we're happy to help you get MegaDetector running on your setup.  Or if you're using MegaDetector on other images with other GPUs, we'd love to incude that data her e as well.  <a href="mailto:cameratraps@microsoft.com">Email us</a>!
 
 
 ## Who is using MegaDetector?
