@@ -21,6 +21,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 results_file = r"G:\umn\umn-20200330\combined_api_outputs\umn-20200330raw-pictures-habfrag_detections.json"
+# results_file = r"G:\umn\umn-20200330\combined_api_outputs\umn-20200330raw-pictures-habfrag_detections.filtered_rde_0.70_0.85_8_0.2.json"
 ground_truth_file = r"G:\temp\umn\format_images_hv.csv"
 image_base = r"G:\temp\umn\raw-pictures-habfrag"
 analysis_base = r"G:\temp\umn"
@@ -304,6 +305,17 @@ def precision_recall_analysis(gt_labels,prediction_probs,name,confidence_thresho
     fig = plot_utils.plot_precision_recall_curve(precisions, recalls, t)
     display(fig)
     
+    if False:
+        min_recall = 0.825
+        indices = recalls > min_recall
+        recalls_trimmed = recalls[indices]
+        precisions_trimmed = precisions[indices]
+        t = 'Precision-recall curve for {}: P@{:0.1%}={:0.1%}'.format(
+            name, target_recall, precision_at_target_recall)
+        fig = plot_utils.plot_precision_recall_curve(precisions_trimmed, recalls_trimmed, t, 
+                                                     xlim=(min_recall,1.0),ylim=(0.875,1.0))
+        display(fig)
+            
     if False:
         # pr_figure_relative_filename = 'prec_recall.png'
         pr_figure_filename = ''
