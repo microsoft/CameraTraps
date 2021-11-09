@@ -84,7 +84,8 @@ def plot_confusion_matrix(
 
 def plot_precision_recall_curve(
         precisions: Sequence[float], recalls: Sequence[float],
-        title: str = 'Precision/Recall curve'
+        title: str = 'Precision/Recall curve',
+        xlim=(0.0,1.05),ylim=(0.0,1.05)
         ) -> matplotlib.figure.Figure:
     """
     Plots the precision recall curve given lists of (ordered) precision
@@ -106,9 +107,6 @@ def plot_precision_recall_curve(
     ax.step(recalls, precisions, color='b', alpha=0.2, where='post')
     ax.fill_between(recalls, precisions, alpha=0.2, color='b', step='post')
 
-    xlim = (0.0, 1.05)
-    ylim = (0.0, 1.05)
-    
     try:
         ax.set(x_label='Recall', y_label='Precision', title=title)
         ax.set(x_lim=xlim, y_lim=ylim)    
