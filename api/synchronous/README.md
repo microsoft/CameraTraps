@@ -1,7 +1,6 @@
 # Camera trap real-time API
 
-
-We also expose our animal detection and species classification (the latter is to come!) models through a synchronous API to support real-time use cases and our demo web app.
+Though most of our users either use the [MegaDetector](https://github.com/Microsoft/CameraTraps#megadetector) model directly or work with us to run MegaDetector on the cloud, we also offer an open-source reference implementation for a an API that processes images in real-time, to support closed-loop scenarios (e.g. anti-poaching scenarios).
 
 
 ## Set-up

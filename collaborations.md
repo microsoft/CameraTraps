@@ -17,7 +17,7 @@ To this end, we've trained an AI model &ndash; called "MegaDetector" &ndash; to 
 
 This page summarizes what we do with that model to help our collaborators, typically ecologists, more specifically ecologists who are overwhelmed by camera trap images.  This page also includes some questions we ask new collaborators, to help assess whether our tools are useful, and &ndash; if so &ndash; what the right set of tools is for a particular project.
 
-Basically this page is the response we give when someone emails us and says "I have too many camera trap images!  Can you help me?!?!".  If you're an ecologist reading this page, and that sounds familiar, feel free to answer the questions below in an email to <a href="mailto:cameratraps@microsoft.com">cameratraps@microsoft.com</a>.
+Basically this page is the response we give when someone emails us and says "I have too many camera trap images!  Can you help me?!?!".  If you're an ecologist reading this page, and that sounds familiar, feel free to answer the questions below in an email to <a href="mailto:cameratraps@lila.science">cameratraps@lila.science</a>.
 
 You can see a list of some of the organizations who have used our tools [here](https://github.com/microsoft/CameraTraps/#who-is-using-the-ai-for-earth-camera-trap-tools).
 
