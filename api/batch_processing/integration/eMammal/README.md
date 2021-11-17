@@ -1,8 +1,8 @@
 # MegaDetector/eMammal integration app: introduction 
 
-This app takes as input an output file from the AI for Earth MegaDetector batch API and transfers those annotations to the eMammal desktop app running on the local machine.  This is very very very very beta, so if you're interested in trying this out, we recommend that you <a href="mailto:cameratraps@microsoft.com">email us</a>!
+This app takes as input an output file from the AI for Earth MegaDetector batch API and transfers those annotations to the eMammal desktop app running on the local machine.  This is very very very very beta, so if you're interested in trying this out, we recommend that you <a href="mailto:cameratraps@lila.science">email us</a>!
 
-We have also worked with a number of eMammal users to use MegaDetector in a somewhat less elegant way, specifically to process all their images before they ever get to the eMammal desktop app, and use the MegaDetector results move all the empty images into a separate folder, which users can then either upload to a separate deployment or not upload at all.  We can do the same with human/vehicle images.  If you're interested in trying this approach out, also <a href="mailto:cameratraps@microsoft.com">email us</a>!
+We have also worked with a number of eMammal users to use MegaDetector in a somewhat less elegant way, specifically to process all their images before they ever get to the eMammal desktop app, and use the MegaDetector results move all the empty images into a separate folder, which users can then either upload to a separate deployment or not upload at all.  We can do the same with human/vehicle images.  If you're interested in trying this approach out, also <a href="mailto:cameratraps@lila.science">email us</a>!
 
 # Downloading the eMammal integration app
 
