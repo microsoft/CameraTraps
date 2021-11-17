@@ -10,6 +10,6 @@ This folder contains information about ways to use MegaDetector output files in 
 
 For any of these use cases, you may also want to check out our [Camera Trap JSON Manager App](https://github.com/microsoft/CameraTraps/blob/master/api/batch_processing/postprocessing/CameraTrapJsonManagerApp.md), which can help you split/modify our .json results files to break into smaller projects, adjust relative paths, etc.
 
-If you use any of these tools &ndash; or if we're missing an important one &ndash; <a href="mailto:cameratraps@microsoft.com">email us</a>!
+If you use any of these tools &ndash; or if we're missing an important one &ndash; <a href="mailto:cameratraps@lila.science">email us</a>!
 
 

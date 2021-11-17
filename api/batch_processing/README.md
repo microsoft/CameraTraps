@@ -1,6 +1,6 @@
 # Camera trap batch processing API user guide
 
-We offer a service for processing a large quantity of camera trap images using our [MegaDetector](https://github.com/Microsoft/CameraTraps#megadetector) by calling an API, documented here. The output is most helpful for separating empty from non-empty images based on a detector confidence threshold that you select, and putting bounding boxes around animals, people, and vehicles to help manual review proceed more quickly.  If you are interested in processing very small numbers of images for real-time applications (e.g. for anti-poaching applications), see our [real-time camera trap image processing API](https://aiforearth.portal.azure-api.net/docs/services/ai-for-earth-camera-trap-detection-api/).
+Though most of our users either use the [MegaDetector](https://github.com/Microsoft/CameraTraps#megadetector) model directly or work with us to run MegaDetector on the cloud, we also offer an open-source reference implementation for a an API that processes a large quantity of camera trap images, to support  a variety of online scenarios. The output is most helpful for separating empty from non-empty images based on a detector confidence threshold that you select, and putting bounding boxes around animals, people, and vehicles to help manual review proceed more quickly.  If you are interested in setting up an endpoint to process very small numbers of images for real-time applications (e.g. for anti-poaching applications), see the source for our [real-time camera trap image processing API](https://aiforearth.portal.azure-api.net/docs/services/ai-for-earth-camera-trap-detection-api/).
 
 With the batch processing API, you can process a batch of up to a few million images in one request to the API. If in addition you have some images that are labeled, we can evaluate the performance of the MegaDetector on your labeled images (see [Post-processing tools](#post-processing-tools)).
 
@@ -9,22 +9,18 @@ All references to &ldquo;container&rdquo; in this document refer to [Azure Blob 
 We have referred to one submission of images as a "request" in this documentation but as a "job" elsewhere in the source code and emails; confusingly, the endpoint for checking the status of a request/job is called `/task` and the RequestID is called `task_id`. Consider "request" and "job" interchangeable, and the `/task` endpoint a legacy issue. Note that the terms "job" and "task" mean different things in the source code (in the context of Azure Batch).
 
 
-## Processing time
-
-It takes about 0.6 seconds per image per machine, and we have at most 16 machines that can process them in parallel. So if no one else is using the service and you&rsquo;d like to process 1 million images, it will take 1,000,000 * 0.6 / (16 * 60 * 60) = 10.5 hours. 
-
-
 ## API
 
 ### API endpoints
 
-The endpoints of this API are available at
+Once configured to run on a live instance, the endpoints of this API are available at
 
 ```
 http://URL/v4/camera-trap/detection-batch
 ```
 
 #### `/request_detections`
+
 To submit a request for batch processing, make a POST call to this endpoint with a json body containing input fields defined below. The API will return with a json response very quickly to give you a RequestID (UUID4 hex) representing the request you have submitted, for example:
 ```json
 {
@@ -41,6 +37,7 @@ In particular the endpoint will return a 503 error if the queue of requests is f
 
 
 #### `/task`
+
 Check the status of your request by calling the `/task` endpoint via a GET call, passing in your RequestID:
 
 ```http://URL/v4/camera-trap/detection-batch/task/RequestID```
