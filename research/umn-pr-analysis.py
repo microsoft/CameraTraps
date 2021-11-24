@@ -44,7 +44,8 @@ print('Listed {} deployment folders'.format(len(deployment_folders)))
 with open(results_file,'r') as f:
     md_results = json.load(f)
 
-for im in md_results['images']:   
+for im in md_results['images']:  
+    im['file'] = im['file'].replace('\\','/')
     assert 'raw-pictures-habfrag/' in im['file']
     im['file'] = im['file'].replace('raw-pictures-habfrag/','')
 
@@ -358,40 +359,42 @@ if False:
 
 #%% Find and manually review all MegaDetector animal misses
 
-fp_threshold = 0.85
-fn_threshold = 0.6
-
-false_positives = []
-false_negatives = []
-
-fp_output_folder = os.path.join(analysis_base,'animal_fp')
-fn_output_folder = os.path.join(analysis_base,'animal_fn')
-os.makedirs(fp_output_folder,exist_ok=True)
-os.makedirs(fn_output_folder,exist_ok=True)
-
-# im = merged_images[0]
-for im in tqdm(merged_images):
+if False:
     
-    relative_path = im['relative_path'] 
-    input_path_absolute = os.path.join(image_base,relative_path)
-    output_relative_path = relative_path.replace('\\','/').replace('/','_')
+    fp_threshold = 0.85
+    fn_threshold = 0.6
     
-    # GT says this is not an animal
-    if im['is_blank'] == 1 or im['common_name'] == 'Human':
-        if im['confidences']['animal'] > fp_threshold:
-            false_positives.append(im)
-            output_path_absolute = os.path.join(fp_output_folder,output_relative_path)
-            if not os.path.isfile(output_path_absolute):
-                shutil.copyfile(input_path_absolute,output_path_absolute)                    
+    false_positives = []
+    false_negatives = []
     
-    # GT says this is an animal
-    else:
-        assert im['is_blank'] == 0 and im['common_name'] != 'Human'
-        if im['confidences']['animal'] < fn_threshold:
-            false_negatives.append(im)
-            output_path_absolute = os.path.join(fn_output_folder,output_relative_path)
-            if not os.path.isfile(output_path_absolute):
-                shutil.copyfile(input_path_absolute,output_path_absolute)                    
-
-print('Found {} FPs and {} FNs'.format(len(false_positives),len(false_negatives)))
-
+    fp_output_folder = os.path.join(analysis_base,'animal_fp')
+    fn_output_folder = os.path.join(analysis_base,'animal_fn')
+    os.makedirs(fp_output_folder,exist_ok=True)
+    os.makedirs(fn_output_folder,exist_ok=True)
+    
+    # im = merged_images[0]
+    for im in tqdm(merged_images):
+        
+        relative_path = im['relative_path'] 
+        input_path_absolute = os.path.join(image_base,relative_path)
+        output_relative_path = relative_path.replace('\\','/').replace('/','_')
+        
+        # GT says this is not an animal
+        if im['is_blank'] == 1 or im['common_name'] == 'Human':
+            if im['confidences']['animal'] > fp_threshold:
+                false_positives.append(im)
+                output_path_absolute = os.path.join(fp_output_folder,output_relative_path)
+                if not os.path.isfile(output_path_absolute):
+                    shutil.copyfile(input_path_absolute,output_path_absolute)                    
+        
+        # GT says this is an animal
+        else:
+            assert im['is_blank'] == 0 and im['common_name'] != 'Human'
+            if im['confidences']['animal'] < fn_threshold:
+                false_negatives.append(im)
+                output_path_absolute = os.path.join(fn_output_folder,output_relative_path)
+                if not os.path.isfile(output_path_absolute):
+                    shutil.copyfile(input_path_absolute,output_path_absolute)                    
+    
+    print('Found {} FPs and {} FNs'.format(len(false_positives),len(false_negatives)))
+    
