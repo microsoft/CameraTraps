@@ -248,10 +248,17 @@ def find_matches_in_directory(dirName, options, rowsByDirectory):
     rows = rowsByDirectory[dirName]
 
     # iDirectoryRow = 0; row = rows.iloc[iDirectoryRow]
+    i_iteration = -1
     for iDirectoryRow, row in rows.iterrows():
 
+        i_iteration += 1
+        print('Searching row {} of {} (index {}) in dir {}'.format(i_iteration,len(rows),iDirectoryRow,dirName))
         filename = row['file']
         if not ct_utils.is_image_file(filename):
+            continue
+
+        if 'max_detection_conf' not in row or 'detections' not in row or row['detections'] is None:
+            print('Skipping row {}'.format(iDirectoryRow))
             continue
 
         # Don't bother checking images with no detections above threshold
@@ -276,7 +283,11 @@ def find_matches_in_directory(dirName, options, rowsByDirectory):
 
         # For each detection in this image
         for iDetection, detection in enumerate(detections):
-            
+           
+            if detection is None:
+                print('Skipping detection {}'.format(iDetection))
+                continue
+
             assert 'category' in detection and 'conf' in detection and 'bbox' in detection
 
             confidence = detection['conf']
@@ -751,7 +762,9 @@ def find_repeat_detections(inputFilename, outputFilename=None, options=None):
 
             options.pbar = None
             # iDir = 0; dirName = dirsToSearch[iDir]
-            for iDir, dirName in enumerate(tqdm(dirsToSearch)):
+            # for iDir, dirName in enumerate(tqdm(dirsToSearch)):
+            for iDir, dirName in enumerate(dirsToSearch):
+                print('Processing dir {} of {}: {}'.format(iDir,len(dirsToSearch),dirName))
                 allCandidateDetections[iDir] = find_matches_in_directory(dirName, options, rowsByDirectory)
 
         else:
