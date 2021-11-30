@@ -1,0 +1,16 @@
+{
+  "name": "node_example",
+  "version": "1.0.0",
+  "description": "Example call to Megadetector API",
+  "main": "main.js",
+  "scripts": {
+    "start": "node main.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^8.2.0",
+    "superagent": "^6.1.0"
+  }
+}
