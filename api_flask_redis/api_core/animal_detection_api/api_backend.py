@@ -5,10 +5,6 @@ import os
 import json
 import redis
 import time
-from datetime import datetime
-from io import BytesIO
-
-from requests_toolbelt.multipart.encoder import MultipartEncoder
 
 import config
 from run_tf_detector import TFDetector
@@ -20,23 +16,28 @@ detector = TFDetector(config.DETECTOR_MODEL_PATH)
 current_directory = os.path.dirname(os.path.realpath(__file__))
 
 def detect_process():
+    
     detection_results = []
     inference_time_detector = []
 
     while True:
-        serialized_entry = db.lpop(config.REDIS_QUEUE)
         
+        serialized_entry = db.lpop(config.REDIS_QUEUE)        
         detection_results = []
         inference_time_detector = []
+        
         if serialized_entry:
+            
             entry = json.loads(serialized_entry)
             id = entry['id']
-            render_boxes = entry['render_boxes']
             detection_confidence = entry['detection_confidence']
 
             try:
+                
                 temp_direc = f'{current_directory}/{config.TEMP_FOLDER}/{id}'
+                
                 for filename in os.listdir(temp_direc):
+                    
                     image = open(f'{temp_direc}/{filename}', "rb")
                     image = viz_utils.load_image(image)
 
@@ -46,6 +47,7 @@ def detect_process():
 
                     elapsed = time.time() - start_time
                     inference_time_detector.append(elapsed)
+                    
             except Exception as e:
                 print('Error performing detection on the images: ' + str(e))
                 
@@ -54,11 +56,17 @@ def detect_process():
                     'error': 'Error performing detection on the images: ' + str(e)
                 }))
 
-            # filter the detections by the confidence threshold
-            filtered_results = {}  # json to return to the user along with the rendered images if they opted for it
-            # each result is [ymin, xmin, ymax, xmax, confidence, category]
+            # Filter the detections by the confidence threshold
+            
+            # json to return to the user along with the rendered images if they opted for it
+            #
+            # Each result is [ymin, xmin, ymax, xmax, confidence, category]
+            filtered_results = {}  
+            
             try:
+                
                 for result in detection_results:
+                    
                     image_name = result['file']
                     detections = result.get('detections', None)
                     filtered_results[image_name] = []
