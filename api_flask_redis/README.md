@@ -2,7 +2,7 @@
 
 ## Set-up
 
-Prepare the model files and configuration
+Prepare the model files
 
 - Download the MegaDetector model files (the `.pb` files) to `api_flask_redis/api_core/animal_detection_api/model`
 
@@ -20,9 +20,14 @@ export API_DOCKER_IMAGE=camera-trap-api:1
 sudo  docker build . -t $API_DOCKER_IMAGE
 ```
 
-- Start the Docker container to host the API locally at port 6002 of the VM:
+- Start the Docker container to host the API locally at port 5050 of the VM:
 ```bash
-nvidia-docker run -p 5050:1212 $API_DOCKER_IMAGE
+sudo nvidia-docker run -p 5050:1212 $API_DOCKER_IMAGE
 ```
 
 Test the API in postman
+
+![Test in postman](images/postman_1.jpg)
+
+![Test in postman](images/postman_2.jpg)
+
