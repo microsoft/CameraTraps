@@ -10,12 +10,12 @@ from io import BytesIO
 
 from requests_toolbelt.multipart.encoder import MultipartEncoder
 
-import api_config
+import config
 from run_tf_detector import TFDetector
 import visualization.visualization_utils as viz_utils
 
-db = redis.StrictRedis(host=api_config.REDIS_HOST, port=api_config.REDIS_PORT)
-detector = TFDetector(api_config.DETECTOR_MODEL_PATH)
+db = redis.StrictRedis(host=config.REDIS_HOST, port=config.REDIS_PORT)
+detector = TFDetector(config.DETECTOR_MODEL_PATH)
 
 current_directory = os.path.dirname(os.path.realpath(__file__))
 
@@ -24,7 +24,7 @@ def detect_process():
     inference_time_detector = []
 
     while True:
-        serialized_entry = db.lpop(api_config.REDIS_QUEUE)
+        serialized_entry = db.lpop(config.REDIS_QUEUE)
         
         detection_results = []
         inference_time_detector = []
@@ -35,7 +35,7 @@ def detect_process():
             detection_confidence = entry['detection_confidence']
 
             try:
-                temp_direc = f'{current_directory}/{api_config.TEMP_FOLDER}/{id}'
+                temp_direc = f'{current_directory}/{config.TEMP_FOLDER}/{id}'
                 for filename in os.listdir(temp_direc):
                     image = open(f'{temp_direc}/{filename}', "rb")
                     image = viz_utils.load_image(image)
