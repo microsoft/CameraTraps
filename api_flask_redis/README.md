@@ -27,6 +27,13 @@ sudo nvidia-docker run -p 5050:1212 $API_DOCKER_IMAGE
 
 Test the API in postman
 
+- To test in postman in a postman tab enter the URL of the API e.g http://52.168.83.103:5050/v1/camera-trap/sync/detect?confidence=0.9&render=false
+ - Select POST
+ - Then add parameter `confidence` and provide a value for confidence level
+ - Add another parameter for `render` set it to `true` if you would like the images to be rendered otherwise set it to `false`
+ - Under `Body` select `form-data`, add the images
+ - Click send
+
 ![Test in postman](images/postman_1.jpg)
 
 ![Test in postman](images/postman_2.jpg)
