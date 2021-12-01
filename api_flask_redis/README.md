@@ -57,7 +57,7 @@ sudo docker build . -t $API_DOCKER_IMAGE
 - Start the Docker container to host the API locally at port 5050 of the VM:
 
 ```bash
-sudo nvidia-docker run -p 5050:1212 $API_DOCKER_IMAGE
+sudo nvidia-docker run -it -p 5050:1212 $API_DOCKER_IMAGE
 ```
 
 ## Test the API in Postman
