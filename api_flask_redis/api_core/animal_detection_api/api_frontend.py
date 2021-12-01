@@ -12,12 +12,12 @@ from io import BytesIO
 from flask import Flask, Response, jsonify, make_response, request
 from requests_toolbelt.multipart.encoder import MultipartEncoder
 import visualization.visualization_utils as viz_utils
-import api_config
+import config
 
 print('Creating application')
 app = Flask(__name__)
 
-db = redis.StrictRedis(host=api_config.REDIS_HOST, port=api_config.REDIS_PORT)
+db = redis.StrictRedis(host=config.REDIS_HOST, port=config.REDIS_PORT)
 
 def _make_error_object(error_code, error_message):
     # here we make a dict that the request_processing_function can return to the endpoint function
@@ -41,10 +41,10 @@ def check_posted_data(request):
     content_length = request.content_length
     if not content_length:
         return _make_error_object(411, 'No image(s) are sent, or content length cannot be determined.')
-    if content_length > api_config.MAX_CONTENT_LENGTH_IN_MB * 1024 * 1024:
+    if content_length > config.MAX_CONTENT_LENGTH_IN_MB * 1024 * 1024:
         return _make_error_object(413, ('Payload size {:.2f} MB exceeds the maximum allowed of {} MB. '
                     'Please upload fewer or more compressed images.').format(
-            content_length / (1024 * 1024), api_config.MAX_CONTENT_LENGTH_IN_MB))
+            content_length / (1024 * 1024), config.MAX_CONTENT_LENGTH_IN_MB))
 
     render_boxes = True if params.get('render', '') in ['True', 'true'] else False
 
@@ -56,14 +56,14 @@ def check_posted_data(request):
             return _make_error_object(400, 'Detection confidence {} is invalid. Needs to be between 0.0 and 1.0.'.format(
                 detection_confidence))
     else:
-        detection_confidence = api_config.DEFAULT_DETECTION_CONFIDENCE
+        detection_confidence = config.DEFAULT_DETECTION_CONFIDENCE
 
     # check that the number of images is acceptable
-    num_images = sum([1 if file.content_type in api_config.IMAGE_CONTENT_TYPES else 0 for file in files.values()])
+    num_images = sum([1 if file.content_type in config.IMAGE_CONTENT_TYPES else 0 for file in files.values()])
     print('runserver, post_detect_sync, number of images received: ', num_images)
 
-    if num_images > api_config.MAX_IMAGES_ACCEPTED:
-        return _make_error_object(413, 'Too many images. Maximum number of images that can be processed in one call is {}.'.format(api_config.MAX_IMAGES_ACCEPTED))
+    if num_images > config.MAX_IMAGES_ACCEPTED:
+        return _make_error_object(413, 'Too many images. Maximum number of images that can be processed in one call is {}.'.format(config.MAX_IMAGES_ACCEPTED))
     elif num_images == 0:
         return _make_error_object(400, 'No image(s) of accepted types (image/jpeg, image/png, application/octet-stream) received.')
     
@@ -72,7 +72,7 @@ def check_posted_data(request):
         'detection_confidence': detection_confidence
     }
    
-@app.route(api_config.API_PREFIX + '/detect', methods = ['POST'])
+@app.route(config.API_PREFIX + '/detect', methods = ['POST'])
 def detect_sync():
     # check if the request_processing_function had an error while parsing user specified parameters
     post_data = check_posted_data(request)
@@ -84,20 +84,20 @@ def detect_sync():
   
     redis_id = str(uuid.uuid4())
     d = {'id': redis_id, 'render_boxes': render_boxes, 'detection_confidence': detection_confidence}
-    temp_direc = os.path.join(api_config.TEMP_FOLDER, redis_id)
+    temp_direc = os.path.join(config.TEMP_FOLDER, redis_id)
     try:
         try:
             # TODO: convert to reading from memory instead
             os.makedirs(temp_direc,exist_ok=True)
             for name, file in request.files.items():
-                if file.content_type in api_config.IMAGE_CONTENT_TYPES:
+                if file.content_type in config.IMAGE_CONTENT_TYPES:
                     filename = request.files[name].filename
                     file.save(os.path.join(temp_direc, filename))
         
         except Exception as e:
             return _make_error_object(500, 'Error saving images: ' + str(e))
         
-        db.rpush(api_config.REDIS_QUEUE, json.dumps(d))
+        db.rpush(config.REDIS_QUEUE, json.dumps(d))
         
         while True:
             result = db.get(redis_id)
