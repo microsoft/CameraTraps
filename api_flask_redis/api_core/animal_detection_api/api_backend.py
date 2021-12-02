@@ -3,8 +3,10 @@
 
 import os
 import json
-import redis
 import time
+import redis
+import argparse
+
 from datetime import datetime
 from io import BytesIO
 
@@ -15,8 +17,6 @@ from run_tf_detector import TFDetector
 import visualization.visualization_utils as viz_utils
 
 db = redis.StrictRedis(host=config.REDIS_HOST, port=config.REDIS_PORT)
-detector = TFDetector(config.DETECTOR_MODEL_PATH)
-
 current_directory = os.path.dirname(os.path.realpath(__file__))
 
 def detect_process():
@@ -91,4 +91,17 @@ def detect_process():
 
     
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='api backend')
+
+    # use --non-docker argument if you are testing without docker directly in terminal for debugging
+    # python api_frontend.py --non-docker
+    parser.add_argument('--non-docker', action="store_true", default=False)
+    args = parser.parse_args()
+
+    if args.non_docker:
+        model_path = config.DETECTOR_MODEL_PATH_DEBUG
+    else:
+        model_path = config.DETECTOR_MODEL_PATH
+
+    detector = TFDetector(model_path)
     detect_process() 
