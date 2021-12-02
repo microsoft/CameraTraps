@@ -32,7 +32,9 @@ def _make_error_response(error_code, error_message):
     return make_response(jsonify({'error': error_message}), error_code)
 
 def has_access(request):
-    if config.CHECK_API_KEY:
+    if not os.path.exists(config.API_KEYS_FILE):
+        return True
+    else:
         if not request.headers.get('key'):
             return False
         else:
@@ -41,9 +43,8 @@ def has_access(request):
                 for line in f:
                     if line.strip().strip('\n').lower() == API_key.lower():
                         return True
-    
-            return False
-    return True       
+
+    return False
 
 def check_posted_data(request):
  
