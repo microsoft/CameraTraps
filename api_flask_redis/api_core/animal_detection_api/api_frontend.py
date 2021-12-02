@@ -7,7 +7,6 @@ import shutil
 import argparse
 import traceback
 from PIL import Image
-from datetime import datetime
 from io import BytesIO
 
 from flask import Flask, Response, jsonify, make_response, request
@@ -54,7 +53,7 @@ def check_posted_data(request):
     # also will not proceed if cannot find content_length, hence in the else we exceed the max limit
     content_length = request.content_length
     if not content_length:
-        return _make_error_object(411, 'No image(s) are sent, or content length cannot be determined.')
+        return _make_error_object(411, 'No image(s) were sent, or content length cannot be determined.')
     if content_length > config.MAX_CONTENT_LENGTH_IN_MB * 1024 * 1024:
         return _make_error_object(413, ('Payload size {:.2f} MB exceeds the maximum allowed of {} MB. '
                     'Please upload fewer or more compressed images.').format(
@@ -88,12 +87,17 @@ def check_posted_data(request):
    
 @app.route(config.API_PREFIX + '/detect', methods = ['POST'])
 def detect_sync():
+<<<<<<< HEAD
     if not has_access(request):
         print('Access denied, please provide an API key was not provided')
         print(request.headers.get('key'))
         return _make_error_response(403, 'Access denied, please provide an API key')
 
     # check if the request_processing_function had an error while parsing user specified parameters
+=======
+    
+    # check whether the request_processing_function had an error while parsing user specified parameters
+>>>>>>> d848866f19c06c3cf47f3c2c644fea4d775ca469
     post_data = check_posted_data(request)
     if post_data.get('error_code', None) is not None:
         return _make_error_response(post_data.get('error_code'), post_data.get('error_message'))
@@ -104,7 +108,9 @@ def detect_sync():
     redis_id = str(uuid.uuid4())
     d = {'id': redis_id, 'render_boxes': render_boxes, 'detection_confidence': detection_confidence}
     temp_direc = os.path.join(config.TEMP_FOLDER, redis_id)
+    
     try:
+        
         try:
             # TODO: convert to reading from memory instead
             os.makedirs(temp_direc,exist_ok=True)
@@ -119,23 +125,25 @@ def detect_sync():
         db.rpush(config.REDIS_QUEUE, json.dumps(d))
         
         while True:
+            
             result = db.get(redis_id)
             if result:
+                
                 result = json.loads(result.decode())
+                
                 if result['status'] == 200:
                     detection_results = result['detection_results']
                     filtered_results = result['filtered_results']
                     inference_time_detector = result['inference_time_detector']
-
                     db.delete(redis_id)
                 
                 else:
                     db.delete(redis_id)
-                    print('Error performing detection on the images: ' + str(e))
-                    return _make_error_response(500, 'Error performing detection on the images: ' + str(e))
+                    print('Error performing detection on the images: ' + str(result))
+                    return _make_error_response(500, 'Error performing detection on the images: ' + str(result))
 
                 try:
-                    print('runserver, post_detect_sync, rendering and sending images back...')
+                    print('runserver, post_detect_sync, postprocessing and sending images back...')
                     fields = {
                         'detection_result': ('detection_result', json.dumps(filtered_results), 'application/json'),
                     }
