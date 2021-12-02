@@ -4,7 +4,6 @@
 import os
 import json
 import time
-<<<<<<< HEAD
 import redis
 import argparse
 
@@ -12,8 +11,6 @@ from datetime import datetime
 from io import BytesIO
 
 from requests_toolbelt.multipart.encoder import MultipartEncoder
-=======
->>>>>>> d848866f19c06c3cf47f3c2c644fea4d775ca469
 
 import config
 from run_tf_detector import TFDetector

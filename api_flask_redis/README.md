@@ -38,10 +38,6 @@ wget "https://lilablobssc.blob.core.windows.net/models/camera_traps/megadetector
  - To authenticate the API via a key, add a list of keys to file (e.g GUID/UUID) `allowed_keys.txt`, one key per line
  - Then in the `config.py` file under `api_flask_redis/api_core/animal_detection_api` set `CHECK_API_KEY` to `true`
 
-```
-CHECK_API_KEY=True
-```
-
 ### Build the Docker image
 
 - Switch to the `api_flask_redis/api_core` folder, from which the Docker image expects to be built:
@@ -55,19 +51,19 @@ cd api_flask_redis/api_core
 export API_DOCKER_IMAGE=camera-trap-api:1.0
 ```
 
+#### For GPU environments
+
+- Name the base tensorflow image
+```bash
+export BASE_IMAGE=tensorflow/tensorflow:1.14.0-gpu-py3
+```
+
 - set the base tensor flow image
 #### For non-GPU environments
 
 - Name the base tensorflow image
 ```bash
 export BASE_IMAGE=tensorflow/tensorflow:1.14.0-py3
-```
-
-#### For GPU environments
-
-- Name the base tensorflow image
-```bash
-export BASE_IMAGE=tensorflow/tensorflow:1.14.0-gpu-py3
 ```
 
 - Build the Docker image:
