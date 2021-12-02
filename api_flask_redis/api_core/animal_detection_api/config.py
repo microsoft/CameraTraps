@@ -37,7 +37,7 @@ DEFAULT_DETECTION_CONFIDENCE = 0.8
 
 API_PREFIX='/v1/camera-trap/sync'
 
-CHECK_API_KEY=True
+CHECK_API_KEY=False
 
 API_KEYS_FILE='allowed_keys.txt'
 
