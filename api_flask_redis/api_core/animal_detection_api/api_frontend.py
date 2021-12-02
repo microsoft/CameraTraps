@@ -41,7 +41,9 @@ def has_access(request):
                 for line in f:
                     if line.strip().strip('\n').lower() == API_key.lower():
                         return True
-    return False
+    
+            return False
+    return True       
 
 def check_posted_data(request):
  
