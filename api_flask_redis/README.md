@@ -36,8 +36,7 @@ wget "https://lilablobssc.blob.core.windows.net/models/camera_traps/megadetector
 ### Enable API Key authentication (optional)
 
 - To authenticate the API via a key, add a list of keys to file `api_flask_redis/api_core/animal_detection_api/allowed_keys.txt`(e.g GUID/UUID values), one key per line
- - Then in the `config.py` file under `api_flask_redis/api_core/animal_detection_api` set `CHECK_API_KEY` to `True`
-
+ 
 ### Build the Docker image
 
 - Switch to the `api_flask_redis/api_core` folder, from which the Docker image expects to be built:
@@ -99,7 +98,7 @@ sudo docker run -p 5050:1212 $API_DOCKER_IMAGE
  - Select `POST`
  - Add the `confidence` parameter, and provide a value for confidence level
  - Optionally add the `render` parameter, set to `true` if you would like the images to be rendered with bounding boxes
- - If you enabled authentication by adding the file `allowed_keys.txt` under `api_flask_redis/api_core/animal_detection_api`then in the headers tab add parameter key and enter the key value (this would be one the keys that you saved to the file `allowed_keys.txt`
+ - If you enabled authentication by adding the file `allowed_keys.txt` under `api_flask_redis/api_core/animal_detection_api`then in the headers tab add parameter key and enter the key value (this would be one the keys that you saved to the file `allowed_keys.txt`)
  - Under `Body` select `form-data`, create one key/value pair per image, with values of type "file" (to upload an image file)
  - Click `Send`
 
