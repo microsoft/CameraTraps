@@ -99,7 +99,7 @@ sudo docker run -p 5050:1212 $API_DOCKER_IMAGE
  - Select `POST`
  - Add the `confidence` parameter, and provide a value for confidence level
  - Optionally add the `render` parameter, set to `true` if you would like the images to be rendered with bounding boxes
-  - If in the config file `CHECK_API_KEY` is set to `True` then in the headers tab add parameter `key` and enter key value (this would be one the keys saved in file `api_flask_redis/api_core/animal_detection_api/allowed_keys.txt`)
+  - If in the config file `CHECK_API_KEY` is set to `True` then in the headers tab add parameter `key` and enter the key value (this would be one the keys that you saved to the file `api_flask_redis/api_core/animal_detection_api/allowed_keys.txt`)
  - Under `Body` select `form-data`, create one key/value pair per image, with values of type "file" (to upload an image file)
  - Click `Send`
 
