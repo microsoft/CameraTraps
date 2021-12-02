@@ -31,18 +31,11 @@ NUM_SIGNIFICANT_DIGITS = 3
 
 DETECTOR_MODEL_PATH = '/app/animal_detection_api/model/md_v4.1.0.pb'
 
-<<<<<<< HEAD
-=======
-# Use this when testing without docker
-#DETECTOR_MODEL_PATH = 'model/md_v4.1.0.pb'
-
->>>>>>> d848866f19c06c3cf47f3c2c644fea4d775ca469
 DETECTOR_MODEL_VERSION = 'v4.1.0'
 
 DEFAULT_DETECTION_CONFIDENCE = 0.8
 
 API_PREFIX='/v1/camera-trap/sync'
-<<<<<<< HEAD
 
 CHECK_API_KEY=False
 
@@ -50,5 +43,3 @@ API_KEYS_FILE='allowed_keys.txt'
 
 # use this when testing without docker
 DETECTOR_MODEL_PATH_DEBUG = 'model/md_v4.1.0.pb'
-=======
->>>>>>> d848866f19c06c3cf47f3c2c644fea4d775ca469
