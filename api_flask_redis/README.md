@@ -103,8 +103,8 @@ sudo docker run -p 5050:1212 $API_DOCKER_IMAGE
  - Under `Body` select `form-data`, create one key/value pair per image, with values of type "file" (to upload an image file)
  - Click `Send`
 
-![Test in postman](images/postman_url_params.jpg)
+![Test in postman](images/postman_url_params.jpg) \
 
-![Test in postman](images/postman_api_key.jpg)
+![Test in postman](images/postman_api_key.jpg) \
 
-![Test in postman](images/postman_formdata_images.jpg)
+![Test in postman](images/postman_formdata_images.jpg) \
