@@ -51,7 +51,7 @@ cd api_flask_redis/api_core
 export API_DOCKER_IMAGE=camera-trap-api:1.0
 ```
 
-#### For GPU environments
+##### For GPU environments
 
 - Name the base tensorflow image
 ```bash
@@ -59,14 +59,14 @@ export BASE_IMAGE=tensorflow/tensorflow:1.14.0-gpu-py3
 ```
 
 - set the base tensor flow image
-#### For non-GPU environments
+##### For non-GPU environments
 
 - Name the base tensorflow image
 ```bash
 export BASE_IMAGE=tensorflow/tensorflow:1.14.0-py3
 ```
 
-- Build the Docker image:
+### Build the Docker image:
 
 ```bash
 sudo sh build_docker.sh $BASE_IMAGE $API_DOCKER_IMAGE
@@ -99,7 +99,7 @@ sudo docker run -p 5050:1212 $API_DOCKER_IMAGE
  - Select `POST`
  - Add the `confidence` parameter, and provide a value for confidence level
  - Optionally add the `render` parameter, set to `true` if you would like the images to be rendered with bounding boxes
-  - If in the config file `CHECK_API_KEY` is set to `True` then in the headers tab add parameter `key` and enter the key value (this would be one the keys that you saved to the file `api_flask_redis/api_core/animal_detection_api/allowed_keys.txt`)
+ - If you enabled authentication by adding the file `allowed_keys.txt` under `api_flask_redis/api_core/animal_detection_api`then in the headers tab add parameter key and enter the key value (this would be one the keys that you saved to the file `allowed_keys.txt`
  - Under `Body` select `form-data`, create one key/value pair per image, with values of type "file" (to upload an image file)
  - Click `Send`
 
