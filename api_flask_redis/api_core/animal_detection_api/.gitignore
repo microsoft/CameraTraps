@@ -1,4 +1,4 @@
+data_management/annotations/
+visualization/
 run_tf_detector.py
-visualization/visualization_utils.py
 ct_utils.py
-data_management/annotations/annotations_constants.py
