@@ -1,9 +1,10 @@
 import os
-import shutil
 import json
 import time
 import uuid
 import redis
+import shutil
+import argparse
 import traceback
 from PIL import Image
 from datetime import datetime
@@ -19,6 +20,7 @@ app = Flask(__name__)
 
 db = redis.StrictRedis(host=config.REDIS_HOST, port=config.REDIS_PORT)
 
+
 def _make_error_object(error_code, error_message):
     # here we make a dict that the request_processing_function can return to the endpoint function
     # to notify it of an error
@@ -29,6 +31,18 @@ def _make_error_object(error_code, error_message):
 
 def _make_error_response(error_code, error_message):
     return make_response(jsonify({'error': error_message}), error_code)
+
+def has_access(request):
+    if config.CHECK_API_KEY:
+        if not request.headers.get('key'):
+            return False
+        else:
+            API_key = request.headers.get('key')
+            with open(config.API_KEYS_FILE, "r") as f:
+                for line in f:
+                    if line.strip().strip('\n').lower() == API_key.lower():
+                        return True
+    return False
 
 def check_posted_data(request):
  
@@ -74,6 +88,11 @@ def check_posted_data(request):
    
 @app.route(config.API_PREFIX + '/detect', methods = ['POST'])
 def detect_sync():
+    if not has_access(request):
+        print('Access denied, please provide an API key was not provided')
+        print(request.headers.get('key'))
+        return _make_error_response(403, 'Access denied, please provide an API key')
+
     # check if the request_processing_function had an error while parsing user specified parameters
     post_data = check_posted_data(request)
     if post_data.get('error_code', None) is not None:
@@ -157,6 +176,7 @@ def detect_sync():
                     print('Error returning result or rendering the detection boxes: ' + str(e))
 
             else:
+                print('waiting for results')
                 time.sleep(.25)
 
     except Exception as e:
@@ -164,8 +184,15 @@ def detect_sync():
         return _make_error_object(500, 'Error processing images: ' + str(e))
 
 if __name__ == '__main__':
-    #app.run()
+    parser = argparse.ArgumentParser(description='api frontend')
 
-    #for testing without docker
-    app.run(host='0.0.0.0', port=5050)
+    # use --non-docker argument if you are testing without docker directly in terminal for debugging
+    # python api_frontend.py --non-docker
+    parser.add_argument('--non-docker', action="store_true", default=False)
+    args = parser.parse_args()
+
+    if args.non_docker:
+        app.run(host='0.0.0.0', port=5050)
+    else:
+        app.run()
 
