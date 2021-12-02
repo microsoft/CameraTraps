@@ -35,7 +35,7 @@ wget "https://lilablobssc.blob.core.windows.net/models/camera_traps/megadetector
 
 ### Enable API Key authentication (optional)
 
-- To authenticate the API via a key, add a list of keys to file `api_flask_redis/api_core/animal_detection_api/allowed_keys.txt`(e.g GUID/UUID values), one key per line
+- To authenticate the API via a key, create a file with name `allowed_keys.txt`, add it to the folder `api_flask_redis/api_core/animal_detection_api`, then add a list of keys to the file (e.g GUID/UUID values), one key per line
  
 ### Build the Docker image
 
