@@ -1,4 +1,6 @@
-FROM tensorflow/tensorflow:1.14.0-gpu-py3
+
+ARG BASE_IMAGE=tensorflow/tensorflow:1.14.0-gpu-py3
+FROM $BASE_IMAGE
 
 # install and expose redis default port
 RUN  apt-get update && apt-get install -y redis-server
