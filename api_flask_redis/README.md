@@ -13,59 +13,60 @@ The most notable prerequisite is nvidia-docker; install according to:
 
 - Clone the camera traps repo:
 
-```bash
-git clone "https://github.com/microsoft/CameraTraps/"
-cd CameraTraps
-```
-
+    ```bash
+    git clone "https://github.com/microsoft/CameraTraps/"
+    cd CameraTraps
+    ```
+    
 - During this testing phase, switch to the api-flask-redis-v1 branch:
 
-```bash
-git checkout api-flask-redis-v1
-````
+    ```bash
+    git checkout api-flask-redis-v1
+    ````
 
 
-### Prepare the model files
+### Download the model file
 
-Download the MegaDetector model file to `api_flask_redis/api_core/animal_detection_api/model`:
+- Download the MegaDetector model file to `api_flask_redis/api_core/animal_detection_api/model`:
 
-```bash
-wget "https://lilablobssc.blob.core.windows.net/models/camera_traps/megadetector/md_v4.1.0/md_v4.1.0.pb" -O api_flask_redis/api_core/animal_detection_api/model/md_v4.1.0.pb
-```
+    ```bash
+    wget "https://lilablobssc.blob.core.windows.net/models/camera_traps/megadetector/md_v4.1.0/md_v4.1.0.pb" -O api_flask_redis/api_core/animal_detection_api/model/md_v4.1.0.pb
+    ```
 
-### Enable API Key authentication (optional)
+### Enable API key authentication (optional)
 
-- To authenticate the API via a key, create a file with name `allowed_keys.txt`, add it to the folder `api_flask_redis/api_core/animal_detection_api`, then add a list of keys to the file (e.g GUID/UUID values), one key per line
+- To authenticate the API via a key, create a file with name `allowed_keys.txt`, add it to the folder `api_flask_redis/api_core/animal_detection_api`, then add a list of keys to the file, with one key per line.
+ 
  
 ### Build the Docker image
 
 - Switch to the `api_flask_redis/api_core` folder, from which the Docker image expects to be built:
 
-```bash
-cd api_flask_redis/api_core
+    ```bash
+    cd api_flask_redis/api_core
+    ```
+
+- Name the API's Docker image (the name doesn't matter, this is just a convenience if you are experimenting with multiple versions)
+
+    ```bash
+    export API_DOCKER_IMAGE=camera-trap-api:1.0
+    ```
+
+- Set the base TensorFlow image
+
+    For GPU environments:
+
+    ```bash
+    export BASE_IMAGE=tensorflow/tensorflow:1.14.0-gpu-py3
+    ```
+    
+    For non-GPU environments:
+    
+    ```bash
+    export BASE_IMAGE=tensorflow/tensorflow:1.14.0-py3
 ```
 
-- Name the API's Docker image; modify its version and build number as needed:
-```bash
-export API_DOCKER_IMAGE=camera-trap-api:1.0
-```
-
-##### For GPU environments
-
-- Name the base tensorflow image
-```bash
-export BASE_IMAGE=tensorflow/tensorflow:1.14.0-gpu-py3
-```
-
-- set the base tensor flow image
-##### For non-GPU environments
-
-- Name the base tensorflow image
-```bash
-export BASE_IMAGE=tensorflow/tensorflow:1.14.0-py3
-```
-
-### Build the Docker image:
+### Build the Docker image
 
 ```bash
 sudo sh build_docker.sh $BASE_IMAGE $API_DOCKER_IMAGE
@@ -73,32 +74,30 @@ sudo sh build_docker.sh $BASE_IMAGE $API_DOCKER_IMAGE
 
 ### Run the Docker image
 
-#### For GPU environments
+The following will run the API locally on port 5050.
 
-- Start the Docker container to host the API locally at port 5050 of the VM:
+- For GPU environments:
 
-```bash
-sudo nvidia-docker run -it -p 5050:1212 $API_DOCKER_IMAGE
-```
+    ```bash
+    sudo nvidia-docker run -it -p 5050:1212 $API_DOCKER_IMAGE
+    ```
 
-#### For non-GPU environments
+- For non-GPU environments:
 
-- Start the Docker container to host the API locally at port 5050 of the VM:
-
-```bash
-sudo docker run -p 5050:1212 $API_DOCKER_IMAGE
-```
+    ```bash
+    sudo docker run -it -p 5050:1212 $API_DOCKER_IMAGE
+    ```
 
 ## Test the API in Postman
 
 - To test in Postman, in a Postman tab enter the URL of the API, e.g.:
 
-  `http://100.100.200.200:5050/v1/camera-trap/sync/detect'
+  `http://100.100.200.200:5050/v1/camera-trap/sync/detect`
   
  - Select `POST`
  - Add the `confidence` parameter, and provide a value for confidence level
  - Optionally add the `render` parameter, set to `true` if you would like the images to be rendered with bounding boxes
- - If you enabled authentication by adding the file `allowed_keys.txt` under `api_flask_redis/api_core/animal_detection_api`then in the headers tab add parameter key and enter the key value (this would be one the keys that you saved to the file `allowed_keys.txt`)
+ - If you enabled authentication by adding the file `allowed_keys.txt` under `api_flask_redis/api_core/animal_detection_api`then in the headers tab add the `key` parameter and enter the key value (this would be one of the keys that you saved to the file `allowed_keys.txt`)
  - Under `Body` select `form-data`, create one key/value pair per image, with values of type "file" (to upload an image file)
  - Click `Send`
 
