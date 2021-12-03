@@ -91,8 +91,8 @@ def check_posted_data(request):
 @app.route(config.API_PREFIX + '/detect', methods = ['POST'])
 def detect_sync():
     if not has_access(request):
-        print('Access denied, please provide an API key was not provided')
-        return _make_error_response(403, 'Access denied, please provide an API key')
+        print('Access denied, please provide a valid API key')
+        return _make_error_response(403, 'Access denied, please provide a valid API key')
 
     # check if the request_processing_function had an error while parsing user specified parameters
     post_data = check_posted_data(request)
