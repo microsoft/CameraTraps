@@ -47,8 +47,10 @@ RUN pip3 install -r ./requirements.txt
 
 # Copy your API code
 COPY ./animal_detection_api /app/animal_detection_api/
+RUN true
 
 COPY ./supervisord.conf /etc/supervisord.conf
+RUN true
 
 # startup.sh is a helper script
 COPY ./startup.sh /
