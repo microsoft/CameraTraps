@@ -36,12 +36,14 @@ def has_access(request):
         return True
     else:
         if not request.headers.get('key'):
+            print('Key header not available')
             return False
         else:
-            API_key = request.headers.get('key')
+            API_key = request.headers.get('key').strip().lower()
             with open(config.API_KEYS_FILE, "r") as f:
                 for line in f:
-                    if line.strip().strip('\n').lower() == API_key.lower():
+                    valid_key = line.strip().lower()
+                    if valid_key == API_key:
                         return True
 
     return False
@@ -175,14 +177,15 @@ def detect_sync():
                     #  })
 
                     shutil.rmtree(temp_direc)
+                    print('')
                     return Response(m.to_string(), mimetype=m.content_type)
 
                 except Exception as e:
                     print('Error returning result or rendering the detection boxes: ' + str(e))
 
             else:
-                print('waiting for results')
-                time.sleep(.25)
+                print('.',end='')
+                time.sleep(.05)
 
     except Exception as e:
         print(traceback.format_exc())
