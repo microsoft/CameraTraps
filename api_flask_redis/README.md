@@ -64,7 +64,7 @@ The most notable prerequisite is nvidia-docker; install according to:
     
     ```bash
     export BASE_IMAGE=tensorflow/tensorflow:1.14.0-py3
-```
+    ```
 
 ### Build the Docker image
 
