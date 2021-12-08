@@ -167,14 +167,6 @@ def detect_sync():
                         mean_inference_time_detector = -1
                     
                     # TODO: logging
-                    # log.log_info('detector mean inference time', mean_inference_time_detector,
-                    #  additionalProperties={
-                    #      'detector mean inference time': str(mean_inference_time_detector),
-                    #      # TODO 'classification mean inference time': str(''),
-                    #      'num_images': len(image_names),
-                    #      'render_boxes': render_boxes,
-                    #      'detection_confidence': detection_confidence
-                    #  })
 
                     shutil.rmtree(temp_direc)
                     print('')
@@ -185,7 +177,7 @@ def detect_sync():
 
             else:
                 print('.',end='')
-                time.sleep(.05)
+                #time.sleep(.005)
 
     except Exception as e:
         print(traceback.format_exc())
