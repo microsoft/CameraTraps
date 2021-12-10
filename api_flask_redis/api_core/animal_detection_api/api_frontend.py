@@ -68,13 +68,15 @@ def check_posted_data(request):
 
     # validate detection confidence value
     if 'confidence' in params:
-        detection_confidence = float(params['confidence'])
-        print('runserver, post_detect_sync, user specified detection confidence: ', detection_confidence)  # TODO delete
-        if detection_confidence < 0.0 or detection_confidence > 1.0:
+        return_confidence_threshold = float(params['confidence'])
+        rendering_confidence_threshold = return_confidence_threshold
+        print('runserver, post_detect_sync, user specified detection confidence: ', return_confidence_threshold)  # TODO delete
+        if return_confidence_threshold < 0.0 or return_confidence_threshold > 1.0:
             return _make_error_object(400, 'Detection confidence {} is invalid. Needs to be between 0.0 and 1.0.'.format(
-                detection_confidence))
+                return_confidence_threshold))
     else:
-        detection_confidence = config.DEFAULT_DETECTION_CONFIDENCE
+        return_confidence_threshold = config.DEFAULT_return_confidence_threshold
+        rendering_confidence_threshold =  config.DEFAULT_RENDERING_CONFIDENCE_THRESHOLD
 
     # check that the number of images is acceptable
     num_images = sum([1 if file.content_type in config.IMAGE_CONTENT_TYPES else 0 for file in files.values()])
@@ -87,7 +89,8 @@ def check_posted_data(request):
     
     return {
         'render_boxes': render_boxes,
-        'detection_confidence': detection_confidence
+        'return_confidence_threshold': return_confidence_threshold,
+        'rendering_confidence_threshold': rendering_confidence_threshold
     }
    
 @app.route(config.API_PREFIX + '/detect', methods = ['POST'])
@@ -102,10 +105,11 @@ def detect_sync():
         return _make_error_response(post_data.get('error_code'), post_data.get('error_message'))
 
     render_boxes = post_data.get('render_boxes')
-    detection_confidence = post_data.get('detection_confidence')
+    return_confidence_threshold = post_data.get('return_confidence_threshold')
+    rendering_confidence_threshold = post_data.get('rendering_confidence_threshold')
   
     redis_id = str(uuid.uuid4())
-    d = {'id': redis_id, 'render_boxes': render_boxes, 'detection_confidence': detection_confidence}
+    d = {'id': redis_id, 'render_boxes': render_boxes, 'return_confidence_threshold': return_confidence_threshold}
     temp_direc = os.path.join(config.TEMP_FOLDER, redis_id)
     
     try:
@@ -131,8 +135,8 @@ def detect_sync():
                 result = json.loads(result.decode())
                 
                 if result['status'] == 200:
-                    detection_results = result['detection_results']
-                    filtered_results = result['filtered_results']
+                    all_detection_results = result['all_detection_results']
+                    detections = result['detections']
                     inference_time_detector = result['inference_time_detector']
                     db.delete(redis_id)
                 
@@ -144,16 +148,16 @@ def detect_sync():
                 try:
                     print('runserver, post_detect_sync, postprocessing and sending images back...')
                     fields = {
-                        'detection_result': ('detection_result', json.dumps(filtered_results), 'application/json'),
+                        'detection_result': ('detection_result', json.dumps(detections), 'application/json'),
                     }
 
                     if render_boxes:
-                         for result in detection_results:
+                         for result in all_detection_results:
                             image_name = result['file']
-                            detections = result.get('detections', None)
+                            _detections = result.get('detections', None)
 
                             image = Image.open(os.path.join(temp_direc, image_name))
-                            viz_utils.render_detection_bounding_boxes(detections, image, confidence_threshold=detection_confidence)
+                            viz_utils.render_detection_bounding_boxes(_detections, image, confidence_threshold=rendering_confidence_threshold)
                             output_img_stream = BytesIO()
                             image.save(output_img_stream, format='jpeg')
                             output_img_stream.seek(0)
@@ -173,11 +177,12 @@ def detect_sync():
                     return Response(m.to_string(), mimetype=m.content_type)
 
                 except Exception as e:
+                    print(traceback.format_exc())
                     print('Error returning result or rendering the detection boxes: ' + str(e))
 
             else:
                 print('.',end='')
-                #time.sleep(.005)
+                time.sleep(0.005)
 
     except Exception as e:
         print(traceback.format_exc())
