@@ -20,9 +20,6 @@ DETECTION_CATEGORY_WHITELIST = ['1']
 # Padding factor used for padding the detected animal 
 PADDING_FACTOR = 1.6 
 
-# Minimum detection confidence for showing a bounding box on the output image
-DEFAULT_CONFIDENCE_THRESHOLD = 0.85 
-
 # Number of top-scoring classes to show at each bounding box
 NUM_ANNOTATED_CLASSES = 3
 
@@ -33,7 +30,11 @@ DETECTOR_MODEL_PATH = '/app/animal_detection_api/model/md_v4.1.0.pb'
 
 DETECTOR_MODEL_VERSION = 'v4.1.0'
 
-DEFAULT_DETECTION_CONFIDENCE = 0.8
+# Minimum confidence threshold for detections
+DEFAULT_CONFIDENCE_THRESHOLD = 0.1
+
+# Minimum confidence threshold for showing a bounding box on the output image
+DEFAULT_RENDERING_CONFIDENCE_THRESHOLD = 0.8
 
 API_PREFIX='/v1/camera-trap/sync'
 
