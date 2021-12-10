@@ -158,7 +158,7 @@ To try this out (on Linux), assuming you have Python 3 and pip installed, you ca
 
 ```bash
 # Download the script and the MegaDetector model file
-wget https://raw.githubusercontent.com/microsoft/CameraTraps/master/detection/run_tf_detector.py
+wget https://raw.githubusercontent.com/microsoft/CameraTraps/tf1-compat/detection/run_tf_detector.py
 wget https://lilablobssc.blob.core.windows.net/models/camera_traps/megadetector/md_v4.1.0/md_v4.1.0.pb
 
 # Install dependencies
