@@ -20,21 +20,18 @@ db = redis.StrictRedis(host=config.REDIS_HOST, port=config.REDIS_PORT)
 current_directory = os.path.dirname(os.path.realpath(__file__))
 
 def detect_process():
-    
-    detection_results = []
-    inference_time_detector = []
-
-    while True:
+     
+     while True:
         
         serialized_entry = db.lpop(config.REDIS_QUEUE)        
-        detection_results = []
+        all_detection_results = []
         inference_time_detector = []
         
         if serialized_entry:
             
             entry = json.loads(serialized_entry)
             id = entry['id']
-            detection_confidence = entry['detection_confidence']
+            return_confidence_threshold = entry['return_confidence_threshold']
 
             try:
                 
@@ -47,7 +44,7 @@ def detect_process():
 
                     start_time = time.time()
                     result = detector.generate_detections_one_image(image, filename)
-                    detection_results.append(result)
+                    all_detection_results.append(result)
 
                     elapsed = time.time() - start_time
                     inference_time_detector.append(elapsed)
@@ -65,31 +62,31 @@ def detect_process():
             # json to return to the user along with the rendered images if they opted for it
             #
             # Each result is [ymin, xmin, ymax, xmax, confidence, category]
-            filtered_results = {}  
+            detections = {}  
             
             try:
                 
-                for result in detection_results:
+                for result in all_detection_results:
                     
                     image_name = result['file']
-                    detections = result.get('detections', None)
-                    filtered_results[image_name] = []
+                    _detections = result.get('detections', None)
+                    detections[image_name] = []
 
-                    if detections is None:
+                    if _detections is None:
                         continue
 
-                    for d in detections:
-                        if d['conf'] > detection_confidence:
+                    for d in _detections:
+                        if d['conf'] > return_confidence_threshold:
                             res = TFDetector.convert_to_tf_coords(d['bbox'])
                             res.append(d['conf'])
                             res.append(int(d['category']))  # category is an int here, not string as in the async API
-                            filtered_results[image_name].append(res)
+                            detections[image_name].append(res)
     
                 ## TODO: log
                 db.set(entry['id'], json.dumps({ 
                     'status': 200,
-                    'detection_results': detection_results,
-                    'filtered_results': filtered_results,
+                    'all_detection_results': all_detection_results,
+                    'detections': detections,
                     'inference_time_detector': inference_time_detector
                 }))
               
