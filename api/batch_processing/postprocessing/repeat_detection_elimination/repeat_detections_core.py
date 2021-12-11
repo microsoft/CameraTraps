@@ -126,6 +126,11 @@ class RepeatDetectionOptions:
 
     # How many folders up from the leaf nodes should we be going to aggregate images?
     nDirLevelsFromLeaf = 0
+    
+    # An optional function that takes a string (an image file name) and returns a string (the corresponding 
+    # folder ID), typically used when multiple folders actually correspond to the same camera in a 
+    # manufacturer-specific way (e.g. a/b/c/RECONYX100 and a/b/c/RECONYX101 may really be the same camera).
+    customDirNameFunction = None
 
 
 class RepeatDetectionResults:
@@ -248,10 +253,17 @@ def find_matches_in_directory(dirName, options, rowsByDirectory):
     rows = rowsByDirectory[dirName]
 
     # iDirectoryRow = 0; row = rows.iloc[iDirectoryRow]
+    i_iteration = -1
     for iDirectoryRow, row in rows.iterrows():
 
+        i_iteration += 1
+        # print('Searching row {} of {} (index {}) in dir {}'.format(i_iteration,len(rows),iDirectoryRow,dirName))
         filename = row['file']
         if not ct_utils.is_image_file(filename):
+            continue
+
+        if 'max_detection_conf' not in row or 'detections' not in row or row['detections'] is None:
+            print('Skipping row {}'.format(iDirectoryRow))
             continue
 
         # Don't bother checking images with no detections above threshold
@@ -276,7 +288,11 @@ def find_matches_in_directory(dirName, options, rowsByDirectory):
 
         # For each detection in this image
         for iDetection, detection in enumerate(detections):
-            
+           
+            if detection is None:
+                print('Skipping detection {}'.format(iDetection))
+                continue
+
             assert 'category' in detection and 'conf' in detection and 'bbox' in detection
 
             confidence = detection['conf']
@@ -624,6 +640,14 @@ def find_repeat_detections(inputFilename, outputFilename=None, options=None):
         
         options = RepeatDetectionOptions()
 
+    # Validate some options
+    
+    if options.customDirNameFunction is not None:
+        assert options.nDirLevelsFromLeaf == 0, 'Cannot mix custom dir name functions with nDirLevelsFromLeaf'
+        
+    if options.nDirLevelsFromLeaf != 0:
+        assert options.customDirNameFunction is None, 'Cannot mix custom dir name functions with nDirLevelsFromLeaf'
+            
     if options.filterFileToLoad is not None and len(options.filterFileToLoad) > 0:
     
         print('Bypassing detection-finding, loading from {}'.format(options.filterFileToLoad))
@@ -671,7 +695,9 @@ def find_repeat_detections(inputFilename, outputFilename=None, options=None):
     # spending 20 minutes finding repeat detections.  
     
     if options.bWriteFilteringFolder or options.bRenderHtml:
+        
         if not is_sas_url(options.imageBase):
+            
             row = detectionResults.iloc[0]
             relativePath = row['file']
             for s in options.filenameReplacements.keys():
@@ -693,10 +719,20 @@ def find_repeat_detections(inputFilename, outputFilename=None, options=None):
 
     print('Separating files into directories...')
 
+    nCustomDirReplacements = 0
+    
     # iRow = 0; row = detectionResults.iloc[0]
     for iRow, row in detectionResults.iterrows():
+        
         relativePath = row['file']
-        dirName = os.path.dirname(relativePath)
+        
+        if options.customDirNameFunction is not None:
+            basicDirName = os.path.dirname(relativePath.replace('\\','/'))
+            dirName = options.customDirNameFunction(relativePath)
+            if basicDirName != dirName:
+                nCustomDirReplacements += 1
+        else:
+            dirName = os.path.dirname(relativePath)
         
         if len(dirName) == 0:
             assert options.nDirLevelsFromLeaf == 0, 'Can''t use the dirLevelsFromLeaf option with flat filenames'
@@ -718,6 +754,12 @@ def find_repeat_detections(inputFilename, outputFilename=None, options=None):
         assert relativePath not in filenameToRow
         filenameToRow[relativePath] = iRow
 
+    # ...for each unique detection
+    
+    if options.customDirNameFunction is not None:
+        print('Custom dir name function made {} replacements (of {} images)'.format(
+            nCustomDirReplacements,len(detectionResults)))
+        
     # Convert lists of rows to proper DataFrames
     dirs = list(rowsByDirectory.keys())
     for d in dirs:
@@ -751,7 +793,9 @@ def find_repeat_detections(inputFilename, outputFilename=None, options=None):
 
             options.pbar = None
             # iDir = 0; dirName = dirsToSearch[iDir]
-            for iDir, dirName in enumerate(tqdm(dirsToSearch)):
+            # for iDir, dirName in enumerate(tqdm(dirsToSearch)):
+            for iDir, dirName in enumerate(dirsToSearch):
+                print('Processing dir {} of {}: {}'.format(iDir,len(dirsToSearch),dirName))
                 allCandidateDetections[iDir] = find_matches_in_directory(dirName, options, rowsByDirectory)
 
         else:
