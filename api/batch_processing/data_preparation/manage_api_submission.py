@@ -766,6 +766,27 @@ for fn in html_output_files:
 #
 
 
+#%% RDE (sample directory collapsing)
+
+def remove_overflow_folders(relativePath):
+    
+    import re
+    
+    # In this example, the camera created folders called "100EK113", "101EK113", etc., for every N images
+    pat = '\/\d+EK\d+\/'
+    
+    relativePath = relativePath.replace('\\','/')    
+    relativePath = re.sub(pat,'/',relativePath)
+    dirName = os.path.dirname(relativePath)
+    
+    return dirName
+
+if False:
+    
+    relativePath = 'a/b/c/d/100EK113/blah.jpg'
+    print(remove_overflow_folders(relativePath))
+
+
 #%% Repeat detection elimination, phase 1
 
 folder_name_to_filtered_output_filename = {}
@@ -783,6 +804,9 @@ options.confidenceMax = 1.01
 options.iouThreshold = 0.85
 options.occurrenceThreshold = 10
 options.maxSuspiciousDetectionSize = 0.2
+
+# To invoke custom collapsing of folders for a particular manufacturer's naming scheme
+# options.customDirNameFunction = remove_overflow_folders
 
 options.bRenderHtml = False
 options.imageBase = read_only_sas_url
