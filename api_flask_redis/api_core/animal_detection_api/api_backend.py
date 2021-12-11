@@ -1,5 +1,4 @@
-# Copyright (c) Microsoft Corporation. All rights reserved.
-# Licensed under the MIT License.
+#%% Imports
 
 import os
 import json
@@ -7,23 +6,24 @@ import time
 import redis
 import argparse
 
-from datetime import datetime
-from io import BytesIO
-
-from requests_toolbelt.multipart.encoder import MultipartEncoder
-
-import config
 from run_tf_detector import TFDetector
+import config
 import visualization.visualization_utils as viz_utils
+
+
+#%% Initialization
 
 db = redis.StrictRedis(host=config.REDIS_HOST, port=config.REDIS_PORT)
 current_directory = os.path.dirname(os.path.realpath(__file__))
+
+
+#%% Main loop
 
 def detect_process():
      
      while True:
         
-        serialized_entry = db.lpop(config.REDIS_QUEUE)        
+        serialized_entry = db.lpop(config.REDIS_QUEUE_NAME)
         all_detection_results = []
         inference_time_detector = []
         
@@ -63,8 +63,9 @@ def detect_process():
             # json to return to the user along with the rendered images if they opted for it
             #
             # Each result is [ymin, xmin, ymax, xmax, confidence, category]
+            #
+            # Coordinates are relative, with the origin in the upper-left
             detections = {}  
-            test_detections = {}
             
             try:
                 
@@ -99,13 +100,23 @@ def detect_process():
                     'error': 'Error consolidating the detection boxes:' + str(e)
                 }))
 
+        # ...if serialized_entry
     
+    # ...while(True)
+    
+# ...def detect_process()    
+        
+
+#%% Command-line driver
+
 if __name__ == '__main__':
+    
     parser = argparse.ArgumentParser(description='api backend')
 
-    # use --non-docker argument if you are testing without docker directly in terminal for debugging
+    # use --non-docker if you are testing without Docker
+    #
     # python api_frontend.py --non-docker
-    parser.add_argument('--non-docker', action="store_true", default=False)
+    parser.add_argument('--non-docker', action='store_true', default=False)
     args = parser.parse_args()
 
     if args.non_docker:
