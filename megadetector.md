@@ -27,7 +27,7 @@ The current model is based on Faster-RCNN with an InceptionResNetv2 base network
 
 ## Our ask to MegaDetector users
 
-MegaDetector is free, and it makes us super-happy when people use it, so we put it out there as a downloadable model that is easy to use in a variety of conservation scenarios.  That means we don't know who's using it unless you contact us (or we happen to run into you), so please please pretty-please email us at [cameratraps@microsoft.com](mailto:cameratraps@microsoft.com) if you find it useful!
+MegaDetector is free, and it makes us super-happy when people use it, so we put it out there as a downloadable model that is easy to use in a variety of conservation scenarios.  That means we don't know who's using it unless you contact us (or we happen to run into you), so please please pretty-please email us at [cameratraps@lila.science](mailto:cameratraps@lila.science) if you find it useful!
 
 
 ## How fast is MegaDetector, and can I run it on my giant/small computer?
@@ -43,14 +43,17 @@ We don't typically recommend running MegaDetctor on embedded devices, although <
 
 ### Benchmark timings
 
-We haven't done a lot of measurement on how long MegaDetector takes to run on "typical" GPUs, because we always use the same GPUs (we typically use 16 NVIDIA V100 GPUs to run large image batches in the cloud).  But we would like to start tracking this to help users make decisions about buying GPUs, so if you are using MegaDetector and have a GPU you're willing to benchmark on, <a href="mailto:cameratraps@microsoft.com">email us</a>!
+We haven't done a lot of measurement on how long MegaDetector takes to run on "typical" GPUs, because we always use the same GPUs (we typically use 16 NVIDIA V100 GPUs to run large image batches in the cloud).  But we would like to start tracking this to help users make decisions about buying GPUs, so if you are using MegaDetector and have a GPU you're willing to benchmark on, <a href="mailto:cameratraps@lila.science">email us</a>!
 
 But with a test batch of around 13,000 images from the public <a href="https://lila.science/datasets/snapshot-karoo">Snapshot Karoo</a> and <a href="http://lila.science/datasets/idaho-camera-traps/">Idaho Camera Traps</a> datasets:
 
 * An <a href="https://www.nvidia.com/en-us/data-center/v100/">NVIDIA V100</a> GPU processes around 2.79 images per second, or around 240,000 images per day
 * An <a href="https://www.nvidia.com/en-us/geforce/graphics-cards/30-series/rtx-3090/">NVIDIA RTX 3090</a> GPU processes around 3.24 images per second, or around 280,000 images per day
+* An <a href="https://www.nvidia.com/en-us/geforce/graphics-cards/rtx-2080-ti/">NVIDIA RTX 2080 Ti</a> GPU processes around 2.48 images per second, or around 214,000 images per day
+* An <a href="https://www.nvidia.com/en-us/geforce/graphics-cards/rtx-2060-super/">NVIDIA RTX 2060 SUPER</a> GPU processes around 1.64 images per second, or around 141,000 images per day
+* An <a href="https://www.nvidia.com/en-us/titan/titan-v/">NVIDIA Titan V</a> GPU processes around 1.9 images per second, or around 167,000 images per day
 
-If you want to run this benchmark on your own, here are <a href="download_megadetector_timing_benchmark_set.bat">azcopy commands</a> to download those 13,226 images, and we're happy to help you get MegaDetector running on your setup.  Or if you're using MegaDetector on other images with other GPUs, we'd love to incude that data her e as well.  <a href="mailto:cameratraps@microsoft.com">Email us</a>!
+If you want to run this benchmark on your own, here are <a href="https://github.com/microsoft/CameraTraps/blob/master/download_megadetctor_timing_benchmark_set.bat">azcopy commands</a> to download those 13,226 images, and we're happy to help you get MegaDetector running on your setup.  Or if you're using MegaDetector on other images with other GPUs, we'd love to include that data here as well.  <a href="mailto:cameratraps@lila.science">Email us</a>!
 
 
 ## Who is using MegaDetector?
@@ -112,7 +115,7 @@ We provide four ways to apply this model to new images:
 
 2. A simple test script that makes neat pictures with bounding boxes, but doesn't produce a useful output file ([run_tf_detector.py](https://github.com/microsoft/CameraTraps/blob/master/detection/run_tf_detector.py)) 
 3. A script for running large batches of images on a local GPU ([run_tf_detector_batch.py](https://github.com/microsoft/CameraTraps/blob/master/detection/run_tf_detector_batch.py)) 
-4. A [batch processing API](https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing/postprocessing) that runs images on many GPUs at once on Azure
+4. A [batch processing API](https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing) that runs images on many GPUs at once on Azure
 
 This section describes how to run the two scripts (options 2 and 3), including installing all the necessary Python dependencies. If your computer is also used for other Python projects, we recommend you set up the environment as described in the [Installation](https://github.com/microsoft/CameraTraps#installation) section of our main README, and use conda to set up a virtual environment in which to run scripts from this repo. This reduces potential version conflict headaches with your other projects. The environment file you should use to run the two scripts below is `environment-detector.yml`. You will still need to add the required repos to `PYTHONPATH`, but don't have to worry about installing Python, pip or any packages yourself. If you do not have a GPU on your computer, change `tensorflow-gpu` to `tensorflow` in `environment-detector.yml`.
 
@@ -147,7 +150,7 @@ set PYTHONPATH=c:\git\cameratraps;c:\git\ai4eutils
 
 ### 1. run_tf_detector.py
 
-To "test" this model on small sets of images and get super-satisfying visual output, we provide [run_tf_detector.py](https://github.com/Microsoft/CameraTraps/blob/master/detection/run_tf_detector.py), an example script for invoking this detector on new images.  This isn't how we recommend running lots of images through MegaDetector (see [run_tf_detector_batch.py](#2-run_tf_detector_batchpy) below for "real" usage), but it's a quick way to test things out.  [Let us know](mailto:cameratraps@microsoft.com) how it works on your images!
+To "test" this model on small sets of images and get super-satisfying visual output, we provide [run_tf_detector.py](https://github.com/Microsoft/CameraTraps/blob/master/detection/run_tf_detector.py), an example script for invoking this detector on new images.  This isn't how we recommend running lots of images through MegaDetector (see [run_tf_detector_batch.py](#2-run_tf_detector_batchpy) below for "real" usage), but it's a quick way to test things out.  [Let us know](mailto:cameratraps@lila.science) how it works on your images!
 
 #### Running run_tf_detector.py on Linux
 
@@ -155,7 +158,7 @@ To try this out (on Linux), assuming you have Python 3 and pip installed, you ca
 
 ```bash
 # Download the script and the MegaDetector model file
-wget https://raw.githubusercontent.com/microsoft/CameraTraps/master/detection/run_tf_detector.py
+wget https://raw.githubusercontent.com/microsoft/CameraTraps/tf1-compat/detection/run_tf_detector.py
 wget https://lilablobssc.blob.core.windows.net/models/camera_traps/megadetector/md_v4.1.0/md_v4.1.0.pb
 
 # Install dependencies
@@ -220,7 +223,7 @@ python c:\git\CameraTraps\detection\run_tf_detector_batch.py c:\wherever\you\dow
 
 ### 3. Batch processing API
 
-Speaking of lots of images, when we process loads of images from collaborators, we use our [batch processing API](https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing), which we can make available externally on request.  [Email us](mailto:cameratraps@microsoft.com) for more information.
+Speaking of lots of images, when we process loads of images from collaborators, we use our [batch processing API](https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing), which we can make available externally on request.  [Email us](mailto:cameratraps@lila.science) for more information.
 
 
 ## Citing MegaDetector

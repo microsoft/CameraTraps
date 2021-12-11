@@ -14,9 +14,6 @@ The rest of thisi folder collects scripts to further process the output JSON fil
 
 - `combine_api_outputs.py` merges two or more output JSON files into one. This is useful if a big batch had to be submitted in smaller batches, or if errored images were processed again successfully. 
 
-
-> Siyu: When would `combine_api_shard_files()` be useful? How does it compare with `api_core_support/aggregate_results_manually.py`?
-
 - `separate_detections_into_folders.py` copies image files on your computer into animal/person/vehicle/empty/multiple folders according to confidence thresholds you specify for each category.
 
 - `subset_json_detector_output.py` is primarily useful for [Timelapse](../integration/timelapse.md) users. 

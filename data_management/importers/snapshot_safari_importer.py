@@ -20,7 +20,7 @@
 # * Delete images from UMN uplaod storage
 #
 # Snapshot Serengeti is handled specially, because we're dealing with bounding
-# boxes too.  See snapshot_serengeti_lily.py.
+# boxes too.  See snapshot_serengeti_lila.py.
 #
 
 #%% Imports
