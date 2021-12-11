@@ -31,6 +31,7 @@ def detect_process():
             
             entry = json.loads(serialized_entry)
             id = entry['id']
+            print('Processing images from request id:', id)
             return_confidence_threshold = entry['return_confidence_threshold']
 
             try:
@@ -63,6 +64,7 @@ def detect_process():
             #
             # Each result is [ymin, xmin, ymax, xmax, confidence, category]
             detections = {}  
+            test_detections = {}
             
             try:
                 
@@ -85,7 +87,6 @@ def detect_process():
                 ## TODO: log
                 db.set(entry['id'], json.dumps({ 
                     'status': 200,
-                    'all_detection_results': all_detection_results,
                     'detections': detections,
                     'inference_time_detector': inference_time_detector
                 }))
