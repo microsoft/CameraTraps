@@ -13,7 +13,7 @@ The major steps covered here are:
 * Postprocessing to generate preview files
 * Repeat detection elimination
 
-Repeat detection elimination is a manual step that we do in ~30% of cases, and we typically tune the process so this step takes around 20 minutes of hands-on time.  Without this, this whole process should take around five minutes of hands-on time, plus the time required to run the task (which can be anywhere from minutes to days).  I know this looks like a lot of steps, but once you get the hang of it, it's really fast.  If it's your third time doing this and you find that it's taking more than five minutes of human intervention time &ndash; including generating SAS tokens and uploading results for preview &ndash; email cameratraps@microsoft.com to let us know!
+Repeat detection elimination is a manual step that we do in ~30% of cases, and we typically tune the process so this step takes around 20 minutes of hands-on time.  Without this, this whole process should take around five minutes of hands-on time, plus the time required to run the task (which can be anywhere from minutes to days).  I know this looks like a lot of steps, but once you get the hang of it, it's really fast.  If it's your third time doing this and you find that it's taking more than five minutes of human intervention time &ndash; including generating SAS tokens and uploading results for preview &ndash; email cameratraps@lila.science to let us know!
 
 This document is written 98% for internal use, so you will see some instructions that only make sense internally (like "ask Dan to create a password for blah blah").  But if you find it useful externally, let us know!
 

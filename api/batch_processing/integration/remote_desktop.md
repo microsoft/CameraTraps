@@ -94,7 +94,7 @@ After making this change, any RDP files you then download should remain valid.
 
 Once you are able to operate the VM using Microsoft Remote Desktop, you can add additional users to the VM as you can on any Windows computer. Here is a [guide](https://support.microsoft.com/en-us/help/4026923/windows-10-create-a-local-user-or-administrator-account).
 
-As with any Windows 10 Pro computer, the VM can only be operated on by one user at a time.  If this is a significant limitation, we can help you get set up with a Windows Server VM instead (more powerful, slightly less familiar); <a href="mailto:cameratraps@microsoft.com">email us</a> if you want more information about using Windows Server.
+As with any Windows 10 Pro computer, the VM can only be operated on by one user at a time.  If this is a significant limitation, we can help you get set up with a Windows Server VM instead (more powerful, slightly less familiar); <a href="mailto:cameratraps@lila.science">email us</a> if you want more information about using Windows Server.
 
 
 ## Install Azure Storage Explorer for data access
