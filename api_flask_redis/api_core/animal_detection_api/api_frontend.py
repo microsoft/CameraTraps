@@ -1,3 +1,5 @@
+#%% Imports
+
 import os
 import json
 import time
@@ -6,13 +8,16 @@ import redis
 import shutil
 import argparse
 import traceback
-from PIL import Image
-from io import BytesIO
 
+from io import BytesIO
 from flask import Flask, Response, jsonify, make_response, request
 from requests_toolbelt.multipart.encoder import MultipartEncoder
+
 import visualization.visualization_utils as viz_utils
 import config
+
+
+#%% Initialization
 
 print('Creating application')
 app = Flask(__name__)
@@ -20,18 +25,24 @@ app = Flask(__name__)
 db = redis.StrictRedis(host=config.REDIS_HOST, port=config.REDIS_PORT)
 
 
+#%% Support functions
+
 def _make_error_object(error_code, error_message):
-    # here we make a dict that the request_processing_function can return to the endpoint function
+    
+    # Make a dict that the request_processing_function can return to the endpoint function
     # to notify it of an error
     return {
         'error_message': error_message,
         'error_code': error_code
     }
 
+
 def _make_error_response(error_code, error_message):
     return make_response(jsonify({'error': error_message}), error_code)
 
+
 def has_access(request):
+    
     if not os.path.exists(config.API_KEYS_FILE):
         return True
     else:
@@ -47,6 +58,7 @@ def has_access(request):
                         return True
 
     return False
+
 
 def check_posted_data(request):
  
@@ -92,9 +104,15 @@ def check_posted_data(request):
         'return_confidence_threshold': return_confidence_threshold,
         'rendering_confidence_threshold': rendering_confidence_threshold
     }
-   
+
+# ...def check_posted_data(request)
+    
+
+#%% Main loop
+
 @app.route(config.API_PREFIX + '/detect', methods = ['POST'])
 def detect_sync():
+    
     if not has_access(request):
         print('Access denied, please provide a valid API key')
         return _make_error_response(403, 'Access denied, please provide a valid API key')
@@ -125,7 +143,7 @@ def detect_sync():
         except Exception as e:
             return _make_error_object(500, 'Error saving images: ' + str(e))
         
-        db.rpush(config.REDIS_QUEUE, json.dumps(d))
+        db.rpush(config.REDIS_QUEUE_NAME, json.dumps(d))
         
         while True:
             
@@ -136,7 +154,6 @@ def detect_sync():
                 
                 if result['status'] == 200:
                     detections = result['detections']
-                    inference_time_detector = result['inference_time_detector']
                     db.delete(redis_id)
                 
                 else:
@@ -177,11 +194,6 @@ def detect_sync():
                     
                     m = MultipartEncoder(fields=fields)
                     
-                    if len(inference_time_detector) > 0:
-                        mean_inference_time_detector = sum(inference_time_detector) / len(inference_time_detector)
-                    else:
-                        mean_inference_time_detector = -1
-                    
                     # TODO: logging
 
                     shutil.rmtree(temp_direc)
@@ -195,15 +207,27 @@ def detect_sync():
             else:
                 print('.',end='')
                 time.sleep(0.005)
+                
+            # ...if we do/don't have a request available on the queue
+            
+        # ...while(True)
 
     except Exception as e:
+        
         print(traceback.format_exc())
         return _make_error_object(500, 'Error processing images: ' + str(e))
 
+# ...def detect_sync()
+
+
+#%% Command-line driver
+    
 if __name__ == '__main__':
+    
     parser = argparse.ArgumentParser(description='api frontend')
 
-    # use --non-docker argument if you are testing without docker directly in terminal for debugging
+    # use --non-docker if you are testing without Docker
+    #
     # python api_frontend.py --non-docker
     parser.add_argument('--non-docker', action="store_true", default=False)
     args = parser.parse_args()
