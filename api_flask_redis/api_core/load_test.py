@@ -1,11 +1,8 @@
-
 import os
 import json
-import io
 import random
 import requests
 
-from PIL import Image
 from multiprocessing import Pool
 from datetime import datetime
 from requests_toolbelt import MultipartEncoder
@@ -19,6 +16,7 @@ base_url = 'http://{}:{}/v1/camera-trap/sync/'.format(ip_address, port)
 
 
 def call_api(args):
+    
     start = datetime.now()
     
     index, url, params, data, headers = args['index'],args['url'], args['params'], args['data'], args['headers']
@@ -31,10 +29,10 @@ def call_api(args):
     get_detections(response)   
     return response
 
+
 def get_detections(response):
+    
     results = decoder.MultipartDecoder.from_response(response)
-    text_results = {}
-    images = {}
     for part in results.parts:
         # part is a BodyPart object with b'Content-Type', and b'Content-Disposition', the later includes 'name' and 'filename' info
         headers = {}
@@ -48,6 +46,7 @@ def get_detections(response):
 
 
 def test_load(num_requests, params, max_images=1):
+    
     requests = []
     
     # read the images anew for each request
@@ -86,6 +85,7 @@ def test_load(num_requests, params, max_images=1):
         requests.append(args)
     
     print('starting', num_requests, 'threads...')
+    
     # images are read and in each request by the time we call the API in map()
     with Pool(num_requests) as pool:
         results = pool.map(call_api, requests)
@@ -107,3 +107,4 @@ if __name__ == "__main__":
     end = datetime.now()
     total_time = end - start
     print('Total time for {} requests: {}'.format(num_requests, total_time))
+    
