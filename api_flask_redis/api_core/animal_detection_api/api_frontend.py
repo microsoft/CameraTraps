@@ -75,7 +75,7 @@ def check_posted_data(request):
             return _make_error_object(400, 'Detection confidence {} is invalid. Needs to be between 0.0 and 1.0.'.format(
                 return_confidence_threshold))
     else:
-        return_confidence_threshold = config.DEFAULT_return_confidence_threshold
+        return_confidence_threshold = config.DEFAULT_CONFIDENCE_THRESHOLD
         rendering_confidence_threshold =  config.DEFAULT_RENDERING_CONFIDENCE_THRESHOLD
 
     # check that the number of images is acceptable
@@ -135,8 +135,8 @@ def detect_sync():
                 result = json.loads(result.decode())
                 
                 if result['status'] == 200:
-                    all_detection_results = result['all_detection_results']
                     detections = result['detections']
+                    test_detections = result['test_detections']
                     inference_time_detector = result['inference_time_detector']
                     db.delete(redis_id)
                 
@@ -152,12 +152,25 @@ def detect_sync():
                     }
 
                     if render_boxes:
-                         for result in all_detection_results:
-                            image_name = result['file']
-                            _detections = result.get('detections', None)
+                        print('rendering images...')
+                        for image_name, detections in detections.items():
+                            
+                            #image = Image.open(os.path.join(temp_direc, image_name))
+                            image = open(f'{temp_direc}/{image_name}', "rb")
+                            image = viz_utils.load_image(image)
+                            width, height = image.size
 
-                            image = Image.open(os.path.join(temp_direc, image_name))
-                            viz_utils.render_detection_bounding_boxes(_detections, image, confidence_threshold=rendering_confidence_threshold)
+                            _detections = []
+                            for d in detections:
+                                y1,x1,y2,x2 = d[0:4]
+                                width = x2 - x1
+                                height = y2 - y1
+                                bbox = [x1,y1,width,height]
+                                _detections.append({'bbox': bbox, 'conf': d[4], 'category': d[5]}) 
+                            
+                            viz_utils.render_detection_bounding_boxes(_detections, image, 
+                            confidence_threshold=rendering_confidence_threshold)
+                            
                             output_img_stream = BytesIO()
                             image.save(output_img_stream, format='jpeg')
                             output_img_stream.seek(0)
@@ -200,4 +213,3 @@ if __name__ == '__main__':
         app.run(host='0.0.0.0', port=5050)
     else:
         app.run()
-
