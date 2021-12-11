@@ -1,11 +1,11 @@
 # Camera Trap Image Processing APIs
 
-We package useful components developed in the Camera Traps project into APIs and host them using the [AI for Earth API Framework](https://github.com/Microsoft/AIforEarth-API-Development) on Azure. This folder contains the source code of the APIs and documentation on how to set them up. To see the APIs in action or start using them for your own applications, visit our APIs [homepage](https://www.microsoft.com/en-us/ai/ai-for-earth-apis?activetab=pivot1%3aprimaryr3) to check out our demo apps and request a key.
+Though most of our users either use the MegaDetector model directly or work with us to run MegaDetector on the cloud, we also package useful components developed in the Camera Traps project into APIs that users can operate (on the cloud or on local computers) to process camera trap images in a variety of scenarios. This folder contains the source code of the APIs and documentation on how to set them up.
 
 
 ## Detector
 
-Our animal detection model ([MegaDetector](https://github.com/Microsoft/CameraTraps#megadetector)) trained on camera trap images from a variety of ecosystems is exposed through two APIs, one for real-time applications or small batches of test images (synchronous API), and one for processing large collections of images (batch processing API). These APIs can be adapted to deploy any algorithms or models &ndash; see our tutorial in the [AI for Earth API Framework](https://github.com/Microsoft/AIforEarth-API-Development) repo.
+Our animal detection model ([MegaDetector](https://github.com/Microsoft/CameraTraps#megadetector)) trained on camera trap images from a variety of ecosystems can be served via two APIs, one for real-time applications or small batches of test images (synchronous API), and one for processing large collections of images (batch processing API). These APIs can be adapted to deploy any algorithms or models &ndash; see our tutorial in the [AI for Earth API Framework](https://github.com/Microsoft/AIforEarth-API-Development) repo.
 
 
 ### Synchronous API
@@ -17,7 +17,7 @@ To build the API, first download the [MegaDetector](https://github.com/Microsoft
 
 ### Batch processing API
 
-This API runs the detector on up to 2 million images in one request using [Azure Machine Learning Service](https://azure.microsoft.com/en-us/services/machine-learning-service/)&rsquo;s _Managed Compute_ functionality, formerly known as Batch AI. To use this API the input images need to be copied to Azure [Blob Storage](https://azure.microsoft.com/en-us/services/storage/blobs/). Please see the [user guide](./batch_processing/README.md) and get in touch with us if you&rsquo;re interested in processing camera trap images this way. 
+This API runs the detector on up to two million images in one request using [Azure Batch](https://azure.microsoft.com/en-us/services/batch/). To use this API the input images need to be copied to Azure [Blob Storage](https://azure.microsoft.com/en-us/services/storage/blobs/). Please see the [user guide](./batch_processing/README.md) and get in touch with us if you&rsquo;re interested in standing up your own instane of the batch processing API. 
 
-The [batch_processing](batch_processing) folder includes the API itself, tools for working with the results the API generates, and support for integrating our API output with other tools.
+The [batch_processing](batch_processing) folder includes the source for the API itself, tools for working with the results the API generates, and support for integrating our API output with other tools.
 
