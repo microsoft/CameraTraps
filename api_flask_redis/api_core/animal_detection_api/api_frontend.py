@@ -136,7 +136,6 @@ def detect_sync():
                 
                 if result['status'] == 200:
                     detections = result['detections']
-                    test_detections = result['test_detections']
                     inference_time_detector = result['inference_time_detector']
                     db.delete(redis_id)
                 
