@@ -11,14 +11,14 @@ The most notable prerequisite is nvidia-docker; install according to:
 
 ### Set up the repo
 
-- Clone the camera traps repo:
+- Clone the camera traps repo
 
     ```bash
     git clone "https://github.com/microsoft/CameraTraps/"
     cd CameraTraps
     ```
     
-- During this testing phase, switch to the api-flask-redis-v1 branch:
+- During this testing phase, switch to the api-flask-redis-v1 branch
 
     ```bash
     git checkout api-flask-redis-v1
@@ -27,7 +27,7 @@ The most notable prerequisite is nvidia-docker; install according to:
 
 ### Download the model file
 
-- Download the MegaDetector model file to `api_flask_redis/api_core/animal_detection_api/model`:
+- Download the MegaDetector model file to `api_flask_redis/api_core/animal_detection_api/model`
 
     ```bash
     wget "https://lilablobssc.blob.core.windows.net/models/camera_traps/megadetector/md_v4.1.0/md_v4.1.0.pb" -O api_flask_redis/api_core/animal_detection_api/model/md_v4.1.0.pb
@@ -40,7 +40,7 @@ The most notable prerequisite is nvidia-docker; install according to:
  
 ### Build the Docker image
 
-- Switch to the `api_flask_redis/api_core` folder, from which the Docker image expects to be built:
+- Switch to the `api_flask_redis/api_core` folder, from which the Docker image expects to be built
 
     ```bash
     cd api_flask_redis/api_core
@@ -95,7 +95,8 @@ The following will run the API locally on port 5050.
   `http://100.100.200.200:5050/v1/camera-trap/sync/detect`
   
  - Select `POST`
- - Add the `confidence` parameter, and provide a value for confidence level
+ - Optionally add the `min_confidence` parameter, which sets the minimum detection confidence that's returned to the caller (defaults to 0.1)
+ - Optionally add the `min_rendering_confidence` parameter, which sets the minimum detection confidence that's rendered to returned images (defaults to 0.8) (not meaningful if "render" is False)
  - Optionally add the `render` parameter, set to `true` if you would like the images to be rendered with bounding boxes
  - If you enabled authentication by adding the file `allowed_keys.txt` under `api_flask_redis/api_core/animal_detection_api`then in the headers tab add the `key` parameter and enter the key value (this would be one of the keys that you saved to the file `allowed_keys.txt`)
  - Under `Body` select `form-data`, create one key/value pair per image, with values of type "file" (to upload an image file)
