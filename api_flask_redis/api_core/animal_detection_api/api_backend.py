@@ -25,6 +25,7 @@ def detect_process():
      
      while True:
         
+        # TODO: convert to a blocking read and eliminate the sleep() statement in this loop
         serialized_entry = db.lpop(config.REDIS_QUEUE_NAME)
         all_detection_results = []
         inference_time_detector = []
@@ -42,7 +43,9 @@ def detect_process():
                 
                 for filename in os.listdir(temp_direc):
                     
-                    image = open(f'{temp_direc}/{filename}', "rb")
+                    image_path = f'{temp_direc}/{filename}'
+                    print('Reading image from {}'.format(image_path))
+                    image = open(image_path, "rb")
                     image = viz_utils.load_image(image)
 
                     start_time = time.time()
