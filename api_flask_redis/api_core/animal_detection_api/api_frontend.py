@@ -123,7 +123,7 @@ def detect_sync():
         print('Access denied, please provide a valid API key')
         return _make_error_response(403, 'Access denied, please provide a valid API key')
 
-    # check if the request_processing_function had an error while parsing user specified parameters
+    # Check whether the request_processing_function had an error
     post_data = check_posted_data(request)
     if post_data.get('error_code', None) is not None:
         return _make_error_response(post_data.get('error_code'), post_data.get('error_message'))
@@ -139,21 +139,28 @@ def detect_sync():
     try:
         
         try:
-            # TODO: convert to reading from memory instead
+            # Write images to temporary files
+            #
+            # TODO: read from memory rather than using intermediate files
             os.makedirs(temp_direc,exist_ok=True)
             for name, file in request.files.items():
                 if file.content_type in config.IMAGE_CONTENT_TYPES:
                     filename = request.files[name].filename
-                    file.save(os.path.join(temp_direc, filename))
+                    image_path = os.path.join(temp_direc, filename)
+                    print('Saving image {} to {}'.format(name,image_path))
+                    file.save(image_path)
         
         except Exception as e:
             return _make_error_object(500, 'Error saving images: ' + str(e))
         
+        # Submit the image(s) for processing by api_backend.py, who is waiting on this queue
         db.rpush(config.REDIS_QUEUE_NAME, json.dumps(d))
         
         while True:
             
+            # TODO: convert to a blocking read and eliminate the sleep() statement in this loop
             result = db.get(redis_id)
+            
             if result:
                 
                 result = json.loads(result.decode())
@@ -168,13 +175,13 @@ def detect_sync():
                     return _make_error_response(500, 'Error performing detection on the images: ' + str(result))
 
                 try:
-                    print('runserver, post_detect_sync, postprocessing and sending images back...')
+                    print('detect_sync: postprocessing and sending images back...')
                     fields = {
                         'detection_result': ('detection_result', json.dumps(detections), 'application/json'),
                     }
 
                     if render_boxes:
-                        print('rendering images...')
+                        print('Rendering images')
                         for image_name, detections in detections.items():
                             
                             #image = Image.open(os.path.join(temp_direc, image_name))
@@ -197,11 +204,10 @@ def detect_sync():
                             image.save(output_img_stream, format='jpeg')
                             output_img_stream.seek(0)
                             fields[image_name] = (image_name, output_img_stream, 'image/jpeg')
-                    
+                        print('Done rendering images')
+                        
                     m = MultipartEncoder(fields=fields)
                     
-                    # TODO: logging
-
                     shutil.rmtree(temp_direc)
                     print('')
                     return Response(m.to_string(), mimetype=m.content_type)
