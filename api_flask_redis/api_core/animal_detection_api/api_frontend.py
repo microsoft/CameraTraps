@@ -211,7 +211,6 @@ def detect_sync():
                     print('Error returning result or rendering the detection boxes: ' + str(e))
 
             else:
-                print('.',end='')
                 time.sleep(0.005)
                 
             # ...if we do/don't have a request available on the queue
