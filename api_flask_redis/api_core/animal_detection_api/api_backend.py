@@ -5,11 +5,13 @@ import json
 import time
 import redis
 import argparse
+import PIL
+
+from io import BytesIO
 
 from run_tf_detector import TFDetector
 import config
-import visualization.visualization_utils as viz_utils
-
+import visualization.visualization_utils as viz_utils 
 
 #%% Initialization
 
@@ -128,4 +130,12 @@ if __name__ == '__main__':
         model_path = config.DETECTOR_MODEL_PATH
 
     detector = TFDetector(model_path)
+
+    # run detections on a test image to load the model
+    print('Running initial detection to load model...')
+    test_image = PIL.Image.new(mode="RGB", size=(200, 200))
+    result = detector.generate_detections_one_image(test_image, "test_image")
+    print(result)
+    print('\n')
+
     detect_process() 
