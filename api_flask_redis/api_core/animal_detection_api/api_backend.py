@@ -101,6 +101,9 @@ def detect_process():
                 }))
 
         # ...if serialized_entry
+        
+        else:
+            time.sleep(0.005)
     
     # ...while(True)
     
