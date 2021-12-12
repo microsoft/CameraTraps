@@ -78,18 +78,24 @@ def check_posted_data(request):
 
     render_boxes = True if params.get('render', '') in ['True', 'true'] else False
 
-    # validate detection confidence value
-    if 'confidence' in params:
-        return_confidence_threshold = float(params['confidence'])
-        rendering_confidence_threshold = return_confidence_threshold
-        print('runserver, post_detect_sync, user specified detection confidence: ', return_confidence_threshold)  # TODO delete
+    if 'min_confidence' in params:
+        return_confidence_threshold = float(params['min_confidence'])
+        print('runserver, post_detect_sync, user specified detection confidence: ', return_confidence_threshold)
         if return_confidence_threshold < 0.0 or return_confidence_threshold > 1.0:
-            return _make_error_object(400, 'Detection confidence {} is invalid. Needs to be between 0.0 and 1.0.'.format(
+            return _make_error_object(400, 'Detection confidence threshold {} is invalid, should be between 0.0 and 1.0.'.format(
                 return_confidence_threshold))
     else:
         return_confidence_threshold = config.DEFAULT_CONFIDENCE_THRESHOLD
+        
+    if 'min_rendering_confidence' in params:
+        rendering_confidence_threshold = float(params['min_rendering_confidence'])
+        print('runserver, post_detect_sync, user specified rendering confidence: ', rendering_confidence_threshold) 
+        if rendering_confidence_threshold < 0.0 or rendering_confidence_threshod > 1.0:
+            return _make_error_object(400, 'Rendering confidence threshold {} is invalid, should be between 0.0 and 1.0.'.format(
+                rendering_confidence_threshold))
+    else:
         rendering_confidence_threshold =  config.DEFAULT_RENDERING_CONFIDENCE_THRESHOLD
-
+    
     # check that the number of images is acceptable
     num_images = sum([1 if file.content_type in config.IMAGE_CONTENT_TYPES else 0 for file in files.values()])
     print('runserver, post_detect_sync, number of images received: ', num_images)
