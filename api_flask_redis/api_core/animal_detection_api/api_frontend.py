@@ -90,7 +90,7 @@ def check_posted_data(request):
     if 'min_rendering_confidence' in params:
         rendering_confidence_threshold = float(params['min_rendering_confidence'])
         print('runserver, post_detect_sync, user specified rendering confidence: ', rendering_confidence_threshold) 
-        if rendering_confidence_threshold < 0.0 or rendering_confidence_threshod > 1.0:
+        if rendering_confidence_threshold < 0.0 or rendering_confidence_threshold > 1.0:
             return _make_error_object(400, 'Rendering confidence threshold {} is invalid, should be between 0.0 and 1.0.'.format(
                 rendering_confidence_threshold))
     else:
