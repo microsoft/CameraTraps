@@ -1,3 +1,11 @@
+# 
+# api_frontend.py
+#
+# Defines the Flask app, which takes requests (one or more images) from
+# remote callers and pushes the images onto the shared Redis queue, to be processed
+# by the main service in api_backend.py .
+#
+
 #%% Imports
 
 import os
@@ -27,8 +35,8 @@ db = redis.StrictRedis(host=config.REDIS_HOST, port=config.REDIS_PORT)
 
 def _make_error_object(error_code, error_message):
     
-    # Make a dict that the request_processing_function can return to the endpoint function
-    # to notify it of an error
+    # Make a dict that the request_processing_function can return to the endpoint 
+    # function to notify it of an error
     return {
         'error_message': error_message,
         'error_code': error_code
@@ -36,6 +44,7 @@ def _make_error_object(error_code, error_message):
 
 
 def _make_error_response(error_code, error_message):
+
     return make_response(jsonify({'error': error_message}), error_code)
 
 
@@ -163,6 +172,7 @@ def detect_sync():
             if result:
                 
                 result = json.loads(result.decode())
+                print('Processing result {}'.format(str(result)))
                 
                 if result['status'] == 200:
                     detections = result['detections']
@@ -170,8 +180,8 @@ def detect_sync():
                 
                 else:
                     db.delete(redis_id)
-                    print('Error performing detection on the images: ' + str(result))
-                    return _make_error_response(500, 'Error performing detection on the images: ' + str(result))
+                    print('Detection error: ' + str(result))
+                    return _make_error_response(500, 'Detection error: ' + str(result))
 
                 try:
                     print('detect_sync: postprocessing and sending images back...')
@@ -180,7 +190,9 @@ def detect_sync():
                     }
 
                     if render_boxes and result['status'] == 200:
+
                         print('Rendering images')
+
                         for image_name, detections in detections.items():
                             
                             #image = Image.open(os.path.join(temp_direc, image_name))
@@ -252,3 +264,5 @@ if __name__ == '__main__':
         app.run(host='0.0.0.0', port=5050)
     else:
         app.run()
+
+
