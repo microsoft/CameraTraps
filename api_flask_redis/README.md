@@ -1,5 +1,9 @@
 # Camera trap real-time flask-redis API
 
+## Sample notebook
+
+This README documents the configuration of the MegaDetector API; a notebook that demonstrates the *calling* of the API is available [here](camera_trap_flask_api_test.ipynb).
+
 ## Setup
 
 ### Prerequisites
