@@ -1,12 +1,14 @@
 ## Camera trap real-time API configuration
 
-REDIS_HOST = "localhost"
+REDIS_HOST = 'localhost'
 
 REDIS_PORT = 6379
 
-TEMP_FOLDER = "temp"
+# Full path to the temporary folder for image storage, only meaningful 
+# within the Docker container
+TEMP_FOLDER = '/app/temp'
 
-REDIS_QUEUE_NAME = "camera-trap-queue"
+REDIS_QUEUE_NAME = 'camera-trap-queue'
 
 # Upper limit on total content length (all images and parameters)
 MAX_CONTENT_LENGTH_IN_MB = 5 * 8  # 5MB per image * number of images allowed

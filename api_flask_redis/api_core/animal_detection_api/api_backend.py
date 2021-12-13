@@ -39,13 +39,14 @@ def detect_process():
 
             try:
                 
-                temp_direc = f'{current_directory}/{config.TEMP_FOLDER}/{id}'
+                temp_direc = os.path.join(config.TEMP_FOLDER,id)
+                assert os.path.isdir(temp_direc), 'Could not find temporary folder {}'.format(temp_direc)
                 
                 for filename in os.listdir(temp_direc):
                     
                     image_path = f'{temp_direc}/{filename}'
                     print('Reading image from {}'.format(image_path))
-                    image = open(image_path, "rb")
+                    image = open(image_path, 'rb')
                     image = viz_utils.load_image(image)
 
                     start_time = time.time()
