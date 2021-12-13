@@ -20,12 +20,23 @@ import visualization.plot_utils as plot_utils
 import numpy as np
 import matplotlib.pyplot as plt
 
-results_file = r"G:\umn\umn-20200330\combined_api_outputs\umn-20200330raw-pictures-habfrag_detections.json"
-# results_file = r"G:\umn\umn-20200330\combined_api_outputs\umn-20200330raw-pictures-habfrag_detections.filtered_rde_0.70_0.85_8_0.2.json"
-ground_truth_file = r"G:\temp\umn\format_images_hv.csv"
-image_base = r"G:\temp\umn\raw-pictures-habfrag"
-analysis_base = r"G:\temp\umn"
-
+if False:
+    results_file = r"G:\umn\umn-20200330\combined_api_outputs\umn-20200330raw-pictures-habfrag_detections.json"
+    # results_file = r"G:\umn\umn-20200330\combined_api_outputs\umn-20200330raw-pictures-habfrag_detections.filtered_rde_0.70_0.85_8_0.2.json"
+    ground_truth_file = r"G:\temp\umn\format_images_hv.csv"
+    image_base = r"G:\temp\umn\raw-pictures-habfrag"
+    replacement_string = 'raw-pictures-habfrag/'
+    analysis_base = r"G:\temp\umn"
+    alt_string = None
+if True:
+    results_file = r"G:\umn-gomez-reprise\umn-gomez-reprise-2021-11-27\combined_api_outputs\umn-gomez-reprise-2021-11-272021.11.24-images_detections.json"
+    # results_file = r"G:\umn-gomez-reprise\umn-gomez-reprise-2021-11-27\combined_api_outputs\umn-gomez-reprise-2021-11-272021.11.24-images_detections.filtered_rde_0.60_0.85_10_0.20.json"
+    ground_truth_file = r"G:\temp\umn-reprise\images_hv_jan2020.csv"
+    image_base = r"G:\temp\umn-reprise\2021.11.24-images\jan2020"
+    analysis_base = r"G:\temp\umn-reprise"
+    replacement_string = '2021.11.24-images/jan2020/'
+    alt_string = 'jul2020'
+    
 assert os.path.isfile(results_file)
 assert os.path.isfile(ground_truth_file)
 assert os.path.isdir(image_base)
@@ -44,10 +55,20 @@ print('Listed {} deployment folders'.format(len(deployment_folders)))
 with open(results_file,'r') as f:
     md_results = json.load(f)
 
+valid_images = []
+n_invalid_images = 0
 for im in md_results['images']:  
+    if replacement_string not in im['file']:
+        if alt_string is not None:
+            assert alt_string in im['file']
+        n_invalid_images += 1
+        continue
     im['file'] = im['file'].replace('\\','/')
-    assert 'raw-pictures-habfrag/' in im['file']
-    im['file'] = im['file'].replace('raw-pictures-habfrag/','')
+    im['file'] = im['file'].replace(replacement_string,'')
+    valid_images.append(im)
+
+md_results['images'] = valid_images
+print('Loaded {} MD results (ignored {})'.format(len(md_results['images']),n_invalid_images))
 
 category_name_to_id = {}
 category_id_to_name = md_results['detection_categories']
