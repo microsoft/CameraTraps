@@ -1,3 +1,10 @@
+#
+# api_backend.py
+#
+# Defines the model execution service, which pulls requests (one or more images)
+# from the shared Redis queue, and runs them through the TF model.
+#
+
 #%% Imports
 
 import os
@@ -57,16 +64,17 @@ def detect_process():
                     inference_time_detector.append(elapsed)
                     
             except Exception as e:
-                print('Error performing detection on the images: ' + str(e))
+
+                print('Detection error: ' + str(e))
                 
                 db.set(entry['id'], json.dumps({ 
                     'status': 500,
-                    'error': 'Error performing detection on the images: ' + str(e)
+                    'error': 'Detection error: ' + str(e)
                 }))
 
+                continue
+
             # Filter the detections by the confidence threshold
-            
-            # json to return to the user along with the rendered images if they opted for it
             #
             # Each result is [ymin, xmin, ymax, xmax, confidence, category]
             #
@@ -88,10 +96,9 @@ def detect_process():
                         if d['conf'] > return_confidence_threshold:
                             res = TFDetector.convert_to_tf_coords(d['bbox'])
                             res.append(d['conf'])
-                            res.append(int(d['category']))  # category is an int here, not string as in the async API
+                            res.append(int(d['category']))
                             detections[image_name].append(res)
     
-                ## TODO: log
                 db.set(entry['id'], json.dumps({ 
                     'status': 200,
                     'detections': detections,
@@ -143,3 +150,5 @@ if __name__ == '__main__':
     print('\n')
 
     detect_process() 
+
+
