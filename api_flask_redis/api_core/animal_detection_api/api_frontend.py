@@ -19,9 +19,7 @@ import config
 
 #%% Initialization
 
-print('Creating application')
 app = Flask(__name__)
-
 db = redis.StrictRedis(host=config.REDIS_HOST, port=config.REDIS_PORT)
 
 
@@ -181,7 +179,7 @@ def detect_sync():
                         'detection_result': ('detection_result', json.dumps(detections), 'application/json'),
                     }
 
-                    if render_boxes:
+                    if render_boxes and result['status'] == 200:
                         print('Rendering images')
                         for image_name, detections in detections.items():
                             
