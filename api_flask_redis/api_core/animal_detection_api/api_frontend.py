@@ -149,6 +149,7 @@ def detect_sync():
                     image_path = os.path.join(temp_direc, filename)
                     print('Saving image {} to {}'.format(name,image_path))
                     file.save(image_path)
+                    assert os.path.isfile(image_path),'Error creating file {}'.format(image_path)
         
         except Exception as e:
             return _make_error_object(500, 'Error saving images: ' + str(e))
