@@ -8,14 +8,15 @@ cp ../../detection/run_tf_detector.py animal_detection_api/
 # which depends on the following
 cp ../../ct_utils.py animal_detection_api/
 
-mkdir animal_detection_api/visualization/
+mkdir -p animal_detection_api/visualization/
 cp ../../visualization/visualization_utils.py animal_detection_api/visualization/
 
 # visualization_utils in turn depends on the following
-mkdir animal_detection_api/data_management
-mkdir animal_detection_api/data_management/annotations/
+mkdir -p animal_detection_api/data_management
+mkdir -p animal_detection_api/data_management/annotations/
 cp ../../data_management/annotations/annotation_constants.py animal_detection_api/data_management/annotations/
 
 echo $1
 echo $2
 sudo docker build . --build-arg BASE_IMAGE=$1 -t $2 
+
