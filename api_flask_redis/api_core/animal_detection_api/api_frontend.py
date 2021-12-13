@@ -63,9 +63,9 @@ def check_posted_data(request):
     files = request.files
     params = request.args
 
-    # check that the content uploaded is not too big
+    # Verify that the content uploaded is not too big
+    #
     # request.content_length is the length of the total payload
-    # also will not proceed if cannot find content_length, hence in the else we exceed the max limit
     content_length = request.content_length
     if not content_length:
         return _make_error_object(411, 'No image(s) were sent, or content length cannot be determined.')
@@ -74,7 +74,7 @@ def check_posted_data(request):
                     'Please upload fewer or more compressed images.').format(
             content_length / (1024 * 1024), config.MAX_CONTENT_LENGTH_IN_MB))
 
-    render_boxes = True if params.get('render', '') in ['True', 'true'] else False
+    render_boxes = True if params.get('render', '').lower() == 'true' else False
 
     if 'min_confidence' in params:
         return_confidence_threshold = float(params['min_confidence'])
@@ -94,7 +94,7 @@ def check_posted_data(request):
     else:
         rendering_confidence_threshold =  config.DEFAULT_RENDERING_CONFIDENCE_THRESHOLD
     
-    # check that the number of images is acceptable
+    # Verify that the number of images is acceptable
     num_images = sum([1 if file.content_type in config.IMAGE_CONTENT_TYPES else 0 for file in files.values()])
     print('runserver, post_detect_sync, number of images received: ', num_images)
 
@@ -205,16 +205,22 @@ def detect_sync():
                             fields[image_name] = (image_name, output_img_stream, 'image/jpeg')
                         print('Done rendering images')
                         
-                    m = MultipartEncoder(fields=fields)
-                    
-                    shutil.rmtree(temp_direc)
-                    print('')
+                    m = MultipartEncoder(fields=fields)                    
                     return Response(m.to_string(), mimetype=m.content_type)
 
                 except Exception as e:
+                    
                     print(traceback.format_exc())
                     print('Error returning result or rendering the detection boxes: ' + str(e))
 
+                finally:
+                    
+                    try:
+                        print('Removing temporary files')
+                        shutil.rmtree(temp_direc)
+                    except Exception as e:
+                        print('Error removing temporary folder {}: {}'.format(temp_direc,str(e)))
+                    
             else:
                 time.sleep(0.005)
                 
