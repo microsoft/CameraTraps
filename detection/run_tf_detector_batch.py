@@ -139,19 +139,25 @@ def run_detector_with_image_queue(image_files,model_file,confidence_threshold):
         producer = Process(target=producer_func,args=(q,image_files,))
     producer.daemon = False
     producer.start()
-    
-    if use_threads_for_queue:
-        consumer = Thread(target=consumer_func,args=(q,return_queue,model_file,confidence_threshold,))
+ 
+    run_separate_consumer_process = False
+
+    if run_separate_consumer_process:
+        if use_threads_for_queue:
+            consumer = Thread(target=consumer_func,args=(q,return_queue,model_file,confidence_threshold,))
+        else:
+            consumer = Process(target=consumer_func,args=(q,return_queue,model_file,confidence_threshold,))
+        consumer.daemon = True
+        consumer.start()
     else:
-        consumer = Process(target=consumer_func,args=(q,return_queue,model_file,confidence_threshold,))
-    consumer.daemon = True
-    consumer.start()
-    
+        consumer_func(q,return_queue,model_file,confidence_threshold)
+
     producer.join()
     print('Producer finished')
-    
-    consumer.join()
-    print('Consumer finished')
+   
+    if run_separate_consumer_process:
+        consumer.join()
+        print('Consumer finished')
     
     q.join()
     print('Queue joined')
