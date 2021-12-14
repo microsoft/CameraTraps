@@ -223,7 +223,7 @@ python c:\git\CameraTraps\detection\run_tf_detector_batch.py c:\wherever\you\dow
 
 ### 3. Batch processing API
 
-Speaking of lots of images, when we process loads of images from collaborators, we use our [batch processing API](https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing), which we can make available externally on request.  [Email us](mailto:cameratraps@lila.science) for more information.
+Speaking of lots of images, when we process loads of images from collaborators, we stand up an instance our [batch processing API](https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing), which Azure users can also replicate in their own environments.
 
 
 ## Citing MegaDetector
