@@ -1,5 +1,4 @@
 ######
-#
 # process_video.py
 #
 # Split a video into frames, run the frames through run_tf_detector_batch.py, and
@@ -36,7 +35,9 @@ class ProcessVideoOptions:
     delete_output_frames = True
     reuse_results_if_available = False
 
-    confidence_threshold = 0.8
+    rendering_confidence_threshold = 0.8
+    json_confidence_threshold = 0.0
+    
     n_cores = 1
 
     debug_max_frames = -1
@@ -69,7 +70,7 @@ def process_video(options):
     else:
         results = run_tf_detector_batch.load_and_run_detector_batch(
             options.model_file, image_file_names,
-            confidence_threshold=options.confidence_threshold,
+            confidence_threshold=options.json_confidence_threshold,
             n_cores=options.n_cores)
     
         run_tf_detector_batch.write_results_to_file(
@@ -84,7 +85,8 @@ def process_video(options):
         detected_frame_files = visualize_detector_output.visualize_detector_output(
             detector_output_path=options.output_json_file,
             out_dir=rendering_output_dir,
-            images_dir=frame_output_folder)
+            images_dir=frame_output_folder,
+            confidence=options.rendering_confidence_threshold)
 
         # Combine into a video
         frames_to_video(detected_frame_files, Fs, options.output_video_file)
@@ -127,7 +129,8 @@ if False:
         options.delete_output_frames = True
         process_video(options)
         
-    #%% Load video and split into frames
+        
+    #%% Process a single video
 
     model_file = r'c:\temp\models\md_v4.0.0.pb'
     input_video_file = r'C:\temp\LIFT0003.MP4'
@@ -139,7 +142,100 @@ if False:
 
     process_video(options)
 
+    
     # python process_video.py "c:\temp\models\md_v4.0.0.pb" "c:\temp\LIFT0003.MP4" --debug_max_frames=10 --render_output_video=True
+
+
+    #%% For a video that's already been run through MD
+    
+    import json
+    video_file = '/Users/morrisdan/1_fps_20211216_101100.mp4'
+    results_file_raw = '/Users/morrisdan/1_fps_20211216_101100.mp4.json'
+    allowed_categories = ['1']
+    
+    results_file = results_file_raw.replace('.json','_animals_only.json')
+    
+    if os.path.isfie(results_file):
+        
+        print('Animal-only results file exists, skipping generation')
+        
+    else:
+        
+        with open(results_file_raw,'r') as f:
+        
+            n_detections = 0
+            n_valid_detections = 0
+            min_valid_confidence = 1.0
+            
+            d = json.load(f)
+            # im = d['images'][0]
+            
+            for im in d['images']:
+                
+                valid_detections = []
+                max_detection_conf = 0
+                
+                for det in im['detections']:
+                    n_detections += 1
+                    if det['category'] in allowed_categories:
+                        if det['conf'] > max_detection_conf:
+                            max_detection_conf = det['conf']
+                        if det['conf'] < min_valid_confidence:
+                            min_valid_confidence = det['conf']
+                        valid_detections.append(det)
+                        n_valid_detections += 1
+                        
+                # ...for each detection
+                
+                im['detections'] = valid_detections
+                im['max_detection_conf'] = max_detection_conf
+                
+            print('Kept {} of {} detections (min conf {})'.format(n_valid_detections,n_detections,min_valid_confidence))
+            
+            with open(results_file,'w') as f:
+                json.dump(d,f,indent=2)
+                
+    base_dir = '/Users/morrisdan/frame_processing'
+    min_confidence = 0.4
+    
+    assert os.path.isfile(video_file) and os.path.isfile(results_file)
+    os.makedirs(base_dir,exist_ok=True)
+    
+    
+    # Split into frames
+    
+    options = ProcessVideoOptions()
+    options.input_video_file = video_file
+    options.output_json_file = results_file
+    options.output_video_file = options.input_video_file + '.detections.mp4'
+    
+    frame_output_folder = os.path.join(
+        base_dir, os.path.basename(options.input_video_file) + '_frames')
+    if os.path.isdir(frame_output_folder):
+        print('Frame output folder exists, skipping frame extraction')
+    else:
+        os.makedirs(frame_output_folder, exist_ok=True)
+
+        frame_filenames, Fs = video_to_frames(
+            options.input_video_file, frame_output_folder)
+            
+    # Render output video
+    
+    ## Render detections to images
+    
+    rendering_output_dir = os.path.join(
+        base_dir, os.path.basename(options.input_video_file) + '_detections')
+    os.makedirs(rendering_output_dir,exist_ok=True)
+    detected_frame_files = visualize_detector_output.visualize_detector_output(
+        detector_output_path=options.output_json_file,
+        out_dir=rendering_output_dir,
+        images_dir=frame_output_folder,
+        confidence=min_confidence)
+
+    ## Combine into a video
+    
+    Fs = 20
+    frames_to_video(detected_frame_files, Fs, options.output_video_file)
 
 
 #%% Command-line driver
@@ -160,14 +256,17 @@ def main():
     parser.add_argument('--output_video_file', type=str,
                         default=None, help='video output file, defaults to [video file].mp4')
 
-    parser.add_argument('--render_output_video', type=bool,
-                        default=False, help='enable/disable video output rendering (default False)')
+    parser.add_argument('--render_output_video', action='store_true',
+                        help='enable/disable video output rendering (default False)')
 
     parser.add_argument('--delete_output_frames', type=bool,
                         default=False, help='enable/disable temporary file detection (default True)')
 
-    parser.add_argument('--confidence_threshold', type=float,
-                        default=0.8, help="dont render boxes with confidence below this threshold")
+    parser.add_argument('--rendering_confidence_threshold', type=float,
+                        default=0.8, help="don't render boxes with confidence below this threshold")
+
+    parser.add_argument('--json_confidence_threshold', type=float,
+                        default=0.0, help="don't include boxes in the .json file with confidence below this threshold")
 
     parser.add_argument('--n_cores', type=int,
                         default=1, help='number of cores to use for detection (CPU only)')
