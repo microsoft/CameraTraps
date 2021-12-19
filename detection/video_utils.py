@@ -13,8 +13,6 @@ import cv2
 import glob
 import json
 
-import numpy as np
-
 from collections import defaultdict
 from multiprocessing.pool import ThreadPool
 from tqdm import tqdm
