@@ -1,4 +1,4 @@
-FROM yasiyu.azurecr.io/aiforearth/tensorflow:1.14.0-gpu-py3
+FROM ai4eregistry.azurecr.io/camera-trap/2.0-detection-sync:5
 
 # the base image uses Python 3.6. TODO use TF2 for inference
 
