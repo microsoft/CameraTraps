@@ -20,22 +20,13 @@ import visualization.plot_utils as plot_utils
 import numpy as np
 import matplotlib.pyplot as plt
 
-if False:
-    results_file = r"G:\umn\umn-20200330\combined_api_outputs\umn-20200330raw-pictures-habfrag_detections.json"
-    # results_file = r"G:\umn\umn-20200330\combined_api_outputs\umn-20200330raw-pictures-habfrag_detections.filtered_rde_0.70_0.85_8_0.2.json"
-    ground_truth_file = r"G:\temp\umn\format_images_hv.csv"
-    image_base = r"G:\temp\umn\raw-pictures-habfrag"
-    replacement_string = 'raw-pictures-habfrag/'
-    analysis_base = r"G:\temp\umn"
-    alt_string = None
-if True:
-    results_file = r"G:\umn-gomez-reprise\umn-gomez-reprise-2021-11-27\combined_api_outputs\umn-gomez-reprise-2021-11-272021.11.24-images_detections.json"
-    # results_file = r"G:\umn-gomez-reprise\umn-gomez-reprise-2021-11-27\combined_api_outputs\umn-gomez-reprise-2021-11-272021.11.24-images_detections.filtered_rde_0.60_0.85_10_0.20.json"
-    ground_truth_file = r"G:\temp\umn-reprise\images_hv_jan2020.csv"
-    image_base = r"G:\temp\umn-reprise\2021.11.24-images\jan2020"
-    analysis_base = r"G:\temp\umn-reprise"
-    replacement_string = '2021.11.24-images/jan2020/'
-    alt_string = 'jul2020'
+analysis_base = "f:\\"
+image_base = os.path.join(analysis_base,'2021.11.24-images\jan2020')
+results_file = os.path.join(analysis_base,'umn-gomez-reprise-2021-11-272021.11.24-images_detections.filtered_rde_0.60_0.85_10_0.20.json')
+ground_truth_file = os.path.join(analysis_base,'images_hv_jan2020_relative.csv')
+
+replacement_string = '2021.11.24-images\\jan2020\\'
+alt_string = 'jul2020'
     
 assert os.path.isfile(results_file)
 assert os.path.isfile(ground_truth_file)
@@ -81,8 +72,8 @@ for category_id in md_results['detection_categories'].keys():
 
 ground_truth_df = pd.read_csv(ground_truth_file)
 
-print('Loaded {} MD results and {} ground truth annotations'.format(
-    len(md_results['images']),len(ground_truth_df)))
+print('Loaded {} ground truth annotations'.format(
+    len(len(ground_truth_df))))
 
 
 #%% Create relative paths for ground truth data
