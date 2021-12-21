@@ -25,6 +25,9 @@ image_base = os.path.join(analysis_base,'2021.11.24-images\jan2020')
 results_file = os.path.join(analysis_base,'umn-gomez-reprise-2021-11-272021.11.24-images_detections.filtered_rde_0.60_0.85_10_0.20.json')
 ground_truth_file = os.path.join(analysis_base,'images_hv_jan2020_relative.csv')
 
+# For two deployments, we're only processing imagse in the "detections" subfolder
+detection_only_deployments = ['N23','N32']
+
 replacement_string = '2021.11.24-images\\jan2020\\'
 alt_string = 'jul2020'
     
@@ -111,6 +114,9 @@ for deployment_name in tqdm(deployment_folders):
     # filename = os.path.join(image_base,'N17/100EK113/12280842.JPG').replace('\\','/'); assert filename in files
     # filename = files[100]
     for filename in files:
+        
+        if deployment_name in detection_only_deployments and 'detection' not in filename:
+            continue
         
         if '.DS_Store' in filename:
             continue
