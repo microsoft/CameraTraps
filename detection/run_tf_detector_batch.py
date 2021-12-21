@@ -77,7 +77,12 @@ print('tf.test.is_gpu_available:', tf.test.is_gpu_available())
 #%% Support functions for multiprocessing
 
 def producer_func(q,image_files):
-
+    """ 
+    Producer function; only used when using the (optional) image queue.
+    
+    Reads up to N images from disk and puts them on the blocking queue for processing.
+    """
+    
     if verbose:
         print('Producer starting'); sys.stdout.flush()
         
@@ -100,6 +105,11 @@ def producer_func(q,image_files):
     
     
 def consumer_func(q,return_queue,model_file,confidence_threshold):
+    """ 
+    Consumer function; only used when using the (optional) image queue.
+    
+    Pulls images from a blocking queue and processes them.
+    """
     
     if verbose:
         print('Consumer starting'); sys.stdout.flush()
@@ -129,6 +139,12 @@ def consumer_func(q,return_queue,model_file,confidence_threshold):
             
 
 def run_detector_with_image_queue(image_files,model_file,confidence_threshold):
+    """
+    Driver function for the (optional) multiprocessing-based image queue; only used when --use_image_queue
+    is specified.  Starts a reader process to read images from disk, but processes images in the 
+    process from which this function is called (i.e., does not currently spawn a separate consumer
+    process).
+    """
     
     q = multiprocessing.JoinableQueue(max_queue_size)
     return_queue = multiprocessing.Queue(1)
@@ -140,6 +156,14 @@ def run_detector_with_image_queue(image_files,model_file,confidence_threshold):
     producer.daemon = False
     producer.start()
  
+    # TODO
+    #
+    # The queue system is a little more elegant if we start one thread for reading an one
+    # for processing, and this works fine on Windows, but because we import TF at module load,
+    # CUDA will only work in the main process, so currently the consumer function runs here.
+    #
+    # To enable proper multi-GPU support, we may need to move the TF import to a separate module
+    # that isn't loaded until very close to where inference actually happens.
     run_separate_consumer_process = False
 
     if run_separate_consumer_process:
@@ -167,8 +191,11 @@ def run_detector_with_image_queue(image_files,model_file,confidence_threshold):
     return results
 
 
+#%% Other support funtions
+
 def chunks_by_number_of_chunks(ls, n):
-    """Splits a list into n even chunks.
+    """
+    Splits a list into n even chunks.
 
     Args
     - ls: list
@@ -181,7 +208,8 @@ def chunks_by_number_of_chunks(ls, n):
 #%% Image processing functions
 
 def process_images(im_files, tf_detector, confidence_threshold, use_image_queue=False):
-    """Runs the MegaDetector over a list of image files.
+    """
+    Runs MegaDetector over a list of image files.
 
     Args
     - im_files: list of str, paths to image files
@@ -192,6 +220,7 @@ def process_images(im_files, tf_detector, confidence_threshold, use_image_queue=
     - results: list of dict, each dict represents detections on one image
         see the 'images' key in https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing#batch-processing-api-output-format
     """
+    
     if isinstance(tf_detector, str):
         start_time = time.time()
         tf_detector = TFDetector(tf_detector)
@@ -208,7 +237,8 @@ def process_images(im_files, tf_detector, confidence_threshold, use_image_queue=
     
 
 def process_image(im_file, tf_detector, confidence_threshold, image=None):
-    """Runs the MegaDetector over a single image file.
+    """
+    Runs MegaDetector over a single image file.
 
     Args
     - im_file: str, path to image file
@@ -220,6 +250,7 @@ def process_image(im_file, tf_detector, confidence_threshold, image=None):
     - result: dict representing detections on one image
         see the 'images' key in https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing#batch-processing-api-output-format
     """
+    
     print('Processing image {}'.format(im_file))
     
     if image is None:
@@ -265,6 +296,7 @@ def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=No
     Returns
     - results: list of dict, each dict represents detections on one image
     """
+    
     if results is None:
         results = []
 
@@ -334,7 +366,8 @@ def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=No
 
 
 def write_results_to_file(results, output_file, relative_path_base=None):
-    """Writes list of detection results to JSON output file. Format matches
+    """
+    Writes list of detection results to JSON output file. Format matches
     https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing#batch-processing-api-output-format
 
     Args
@@ -342,6 +375,7 @@ def write_results_to_file(results, output_file, relative_path_base=None):
     - output_file: str, path to JSON output file, should end in '.json'
     - relative_path_base: str, path to a directory as the base for relative paths
     """
+    
     if relative_path_base is not None:
         results_relative = []
         for r in results:
@@ -426,7 +460,7 @@ def main():
     parser.add_argument(
         '--use_image_queue',
         action='store_true',
-        help='Pre-load images, may help keep your GPU busy; does not currently support checkpointing')
+        help='Pre-load images, may help keep your GPU busy; does not currently support checkpointing.  Useful if you have a very fast GPU and a very slow disk.')
     parser.add_argument(
         '--threshold',
         type=float,
