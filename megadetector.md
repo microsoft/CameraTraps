@@ -50,8 +50,10 @@ But with a test batch of around 13,000 images from the public <a href="https://l
 * An <a href="https://www.nvidia.com/en-us/data-center/v100/">NVIDIA V100</a> GPU processes around 2.79 images per second, or around 240,000 images per day
 * An <a href="https://www.nvidia.com/en-us/geforce/graphics-cards/30-series/rtx-3090/">NVIDIA RTX 3090</a> GPU processes around 3.24 images per second, or around 280,000 images per day
 * An <a href="https://www.nvidia.com/en-us/geforce/graphics-cards/rtx-2080-ti/">NVIDIA RTX 2080 Ti</a> GPU processes around 2.48 images per second, or around 214,000 images per day
+* An <a href="https://www.nvidia.com/en-us/geforce/20-series/">NVIDIA RTX 2080</a> GPU processes around 2 images per second, or around 171,000 images per day
 * An <a href="https://www.nvidia.com/en-us/geforce/graphics-cards/rtx-2060-super/">NVIDIA RTX 2060 SUPER</a> GPU processes around 1.64 images per second, or around 141,000 images per day
 * An <a href="https://www.nvidia.com/en-us/titan/titan-v/">NVIDIA Titan V</a> GPU processes around 1.9 images per second, or around 167,000 images per day
+* An <a href="https://www.notebookcheck.net/NVIDIA-Quadro-T2000-Laptop-Graphics-Card.423971.0.html">NVIDIA Titan Quadro T2000</a> GPU processes around 0.64 images per second, or around 55,200 images per day
 
 If you want to run this benchmark on your own, here are <a href="https://github.com/microsoft/CameraTraps/blob/master/download_megadetctor_timing_benchmark_set.bat">azcopy commands</a> to download those 13,226 images, and we're happy to help you get MegaDetector running on your setup.  Or if you're using MegaDetector on other images with other GPUs, we'd love to include that data here as well.  <a href="mailto:cameratraps@lila.science">Email us</a>!
 
@@ -223,7 +225,7 @@ python c:\git\CameraTraps\detection\run_tf_detector_batch.py c:\wherever\you\dow
 
 ### 3. Batch processing API
 
-Speaking of lots of images, when we process loads of images from collaborators, we use our [batch processing API](https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing), which we can make available externally on request.  [Email us](mailto:cameratraps@lila.science) for more information.
+Speaking of lots of images, when we process loads of images from collaborators, we stand up an instance our [batch processing API](https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing), which Azure users can also replicate in their own environments.
 
 
 ## Citing MegaDetector
