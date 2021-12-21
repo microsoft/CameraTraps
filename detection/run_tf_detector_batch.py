@@ -68,7 +68,7 @@ import visualization.visualization_utils as viz_utils
 # Numpy FutureWarnings from tensorflow import
 warnings.filterwarnings('ignore', category=FutureWarning)
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 print('TensorFlow version:', tf.__version__)
 print('tf.test.is_gpu_available:', tf.test.is_gpu_available())
