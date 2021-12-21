@@ -149,54 +149,54 @@ if False:
     #%% For a video that's already been run through MD
     
     import json
-    video_file = '/Users/morrisdan/1_fps_20211216_101100.mp4'
-    results_file_raw = '/Users/morrisdan/1_fps_20211216_101100.mp4.json'
+    video_file = os.path.expanduser('~/1_fps_20211216_101100.mp4')
+    results_file_raw = os.path.expanduser('~/1_fps_20211216_101100.mp4.json')
     allowed_categories = ['1']
+    max_box_size = 0.15
+    min_box_size = 0.03
     
     results_file = results_file_raw.replace('.json','_animals_only.json')
+            
+    with open(results_file_raw,'r') as f:
     
-    if os.path.isfie(results_file):
+        n_detections = 0
+        n_valid_detections = 0
+        min_valid_confidence = 1.0
         
-        print('Animal-only results file exists, skipping generation')
+        d = json.load(f)
+        # im = d['images'][0]
         
-    else:
-        
-        with open(results_file_raw,'r') as f:
-        
-            n_detections = 0
-            n_valid_detections = 0
-            min_valid_confidence = 1.0
+        for im in d['images']:
             
-            d = json.load(f)
-            # im = d['images'][0]
+            valid_detections = []
+            max_detection_conf = 0
             
-            for im in d['images']:
-                
-                valid_detections = []
-                max_detection_conf = 0
-                
-                for det in im['detections']:
-                    n_detections += 1
-                    if det['category'] in allowed_categories:
-                        if det['conf'] > max_detection_conf:
-                            max_detection_conf = det['conf']
-                        if det['conf'] < min_valid_confidence:
-                            min_valid_confidence = det['conf']
-                        valid_detections.append(det)
-                        n_valid_detections += 1
-                        
-                # ...for each detection
-                
-                im['detections'] = valid_detections
-                im['max_detection_conf'] = max_detection_conf
-                
-            print('Kept {} of {} detections (min conf {})'.format(n_valid_detections,n_detections,min_valid_confidence))
+            for det in im['detections']:
+                n_detections += 1
+                det_size = None
+                if 'bbox' in det:
+                    bbox = det['bbox']
+                    det_size = bbox[2] * bbox[3]
+                if det['category'] in allowed_categories and ((det_size is not None) and (det_size < max_box_size) and (det_size > min_box_size)):
+                    if det['conf'] > max_detection_conf:
+                        max_detection_conf = det['conf']
+                    if det['conf'] < min_valid_confidence:
+                        min_valid_confidence = det['conf']
+                    valid_detections.append(det)
+                    n_valid_detections += 1
+                    
+            # ...for each detection
             
-            with open(results_file,'w') as f:
-                json.dump(d,f,indent=2)
-                
-    base_dir = '/Users/morrisdan/frame_processing'
-    min_confidence = 0.4
+            im['detections'] = valid_detections
+            im['max_detection_conf'] = max_detection_conf
+            
+        print('Kept {} of {} detections (min conf {})'.format(n_valid_detections,n_detections,min_valid_confidence))
+        
+        with open(results_file,'w') as f:
+            json.dump(d,f,indent=2)
+            
+    base_dir = os.path.expanduser('~/frame_processing')
+    min_confidence = 0.001
     
     assert os.path.isfile(video_file) and os.path.isfile(results_file)
     os.makedirs(base_dir,exist_ok=True)
