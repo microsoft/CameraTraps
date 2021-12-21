@@ -103,7 +103,7 @@ def visualize_detector_output(detector_output_path: str,
 
     #%% Load images, annotate them and save
 
-    print('Starting to annotate the images...')
+    print('Rendering detections above a confidence threshold of {}...'.format(confidence))
     num_saved = 0
     annotated_img_paths = []
     image_obj: Any  # str for local images, BytesIO for Azure images
