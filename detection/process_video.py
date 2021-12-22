@@ -12,6 +12,7 @@ import os
 import tempfile
 import shutil
 import argparse
+import itertools
 
 from detection import run_tf_detector_batch
 from visualization import visualize_detector_output
@@ -103,55 +104,67 @@ def process_video(options):
     return results
 
 
-    def process_video_folder(options):
+def process_video_folder(options):
+    
+    ## Validate options
+
+    assert not options.render_output_video, 'Video rendering is not supported when rendering a folder'
+
+    
+    ## Split every video into frames
+    
+    assert os.path.isdir(options.input_video_file),'{} is not a folder'.format(options.input_video_file)
                 
-        #%% Split every video into frames
-        
-        assert os.path.isdir(options.input_video_file),'{} is not a folder'.format(options.input_video_file)
-                    
-        if options.frame_folder is not None:
-            frame_output_folder = options.frame_folder
+    if options.frame_folder is not None:
+        frame_output_folder = options.frame_folder
+    else:
+        tempdir = os.path.join(tempfile.gettempdir(), 'process_camera_trap_video')
+        frame_output_folder = os.path.join(
+            tempdir, os.path.basename(options.input_video_file) + '_frames_' + str(uuid1()))
+    os.makedirs(frame_output_folder, exist_ok=True)
+
+    frame_filenames, Fs = video_folder_to_frames(input_folder=options.input_video_file, output_folder_base=frame_output_folder, 
+                               recursive=options.recursive, overwrite=True,
+                               n_threads=options.n_cores,every_n_frames=options.frame_sample)
+    
+    image_file_names = list(itertools.chain.from_iterable(frame_filenames))
+
+    if options.debug_max_frames is not None and options.debug_max_frames > 0:
+        image_file_names = image_file_names[0:options.debug_max_frames]
+    
+    
+    ## Run MegaDetector
+    
+    if options.output_json_file is None:
+        frames_json = options.input_video_file + '.frames.json'
+        video_json = options.input_video_file + '.json'
+    else:
+        if '.json' in options.output_json_file:
+            frames_json = options.output_json_file.replace('.json','.frames.json')
+            video_json = options.output_json_file
         else:
-            tempdir = os.path.join(tempfile.gettempdir(), 'process_camera_trap_video')
-            frame_output_folder = os.path.join(
-                tempdir, os.path.basename(options.input_video_file) + '_frames_' + str(uuid1()))
-        os.makedirs(frame_output_folder, exist_ok=True)
+            video_json = options.output_json_file
+            frames_json = video_json + '_frames'
+            
+    if options.reuse_results_if_available and \
+        os.path.isfile(frames_json):
+            print('Loading results from {}'.format(frames_json))
+            results = None
+    else:
+        results = run_tf_detector_batch.load_and_run_detector_batch(
+            options.model_file, image_file_names,
+            confidence_threshold=options.json_confidence_threshold,
+            n_cores=options.n_cores)
+    
+        run_tf_detector_batch.write_results_to_file(
+            results, frames_json,
+            relative_path_base=frame_output_folder)
+    
+    
+    ## Convert frame-level results to video-level results
 
-        frame_filenames, Fs = video_folder_to_frames(input_folder=options.input_video_file, output_folder_base=frame_output_folder, 
-                                   recursive=options.recursive, overwrite=True,
-                                   n_threads=options.n_cores,every_n_frames=options.frame_sample)
-        
-        image_file_names = frame_filenames
-        if options.debug_max_frames is not None and options.debug_max_frames > 0:
-            image_file_names = image_file_names[0:options.debug_max_frames]
-        
-        
-        #%% Run MegaDetector
-        
-        if options.output_json_file is None:
-            options.output_json_file = options.input_video_file + '.json'
-
-        if options.reuse_results_if_available and \
-            os.path.isfile(options.output_json_file):
-                print('Loading results from {}'.format(options.output_json_file))
-                results = None
-        else:
-            results = run_tf_detector_batch.load_and_run_detector_batch(
-                options.model_file, image_file_names,
-                confidence_threshold=options.json_confidence_threshold,
-                n_cores=options.n_cores)
-        
-            run_tf_detector_batch.write_results_to_file(
-                results, options.output_json_file,
-                relative_path_base=frame_output_folder)
-        
-        
-        #%%
-
-        filtered_output_filename = r"...json"
-        video_output_filename = filtered_output_filename.replace('frames','video')
-        frame_results_to_video_results(filtered_output_filename,video_output_filename)
-
+    frame_results_to_video_results(frames_json,video_json)
+         
         
 #%% Interactive driver
 
@@ -173,7 +186,7 @@ if False:
     options.output_video_file = None
     options.output_json_file = None
     options.frame_folder = frame_folder
-    options.render_output_video = True
+    options.render_output_video = False
     options.n_cores = 5
     options.json_confidence_threshold = 0.55
     options.delete_output_frames = False
@@ -181,9 +194,30 @@ if False:
     options.debug_max_frames = None
     options.frame_sample = 10
     
-    # process_video(options)
+    # process_video_folder(options)
     
-        
+    cmd = 'python process_video.py'
+    cmd += ' "' + model_file + '"'
+    cmd += ' "' + input_dir + '"'
+    if options.recursive:
+        cmd += ' --recursive'
+    if options.frame_folder is not None:
+        cmd += ' --frame_folder' + ' "' + options.frame_folder + '"'
+    if options.render_output_video:
+        cmd += ' --render_output_video'
+    if options.delete_output_frames:
+        cmd += ' --delete_output_frames'
+    cmd += ' --rendering_confidence_threshold ' + str(options.rendering_confidence_threshold)
+    cmd += ' --json_confidence_threshold ' + str(options.json_confidence_threshold)
+    cmd += ' --n_cores ' + str(options.n_cores)
+    if options.frame_sample is not None:
+        cmd += ' --frame_sample ' + str(options.frame_sample)
+    if options.debug_max_frames is not None:
+        cmd += ' --debug_max_frames ' + str(options.debug_max_frames)
+
+    # import clipboard; clipboard.copy(cmd)
+
+    
     #%% Process a single video
 
     model_file = r'c:\temp\models\md_v4.0.0.pb'
@@ -341,7 +375,10 @@ def main():
     options = ProcessVideoOptions()
     args_to_object(args,options)
 
-    process_video(options)
+    if os.path.isdir(options.input_video_file):
+        process_video_folder(options)
+    else:
+        process_video(options)
 
 if __name__ == '__main__':
     main()
