@@ -22,14 +22,20 @@ import matplotlib.pyplot as plt
 
 analysis_base = "f:\\"
 image_base = os.path.join(analysis_base,'2021.11.24-images\jan2020')
-results_file = os.path.join(analysis_base,'umn-gomez-reprise-2021-11-272021.11.24-images_detections.filtered_rde_0.60_0.85_10_0.20.json')
+results_file_filtered = os.path.join(analysis_base,'umn-gomez-reprise-2021-11-272021.11.24-images_detections.filtered_rde_0.60_0.85_10_0.20.json')
+# results_file = results_file_filtered
+results_file = os.path.join(analysis_base,'umn-gomez-reprise-2021-11-272021.11.24-images_detections.json')
 ground_truth_file = os.path.join(analysis_base,'images_hv_jan2020_relative.csv')
 
 # For two deployments, we're only processing imagse in the "detections" subfolder
 detection_only_deployments = ['N23','N32']
+deployments_to_ignore = ['N18','N28']
 
-replacement_string = '2021.11.24-images\\jan2020\\'
+# String to remove from MegaDetector results
+replacement_string = '2021.11.24-images/jan2020/'
 alt_string = 'jul2020'
+
+MISSING_COMMON_NAME_TOKEN = 'MISSING'
     
 assert os.path.isfile(results_file)
 assert os.path.isfile(ground_truth_file)
@@ -48,21 +54,25 @@ print('Listed {} deployment folders'.format(len(deployment_folders)))
 
 with open(results_file,'r') as f:
     md_results = json.load(f)
+n_images_in_results = len(md_results['images'])
 
 valid_images = []
 n_invalid_images = 0
+
+# im = md_results['images'][0]
 for im in md_results['images']:  
+    im['file'] = im['file'].replace('\\','/')
     if replacement_string not in im['file']:
         if alt_string is not None:
             assert alt_string in im['file']
         n_invalid_images += 1
         continue
-    im['file'] = im['file'].replace('\\','/')
     im['file'] = im['file'].replace(replacement_string,'')
     valid_images.append(im)
 
 md_results['images'] = valid_images
-print('Loaded {} MD results (ignored {})'.format(len(md_results['images']),n_invalid_images))
+print('Loaded {} MD results from a total of {} (ignored {})'.format(
+    len(md_results['images']),n_images_in_results,n_invalid_images))
 
 category_name_to_id = {}
 category_id_to_name = md_results['detection_categories']
@@ -76,9 +86,15 @@ for category_id in md_results['detection_categories'].keys():
 ground_truth_df = pd.read_csv(ground_truth_file)
 
 print('Loaded {} ground truth annotations'.format(
-    len(len(ground_truth_df))))
+    len(ground_truth_df)))
 
-
+# i_row = 0; row = ground_truth_df.iloc[i_row]
+for i_row,row in tqdm(ground_truth_df.iterrows()):
+    if not isinstance(row['common_name'],str):
+        print('Warning: missing common name for {}'.format(row['filename']))
+        row['common_name'] = MISSING_COMMON_NAME_TOKEN
+    
+    
 #%% Create relative paths for ground truth data
 
 # Some deployment folders have no subfolders, e.g. this is a valid file name:
@@ -94,12 +110,18 @@ print('Loaded {} ground truth annotations'.format(
 
 deployment_name_to_file_mappings = {}
 
+n_filenames_ignored = 0
+n_deployments_ignored = 0
+
 # deployment_name = list(deployment_folders)[0]
-# deployment_name = 'M03'
-# deployment_name = 'N17'
 for deployment_name in tqdm(deployment_folders):
     
     file_mappings = {}
+    
+    if deployment_name in deployments_to_ignore:
+        print('Ignoring deployment {}'.format(deployment_name))
+        n_deployments_ignored += 1
+        continue
     
     # Enumerate all files in this folder
     absolute_deployment_folder = os.path.join(image_base,deployment_name)
@@ -111,14 +133,15 @@ for deployment_name in tqdm(deployment_folders):
     files = [s.replace('\\','/') for s in files]
     # print('Enumerated {} files for deployment {}'.format(len(files),deployment_name))
     
-    # filename = os.path.join(image_base,'N17/100EK113/12280842.JPG').replace('\\','/'); assert filename in files
     # filename = files[100]
     for filename in files:
         
         if deployment_name in detection_only_deployments and 'detection' not in filename:
+            n_filenames_ignored += 1
             continue
         
         if '.DS_Store' in filename:
+            n_filenames_ignored += 1
             continue
         
         relative_path = os.path.relpath(filename,absolute_deployment_folder).replace('\\','/')
@@ -134,13 +157,17 @@ for deployment_name in tqdm(deployment_folders):
 
 # ...for each deployment
 
+print('Processed deployments, ignored {} deployments and {} files'.format(
+    n_deployments_ignored,n_filenames_ignored))
     
-#%% Make sure we can map ground truth to MD results
+
+#%% Map relative paths to MD results
 
 relative_path_to_results = {}
 
 for im in tqdm(md_results['images']):
     relative_path = im['file']
+    assert relative_path not in relative_path_to_results
     relative_path_to_results[relative_path] = im
 
 
@@ -152,32 +179,24 @@ images_missing_results = []
 
 # i_row = 0; row = ground_truth_df.iloc[i_row]
 for i_row,row in tqdm(ground_truth_df.iterrows(),total=len(ground_truth_df)):
+        
+    # row['filename'] looks like, e.g. A01/01080001.JPG.  This is not actually a path, it's
+    # just the deployment ID and the image name, separated by a slash.
+
+    deployment_name = row['filename'].split('/')[0]
     
-    filename = row['filename']
+    assert deployment_name in deployment_folders, 'Could not find deployment folder {}'.format(deployment_name)
+    assert deployment_name in deployment_name_to_file_mappings, 'Could not find deployment folder {}'.format(deployment_name)
     
-    if True:
-        deployment_id = row['deployment_id']
-        
-        # Typical deployment ID: M03-Jul2019-Jan2020
-        deployment_tokens = deployment_id.split('-')
-        assert len(deployment_tokens) == 3, 'Invalid deployment name {}'.format(deployment_id)
-        
-        # Make sure we have a folder for this deployment
-        deployment_name = deployment_tokens[0]
-        assert deployment_name in deployment_folders, 'Could not find deployment folder {}'.format(deployment_name)
-        assert deployment_name in deployment_name_to_file_mappings, 'Could not find deployment folder {}'.format(deployment_name)
-        
-        file_mappings = deployment_name_to_file_mappings[deployment_name]
-                
-        # Find the relative path for this image    
-        image_name = row['filename']
-        assert image_name in file_mappings, 'No mappings for image {} in deployment {}'.format(image_name,deployment_name)    
-        relative_path = os.path.join(deployment_name,file_mappings[image_name]).replace('\\','/')
-    else:
-        relative_path = filename
-        
+    file_mappings = deployment_name_to_file_mappings[deployment_name]
+            
+    # Find the relative path for this image    
+    image_name = row['filename'].split('/')[-1]
+    assert image_name in file_mappings, 'No mappings for image {} in deployment {}'.format(
+        image_name,deployment_name)    
+    relative_path = os.path.join(deployment_name,file_mappings[image_name]).replace('\\','/')
+    
     # Make sure we have MegaDetector results for this file
-    # assert relative_path in relative_path_to_results, 'Could not find MegaDetector results for {}'.format(relative_path)
     if relative_path not in relative_path_to_results:
         print('Could not find MegaDetector results for {}'.format(relative_path))
         images_missing_results.append(relative_path)
@@ -190,7 +209,6 @@ for i_row,row in tqdm(ground_truth_df.iterrows(),total=len(ground_truth_df)):
 
 # ...for each row in the ground truth table
 
-# 34 images were missing MD results
 images_missing_results = set(images_missing_results)
 print('{} images missing MD results'.format(len(images_missing_results)))
 
@@ -207,16 +225,20 @@ common_names = set()
 # An early version of the data required consistency between common_name and is_blank
 require_blank_consistency = False
 
+check_blank_consistency = False
+
 for d in tqdm(ground_truth_dicts):
-    assert d['is_blank'] in [0,1]
-    blank_is_consistent = ((d['is_blank'] == 1) and (d['common_name'] == 'Blank')) \
-        or ((d['is_blank'] == 0) and (d['common_name'] != 'Blank'))
-    if not blank_is_consistent:
-        if require_blank_consistency:
-            raise ValueError('Blank inconsistency at {}'.format(str(d)))
-        else:
-            print('Warning: blank inconsistency at {}, updating'.format(str(d)))
-            d['is_blank'] = (1 if d['common_name'] == 'Blank' else 0)
+    
+    if check_blank_consistency:
+        assert d['is_blank'] in [0,1]
+        blank_is_consistent = ((d['is_blank'] == 1) and (d['common_name'] == 'Blank')) \
+            or ((d['is_blank'] == 0) and (d['common_name'] != 'Blank'))
+        if not blank_is_consistent:
+            if require_blank_consistency:
+                raise ValueError('Blank inconsistency at {}'.format(str(d)))
+            else:
+                print('Warning: blank inconsistency at {}, updating'.format(str(d)))
+                d['is_blank'] = (1 if d['common_name'] == 'Blank' else 0)
     common_names.add(d['common_name'])
                  
     
@@ -224,6 +246,7 @@ for d in tqdm(ground_truth_dicts):
     
 from copy import copy
 merged_images = []
+n_images_without_results = 0
 
 # d = ground_truth_dicts[0]
 for d in tqdm(ground_truth_dicts):
@@ -231,8 +254,13 @@ for d in tqdm(ground_truth_dicts):
     d = copy(d)
     
     if d['relative_path'] not in relative_path_to_results:
+        n_images_without_results += 1
         continue
     im = relative_path_to_results[d['relative_path']]
+    
+    if 'failure' in im and im['failure'] is not None:
+        print('Skipping failed image {}'.format(im['filename']))
+        continue
     
     # Find the maximum confidence for each category
     maximum_confidences = {}
@@ -253,7 +281,10 @@ for d in tqdm(ground_truth_dicts):
     
 # ...for each image    
     
-        
+print('Merged ground truth and MD results, {} images didn\'t have ground truth'.format(
+    n_images_without_results))
+
+
 #%% Precision/recall analysis
 
 human_gt_labels = []
@@ -267,7 +298,10 @@ include_human_images_in_animal_analysis = False
 
 for d in tqdm(merged_images):
     
-    if d['is_blank'] == 1:
+    if d['common_name'] == MISSING_COMMON_NAME_TOKEN:
+        print('Skipping image with missing ground truth')
+        continue
+    elif d['common_name'] == 'Blank':
         human_gt_label = 0
         animal_gt_label = 0
     else:
@@ -379,6 +413,8 @@ if False:
 
 if False:
     
+    #%%
+    
     fp_threshold = 0.85
     fn_threshold = 0.6
     
@@ -390,15 +426,23 @@ if False:
     os.makedirs(fp_output_folder,exist_ok=True)
     os.makedirs(fn_output_folder,exist_ok=True)
     
+    skip_humans = True
+    
     # im = merged_images[0]
     for im in tqdm(merged_images):
+        
+        if im['common_name'] == MISSING_COMMON_NAME_TOKEN:
+            continue
+    
+        if skip_humans and im['common_name'] == 'Human':
+            continue
         
         relative_path = im['relative_path'] 
         input_path_absolute = os.path.join(image_base,relative_path)
         output_relative_path = relative_path.replace('\\','/').replace('/','_')
         
         # GT says this is not an animal
-        if im['is_blank'] == 1 or im['common_name'] == 'Human':
+        if im['common_name'] == 'Blank' or im['common_name'] == 'Human':
             if im['confidences']['animal'] > fp_threshold:
                 false_positives.append(im)
                 output_path_absolute = os.path.join(fp_output_folder,output_relative_path)
@@ -407,7 +451,7 @@ if False:
         
         # GT says this is an animal
         else:
-            assert im['is_blank'] == 0 and im['common_name'] != 'Human'
+            assert im['common_name'] != 'Human'
             if im['confidences']['animal'] < fn_threshold:
                 false_negatives.append(im)
                 output_path_absolute = os.path.join(fn_output_folder,output_relative_path)
@@ -416,3 +460,24 @@ if False:
     
     print('Found {} FPs and {} FNs'.format(len(false_positives),len(false_negatives)))
     
+
+
+#%% Convert .json to .csv
+
+from api.batch_processing.postprocessing import convert_output_format
+
+output_path = results_file.replace('.json','.csv')
+
+convert_output_format.convert_json_to_csv(input_path=results_file,
+                                          output_path=output_path,
+                                          min_confidence=None,
+                                          omit_bounding_boxes=True,
+                                          output_encoding=None)
+
+output_path_filtered = results_file_filtered.replace('.json','.csv')
+
+convert_output_format.convert_json_to_csv(input_path=results_file_filtered,
+                                          output_path=output_path_filtered,
+                                          min_confidence=None,
+                                          omit_bounding_boxes=True,
+                                          output_encoding=None)
