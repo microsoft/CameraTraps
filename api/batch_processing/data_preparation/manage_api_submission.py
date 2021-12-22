@@ -432,7 +432,7 @@ for taskgroup in taskgroups:
 pprint.pprint(request_strings)
 
 # clipboard.copy(request_strings[0])
-clipboard.copy('\n\n'.join(request_strings))
+# clipboard.copy('\n\n'.join(request_strings))
 
 
 #%% Run the tasks (don't run this cell unless you are absolutely sure!)
@@ -767,8 +767,17 @@ for i_folder, folder_name_raw in enumerate(folder_names):
     ppresults = process_batch_results(options)
     html_output_files.append(ppresults.output_html_file)
 
+import os, sys, subprocess
+
+def open_file(filename):
+    if sys.platform == "win32":
+        os.startfile(filename)
+    else:
+        opener = "open" if sys.platform == "darwin" else "xdg-open"
+        subprocess.call([opener, filename])
+        
 for fn in html_output_files:
-    os.startfile(fn)
+    open_file(fn)
 
 
 #%% Manual processing follows
