@@ -100,7 +100,7 @@ def get_video_fs(input_video_file):
     return Fs
 
 
-def video_to_frames(input_video_file, output_folder, overwrite=True):
+def video_to_frames(input_video_file, output_folder, overwrite=True, every_n_frames=None):
     """
     Render every frame of [input_video_file] to a .jpg in [output_folder]
     
@@ -157,6 +157,10 @@ def video_to_frames(input_video_file, output_folder, overwrite=True):
             print('Read terminating at frame {} of {}'.format(frame_number,n_frames))
             break
 
+        if every_n_frames is not None:
+            if frame_number % every_n_frames != 0:
+                continue
+            
         frame_filename = 'frame{:05d}.jpg'.format(frame_number)
         frame_filename = os.path.join(output_folder,frame_filename)
         frame_filenames.append(frame_filename)
@@ -186,7 +190,7 @@ def video_to_frames(input_video_file, output_folder, overwrite=True):
 
 def video_folder_to_frames(input_folder:str, output_folder_base:str, 
                            recursive:bool=True, overwrite:bool=True,
-                           n_threads:int=1):
+                           n_threads:int=1, every_n_frames:int=None):
     """
     For every video file in input_folder, create a folder within output_folder_base, and 
     render every frame of the video to .jpg in that folder.
@@ -213,7 +217,8 @@ def video_folder_to_frames(input_folder:str, output_folder_base:str,
     
         # Render frames
         # input_video_file = input_fn_absolute; output_folder = output_folder_video
-        frame_filenames,fs = video_to_frames(input_fn_absolute,output_folder_video,overwrite=overwrite)
+        frame_filenames,fs = video_to_frames(input_fn_absolute,output_folder_video,
+                                             overwrite=overwrite,every_n_frames=every_n_frames)
         
         return frame_filenames,fs
     
