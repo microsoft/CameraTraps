@@ -76,6 +76,9 @@ organization_name_short = 'uawesome-smith'
 
 base_task_name = organization_name_short + '-' + date.today().strftime('%Y-%m-%d')
 base_output_folder_name = 'g:\\' + organization_name_short
+# base_output_folder_name = os.path.expanduser('~/postprocessing/' + organization_name_short)
+os.makedirs(base_output_folder_name,exist_ok=True)
+
 
 # Shared Access Signature (SAS) tokens for the Azure Blob Storage container.
 # Leading question mark is optional.
