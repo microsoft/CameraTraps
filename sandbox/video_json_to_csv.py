@@ -42,7 +42,8 @@ with open(output_file,'w') as f:
     
     f.write('time (seconds),')
     for i_detection in range(0,n_detections_to_include):
-        f.write('detection_{}_x,detection_{}_x,detection_{}_confidence'.format(i_detection,i_detection,i_detection))
+        f.write('detection_{}_x,detection_{}_x,detection_{}_height,detection_{}_width,detection_{}_confidence'.format(
+            i_detection,i_detection,i_detection,i_detection,i_detection))
         if i_detection != n_detections_to_include:
             f.write(',')
     f.write('\n')
@@ -64,8 +65,10 @@ with open(output_file,'w') as f:
                 bbox = sorted_detections[i_detection]['bbox']
                 xf = bbox[0] + bbox[2]/2.0; x = str(xf)
                 yf = bbox[1] + bbox[3]/2.0; y = str(yf)
+                wf = bbox[2]; w = str(wf)
+                hf = bbox[3]; h = str(hf)
                 conf = str(sorted_detections[i_detection]['conf'])
-            f.write('{},{},{}'.format(x,y,conf))
+            f.write('{},{},{},{},{}'.format(x,y,w,h,conf))
             if i_detection != n_detections_to_include - 1:
                 f.write(',')
         f.write('\n')
