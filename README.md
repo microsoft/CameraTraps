@@ -165,16 +165,6 @@ Scripts that execute machine learning code &ndash; specifically, scripts in the 
 conda env create --file environment-detector.yml
 ```
 
-This environment file allows any TensorFlow version from 1.9 to 1.15 to be installed, but you may need to adjust that version for your environment.  Specifically, if you receive a CUDA error, you may need to change the line:
-
-`- tensorflow-gpu>=1.9.0, <1.15.0`
-
-...to:
-
-`- tensorflow-gpu=1.13.1`
-
-...before creating your environment.
-
 ### Troubleshooting
 
 If you run into an error while creating either of the above environments, try updating conda to version 4.5.11 or above. Check the version of conda using `conda --version`.
