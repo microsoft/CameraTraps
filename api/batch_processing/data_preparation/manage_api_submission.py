@@ -208,9 +208,17 @@ if input_file_lists is not None:
         
         folder_images = []
         for file_list in input_file_lists[folder_name]:
+            if file_list.startswith('~'):
+                file_list = os.path.expanduser(file_list)
             with open(file_list,'r') as f:
-                images_this_list = json.load(f)
+                if file_list.endswith('.txt'):
+                    images_this_list = f.readlines()
+                else:
+                    images_this_list = json.load(f)
+            images_this_list = [s.strip() for s in images_this_list]
+            images_this_list = [s for s in images_this_list if len(s) > 0]
             folder_images.extend(images_this_list)
+            
         print('Read {} images for folder {}'.format(len(folder_images),folder_name))
         
         clean_folder_name = path_utils.clean_filename(folder_name)
@@ -284,38 +292,11 @@ assert len(file_lists_by_folder) == len(folder_names)
 
 #%% Some just-to-be-safe double-checking around enumeration
 
-# Make sure each folder has at least one image matched; the opposite is usually a sign of a copy/paste issue
-
-all_images = list(itertools.chain.from_iterable(images_by_folder))
-
-for folder_name in folder_names:
+if input_file_lists is None:
     
-    if folder_prefixes is not None:
-        prefixes = folder_prefixes[folder_name]
-    else:
-        prefixes = [folder_name]
-        
-    for p in prefixes:
-        
-        found_image = False
-        
-        for fn in all_images:
-            if fn.startswith(p):
-                found_image = True
-                break
-        # ...for each image
-            
-        assert found_image, 'Could not find image for prefix {}'.format(p)
-        
-    # ...for each prefix
+    # Make sure each folder has at least one image matched; the opposite is usually a sign of a copy/paste issue
     
-# ...for each folder
-
-# Make sure each image comes from one of our folders; the opposite is usually a sign of a bug up above
-        
-for fn in tqdm(all_images):
-    
-    found_folder = False
+    all_images = list(itertools.chain.from_iterable(images_by_folder))
     
     for folder_name in folder_names:
         
@@ -324,23 +305,52 @@ for fn in tqdm(all_images):
         else:
             prefixes = [folder_name]
             
-        for p in prefixes:        
+        for p in prefixes:
             
-            if fn.startswith(p):
-                found_folder = True
-                break
+            found_image = False
+            
+            for fn in all_images:
+                if fn.startswith(p):
+                    found_image = True
+                    break
+            # ...for each image
+                
+            assert found_image, 'Could not find image for prefix {}'.format(p)
             
         # ...for each prefix
-            
-        if found_folder:
-            break
-    
+        
     # ...for each folder
+    
+    # Make sure each image comes from one of our folders; the opposite is usually a sign of a bug up above
+            
+    for fn in tqdm(all_images):
         
-    assert found_folder, 'Could not find folder for image {}'.format(fn)
-
-# ...for each image
+        found_folder = False
         
+        for folder_name in folder_names:
+            
+            if folder_prefixes is not None:
+                prefixes = folder_prefixes[folder_name]
+            else:
+                prefixes = [folder_name]
+                
+            for p in prefixes:        
+                
+                if fn.startswith(p):
+                    found_folder = True
+                    break
+                
+            # ...for each prefix
+                
+            if found_folder:
+                break
+        
+        # ...for each folder
+            
+        assert found_folder, 'Could not find folder for image {}'.format(fn)
+    
+    # ...for each image
+            
         
 #%% Divide images into chunks for each folder
 
