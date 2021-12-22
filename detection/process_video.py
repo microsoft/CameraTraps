@@ -18,13 +18,9 @@ from visualization import visualize_detector_output
 from ct_utils import args_to_object
 from detection.video_utils import video_to_frames
 from detection.video_utils import frames_to_video
-from detection.video_utils import find_videos
 from detection.video_utils import frame_results_to_video_results
 from detection.video_utils import video_folder_to_frames
 from uuid import uuid1
-
-
-#%% Main function
 
 class ProcessVideoOptions:
 
@@ -41,12 +37,14 @@ class ProcessVideoOptions:
 
     rendering_confidence_threshold = 0.8
     json_confidence_threshold = 0.0
+    frame_sample = None
     
     n_cores = 1
 
     debug_max_frames = -1
 
 
+#%% Main function
 
 def process_video(options):
 
@@ -79,7 +77,7 @@ def process_video(options):
         results = run_tf_detector_batch.load_and_run_detector_batch(
             options.model_file, image_file_names,
             confidence_threshold=options.json_confidence_threshold,
-            n_cores=options.n_cores)
+            n_cores=options.n_cores, every_n_frames=options.frame_sample)
     
         run_tf_detector_batch.write_results_to_file(
             results, options.output_json_file,
@@ -107,6 +105,8 @@ def process_video(options):
 
     def process_video_folder(options):
                 
+        #%% Split every video into frames
+        
         assert os.path.isdir(options.input_video_file),'{} is not a folder'.format(options.input_video_file)
                     
         if options.frame_folder is not None:
@@ -117,10 +117,36 @@ def process_video(options):
                 tempdir, os.path.basename(options.input_video_file) + '_frames_' + str(uuid1()))
         os.makedirs(frame_output_folder, exist_ok=True)
 
-        video_folder_to_frames(input_folder=options.input_video_file, output_folder_base=frame_output_folder, 
+        frame_filenames, Fs = video_folder_to_frames(input_folder=options.input_video_file, output_folder_base=frame_output_folder, 
                                    recursive=options.recursive, overwrite=True,
-                                   n_threads=options.n_cores)
+                                   n_threads=options.n_cores,every_n_frames=options.frame_sample)
+        
+        image_file_names = frame_filenames
+        if options.debug_max_frames is not None and options.debug_max_frames > 0:
+            image_file_names = image_file_names[0:options.debug_max_frames]
+        
+        
+        #%% Run MegaDetector
+        
+        if options.output_json_file is None:
+            options.output_json_file = options.input_video_file + '.json'
 
+        if options.reuse_results_if_available and \
+            os.path.isfile(options.output_json_file):
+                print('Loading results from {}'.format(options.output_json_file))
+                results = None
+        else:
+            results = run_tf_detector_batch.load_and_run_detector_batch(
+                options.model_file, image_file_names,
+                confidence_threshold=options.json_confidence_threshold,
+                n_cores=options.n_cores)
+        
+            run_tf_detector_batch.write_results_to_file(
+                results, options.output_json_file,
+                relative_path_base=frame_output_folder)
+        
+        
+        #%%
 
         filtered_output_filename = r"...json"
         video_output_filename = filtered_output_filename.replace('frames','video')
@@ -135,7 +161,7 @@ if False:
     #%% Process a folder of videos
     
     model_file = r'g:\temp\models\md_v4.1.0.pb'
-    input_dir = r'g:\temp\100MEDIA'
+    input_dir = r'g:\temp\100MEDIA_mp4'
     frame_folder = r'g:\temp\frames'
     
     print('Processing folder {}'.format(input_dir))
@@ -148,11 +174,13 @@ if False:
     options.output_json_file = None
     options.frame_folder = frame_folder
     options.render_output_video = True
-    options.n_cores = 1
-    options.confidence_threshold = 0.55
+    options.n_cores = 5
+    options.json_confidence_threshold = 0.55
     options.delete_output_frames = False
     options.recursive = True
     options.debug_max_frames = None
+    options.frame_sample = 10
+    
     # process_video(options)
     
         
@@ -302,6 +330,9 @@ def main():
 
     parser.add_argument('--n_cores', type=int,
                         default=1, help='number of cores to use for detection (CPU only)')
+
+    parser.add_argument('--frame_sample', type=int,
+                        default=None, help='procss every Nth frame (defaults to every frame)')
 
     parser.add_argument('--debug_max_frames', type=int,
                         default=-1, help='trim to N frames for debugging')
