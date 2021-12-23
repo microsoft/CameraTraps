@@ -9,10 +9,10 @@ dependencies:
 - python>=3.7, <=3.7.6
 
 # from pytorch channel
-- pytorch==1.9.0
-- torchvision==0.10.0
+- pytorch
+- torchvision
 # - cpuonly  # for CPU only
-- cudatoolkit=11.3  # for GPU
+- cudatoolkit=10.2  # for GPU
 
 # from defaults channel
 - humanfriendly
@@ -41,7 +41,7 @@ dependencies:
 # Some packages or versions are only available from PyPI
 # These may require GCC to be installed
 - pip:
-#  - azure-cosmos
+  - azure-cosmos
   - azure-storage-blob>=12.5  # require v12.5.0 for BlobClient.exists()
 
   # Pillow-SIMD will "over-shadow" the normal Pillow package installed by conda.
@@ -52,4 +52,4 @@ dependencies:
 
   # conda (defaults channel) tends to lag PyPI for TensorFlow-related packages
   - tensorboard
-#  - tensorflow>=2.3  # require v2.3.0 or greater for Keras EfficientNet
+  - tensorflow>=2.3  # require v2.3.0 or greater for Keras EfficientNet
