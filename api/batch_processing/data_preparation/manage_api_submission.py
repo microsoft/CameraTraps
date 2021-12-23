@@ -13,27 +13,9 @@
     
 """
 
-"""
-
-# Not yet automated:
-#
-# * Mounting the image source, only necessary for folder splitting or occasional
-#   sanity-checking.  But FWIW, here's the gist of it:
-#
-#   import clipboard; clipboard.copy(read_only_sas_url)
-#   configure mount point with rclone config
-#   rclone mount mountname: z:
-#
-# * Pushing the final results to shared storage and generating a SAS URL to
-#   share with the collaborator
-#
-# * Pushing the previews to shared storage
-#
-
-"""
-
 #%% Imports and constants
 
+import sys
 import json
 import ntpath
 import os
@@ -42,6 +24,7 @@ import pprint
 import time
 import itertools
 import jsonpickle
+import subprocess
 
 from datetime import date
 from urllib.parse import urlsplit, unquote
@@ -52,8 +35,8 @@ import clipboard
 import humanfriendly
 
 import ai4e_azure_utils  # from ai4eutils
-import path_utils  # from ai4eutils
-import sas_blob_utils  # from ai4eutils
+import path_utils        # from ai4eutils
+import sas_blob_utils    # from ai4eutils
 
 from api.batch_processing.data_preparation import prepare_api_submission
 from api.batch_processing.postprocessing import combine_api_outputs
@@ -193,6 +176,13 @@ def url_to_filename(url):
 
     return basename
 
+def open_file(filename):
+    if sys.platform == "win32":
+        os.startfile(filename)
+    else:
+        opener = "open" if sys.platform == "darwin" else "xdg-open"
+        subprocess.call([opener, filename])
+        
 
 #%% Read images from lists or enumerate blobs to files
 
@@ -769,13 +759,6 @@ for i_folder, folder_name_raw in enumerate(folder_names):
 
 import os, sys, subprocess
 
-def open_file(filename):
-    if sys.platform == "win32":
-        os.startfile(filename)
-    else:
-        opener = "open" if sys.platform == "darwin" else "xdg-open"
-        subprocess.call([opener, filename])
-        
 for fn in html_output_files:
     open_file(fn)
 
@@ -927,7 +910,7 @@ for i_folder, folder_name_raw in enumerate(folder_names):
     html_output_files.append(ppresults.output_html_file)
 
 for fn in html_output_files:
-    os.startfile(fn)
+    open_file(fn)
 
 
 #%% Create a new category for large boxes

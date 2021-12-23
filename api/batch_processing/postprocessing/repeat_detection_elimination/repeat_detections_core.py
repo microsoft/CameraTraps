@@ -77,6 +77,9 @@ class RepeatDetectionOptions:
     # taking up the whole image.  This is expressed as a fraction of the image size.
     maxSuspiciousDetectionSize = 0.2
 
+    # Ignore folders with more than this many images in them, which can stall the process
+    maxImagesPerFolder = 20000
+    
     # A list of classes we don't want to treat as suspicious. Each element is an int.
     excludeClasses = []  # [annotation_constants.detector_bbox_category_name_to_id['person']]
 
@@ -252,6 +255,11 @@ def find_matches_in_directory(dirName, options, rowsByDirectory):
 
     rows = rowsByDirectory[dirName]
 
+    if options.maxImagesPerFolder is not None and len(rows) > options.maxImagesPerFolder:
+        print('Ignoring directory {} because it has {} images (limit set to {})'.format(
+            dirName,len(rows),options.maxImagesPerFolder))
+        return candidateDetections
+        
     # iDirectoryRow = 0; row = rows.iloc[iDirectoryRow]
     i_iteration = -1
     for iDirectoryRow, row in rows.iterrows():

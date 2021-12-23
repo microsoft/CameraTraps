@@ -261,7 +261,7 @@ def build_model(model_name: str, num_classes: int, pretrained: bool | str,
     return model
 
 
-def prep_device(model: torch.nn.Module) -> tuple[torch.nn.Module, torch.device]:
+def prep_device(model: torch.nn.Module, device_id:int=None) -> tuple[torch.nn.Module, torch.device]:
     """Place model on appropriate device.
 
     Args:
@@ -274,12 +274,19 @@ def prep_device(model: torch.nn.Module) -> tuple[torch.nn.Module, torch.device]:
     """
     # detect GPU, use all if available
     if torch.cuda.is_available():
-        device = torch.device('cuda:0')
-        torch.backends.cudnn.benchmark = True
-        device_ids = list(range(torch.cuda.device_count()))
-        if len(device_ids) > 1:
-            model = torch.nn.DataParallel(model, device_ids=device_ids)
+        print('CUDA available')
+        if device_id is not None:
+            print('Starting CUDA device {}'.format(device_id))
+            device = torch.device('cuda:{}'.format(str(device_id)))            
+        else:
+            device = torch.device('cuda:0')
+            torch.backends.cudnn.benchmark = True
+            device_ids = list(range(torch.cuda.device_count()))
+            if len(device_ids) > 1:
+                print('Found multiple devices, enabling data parallelism ({})'.format(str(device_ids)))
+                model = torch.nn.DataParallel(model, device_ids=device_ids)
     else:
+        print('CUDA not available, running on the CPU')
         device = torch.device('cpu')
     model.to(device)  # in-place
     return model, device
