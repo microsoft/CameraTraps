@@ -130,7 +130,8 @@ def main(model_path: str,
          classifier_categories_json_path: Optional[str],
          img_size: int,
          batch_size: int,
-         num_workers: int) -> None:
+         num_workers: int,
+         device_id:int=None) -> None:
     """Main function."""
     # evaluating with accimage is much faster than Pillow or Pillow-SIMD
     tv.set_image_backend('accimage')
@@ -150,7 +151,7 @@ def main(model_path: str,
     # create model
     print('Loading saved model')
     model = torch.jit.load(model_path)
-    model, device = train_classifier.prep_device(model)
+    model, device = train_classifier.prep_device(model,device_id=device_id)
 
     test_epoch(model, loader, device=device, label_names=label_names,
                output_csv_path=output_csv_path)
@@ -227,6 +228,9 @@ def _parse_args() -> argparse.Namespace:
         '--batch-size', type=int, default=1,
         help='batch size for evaluating model')
     parser.add_argument(
+        '--device', type=int, default=None,
+        help='preferred CUDA device')
+    parser.add_argument(
         '--num-workers', type=int, default=8,
         help='# of workers for data loading')
     return parser.parse_args()
@@ -241,4 +245,5 @@ if __name__ == '__main__':
          classifier_categories_json_path=args.classifier_categories,
          img_size=args.image_size,
          batch_size=args.batch_size,
-         num_workers=args.num_workers)
+         num_workers=args.num_workers,
+         device_id=args.device)
