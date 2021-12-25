@@ -16,7 +16,6 @@ import subprocess
 
 from datetime import date
 
-import clipboard
 import humanfriendly
 
 import ai4e_azure_utils  # from ai4eutils
@@ -327,7 +326,8 @@ suspiciousDetectionResults = repeat_detections_core.find_repeat_detections(combi
                                                                            None,
                                                                            options)
 
-clipboard.copy(os.path.dirname(suspiciousDetectionResults.filterFile))
+# import clipboard; clipboard.copy(os.path.dirname(suspiciousDetectionResults.filterFile))
+# open_file(os.path.dirname(suspiciousDetectionResults.filterFile))
 
 
 #%% Manual RDE step
@@ -382,6 +382,12 @@ ppresults = process_batch_results(options)
 html_output_file = ppresults.output_html_file
 
 open_file(html_output_file)
+
+
+#%% Scrap
+
+# ...and so ends the process for 90% of jobs; the remaining cells are things
+# we do for special cases, but often enough to keep the code handy.
 
 
 #%% Create a new category for large boxes
