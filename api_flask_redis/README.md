@@ -64,7 +64,7 @@ The most notable prerequisite is nvidia-docker; install according to:
     export BASE_IMAGE=tensorflow/tensorflow:1.14.0-gpu-py3
     ```
     
-    Nota bena: we have historically run MegaDetector v4 in a TF 1.1x environment (since that's how it was trained), but TF 1.1x is incompatible with some newer GPUs, and you may find that things hang after loading CuDNN.  If you experience that, try a TF2 environment instead:
+    Nota bene: we have historically run MegaDetector v4 in a TF 1.1x environment (since that's how it was trained), but TF 1.1x is incompatible with some newer GPUs, and you may find that things hang after loading CuDNN.  If you experience that, try a TF2 environment instead:
     
     ```bash
     export BASE_IMAGE=tensorflow/tensorflow:latest-gpu
