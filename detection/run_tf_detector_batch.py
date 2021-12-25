@@ -569,7 +569,7 @@ def main():
 
     if checkpoint_path:
         os.remove(checkpoint_path)
-        print('Deleted checkpoint file')
+        print('Deleted checkpoint file {}'.format(checkpoint_path))
 
     print('Done!')
 
