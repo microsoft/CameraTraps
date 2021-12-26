@@ -43,6 +43,8 @@ error_names_for_retry = ['ConnectionError']
 def open_image(input_file: Union[str, BytesIO]) -> Image:
     """
     Opens an image in binary format using PIL.Image and converts to RGB mode.
+    
+    Supports local files or URLs.
 
     This operation is lazy; image will not be actually loaded until the first
     operation that needs to load it (for example, resizing), so file opening

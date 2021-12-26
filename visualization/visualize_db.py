@@ -93,8 +93,13 @@ def process_images(db_path,output_dir,image_base_dir,options=None):
     
     print(options.__dict__)
     
+    if image_base_dir.startswith('http'):
+        if not image_base_dir.endswith('/'):
+            image_base_dir += '/'
+    else:
+        assert(os.path.isdir(image_base_dir))
+            
     os.makedirs(os.path.join(output_dir, 'rendered_images'), exist_ok=True)
-    assert(os.path.isdir(image_base_dir))
     
     if isinstance(db_path,str):
         assert(os.path.isfile(db_path))    
@@ -196,7 +201,10 @@ def process_images(db_path,output_dir,image_base_dir,options=None):
         img_id = img['id']
         img_relative_path = img['file_name']
         
-        img_path = os.path.join(image_base_dir, image_filename_to_path(img_relative_path, image_base_dir))
+        if image_base_dir.startswith('http'):
+            img_path = image_base_dir + img_relative_path
+        else:
+            img_path = os.path.join(image_base_dir, image_filename_to_path(img_relative_path, image_base_dir))
     
         annos_i = df_anno.loc[df_anno['image_id'] == img_id, :]  # all annotations on this image
     
@@ -280,9 +288,10 @@ def process_images(db_path,output_dir,image_base_dir,options=None):
         bboxClasses = rendering_info['boxClasses']
         output_file_name = rendering_info['output_file_name']
         
-        if not os.path.exists(img_path):
-            print('Image {} cannot be found'.format(img_path))
-            return False
+        if not img_path.startswith('http'):
+            if not os.path.exists(img_path):
+                print('Image {} cannot be found'.format(img_path))
+                return False
             
         try:
             original_image = vis_utils.open_image(img_path)
@@ -328,6 +337,7 @@ def process_images(db_path,output_dir,image_base_dir,options=None):
         htmlOptions['headerHtml'] = '<h1>Sample annotations from {}</h1>'.format(db_path)
     else:
         htmlOptions['headerHtml'] = '<h1>Sample annotations</h1>'
+        
     write_html_image_list(
             filename=htmlOutputFile,
             images=images_html,
@@ -360,7 +370,7 @@ def main():
     parser.add_argument('output_dir', action='store', type=str, 
                         help='Output directory for html and rendered images')
     parser.add_argument('image_base_dir', action='store', type=str, 
-                        help='Base directory for input images')
+                        help='Base directory (or URL) for input images')
 
     parser.add_argument('--num_to_visualize', action='store', type=int, default=None, 
                         help='Number of images to visualize (randomly drawn) (defaults to all)')
