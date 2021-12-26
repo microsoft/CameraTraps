@@ -15,6 +15,12 @@ Classifiers and detectors are trained using TensorFlow.
 
 This repo is maintained by folks in the [Microsoft AI for Earth](http://aka.ms/aiforearth) program who like looking at pictures of animals.  I mean, we want to use machine learning to support conservation too, but we also really like looking at pictures of animals.
 
+
+# How do I get started?
+
+Especially if you're not aiming to dig in and write lots of Python code, and you just want help getting through lots of camera trap imgaes, we recommend reading [this page](collaborations.md) first.
+
+
 # Who is using the AI for Earth camera trap tools?
 
 We work with ecologists all over the world to help them spend less time annotating images and more time thinking about conservation.  You can read a little more about how this works on our [AI for Earth camera trap collaborations page](collaborations.md).
