@@ -31,7 +31,7 @@ We have somewhat-less-complete integrations with the [eMammal desktop applicatio
 
 For more programming-inclined users, or for real-time applications (primarily anti-poaching scenarios), we also package our MegaDetector model into two different APIs: a [batch processing API](https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing) for processing large volumes of images with some latency, and a [real-time API](https://aiforearth.portal.azure-api.net/docs/services/ai-for-earth-camera-trap-detection-api/operations/post-detect).
 
-Whether you are using an image review tool like Timelapse or calling our APIs yourself, usually the first step with a new user is just running our model on a few thousand images and seeing what happens, so if you're interested in trying this on your images, we can work out a way to transfer a set of example images.
+Whether you are using an image review tool like Timelapse or calling our APIs yourself, usually the first step with a new user is just running our model on a few thousand images and seeing what happens, so if you're interested in trying this on your images, we can work out a way to transfer a set of example images, just email us at <a href="mailto:cameratraps@lila.science">cameratraps@lila.science</a>.
 
 After that, we'll typically send back a page of sample results; depending on whether you already know the "right" answer for these images, the results will look like one of these:
 
