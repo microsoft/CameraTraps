@@ -11,6 +11,26 @@ The Camera Trap Batch API Output Manager is a Windows desktop application for ma
 The app is functionally the same as the Python script [subset_json_detector_output.py](./subset_json_detector_output.py).
 
 
+## This app is complicated, I just need to remove a folder from all of my image filenames
+
+Indeed, a very common situation is that you ran MegaDetector, and you have an output file in which the image filenames look like this:
+
+`images_for_megadetector/camera_A/image001.jpg`
+
+But in fact, you don't want "images_for_megadetector/" in your filenames.  This is typically because you're using Timelapse, and maybe your Timelapse project is in a folder called:
+
+`c:\camera_trap_stuff`
+
+...and the example image above is on your disk at:
+
+`c:\camera_trap_stuff\camera_A\image001.jpg`
+
+If you open your camera trap results file in that Timelapse project, it will look for a file called:
+
+`c:\camera_trap_stuff\images_for_megadetector\camera_A\image001.jpg`
+
+...which doesn't exist.  You <i>could</i> use this output manager app to fix this, but it's likely quicker to just open your results file in a text editor (notepad, Notepad++, etc.) and replace "images_for_megadetector/" with an empty string.  If your results files are too large to open in your favorite text editor, we recommend <a href="https://www.editpadlite.com/">EditPad Lite</a>, which is (a) free and (b) really good at large text files.
+
 ## Download
 
 Download the application <a href="https://lilablobssc.blob.core.windows.net/models/apps/CameraTrapApiOutputManager.1.2.0.0.zip">here</a>.
