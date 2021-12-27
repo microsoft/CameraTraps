@@ -147,4 +147,4 @@ You should not need to worry about the fact that the output file uses forward sl
 
 ## Help
 
-If you run into any issues whatsoever, email us at cameratraps@lila.science for help!
+If you run into any issues, email us at cameratraps@lila.science for help!
