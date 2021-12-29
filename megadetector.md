@@ -251,10 +251,10 @@ Image credit University of Washington.
 
 ## Mesmerizing video
 
-Here's a neat [video](https://dmorris.net/video/detector_video.html) of our v2 detector running in a variety of ecosystems, on locations unseen during training.
+Here's a neat [video](http://dmorris.net/video/detector_video.html) of our v2 detector running in a variety of ecosystems, on locations unseen during training.
 
-<a href="https://dmorris.net/video/detector_video.html">
-<img width=600 src="https://dmorris.net/video/detector_video_thumbnail.png">
+<a href="http://dmorris.net/video/detector_video.html">
+<img width=600 src="http://dmorris.net/video/detector_video_thumbnail.png">
 </a>
 
 Image credit [eMammal](https://emammal.si.edu/).
