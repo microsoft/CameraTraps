@@ -251,7 +251,7 @@ Image credit University of Washington.
 
 ## Mesmerizing video
 
-Here's a neat [video](http://dolphinvm.westus2.cloudapp.azure.com/video/detector_video.html) of our v2 detector running in a variety of ecosystems, on locations unseen during training.
+Here's a neat [video](https://dmorris.net/video/detector_video.html) of our v2 detector running in a variety of ecosystems, on locations unseen during training.
 
 <a href="http://dolphinvm.westus2.cloudapp.azure.com/video/detector_video.html">
 <img width=600 src="http://dolphinvm.westus2.cloudapp.azure.com/video/mvideo.jpg">
