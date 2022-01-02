@@ -74,6 +74,8 @@ These questions help us assess how we can best help a new collaborator, and whic
 
 10. Do you have a GPU available (or access to cloud-based GPUs)?  "I don't know what a GPU is" is a perfectly good answer.
 
+11. How did you hear about MegaDetector?
+
 ## Learn more
 
 * We maintain a literature survey on "[everything we know about machine learning for camera traps](https://github.com/agentmorris/camera-trap-ml-survey)".
