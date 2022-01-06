@@ -37,7 +37,9 @@ def visualize_detector_output(detector_output_path: str,
                               confidence: float = 0.8,
                               sample: int = -1,
                               output_image_width: int = 700,
-                              random_seed: Optional[int] = None) -> List[str]:
+                              random_seed: Optional[int] = None,
+                              not_copy_undetected: bool = False) -> List[str]:
+    
     """Draw bounding boxes on images given the output of the detector.
 
     Args:
@@ -51,6 +53,7 @@ def visualize_detector_output(detector_output_path: str,
         output_image_width: int, width in pixels to resize images for display,
             set to -1 to use original image width
         random_seed: int, for deterministic image sampling when sample != -1
+        not_copy_undetected: bool, to avoid copying images under a certain confidence threshold.
 
     Returns: list of str, paths to annotated images
     """
@@ -111,6 +114,10 @@ def visualize_detector_output(detector_output_path: str,
     for entry in tqdm(images):
         image_id = entry['file']
 
+        # Avoid images with low confidence if not_copy_undetected is True
+        if (entry['max_detection_conf'] < confidence) and not_copy_undetected:
+            continue
+        
         if 'failure' in entry:
             print(f'Skipping {image_id}, failure: "{entry["failure"]}"')
             continue
@@ -199,6 +206,9 @@ def main() -> None:
     parser.add_argument(
         '-r', '--random_seed', type=int, default=None,
         help='Integer, for deterministic order of image sampling')
+    parser.add_argument(
+        '-nu', '--not_copy_undetected', action='store_true',
+        help='Use it to avoid copying images under a certain confidence threshold.')
 
     if len(sys.argv[1:]) == 0:
         parser.print_help()
@@ -213,7 +223,8 @@ def main() -> None:
         is_azure=args.is_azure,
         sample=args.sample,
         output_image_width=args.output_image_width,
-        random_seed=args.random_seed)
+        random_seed=args.random_seed,
+        not_copy_undetected=args.not_copy_undetected)
 
 
 if __name__ == '__main__':
