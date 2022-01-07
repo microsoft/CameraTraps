@@ -22,19 +22,20 @@ from data_management.megadb.megadb_utils import Splits, MegadbUtils
 
 
 def look_up_split(splits_table, entry):
+    dataset_name = entry['dataset']
+
     if 'location' not in entry:
         return Splits.TRAIN
     else:
-        dataset_name = entry['dataset']
         split_lists = splits_table[dataset_name]
-        if entry['location'] in split_lists[Splits.TRAIN]:
+        if entry['location'] in split_lists[Splits.TRAIN]:  # checks membership in a set
             return Splits.TRAIN
         elif entry['location'] in split_lists[Splits.VAL]:
             return Splits.VAL
         elif entry['location'] in split_lists[Splits.TEST]:
             return Splits.TEST
         else:
-            if dataset_name != 'nacti':
+            if dataset_name not in ['nacti', 'wcs']:
                 print('Entry file {} in dataset {} has location not in predefined splits; moving to train'.format(
                     entry['file'], dataset_name
                 ))
@@ -76,9 +77,8 @@ def main():
         Splits.TEST: os.path.join(args.dest_dir, Splits.TEST)
     }
 
-    os.makedirs(dest_folders[Splits.TRAIN], exist_ok=True)
-    os.makedirs(dest_folders[Splits.VAL], exist_ok=True)
-    os.makedirs(dest_folders[Splits.TEST], exist_ok=True)
+    for folder in dest_folders:
+        os.makedirs(dest_folders[folder], exist_ok=True)
 
     print('Loading file_list...')
     with open(args.file_list) as f:
@@ -90,24 +90,32 @@ def main():
     start_time = time.time()
     for entry in tqdm(file_list):
         which_split = look_up_split(splits_table, entry)
+        counter[entry['dataset']][which_split] += 1
 
-        download_id = entry['download_id'] + '.jpg'
+        ext = os.path.splitext(entry['file'])[1]
+        download_id = entry['download_id'] + ext
         origin_path = os.path.join(args.origin_dir, download_id)
-        if not os.path.exists(origin_path):
-            # print('Image not found in origin dir at {}'.format(origin_path))
-            continue
+
         dest_path = os.path.join(args.dest_dir, which_split, download_id)
+        if os.path.exists(dest_path):
+            continue # already moved in a previous run of the script
+
+        if not os.path.exists(origin_path):
+            print('Image not found in origin dir at {}'.format(origin_path))
+            continue
+
         dest = move(origin_path, dest_path)
 
         count += 1
-        counter[entry['dataset']][which_split] += 1
-        if count % 10000 == 0:
+        if count % 50000 == 0:
             print(counter)
             print()
 
     elapsed = time.time() - start_time
     print('Time spent on moving files: {}'.format(humanfriendly.format_timespan(elapsed)))
     print(counter)
+    with open('mdv5_splits_tally.json', 'w') as f:
+        json.dump(counter, f, indent=1)
 
 
 if __name__ == '__main__':
