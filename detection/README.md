@@ -140,7 +140,7 @@ Leaving the `num_workers` parameter as 1 will use the `tf.distribute.MirroredStr
 
 In another process, run the evaluation job but not on a GPU:
 ```
-export CUDA_VISIBLE_DEVICES=-1 
+CUDA_VISIBLE_DEVICES=-1 
 
 python model_main_tf2.py \
 --pipeline_config_path=/mongoose_disk_0/camtraps/mdv5/${MODEL_DIR}/pipeline_efficientdet_d3.config \
@@ -200,3 +200,21 @@ Then you can use `data_management/tfrecords/tools/read_from_tfrecords.py` to rea
 ## Evaluation
 
 See `detector_eval`. We usually start a notebook to produce the visualizations, using functions in `detector_eval/detector_eval.py`.
+
+
+## Using YOLO v5
+
+With image size 1280px, starting with pre-trained weights (automatically downloaded from latest release) of the largest model (yolov5x6.pt). Saving checkpoint every epoch. Example:
+
+```
+export WANDB_CACHE_DIR=/camtraps/wandb_cache
+
+docker pull nvidia/cuda:11.4.2-runtime-ubuntu20.04
+
+(or yasiyu.azurecr.io/yolov5_training with the YOLOv5 repo dependencies installed)
+
+docker run --gpus all --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 -d -it -v /marmot_disk_0/camtraps:/camtraps nvcr.io/nvidia/pytorch:21.10-py3 /bin/bash 
+
+
+torchrun --standalone --nnodes=1 --nproc_per_node 2 train.py --project megadetectorv5 --name camonly_mosaic_xlarge_dist_5 --noval --save-period 1 --device 0,1 --batch 8 --imgsz 1280 --epochs 10 --weights yolov5x6.pt --data /home/ilipika/camtraps/pycharm/detection/detector_training/experiments/megadetector_v5_yolo/data_camtrap_images_only.yml --hyp /home/ilipika/camtraps/pycharm/detection/detector_training/experiments/megadetector_v5_yolo/hyp_mosaic.yml
+```
