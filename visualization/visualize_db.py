@@ -73,7 +73,7 @@ def image_filename_to_path(image_file_name, image_base_dir, pathsep_replacement=
 
 #%% Core functions
 
-def process_images(db_path,output_dir,image_base_dir,options=None):
+def process_images(db_path, output_dir, image_base_dir, options=None):
     """
     Writes images and html to output_dir to visualize the annotations in the json file
     db_path.
