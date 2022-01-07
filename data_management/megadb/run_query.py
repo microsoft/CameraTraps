@@ -20,8 +20,11 @@ from data_management.megadb.megadb_utils import MegadbUtils
 # We do not want to get the whole seq obj where at least one image has bbox because
 # some images in that sequence will not be bbox labeled so will be confusing.
 # Include images with bbox length 0 - these are confirmed empty by bbox annotators.
+# If frame_num is not available, it will not be a field in the result iterable.
+# Note that the seq_id is the Cosmos DB assigned ID for that sequence, not the
+# seq_id field, which may contain "/" characters.
 query_bbox = '''
-SELECT im.bbox, im.file, seq.dataset, seq.location
+SELECT im.bbox, im.file, seq.dataset, seq.location, seq.seq_id, seq.id as db_seq_id, im.frame_num
 FROM sequences seq JOIN im IN seq.images 
 WHERE ARRAY_LENGTH(im.bbox) >= 0
 '''
@@ -50,9 +53,9 @@ FROM sequences seq
 
 #%% Parameters
 
-query = query_dataset_all_entries
+query = query_bbox
 
-output_dir = '/Users/siyuyang/Data/CameraTraps/iMerit12_MegaDB_to_upsert/wcs'
+output_dir = '/ilipika_disk_0/camtraps/labels'
 assert os.path.isdir(output_dir), 'Please create the output directory first'
 
 output_indent = None  # None if no indentation needed in the output JSON, or int
@@ -60,7 +63,7 @@ output_indent = None  # None if no indentation needed in the output JSON, or int
 # Use None if querying across all partitions
 # The `sequences` table has the `dataset` as the partition key, so if only querying
 # entries from one dataset, set the dataset name here.
-partition_key='wcs'
+partition_key=None
 
 # e.g. {'name': '@top_n', 'value': 100} - see query_and_upsert_examples/query_for_data.ipynb
 query_parameters = None
@@ -93,7 +96,7 @@ part_paths = []
 
 for item in result_iterable:
     # MODIFY HERE depending on the query
-    item_processed = {k: v for k, v in item['seq'].items() if not k.startswith('_')}
+    item_processed = {k: v for k, v in item.items() if not k.startswith('_')}
 
     results.append(item_processed)
     item_count += 1

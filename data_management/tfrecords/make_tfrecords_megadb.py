@@ -14,21 +14,21 @@ from data_management.tfrecords.utils.create_tfrecords import create
 
 #%% Parameters
 
-images_per_record = 1000  # image size ranges from 200KB to 900KB
-num_threads = 10
+images_per_record = 5000  # image size ranges from 200KB to 900KB
+num_threads = 100
 
-dataset_name = 'mdv4box01'  # 'mdv4boxes', 'mdv4hardn'
+dataset_name = 'mdv5boxes'  # 'inat2017t', 'coco2017t'
 assert len(dataset_name) == 9
 
-split_name = 'val__'  # 'train', 'val__' or 'test_'
+split_name = 'train'  # 'train', 'val__' or 'test_'
 assert len(split_name) == 5
 
-image_dir = '/beaver_disk/camtrap/mdv4_splitted/val'
+image_dir = '/ilipika_disk_0/camtraps/all_images_splitted/train'
 assert split_name.replace('_', '') in image_dir
 
-annotations_path = 'temp_data/bboxes_inc_empty_20200325.json'
+annotations_path = '/ilipika_disk_0/camtraps/20210802220004_all_id2.json'
 
-tfrecord_dir = '/home/marmot/camtrap/mnt/megadetectorv4-1'
+tfrecord_dir = '/ilipika_disk_0/camtraps/mdv5_tfrecords'
 
 label_map = {
     'animal': 1,
@@ -52,7 +52,7 @@ dataset = []
 num_im_w_group = 0
 
 for image_file_name in tqdm(os.listdir(image_dir)):
-    download_id = image_file_name.split('.jpg')[0]
+    download_id, ext = os.path.splitext(image_file_name)
 
     if download_id not in all_annotations:
         print('{} not in the annotation file, skipping.'.format(download_id))
@@ -118,10 +118,11 @@ failed_images = create(
     output_directory=tfrecord_dir,
     num_shards=num_shards,
     num_threads=num_threads,
+    shuffle=True,
     store_images=True
 )
 
 print('Number of images that failed: {}.'.format(len(failed_images)))
-with open(os.path.join(tfrecord_dir, '{}_{}_failed.json'.format(dataset_name, split_name)), 'w') as f:
+with open(os.path.join(tfrecord_dir, 'failed_{}_{}.json'.format(dataset_name, split_name)), 'w') as f:
     json.dump(failed_images, f, indent=1)
 print('Done!')

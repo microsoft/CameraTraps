@@ -1,8 +1,8 @@
 # Detection
 
-This folder contains scripts and configuration files for training and evaluating a detector for objects of classes `animal`, `person` and `vehicle`, and two scripts to use the model to perform inference on incoming images. 
+This folder contains scripts and configuration files for training and evaluating a detector for objects of classes `animal`, `person` and `vehicle`, and two inference scripts to apply the model on new images. 
 
-We use the TensorFlow Object Detection API ([TFODAPI](https://github.com/tensorflow/models/tree/master/research/object_detection)) for model training with TensorFlow 1.12.0. See the Dockerfile used for training [here](https://github.com/microsoft/ai4eutils/blob/master/TF_OD_API/Dockerfile_TFODAPI).
+We use the TensorFlow Object Detection API ([TFODAPI](https://github.com/tensorflow/models/tree/master/research/object_detection)) for model training with TensorFlow 2.2.0, Python 3.6.9 (prior to MegaDetector v5, we used TF 1.12.0 with this older [Dockerfile](https://github.com/microsoft/ai4eutils/blob/master/TF_OD_API/Dockerfile_TFODAPI).).
 
 Bounding boxes predicted by the detector are in normalized coordinates, as `[ymin, xmin, ymax, xmax]`, with the origin in the upper-left of the image. This is different from 
 - the COCO Camera Trap format, which uses absolute coordinates in `[xmin, ymin, width_of_box, height_of_box]` (see [data_management](../data_management/README.md))
@@ -11,15 +11,13 @@ Bounding boxes predicted by the detector are in normalized coordinates, as `[ymi
 
 ## Content
 
-- `detector_training/model_main.py`: a modified copy of the entry point script for training the detector, taken from [TFODAPI](https://github.com/tensorflow/models/blob/master/research/object_detection/model_main.py).
+- `detector_training/experiments/`: a folder for storing the model configuration files defining the architecture and (loosely, since learning rate is often adjusted manually) the training scheme. Each new detector project or update is in a subfolder, which could contain a number of folders for various experiments done for that project/update. Not every run's configuration file needs to be recorded here (e.g. adjusting learning rate, new starting checkpoint), since TFODAPI copies `pipeline.config` to the model output folder at the beginning of the run; the configuration files here record high-level info such as model architecture. 
 
-- `detector_training/experiments/`: a folder for storing the model configuration files defining the architecture and (loosely, since learning rate is often adjusted manually) the training scheme. Each new detector project or update is in a subfolder, which could contain a number of folders for various experiments done for that project/update. Not every run's configuration file needs to be recorded here (e.g. adjusting learning rate, new starting checkpoint), since TFODAPI copies `pipeline.config` to the model output folder at the beginning of the run; the configuration files here capture high-level info such as model architecture. 
+- `detector_eval/`: scripts for evaluating various aspects of the detector's performance. We use to evaluate test set images stored in TF records, but now we use the batch processing API to process the test set images stored individually in blob storage. Functions in `detector_eval.py` works with the API's output format and the ground truth format from querying the MegaDB (described below).
 
-- `detector_eval/`: scripts for evaluating various aspects of the detector's performance. We use to evaluate test set images stored in TF records, but now we use the batch processing API to process the test set images stored individually in blob storage. This is more parallelizable. Functions in `detector_eval.py` works with the API's output format and the ground truth format from querying the MegaDB (described below).
+- `run_tf_detector.py`: the simplest demonstration of how to invoke a TFODAPI-trained detector (to be updated for TF2).
 
-- `run_tf_detector.py`: the simplest demonstration of how to invoke a TFODAPI-trained detector.
-
-- `run_tf_detector_batch.py`: runs the detector on a collection images; output is the same as that produced by the batch processing API.
+- `run_tf_detector_batch.py`: runs the detector on a collection images; output is the same as that produced by the batch processing API (to be updated for TF2).
 
 
 ## Steps in a detection project
@@ -55,14 +53,7 @@ Running this query will take about 10+ minutes; this is a relatively small query
 
 To avoid creating nested directories for downloaded images, we give each image a `download_id` to use as the file name to save the image at.
 
-In any script or notebook, give each entry a random ID, and append it to the name of the dataset this image comes from, separated by a `+`:
-
-```python
-import uuid
-
-for i in entries:
-    i['download_id'] = '{}+{}'.format(i['dataset'], uuid.uuid4())
-```
+In any script or notebook, give each entry a unique ID (`<dataset>.seq<seq_id>.frame<frame_num>`).
 
 If you are preparing data to add to an existing, already downloaded collection, add a field `new_entry` to the entry.
 
@@ -84,25 +75,24 @@ Save this version of the JSON list:
  "file": "Day/1/IMAG0773 (4).JPG",
  "dataset": "dataset_name",
  "location": "location_designation",
- "download_id": "dataset_name+8896d576-3f14-11ea-b3bb-9801a5a664ab",
+ "download_id": "tnc_islands.seqab350628-ff22-2a29-8efa-boa24db24b57.frame0",
  "new_entry": true
 }
 ```
 
 ### Download the images
 
-Use `data_management/megadb/download_images.py` to download the new images, probably to an attached disk so that there is enough space. Use the flag `--only_new_images` if in the above step you added the `new_entry` field to images that still need to be downloaded. 
+Use `data_management/megadb/download_images.py` to download the new images, probably to an attached disk. Use the flag `--only_new_images` if in the above step you added the `new_entry` field to images that still need to be downloaded. 
 
 
 ### Split the images into train/val/test set
 
-Use `data_management/megadb/split_images.py`. It will move the images to new folders, so be careful. It will look up the splits in the Splits table in MegaDB, and any entries that do not have a location field will be placed in the training set.
+Use `data_management/megadb/split_images.py` to move the images to new folders `train`, `val`, and `test`. It will look up the splits in the Splits table in MegaDB, and any entries that do not have a location field will be placed in the training set.
 
 
 ### Create TFrecords
 
-Use `data_management/tfrecords/make_tf_records_megadb.py`. The class mappings are defined towards the top of this script.
-
+Use `data_management/tfrecords/make_tfrecords_megadb.py`. The class mappings are defined towards the top of this script.
 
 Deprecated: `data_management/tfrecords/make_tfrecords.py` takes in your CCT format json database, creates an intermediate json conforming to the format that the resulting tfrecords require, and then creates the tfrecords. Images are split by `location` according to `split_frac` that you specify in the `Configurations` section of the script.
 
@@ -111,52 +101,53 @@ If you run into issues with corrupted .jpg files, you can use `database_tools/re
 
 ### Install TFODAPI
 
-TFODAPI requires TensorFlow >= 1.9.0
-
-To set up a stable version of TFODAPI, which is a project in constant development, we use the `Dockerfile` and set-up script (checking out a specific commit from the TFODAPI repo) in our utilities repo at https://github.com/Microsoft/ai4eutils/tree/master/TF_OD_API.
-
-Alternatively, follow [installation instructions for TFODAPI](https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/installation.md)
- 
-If you are having protobuf errors, install protocol buffers from binary as described [here](https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/installation.md)
-
-
+Follow these [instructions](https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/tf2.md) to install the TF Object Detection API.
 
 ## Set up an experiment
 - Create a directory in the `detector_training/experiments` folder of this section to keep a record of the model configuration used.
 
-- Decide on architecture
-    - Our example uses Faster R-CNN with Inception ResNet V2 backbone and atrous convolutions. 
+- Decide on architecture and pre-trained model.
 
-- Download appropriate pre-trained model from the [TFODAPI model zoo](https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/detection_model_zoo.md)
-    - Our example pre-trained model is at `models/object_detection/faster_rcnn_inception_resnet_v2_atrous/faster_rcnn_inception_resnet_v2_atrous_coco_2018_01_28`
-    - You can also start training from a pre-trained TensorFlow classification model (instructions from a while ago)
-        - We have an example of this in the fileshare at `models/object_detection/faster_rcnn_inception_resnet_v2_atrous/train_on_ss_with_ss_pretrained_backbone/`
-        - Note that to start from a classification backbone, you must add `from_detection_checkpoint: false` to the `train_config` section in your config file
-        - To train a classification backbone, we recommend using [this visipedia classification code base](https://github.com/visipedia/tf_classification)
+- Download appropriate pre-trained model from the [TFODAPI model zoo TF2](https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/tf2_detection_zoo.md).
+    - MegaDetectors prior to v5 used `faster_rcnn_inception_resnet_v2_atrous`.
         
-        - Copy the sample config (typically `pipeline.config`) for that architecture to your experiment folder as a starting point, either from the samples in the TFODAPI repo or from the folder you downloaded containing the pre-trained model
+- Copy the sample config (typically `pipeline.config`) for that architecture to your experiment folder as a starting point, either from the samples in the TFODAPI repo or from the folder you downloaded containing the pre-trained model.
 
-- Modify the config file to point to locations of your training and validation tfrecords, and pre-trained model
+- Modify the config file to point to locations of your training and validation tfrecords, and pre-trained model. We do not modify `num_classes` to use all pre-trained weights.
 
-- Make any other config changes you want for this experiment (learning rate, data augmentation, etc). Try visualizing only a handful of images during evaluation (~20) because visualizing ~200 can result in a 30GB large TensorBoard events file at the end of training a MegaDetector.
+- Make any other config changes you want for this experiment (learning rate, data augmentation etc). Try visualizing only a handful of images during evaluation (~20) because visualizing ~200 can result in a 30GB large TensorBoard events file at the end of training.
 
   
 ## Start training
 
 On a VM with TFODAPI set-up, run training in a tmux session (inside a Docker container or otherwise). 
 
-Example command to start training:
+First copy the configuration file in the mirrored repo on the VM to the model training folder on the disk, then call the `model_main_tf2.py` script:
+```
+MODEL_DIR=0921_effid3_lr6e-4
 
-```bash
-python model_main.py \
---pipeline_config_path=/experiment1/run1/pipeline.config \
---model_dir=/experiment1/run1_out/ \
---sample_1_of_n_eval_examples 10
+cp /home/mongoose/camtraps/pycharm/detection/detector_training/experiments/megadetector_v5/pipeline_efficientdet_d3.config /mongoose_disk_0/camtraps/mdv5/${MODEL_DIR}/pipeline_efficientdet_d3.config
+
+python model_main_tf2.py \
+--pipeline_config_path=/mongoose_disk_0/camtraps/mdv5/${MODEL_DIR}/pipeline_efficientdet_d3.config \
+--model_dir=/mongoose_disk_0/camtraps/mdv5/${MODEL_DIR} \
+--checkpoint_every_n 20000 \
+--num_train_steps 1000000000 \
+--alsologtostderr
 ```
 
-You can sample more of the validation set (set `sample_1_of_n_eval_examples` to a smaller number); in that case, evaluate less often by changing `save_checkpoints_steps` in `model_main.py` (flags may not work - change the code directly).
+Leaving the `num_workers` parameter as 1 will use the `tf.distribute.MirroredStrategy`, supporting synchronous distributed training on multiple GPUs on one machine
 
-Alternatively, use Azure Machine Learning (AML) to run the experiment. Notebook showing how to use the AML Python SDK to run TFODAPI experiments: `detector_training/aml_mdv4.ipynb`.
+In another process, run the evaluation job but not on a GPU:
+```
+CUDA_VISIBLE_DEVICES=-1 
+
+python model_main_tf2.py \
+--pipeline_config_path=/mongoose_disk_0/camtraps/mdv5/${MODEL_DIR}/pipeline_efficientdet_d3.config \
+--model_dir=/mongoose_disk_0/camtraps/mdv5/${MODEL_DIR} \
+--checkpoint_dir=/mongoose_disk_0/camtraps/mdv5/${MODEL_DIR} \
+--alsologtostderr
+```
 
 
 ## Watch training on TensorBoard
@@ -165,7 +156,7 @@ Make sure that the desired port (port `6006` in this example) is open on the VM,
 Example command:
 
 ```bash
-tensorboard --logdir run1:/experiment1/run1_out/,run2:/experiment1/run1_out_continued/ --port 6006 --window_title "experiment1 both runs"
+tensorboard --logdir . --port 6006 --window_title "MDv5 effid3" --bind_all
 ```
 
 ## Export best model
@@ -209,3 +200,21 @@ Then you can use `data_management/tfrecords/tools/read_from_tfrecords.py` to rea
 ## Evaluation
 
 See `detector_eval`. We usually start a notebook to produce the visualizations, using functions in `detector_eval/detector_eval.py`.
+
+
+## Using YOLO v5
+
+With image size 1280px, starting with pre-trained weights (automatically downloaded from latest release) of the largest model (yolov5x6.pt). Saving checkpoint every epoch. Example:
+
+```
+export WANDB_CACHE_DIR=/camtraps/wandb_cache
+
+docker pull nvidia/cuda:11.4.2-runtime-ubuntu20.04
+
+(or yasiyu.azurecr.io/yolov5_training with the YOLOv5 repo dependencies installed)
+
+docker run --gpus all --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 -d -it -v /marmot_disk_0/camtraps:/camtraps nvcr.io/nvidia/pytorch:21.10-py3 /bin/bash 
+
+
+torchrun --standalone --nnodes=1 --nproc_per_node 2 train.py --project megadetectorv5 --name camonly_mosaic_xlarge_dist_5 --noval --save-period 1 --device 0,1 --batch 8 --imgsz 1280 --epochs 10 --weights yolov5x6.pt --data /home/ilipika/camtraps/pycharm/detection/detector_training/experiments/megadetector_v5_yolo/data_camtrap_images_only.yml --hyp /home/ilipika/camtraps/pycharm/detection/detector_training/experiments/megadetector_v5_yolo/hyp_mosaic.yml
+```
