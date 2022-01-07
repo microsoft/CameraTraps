@@ -24,7 +24,7 @@ from data_management.megadb.megadb_utils import MegadbUtils
 # Note that the seq_id is the Cosmos DB assigned ID for that sequence, not the
 # seq_id field, which may contain "/" characters.
 query_bbox = '''
-SELECT im.bbox, im.file, seq.dataset, seq.location, seq.id as seq_id, im.frame_num
+SELECT im.bbox, im.file, seq.dataset, seq.location, seq.seq_id, seq.id as db_seq_id, im.frame_num
 FROM sequences seq JOIN im IN seq.images 
 WHERE ARRAY_LENGTH(im.bbox) >= 0
 '''
@@ -55,7 +55,7 @@ FROM sequences seq
 
 query = query_bbox
 
-output_dir = '/Users/siyuyang/Data/CameraTraps/megadetector_v5'
+output_dir = '/ilipika_disk_0/camtraps/labels'
 assert os.path.isdir(output_dir), 'Please create the output directory first'
 
 output_indent = None  # None if no indentation needed in the output JSON, or int
