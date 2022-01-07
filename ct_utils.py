@@ -100,6 +100,22 @@ def is_image_file(s):
     return ext.lower() in image_extensions
 
 
+def convert_yolo_to_xywh(yolo_box):
+    """
+    Converts a YOLO format bounding box to [x_min, y_min, width_of_box, height_of_box].
+
+    Args:
+        yolo_box: bounding box of format [x_center, y_center, width_of_box, height_of_box].
+
+    Returns:
+        bbox with coordinates represented as [x_min, y_min, width_of_box, height_of_box].
+    """
+    x_center, y_center, width_of_box, height_of_box = yolo_box
+    x_min = x_center - width_of_box / 2.0
+    y_min = y_center - height_of_box / 2.0
+    return [x_min, y_min, width_of_box, height_of_box]
+
+
 def convert_xywh_to_tf(api_box):
     """
     Converts an xywh bounding box to an [y_min, x_min, y_max, x_max] box that the TensorFlow
