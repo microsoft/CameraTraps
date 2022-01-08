@@ -37,7 +37,9 @@ def visualize_detector_output(detector_output_path: str,
                               confidence: float = 0.8,
                               sample: int = -1,
                               output_image_width: int = 700,
-                              random_seed: Optional[int] = None) -> List[str]:
+                              random_seed: Optional[int] = None,
+                              render_detections_only: bool = False) -> List[str]:
+    
     """Draw bounding boxes on images given the output of the detector.
 
     Args:
@@ -51,6 +53,7 @@ def visualize_detector_output(detector_output_path: str,
         output_image_width: int, width in pixels to resize images for display,
             set to -1 to use original image width
         random_seed: int, for deterministic image sampling when sample != -1
+        render_detections_only: bool, only render images with above-threshold detections
 
     Returns: list of str, paths to annotated images
     """
@@ -111,6 +114,9 @@ def visualize_detector_output(detector_output_path: str,
     for entry in tqdm(images):
         image_id = entry['file']
 
+        if (entry['max_detection_conf'] < confidence) and render_detections_only:
+            continue
+        
         if 'failure' in entry:
             print(f'Skipping {image_id}, failure: "{entry["failure"]}"')
             continue
@@ -199,6 +205,10 @@ def main() -> None:
     parser.add_argument(
         '-r', '--random_seed', type=int, default=None,
         help='Integer, for deterministic order of image sampling')
+    parser.add_argument(
+        '-do', '--detections_only', action='store_true',
+        help='Only render images with above-threshold detections (by default, '
+             'both empty and non-empty images are rendered).')
 
     if len(sys.argv[1:]) == 0:
         parser.print_help()
@@ -213,7 +223,8 @@ def main() -> None:
         is_azure=args.is_azure,
         sample=args.sample,
         output_image_width=args.output_image_width,
-        random_seed=args.random_seed)
+        random_seed=args.random_seed,
+        render_detections_only=args.detections_only)
 
 
 if __name__ == '__main__':
