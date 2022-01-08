@@ -33,7 +33,7 @@ If you open your camera trap results file in that Timelapse project, it will loo
 
 ## Download
 
-Download the application <a href="https://lilablobssc.blob.core.windows.net/models/apps/CameraTrapApiOutputManager.1.2.0.0.zip">here</a>.
+Download the application <a href="https://lilablobssc.blob.core.windows.net/models/apps/CameraTrapApiOutputManager.1.2.0.1.zip">here</a>.
 
 
 ## User guide
@@ -50,7 +50,7 @@ The app's interface looks like this:
 | Input file               | Path to the batch processing API's output file. It should end in `.json`. |
 | Output file / folder     | Specify a file name (ending with `.json`) if you're replacing parts of image file paths in the output file with another token; specify a directory if creating smaller JSON files each with results for a subfolder of images.
 | Query                    | Retrieve result entries with image file path containing this query string/token. Leave blank to retrieve all entries. <br/> <br/> Examples:<ul><li>Specify `Unprocessed Images/Camera 3/` to restrict to images from this folder.</li><li>Specify `Location 1` to retrieve all image files that have `Location 1` in their paths.</li><li>If you are processing results from our batch processing API, remember to use forward slashes here, even on Windows.</li></ul>	
-| Replacement              | A string/token to replace the Query string in the image file paths. If Query is left blank, the Replacement string will be prepended to all image file paths.
+| Replacement              | A string/token to replace the Query string in the image file paths. If Query is left blank, the Replacement string will be prepended to all image file paths.  If "Enable replacement" is not checked, this text box is disabled and no replacement will occur.
 | Confidence threshold     | Only detections with confidence above this threshold will be included in the output file.
 | Split folders            | Check to split the input JSON file into JSON files for individual folders.
 | Split folder mode        | Determines how folders get split into JSON files. Only meaningful if "Split folders" is checked. Explained in more detal below. |
