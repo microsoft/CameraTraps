@@ -50,6 +50,7 @@ namespace CameraTrapJsonManagerApp
             this.lblOutputFolderFileName = new System.Windows.Forms.Label();
             this.textboxInputFile = new System.Windows.Forms.TextBox();
             this.panelMain = new System.Windows.Forms.Panel();
+            this.checkBoxEnableReplacement = new System.Windows.Forms.CheckBox();
             this.buttonBrowseFolder = new System.Windows.Forms.Button();
             this.buttonHelp = new System.Windows.Forms.Button();
             this.panel1 = new System.Windows.Forms.Panel();
@@ -90,10 +91,10 @@ namespace CameraTrapJsonManagerApp
             this.buttonBrowse.BackColor = System.Drawing.SystemColors.ControlDarkDark;
             this.buttonBrowse.Font = new System.Drawing.Font("Microsoft Sans Serif", 10.125F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.buttonBrowse.ForeColor = System.Drawing.Color.White;
-            this.buttonBrowse.Location = new System.Drawing.Point(820, 60);
-            this.buttonBrowse.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
+            this.buttonBrowse.Location = new System.Drawing.Point(615, 49);
+            this.buttonBrowse.Margin = new System.Windows.Forms.Padding(2, 3, 2, 3);
             this.buttonBrowse.Name = "buttonBrowse";
-            this.buttonBrowse.Size = new System.Drawing.Size(115, 42);
+            this.buttonBrowse.Size = new System.Drawing.Size(86, 34);
             this.buttonBrowse.TabIndex = 68;
             this.buttonBrowse.Text = "Browse";
             this.buttonBrowse.UseVisualStyleBackColor = false;
@@ -103,10 +104,10 @@ namespace CameraTrapJsonManagerApp
             // 
             this.textboxConfidenceThreshold.Font = new System.Drawing.Font("Calibri", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.textboxConfidenceThreshold.ForeColor = System.Drawing.Color.Black;
-            this.textboxConfidenceThreshold.Location = new System.Drawing.Point(259, 315);
-            this.textboxConfidenceThreshold.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
+            this.textboxConfidenceThreshold.Location = new System.Drawing.Point(194, 256);
+            this.textboxConfidenceThreshold.Margin = new System.Windows.Forms.Padding(2, 3, 2, 3);
             this.textboxConfidenceThreshold.Name = "textboxConfidenceThreshold";
-            this.textboxConfidenceThreshold.Size = new System.Drawing.Size(103, 32);
+            this.textboxConfidenceThreshold.Size = new System.Drawing.Size(78, 27);
             this.textboxConfidenceThreshold.TabIndex = 69;
             this.textboxConfidenceThreshold.TextChanged += new System.EventHandler(this.textboxConfidenceThreshold_TextChanged);
             // 
@@ -116,9 +117,10 @@ namespace CameraTrapJsonManagerApp
             this.lblInputFile.BackColor = System.Drawing.Color.Transparent;
             this.lblInputFile.Font = new System.Drawing.Font("Calibri", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.lblInputFile.ForeColor = System.Drawing.SystemColors.ActiveCaptionText;
-            this.lblInputFile.Location = new System.Drawing.Point(5, 69);
+            this.lblInputFile.Location = new System.Drawing.Point(4, 56);
+            this.lblInputFile.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.lblInputFile.Name = "lblInputFile";
-            this.lblInputFile.Size = new System.Drawing.Size(92, 24);
+            this.lblInputFile.Size = new System.Drawing.Size(75, 19);
             this.lblInputFile.TabIndex = 70;
             this.lblInputFile.Text = "Input file:";
             // 
@@ -128,9 +130,10 @@ namespace CameraTrapJsonManagerApp
             this.lblConfidenceThreshold.BackColor = System.Drawing.Color.Transparent;
             this.lblConfidenceThreshold.Font = new System.Drawing.Font("Calibri", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.lblConfidenceThreshold.ForeColor = System.Drawing.SystemColors.ActiveCaptionText;
-            this.lblConfidenceThreshold.Location = new System.Drawing.Point(5, 320);
+            this.lblConfidenceThreshold.Location = new System.Drawing.Point(4, 260);
+            this.lblConfidenceThreshold.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.lblConfidenceThreshold.Name = "lblConfidenceThreshold";
-            this.lblConfidenceThreshold.Size = new System.Drawing.Size(196, 24);
+            this.lblConfidenceThreshold.Size = new System.Drawing.Size(159, 19);
             this.lblConfidenceThreshold.TabIndex = 71;
             this.lblConfidenceThreshold.Text = "Confidence threshold:";
             // 
@@ -140,10 +143,10 @@ namespace CameraTrapJsonManagerApp
             this.buttonSubmit.FlatAppearance.BorderColor = System.Drawing.Color.RoyalBlue;
             this.buttonSubmit.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.buttonSubmit.ForeColor = System.Drawing.Color.White;
-            this.buttonSubmit.Location = new System.Drawing.Point(7, 556);
-            this.buttonSubmit.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
+            this.buttonSubmit.Location = new System.Drawing.Point(5, 452);
+            this.buttonSubmit.Margin = new System.Windows.Forms.Padding(2, 3, 2, 3);
             this.buttonSubmit.Name = "buttonSubmit";
-            this.buttonSubmit.Size = new System.Drawing.Size(656, 55);
+            this.buttonSubmit.Size = new System.Drawing.Size(492, 45);
             this.buttonSubmit.TabIndex = 72;
             this.buttonSubmit.Text = "Process";
             this.buttonSubmit.UseVisualStyleBackColor = false;
@@ -153,10 +156,10 @@ namespace CameraTrapJsonManagerApp
             // 
             this.textboxQuery.Font = new System.Drawing.Font("Calibri", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.textboxQuery.ForeColor = System.Drawing.Color.Black;
-            this.textboxQuery.Location = new System.Drawing.Point(259, 184);
-            this.textboxQuery.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
+            this.textboxQuery.Location = new System.Drawing.Point(194, 150);
+            this.textboxQuery.Margin = new System.Windows.Forms.Padding(2, 3, 2, 3);
             this.textboxQuery.Name = "textboxQuery";
-            this.textboxQuery.Size = new System.Drawing.Size(257, 32);
+            this.textboxQuery.Size = new System.Drawing.Size(194, 27);
             this.textboxQuery.TabIndex = 73;
             // 
             // labelQuery
@@ -165,20 +168,22 @@ namespace CameraTrapJsonManagerApp
             this.labelQuery.BackColor = System.Drawing.Color.Transparent;
             this.labelQuery.Font = new System.Drawing.Font("Calibri", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.labelQuery.ForeColor = System.Drawing.SystemColors.ActiveCaptionText;
-            this.labelQuery.Location = new System.Drawing.Point(5, 192);
+            this.labelQuery.Location = new System.Drawing.Point(4, 156);
+            this.labelQuery.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.labelQuery.Name = "labelQuery";
-            this.labelQuery.Size = new System.Drawing.Size(67, 24);
+            this.labelQuery.Size = new System.Drawing.Size(55, 19);
             this.labelQuery.TabIndex = 74;
             this.labelQuery.Text = "Query:";
             // 
             // textboxReplacement
             // 
+            this.textboxReplacement.Enabled = false;
             this.textboxReplacement.Font = new System.Drawing.Font("Calibri", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.textboxReplacement.ForeColor = System.Drawing.Color.Black;
-            this.textboxReplacement.Location = new System.Drawing.Point(259, 236);
-            this.textboxReplacement.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
+            this.textboxReplacement.Location = new System.Drawing.Point(194, 192);
+            this.textboxReplacement.Margin = new System.Windows.Forms.Padding(2, 3, 2, 3);
             this.textboxReplacement.Name = "textboxReplacement";
-            this.textboxReplacement.Size = new System.Drawing.Size(257, 32);
+            this.textboxReplacement.Size = new System.Drawing.Size(194, 27);
             this.textboxReplacement.TabIndex = 75;
             // 
             // labelReplacement
@@ -187,9 +192,10 @@ namespace CameraTrapJsonManagerApp
             this.labelReplacement.BackColor = System.Drawing.Color.Transparent;
             this.labelReplacement.Font = new System.Drawing.Font("Calibri", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.labelReplacement.ForeColor = System.Drawing.SystemColors.ActiveCaptionText;
-            this.labelReplacement.Location = new System.Drawing.Point(5, 236);
+            this.labelReplacement.Location = new System.Drawing.Point(4, 192);
+            this.labelReplacement.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.labelReplacement.Name = "labelReplacement";
-            this.labelReplacement.Size = new System.Drawing.Size(125, 24);
+            this.labelReplacement.Size = new System.Drawing.Size(102, 19);
             this.labelReplacement.TabIndex = 76;
             this.labelReplacement.Text = "Replacement:";
             // 
@@ -205,10 +211,10 @@ namespace CameraTrapJsonManagerApp
             "Bottom",
             "NFromBottom",
             "NFromTop"});
-            this.comboBoxSplitFolderMode.Location = new System.Drawing.Point(373, 15);
-            this.comboBoxSplitFolderMode.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
+            this.comboBoxSplitFolderMode.Location = new System.Drawing.Point(280, 12);
+            this.comboBoxSplitFolderMode.Margin = new System.Windows.Forms.Padding(2, 3, 2, 3);
             this.comboBoxSplitFolderMode.Name = "comboBoxSplitFolderMode";
-            this.comboBoxSplitFolderMode.Size = new System.Drawing.Size(175, 32);
+            this.comboBoxSplitFolderMode.Size = new System.Drawing.Size(132, 27);
             this.comboBoxSplitFolderMode.TabIndex = 77;
             // 
             // labelSplitFolderMode
@@ -217,9 +223,10 @@ namespace CameraTrapJsonManagerApp
             this.labelSplitFolderMode.BackColor = System.Drawing.Color.Transparent;
             this.labelSplitFolderMode.Font = new System.Drawing.Font("Calibri", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.labelSplitFolderMode.ForeColor = System.Drawing.Color.Black;
-            this.labelSplitFolderMode.Location = new System.Drawing.Point(176, 18);
+            this.labelSplitFolderMode.Location = new System.Drawing.Point(132, 15);
+            this.labelSplitFolderMode.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.labelSplitFolderMode.Name = "labelSplitFolderMode";
-            this.labelSplitFolderMode.Size = new System.Drawing.Size(160, 24);
+            this.labelSplitFolderMode.Size = new System.Drawing.Size(123, 19);
             this.labelSplitFolderMode.TabIndex = 78;
             this.labelSplitFolderMode.Text = "Split folder mode:";
             // 
@@ -227,10 +234,10 @@ namespace CameraTrapJsonManagerApp
             // 
             this.textboxOutputFolderFile.Font = new System.Drawing.Font("Calibri", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.textboxOutputFolderFile.ForeColor = System.Drawing.Color.Black;
-            this.textboxOutputFolderFile.Location = new System.Drawing.Point(259, 129);
-            this.textboxOutputFolderFile.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
+            this.textboxOutputFolderFile.Location = new System.Drawing.Point(194, 105);
+            this.textboxOutputFolderFile.Margin = new System.Windows.Forms.Padding(2, 3, 2, 3);
             this.textboxOutputFolderFile.Name = "textboxOutputFolderFile";
-            this.textboxOutputFolderFile.Size = new System.Drawing.Size(543, 32);
+            this.textboxOutputFolderFile.Size = new System.Drawing.Size(408, 27);
             this.textboxOutputFolderFile.TabIndex = 83;
             this.textboxOutputFolderFile.TextChanged += new System.EventHandler(this.textboxOutputFolderFile_TextChanged);
             // 
@@ -240,9 +247,10 @@ namespace CameraTrapJsonManagerApp
             this.lblOutputFolderFileName.BackColor = System.Drawing.Color.Transparent;
             this.lblOutputFolderFileName.Font = new System.Drawing.Font("Calibri", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.lblOutputFolderFileName.ForeColor = System.Drawing.SystemColors.ActiveCaptionText;
-            this.lblOutputFolderFileName.Location = new System.Drawing.Point(5, 114);
+            this.lblOutputFolderFileName.Location = new System.Drawing.Point(4, 93);
+            this.lblOutputFolderFileName.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.lblOutputFolderFileName.Name = "lblOutputFolderFileName";
-            this.lblOutputFolderFileName.Size = new System.Drawing.Size(224, 48);
+            this.lblOutputFolderFileName.Size = new System.Drawing.Size(182, 38);
             this.lblOutputFolderFileName.TabIndex = 84;
             this.lblOutputFolderFileName.Text = "Enter output file / \nbrowse to select a folder:";
             // 
@@ -250,10 +258,10 @@ namespace CameraTrapJsonManagerApp
             // 
             this.textboxInputFile.Font = new System.Drawing.Font("Calibri", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.textboxInputFile.ForeColor = System.Drawing.Color.Black;
-            this.textboxInputFile.Location = new System.Drawing.Point(259, 65);
-            this.textboxInputFile.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
+            this.textboxInputFile.Location = new System.Drawing.Point(194, 53);
+            this.textboxInputFile.Margin = new System.Windows.Forms.Padding(2, 3, 2, 3);
             this.textboxInputFile.Name = "textboxInputFile";
-            this.textboxInputFile.Size = new System.Drawing.Size(543, 32);
+            this.textboxInputFile.Size = new System.Drawing.Size(408, 27);
             this.textboxInputFile.TabIndex = 85;
             this.textboxInputFile.TextChanged += new System.EventHandler(this.textboxInputFile_TextChanged);
             // 
@@ -261,6 +269,7 @@ namespace CameraTrapJsonManagerApp
             // 
             this.panelMain.BackColor = System.Drawing.Color.Transparent;
             this.panelMain.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
+            this.panelMain.Controls.Add(this.checkBoxEnableReplacement);
             this.panelMain.Controls.Add(this.buttonBrowseFolder);
             this.panelMain.Controls.Add(this.buttonHelp);
             this.panelMain.Controls.Add(this.panel1);
@@ -279,21 +288,37 @@ namespace CameraTrapJsonManagerApp
             this.panelMain.Controls.Add(this.textboxConfidenceThreshold);
             this.panelMain.Controls.Add(this.buttonBrowse);
             this.panelMain.Font = new System.Drawing.Font("Calibri", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.panelMain.Location = new System.Drawing.Point(40, 17);
-            this.panelMain.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
+            this.panelMain.Location = new System.Drawing.Point(30, 14);
+            this.panelMain.Margin = new System.Windows.Forms.Padding(2, 3, 2, 3);
             this.panelMain.Name = "panelMain";
-            this.panelMain.Size = new System.Drawing.Size(1033, 703);
+            this.panelMain.Size = new System.Drawing.Size(775, 571);
             this.panelMain.TabIndex = 68;
+            // 
+            // checkBoxEnableReplacement
+            // 
+            this.checkBoxEnableReplacement.AutoSize = true;
+            this.checkBoxEnableReplacement.BackColor = System.Drawing.Color.Transparent;
+            this.checkBoxEnableReplacement.Font = new System.Drawing.Font("Calibri", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.checkBoxEnableReplacement.ForeColor = System.Drawing.Color.Black;
+            this.checkBoxEnableReplacement.Location = new System.Drawing.Point(392, 185);
+            this.checkBoxEnableReplacement.Margin = new System.Windows.Forms.Padding(2, 3, 2, 3);
+            this.checkBoxEnableReplacement.Name = "checkBoxEnableReplacement";
+            this.checkBoxEnableReplacement.Padding = new System.Windows.Forms.Padding(10, 11, 6, 6);
+            this.checkBoxEnableReplacement.Size = new System.Drawing.Size(173, 40);
+            this.checkBoxEnableReplacement.TabIndex = 100;
+            this.checkBoxEnableReplacement.Text = "Enable replacement";
+            this.checkBoxEnableReplacement.UseVisualStyleBackColor = false;
+            this.checkBoxEnableReplacement.CheckedChanged += new System.EventHandler(this.enableReplacement_checkedChanged);
             // 
             // buttonBrowseFolder
             // 
             this.buttonBrowseFolder.BackColor = System.Drawing.SystemColors.ControlDarkDark;
             this.buttonBrowseFolder.Font = new System.Drawing.Font("Microsoft Sans Serif", 10.125F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.buttonBrowseFolder.ForeColor = System.Drawing.Color.White;
-            this.buttonBrowseFolder.Location = new System.Drawing.Point(819, 124);
-            this.buttonBrowseFolder.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
+            this.buttonBrowseFolder.Location = new System.Drawing.Point(614, 101);
+            this.buttonBrowseFolder.Margin = new System.Windows.Forms.Padding(2, 3, 2, 3);
             this.buttonBrowseFolder.Name = "buttonBrowseFolder";
-            this.buttonBrowseFolder.Size = new System.Drawing.Size(115, 42);
+            this.buttonBrowseFolder.Size = new System.Drawing.Size(86, 34);
             this.buttonBrowseFolder.TabIndex = 99;
             this.buttonBrowseFolder.Text = "Browse";
             this.buttonBrowseFolder.UseVisualStyleBackColor = false;
@@ -305,10 +330,10 @@ namespace CameraTrapJsonManagerApp
             this.buttonHelp.FlatAppearance.BorderColor = System.Drawing.Color.RoyalBlue;
             this.buttonHelp.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.buttonHelp.ForeColor = System.Drawing.Color.White;
-            this.buttonHelp.Location = new System.Drawing.Point(668, 556);
-            this.buttonHelp.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
+            this.buttonHelp.Location = new System.Drawing.Point(501, 452);
+            this.buttonHelp.Margin = new System.Windows.Forms.Padding(2, 3, 2, 3);
             this.buttonHelp.Name = "buttonHelp";
-            this.buttonHelp.Size = new System.Drawing.Size(225, 55);
+            this.buttonHelp.Size = new System.Drawing.Size(169, 45);
             this.buttonHelp.TabIndex = 98;
             this.buttonHelp.Text = "Help";
             this.buttonHelp.UseVisualStyleBackColor = false;
@@ -322,10 +347,10 @@ namespace CameraTrapJsonManagerApp
             this.panel1.Controls.Add(this.checkBoxCreateFolders);
             this.panel1.Controls.Add(this.checkBoxMakeFolderRelative);
             this.panel1.Controls.Add(this.checkBoxOverwriteJsonFiles);
-            this.panel1.Location = new System.Drawing.Point(5, 468);
-            this.panel1.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.panel1.Location = new System.Drawing.Point(4, 380);
+            this.panel1.Margin = new System.Windows.Forms.Padding(2);
             this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(882, 65);
+            this.panel1.Size = new System.Drawing.Size(662, 53);
             this.panel1.TabIndex = 97;
             // 
             // checkBoxCopyJsonstoFolders
@@ -334,15 +359,15 @@ namespace CameraTrapJsonManagerApp
             this.checkBoxCopyJsonstoFolders.BackColor = System.Drawing.Color.Transparent;
             this.checkBoxCopyJsonstoFolders.Font = new System.Drawing.Font("Calibri", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.checkBoxCopyJsonstoFolders.ForeColor = System.Drawing.Color.Black;
-            this.checkBoxCopyJsonstoFolders.Location = new System.Drawing.Point(0, 4);
-            this.checkBoxCopyJsonstoFolders.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
+            this.checkBoxCopyJsonstoFolders.Location = new System.Drawing.Point(0, 3);
+            this.checkBoxCopyJsonstoFolders.Margin = new System.Windows.Forms.Padding(2, 3, 2, 3);
             this.checkBoxCopyJsonstoFolders.Name = "checkBoxCopyJsonstoFolders";
-            this.checkBoxCopyJsonstoFolders.Padding = new System.Windows.Forms.Padding(13, 14, 13, 14);
-            this.checkBoxCopyJsonstoFolders.Size = new System.Drawing.Size(234, 56);
+            this.checkBoxCopyJsonstoFolders.Padding = new System.Windows.Forms.Padding(10, 11, 10, 11);
+            this.checkBoxCopyJsonstoFolders.Size = new System.Drawing.Size(184, 45);
             this.checkBoxCopyJsonstoFolders.TabIndex = 92;
             this.checkBoxCopyJsonstoFolders.Text = "Copy jsons to folders";
             this.checkBoxCopyJsonstoFolders.UseVisualStyleBackColor = false;
-            this.checkBoxCopyJsonstoFolders.CheckedChanged += new System.EventHandler(this.checkBoxCopyJsonstoFolders_CheckedChanged);
+            this.checkBoxCopyJsonstoFolders.CheckedChanged += new System.EventHandler(this.checkBoxCopyJsonsToFolders_CheckedChanged);
             // 
             // checkBoxCreateFolders
             // 
@@ -350,11 +375,11 @@ namespace CameraTrapJsonManagerApp
             this.checkBoxCreateFolders.BackColor = System.Drawing.Color.Transparent;
             this.checkBoxCreateFolders.Font = new System.Drawing.Font("Calibri", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.checkBoxCreateFolders.ForeColor = System.Drawing.Color.Black;
-            this.checkBoxCreateFolders.Location = new System.Drawing.Point(237, 4);
-            this.checkBoxCreateFolders.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
+            this.checkBoxCreateFolders.Location = new System.Drawing.Point(178, 3);
+            this.checkBoxCreateFolders.Margin = new System.Windows.Forms.Padding(2, 3, 2, 3);
             this.checkBoxCreateFolders.Name = "checkBoxCreateFolders";
-            this.checkBoxCreateFolders.Padding = new System.Windows.Forms.Padding(13, 14, 8, 7);
-            this.checkBoxCreateFolders.Size = new System.Drawing.Size(171, 49);
+            this.checkBoxCreateFolders.Padding = new System.Windows.Forms.Padding(10, 11, 6, 6);
+            this.checkBoxCreateFolders.Size = new System.Drawing.Size(136, 40);
             this.checkBoxCreateFolders.TabIndex = 93;
             this.checkBoxCreateFolders.Text = "Create folders";
             this.checkBoxCreateFolders.UseVisualStyleBackColor = false;
@@ -365,11 +390,11 @@ namespace CameraTrapJsonManagerApp
             this.checkBoxMakeFolderRelative.BackColor = System.Drawing.Color.Transparent;
             this.checkBoxMakeFolderRelative.Font = new System.Drawing.Font("Calibri", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.checkBoxMakeFolderRelative.ForeColor = System.Drawing.Color.Black;
-            this.checkBoxMakeFolderRelative.Location = new System.Drawing.Point(653, 4);
-            this.checkBoxMakeFolderRelative.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
+            this.checkBoxMakeFolderRelative.Location = new System.Drawing.Point(490, 3);
+            this.checkBoxMakeFolderRelative.Margin = new System.Windows.Forms.Padding(2, 3, 2, 3);
             this.checkBoxMakeFolderRelative.Name = "checkBoxMakeFolderRelative";
-            this.checkBoxMakeFolderRelative.Padding = new System.Windows.Forms.Padding(13, 14, 8, 7);
-            this.checkBoxMakeFolderRelative.Size = new System.Drawing.Size(220, 49);
+            this.checkBoxMakeFolderRelative.Padding = new System.Windows.Forms.Padding(10, 11, 6, 6);
+            this.checkBoxMakeFolderRelative.Size = new System.Drawing.Size(175, 40);
             this.checkBoxMakeFolderRelative.TabIndex = 90;
             this.checkBoxMakeFolderRelative.Text = "Make folder-relative";
             this.checkBoxMakeFolderRelative.UseVisualStyleBackColor = false;
@@ -380,11 +405,11 @@ namespace CameraTrapJsonManagerApp
             this.checkBoxOverwriteJsonFiles.BackColor = System.Drawing.Color.Transparent;
             this.checkBoxOverwriteJsonFiles.Font = new System.Drawing.Font("Calibri", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.checkBoxOverwriteJsonFiles.ForeColor = System.Drawing.Color.Black;
-            this.checkBoxOverwriteJsonFiles.Location = new System.Drawing.Point(421, 4);
-            this.checkBoxOverwriteJsonFiles.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
+            this.checkBoxOverwriteJsonFiles.Location = new System.Drawing.Point(316, 3);
+            this.checkBoxOverwriteJsonFiles.Margin = new System.Windows.Forms.Padding(2, 3, 2, 3);
             this.checkBoxOverwriteJsonFiles.Name = "checkBoxOverwriteJsonFiles";
-            this.checkBoxOverwriteJsonFiles.Padding = new System.Windows.Forms.Padding(13, 14, 8, 7);
-            this.checkBoxOverwriteJsonFiles.Size = new System.Drawing.Size(214, 49);
+            this.checkBoxOverwriteJsonFiles.Padding = new System.Windows.Forms.Padding(10, 11, 6, 6);
+            this.checkBoxOverwriteJsonFiles.Size = new System.Drawing.Size(170, 40);
             this.checkBoxOverwriteJsonFiles.TabIndex = 91;
             this.checkBoxOverwriteJsonFiles.Text = "Overwrite json files";
             this.checkBoxOverwriteJsonFiles.UseVisualStyleBackColor = false;
@@ -394,9 +419,10 @@ namespace CameraTrapJsonManagerApp
             this.labelConfidenceThresholdHelpInfo.AutoSize = true;
             this.labelConfidenceThresholdHelpInfo.Font = new System.Drawing.Font("Calibri", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.labelConfidenceThresholdHelpInfo.ForeColor = System.Drawing.Color.WhiteSmoke;
-            this.labelConfidenceThresholdHelpInfo.Location = new System.Drawing.Point(370, 318);
+            this.labelConfidenceThresholdHelpInfo.Location = new System.Drawing.Point(278, 258);
+            this.labelConfidenceThresholdHelpInfo.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.labelConfidenceThresholdHelpInfo.Name = "labelConfidenceThresholdHelpInfo";
-            this.labelConfidenceThresholdHelpInfo.Size = new System.Drawing.Size(213, 24);
+            this.labelConfidenceThresholdHelpInfo.Size = new System.Drawing.Size(174, 19);
             this.labelConfidenceThresholdHelpInfo.TabIndex = 96;
             this.labelConfidenceThresholdHelpInfo.Text = "(value between 0 and 1)";
             // 
@@ -410,10 +436,10 @@ namespace CameraTrapJsonManagerApp
             this.panelSplitFolderMode.Controls.Add(this.checkBoxSplitFolders);
             this.panelSplitFolderMode.Controls.Add(this.comboBoxSplitFolderMode);
             this.panelSplitFolderMode.ForeColor = System.Drawing.Color.Black;
-            this.panelSplitFolderMode.Location = new System.Drawing.Point(5, 389);
-            this.panelSplitFolderMode.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.panelSplitFolderMode.Location = new System.Drawing.Point(4, 316);
+            this.panelSplitFolderMode.Margin = new System.Windows.Forms.Padding(2);
             this.panelSplitFolderMode.Name = "panelSplitFolderMode";
-            this.panelSplitFolderMode.Size = new System.Drawing.Size(882, 65);
+            this.panelSplitFolderMode.Size = new System.Drawing.Size(662, 53);
             this.panelSplitFolderMode.TabIndex = 95;
             this.panelSplitFolderMode.Paint += new System.Windows.Forms.PaintEventHandler(this.panelSplitFolderMode_Paint);
             // 
@@ -421,10 +447,10 @@ namespace CameraTrapJsonManagerApp
             // 
             this.textBoxSplitParameter.Font = new System.Drawing.Font("Calibri", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.textBoxSplitParameter.ForeColor = System.Drawing.Color.Black;
-            this.textBoxSplitParameter.Location = new System.Drawing.Point(748, 15);
-            this.textBoxSplitParameter.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
+            this.textBoxSplitParameter.Location = new System.Drawing.Point(561, 12);
+            this.textBoxSplitParameter.Margin = new System.Windows.Forms.Padding(2, 3, 2, 3);
             this.textBoxSplitParameter.Name = "textBoxSplitParameter";
-            this.textBoxSplitParameter.Size = new System.Drawing.Size(103, 32);
+            this.textBoxSplitParameter.Size = new System.Drawing.Size(78, 27);
             this.textBoxSplitParameter.TabIndex = 91;
             // 
             // label1
@@ -433,9 +459,10 @@ namespace CameraTrapJsonManagerApp
             this.label1.BackColor = System.Drawing.Color.Transparent;
             this.label1.Font = new System.Drawing.Font("Calibri", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.label1.ForeColor = System.Drawing.Color.Black;
-            this.label1.Location = new System.Drawing.Point(581, 18);
+            this.label1.Location = new System.Drawing.Point(436, 15);
+            this.label1.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(145, 24);
+            this.label1.Size = new System.Drawing.Size(112, 19);
             this.label1.TabIndex = 90;
             this.label1.Text = "Split parameter:";
             // 
@@ -445,11 +472,11 @@ namespace CameraTrapJsonManagerApp
             this.checkBoxSplitFolders.BackColor = System.Drawing.Color.Transparent;
             this.checkBoxSplitFolders.Font = new System.Drawing.Font("Calibri", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.checkBoxSplitFolders.ForeColor = System.Drawing.Color.Black;
-            this.checkBoxSplitFolders.Location = new System.Drawing.Point(3, 4);
-            this.checkBoxSplitFolders.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
+            this.checkBoxSplitFolders.Location = new System.Drawing.Point(2, 3);
+            this.checkBoxSplitFolders.Margin = new System.Windows.Forms.Padding(2, 3, 2, 3);
             this.checkBoxSplitFolders.Name = "checkBoxSplitFolders";
-            this.checkBoxSplitFolders.Padding = new System.Windows.Forms.Padding(13, 14, 8, 7);
-            this.checkBoxSplitFolders.Size = new System.Drawing.Size(153, 49);
+            this.checkBoxSplitFolders.Padding = new System.Windows.Forms.Padding(10, 11, 6, 6);
+            this.checkBoxSplitFolders.Size = new System.Drawing.Size(121, 40);
             this.checkBoxSplitFolders.TabIndex = 89;
             this.checkBoxSplitFolders.Text = "Split folders";
             this.checkBoxSplitFolders.UseVisualStyleBackColor = false;
@@ -462,28 +489,29 @@ namespace CameraTrapJsonManagerApp
             this.statusGroupBox.Controls.Add(this.richTextboxStatus);
             this.statusGroupBox.Controls.Add(this.labelProgressMsg);
             this.statusGroupBox.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.statusGroupBox.Location = new System.Drawing.Point(1, 658);
-            this.statusGroupBox.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
+            this.statusGroupBox.Location = new System.Drawing.Point(1, 535);
+            this.statusGroupBox.Margin = new System.Windows.Forms.Padding(2, 3, 2, 3);
             this.statusGroupBox.Name = "statusGroupBox";
-            this.statusGroupBox.Padding = new System.Windows.Forms.Padding(3, 4, 3, 4);
-            this.statusGroupBox.Size = new System.Drawing.Size(1123, 286);
+            this.statusGroupBox.Padding = new System.Windows.Forms.Padding(2, 3, 2, 3);
+            this.statusGroupBox.Size = new System.Drawing.Size(842, 232);
             this.statusGroupBox.TabIndex = 73;
             // 
             // progressBar1
             // 
-            this.progressBar1.Location = new System.Drawing.Point(3, 48);
-            this.progressBar1.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.progressBar1.Location = new System.Drawing.Point(2, 39);
+            this.progressBar1.Margin = new System.Windows.Forms.Padding(2);
             this.progressBar1.Name = "progressBar1";
-            this.progressBar1.Size = new System.Drawing.Size(1120, 28);
+            this.progressBar1.Size = new System.Drawing.Size(840, 23);
             this.progressBar1.TabIndex = 73;
             // 
             // labelProgressPercentage
             // 
             this.labelProgressPercentage.AutoSize = true;
             this.labelProgressPercentage.ForeColor = System.Drawing.Color.Black;
-            this.labelProgressPercentage.Location = new System.Drawing.Point(4, 15);
+            this.labelProgressPercentage.Location = new System.Drawing.Point(3, 12);
+            this.labelProgressPercentage.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.labelProgressPercentage.Name = "labelProgressPercentage";
-            this.labelProgressPercentage.Size = new System.Drawing.Size(232, 24);
+            this.labelProgressPercentage.Size = new System.Drawing.Size(182, 18);
             this.labelProgressPercentage.TabIndex = 72;
             this.labelProgressPercentage.Text = "[labelProgressPercentage]";
             // 
@@ -492,11 +520,11 @@ namespace CameraTrapJsonManagerApp
             this.richTextboxStatus.BackColor = System.Drawing.Color.Black;
             this.richTextboxStatus.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.richTextboxStatus.ForeColor = System.Drawing.Color.White;
-            this.richTextboxStatus.Location = new System.Drawing.Point(3, 79);
+            this.richTextboxStatus.Location = new System.Drawing.Point(2, 64);
             this.richTextboxStatus.Margin = new System.Windows.Forms.Padding(0);
             this.richTextboxStatus.Name = "richTextboxStatus";
             this.richTextboxStatus.ReadOnly = true;
-            this.richTextboxStatus.Size = new System.Drawing.Size(1120, 219);
+            this.richTextboxStatus.Size = new System.Drawing.Size(840, 178);
             this.richTextboxStatus.TabIndex = 71;
             this.richTextboxStatus.Text = "";
             // 
@@ -505,27 +533,27 @@ namespace CameraTrapJsonManagerApp
             this.labelProgressMsg.AutoSize = true;
             this.labelProgressMsg.Font = new System.Drawing.Font("Calibri", 13.875F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.labelProgressMsg.ForeColor = System.Drawing.Color.MediumBlue;
-            this.labelProgressMsg.Location = new System.Drawing.Point(5, 10);
+            this.labelProgressMsg.Location = new System.Drawing.Point(4, 8);
             this.labelProgressMsg.Margin = new System.Windows.Forms.Padding(0);
             this.labelProgressMsg.Name = "labelProgressMsg";
-            this.labelProgressMsg.Size = new System.Drawing.Size(199, 29);
+            this.labelProgressMsg.Size = new System.Drawing.Size(159, 23);
             this.labelProgressMsg.TabIndex = 69;
             this.labelProgressMsg.Text = "[labelProgressMsg]";
             // 
             // Form
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.AutoSize = true;
             this.BackColor = System.Drawing.Color.White;
             this.BackgroundImage = ((System.Drawing.Image)(resources.GetObject("$this.BackgroundImage")));
             this.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
-            this.ClientSize = new System.Drawing.Size(1120, 943);
+            this.ClientSize = new System.Drawing.Size(840, 766);
             this.Controls.Add(this.statusGroupBox);
             this.Controls.Add(this.panelMain);
             this.ForeColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
-            this.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
+            this.Margin = new System.Windows.Forms.Padding(2, 3, 2, 3);
             this.MaximizeBox = false;
             this.Name = "Form";
             this.StartPosition = System.Windows.Forms.FormStartPosition.Manual;
@@ -540,6 +568,7 @@ namespace CameraTrapJsonManagerApp
             this.statusGroupBox.ResumeLayout(false);
             this.statusGroupBox.PerformLayout();
             this.ResumeLayout(false);
+
         }
 
         #endregion
@@ -579,5 +608,6 @@ namespace CameraTrapJsonManagerApp
         private Button buttonHelp;
         private FolderBrowserDialog folderBrowserDialog;
         private Button buttonBrowseFolder;
+        private CheckBox checkBoxEnableReplacement;
     }
 }

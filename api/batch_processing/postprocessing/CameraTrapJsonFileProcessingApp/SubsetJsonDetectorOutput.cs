@@ -202,11 +202,13 @@ namespace CameraTrapJsonManagerApp
                 if (!string.IsNullOrEmpty(options.Query) && !file.Contains(options.Query))
                     continue;
 
-                if (!string.IsNullOrEmpty(options.Replacement))
+                if (options.Replacement != null)
                 {
                     if (!string.IsNullOrEmpty(options.Query))
                         file = file.Replace(options.Query, options.Replacement);
                     else
+                        // If the query is empty and the replacement is non-null, prepend the replacement
+                        // to the filename.
                         file = options.Replacement + file;
                 }
                 percentage = SharedFunctions.GetProgressPercentage(count, totalCount);
