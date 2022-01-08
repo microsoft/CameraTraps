@@ -1,21 +1,9 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.ComponentModel;
-using System.Data;
-using System.Diagnostics;
 using System.Drawing;
-using System.IO;
-using System.Linq;
-using System.Runtime.Serialization.Formatters.Binary;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Windows.Forms;
-
-using System.Runtime.InteropServices;
 
 namespace CameraTrapJsonManagerApp
 {
@@ -200,7 +188,7 @@ namespace CameraTrapJsonManagerApp
             TextBoxChangeControlBorderColor(textboxConfidenceThreshold, Pens.Black);
         }
 
-        private void checkBoxCopyJsonstoFolders_CheckedChanged(object sender, EventArgs e)
+        private void checkBoxCopyJsonsToFolders_CheckedChanged(object sender, EventArgs e)
         {
             checkBoxCopyJsonstoFolders.ForeColor = Color.Black;
         }
@@ -221,7 +209,12 @@ namespace CameraTrapJsonManagerApp
         private bool GetOptions()
         {
             options.Query = textboxQuery.Text.Trim();
-            options.Replacement = textboxReplacement.Text.Trim();
+
+            if (checkBoxEnableReplacement.Checked)
+                options.Replacement = textboxReplacement.Text; // .Trim();
+            else
+                options.Replacement = null;
+
 
             if (string.IsNullOrEmpty(textboxInputFile.Text.Trim()))
             {
@@ -497,6 +490,11 @@ namespace CameraTrapJsonManagerApp
         {
             if (folderBrowserDialog.ShowDialog() == DialogResult.OK)
                 textboxOutputFolderFile.Text = folderBrowserDialog.SelectedPath;
+        }
+
+        private void enableReplacement_checkedChanged(object sender, EventArgs e)
+        {
+            textboxReplacement.Enabled = checkBoxEnableReplacement.Checked;
         }
     }
 }
