@@ -23,8 +23,13 @@ n_empty_images_per_dataset = 1
 n_non_empty_images_per_dataset = 1
 
 # We'll write images, metadata downloads, and temporary files here
-output_dir = r'g:\temp\lila_test_set'
+lila_local_base = r'g:\temp\lila'
+
+output_dir = os.path.join(lila_local_base,'lila_test_set')
 os.makedirs(output_dir,exist_ok=True)
+
+metadata_dir = os.path.join(lila_local_base,'metadata')
+os.makedirs(metadata_dir,exist_ok=True)
 
 
 #%% Support functions
@@ -88,7 +93,7 @@ def unzip_file(input_file, output_folder=None):
 
 # Put the master metadata file in the same folder where we're putting images
 p = urlparse(metadata_url)
-metadata_filename = os.path.join(output_dir,os.path.basename(p.path))
+metadata_filename = os.path.join(metadata_dir,os.path.basename(p.path))
 download_url(metadata_url, metadata_filename)
 
 # Read lines from the master metadata file
@@ -104,9 +109,9 @@ for s in metadata_lines:
     if len(s) == 0 or s[0] == '#':
         continue
     
-    # Each line in this file is name/sas_url/json_url
+    # Each line in this file is name/base_url/json_url/[box_url]
     tokens = s.split(',')
-    assert len(tokens)==3
+    assert len(tokens)==4
     url_mapping = {'sas_url':tokens[1],'json_url':tokens[2]}
     metadata_table[tokens[0]] = url_mapping
     
@@ -123,7 +128,7 @@ for ds_name in metadata_table.keys():
     json_url = metadata_table[ds_name]['json_url']
     
     p = urlparse(json_url)
-    json_filename = os.path.join(output_dir,os.path.basename(p.path))
+    json_filename = os.path.join(metadata_dir,os.path.basename(p.path))
     download_url(json_url, json_filename)
     
     # Unzip if necessary
@@ -132,9 +137,9 @@ for ds_name in metadata_table.keys():
         with zipfile.ZipFile(json_filename,'r') as z:
             files = z.namelist()
         assert len(files) == 1
-        unzipped_json_filename = os.path.join(output_dir,files[0])
+        unzipped_json_filename = os.path.join(metadata_dir,files[0])
         if not os.path.isfile(unzipped_json_filename):
-            unzip_file(json_filename,output_dir)        
+            unzip_file(json_filename,metadata_dir)        
         else:
             print('{} already unzipped'.format(unzipped_json_filename))
         json_filename = unzipped_json_filename
@@ -212,12 +217,12 @@ for ds_name in metadata_table.keys():
 # ...for each dataset
 
 
-
 #%% Download those image files
 
 # ds_name = (list(metadata_table.keys()))[0]
 for ds_name in metadata_table.keys():
 
+    # This URL may not be a SAS URL, we will remove a SAS token if it's present
     sas_url = metadata_table[ds_name]['sas_url']
     
     base_url = sas_url.split('?')[0]    
@@ -232,7 +237,10 @@ for ds_name in metadata_table.keys():
         assert base_url in url
         output_file_relative = ds_name.lower().replace(' ','_') + '_' + url.replace(base_url,'').replace('/','_').replace('\\','_')
         output_file_absolute = os.path.join(output_dir,output_file_relative)
-        download_url(url, destination_filename=output_file_absolute, force_download=False, verbose=True)
+        try:
+            download_url(url, destination_filename=output_file_absolute, force_download=False, verbose=True)
+        except Exception as e:
+            print('\n*** Error downloading {} ***\n{}'.format(url,str(e)))
         
     # ...for each url
     
