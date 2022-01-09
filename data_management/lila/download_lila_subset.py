@@ -27,14 +27,19 @@ datasets_of_interest = ['Missouri Camera Traps','ENA24','Caltech Camera Traps']
 species_of_interest = ['red_fox','fox','grey fox','red fox']
 
 # We'll write images, metadata downloads, and temporary files here
-output_dir = r'c:\temp\lila_downloads_by_species'
+lila_local_base = r'g:\temp\lila'
+
+output_dir = os.path.join(lila_local_base,'lila_downloads_by_species')
 os.makedirs(output_dir,exist_ok=True)
+
+metadata_dir = os.path.join(lila_local_base,'metadata')
+os.makedirs(metadata_dir,exist_ok=True)
 
 # We will demonstrate two approaches to downloading, one that loops over files
 # and downloads directly in Python, another that uses AzCopy.
 #
 # AzCopy will generally be more performant and supports resuming if the 
-# transfers are interrupted.  It assumes that azcopy is on the system path.
+# transfers are interrupted.  This script assumes that azcopy is on the system path.
 use_azcopy_for_download = False
 
 overwrite_files = False
@@ -42,6 +47,8 @@ overwrite_files = False
 # Number of concurrent download threads (when not using AzCopy) (AzCopy does its
 # own magical parallelism)
 n_download_threads = 50
+
+max_images_per_dataset = 10
 
 
 #%% Support functions
@@ -105,7 +112,7 @@ def unzip_file(input_file, output_folder=None):
 
 # Put the master metadata file in the same folder where we're putting images
 p = urlparse(metadata_url)
-metadata_filename = os.path.join(output_dir,os.path.basename(p.path))
+metadata_filename = os.path.join(metadata_dir,os.path.basename(p.path))
 download_url(metadata_url, metadata_filename)
 
 # Read lines from the master metadata file
@@ -121,9 +128,9 @@ for s in metadata_lines:
     if len(s) == 0 or s[0] == '#':
         continue
     
-    # Each line in this file is name/sas_url/json_url
+    # Each line in this file is name/base_url/json_url/[box_url]
     tokens = s.split(',')
-    assert len(tokens)==3
+    assert len(tokens)==4
     url_mapping = {'sas_url':tokens[1],'json_url':tokens[2]}
     metadata_table[tokens[0]] = url_mapping
     
@@ -140,7 +147,7 @@ for ds_name in datasets_of_interest:
     json_url = metadata_table[ds_name]['json_url']
     
     p = urlparse(json_url)
-    json_filename = os.path.join(output_dir,os.path.basename(p.path))
+    json_filename = os.path.join(metadata_dir,os.path.basename(p.path))
     download_url(json_url, json_filename)
     
     # Unzip if necessary
@@ -149,9 +156,9 @@ for ds_name in datasets_of_interest:
         with zipfile.ZipFile(json_filename,'r') as z:
             files = z.namelist()
         assert len(files) == 1
-        unzipped_json_filename = os.path.join(output_dir,files[0])
+        unzipped_json_filename = os.path.join(metadata_dir,files[0])
         if not os.path.isfile(unzipped_json_filename):
-            unzip_file(json_filename,output_dir)        
+            unzip_file(json_filename,metadata_dir)        
         else:
             print('{} already unzipped'.format(unzipped_json_filename))
         json_filename = unzipped_json_filename
@@ -174,11 +181,17 @@ for ds_name in datasets_of_interest:
     json_filename = metadata_table[ds_name]['json_filename']
     sas_url = metadata_table[ds_name]['sas_url']
     
-    base_url = sas_url.split('?')[0]    
+    # This may or may not be a SAS URL
+    if '?' in sas_url:
+        base_url = sas_url.split('?')[0]        
+        sas_token = sas_url.split('?')[1]
+        assert not sas_token.startswith('?')
+    else:
+        sas_token = ''
+        base_url = sas_url
+        
     assert not base_url.endswith('/')
-    
-    sas_token = sas_url.split('?')[1]
-    assert not sas_token.startswith('?')
+        
     
     ## Open the metadata file
     
@@ -226,6 +239,11 @@ for ds_name in datasets_of_interest:
     filenames = [im['file_name'] for im in images if im['id'] in image_ids_of_interest]
     assert len(filenames) == len(image_ids_of_interest)
     
+    if max_images_per_dataset is not None and len(filenames) > max_images_per_dataset:
+        print('Taking the first {} of {} images for {}'.format(
+            max_images_per_dataset,len(filenames),ds_name))
+        filenames = filenames[0:max_images_per_dataset]
+    
     # Convert to URLs
     for fn in filenames:        
         url = base_url + '/' + fn
@@ -250,8 +268,17 @@ if use_azcopy_for_download:
     
         # We want to use the whole relative path for this script (relative to the base of the container)
         # to build the output filename, to make sure that different data sets end up in different folders.
-        base_url = sas_url.split('?')[0]
-        sas_token = sas_url.split('?')[1]
+        
+        # This may or may not be a SAS URL
+        if '?' in sas_url:
+            base_url = sas_url.split('?')[0]        
+            sas_token = sas_url.split('?')[1]
+            assert not sas_token.startswith('?')
+        else:
+            sas_token = ''
+            base_url = sas_url
+            
+        assert not base_url.endswith('/')
         
         p = urlparse(base_url)
         account_path = p.scheme + '://' + p.netloc
@@ -262,7 +289,9 @@ if use_azcopy_for_download:
         container_name = container_and_folder.split('/')[0]
         folder = container_and_folder.split('/',1)[1]
         
-        container_sas_url = account_path + '/' + container_name + '?' + sas_token
+        container_sas_url = account_path + '/' + container_name
+        if len(sas_token) > 0:
+            container_sas_url += '?' + sas_token
         
         # The container name will be included because it's part of the file name
         container_output_dir = output_dir # os.path.join(output_dir,container_name)

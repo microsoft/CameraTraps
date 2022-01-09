@@ -1,21 +1,7 @@
-
 #
-# get_lila_species_list.py
+# get_lila_category_list.py
 #
-# Example of making a text file listing all species names in given datasets
-#
-# Data set names with '_bbox' appended are supposed to have bounding box level annotations
-# while those without are to have image-level annotations. The mapping is not 
-# guarauteed, however, so it's most likely best to include both versions
-# and let the csv and pickle outputs seperate the images for you correctly.
-#
-# Options:
-#
-#'Caltech Camera Traps', 'Caltech Camera Traps_bbox', 'ENA24_bbox',
-# 'Missouri Camera Traps_bbox', 'NACTI', 'NACTI_bbox', 'WCS Camera Traps', 'WCS Camera Traps_bbox',
-# 'Wellington Camera Traps', 'Island Conservation Camera Traps_bbox', 'Channel Islands Camera Traps_bbox',
-# 'Snapshot Serengeti', 'Snapshot Serengeti_bbox', 'Snapshot Karoo', 'Snapshot Kgalagadi',
-# 'Snapshot Enonkishu', 'Snapshot Camdeboo', 'Snapshot Mountain Zebra', 'Snapshot Kruger'
+# Example of making a text file listing all category names in specific LILA datasets
 #
 
 #%% Constants and imports
@@ -32,20 +18,26 @@ from urllib.parse import urlparse
 metadata_url = 'http://lila.science/wp-content/uploads/2020/03/lila_sas_urls.txt'
 
 # array to fill for output
-species_list = []
+category_list = []
 
-## datasets and species to look at
+## datasets and categories to look at
 
-# if False, will only collect data for species in species_of_interest
+# if False, will only collect data for categories in datasets_of_interest
 use_all_datasets = True 
 
-# only need if restrict_species is false
+# only need if restrict_category is false
 datasets_of_interest = [] 
 
 # We'll write images, metadata downloads, and temporary files here
-output_dir = r'c:\temp\lila_downloads_by_species'
+lila_local_base = r'g:\temp\lila'
+
+output_dir = os.path.join(lila_local_base,'lila_categories_list')
 os.makedirs(output_dir,exist_ok=True)
-output_file = os.path.join(output_dir,'species_list.txt')
+
+metadata_dir = os.path.join(lila_local_base,'metadata')
+os.makedirs(metadata_dir,exist_ok=True)
+
+output_file = os.path.join(output_dir,'category_list.txt')
 
 
 #%% Support functions
@@ -108,7 +100,7 @@ def unzip_file(input_file, output_folder=None):
 
 # Put the master metadata file in the same folder where we're putting images
 p = urlparse(metadata_url)
-metadata_filename = os.path.join(output_dir,os.path.basename(p.path))
+metadata_filename = os.path.join(metadata_dir,os.path.basename(p.path))
 
 # Read lines from the master metadata file
 with open(metadata_filename,'r') as f:
@@ -123,16 +115,19 @@ for s in metadata_lines:
     if len(s) == 0 or s[0] == '#':
         continue
     
-    # Each line in this file is name/sas_url/json_url/bbox_json_url
+    # Each line in this file is name/sas_url/json_url/[bbox_json_url]
     tokens = s.split(',')
-    assert len(tokens) == 4 or len(tokens) == 3
+    assert len(tokens) == 4
+    ds_name = tokens[0].strip()
     url_mapping = {'sas_url':tokens[1],'json_url':tokens[2]}
-    metadata_table[tokens[0]] = url_mapping
-    if len(tokens) == 4:
-        if tokens[3] != 'NA':
-            bbox_url_mapping = {'sas_url':tokens[1],'json_url':tokens[3]}
-            metadata_table[tokens[0]+'_bbox'] = bbox_url_mapping
-            assert 'https' in bbox_url_mapping['json_url']
+    metadata_table[ds_name] = url_mapping
+    
+    # Create a separate entry for bounding boxes if they exist
+    if len(tokens[3].strip()) > 0:
+        print('Adding bounding box dataset for {}'.format(ds_name))
+        bbox_url_mapping = {'sas_url':tokens[1],'json_url':tokens[3]}
+        metadata_table[tokens[0]+'_bbox'] = bbox_url_mapping
+        assert 'https' in bbox_url_mapping['json_url']
 
     assert 'https' not in tokens[0]
     assert 'https' in url_mapping['sas_url']
@@ -148,7 +143,7 @@ for ds_name in datasets_of_interest:
     json_url = metadata_table[ds_name]['json_url']
     
     p = urlparse(json_url)
-    json_filename = os.path.join(output_dir,os.path.basename(p.path))
+    json_filename = os.path.join(metadata_dir,os.path.basename(p.path))
     download_url(json_url, json_filename)
     
     # Unzip if necessary
@@ -157,9 +152,9 @@ for ds_name in datasets_of_interest:
         with zipfile.ZipFile(json_filename,'r') as z:
             files = z.namelist()
         assert len(files) == 1
-        unzipped_json_filename = os.path.join(output_dir,files[0])
+        unzipped_json_filename = os.path.join(metadata_dir,files[0])
         if not os.path.isfile(unzipped_json_filename):
-            unzip_file(json_filename,output_dir)        
+            unzip_file(json_filename,metadata_dir)        
         else:
             print('{} already unzipped'.format(unzipped_json_filename))
         json_filename = unzipped_json_filename
@@ -169,9 +164,11 @@ for ds_name in datasets_of_interest:
 # ...for each dataset of interest
 
 
-#%% Get species names
+#%% Get category names
 
 for ds_name in datasets_of_interest:
+    
+    print('Finding categories in {}'.format(ds_name))
     
     json_filename = metadata_table[ds_name]['json_filename']
     sas_url = metadata_table[ds_name]['sas_url']
@@ -179,29 +176,25 @@ for ds_name in datasets_of_interest:
     base_url = sas_url.split('?')[0]    
     assert not base_url.endswith('/')
     
-    sas_token = sas_url.split('?')[1]
-    assert not sas_token.startswith('?')
-    
-    # Open the metadata file
-    
+    # Open the metadata file    
     with open(json_filename, 'r') as f:
         data = json.load(f)
     
-    # Collect list of categories and mappings to species name
+    # Collect list of categories and mappings to category name
     categories = data['categories']
     category_ids = [c['id'] for c in categories]
     for c in categories:
         c['name'] = c['name'].lower()
         category_id_to_name = {c['id']:c['name'] for c in categories}
     
-    # Append species to species_list
+    # Append category to categories_list
     for category_id in category_ids:
-        species = category_id_to_name[category_id]
-        if species not in species_list: species_list.append(species)
+        category_name = category_id_to_name[category_id]
+        if category_name not in category_list: category_list.append(category_name)
 
 
-#%% Save possible species to file
+#%% Save category names to file
 
 with open(output_file, 'w') as txt_file:
-    for line in species_list:
+    for line in category_list:
         txt_file.write(line + '\n')
