@@ -25,7 +25,7 @@ image_base = os.path.join(analysis_base,'2021.11.24-images\jan2020')
 results_file_filtered = os.path.join(analysis_base,'umn-gomez-reprise-2021-11-272021.11.24-images_detections.filtered_rde_0.60_0.85_10_0.20.json')
 # results_file = results_file_filtered
 results_file = os.path.join(analysis_base,'umn-gomez-reprise-2021-11-272021.11.24-images_detections.json')
-ground_truth_file = os.path.join(analysis_base,'images_hv_jan2020_relative.csv')
+ground_truth_file = os.path.join(analysis_base,'images_hv_jan2020_reviewed_force_nonblank.csv')
 
 # For two deployments, we're only processing imagse in the "detections" subfolder
 detection_only_deployments = ['N23','N32']
@@ -218,7 +218,7 @@ print('{} images missing MD results'.format(len(images_missing_results)))
 ground_truth_dicts = ground_truth_df.to_dict('records')
 
 
-#%% Some additional sanity-checking of the ground truth
+#%% Some additional error-checking of the ground truth
 
 common_names = set()
 
@@ -388,6 +388,8 @@ precision_recall_analysis(animal_gt_labels,animal_prediction_probs,'animals',con
 
 if False:
     
+    #%%
+    
     human_image_filenames = []
     human_output_folder = os.path.join(analysis_base,'human_gt')
     os.makedirs(human_output_folder,exist_ok=True)
@@ -464,20 +466,24 @@ if False:
 
 #%% Convert .json to .csv
 
-from api.batch_processing.postprocessing import convert_output_format
-
-output_path = results_file.replace('.json','.csv')
-
-convert_output_format.convert_json_to_csv(input_path=results_file,
-                                          output_path=output_path,
-                                          min_confidence=None,
-                                          omit_bounding_boxes=True,
-                                          output_encoding=None)
-
-output_path_filtered = results_file_filtered.replace('.json','.csv')
-
-convert_output_format.convert_json_to_csv(input_path=results_file_filtered,
-                                          output_path=output_path_filtered,
-                                          min_confidence=None,
-                                          omit_bounding_boxes=True,
-                                          output_encoding=None)
+if False:
+    
+    #%%
+    
+    from api.batch_processing.postprocessing import convert_output_format
+    
+    output_path = results_file.replace('.json','.csv')
+    
+    convert_output_format.convert_json_to_csv(input_path=results_file,
+                                              output_path=output_path,
+                                              min_confidence=None,
+                                              omit_bounding_boxes=True,
+                                              output_encoding=None)
+    
+    output_path_filtered = results_file_filtered.replace('.json','.csv')
+    
+    convert_output_format.convert_json_to_csv(input_path=results_file_filtered,
+                                              output_path=output_path_filtered,
+                                              min_confidence=None,
+                                              omit_bounding_boxes=True,
+                                              output_encoding=None)
