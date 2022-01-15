@@ -354,7 +354,7 @@ def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=No
                     
                 # Write the new checkpoint
                 with open(checkpoint_path, 'w') as f:
-                    json.dump({'images': results}, f)
+                    json.dump({'images': results}, f, indent=1)
                     
                 # Remove the backup checkpoint if it exists
                 if checkpoint_tmp_path is not None:
