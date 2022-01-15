@@ -35,6 +35,7 @@ import os
 import sys
 import time
 import copy
+import shutil
 import warnings
 import itertools
 
@@ -340,10 +341,25 @@ def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=No
 
             # checkpoint
             if checkpoint_frequency != -1 and count % checkpoint_frequency == 0:
+                assert checkpoint_path is not None
                 print('Writing a new checkpoint after having processed {} images since last restart'.format(count))
+                
+                # Back up any previous checkpoints
+                checkpoint_tmp_path = None
+                if os.path.isfile(checkpoint_path):
+                    checkpoint_tmp_path = checkpoint_path + '_tmp'
+                    shutil.copyfile(checkpoint_path,checkpoint_tmp_path)
+                    
+                # Write the new checkpoint
                 with open(checkpoint_path, 'w') as f:
                     json.dump({'images': results}, f)
-
+                    
+                # Remove the backup checkpoint if it exists
+                if checkpoint_tmp_path is not None:
+                    os.remove(checkpoint_tmp_path)
+                    
+            # ...if it's time to make a checkpoint
+            
     else:
         # when using multiprocessing, let the workers load the model
         tf_detector = model_file
@@ -472,6 +488,11 @@ def main():
         default=-1,
         help='Write results to a temporary file every N images; default is -1, which disables this feature')
     parser.add_argument(
+        '--checkpoint_path',
+        type=str,
+        default=None,
+        help='File name to which checkpoints will be written if checkpoint_frequency is > 0')
+    parser.add_argument(
         '--resume_from_checkpoint',
         help='Path to a JSON checkpoint file to resume from, must be in same directory as output_file')
     parser.add_argument(
@@ -541,11 +562,19 @@ def main():
 
     # Test that we can write to the output_file's dir if checkpointing requested
     if args.checkpoint_frequency != -1:
-        checkpoint_path = os.path.join(output_dir, 'checkpoint_{}.json'.format(datetime.utcnow().strftime("%Y%m%d%H%M%S")))
+        
+        if args.checkpoint_path is not None:
+            checkpoint_path = args.checkpoint_path
+        else:
+            checkpoint_path = os.path.join(output_dir, 'checkpoint_{}.json'.format(datetime.utcnow().strftime("%Y%m%d%H%M%S")))
+        
+        # Confirm that we can write to the checkpoint path, rather than failing after 10000 images
         with open(checkpoint_path, 'w') as f:
             json.dump({'images': []}, f)
         print('The checkpoint file will be written to {}'.format(checkpoint_path))
+        
     else:
+        
         checkpoint_path = None
 
     start_time = time.time()
