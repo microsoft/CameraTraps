@@ -41,6 +41,7 @@ postprocessing_base = os.path.expanduser('~/postprocessing')
 
 # Number of jobs to split data into, typically equal to the number of available GPUs
 n_jobs = 2
+n_gpus = n_jobs
 
 # Only used to print out a time estimate
 gpu_images_per_second = 2.9
@@ -92,9 +93,13 @@ folder_chunks = split_list(all_images,n_jobs)
 
 #%% Estimate total time
 
-max_images_per_job = max([len(x) for x in folder_chunks])
-expected_seconds = max_images_per_job / gpu_images_per_second
-print('Expected time: {}'.format(humanfriendly.format_timespan(expected_seconds)))
+n_images = len(all_images)
+execution_seconds = n_images / gpu_images_per_second
+wallclock_seconds = execution_seconds / n_gpus
+print('Expected time: {}'.format(humanfriendly.format_timespan(wallclock_seconds)))
+
+seconds_per_chunk = len(folder_chunks[0]) / gpu_images_per_second
+print('Expected time per chunk: {}'.format(humanfriendly.format_timespan(seconds_per_chunk)))
 
 
 #%% Write file lists
@@ -120,13 +125,17 @@ for i_task,task in enumerate(task_info):
     
     cuda_string = ''
     if n_jobs > 1:
-        cuda_string = f'CUDA_VISIBLE_DEVICES={i_task}'
-        
+        gpu_number = i_task % n_gpus
+        cuda_string = f'CUDA_VISIBLE_DEVICES={gpu_number}'
+    
     checkpoint_frequency_string = ''
+    checkpoint_path_string = ''
     if checkpoint_frequency is not None and checkpoint_frequency > 0:
         checkpoint_frequency_string = f'--checkpoint_frequency {checkpoint_frequency}'
+        checkpoint_path_string = '--checkpoint_path {}'.format(chunk_file.replace(
+            '.json','_checkpoint.json'))
             
-    cmd = f'{cuda_string} python run_tf_detector_batch.py {model_file} {chunk_file} {output_fn} {checkpoint_frequency_string}'
+    cmd = f'{cuda_string} python run_tf_detector_batch.py {model_file} {chunk_file} {output_fn} {checkpoint_frequency_string} {checkpoint_path_string}'
     
     cmd_file = os.path.join(filename_base,'run_chunk_{}.sh'.format(str(i_task).zfill(2)))
     with open(cmd_file,'w') as f:
