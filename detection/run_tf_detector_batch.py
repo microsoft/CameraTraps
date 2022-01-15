@@ -339,10 +339,12 @@ def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=No
             result = process_image(im_file, tf_detector, confidence_threshold)
             results.append(result)
 
-            # checkpoint
+            # Write a checkpoint if necessary
             if checkpoint_frequency != -1 and count % checkpoint_frequency == 0:
-                assert checkpoint_path is not None
+                
                 print('Writing a new checkpoint after having processed {} images since last restart'.format(count))
+                
+                assert checkpoint_path is not None
                 
                 # Back up any previous checkpoints
                 checkpoint_tmp_path = None
@@ -361,7 +363,8 @@ def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=No
             # ...if it's time to make a checkpoint
             
     else:
-        # when using multiprocessing, let the workers load the model
+        
+        # When using multiprocessing, let the workers load the model
         tf_detector = model_file
 
         print('Creating pool with {} cores'.format(n_cores))
@@ -377,7 +380,8 @@ def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=No
 
         results = list(itertools.chain.from_iterable(results))
 
-    # results may have been modified in place, but we also return it for backwards-compatibility
+    # Results may have been modified in place, but we also return it for
+    # backwards-compatibility.
     return results
 
 
