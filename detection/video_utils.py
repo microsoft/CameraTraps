@@ -100,7 +100,8 @@ def get_video_fs(input_video_file):
     return Fs
 
 
-def video_to_frames(input_video_file, output_folder, overwrite=True, every_n_frames=None):
+def video_to_frames(input_video_file, output_folder, overwrite=True, every_n_frames=None, 
+                    verbose=False):
     """
     Render every frame of [input_video_file] to a .jpg in [output_folder]
     
@@ -141,20 +142,25 @@ def video_to_frames(input_video_file, output_folder, overwrite=True, every_n_fra
             print('Skipping video {}, all output frames exist'.format(input_video_file))
             return frame_filenames,Fs
         else:
-            print("Rendering video, couldn't find {}".format(missing_frame_number))
+            pass
+            # print("Rendering video {}, couldn't find frame {}".format(
+            #    input_video_file,missing_frame_number))
     
     # ...if we need to check whether to skip this video entirely
         
-    print('Reading {} frames at {} Hz from {}'.format(n_frames,Fs,input_video_file))
+    if verbose:
+        print('Reading {} frames at {} Hz from {}'.format(n_frames,Fs,input_video_file))
 
     frame_filenames = []
 
-    for frame_number in tqdm(range(0,n_frames)):
+    # for frame_number in tqdm(range(0,n_frames)):
+    for frame_number in range(0,n_frames):
 
         success,image = vidcap.read()
         if not success:
             assert image is None
-            print('Read terminating at frame {} of {}'.format(frame_number,n_frames))
+            if verbose:
+                print('Read terminating at frame {} of {}'.format(frame_number,n_frames))
             break
 
         if every_n_frames is not None:
@@ -182,7 +188,8 @@ def video_to_frames(input_video_file, output_folder, overwrite=True, every_n_fra
             except Exception as e:
                 print('Error on frame {} of {}: {}'.format(frame_number,n_frames,str(e)))
 
-    print('\nExtracted {} of {} frames'.format(len(frame_filenames),n_frames))
+    if verbose:
+        print('\nExtracted {} of {} frames'.format(len(frame_filenames),n_frames))
 
     vidcap.release()    
     return frame_filenames,Fs
