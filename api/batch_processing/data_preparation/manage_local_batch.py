@@ -127,6 +127,8 @@ for i_task,task in enumerate(task_info):
     if n_jobs > 1:
         gpu_number = i_task % n_gpus
         cuda_string = f'CUDA_VISIBLE_DEVICES={gpu_number}'
+    else:
+        gpu_number = 0
     
     checkpoint_frequency_string = ''
     checkpoint_path_string = ''
@@ -137,7 +139,9 @@ for i_task,task in enumerate(task_info):
             
     cmd = f'{cuda_string} python run_tf_detector_batch.py {model_file} {chunk_file} {output_fn} {checkpoint_frequency_string} {checkpoint_path_string}'
     
-    cmd_file = os.path.join(filename_base,'run_chunk_{}.sh'.format(str(i_task).zfill(2)))
+    cmd_file = os.path.join(filename_base,'run_chunk_{}_gpu_{}.sh'.format(str(i_task).zfill(2),
+                            str(gpu_number).zfill(2)))
+    
     with open(cmd_file,'w') as f:
         f.write(cmd + '\n')
         
