@@ -1,4 +1,5 @@
 ######
+#
 # process_video.py
 #
 # Split a video into frames, run the frames through run_tf_detector_batch.py, and
@@ -55,10 +56,11 @@ def process_video(options):
     if options.render_output_video and (options.output_video_file is None):
         options.output_video_file = options.input_video_file + '.detections.mp4'
 
+    tempdir = os.path.join(tempfile.gettempdir(), 'process_camera_trap_video')
+    
     if options.frame_folder is not None:
         frame_output_folder = options.frame_folder
     else:
-        tempdir = os.path.join(tempfile.gettempdir(), 'process_camera_trap_video')
         frame_output_folder = os.path.join(
             tempdir, os.path.basename(options.input_video_file) + '_frames_' + str(uuid1()))
     os.makedirs(frame_output_folder, exist_ok=True)
@@ -86,6 +88,7 @@ def process_video(options):
 
 
     if options.render_output_video:
+        
         # Render detections to images
         rendering_output_dir = os.path.join(
             tempdir, os.path.basename(options.input_video_file) + '_detections')
@@ -97,10 +100,20 @@ def process_video(options):
 
         # Combine into a video
         frames_to_video(detected_frame_files, Fs, options.output_video_file)
-
+        
+        # Delete the temporary directory we used for detection images
+        try:
+            shutil.rmtree(rendering_output_dir)
+        except Exception:
+            pass
+        
+    # (Optionally) delete the frames on which we ran MegaDetector
     if options.delete_output_frames:
-        shutil.rmtree(frame_output_folder)
-
+        try:
+            shutil.rmtree(frame_output_folder)
+        except Exception:
+            pass
+        
     return results
 
 
