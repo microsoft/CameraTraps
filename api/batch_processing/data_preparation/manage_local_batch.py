@@ -159,13 +159,14 @@ if False:
 
     #%%    
 
-    task_set = [8,10,12,14,16]
-    sleep_time_between_tasks = 60
-    gpu_number = 0
+    task_set = [8,10,12,14,16]; gpu_number = 0; sleep_time_between_tasks = 60; sleep_time_before_tasks = 0
     commands = []
     
     # i_task = 8
     for i_task in task_set:
+        
+        if i_task == task_set[0]:
+            commands.append('sleep {}'.format(str(sleep_time_before_tasks)))            
         
         task = task_info[i_task]
         chunk_file = task['input_file']
