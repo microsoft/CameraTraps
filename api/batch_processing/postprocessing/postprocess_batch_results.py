@@ -634,16 +634,21 @@ def process_batch_results(options: PostProcessingOptions
         # Thresholds go up throughout precisions/recalls/thresholds; find the last
         # value where recall is at or above target.  That's our precision @ target recall.
         
-        # This is a tuple of arrays
         i_above_target_recall = (np.where(recalls >= options.target_recall))
+        
+        # np.where returns a tuple of arrays, but in this syntax where we're 
+        # comparing an array with a scalar, there will only be one element.
         assert len (i_above_target_recall) == 1
+        
+        # Convert back to a list
         i_above_target_recall = i_above_target_recall[0].tolist()
         
         if len(i_above_target_recall) == 0:
             precision_at_target_recall = 0.0
         else:
             precision_at_target_recall = precisions[i_above_target_recall[-1]]
-        print('Precision at {:.1%} recall: {:.1%}'.format(options.target_recall, precision_at_target_recall))
+        print('Precision at {:.1%} recall: {:.1%}'.format(options.target_recall,
+                                                          precision_at_target_recall))
 
         cm_predictions = np.array(p_detection_pr) > options.confidence_threshold
         cm = confusion_matrix(gt_detections_pr, cm_predictions, labels=[False,True])
@@ -657,7 +662,8 @@ def process_batch_results(options: PostProcessingOptions
             (precision_at_confidence_threshold + recall_at_confidence_threshold)
 
         print('At a confidence threshold of {:.1%}, precision={:.1%}, recall={:.1%}, f1={:.1%}'.format(
-                options.confidence_threshold, precision_at_confidence_threshold, recall_at_confidence_threshold, f1))
+                options.confidence_threshold, precision_at_confidence_threshold,
+                recall_at_confidence_threshold, f1))
 
         ##%% Collect classification results, if they exist
 
