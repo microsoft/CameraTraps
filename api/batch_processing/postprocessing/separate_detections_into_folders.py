@@ -103,7 +103,10 @@ def process_detection(d,options):
     global printed_missing_file_warning
     
     relative_filename = d['file']
-    detections = d['detections']
+    
+    detections = None    
+    if 'detections' in d:
+        detections = d['detections']
     
     if detections is None:
         
