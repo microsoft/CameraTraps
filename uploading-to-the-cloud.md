@@ -1,3 +1,5 @@
+# Uploading images to the cloud for processing with MegaDetector
+
 ## Before you read the rest of this page...
 
 Everything in this document assumes we have already talked to you about running MegaDetector on your images.  If you're just getting started and wondering whether MegaDetector is for you, start [here](https://github.com/microsoft/CameraTraps/blob/master/collaborations.md) instead.
@@ -8,7 +10,7 @@ Everything in this document assumes we have already talked to you about running 
 If you are uploading terabytes of images, you want to make sure you're getting the most of your Internet connection <i>before</i> you start uploading.  If it's at all possible to be hard-wired, do that.  If you're on WiFi, get as close as you can to your router before you start uploading.  A great way to estimate your transfer time is to go to [speedtest.net](https://speedtest.net) to estimate your upload bandwidth, then head over to [this transfer time calculator](https://www.expedient.com/knowledgebase/tools-and-calculators/file-transfer-time-calculator/) to punch in your data size and upload bandwidth.  If you're looking at days of upload, that's fine, just plan around it and make sure your computer will stay on and connected.  If you're looking at months of upload, it's probably a good idea to consider whether you really want to upload, vs. transferring via hard drive.
 
 
-## Uploading images to Azure for processing with MegaDetector
+## Uploading images to Azure
 
 In the cases where we run MegaDetector on behalf of a user, we need to get the images from you first.  If you already have them accessible on the cloud, that's great, and we are happy to download from a secure URL on Azure, AWS, GCP, etc.  If you have limited bandwidth, we are also happy to receive a hard drive in the mail.
 
@@ -23,7 +25,7 @@ There are two ways you can use that URL to upload images to the Microsoft cloud:
 (No, the URL I used in this example is not real, i.e. I did not just do the storage equivalent of posting my credit card number to Twitter.)
 
 
-### Uploading images with AzCopy (command-line)
+### Uploading images to Azure with AzCopy (command-line)
   
 If you are at even a little bit comfortable with a command prompt (Windows, Mac, or Linux), we recommend uploading with [AzCopy](https://docs.microsoft.com/en-us/azure/storage/common/storage-use-azcopy-v10), a command-line tool for, among other things, uploading data to the Microsoft cloud.  In fact, if you even have a neighbor who is comfortable with a command prompt, and you can buy her/him a granola bar in exchange for command-line help, we still recommend AzCopy.
 
@@ -44,7 +46,7 @@ Change the yellow highlighted part to the actual folder where your images are, a
 AzCopy also includes features to limit the bandwidth it uses and to resume interrupted jobs, <a href="mailto:cameratraps@lila.science">mail us</a> if you need help with those options. 
 
 
-### Uploading images with Azure Storage Explorer (GUI)
+### Uploading images to Azure with Azure Storage Explorer (GUI)
 
 Our second-favorite choice for helping folks upload images to Azure is [Azure Storage Explorer](https://azure.microsoft.com/en-us/features/storage-explorer/), a graphical tool that calls AzCopy in the background.  To upload images with Storage Explorer, first download, install, and run Storage Explorer, then click the little connection icon in the upper-left corner:
 
