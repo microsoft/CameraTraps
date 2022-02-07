@@ -6,6 +6,7 @@
 # taxonomies.
 #
 # Run initialize_taxonomy_lookup() before calling any other function.
+#
 #######
 
 #%% Constants and imports
@@ -457,7 +458,7 @@ def get_taxonomic_info(query: str) -> List[Dict[str, Any]]:
     if query in inat_vernacular_to_taxon_id:
         inat_taxon_ids |= inat_vernacular_to_taxon_id[query]
 
-    # in GBIF, some queries hit for both common and scientific, make sure we end
+    # In GBIF, some queries hit for both common and scientific, make sure we end
     # up with unique inputs
     gbif_taxon_ids = set()
     if query in gbif_scientific_to_taxon_id:
@@ -469,7 +470,7 @@ def get_taxonomic_info(query: str) -> List[Dict[str, Any]]:
     if (len(inat_taxon_ids) == 0) and (len(gbif_taxon_ids) == 0):
         return []
 
-    # both GBIF and iNat have a 1-to-1 mapping between taxon_id and row number
+    # Both GBIF and iNat have a 1-to-1 mapping between taxon_id and row number
     inat_row_indices = [inat_taxon_id_to_row[i] for i in inat_taxon_ids]
     gbif_row_indices = [gbif_taxon_id_to_row[i] for i in gbif_taxon_ids]
 
