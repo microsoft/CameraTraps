@@ -63,7 +63,7 @@ force_cpu = False
 if force_cpu:
     os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
-from detection.run_tf_detector import ImagePathUtils, TFDetector
+from detection.run_detector import ImagePathUtils, TFDetector
 import visualization.visualization_utils as viz_utils
 
 # Numpy FutureWarnings from tensorflow import
@@ -159,7 +159,7 @@ def run_detector_with_image_queue(image_files,model_file,confidence_threshold):
  
     # TODO
     #
-    # The queue system is a little more elegant if we start one thread for reading an one
+    # The queue system is a little more elegant if we start one thread for reading and one
     # for processing, and this works fine on Windows, but because we import TF at module load,
     # CUDA will only work in the main process, so currently the consumer function runs here.
     #
