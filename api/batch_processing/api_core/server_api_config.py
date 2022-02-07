@@ -56,7 +56,7 @@ MD_VERSIONS_TO_REL_PATH = {
 DEFAULT_MD_VERSION = '4.1'
 assert DEFAULT_MD_VERSION in MD_VERSIONS_TO_REL_PATH
 
-# copied from TFDetector class in detection/run_tf_detector.py
+# copied from TFDetector class in detection/run_detector.py
 DETECTOR_LABEL_MAP = {
     '1': 'animal',
     '2': 'person',

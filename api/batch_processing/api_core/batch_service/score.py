@@ -111,8 +111,8 @@ def load_image(input_file: Union[str, BytesIO]) -> Image.Image:
     return image
 
 
-#%% TFDetector class, an unmodified *copy* of the class in detection/run_tf_detector.py,
-# so we do not have to import the packages required by run_tf_detector.py
+#%% TFDetector class, an unmodified *copy* of the class in detection/tf_detector.py,
+# so we do not have to import the packages required by run_detector.py
 
 class TFDetector:
     """

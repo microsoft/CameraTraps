@@ -1,6 +1,6 @@
 ######
 #
-# run_tf_detector.py
+# run_detector.py
 #
 # Functions to load a TensorFlow detection model, run inference,
 # and render bounding boxes on images.
