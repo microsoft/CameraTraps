@@ -273,6 +273,7 @@ If you use the MegaDetector in a publication, please cite:
 
 Can do!  See these [slides](http://dmorris.net/misc/cameratraps/ai4e_camera_traps_overview).
 
+
 ## Pretty picture
 
 Here's a "teaser" image of what detector output looks like:
