@@ -513,10 +513,11 @@ def process_batch_results(options: PostProcessingOptions
 
     # Convert keys and values to lowercase
     classification_categories = other_fields.get('classification_categories', {})
-    classification_categories = {
-        k.lower(): v.lower()
-        for k, v in classification_categories.items()
-    }
+    if classification_categories is not None:
+        classification_categories = {
+            k.lower(): v.lower()
+            for k, v in classification_categories.items()
+        }
 
     # Add column 'pred_detection_label' to indicate predicted detection status,
     # not separating out the classes
@@ -615,7 +616,7 @@ def process_batch_results(options: PostProcessingOptions
         b_valid_ground_truth = gt_detections >= 0.0
 
         p_detection_pr = p_detection[b_valid_ground_truth]
-        gt_detections_pr = gt_detections[b_valid_ground_truth]
+        gt_detections_pr = (gt_detections[b_valid_ground_truth] == 1.)
 
         print('Including {} of {} values in p/r analysis'.format(np.sum(b_valid_ground_truth),
               len(b_valid_ground_truth)))
@@ -637,16 +638,25 @@ def process_batch_results(options: PostProcessingOptions
 
         # Thresholds go up throughout precisions/recalls/thresholds; find the last
         # value where recall is at or above target.  That's our precision @ target recall.
-        target_recall = 0.9
-        b_above_target_recall = np.where(recalls >= target_recall)
-        if not np.any(b_above_target_recall):
+        
+        i_above_target_recall = (np.where(recalls >= options.target_recall))
+        
+        # np.where returns a tuple of arrays, but in this syntax where we're 
+        # comparing an array with a scalar, there will only be one element.
+        assert len (i_above_target_recall) == 1
+        
+        # Convert back to a list
+        i_above_target_recall = i_above_target_recall[0].tolist()
+        
+        if len(i_above_target_recall) == 0:
             precision_at_target_recall = 0.0
         else:
-            i_target_recall = np.argmax(b_above_target_recall)
-            precision_at_target_recall = precisions[i_target_recall]
-        print('Precision at {:.1%} recall: {:.1%}'.format(target_recall, precision_at_target_recall))
+            precision_at_target_recall = precisions[i_above_target_recall[-1]]
+        print('Precision at {:.1%} recall: {:.1%}'.format(options.target_recall,
+                                                          precision_at_target_recall))
 
-        cm = confusion_matrix(gt_detections_pr, np.array(p_detection_pr) > options.confidence_threshold)
+        cm_predictions = np.array(p_detection_pr) > options.confidence_threshold
+        cm = confusion_matrix(gt_detections_pr, cm_predictions, labels=[False,True])
 
         # Flatten the confusion matrix
         tn, fp, fn, tp = cm.ravel()
@@ -657,7 +667,8 @@ def process_batch_results(options: PostProcessingOptions
             (precision_at_confidence_threshold + recall_at_confidence_threshold)
 
         print('At a confidence threshold of {:.1%}, precision={:.1%}, recall={:.1%}, f1={:.1%}'.format(
-                options.confidence_threshold, precision_at_confidence_threshold, recall_at_confidence_threshold, f1))
+                options.confidence_threshold, precision_at_confidence_threshold,
+                recall_at_confidence_threshold, f1))
 
         ##%% Collect classification results, if they exist
 
@@ -786,7 +797,7 @@ def process_batch_results(options: PostProcessingOptions
 
         # Write precision/recall plot to .png file in output directory
         t = 'Precision-Recall curve: AP={:0.1%}, P@{:0.1%}={:0.1%}'.format(
-            average_precision, target_recall, precision_at_target_recall)
+            average_precision, options.target_recall, precision_at_target_recall)
         fig = plot_utils.plot_precision_recall_curve(precisions, recalls, t)
         
         pr_figure_relative_filename = 'prec_recall.png'
@@ -1317,15 +1328,15 @@ if False:
 
     #%%
 
-    base_dir = r'D:\wildlife_data\bh'
+    base_dir = r'G:\temp\md'
     options = PostProcessingOptions()
     options.image_base_dir = base_dir
-    options.output_dir = os.path.join(base_dir, 'postprocessing_filtered')
+    options.output_dir = os.path.join(base_dir, 'postprocessing')
     options.api_output_filename_replacements = {} # {'20190430cameratraps\\':''}
-    options.ground_truth_filename_replacements = {'\\data\\blob\\':''}
-    options.api_output_file = os.path.join(base_dir, 'bh_5570_detections.filtered.csv')
-    options.ground_truth_json_file = os.path.join(base_dir, 'bh.json')
-    options.unlabeled_classes = ['human']
+    options.ground_truth_filename_replacements = {} # {'\\data\\blob\\':''}
+    options.api_output_file = os.path.join(base_dir, 'results.json')
+    options.ground_truth_json_file = os.path.join(base_dir, 'gt.json')
+    # options.unlabeled_classes = ['human']
 
     ppresults = process_batch_results(options)
     # os.start(ppresults.output_html_file)
