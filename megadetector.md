@@ -295,9 +295,8 @@ Image credit [eMammal](https://emammal.si.edu/).
 
 ## Can you share the training data?
 
-This model is trained on bounding boxes from a variety of ecosystems, and many of the images we use in training are not publicly-shareable for license reasons.  We do train in part on bounding boxes from two public data sets:
+This model is trained on bounding boxes from a variety of ecosystems, and many of the images we use in training are not publicly-shareable for license reasons.  But in addition to the private training data we use, we also use more or less all the bounding boxes available on lila.science:
 
-- [Caltech Camera Traps](http://lila.science/datasets/caltech-camera-traps)
-- [Snapshot Serengeti](http://lila.science/datasets/snapshot-serengeti)
+<https://lila.science/category/camera-traps/>
 
 ...so if our detector performs really well on those data sets, that's great, but it's a little bit cheating, because we haven't published the set of locations from those data sets that we use during training.
