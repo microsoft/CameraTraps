@@ -90,7 +90,7 @@ def load_api_results(api_output_path: str, normalize_paths: bool = True,
 
     # Sanity-check that this is really a detector output file
     for s in ['info', 'detection_categories', 'images']:
-        assert s in detection_results
+        assert s in detection_results, 'Missing field {} in detection results'.format(s)
 
     # Fields in the API output json other than 'images'
     other_fields = {}
