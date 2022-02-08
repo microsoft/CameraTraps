@@ -340,11 +340,13 @@ def load_and_crop(img_path: str,
     # try loading image from local directory
     if images_dir is not None:
         full_img_path = os.path.join(images_dir, img_path)
+        debug_path = full_img_path
         if os.path.exists(full_img_path):
             img = load_local_image(full_img_path)
 
     # try to download image from Blob Storage
     if img is None and container_client is not None:
+        debug_path = img_path
         with io.BytesIO() as stream:
             container_client.download_blob(img_path).readinto(stream)
             stream.seek(0)
@@ -358,7 +360,9 @@ def load_and_crop(img_path: str,
             img = load_local_image(stream)
         did_download = True
 
-    assert img is not None, 'image failed to load or download properly'
+    assert img is not None, 'image "{}" failed to load or download properly'.format(
+        debug_path)
+    
     if img.mode != 'RGB':
         img = img.convert(mode='RGB')  # always save as RGB for consistency
 

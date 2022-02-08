@@ -34,7 +34,13 @@ from typing import Any, Dict, Iterable, Optional, Tuple
 import uuid
 import warnings
 
-import matplotlib
+# This line was added circa 2018 and it made sense at the time; removing it in 2022
+# because matplotlib *mostly* does the right thing now, and overwriting the current
+# matplotlib environment is questionable behavior.  Possible breaking change for 
+# some users.
+#
+# import matplotlib; matplotlib.use('agg')
+
 import matplotlib.pyplot as plt
 import numpy as np
 import humanfriendly
@@ -54,7 +60,6 @@ from data_management.cct_json_utils import (CameraTrapJsonUtils, IndexedJsonDb)
 from api.batch_processing.postprocessing.load_api_results import load_api_results
 from ct_utils import args_to_object
 
-matplotlib.use('agg')
 warnings.filterwarnings('ignore', '(Possibly )?corrupt EXIF data', UserWarning)
 
 
@@ -783,10 +788,10 @@ def process_batch_results(options: PostProcessingOptions
         t = 'Precision-Recall curve: AP={:0.1%}, P@{:0.1%}={:0.1%}'.format(
             average_precision, target_recall, precision_at_target_recall)
         fig = plot_utils.plot_precision_recall_curve(precisions, recalls, t)
+        
         pr_figure_relative_filename = 'prec_recall.png'
         pr_figure_filename = os.path.join(output_dir, pr_figure_relative_filename)
-        plt.savefig(pr_figure_filename)
-        # plt.show(block=False)
+        fig.savefig(pr_figure_filename)
         plt.close(fig)
 
 

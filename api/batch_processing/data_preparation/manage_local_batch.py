@@ -313,6 +313,7 @@ options.confidence_threshold = 0.8
 options.almost_detection_confidence_threshold = options.confidence_threshold - 0.05
 options.ground_truth_json_file = None
 options.separate_detections_by_category = True
+# options.sample_seed = 0
 
 if render_animals_only:
     # Omit some pages from the output, useful when animals are rare
@@ -431,6 +432,7 @@ options.confidence_threshold = 0.8
 options.almost_detection_confidence_threshold = options.confidence_threshold - 0.05
 options.ground_truth_json_file = None
 options.separate_detections_by_category = True
+# options.sample_seed = 0
 
 if render_animals_only:
     # Omit some pages from the output, useful when animals are rare

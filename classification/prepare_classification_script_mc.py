@@ -12,10 +12,10 @@
 import os
 
 organization_name = 'idfg'
-job_name = 'idfg-2022-01-25-R1_K'
-input_filename = 'idfg-2022-01-25-R1_K_detections.filtered_rde_0.60_0.85_30_0.20.json'
+job_name = 'idfg-2022-01-27-EOE2021S_Group6'
+input_filename = 'idfg-2022-01-27-EOE2021S_Group6_detections.filtered_rde_0.60_0.85_30_0.20.json'
 split_token = '.filtered_rde'
-image_base = '/home/user/data/idfg/R1_K'
+image_base = '/datadrive/idfg/EOE2021S_Group6'
 crop_path = os.path.join(os.path.expanduser('~/crops'),job_name + '_crops')
 device_id = 0
 
@@ -24,6 +24,7 @@ suffix_to_replace = split_token + input_filename.split(split_token)[1]
 working_dir_base = os.path.join(os.path.expanduser('~/postprocessing'),
                                                    organization_name,
                                                    job_name)
+
 output_base = os.path.join(working_dir_base,'combined_api_outputs')
 
 assert os.path.isdir(working_dir_base)
