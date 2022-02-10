@@ -250,6 +250,7 @@ All of those caveats aside, we are aware of some external validation studies... 
 
 * Fennell MJ, Beirne CW, Burton C. [Use of object detection in camera trap image identification: assessing a method to rapidly and accurately classify human and animal detections for research and application in recreation ecology](https://www.biorxiv.org/content/10.1101/2022.01.14.476404v3). bioRxiv. 2022 Jan 1.
 * Vélez J, Castiblanco-Camacho PJ, Tabak MA, Chalmers C, Fergus P, Fieberg J.  [Choosing an Appropriate Platform and Workflow for Processing Camera Trap Data using Artificial Intelligence](https://arxiv.org/abs/2202.02283). arXiv. 2022 Feb 4.
+* <https://github.com/FFI-Vietnam/camtrap-tools> (includes an evaluation of MegaDetector)
 
 If you know of other validation studies that have been published, [let us know](mailto:cameratraps@lila.science)!
 
