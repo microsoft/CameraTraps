@@ -1,5 +1,5 @@
 r"""
-Module to run a TensorFlow animal detection model on lots of images, writing the results
+Module to run an animal detection model on lots of images, writing the results
 to a file in the same format produced by our batch API:
 
 https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing
@@ -7,16 +7,16 @@ https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing
 This enables the results to be used in our post-processing pipeline; see
 api/batch_processing/postprocessing/postprocess_batch_results.py .
 
-This script has *somewhat* tested functionality to save results to checkpoints
-intermittently, in case disaster strikes. To enable this, set --checkpoint_frequency
-to n > 0, and results will be saved as a checkpoint every n images. Checkpoints
-will be written to a file in the same directory as the output_file, and after all images
-are processed and final results file written to output_file,
-the temporary checkpoint file will be deleted. If you want to resume from a checkpoint,
-set the checkpoint file's path using --resume_from_checkpoint.
+This script can save results to checkpoints intermittently, in case disaster
+strikes. To enable this, set --checkpoint_frequency to n > 0, and results 
+will be saved as a checkpoint every n images. Checkpoints will be written 
+to a file in the same directory as the output_file, and after all images
+are processed and final results file written to output_file, the temporary
+checkpoint file will be deleted. If you want to resume from a checkpoint, set
+the checkpoint file's path using --resume_from_checkpoint.
 
-The `threshold` you can provide as an argument is the confidence threshold above which detections
-will be included in the output file.
+The `threshold` you can provide as an argument is the confidence threshold above
+which detections will be included in the output file.
 
 Has preliminary multiprocessing support for CPUs only; if a GPU is available, it will
 use the GPU instead of CPUs, and the --ncores option will be ignored.  Checkpointing
@@ -24,7 +24,12 @@ is not supported when using multiprocessing.
 
 Sample invocation:
 
-python run_tf_detector_batch.py "d:\temp\models\md_v4.1.0.pb" "d:\temp\test_images" "d:\temp\out.json" --recursive
+python run_detector_batch.py ~/models/camera_traps/megadetector/md_v4.1.0/md_v4.1.0.pb ~/git/CameraTraps/test_images/test_images/ ~/tmp/mdv4test.json --output_relative_filenames
+python run_detector_batch.py ~/models/camera_traps/megadetector/camonly_mosaic_xlarge_dist_5a_last.torchscript.pt ~/git/CameraTraps/test_images/test_images/ ~/tmp/mdv5test.json --output_relative_filenames
+
+python api/batch_processing/postprocessing/postprocess_batch_results.py ~/tmp/mdv4test.json ~/tmp/mdv4pp --confidence_threshold 0.8 --image_base_dir ~/git/CameraTraps/test_images/test_images
+python api/batch_processing/postprocessing/postprocess_batch_results.py ~/tmp/mdv5test.json ~/tmp/mdv5pp --confidence_threshold 0.4 --image_base_dir ~/git/CameraTraps/test_images/test_images
+
 """
 
 #%% Constants, imports, environment
@@ -58,21 +63,19 @@ verbose = True
 
 # Useful hack to force CPU inference
 #
-# Need to do this before any TF imports
+# Need to do this before any TF/PT imports
 force_cpu = False
 if force_cpu:
     os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
-from detection.run_detector import ImagePathUtils, TFDetector
+from detection.run_detector import ImagePathUtils, is_gpu_available, load_detector
+from detection.run_detector import FAILURE_INFER, DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD,\
+    FAILURE_IMAGE_OPEN, DEFAULT_DETECTOR_LABEL_MAP
+
 import visualization.visualization_utils as viz_utils
 
 # Numpy FutureWarnings from tensorflow import
 warnings.filterwarnings('ignore', category=FutureWarning)
-
-import tensorflow.compat.v1 as tf
-
-print('TensorFlow version:', tf.__version__)
-print('tf.test.is_gpu_available:', tf.test.is_gpu_available())
 
 
 #%% Support functions for multiprocessing
@@ -116,7 +119,7 @@ def consumer_func(q,return_queue,model_file,confidence_threshold):
         print('Consumer starting'); sys.stdout.flush()
 
     start_time = time.time()
-    tf_detector = TFDetector(model_file)
+    detector = load_detector(model_file)
     elapsed = time.time() - start_time
     print('Loaded model (before queueing) in {}'.format(humanfriendly.format_timespan(elapsed)))
     sys.stdout.flush()
@@ -133,7 +136,7 @@ def consumer_func(q,return_queue,model_file,confidence_threshold):
         image = r[1]
         if verbose:
             print('De-queued image {}'.format(im_file)); sys.stdout.flush()
-        results.append(process_image(im_file,tf_detector,confidence_threshold,image))
+        results.append(process_image(im_file,detector,confidence_threshold,image))
         if verbose:
             print('Processed image {}'.format(im_file)); sys.stdout.flush()
         q.task_done()
@@ -208,13 +211,13 @@ def chunks_by_number_of_chunks(ls, n):
 
 #%% Image processing functions
 
-def process_images(im_files, tf_detector, confidence_threshold, use_image_queue=False):
+def process_images(im_files, detector, confidence_threshold, use_image_queue=False):
     """
     Runs MegaDetector over a list of image files.
 
     Args
     - im_files: list of str, paths to image files
-    - tf_detector: TFDetector (loaded model) or str (path to .pb model file)
+    - detector: loaded model or str (path to .pb/.pt model file)
     - confidence_threshold: float, only detections above this threshold are returned
 
     Returns
@@ -222,28 +225,28 @@ def process_images(im_files, tf_detector, confidence_threshold, use_image_queue=
         see the 'images' key in https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing#batch-processing-api-output-format
     """
     
-    if isinstance(tf_detector, str):
+    if isinstance(detector, str):
         start_time = time.time()
-        tf_detector = TFDetector(tf_detector)
+        detector = load_detector(detector)
         elapsed = time.time() - start_time
         print('Loaded model (batch level) in {}'.format(humanfriendly.format_timespan(elapsed)))
 
     if use_image_queue:
-        run_detector_with_image_queue(im_files, tf_detector, confidence_threshold)
+        run_detector_with_image_queue(im_files, detector, confidence_threshold)
     else:
         results = []
         for im_file in im_files:
-            results.append(process_image(im_file, tf_detector, confidence_threshold))
+            results.append(process_image(im_file, detector, confidence_threshold))
         return results
     
 
-def process_image(im_file, tf_detector, confidence_threshold, image=None):
+def process_image(im_file, detector, confidence_threshold, image=None):
     """
     Runs MegaDetector over a single image file.
 
     Args
     - im_file: str, path to image file
-    - tf_detector: TFDetector, loaded model
+    - detector: loaded model
     - confidence_threshold: float, only detections above this threshold are returned
     - image: previously-loaded image, if available
 
@@ -261,18 +264,18 @@ def process_image(im_file, tf_detector, confidence_threshold, image=None):
             print('Image {} cannot be loaded. Exception: {}'.format(im_file, e))
             result = {
                 'file': im_file,
-                'failure': TFDetector.FAILURE_IMAGE_OPEN
+                'failure': FAILURE_IMAGE_OPEN
             }
             return result
 
     try:
-        result = tf_detector.generate_detections_one_image(
+        result = detector.generate_detections_one_image(
             image, im_file, detection_threshold=confidence_threshold)
     except Exception as e:
         print('Image {} cannot be processed. Exception: {}'.format(im_file, e))
         result = {
             'file': im_file,
-            'failure': TFDetector.FAILURE_TF_INFER
+            'failure': FAILURE_INFER
         }
         return result
 
@@ -303,7 +306,7 @@ def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=No
 
     already_processed = set([i['file'] for i in results])
 
-    if n_cores > 1 and tf.test.is_gpu_available():
+    if n_cores > 1 and is_gpu_available():
         print('Warning: multiple cores requested, but a GPU is available; parallelization across GPUs is not currently supported, defaulting to one GPU')
         n_cores = 1
 
@@ -320,7 +323,7 @@ def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=No
 
         # Load the detector
         start_time = time.time()
-        tf_detector = TFDetector(model_file)
+        detector = load_detector(model_file)
         elapsed = time.time() - start_time
         print('Loaded model in {}'.format(humanfriendly.format_timespan(elapsed)))
 
@@ -336,7 +339,7 @@ def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=No
 
             count += 1
 
-            result = process_image(im_file, tf_detector, confidence_threshold)
+            result = process_image(im_file, detector, confidence_threshold)
             results.append(result)
 
             # Write a checkpoint if necessary
@@ -365,7 +368,7 @@ def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=No
     else:
         
         # When using multiprocessing, let the workers load the model
-        tf_detector = model_file
+        detector = model_file
 
         print('Creating pool with {} cores'.format(n_cores))
 
@@ -375,7 +378,7 @@ def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=No
         pool = workerpool(n_cores)
 
         image_batches = list(chunks_by_number_of_chunks(image_file_names, n_cores))
-        results = pool.map(partial(process_images, tf_detector=tf_detector,
+        results = pool.map(partial(process_images, detector=detector,
                                    confidence_threshold=confidence_threshold), image_batches)
 
         results = list(itertools.chain.from_iterable(results))
@@ -406,7 +409,7 @@ def write_results_to_file(results, output_file, relative_path_base=None):
 
     final_output = {
         'images': results,
-        'detection_categories': TFDetector.DEFAULT_DETECTOR_LABEL_MAP,
+        'detection_categories': DEFAULT_DETECTOR_LABEL_MAP,
         'info': {
             'detection_completion_time': datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'),
             'format_version': '1.0'
@@ -438,7 +441,7 @@ if False:
     
     start_time = time.time()
     
-    # python run_tf_detector_batch.py "g:\temp\models\md_v4.1.0.pb" "g:\temp\demo_images\ssmini" "g:\temp\ssmini.json" --recursive --output_relative_filenames --use_image_queue
+    # python run_detector_batch.py "g:\temp\models\md_v4.1.0.pb" "g:\temp\demo_images\ssmini" "g:\temp\ssmini.json" --recursive --output_relative_filenames --use_image_queue
     
     results = load_and_run_detector_batch(model_file=model_file,
                                           image_file_names=image_file_names,
@@ -453,13 +456,13 @@ if False:
     
     print('Finished inference in {}'.format(humanfriendly.format_timespan(elapsed)))
 
-
+    
 #%% Command-line driver
 
 def main():
     
     parser = argparse.ArgumentParser(
-        description='Module to run a TF animal detection model on lots of images')
+        description='Module to run a TF/PT animal detection model on lots of images')
     parser.add_argument(
         'detector_file',
         help='Path to .pb TensorFlow detector model file')
@@ -484,7 +487,7 @@ def main():
     parser.add_argument(
         '--threshold',
         type=float,
-        default=TFDetector.DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD,
+        default=DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD,
         help="Confidence threshold between 0 and 1.0, don't include boxes below this confidence in the output file. Default is 0.1")
     parser.add_argument(
         '--checkpoint_frequency',
@@ -511,7 +514,7 @@ def main():
 
     args = parser.parse_args()
 
-    assert os.path.exists(args.detector_file), 'Specified detector_file does not exist'
+    assert os.path.exists(args.detector_file), 'detector file {} does not exist'.format(args.detector_file)
     assert 0.0 < args.threshold <= 1.0, 'Confidence threshold needs to be between 0 and 1'  # Python chained comparison
     assert args.output_file.endswith('.json'), 'output_file specified needs to end with .json'
     if args.checkpoint_frequency != -1:
