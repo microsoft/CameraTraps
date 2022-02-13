@@ -24,8 +24,8 @@ is not supported when using multiprocessing.
 
 Sample invocation:
 
-python run_detector_batch.py ~/models/camera_traps/megadetector/md_v4.1.0/md_v4.1.0.pb ~/git/CameraTraps/test_images/test_images/ ~/tmp/mdv4test.json --output_relative_filenames
-python run_detector_batch.py ~/models/camera_traps/megadetector/camonly_mosaic_xlarge_dist_5a_last.torchscript.pt ~/git/CameraTraps/test_images/test_images/ ~/tmp/mdv5test.json --output_relative_filenames
+python detection/run_detector_batch.py ~/models/camera_traps/megadetector/md_v4.1.0/md_v4.1.0.pb ~/git/CameraTraps/test_images/test_images/ ~/tmp/mdv4test.json --output_relative_filenames
+python detection/run_detector_batch.py ~/models/camera_traps/megadetector/camonly_mosaic_xlarge_dist_5a_last.torchscript.pt ~/git/CameraTraps/test_images/test_images/ ~/tmp/mdv5test.json --output_relative_filenames
 
 python api/batch_processing/postprocessing/postprocess_batch_results.py ~/tmp/mdv4test.json ~/tmp/mdv4pp --confidence_threshold 0.8 --image_base_dir ~/git/CameraTraps/test_images/test_images
 python api/batch_processing/postprocessing/postprocess_batch_results.py ~/tmp/mdv5test.json ~/tmp/mdv5pp --confidence_threshold 0.4 --image_base_dir ~/git/CameraTraps/test_images/test_images
