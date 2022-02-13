@@ -33,7 +33,10 @@ class PTDetector:
     def __init__(self, torchscript_model_path):
         self.device = torch.device('cuda:0') if torch.cuda.is_available() else 'cpu'
         self.model = PTDetector.__load_model(torchscript_model_path)
-
+        if torch.cuda.is_available():
+            print('Sending model to GPU')
+            self.model.to(self.device)
+        
 
     @staticmethod
     def __load_model(torchscript_model_path):
@@ -73,7 +76,10 @@ class PTDetector:
 
             img = img.transpose((2, 0, 1))  # HWC to CHW; PIL Image is RGB already
             img = np.ascontiguousarray(img)
-            img = torch.from_numpy(img).to(self.device)
+            img = torch.from_numpy(img)
+            img = img.to(self.device)
+            print('Device for tensor: {}'.format(img.device))
+            print('Device for model: {}'.format(self.device))
             img = img.float()
             img /= 255
 
