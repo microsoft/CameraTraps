@@ -18,6 +18,14 @@ import pandas as pd
 from joblib import Parallel, delayed
 from tqdm import tqdm
 
+import pyqtree
+
+# Note to self: other indexing options:
+#
+# https://rtree.readthedocs.io (not thread- or process-safe)
+# https://github.com/sergkr/rtreelib
+# https://github.com/Rhoana/pyrtree
+
 # from ai4eutils; this is assumed to be on the path, as per repo convention
 import write_html_image_list
 import path_utils
@@ -191,14 +199,15 @@ class IndexedDetection:
 class DetectionLocation:
     """
     A unique-ish detection location, meaningful in the context of one
-    directory
+    directory.
     """
 
-    def __init__(self, instance, detection, relativeDir):
+    def __init__(self, instance, detection, relativeDir, id=None):
         self.instances = [instance]  # list of IndexedDetections
         self.bbox = detection['bbox']
         self.relativeDir = relativeDir
         self.sampleImageRelativeFileName = ''
+        self.id = id
 
     def __repr__(self):
         s = ct_utils.pretty_print_object(self, False)
@@ -245,23 +254,56 @@ def render_bounding_box(detection, inputFileName, outputFileName, lineWidth=5, e
 
 ##%% Look for matches (one directory) (function)
 
+def detection_rect_to_rtree_rect(detection_rect):
+    # We store detetions as x/y/w/h, rtree and pyqtree use l/b/r/t
+    l = detection_rect[0]
+    b = detection_rect[1]
+    r = detection_rect[0] + detection_rect[2]
+    t = detection_rect[1] + detection_rect[3]
+    return (l,b,r,t)
+
+
+def rtree_rect_to_detection_rect(rtree_rect):
+    # We store detetions as x/y/w/h, rtree and pyqtree use l/b/r/t
+    x = rtree_rect[0]
+    y = rtree_rect[1]
+    w = rtree_rect[2] - rtree_rect[0]
+    h = rtree_rect[3] - rtree_rect[1]
+    return (x,y,w,h)
+    
+
 def find_matches_in_directory(dirName, options, rowsByDirectory):
-        
+    """
+    Find all unique detections in [dirName].  Returns a list of DetectionLocation
+    objects.
+    """
+    
     if options.pbar is not None:
         options.pbar.update()
 
     # List of DetectionLocations
-    candidateDetections = []
+    # candidateDetections = []
+    
+    # Create a tree to store candidate detections
+    candidateDetectionsIndex = pyqtree.Index(bbox=(-0.1,-0.1,1.1,1.1))
 
+    # Each image in this folder is a row in "rows"
     rows = rowsByDirectory[dirName]
 
     if options.maxImagesPerFolder is not None and len(rows) > options.maxImagesPerFolder:
         print('Ignoring directory {} because it has {} images (limit set to {})'.format(
             dirName,len(rows),options.maxImagesPerFolder))
-        return candidateDetections
+        return []
         
+    # For each image in this directory
+    #
     # iDirectoryRow = 0; row = rows.iloc[iDirectoryRow]
+    #
+    # iDirectoryRow is a pandas index, so it may not start from zero;
+    # for debugging, we maintain i_iteration as a loop index.
     i_iteration = -1
+    n_boxes_evaluated = 0
+    
     for iDirectoryRow, row in rows.iterrows():
 
         i_iteration += 1
@@ -283,8 +325,10 @@ def find_matches_in_directory(dirName, options, rowsByDirectory):
         # {
         #   'category': '1',  # str value, category ID
         #   'conf': 0.926,  # confidence of this detections
-        #   'bbox': [x_min, y_min, width_of_box, height_of_box]  # (x_min, y_min) is upper-left,
-        #                                                           all in relative coordinates and length
+        #
+        #    # (x_min, y_min) is upper-left, all in relative coordinates
+        #   'bbox': [x_min, y_min, width_of_box, height_of_box]  
+        #                                                         
         # }
         detections = row['detections']
         if isinstance(detections,float):
@@ -293,10 +337,12 @@ def find_matches_in_directory(dirName, options, rowsByDirectory):
             continue
         
         assert len(detections) > 0
-
+        
         # For each detection in this image
         for iDetection, detection in enumerate(detections):
            
+            n_boxes_evaluated += 1
+            
             if detection is None:
                 print('Skipping detection {}'.format(iDetection))
                 continue
@@ -307,7 +353,9 @@ def find_matches_in_directory(dirName, options, rowsByDirectory):
             
             # This is no longer strictly true; I sometimes run RDE in stages, so
             # some probabilities have already been made negative
+            #
             # assert confidence >= 0.0 and confidence <= 1.0
+            
             assert confidence >= -1.0 and confidence <= 1.0
             
             if confidence < options.confidenceMin:
@@ -348,9 +396,21 @@ def find_matches_in_directory(dirName, options, rowsByDirectory):
 
             bFoundSimilarDetection = False
 
+            rtree_rect = detection_rect_to_rtree_rect(bbox)
+            
+            overlappingCandidateDetections =\
+                candidateDetectionsIndex.intersect(rtree_rect)
+            
+            # For debugging only, it's convenient to have these sorted
+            # as if they had never gone into a tree structure
+            overlappingCandidateDetections.sort(
+                key=lambda x: x.id, reverse=False)
+            
             # For each detection in our candidate list
-            for iCandidate, candidate in enumerate(candidateDetections):
+            for iCandidate, candidate in enumerate(
+                    overlappingCandidateDetections):
 
+                
                 # Is this a match?                    
                 try:
                     iou = ct_utils.get_iou(bbox, candidate.bbox)
@@ -375,13 +435,30 @@ def find_matches_in_directory(dirName, options, rowsByDirectory):
 
             # If we found no matches, add this to the candidate list
             if not bFoundSimilarDetection:
-                candidate = DetectionLocation(instance, detection, dirName)
-                candidateDetections.append(candidate)
+                
+                candidate = DetectionLocation(instance, detection, dirName, id=i_iteration)
+
+                # candidateDetections.append(candidate)                
+                                
+                # pyqtree
+                candidateDetectionsIndex.insert(item=candidate,bbox=rtree_rect)
 
         # ...for each detection
 
     # ...for each row
 
+    # Get all candidate detections
+    
+    candidateDetections = candidateDetectionsIndex.intersect([-100,-100,100,100])
+    
+    # For debugging only, it's convenient to have these sorted
+    # as if they had never gone into a tree structure
+    candidateDetections.sort(
+        key=lambda x: x.id, reverse=False)
+    
+    for candidate in candidateDetections:
+        del candidate.id
+        
     return candidateDetections
 
 # ...def find_matches_in_directory(dirName)
@@ -809,6 +886,7 @@ def find_repeat_detections(inputFilename, outputFilename=None, options=None):
         else:
 
             options.pbar = tqdm(total=len(dirsToSearch))
+            
             allCandidateDetections = Parallel(n_jobs=options.nWorkers, prefer='threads')(
                 delayed(find_matches_in_directory)(dirName, options, rowsByDirectory) for dirName in tqdm(dirsToSearch))
 
