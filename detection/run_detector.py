@@ -9,7 +9,7 @@ say). It does not facilitate checkpointing the results so if it crashes you
 would have to start from scratch. If you want to run a detector (e.g., ours)
 on lots of images, you should check out:
 
-1) run_tf_detector_batch.py (for local execution)
+1) run_detector_batch.py (for local execution)
 
 2) https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing
    (for running large jobs on Azure ML)
@@ -125,6 +125,43 @@ class ImagePathUtils:
         return image_strings
 
 
+#%% Utility functions
+
+def is_gpu_available(model_file):
+    """Decide whether a GPU is available, importing PyTorch or TF depending on the extension
+    of model_file.  Does not actually load model_file, just uses that to determine how to check 
+    for GPU availability."""
+    
+    if model_file.endswith('.pb'):
+        import tensorflow.compat.v1 as tf
+        gpu_available = tf.test.is_gpu_available()
+        print('TensorFlow version:', tf.__version__)
+        print('tf.test.is_gpu_available:', gpu_available)                
+        return gpu_available
+    elif model_file.endswith('.pt'):
+        import torch
+        gpu_available = torch.cuda.is_available()
+        print('PyTorch reports {} available CUDA devices'.format(torch.cuda.get_device_count()))
+        return gpu_available
+    else:
+        raise ValueError('Unrecognized model file extension for model {}'.format(model_file))
+    
+
+def load_detector(model_file):
+    """Load a TF or PT detector, depending on the extension of model_file."""
+    
+    start_time = time.time()
+    if model_file.endswith('.pb'):
+        from detection.tf_detector import TFDetector
+        detector = TFDetector(model_file)
+    elif model_file.endswith('.torchscript.pt'):
+        from detection.pytorch_detector import PTDetector
+        detector = PTDetector(model_file)
+    elapsed = time.time() - start_time
+    print('Loaded model in {}'.format(humanfriendly.format_timespan(elapsed)))
+    return detector
+    
+    
 #%% Main function
 
 def load_and_run_detector(model_file, image_file_names, output_dir,
@@ -135,16 +172,8 @@ def load_and_run_detector(model_file, image_file_names, output_dir,
         print('Warning: no files available')
         return
 
-    start_time = time.time()
-    if model_file.endswith('.pb'):
-        from detection.tf_detector import TFDetector
-        detector = TFDetector(model_file)
-    elif model_file.endswith('.torchscript.pt'):
-        from detection.pytorch_detector import PTDetector
-        detector = PTDetector(model_file)
-    elapsed = time.time() - start_time
-    print('Loaded model in {}'.format(humanfriendly.format_timespan(elapsed)))
-
+    detector = load_detector(model_file)
+    
     detection_results = []
     time_load = []
     time_infer = []
@@ -277,7 +306,7 @@ def main():
         description='Module to run an animal detection model on images')
     parser.add_argument(
         'detector_file',
-        help='Path to .pb TensorFlow detector model file')
+        help='Path to TensorFlow (.pb) or PyTorch (.pt) detector model file')
     group = parser.add_mutually_exclusive_group(required=True)  # must specify either an image file or a directory
     group.add_argument(
         '--image_file',
@@ -310,7 +339,7 @@ def main():
 
     args = parser.parse_args()
 
-    assert os.path.exists(args.detector_file), 'detector_file specified does not exist'
+    assert os.path.exists(args.detector_file), 'detector file {} does not exist'.format(args.detector_file)
     assert 0.0 < args.threshold <= 1.0, 'Confidence threshold needs to be between 0 and 1'  # Python chained comparison
 
     if args.image_file:

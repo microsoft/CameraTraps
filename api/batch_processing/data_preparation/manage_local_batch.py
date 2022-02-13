@@ -137,7 +137,7 @@ for i_task,task in enumerate(task_info):
         checkpoint_path_string = '--checkpoint_path {}'.format(chunk_file.replace(
             '.json','_checkpoint.json'))
             
-    cmd = f'{cuda_string} python run_tf_detector_batch.py {model_file} {chunk_file} {output_fn} {checkpoint_frequency_string} {checkpoint_path_string}'
+    cmd = f'{cuda_string} python run_detector_batch.py {model_file} {chunk_file} {output_fn} {checkpoint_frequency_string} {checkpoint_path_string}'
     
     cmd_file = os.path.join(filename_base,'run_chunk_{}_gpu_{}.sh'.format(str(i_task).zfill(2),
                             str(gpu_number).zfill(2)))
