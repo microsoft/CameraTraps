@@ -127,14 +127,28 @@ class ImagePathUtils:
 
 #%% Main function
 
-def load_and_run_detector(model_file, image_file_names, output_dir,
-                          render_confidence_threshold=DEFAULT_RENDERING_CONFIDENCE_THRESHOLD,
-                          crop_images=False):
-    """Load and run detector on target images, and visualize the results."""
-    if len(image_file_names) == 0:
-        print('Warning: no files available')
-        return
+def is_gpu_available(model_file):
+    """Decide whether a GPU is available, importing PyTorch or TF depending on the extension
+    of model_file.  Does not actually load model_file, just uses that to determine how to check 
+    for GPU availability."""
+    
+    if model_file.endswith('.pb'):
+        import tensorflow.compat.v1 as tf
+        gpu_available = tf.test.is_gpu_available()
+        print('TensorFlow version:', tf.__version__)
+        print('tf.test.is_gpu_available:', gpu_available)                
+        return gpu_available
+    elif model_file.endswith('.pt'):
+        import torch
+        gpu_available = torch.cuda.is_available()
+        print('PyTorch reports {} available CUDA devices'.format(torch.cuda.device_count()))
+        return gpu_available
+    else:
+        raise ValueError('Unrecognized model file extension for model {}'.format(model_file))
 
+
+def load_detector(model_file):
+    
     start_time = time.time()
     if model_file.endswith('.pb'):
         from detection.tf_detector import TFDetector
@@ -144,7 +158,21 @@ def load_and_run_detector(model_file, image_file_names, output_dir,
         detector = PTDetector(model_file)
     elapsed = time.time() - start_time
     print('Loaded model in {}'.format(humanfriendly.format_timespan(elapsed)))
+    return detector
 
+    
+def load_and_run_detector(model_file, image_file_names, output_dir,
+                          render_confidence_threshold=DEFAULT_RENDERING_CONFIDENCE_THRESHOLD,
+                          crop_images=False):
+    """Load and run detector on target images, and visualize the results."""
+    if len(image_file_names) == 0:
+        print('Warning: no files available')
+        return
+
+    print('GPU available: {}'.format(is_gpu_available(model_file)))
+    
+    detector = load_detector(model_file)
+    
     detection_results = []
     time_load = []
     time_infer = []
