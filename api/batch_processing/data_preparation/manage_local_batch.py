@@ -153,6 +153,63 @@ for i_task,task in enumerate(task_info):
     task['command_file'] = cmd_file
 
 
+#%% Generate combined commands for a handful of tasks
+
+if False:
+
+    #%%    
+
+    task_set = [8,10,12,14,16]; gpu_number = 0; sleep_time_between_tasks = 60; sleep_time_before_tasks = 0
+    commands = []
+    
+    # i_task = 8
+    for i_task in task_set:
+        
+        if i_task == task_set[0]:
+            commands.append('sleep {}'.format(str(sleep_time_before_tasks)))            
+        
+        task = task_info[i_task]
+        chunk_file = task['input_file']
+        output_fn = chunk_file.replace('.json','_results.json')
+        
+        task['output_file'] = output_fn
+        
+        if gpu_number is not None:
+            cuda_string = f'CUDA_VISIBLE_DEVICES={gpu_number}'
+        else:
+            cuda_string = ''
+            gpu_number = 0
+        
+        checkpoint_frequency_string = ''
+        checkpoint_path_string = ''
+        if checkpoint_frequency is not None and checkpoint_frequency > 0:
+            checkpoint_frequency_string = f'--checkpoint_frequency {checkpoint_frequency}'
+            checkpoint_path_string = '--checkpoint_path {}'.format(chunk_file.replace(
+                '.json','_checkpoint.json'))
+                
+        cmd = f'{cuda_string} python run_tf_detector_batch.py {model_file} {chunk_file} {output_fn} {checkpoint_frequency_string} {checkpoint_path_string}'
+        
+        task['command'] = cmd
+        commands.append(cmd)
+        if i_task != task_set[-1]:
+            commands.append('sleep {}'.format(str(sleep_time_between_tasks)))            
+        
+    # ...for each task
+    
+    task_strings = [str(k).zfill(2) for k in task_set]
+    task_set_string = '_'.join(task_strings)
+    cmd_file = os.path.join(filename_base,'run_chunk_{}_gpu_{}.sh'.format(task_set_string,
+                            str(gpu_number).zfill(2)))
+    
+    with open(cmd_file,'w') as f:
+        for cmd in commands:
+            f.write(cmd + '\n')
+        
+    import stat
+    st = os.stat(cmd_file)
+    os.chmod(cmd_file, st.st_mode | stat.S_IEXEC)
+    
+
 #%% Run the tasks
 
 # Prefer to run manually
@@ -256,6 +313,7 @@ options.confidence_threshold = 0.8
 options.almost_detection_confidence_threshold = options.confidence_threshold - 0.05
 options.ground_truth_json_file = None
 options.separate_detections_by_category = True
+# options.sample_seed = 0
 
 if render_animals_only:
     # Omit some pages from the output, useful when animals are rare
@@ -374,6 +432,7 @@ options.confidence_threshold = 0.8
 options.almost_detection_confidence_threshold = options.confidence_threshold - 0.05
 options.ground_truth_json_file = None
 options.separate_detections_by_category = True
+# options.sample_seed = 0
 
 if render_animals_only:
     # Omit some pages from the output, useful when animals are rare

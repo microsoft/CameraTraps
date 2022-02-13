@@ -1,8 +1,8 @@
 ########
 #
-# sanity_check_json_db.py
+# integrity_check_json_db.py
 #
-# Does some sanity-checking and computes basic statistics on a db, specifically:
+# Does some integrity-checking and computes basic statistics on a db, specifically:
 #
 # * Verifies that required fields are present and have the right types
 # * Verifies that annotations refer to valid images
@@ -30,13 +30,11 @@ from operator import itemgetter
 from PIL import Image
 from tqdm import tqdm
 
-nThreads = 10
-
 
 #%% Functions
 
 # If baseDir is non-empty, checks image existence
-class SanityCheckOptions:
+class IntegrityCheckOptions:
     
     baseDir = ''
     bCheckImageSizes = False
@@ -44,9 +42,10 @@ class SanityCheckOptions:
     bFindUnusedImages = False
     bRequireLocation = True
     iMaxNumImages = -1
+    nThreads = 10
     
 # This is used in a medium-hacky way to share modified options across threads
-defaultOptions = SanityCheckOptions()
+defaultOptions = IntegrityCheckOptions()
 
 
 def check_image_existence_and_size(image,options=None):
@@ -76,7 +75,7 @@ def check_image_existence_and_size(image,options=None):
     return True
 
   
-def sanity_check_json_db(jsonFile, options=None):
+def integrity_check_json_db(jsonFile, options=None):
     '''
     jsonFile can be a filename or an already-loaded json database
     
@@ -85,7 +84,7 @@ def sanity_check_json_db(jsonFile, options=None):
     
     if options is None:   
         
-        options = SanityCheckOptions()
+        options = IntegrityCheckOptions()
     
     if options.bCheckImageSizes:
         
@@ -96,7 +95,7 @@ def sanity_check_json_db(jsonFile, options=None):
     baseDir = options.baseDir
     
     
-    ##%% Read .json file if necessary, sanity-check fields
+    ##%% Read .json file if necessary, integrity-check fields
     
     if isinstance(jsonFile,dict):
         
@@ -243,20 +242,27 @@ def sanity_check_json_db(jsonFile, options=None):
             
         print('Checking image existence and/or image sizes...')
         
-        pool = ThreadPool(nThreads)
-        # results = pool.imap_unordered(lambda x: fetch_url(x,nImages), indexedUrlList)
-        defaultOptions.baseDir = options.baseDir
-        defaultOptions.bCheckImageSizes = options.bCheckImageSizes
-        defaultOptions.bCheckImageExistence = options.bCheckImageExistence
-        results = tqdm(pool.imap(check_image_existence_and_size, images), total=len(images))
-        
+        if options.nThreads is not None and options.nThreads > 1:
+            pool = ThreadPool(options.nThreads)
+            # results = pool.imap_unordered(lambda x: fetch_url(x,nImages), indexedUrlList)
+            defaultOptions.baseDir = options.baseDir
+            defaultOptions.bCheckImageSizes = options.bCheckImageSizes
+            defaultOptions.bCheckImageExistence = options.bCheckImageExistence
+            results = tqdm(pool.imap(check_image_existence_and_size, images), total=len(images))
+        else:
+            results = []
+            for im in tqdm(images):
+                results.append(check_image_existence_and_size(im,options))
+                
         for iImage,r in enumerate(results):
             if not r:
-                print('Image validation error for image {}'.format(iImage))
-                validationErrors.append(os.path.join(options.baseDir,image['file_name']))
+                # print('Image validation error for image {} ({})'.format(iImage,images[iImage]['file_name']))
+                validationErrors.append(os.path.join(options.baseDir,images[iImage]['file_name']))
                             
     # ...for each image
     
+    print('{} validation errors (of {})'.format(len(validationErrors),len(images)))
+                                                
     print('Checking annotations...')
     
     nBoxes = 0
@@ -282,7 +288,7 @@ def sanity_check_json_db(jsonFile, options=None):
         annIdToAnn[annId] = ann
     
         # Confirm validity
-        assert ann['category_id'] in catIdToCat
+        assert ann['category_id'] in catIdToCat, 'Category {} not found in category list'.format(ann['category_id'])
         assert ann['image_id'] in imageIdToImage
     
         imageIdToImage[ann['image_id']]['_count'] += 1
@@ -348,19 +354,19 @@ def sanity_check_json_db(jsonFile, options=None):
     
     return sortedCategories, data, errorInfo
 
-# ...def sanity_check_json_db()
+# ...def integrity_check_json_db()
     
 
 #%% Command-line driver
     
 def main():
     
-    # python sanity_check_json_db.py "e:\wildlife_data\wellington_data\wellington_camera_traps.json" --baseDir "e:\wildlife_data\wellington_data\images" --bFindUnusedImages --bCheckImageSizes
-    # python sanity_check_json_db.py "D:/wildlife_data/mcgill_test/mcgill_test.json" --baseDir "D:/wildlife_data/mcgill_test" --bFindUnusedImages --bCheckImageSizes
+    # python integrity_check_json_db.py "e:\wildlife_data\wellington_data\wellington_camera_traps.json" --baseDir "e:\wildlife_data\wellington_data\images" --bFindUnusedImages --bCheckImageSizes
+    # python integrity_check_json_db.py "D:/wildlife_data/mcgill_test/mcgill_test.json" --baseDir "D:/wildlife_data/mcgill_test" --bFindUnusedImages --bCheckImageSizes
     
     # Here the '-u' prevents buffering, which makes tee happier
     #
-    # python -u sanity_check_json_db.py '/datadrive1/nacti_metadata.json' --baseDir '/datadrive1/nactiUnzip/' --bFindUnusedImages --bCheckImageSizes | tee ~/nactiTest.out
+    # python -u integrity_check_json_db.py '/datadrive1/nacti_metadata.json' --baseDir '/datadrive1/nactiUnzip/' --bFindUnusedImages --bCheckImageSizes | tee ~/nactiTest.out
     
     parser = argparse.ArgumentParser()
     parser.add_argument('jsonFile')
@@ -380,7 +386,7 @@ def main():
         parser.exit()
         
     args = parser.parse_args()    
-    sanity_check_json_db(args.jsonFile,args)
+    integrity_check_json_db(args.jsonFile,args)
 
 
 if __name__ == '__main__':
@@ -394,10 +400,10 @@ if False:
     
     #%%
     
-    # Sanity-check .json files for LILA
+    # Integrity-check .json files for LILA
     jsonFiles = [r'c:\temp\nacti\nacti_metadata.json']
     
-    options = SanityCheckOptions()
+    options = IntegrityCheckOptions()
     options.baseDir = ''
     options.bCheckImageSizes = False
     options.bFindUnusedImages = False
@@ -406,4 +412,4 @@ if False:
     
     for jsonFile in jsonFiles:
         
-        sortedCategories,data,_ = sanity_check_json_db(jsonFile, options)
+        sortedCategories,data,_ = integrity_check_json_db(jsonFile, options)
