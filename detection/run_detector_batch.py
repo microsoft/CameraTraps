@@ -27,6 +27,14 @@ Sample invocation:
 python detection/run_detector_batch.py ~/models/camera_traps/megadetector/md_v4.1.0/md_v4.1.0.pb ~/git/CameraTraps/test_images/test_images/ ~/tmp/mdv4test.json --output_relative_filenames
 python detection/run_detector_batch.py ~/models/camera_traps/megadetector/camonly_mosaic_xlarge_dist_5a_last.torchscript.pt ~/git/CameraTraps/test_images/test_images/ ~/tmp/mdv5test.json --output_relative_filenames
 
+CUDA_VISIBLE_DEVICES=0 python detection/run_detector_batch.py ~/models/camera_traps/megadetector/md_v4.1.0/md_v4.1.0.pb ~/data/test-small ~/tmp/mdv4test.json --output_relative_filenames --recursive
+
+CUDA_VISIBLE_DEVICES=0 python detection/run_detector_batch.py ~/models/camera_traps/megadetector/camonly_mosaic_xlarge_dist_5a_last.torchscript.pt ~/data/test-small ~/tmp/mdv5test-00.json --output_relative_filenames --recursive # 5.77 im/s
+CUDA_VISIBLE_DEVICES=0 python detection/run_detector_batch.py ~/models/camera_traps/megadetector/camonly_mosaic_xlarge_dist_5a_last.torchscript.pt ~/data/test-small ~/tmp/mdv5test-01.json --output_relative_filenames --recursive --use_image_queue # 7.2 im/s
+
+CUDA_VISIBLE_DEVICES=0 python detection/run_detector_batch.py ~/models/camera_traps/megadetector/camonly_mosaic_xlarge_dist_5a_last.pt ~/data/test-small ~/tmp/mdv5test-00.json --output_relative_filenames --recursive # 
+CUDA_VISIBLE_DEVICES=0 python detection/run_detector_batch.py ~/models/camera_traps/megadetector/camonly_mosaic_xlarge_dist_5a_last.pt ~/data/test-small ~/tmp/mdv5test-01.json --output_relative_filenames --recursive --use_image_queue # 
+
 python api/batch_processing/postprocessing/postprocess_batch_results.py ~/tmp/mdv4test.json ~/tmp/mdv4pp --confidence_threshold 0.8 --image_base_dir ~/git/CameraTraps/test_images/test_images
 python api/batch_processing/postprocessing/postprocess_batch_results.py ~/tmp/mdv5test.json ~/tmp/mdv5pp --confidence_threshold 0.4 --image_base_dir ~/git/CameraTraps/test_images/test_images
 
@@ -59,7 +67,7 @@ from multiprocessing.pool import Pool as workerpool
 # Number of images to pre-fetch
 max_queue_size = 10
 use_threads_for_queue = False
-verbose = True
+verbose = False
 
 # Useful hack to force CPU inference
 #
@@ -100,7 +108,8 @@ def producer_func(q,image_files):
             print('Producer process: image {} cannot be loaded. Exception: {}'.format(im_file, e))
             raise
         
-        print('Queueing image {}'.format(im_file)); sys.stdout.flush()
+        if verbose:
+            print('Queueing image {}'.format(im_file)); sys.stdout.flush()
         q.put([im_file,image])                    
     
     q.put(None)
@@ -598,7 +607,8 @@ def main():
                                           use_image_queue=args.use_image_queue)
 
     elapsed = time.time() - start_time
-    print('Finished inference in {}'.format(humanfriendly.format_timespan(elapsed)))
+    print('Finished inference for {} images in {}'.format(
+        len(results),humanfriendly.format_timespan(elapsed)))
 
     relative_path_base = None
     if args.output_relative_filenames:
