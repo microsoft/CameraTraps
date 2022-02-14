@@ -6,7 +6,7 @@
 #
 ########
 
-# %% Imports and environment
+#%% Imports and environment
 
 import os
 import warnings
@@ -17,6 +17,9 @@ import jsonpickle
 import pandas as pd
 from joblib import Parallel, delayed
 from tqdm import tqdm
+
+import sklearn.cluster
+import numpy as np
 
 import pyqtree
 
@@ -37,16 +40,10 @@ from api.batch_processing.postprocessing.postprocess_batch_results import relati
 from visualization.visualization_utils import open_image, render_detection_bounding_boxes
 import ct_utils
 
-# Imports I'm not using but use when I tinker with parallelization
-#
-# from multiprocessing import Pool
-# from multiprocessing.pool import ThreadPool
-# import multiprocessing
-# import joblib
-
-# ignoring all "PIL cannot read EXIF metainfo for the images" warnings
+# "PIL cannot read EXIF metainfo for the images"
 warnings.filterwarnings('ignore', '(Possibly )?corrupt EXIF data', UserWarning)
-# Metadata Warning, tag 256 had too many entries: 42, expected 1
+
+# "Metadata Warning, tag 256 had too many entries: 42, expected 1"
 warnings.filterwarnings('ignore', 'Metadata warning', UserWarning)
 
 
@@ -58,9 +55,10 @@ DETECTION_INDEX_FILE_NAME = 'detectionIndex.json'
 #%% Classes
 
 class RepeatDetectionOptions:
-
-    # inputFlename = r'D:\temp\tigers_20190308_all_output.csv'
-
+    """
+    Options that control the behavior of repeat detection elimination
+    """
+    
     # Relevant for rendering HTML or filtering folder of images
     #
     # imageBase can also be a SAS URL, in which case some error-checking is
@@ -143,7 +141,14 @@ class RepeatDetectionOptions:
     # manufacturer-specific way (e.g. a/b/c/RECONYX100 and a/b/c/RECONYX101 may really be the same camera).
     customDirNameFunction = None
 
-
+    # Sort detections within a directory so nearby detections are adjacent
+    # in the list, for faster review.
+    #
+    # Can be None, 'xsort', or 'clustersort'
+    smartSort = 'xsort'
+    smartSortDistanceThreshold = 0.1
+    
+    
 class RepeatDetectionResults:
     """
     The results of an entire repeat detection analysis
@@ -175,11 +180,12 @@ class RepeatDetectionResults:
 
 
 class IndexedDetection:
+    """
+    A single detection event on a single image
+    """
 
     def __init__(self, iDetection=-1, filename='', bbox=[], confidence=-1, category='unknown'):
         """
-        A single detection event on a single image
-
         Args:
             iDetection: order in API output file
             filename: path to the image of this detection
@@ -199,7 +205,8 @@ class IndexedDetection:
 class DetectionLocation:
     """
     A unique-ish detection location, meaningful in the context of one
-    directory.
+    directory.  All detections within an IoU threshold of self.bbox
+    will be stored in "instances".
     """
 
     def __init__(self, instance, detection, relativeDir, id=None):
@@ -208,6 +215,7 @@ class DetectionLocation:
         self.relativeDir = relativeDir
         self.sampleImageRelativeFileName = ''
         self.id = id
+        self.clusterLabel = None
 
     def __repr__(self):
         s = ct_utils.pretty_print_object(self, False)
@@ -222,7 +230,7 @@ class DetectionLocation:
         return detection
 
 
-##%% Helper functions
+#%% Helper functions
 
 def enumerate_images(dirName,outputFileName=None):
     """
@@ -252,8 +260,6 @@ def render_bounding_box(detection, inputFileName, outputFileName, lineWidth=5, e
     im.save(outputFileName)
 
 
-##%% Look for matches (one directory) (function)
-
 def detection_rect_to_rtree_rect(detection_rect):
     # We store detetions as x/y/w/h, rtree and pyqtree use l/b/r/t
     l = detection_rect[0]
@@ -271,6 +277,108 @@ def rtree_rect_to_detection_rect(rtree_rect):
     h = rtree_rect[3] - rtree_rect[1]
     return (x,y,w,h)
     
+
+#%% Sort a list of candidate detections to make them visually easier to review
+
+def sort_detections_for_directory(candidateDetections,options):
+    """
+    candidateDetections is a list of DetectionLocation objects.  Sorts them to
+    put nearby detections next to each other, for easier visual review.
+    """
+ 
+    if len(candidateDetections) <= 1 or options.smartSort is None:
+        return candidateDetections
+    
+    # Just sort by the X location of each box
+    if options.smartSort == 'xsort':
+        candidateDetectionsSorted = sorted(candidateDetections,
+                                           key=lambda x: (
+                                               (x.bbox[0]) + (x.bbox[2]/2.0)
+                                               ))
+        return candidateDetectionsSorted
+    
+    elif options.smartSort == 'clustersort':
+    
+        cluster = sklearn.cluster.AgglomerativeClustering(
+            n_clusters=None,
+            distance_threshold=options.smartSortDistanceThreshold,
+            linkage='complete')
+    
+        # Prepare a list of points to represent each box, 
+        # that's what we'll use for clustering
+        points = []
+        for det in candidateDetections:
+            # Upper-left
+            # points.append([det.bbox[0],det.bbox[1]])
+            
+            # Center
+            points.append([det.bbox[0]+det.bbox[2]/2.0,
+                           det.bbox[1]+det.bbox[3]/2.0])
+        X = np.array(points)
+        
+        labels = cluster.fit_predict(X)
+        unique_labels = np.unique(labels)
+        
+        # Labels *could* be any unique labels according to the docs, but in practice
+        # they are unique integers from 0:nClusters
+        # Make sure the labels are unique incrementing integers
+        for i_label in range(1,len(unique_labels)):
+            assert unique_labels[i_label] == 1 + unique_labels[i_label-1]
+        
+        assert len(labels) == len(candidateDetections)
+        
+        # Store the label assigned to each cluster
+        for i_label,label in enumerate(labels):
+            candidateDetections[i_label].clusterLabel = label
+            
+        # Now sort the clusters by their x coordinate, and re-assign labels
+        # so the labels are sortable
+        label_x_means = []
+        
+        for label in unique_labels:
+            detections_this_label = [d for d in candidateDetections if (
+                d.clusterLabel == label)]
+            points_this_label = [ [d.bbox[0],d.bbox[1]] for d in detections_this_label]
+            x = [p[0] for p in points_this_label]
+            y = [p[1] for p in points_this_label]        
+            
+            # Compute the centroid for debugging, but we're only going to use the x
+            # coordinate.  This is the centroid of points used to represent detections,
+            # which may be box centers or box corners.
+            centroid = [ sum(x) / len(points_this_label), sum(y) / len(points_this_label) ]
+            label_xval = centroid[0]
+            label_x_means.append(label_xval)
+            
+        old_cluster_label_to_new_cluster_label = {}    
+        new_cluster_labels = np.argsort(label_x_means)
+        assert len(new_cluster_labels) == len(np.unique(new_cluster_labels))
+        for old_cluster_label in unique_labels:
+            # old_cluster_label_to_new_cluster_label[old_cluster_label] =\
+            #    new_cluster_labels[old_cluster_label]
+            old_cluster_label_to_new_cluster_label[old_cluster_label] =\
+                np.where(new_cluster_labels==old_cluster_label)[0][0]
+                
+        for i_cluster in range(0,len(unique_labels)):
+            old_label = unique_labels[i_cluster]
+            assert i_cluster == old_label
+            new_label = old_cluster_label_to_new_cluster_label[old_label]
+            
+        for i_det,det in enumerate(candidateDetections):
+            old_label = det.clusterLabel
+            new_label = old_cluster_label_to_new_cluster_label[old_label]
+            det.clusterLabel = new_label
+            
+        candidateDetectionsSorted = sorted(candidateDetections,
+                                           key=lambda x: (x.clusterLabel,x.id))
+        
+        return candidateDetectionsSorted
+        
+    else:
+        raise ValueError('Unrecognized sort method {}'.format(
+            options.smartSort))
+        
+        
+#%% Look for matches (one directory) 
 
 def find_matches_in_directory(dirName, options, rowsByDirectory):
     """
@@ -401,8 +509,6 @@ def find_matches_in_directory(dirName, options, rowsByDirectory):
             overlappingCandidateDetections =\
                 candidateDetectionsIndex.intersect(rtree_rect)
             
-            # For debugging only, it's convenient to have these sorted
-            # as if they had never gone into a tree structure
             overlappingCandidateDetections.sort(
                 key=lambda x: x.id, reverse=False)
             
@@ -451,20 +557,21 @@ def find_matches_in_directory(dirName, options, rowsByDirectory):
     
     candidateDetections = candidateDetectionsIndex.intersect([-100,-100,100,100])
     
+    # print('Found {} candidate detections for folder {}'.format(
+    #    len(candidateDetections),dirName))
+    
     # For debugging only, it's convenient to have these sorted
-    # as if they had never gone into a tree structure
+    # as if they had never gone into a tree structure.  Typically
+    # this is in practce a sort by filename.
     candidateDetections.sort(
         key=lambda x: x.id, reverse=False)
     
-    for candidate in candidateDetections:
-        del candidate.id
-        
     return candidateDetections
 
 # ...def find_matches_in_directory(dirName)
 
-    
-##%% Render problematic locations to html (function)
+
+#%% Render candidate repeat detections to html
 
 def render_images_for_directory(iDir, directoryHtmlFiles, suspiciousDetections, options):
     
@@ -585,7 +692,7 @@ def render_images_for_directory(iDir, directoryHtmlFiles, suspiciousDetections, 
 # ...def render_images_for_directory(iDir)
 
 
-##%% Update the detection table based on suspicious results, write .csv output
+#%% Update the detection table based on suspicious results, write .csv output
 
 def update_detection_table(RepeatDetectionResults, options, outputFilename=None):
     
@@ -715,7 +822,7 @@ def update_detection_table(RepeatDetectionResults, options, outputFilename=None)
 # ...def update_detection_table(RepeatDetectionResults,options)
 
 
-##%% Main function
+#%% Main function
 
 def find_repeat_detections(inputFilename, outputFilename=None, options=None):
     
@@ -799,8 +906,9 @@ def find_repeat_detections(inputFilename, outputFilename=None, options=None):
     # This is a mapping back into the rows of the original table
     filenameToRow = {}
 
-    # TODO: in the case where we're loading an existing set of FPs after manual filtering,
-    # we should load these data frames too, rather than re-building them from the input.
+    # TODO: in the case where we're loading an existing set of FPs after
+    # manual filtering, we should load these data frames too, rather than
+    # re-building them from the input.
 
     print('Separating files into directories...')
 
@@ -926,10 +1034,16 @@ def find_repeat_detections(inputFilename, outputFilename=None, options=None):
 
             suspiciousDetections[iDir] = suspiciousDetectionsThisDir
 
+            # Sort the above-threshold detections for easier review
+            if options.smartSort is not None:
+                suspiciousDetections[iDir] = sort_detections_for_directory(suspiciousDetections[iDir],options)
+            
         print(
             'Finished searching for repeat detections\nFound {} unique detections on {} images that are suspicious'.format(
                 nSuspiciousDetections, nImagesWithSuspiciousDetections))
 
+            
+    # If we're just loading detections from a file...
     else:
 
         assert len(suspiciousDetections) == len(dirsToSearch)
@@ -1078,7 +1192,14 @@ def find_repeat_detections(inputFilename, outputFilename=None, options=None):
                 
                 instance = detection.instances[0]
                 relativePath = instance.filename
-                outputRelativePath = 'dir{:0>4d}_det{:0>4d}_n{:0>4d}.jpg'.format(iDir, iDetection, len(detection.instances))
+                
+                if detection.clusterLabel is not None:
+                    clusterString = '_c{:0>4d}'.format(detection.clusterLabel)
+                else:
+                    clusterString = ''
+                    
+                outputRelativePath = 'dir{:0>4d}_det{:0>4d}{}_n{:0>4d}.jpg'.format(
+                    iDir, iDetection, clusterString, len(detection.instances))
                 outputFullPath = os.path.join(filteringDir, outputRelativePath)
                 
                 if is_sas_url(options.imageBase):
