@@ -153,9 +153,11 @@ def load_detector(model_file):
     if model_file.endswith('.pb'):
         from detection.tf_detector import TFDetector
         detector = TFDetector(model_file)
-    elif model_file.endswith('.torchscript.pt'):
+    elif model_file.endswith('.pt'):
         from detection.pytorch_detector import PTDetector
         detector = PTDetector(model_file)
+    else:
+        raise ValueError('Unrecognized model format: {}'.format(model_file))
     elapsed = time.time() - start_time
     print('Loaded model in {}'.format(humanfriendly.format_timespan(elapsed)))
     return detector
