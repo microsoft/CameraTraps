@@ -78,8 +78,6 @@ class PTDetector:
             img = np.ascontiguousarray(img)
             img = torch.from_numpy(img)
             img = img.to(self.device)
-            print('Device for tensor: {}'.format(img.device))
-            print('Device for model: {}'.format(self.device))
             img = img.float()
             img /= 255
 
