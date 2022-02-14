@@ -12,7 +12,7 @@ import json
 from deepdiff import DeepDiff
 
 f1 = '/home/user/postprocessing/ffi/ffi-2022-02-09/rde_0.60_0.85_10_0.20_task_0/filtering_2022.02.09.14.17.32/detectionIndex.json'
-f2 = '/home/user/postprocessing/ffi/ffi-2022-02-09/rde_0.60_0.85_10_0.20_task_0/filtering_2022.02.13.12.02.11/detectionIndex.json'
+f2 = '/home/user/postprocessing/ffi/ffi-2022-02-09/rde_0.60_0.85_10_0.20_task_0/filtering_2022.02.13.17.53.33/detectionIndex.json'
 
 with open(f1,'r') as f:
     d1 = json.load(f)
