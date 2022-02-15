@@ -7,12 +7,13 @@
 5. [Downloading the model](#downloading-the-model)
 6. [Using the model](#using-the-model)
 7. [Is there a GUI?](#is-there-a-gui)
-8. [Have you evaluated MegaDetector's accuracy?](#have-you-evaluated-megadetectors-accuracy)
-9. [Citing MegaDetector](#citing-megadetector)
-10. [Tell me more about why detectors are a good first step for camera trap images](#tell-me-more-about-why-detectors-are-a-good-first-step-for-camera-trap-images)
-11. [Pretty picture](#pretty-picture)
-12. [Mesmerizing video](#mesmerizing-video)
-13. [Can you share the training data?](#can-you-share-the-training-data)
+8  [How do I use the results?](#how-do-i-use-the-results)
+9. [Have you evaluated MegaDetector's accuracy?](#have-you-evaluated-megadetectors-accuracy)
+10. [Citing MegaDetector](#citing-megadetector)
+11. [Tell me more about why detectors are a good first step for camera trap images](#tell-me-more-about-why-detectors-are-a-good-first-step-for-camera-trap-images)
+12. [Pretty picture](#pretty-picture)
+13. [Mesmerizing video](#mesmerizing-video)
+14. [Can you share the training data?](#can-you-share-the-training-data)
 
 
 ## MegaDetector overview
@@ -238,6 +239,11 @@ But we recognize that Python tools can be a bit daunting, so we're excited that 
 * The [Zooniverse ML Subject Assistant](https://subject-assistant.zooniverse.org/#/intro) allows Zooniverse camera trap project owners to run MegaDetector and get "AI votes" on their camera trap images
 
 We haven't tried these, but they look great, and if you find them useful - or if you know of others - [let us know](mailto:cameratraps@lila.science)!
+
+
+## How do I use the results?
+
+See the ["How do people use MegaDetector results?"](https://github.com/microsoft/CameraTraps/blob/main/collaborations.md#how-people-use-megadetector-results) section of our "getting started" page.
 
 
 ## Have you evaluated MegaDetector's accuracy?
