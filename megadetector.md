@@ -7,7 +7,7 @@
 5. [Downloading the model](#downloading-the-model)
 6. [Using the model](#using-the-model)
 7. [Is there a GUI?](#is-there-a-gui)
-8  [How do I use the results?](#how-do-i-use-the-results)
+8.  [How do I use the results?](#how-do-i-use-the-results)
 9. [Have you evaluated MegaDetector's accuracy?](#have-you-evaluated-megadetectors-accuracy)
 10. [Citing MegaDetector](#citing-megadetector)
 11. [Tell me more about why detectors are a good first step for camera trap images](#tell-me-more-about-why-detectors-are-a-good-first-step-for-camera-trap-images)
