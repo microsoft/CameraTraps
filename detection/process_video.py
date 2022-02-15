@@ -1,4 +1,5 @@
 ######
+#
 # process_video.py
 #
 # Split a video into frames, run the frames through run_tf_detector_batch.py, and
@@ -55,16 +56,17 @@ def process_video(options):
     if options.render_output_video and (options.output_video_file is None):
         options.output_video_file = options.input_video_file + '.detections.mp4'
 
+    tempdir = os.path.join(tempfile.gettempdir(), 'process_camera_trap_video')
+    
     if options.frame_folder is not None:
         frame_output_folder = options.frame_folder
     else:
-        tempdir = os.path.join(tempfile.gettempdir(), 'process_camera_trap_video')
         frame_output_folder = os.path.join(
             tempdir, os.path.basename(options.input_video_file) + '_frames_' + str(uuid1()))
     os.makedirs(frame_output_folder, exist_ok=True)
 
     frame_filenames, Fs = video_to_frames(
-        options.input_video_file, frame_output_folder)
+        options.input_video_file, frame_output_folder, every_n_frames=options.frame_sample)
 
     image_file_names = frame_filenames
     if options.debug_max_frames > 0:
@@ -78,7 +80,7 @@ def process_video(options):
         results = run_tf_detector_batch.load_and_run_detector_batch(
             options.model_file, image_file_names,
             confidence_threshold=options.json_confidence_threshold,
-            n_cores=options.n_cores, every_n_frames=options.frame_sample)
+            n_cores=options.n_cores)
     
         run_tf_detector_batch.write_results_to_file(
             results, options.output_json_file,
@@ -86,6 +88,7 @@ def process_video(options):
 
 
     if options.render_output_video:
+        
         # Render detections to images
         rendering_output_dir = os.path.join(
             tempdir, os.path.basename(options.input_video_file) + '_detections')
@@ -97,10 +100,20 @@ def process_video(options):
 
         # Combine into a video
         frames_to_video(detected_frame_files, Fs, options.output_video_file)
-
+        
+        # Delete the temporary directory we used for detection images
+        try:
+            shutil.rmtree(rendering_output_dir)
+        except Exception:
+            pass
+        
+    # (Optionally) delete the frames on which we ran MegaDetector
     if options.delete_output_frames:
-        shutil.rmtree(frame_output_folder)
-
+        try:
+            shutil.rmtree(frame_output_folder)
+        except Exception:
+            pass
+        
     return results
 
 
@@ -330,7 +343,7 @@ if False:
 
 def main():
 
-    parser = argparse.ArgumentParser(description=('Run MegaDetector on each frame in a video, optionally producing a new video with detections annotated'))
+    parser = argparse.ArgumentParser(description=('Run MegaDetector on each frame in a video (or every Nth frame), optionally producing a new video with detections annotated'))
 
     parser.add_argument('model_file', type=str,
                         help='MegaDetector model file')
@@ -351,10 +364,10 @@ def main():
                         default=None, help='video output file (or folder), defaults to [video file].mp4 for files, or [video file]_annotated] for folders')
 
     parser.add_argument('--render_output_video', action='store_true',
-                        help='enable/disable video output rendering (default False)')
+                        help='enable video output rendering (not rendered by default)')
 
     parser.add_argument('--delete_output_frames', type=bool,
-                        default=False, help='enable/disable temporary file deletion (default True)')
+                        default=True, help='enable/disable temporary file deletion (default True)')
 
     parser.add_argument('--rendering_confidence_threshold', type=float,
                         default=0.8, help="don't render boxes with confidence below this threshold")
@@ -369,7 +382,7 @@ def main():
                         default=None, help='procss every Nth frame (defaults to every frame)')
 
     parser.add_argument('--debug_max_frames', type=int,
-                        default=-1, help='trim to N frames for debugging')
+                        default=-1, help='trim to N frames for debugging (impacts model execution, not frame rendering)')
 
     args = parser.parse_args()
     options = ProcessVideoOptions()
