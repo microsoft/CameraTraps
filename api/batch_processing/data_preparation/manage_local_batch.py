@@ -543,3 +543,40 @@ options.n_threads = 100
 options.allow_existing_directory = False
 
 separate_detections_into_folders(options)
+
+
+#%% Post-processing (post-classification)
+
+classification_detection_files = [    
+    "/home/user/postprocessing/organization/organization-2022-02-19/combined_api_outputs/organization-2022-02-19_megaclassifier.json",
+    "/home/user/postprocessing/organization/organization-2022-02-19/combined_api_outputs/organization-2022-02-19_idfgclassifier.json"
+    ]
+    
+for fn in classification_detection_files:
+    assert os.path.isfile(fn)
+    
+# classification_detection_file = classification_detection_files[1]
+for classification_detection_file in classification_detection_files:
+    
+    options = PostProcessingOptions()
+    options.image_base_dir = input_path
+    options.parallelize_rendering = True
+    options.include_almost_detections = True
+    options.num_images_to_sample = 10000
+    options.confidence_threshold = 0.75
+    options.classification_confidence_threshold = 0.75
+    options.almost_detection_confidence_threshold = options.confidence_threshold - 0.05
+    options.ground_truth_json_file = None
+    options.separate_detections_by_category = True
+    
+    folder_token = classification_detection_file.split('/')[-1].replace('classifier.json','')
+    
+    output_base = os.path.join(postprocessing_output_folder, folder_token + \
+        base_task_name + '_{:.3f}'.format(options.confidence_threshold))
+    os.makedirs(output_base, exist_ok=True)
+    print('Processing {} to {}'.format(base_task_name, output_base))
+    
+    options.api_output_file = classification_detection_file
+    options.output_dir = output_base
+    ppresults = process_batch_results(options)
+    open_file(ppresults.output_html_file)
