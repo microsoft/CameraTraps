@@ -24,16 +24,16 @@ is not supported when using multiprocessing.
 
 Sample invocation:
 
-python detection/run_detector_batch.py ~/models/camera_traps/megadetector/md_v4.1.0/md_v4.1.0.pb ~/git/CameraTraps/test_images/test_images/ ~/tmp/mdv4test.json --output_relative_filenames
-python detection/run_detector_batch.py ~/models/camera_traps/megadetector/camonly_mosaic_xlarge_dist_5a_last.torchscript.pt ~/git/CameraTraps/test_images/test_images/ ~/tmp/mdv5test.json --output_relative_filenames
+# All on the 1212-image test subset
 
-CUDA_VISIBLE_DEVICES=0 python detection/run_detector_batch.py ~/models/camera_traps/megadetector/md_v4.1.0/md_v4.1.0.pb ~/data/test-small ~/tmp/mdv4test.json --output_relative_filenames --recursive
+CUDA_VISIBLE_DEVICES=0 python detection/run_detector_batch.py ~/models/camera_traps/megadetector/md_v4.1.0/md_v4.1.0.pb ~/data/test-small ~/tmp/mdv4test.json --output_relative_filenames --recursive # 2.52 im/s
+CUDA_VISIBLE_DEVICES=0 python detection/run_detector_batch.py ~/models/camera_traps/megadetector/md_v4.1.0/md_v4.1.0.pb ~/data/test-small ~/tmp/mdv4test.json --output_relative_filenames --recursive --use_image_queue # 3.03 im/s
 
 CUDA_VISIBLE_DEVICES=0 python detection/run_detector_batch.py ~/models/camera_traps/megadetector/camonly_mosaic_xlarge_dist_5a_last.torchscript.pt ~/data/test-small ~/tmp/mdv5test-00.json --output_relative_filenames --recursive # 5.77 im/s
 CUDA_VISIBLE_DEVICES=0 python detection/run_detector_batch.py ~/models/camera_traps/megadetector/camonly_mosaic_xlarge_dist_5a_last.torchscript.pt ~/data/test-small ~/tmp/mdv5test-01.json --output_relative_filenames --recursive --use_image_queue # 7.2 im/s
 
-CUDA_VISIBLE_DEVICES=0 python detection/run_detector_batch.py ~/models/camera_traps/megadetector/camonly_mosaic_xlarge_dist_5a_last.pt ~/data/test-small ~/tmp/mdv5test-00.json --output_relative_filenames --recursive # 
-CUDA_VISIBLE_DEVICES=0 python detection/run_detector_batch.py ~/models/camera_traps/megadetector/camonly_mosaic_xlarge_dist_5a_last.pt ~/data/test-small ~/tmp/mdv5test-01.json --output_relative_filenames --recursive --use_image_queue # 
+CUDA_VISIBLE_DEVICES=0 python detection/run_detector_batch.py ~/models/camera_traps/megadetector/camonly_mosaic_xlarge_dist_5a_last.pt ~/data/test-small ~/tmp/mdv5test-00.json --output_relative_filenames --recursive # 6.54 im/s
+CUDA_VISIBLE_DEVICES=0 python detection/run_detector_batch.py ~/models/camera_traps/megadetector/camonly_mosaic_xlarge_dist_5a_last.pt ~/data/test-small ~/tmp/mdv5test-01.json --output_relative_filenames --recursive --use_image_queue # 8.44 im/s
 """
 
 #%% Constants, imports, environment

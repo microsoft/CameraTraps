@@ -12,6 +12,7 @@ Dependencies:
 #%% Imports
 
 import time
+import sys
 
 import cv2
 import torch
@@ -30,16 +31,33 @@ class PTDetector:
     STRIDE = 64
 
 
-    def __init__(self, torchscript_model_path):
-        self.device = torch.device('cuda:0') if torch.cuda.is_available() else 'cpu'
-        self.model = PTDetector.__load_model(torchscript_model_path)
+    def __init__(self, model_path):
+        self.device = torch.device('cuda:0') if torch.cuda.is_available() else 'cpu'    
+        self.is_pt = False if model_path.endswith('.torchscript.pt') else True
+        if self.is_pt:
+            try:
+                from models.yolo import Model
+            except ModuleNotFoundError:
+                print('The yolov5 module is not found.')
+                sys.exit(1)
+            print('Using the PyTorch checkpoint to perform inference.')
+            # deserialization in torch.load() will error if models.yolo.Model is not imported
+            self.model = PTDetector.__load_model(model_path, self.device)
+        else:
+            self.model = PTDetector.__load_torchscript_model(model_path)
+        
         if torch.cuda.is_available():
             print('Sending model to GPU')
             self.model.to(self.device)
-        
 
     @staticmethod
-    def __load_model(torchscript_model_path):
+    def __load_model(model_pt_path, device):
+        checkpoint = torch.load(model_pt_path, map_location=device)
+        model = checkpoint['model'].float().fuse().eval()  # FP32 model
+        return model
+
+    @staticmethod
+    def __load_torchscript_model(torchscript_model_path):
         extra_files = {'config.txt': ''}  # model metadata
         model = torch.jit.load(torchscript_model_path, _extra_files=extra_files)
         return model
@@ -72,7 +90,7 @@ class PTDetector:
 
             # padded resize
             img = letterbox(img_original, new_shape=PTDetector.IMAGE_SIZE,
-                                 stride=PTDetector.STRIDE, auto=False)[0] # JIT requires auto=False
+                                 stride=PTDetector.STRIDE, auto=self.is_pt)[0] # JIT requires auto=False
 
             img = img.transpose((2, 0, 1))  # HWC to CHW; PIL Image is RGB already
             img = np.ascontiguousarray(img)
