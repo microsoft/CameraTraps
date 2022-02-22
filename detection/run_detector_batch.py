@@ -34,10 +34,6 @@ CUDA_VISIBLE_DEVICES=0 python detection/run_detector_batch.py ~/models/camera_tr
 
 CUDA_VISIBLE_DEVICES=0 python detection/run_detector_batch.py ~/models/camera_traps/megadetector/camonly_mosaic_xlarge_dist_5a_last.pt ~/data/test-small ~/tmp/mdv5test-00.json --output_relative_filenames --recursive # 
 CUDA_VISIBLE_DEVICES=0 python detection/run_detector_batch.py ~/models/camera_traps/megadetector/camonly_mosaic_xlarge_dist_5a_last.pt ~/data/test-small ~/tmp/mdv5test-01.json --output_relative_filenames --recursive --use_image_queue # 
-
-python api/batch_processing/postprocessing/postprocess_batch_results.py ~/tmp/mdv4test.json ~/tmp/mdv4pp --confidence_threshold 0.8 --image_base_dir ~/git/CameraTraps/test_images/test_images
-python api/batch_processing/postprocessing/postprocess_batch_results.py ~/tmp/mdv5test.json ~/tmp/mdv5pp --confidence_threshold 0.4 --image_base_dir ~/git/CameraTraps/test_images/test_images
-
 """
 
 #%% Constants, imports, environment
