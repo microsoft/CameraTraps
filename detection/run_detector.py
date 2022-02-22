@@ -9,7 +9,7 @@ say). It does not facilitate checkpointing the results so if it crashes you
 would have to start from scratch. If you want to run a detector (e.g., ours)
 on lots of images, you should check out:
 
-1) run_tf_detector_batch.py (for local execution)
+1) run_detector_batch.py (for local execution)
 
 2) https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing
    (for running large jobs on Azure ML)
@@ -125,7 +125,7 @@ class ImagePathUtils:
         return image_strings
 
 
-#%% Main function
+#%% Utility functions
 
 def is_gpu_available(model_file):
     """Decide whether a GPU is available, importing PyTorch or TF depending on the extension
@@ -148,6 +148,7 @@ def is_gpu_available(model_file):
 
 
 def load_detector(model_file):
+    """Load a TF or PT detector, depending on the extension of model_file."""
     
     start_time = time.time()
     if model_file.endswith('.pb'):
@@ -162,11 +163,14 @@ def load_detector(model_file):
     print('Loaded model in {}'.format(humanfriendly.format_timespan(elapsed)))
     return detector
 
-    
+
+#%% Main function
+
 def load_and_run_detector(model_file, image_file_names, output_dir,
                           render_confidence_threshold=DEFAULT_RENDERING_CONFIDENCE_THRESHOLD,
                           crop_images=False):
     """Load and run detector on target images, and visualize the results."""
+    
     if len(image_file_names) == 0:
         print('Warning: no files available')
         return
@@ -307,7 +311,7 @@ def main():
         description='Module to run an animal detection model on images')
     parser.add_argument(
         'detector_file',
-        help='Path to .pb TensorFlow detector model file')
+        help='Path to TensorFlow (.pb) or PyTorch (.pt) detector model file')
     group = parser.add_mutually_exclusive_group(required=True)  # must specify either an image file or a directory
     group.add_argument(
         '--image_file',
@@ -340,7 +344,7 @@ def main():
 
     args = parser.parse_args()
 
-    assert os.path.exists(args.detector_file), 'detector_file specified does not exist'
+    assert os.path.exists(args.detector_file), 'detector file {} does not exist'.format(args.detector_file)
     assert 0.0 < args.threshold <= 1.0, 'Confidence threshold needs to be between 0 and 1'  # Python chained comparison
 
     if args.image_file:
