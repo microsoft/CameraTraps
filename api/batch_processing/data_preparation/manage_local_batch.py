@@ -394,7 +394,7 @@ options.debugMaxRenderDetection = -1
 options.debugMaxRenderInstance = -1
 
 # Can be None, 'xsort', or 'clustersort'
-smartSort = 'xsort'
+options.smartSort = 'xsort'
 
 suspiciousDetectionResults = repeat_detections_core.find_repeat_detections(combined_api_output_file,
                                                                            None,
