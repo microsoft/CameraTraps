@@ -35,8 +35,9 @@ n_rendering_threads = 50
 #%% Constants I set per script
 
 input_path = os.path.expanduser('~/data/organization/2021-12-24') 
-model_file = os.path.expanduser('~/models/camera_traps/megadetector/md_v4.1.0/md_v4.1.0.pb')
 organization_name_short = 'organization'
+
+model_file = os.path.expanduser('~/models/camera_traps/megadetector/md_v4.1.0/md_v4.1.0.pb')
 postprocessing_base = os.path.expanduser('~/postprocessing')
 
 # Number of jobs to split data into, typically equal to the number of available GPUs
