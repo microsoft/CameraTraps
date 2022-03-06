@@ -42,7 +42,7 @@ postprocessing_base = os.path.expanduser('~/postprocessing')
 
 # Number of jobs to split data into, typically equal to the number of available GPUs
 n_jobs = 2
-n_gpus = n_jobs
+n_gpus = 2
 
 # Only used to print out a time estimate
 gpu_images_per_second = 2.9
