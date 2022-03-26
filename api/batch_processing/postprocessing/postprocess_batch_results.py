@@ -150,10 +150,7 @@ class PostProcessingOptions:
     # Control rendering parallelization
     parallelize_rendering_n_cores: Optional[int] = 100
     parallelize_rendering = False
-
-    # Determines whether missing images force an error
-    allow_missing_images = False
-
+    
 # ...PostProcessingOptions
 
 
@@ -366,34 +363,38 @@ def render_bounding_boxes(
             image = vis_utils.open_image(image_full_path)
         except:
             print('Warning: could not open image file {}'.format(image_full_path))
-            return ''
-
-        if options.viz_target_width is not None:
-            image = vis_utils.resize_image(image, options.viz_target_width)
-
-        vis_utils.render_detection_bounding_boxes(
-            detections, image,
-            label_map=detection_categories,
-            classification_label_map=classification_categories,
-            confidence_threshold=options.confidence_threshold,
-            thickness=options.line_thickness,
-            expansion=options.box_expansion)
-
+            image = None
+            # return ''
+        
         # Render images to a flat folder... we can use os.sep here because we've
         # already normalized paths
         sample_name = res + '_' + path_utils.flatten_path(image_relative_path)
         fullpath = os.path.join(options.output_dir, res, sample_name)
-        try:
-            image.save(fullpath)
-        except OSError as e:
-            # errno.ENAMETOOLONG doesn't get thrown properly on Windows, so
-            # we awkwardly check against a hard-coded limit
-            if (e.errno == errno.ENAMETOOLONG) or (len(fullpath) >= 259):
-                extension = os.path.splitext(sample_name)[1]
-                sample_name = res + '_' + str(uuid.uuid4()) + extension
-                image.save(os.path.join(options.output_dir, res, sample_name))
-            else:
-                raise
+
+        if image is not None:
+            
+            if options.viz_target_width is not None:
+                image = vis_utils.resize_image(image, options.viz_target_width)
+    
+            vis_utils.render_detection_bounding_boxes(
+                detections, image,
+                label_map=detection_categories,
+                classification_label_map=classification_categories,
+                confidence_threshold=options.confidence_threshold,
+                thickness=options.line_thickness,
+                expansion=options.box_expansion)
+    
+            try:
+                image.save(fullpath)
+            except OSError as e:
+                # errno.ENAMETOOLONG doesn't get thrown properly on Windows, so
+                # we awkwardly check against a hard-coded limit
+                if (e.errno == errno.ENAMETOOLONG) or (len(fullpath) >= 259):
+                    extension = os.path.splitext(sample_name)[1]
+                    sample_name = res + '_' + str(uuid.uuid4()) + extension
+                    image.save(os.path.join(options.output_dir, res, sample_name))
+                else:
+                    raise
 
     # Use slashes regardless of os
     file_name = '{}/{}'.format(res,sample_name)
@@ -1234,13 +1235,9 @@ def process_batch_results(options: PostProcessingOptions
                 continue
             total_images += v
 
-        if options.allow_missing_images:
-            if total_images != image_count:
-                print('Warning: image_count is {}, total_images is {}'.format(total_images,image_count))
-            else:
-                assert total_images == image_count, \
-                    'Error: image_count is {}, total_images is {}'.format(total_images,image_count)
-
+        if total_images != image_count:
+            print('Warning, missing images: image_count is {}, total_images is {}'.format(total_images,image_count))
+        
         almost_detection_string = ''
         if options.include_almost_detections:
             almost_detection_string = ' (&ldquo;almost detection&rdquo; threshold at {:.1%})'.format(
