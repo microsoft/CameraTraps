@@ -324,6 +324,8 @@ def main():
                         help='Number of threads to use for parallel operation (default=1)')
     parser.add_argument('--allow_existing_directory', action='store_true', 
                         help='Proceed even if the target directory exists and is not empty')
+    parser.add_argument('--no_overwrite', action='store_true', 
+                        help='Skip images that already exist in the target folder, must also specify --allow_existing_directory')
     
     if len(sys.argv[1:])==0:
         parser.print_help()
@@ -345,6 +347,8 @@ def main():
     if args.vehicle_threshold:
         options.category_name_to_threshold['vehicle'] = args.vehicle_threshold
     
+    options.overwrite = (not args.no_overwrite)
+        
     separate_detections_into_folders(options)
     
 if __name__ == '__main__':
