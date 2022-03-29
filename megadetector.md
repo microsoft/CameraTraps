@@ -7,12 +7,13 @@
 5. [Downloading the model](#downloading-the-model)
 6. [Using the model](#using-the-model)
 7. [Is there a GUI?](#is-there-a-gui)
-8. [Have you evaluated MegaDetector's accuracy?](#have-you-evaluated-megadetectors-accuracy)
-9. [Citing MegaDetector](#citing-megadetector)
-10. [Tell me more about why detectors are a good first step for camera trap images](#tell-me-more-about-why-detectors-are-a-good-first-step-for-camera-trap-images)
-11. [Pretty picture](#pretty-picture)
-12. [Mesmerizing video](#mesmerizing-video)
-13. [Can you share the training data?](#can-you-share-the-training-data)
+8.  [How do I use the results?](#how-do-i-use-the-results)
+9. [Have you evaluated MegaDetector's accuracy?](#have-you-evaluated-megadetectors-accuracy)
+10. [Citing MegaDetector](#citing-megadetector)
+11. [Tell me more about why detectors are a good first step for camera trap images](#tell-me-more-about-why-detectors-are-a-good-first-step-for-camera-trap-images)
+12. [Pretty picture](#pretty-picture)
+13. [Mesmerizing video](#mesmerizing-video)
+14. [Can you share the training data?](#can-you-share-the-training-data)
 
 
 ## MegaDetector overview
@@ -72,7 +73,7 @@ See <a href="https://github.com/microsoft/CameraTraps/#who-is-using-the-ai-for-e
 
 #### Release notes
 
-This release incorporates additional training data from Borneo, Australia and the [WCS Camera Traps](http://lila.science/datasets/wcscameratraps) dataset, as well as images of humans in both daytime and nighttime. We also have a preliminary "vehicle" class for cars, trucks and bicycles.
+This release incorporates additional training data from Borneo, Australia and the [WCS Camera Traps](http://lila.science/datasets/wcscameratraps) dataset, as well as images of humans in both daytime and nighttime. We also have a preliminary "vehicle" class for cars, trucks, and bicycles.
 
 #### Download links
 
@@ -240,6 +241,11 @@ But we recognize that Python tools can be a bit daunting, so we're excited that 
 We haven't tried these, but they look great, and if you find them useful - or if you know of others - [let us know](mailto:cameratraps@lila.science)!
 
 
+## How do I use the results?
+
+See the ["How do people use MegaDetector results?"](https://github.com/microsoft/CameraTraps/blob/main/collaborations.md#how-people-use-megadetector-results) section of our "getting started" page.
+
+
 ## Have you evaluated MegaDetector's accuracy?
 
 Internally, we track metrics on a validation set when we train MegaDetector, but we can't stress enough how much performance of any AI system can vary in new environments, so if we told you "99.9999% accurate" or "50% accurate", etc., we would immediately follow that up with "but don't believe us: try it in your environment!"
@@ -251,6 +257,10 @@ All of those caveats aside, we are aware of some external validation studies... 
 * Fennell MJ, Beirne CW, Burton C. [Use of object detection in camera trap image identification: assessing a method to rapidly and accurately classify human and animal detections for research and application in recreation ecology](https://www.biorxiv.org/content/10.1101/2022.01.14.476404v3). bioRxiv. 2022 Jan 1.
 * Vélez J, Castiblanco-Camacho PJ, Tabak MA, Chalmers C, Fergus P, Fieberg J.  [Choosing an Appropriate Platform and Workflow for Processing Camera Trap Data using Artificial Intelligence](https://arxiv.org/abs/2202.02283). arXiv. 2022 Feb 4.
 * [github.com/FFI-Vietnam/camtrap-tools](https://github.com/FFI-Vietnam/camtrap-tools) (includes an evaluation of MegaDetector)
+
+Bonus... this paper is not a formal review, but includes a thorough case study around MegaDetector:
+
+* Tuia D, Kellenberger B, Beery S, Costelloe BR, Zuffi S, Risse B, Mathis A, Mathis MW, van Langevelde F, Burghardt T, Kays R. [Perspectives in machine learning for wildlife conservation](https://www.nature.com/articles/s41467-022-27980-y). Nature Communications. 2022 Feb 9;13(1):1-5.
 
 If you know of other validation studies that have been published, [let us know](mailto:cameratraps@lila.science)!
 
