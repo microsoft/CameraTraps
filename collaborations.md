@@ -3,9 +3,10 @@
 ## Table of contents
 
 1. [Overview](#overview)<br/>
-2. [How people use MegaDetector](#how-people-use-megadetector)<br/>
-3. [Questions about specific camera trap use cases](#questions-about-specific-camera-trap-use-cases)<br/>
-4. [Learn more](#learn-more)<br/>
+2. [How people run MegaDetector](#how-people-run-megadetector)<br/>
+3. [How people use MegaDetector results](#how-people-use-megadetector-results)<br/>
+4. [Questions about specific camera trap use cases](#questions-about-specific-camera-trap-use-cases)<br/>
+5. [Learn more](#learn-more)<br/>
 
 ## Overview
 
@@ -23,24 +24,27 @@ You can see a list of some of the organizations who have used our tools [here](h
 
 If you are looking for a more technical description of our MegaDetector model, see [this page](megadetector.md).
 
-## How people use MegaDetector
+## How people run MegaDetector
 
-An AI model isn't useful to most ecologists by itself, so we "package" this model in a variety of ways.  For most of our collaborators, they send us images (anywhere from thousands to millions), which we run through this model in the cloud, then we send back a results file.  We've integrated with a variety of tools that camera trap researchers already use, to make it relatively painless to use our results in the context of a real workflow.  Our most mature integration is with an open-source tool called <a href="http://saul.cpsc.ucalgary.ca/timelapse/">Timelapse</a>; read more about how to use MegaDetector results with Timelapse [here](https://github.com/microsoft/CameraTraps/blob/master/api/batch_processing/integration/timelapse.md).
+MegaDetector is a publicly-available model, and there are instructions [here](https://github.com/microsoft/CameraTraps/blob/main/megadetector.md#using-the-model) for running it using our Python scripts.  Many of our users run MegaDetector on their own, either on the cloud or on their local computers.
+
+That said, we know that Python can be a bit daunting, and that it requires significant processing power to run MegaDetector on millions of images.  So many of our users - particularly high-volume users - send us images (anywhere from tens of thousands to millions), which we run through MegaDetector, then we send back a results file.
+
+Whether you're going to run MegaDetector on your own or work with us, usually the first step with a new user is just running our model on a few thousand images and seeing what happens, so if you're interested in trying this on your images, we can work out a way to transfer a set of example images, just email us at <a href="mailto:cameratraps@lila.science">cameratraps@lila.science</a>.After that, we'll typically send back a page of sample results, like this one:
+
+<https://lila.science/private/snapshot-safari-public/snapshot-safari-2022-02-07_rde_0.60_0.85_10_0.20_0.800>
+
+That page isn't <i>quite</i> what a real results page would look like: rather than just "detections" and "non-detections", a real results page would have images broken out into separate links for empty/people/vehicle/animal.  But we can't use a data set with people in it for a public demo, so the samples above are simplified to just include images that have animals or are empty (that page is based on public data from the <a href="https://www.zooniverse.org/organizations/meredithspalmer/snapshot-safari">Snapshot Safari</a> project.
+
+
+## How people use MegaDetector results
+
+Of course, running MegaDetector doesn't do anything useful by itself: it just produces a file that tells you which images MegaDetector thinks have animals/people/vehicles in them.  You still need a way to use that file in a real image processing workflow.  We've integrated with a variety of tools that camera trap researchers already use, to make it relatively painless to use our results in the context of a real workflow.  Our most mature integration is with <a href="http://saul.cpsc.ucalgary.ca/timelapse/">Timelapse</a>, a fantastic open-source tool for reviewing camera trap images (very efficient even if you're not using AI!).  Read more about how to use MegaDetector results with Timelapse [here](https://github.com/microsoft/CameraTraps/blob/master/api/batch_processing/integration/timelapse.md).
 
 We have somewhat-less-complete integrations with the [eMammal desktop application](https://github.com/microsoft/CameraTraps/blob/master/api/batch_processing/integration/eMammal) and with [dikiKam](https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing/integration/digiKam).
 
-For more programming-inclined users, or for real-time applications (primarily anti-poaching scenarios), we also package our MegaDetector model into two different APIs: a [batch processing API](https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing) for processing large volumes of images with some latency, and a [real-time API](https://aiforearth.portal.azure-api.net/docs/services/ai-for-earth-camera-trap-detection-api/operations/post-detect).
+We also have Python tools that use MegaDetector results to just separate a folder of images into folders containing images that are probably-empty, probably-animal, etc., preserving the original folder structure within these folders.  Users often use this approach to just get rid of the images that MegaDetector is really sure are empty, then you can go about your workflow exactly as you did before, just with fewer empty images.
 
-Whether you are using an image review tool like Timelapse or calling our APIs yourself, usually the first step with a new user is just running our model on a few thousand images and seeing what happens, so if you're interested in trying this on your images, we can work out a way to transfer a set of example images, just email us at <a href="mailto:cameratraps@lila.science">cameratraps@lila.science</a>.
-
-After that, we'll typically send back a page of sample results; depending on whether you already know the "right" answer for these images, the results will look like one of these:
-
-* A sample of what a results "preview" looks like when we don't know what the right answers are:<br/>
-[snapshot-serengeti/s7-eval/postprocessing-no-gt](http://dolphinvm.westus2.cloudapp.azure.com/data/snapshot-serengeti/s7-eval/postprocessing-no-gt)<br/><br/>
-* A sample of what a results "preview" looks like when we know what the right answers are, and can compute accuracy:<br/>
-[snapshot-serengeti/s7-eval/postprocessing-detection-gt](http://dolphinvm.westus2.cloudapp.azure.com/data/snapshot-serengeti/s7-eval/postprocessing-detection-gt)
-
-Those pages aren't <i>quite</i> what a real results page would look like: rather than just "detections" and "non-detections", a real results page would have images broken out into separate links for empty/people/vehicle/animal.  But we can't use a data set with people in it for a public demo, so the samples above are simplified to just include images that have animals or are empty (both sample pages are based on public data from the <a href="http://lila.science/datasets/snapshot-serengeti">Snapshot Serengeti</a> project.
 
 ## Questions about specific camera trap use cases
 
