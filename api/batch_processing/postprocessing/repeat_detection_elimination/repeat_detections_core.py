@@ -140,6 +140,11 @@ class RepeatDetectionOptions:
     # folder ID), typically used when multiple folders actually correspond to the same camera in a 
     # manufacturer-specific way (e.g. a/b/c/RECONYX100 and a/b/c/RECONYX101 may really be the same camera).
     customDirNameFunction = None
+    
+    # Include/exclude specific folders... only one of these may be
+    # specified; "including" folders includes *only* those folders.
+    includeFolders = None
+    excludeFolders = None
 
     # Sort detections within a directory so nearby detections are adjacent
     # in the list, for faster review.
@@ -402,6 +407,18 @@ def find_matches_in_directory(dirName, options, rowsByDirectory):
         print('Ignoring directory {} because it has {} images (limit set to {})'.format(
             dirName,len(rows),options.maxImagesPerFolder))
         return []
+    
+    if options.includeFolders is not None:
+        assert options.excludeFolders is None, 'Cannot specify include and exclude folder lists'
+        if dirName not in options.includeFolders:
+            print('Ignoring folder {}, not in inclusion list'.format(dirName))
+            return []
+        
+    if options.excludeFolders is not None:
+        assert options.includeFolders is None, 'Cannot specify include and exclude folder lists'
+        if dirName in options.excludeFolders:
+            print('Ignoring folder {}, on exclusion list'.format(dirName))
+            return []
         
     # For each image in this directory
     #
@@ -760,7 +777,7 @@ def update_detection_table(RepeatDetectionResults, options, outputFilename=None)
     for iRow, row in detectionResults.iterrows():
 
         detections = row['detections']
-        if isinstance(detections,float):
+        if (detections is None) or isinstance(detections,float):
             assert isinstance(row['failure'],str)
             continue
         
