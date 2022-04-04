@@ -115,7 +115,6 @@ def main(detections_json_path: str,
             assert api_det_version == detector_version
         else:
             detector_version = api_det_version
-    # assert detector_version is not None
     if detector_version is None:
         detector_version = 'unknown'
 
@@ -130,7 +129,13 @@ def main(detections_json_path: str,
             images_missing_detections.append(img_path)
             continue
         for d in info_dict['detections']:
-            d['category'] = detection_categories[d['category']]
+            if d['category'] not in detection_categories:
+                print('Warning: ignoring detection with category {} for image {}'.format(
+                    d['category'],img_path))                
+                # This will be removed later when we filter for animals
+                d['category'] = 'unsupported'
+            else:
+                d['category'] = detection_categories[d['category']]
 
     images_failed_dload_crop, num_downloads, num_crops = download_and_crop(
         detections=detections,
