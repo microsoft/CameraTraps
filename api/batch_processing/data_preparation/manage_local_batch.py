@@ -358,8 +358,6 @@ if False:
 
 #%% Repeat detection elimination, phase 1
 
-folder_name_to_filtered_output_filename = {}
-
 # Deliberately leaving these imports here, rather than at the top, because this cell is not
 # typically executed
 from api.batch_processing.postprocessing.repeat_detection_elimination import repeat_detections_core
@@ -387,6 +385,10 @@ options.filenameReplacements = {'':''}
 
 # Exclude people and vehicles from RDE
 # options.excludeClasses = [2,3]
+
+# options.maxImagesPerFolder = 50000
+# options.includeFolders = ['a/b/c']
+# options.excludeFolder = ['a/b/c']
 
 options.debugMaxDir = -1
 options.debugMaxRenderDir = -1
