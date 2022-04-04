@@ -1160,7 +1160,7 @@ def process_batch_results(options: PostProcessingOptions
 
                 for det in detections:
 
-                    if 'classifications' in det:
+                    if ('classifications' in det):
 
                         # This is a list of [class,confidence] pairs, sorted by confidence
                         classifications = det['classifications']
