@@ -34,7 +34,7 @@ n_rendering_threads = 50
 
 #%% Constants I set per script
 
-input_path = os.path.expanduser('~/data/organization/2021-12-24') 
+input_path = os.path.expanduser('~/data/organization/2021-12-24')
 organization_name_short = 'organization'
 
 model_file = os.path.expanduser('~/models/camera_traps/megadetector/md_v4.1.0/md_v4.1.0.pb')
@@ -64,6 +64,9 @@ postprocessing_output_folder = os.path.join(filename_base, 'postprocessing')
 os.makedirs(filename_base, exist_ok=True)
 os.makedirs(combined_api_output_folder, exist_ok=True)
 os.makedirs(postprocessing_output_folder, exist_ok=True)
+
+if input_path.endswith('/'):
+    input_path = input_path[0:-1]
 
 
 #%% Support functions
