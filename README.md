@@ -74,6 +74,7 @@ Here are a few of the organizations that have used AI for Earth camera trap tool
 * Seattle Urban Carnivore Project
 * Road Ecology Center, University of California, Davis
 * [TrapTagger](https://wildeyeconservation.org/trap-tagger-about/)
+* Blackbird Environmental
 
 
 # Data
