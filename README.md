@@ -25,7 +25,7 @@ Especially if you're not aiming to dig in and write lots of Python code, and you
 
 We work with ecologists all over the world to help them spend less time annotating images and more time thinking about conservation.  You can read a little more about how this works on our [AI for Earth camera trap collaborations page](collaborations.md).
 
-You can also read about what we do to support camera trap researchers in our recent [blog post](https://medium.com/microsoftazure/accelerating-biodiversity-surveys-with-azure-machine-learning-9be53f41e674).
+You can also read about what we do to support camera trap researchers in our [blog post](https://medium.com/microsoftazure/accelerating-biodiversity-surveys-with-azure-machine-learning-9be53f41e674).
 
 Here are a few of the organizations that have used AI for Earth camera trap tools... we're only listing organizations who (a) we know about and (b) have generously allowed us to refer to them here, so if you're using MegaDetector or other tools from this repo and would like to be added to this list, <a href="mailto:cameratraps@lila.science">email us</a>!
 
