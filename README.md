@@ -11,9 +11,7 @@ This repo contains the tools for training, running, and evaluating detectors and
 - Miscellaneous useful tools for manipulating camera trap data
 - Research experiments we're doing around camera trap data (i.e., some directories are highly experimental and you should take them with a grain of salt)
 
-Classifiers and detectors are trained using TensorFlow.
-
-This repo is maintained by folks in the [Microsoft AI for Earth](http://aka.ms/aiforearth) program who like looking at pictures of animals.  I mean, we want to use machine learning to support conservation too, but we also really like looking at pictures of animals.
+This repo is maintained by folks at [Ecologize](http://ecologize.org/) and folks in the [Microsoft AI for Earth](http://aka.ms/aiforearth) program who like looking at pictures of animals.  I mean, we want to use machine learning to support conservation too, but we also really like looking at pictures of animals.
 
 
 # How do I get started?
