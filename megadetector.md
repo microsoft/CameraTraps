@@ -131,7 +131,7 @@ When we describe how to run our two inference scripts below, we assume the follo
 
 1. You have Python 3 installed.  We recommend installing [Anaconda](https://www.anaconda.com/products/individual), which is Python plus a zillion useful packages.
 2. You have downloaded our [MegaDetector model](https://lilablobssc.blob.core.windows.net/models/camera_traps/megadetector/md_v4.1.0/md_v4.1.0.pb) to some location on your computer.
-3. You have cloned this git repo, and the [AI for Earth Utilities](http://github.com/microsoft/ai4eutils) repo.  If you're not familiar with git and are on a Windows machine, we recommend installing [Git for Windows](https://git-scm.com/download/win).  Specific instructions for checking out the repo will be rolled into the next step.
+3. You have cloned this git repo, and the [AI for Earth Utilities](http://github.com/microsoft/ai4eutils) repo.  If you're not familiar with git and are on a Windows machine, we recommend installing [Git for Windows](https://git-scm.com/download/win).  Specific instructions for cloning the repo are included in the command line instructions at the end of this step.
 4. You have added both directories where you cloned the two repos to your PYTHONPATH environment variable.  Here's a [good page](https://www.computerhope.com/issues/ch000549.htm) about editing environment variables in Windows.  You will need administrative access to your PC to set an environment variable.
 
 Here are Windows instructions for steps 3 and 4 that assume you *don't* have administrative access to your PC (if you set the environment variable as per above, you can skip the "set PYTHONPATH" step here).  We're going to clone the repos to "c:\git", but you can use any folder you like.
