@@ -31,9 +31,12 @@ class ProcessVideoOptions:
 
     output_json_file = None
     output_video_file = None
-
+    
+    frame_folder = None
+    rendering_folder = None
+    
     render_output_video = False
-    delete_output_frames = True
+    keep_output_frames = False
     reuse_results_if_available = False
     recursive = False 
 
@@ -90,8 +93,11 @@ def process_video(options):
     if options.render_output_video:
         
         # Render detections to images
-        rendering_output_dir = os.path.join(
-            tempdir, os.path.basename(options.input_video_file) + '_detections')
+        if options.rendering_folder is not None:
+            rendering_output_dir = options.rendering_folder
+        else:
+            rendering_output_dir = os.path.join(
+                tempdir, os.path.basename(options.input_video_file) + '_detections')
         detected_frame_files = visualize_detector_output.visualize_detector_output(
             detector_output_path=options.output_json_file,
             out_dir=rendering_output_dir,
@@ -99,16 +105,18 @@ def process_video(options):
             confidence=options.rendering_confidence_threshold)
 
         # Combine into a video
+        print('Rendering video at {} fps'.format(Fs))
         frames_to_video(detected_frame_files, Fs, options.output_video_file)
         
         # Delete the temporary directory we used for detection images
-        try:
-            shutil.rmtree(rendering_output_dir)
-        except Exception:
-            pass
+        if not options.keep_output_frames:
+            try:
+                shutil.rmtree(rendering_output_dir)
+            except Exception:
+                pass
         
     # (Optionally) delete the frames on which we ran MegaDetector
-    if options.delete_output_frames:
+    if not options.keep_output_frames:
         try:
             shutil.rmtree(frame_output_folder)
         except Exception:
@@ -357,6 +365,9 @@ def main():
     parser.add_argument('--frame_folder', type=str, default=None,
                         help='folder to use for intermediate frame storage, defaults to a folder in the system temporary folder')
                         
+    parser.add_argument('--rendering_folder', type=str, default=None,
+                        help='folder to use for renderred frame storage, defaults to a folder in the system temporary folder')
+    
     parser.add_argument('--output_json_file', type=str,
                         default=None, help='.json output file, defaults to [video file].json')
 
@@ -366,8 +377,8 @@ def main():
     parser.add_argument('--render_output_video', action='store_true',
                         help='enable video output rendering (not rendered by default)')
 
-    parser.add_argument('--delete_output_frames', type=bool,
-                        default=True, help='enable/disable temporary file deletion (default True)')
+    parser.add_argument('--keep_output_frames',
+                       action='store_true', help='Disable the deletion of intermediate images (pre- and post-detection rendered frames)')
 
     parser.add_argument('--rendering_confidence_threshold', type=float,
                         default=0.8, help="don't render boxes with confidence below this threshold")
