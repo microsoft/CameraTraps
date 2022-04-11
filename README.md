@@ -73,7 +73,9 @@ Here are a few of the organizations that have used AI for Earth camera trap tool
 * Road Ecology Center, University of California, Davis
 * [TrapTagger](https://wildeyeconservation.org/trap-tagger-about/)
 * Blackbird Environmental
-
+* UNSW Sydney
+* Taronga Conservation Society
+* Myall Lakes Dingo Project
 
 # Data
 
