@@ -32,7 +32,6 @@ Here are a few of the organizations that have used AI for Earth camera trap tool
 * University of Washington Quantitative Ecology Lab
 * University of Idaho
 * Borderlands Research Institute at Sul Ross State University
-* Borneo Nature Foundation
 * Parks Canada
 * Australian Wildlife Conservancy
 * Lab of Dr. Bilal Habib at the Wildlife Institute of India
