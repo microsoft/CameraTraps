@@ -75,6 +75,7 @@ Here are a few of the organizations that have used AI for Earth camera trap tool
 * UNSW Sydney
 * Taronga Conservation Society
 * Myall Lakes Dingo Project
+* Irvine Ranch Conservancy ([story](https://www.ocregister.com/2022/03/30/ai-software-is-helping-researchers-focus-on-learning-about-ocs-wild-animals/))
 
 # Data
 
