@@ -31,6 +31,11 @@ max_tolerable_failed_images = 100
 
 n_rendering_threads = 50
 
+use_image_queue = False
+
+# Only relevant when we're using a single GPU
+default_gpu_number = 0
+
 
 #%% Constants I set per script
 
@@ -127,12 +132,12 @@ for i_task,task in enumerate(task_info):
     
     task['output_file'] = output_fn
     
-    cuda_string = ''
     if n_jobs > 1:
-        gpu_number = i_task % n_gpus
-        cuda_string = f'CUDA_VISIBLE_DEVICES={gpu_number}'
+        gpu_number = i_task % n_gpus        
     else:
-        gpu_number = 0
+        gpu_number = default_gpu_number
+        
+    cuda_string = f'CUDA_VISIBLE_DEVICES={gpu_number}'
     
     checkpoint_frequency_string = ''
     checkpoint_path_string = ''
@@ -141,7 +146,11 @@ for i_task,task in enumerate(task_info):
         checkpoint_path_string = '--checkpoint_path {}'.format(chunk_file.replace(
             '.json','_checkpoint.json'))
             
-    cmd = f'{cuda_string} python run_detector_batch.py {model_file} {chunk_file} {output_fn} {checkpoint_frequency_string} {checkpoint_path_string}'
+    use_image_queue_string = ''
+    if (use_image_queue):
+        use_image_queue_string = '--use_image_queue'
+
+    cmd = f'{cuda_string} python run_detector_batch.py {model_file} {chunk_file} {output_fn} {checkpoint_frequency_string} {checkpoint_path_string} {use_image_queue_string}'
     
     cmd_file = os.path.join(filename_base,'run_chunk_{}_gpu_{}.sh'.format(str(i_task).zfill(2),
                             str(gpu_number).zfill(2)))
@@ -177,12 +186,8 @@ if False:
         output_fn = chunk_file.replace('.json','_results.json')
         
         task['output_file'] = output_fn
-        
-        if gpu_number is not None:
-            cuda_string = f'CUDA_VISIBLE_DEVICES={gpu_number}'
-        else:
-            cuda_string = ''
-            gpu_number = 0
+
+        cuda_string = f'CUDA_VISIBLE_DEVICES={gpu_number}'
         
         checkpoint_frequency_string = ''
         checkpoint_path_string = ''
@@ -191,7 +196,11 @@ if False:
             checkpoint_path_string = '--checkpoint_path {}'.format(chunk_file.replace(
                 '.json','_checkpoint.json'))
                 
-        cmd = f'{cuda_string} python run_detector_batch.py {model_file} {chunk_file} {output_fn} {checkpoint_frequency_string} {checkpoint_path_string}'
+        use_image_queue_string = ''
+        if (use_image_queue):
+            use_image_queue_string = '--use_image_queue'
+
+        cmd = f'{cuda_string} python run_detector_batch.py {model_file} {chunk_file} {output_fn} {checkpoint_frequency_string} {checkpoint_path_string} {use_image_queue_string}'
         
         task['command'] = cmd
         commands.append(cmd)

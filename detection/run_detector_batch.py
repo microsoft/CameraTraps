@@ -34,6 +34,10 @@ CUDA_VISIBLE_DEVICES=0 python detection/run_detector_batch.py ~/models/camera_tr
 
 CUDA_VISIBLE_DEVICES=0 python detection/run_detector_batch.py ~/models/camera_traps/megadetector/camonly_mosaic_xlarge_dist_5a_last.pt ~/data/test-small ~/tmp/mdv5test-00.json --output_relative_filenames --recursive # 6.54 im/s
 CUDA_VISIBLE_DEVICES=0 python detection/run_detector_batch.py ~/models/camera_traps/megadetector/camonly_mosaic_xlarge_dist_5a_last.pt ~/data/test-small ~/tmp/mdv5test-01.json --output_relative_filenames --recursive --use_image_queue # 8.44 im/s
+
+CUDA_VISIBLE_DEVICES=0 python run_detector_batch.py ~/models/camera_traps/megadetector/camonly_mosaic_xlarge_dist_5a_last.pt ~/data/KRU ~/tmp/mdv5test-00.json --output_relative_filenames --recursive
+CUDA_VISIBLE_DEVICES=0 python run_detector_batch.py ~/models/camera_traps/megadetector/mdv5_camonly_mosaic_xlarge_dist_5c_epoch28.pt ~/data/KRU ~/tmp/mdv5test-00.json --output_relative_filenames --recursive
+
 """
 
 #%% Constants, imports, environment
@@ -395,7 +399,7 @@ def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=No
     return results
 
 
-def write_results_to_file(results, output_file, relative_path_base=None):
+def write_results_to_file(results, output_file, relative_path_base=None, detector_file=None):
     """
     Writes list of detection results to JSON output file. Format matches
     https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing#batch-processing-api-output-format
@@ -414,13 +418,18 @@ def write_results_to_file(results, output_file, relative_path_base=None):
             results_relative.append(r_relative)
         results = results_relative
 
+    info = { 
+        'detection_completion_time': datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'),
+        'format_version': '1.1' 
+    }
+    
+    if detector_file is not None:
+        info['detector'] = os.path.basename(detector_file)
+        
     final_output = {
         'images': results,
         'detection_categories': DEFAULT_DETECTOR_LABEL_MAP,
-        'info': {
-            'detection_completion_time': datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'),
-            'format_version': '1.0'
-        }
+        'info': info
     }
     with open(output_file, 'w') as f:
         json.dump(final_output, f, indent=1)
@@ -472,7 +481,7 @@ def main():
         description='Module to run a TF/PT animal detection model on lots of images')
     parser.add_argument(
         'detector_file',
-        help='Path to .pb TensorFlow detector model file')
+        help='Path to detector model file (.pb or .pt)')
     parser.add_argument(
         'image_file',
         help='Path to a single image file, a JSON file containing a list of paths to images, or a directory')
@@ -609,7 +618,8 @@ def main():
     relative_path_base = None
     if args.output_relative_filenames:
         relative_path_base = args.image_file
-    write_results_to_file(results, args.output_file, relative_path_base=relative_path_base)
+    write_results_to_file(results, args.output_file, relative_path_base=relative_path_base,
+                          detector_file=args.detector_file)
 
     if checkpoint_path:
         os.remove(checkpoint_path)
