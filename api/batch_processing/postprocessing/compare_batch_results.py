@@ -279,7 +279,7 @@ style_header = """<head>
 index_page = ''
 index_page += '<html>\n<body>\n'
 index_page += '<h2>Comparison of results for {}</h2>\n'.format(job_name)
-index_page += '<p>Comparing {} (red) to {} (blue)</p>'.format(results_description_a,results_description_b)
+index_page += '<p>Comparing <b>{}</b> (A, red) to <b>{}</b> (B, blue)</p>'.format(results_description_a,results_description_b)
 index_page += '<div class="contentdiv">\n'
 index_page += 'Detection thresholds for {}:\n{}<br/>'.format(results_description_a,str(detection_thresholds_a))
 index_page += 'Detection thresholds for {}:\n{}<br/>'.format(results_description_b,str(detection_thresholds_b))
