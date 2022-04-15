@@ -27,6 +27,9 @@ IMAGE_ROTATIONS = {
     8: 90
 }
 
+TEXTALIGN_LEFT = 0
+TEXTALIGN_RIGHT = 1
+
 # convert category ID from int to str
 DEFAULT_DETECTOR_LABEL_MAP = {
     str(k): v for k, v in detector_bbox_category_id_to_name.items()
@@ -255,7 +258,9 @@ def render_detection_bounding_boxes(detections, image,
                                     classification_label_map={},
                                     confidence_threshold=0.8, thickness=4, expansion=0,
                                     classification_confidence_threshold=0.3,
-                                    max_classifications=3):
+                                    max_classifications=3,
+                                    colormap=COLORS,
+                                    textalign=TEXTALIGN_LEFT):
     """
     Renders bounding boxes, label, and confidence on an image if confidence is above the threshold.
 
@@ -284,7 +289,7 @@ def render_detection_bounding_boxes(detections, image,
 
             (0, 0) is the upper-left.  Coordinates are normalized.
 
-            Supports classification results, if *detections* have the format
+            Supports classification results, if *detections* has the format
             [
                 {
                     "category": "2",
@@ -303,7 +308,7 @@ def render_detection_bounding_boxes(detections, image,
                 }
             ]
 
-        image: PIL.Image object, output of generate_detections.
+        image: PIL.Image object
 
         label_map: optional, mapping the numerical label to a string name. The type of the numerical label
             (default string) needs to be consistent with the keys in label_map; no casting is carried out.
@@ -365,7 +370,8 @@ def render_detection_bounding_boxes(detections, image,
     display_boxes = np.array(display_boxes)
 
     draw_bounding_boxes_on_image(image, display_boxes, classes,
-                                 display_strs=display_strs, thickness=thickness, expansion=expansion)
+                                 display_strs=display_strs, thickness=thickness, 
+                                 expansion=expansion, colormap=colormap, textalign=textalign)
 
 
 def draw_bounding_boxes_on_image(image,
@@ -373,7 +379,9 @@ def draw_bounding_boxes_on_image(image,
                                  classes,
                                  thickness=4,
                                  expansion=0,
-                                 display_strs=()):
+                                 display_strs=(),
+                                 colormap=COLORS,
+                                 textalign=TEXTALIGN_LEFT):
     """
     Draws bounding boxes on an image.
 
@@ -405,7 +413,9 @@ def draw_bounding_boxes_on_image(image,
                                        boxes[i, 0], boxes[i, 1], boxes[i, 2], boxes[i, 3],
                                        classes[i],
                                        thickness=thickness, expansion=expansion,
-                                       display_str_list=display_str_list)
+                                       display_str_list=display_str_list,
+                                       colormap=colormap,
+                                       textalign=textalign)
 
 
 def draw_bounding_box_on_image(image,
@@ -418,7 +428,9 @@ def draw_bounding_box_on_image(image,
                                expansion=0,
                                display_str_list=(),
                                use_normalized_coordinates=True,
-                               label_font_size=16):
+                               label_font_size=16,
+                               colormap=COLORS,
+                               textalign=TEXTALIGN_LEFT):
     """
     Adds a bounding box to an image.
 
@@ -447,9 +459,9 @@ def draw_bounding_box_on_image(image,
     label_font_size: font size to attempt to load arial.ttf with
     """
     if clss is None:
-        color = COLORS[1]
+        color = colormap[1]
     else:
-        color = COLORS[int(clss) % len(COLORS)]
+        color = colormap[int(clss) % len(colormap)]
 
     draw = ImageDraw.Draw(image)
     im_width, im_height = image.size
@@ -505,15 +517,21 @@ def draw_bounding_box_on_image(image,
     # Reverse list and print from bottom to top.
     for display_str in display_str_list[::-1]:
         text_width, text_height = font.getsize(display_str)
+        
+        text_left = left
+        
+        if textalign == TEXTALIGN_RIGHT:
+            text_left = right - text_width
+            
         margin = np.ceil(0.05 * text_height)
 
         draw.rectangle(
-            [(left, text_bottom - text_height - 2 * margin), (left + text_width,
+            [(text_left, text_bottom - text_height - 2 * margin), (text_left + text_width,
                                                               text_bottom)],
             fill=color)
 
         draw.text(
-            (left + margin, text_bottom - text_height - margin),
+            (text_left + margin, text_bottom - text_height - margin),
             display_str,
             fill='black',
             font=font)

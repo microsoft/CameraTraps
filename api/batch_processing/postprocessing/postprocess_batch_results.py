@@ -22,17 +22,18 @@ Ground truth, if available, must be in the COCO Camera Traps format.
 import argparse
 import collections
 import copy
-from enum import IntEnum
 import errno
 import io
 import itertools
-from multiprocessing.pool import ThreadPool
 import os
 import sys
 import time
-from typing import Any, Dict, Iterable, Optional, Tuple
 import uuid
 import warnings
+
+from typing import Any, Dict, Iterable, Optional, Tuple
+from enum import IntEnum
+from multiprocessing.pool import ThreadPool
 
 # This line was added circa 2018 and it made sense at the time; removing it in 2022
 # because matplotlib *mostly* does the right thing now, and overwriting the current
@@ -45,11 +46,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import humanfriendly
 import pandas as pd
+
 from sklearn.metrics import precision_recall_curve, confusion_matrix, average_precision_score
 from tqdm import tqdm
 
-# Assumes ai4eutils is on the python path
-# https://github.com/Microsoft/ai4eutils
+# Assumes ai4eutils is on the python path (https://github.com/Microsoft/ai4eutils)
 from write_html_image_list import write_html_image_list
 import path_utils
 
