@@ -367,7 +367,7 @@ def compare_batch_results(options):
 
 if False:
     
-    #%%
+    #%% KRU
     
     options = BatchComparisonOptions()
     options.output_folder = os.path.expanduser('~/tmp/kru-comparison')
@@ -389,26 +389,8 @@ if False:
     
     open_file(results.html_output_file)
     
-    #%% 
-    
-    options = BatchComparisonOptions()
-    options.output_folder = os.path.expanduser('~/tmp/ffi-comparison')
-    
-    options.image_folder = os.path.expanduser('~/data/ffi/deployment')
-    
-    options.results_filename_a = os.path.expanduser('~/postprocessing/ffi/ffi-2022-02-09/combined_api_outputs/ffi-2022-02-09_detections.json')
-    options.results_filename_b = os.path.expanduser('~/postprocessing/ffi/ffi-camonly-torschscript-28-2022-04-13/combined_api_outputs/ffi-camonly-torschscript-28-2022-04-13_detections.json')
-    
-    options.job_name = 'FFI'
-    options.results_description_a = 'MDv4'
-    options.results_description_b = 'MDv5-camonly-28-torchscript'
-    
-    options.detection_thresholds_a = {'animal':0.7,'person':0.7,'vehicle':0.7}
-    options.detection_thresholds_b = {'animal':0.4,'person':0.4,'vehicle':0.4}
-    
-    results = compare_batch_results(options)
-    
-    open_file(results.html_output_file)
-    
-    
+
+#%% Command-line driver
+
+## TODO
     
