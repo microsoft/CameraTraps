@@ -137,7 +137,7 @@ class IndexedJsonDb:
         assert 'images' in self.db, (
             f'Could not find image list in file {json_filename}, are you sure '
             'this is a COCO camera traps file?')
-
+        
         if b_convert_classes_to_lower:
             # Convert classnames to lowercase to simplify comparisons later
             for c in self.db['categories']:

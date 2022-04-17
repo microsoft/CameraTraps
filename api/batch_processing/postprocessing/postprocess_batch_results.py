@@ -125,6 +125,9 @@ class PostProcessingOptions:
     line_thickness = 4
     box_expansion = 0
 
+    job_name_string = None
+    model_version_string = None
+    
     sort_html_by_filename = True
 
     # Optionally separate detections into categories (animal/vehicle/human)
@@ -947,11 +950,38 @@ def process_batch_results(options: PostProcessingOptions
             image_counts['tp']
         )
 
+        if options.job_name_string is not None:
+            job_name_string = options.job_name_string
+        else:
+            # This is rare; it only happens during debugging when the caller
+            # is supplying already-loaded API results.
+            if options.api_output_file is None:
+                job_name_string = 'unknown'
+            else:
+                job_name_string = os.path.basename(options.api_output_file)
+        
+        if options.model_version_string is not None:
+            model_version_string = options.model_version_string
+        else:
+            
+            if 'info' not in other_fields or 'detector' not in other_fields['info']:
+                print('No model metadata supplied, assuming MDv4')
+                model_version_string = 'MDv4 (assumed)'
+            else:            
+                model_version_string = other_fields['info']['detector']
+        
         index_page = """<html>
         {}
         <body>
         <h2>Evaluation</h2>
 
+        <h3>Job metadata</h3>
+        
+        <div class="contentdiv">
+        <p>Job name: {}<br/>
+        <p>Model version: {}</p>
+        </div>
+        
         <h3>Sample images</h3>
         <div class="contentdiv">
         <p>A sample of {} images, annotated with detections above {:.1%} confidence.</p>
@@ -963,7 +993,7 @@ def process_batch_results(options: PostProcessingOptions
         CLASSIFICATION_PLACEHOLDER_2
         </div>
         """.format(
-            style_header,
+            style_header,job_name_string,model_version_string,
             image_count, options.confidence_threshold,
             all_tp_count, all_tp_count/total_count,
             image_counts['tn'], image_counts['tn']/total_count,
