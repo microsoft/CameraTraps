@@ -1,4 +1,4 @@
-# Working with the AI for Earth Camera Trap Tools
+# Getting started with MegaDetector
 
 ## Table of contents
 
@@ -20,7 +20,7 @@ This page summarizes what we do with that model to help our collaborators, typic
 
 Basically this page is the response we give when someone emails us and says "I have too many camera trap images!  Can you help me?!?!".  If you're an ecologist reading this page, and that sounds familiar, feel free to answer the questions below in an email to <a href="mailto:cameratraps@lila.science">cameratraps@lila.science</a>.
 
-You can see a list of some of the organizations who have used our tools [here](https://github.com/microsoft/CameraTraps/#who-is-using-the-ai-for-earth-camera-trap-tools).
+You can see a list of some of the organizations who have used our tools [here](https://github.com/microsoft/CameraTraps/#who-is-using-megadetector).
 
 If you are looking for a more technical description of our MegaDetector model, see [this page](megadetector.md).
 
