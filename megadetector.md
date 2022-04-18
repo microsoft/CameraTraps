@@ -64,7 +64,7 @@ If you want to run this benchmark on your own, here are <a href="https://github.
 
 ## Who is using MegaDetector?
 
-See <a href="https://github.com/microsoft/CameraTraps/#who-is-using-the-ai-for-earth-camera-trap-tools">this list</a> on the repo's main page.
+See <a href="https://github.com/microsoft/CameraTraps/#who-is-using-megadetector">this list</a> on the repo's main page.
 
 
 ## Downloading the model
