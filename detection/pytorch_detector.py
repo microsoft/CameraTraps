@@ -32,7 +32,7 @@ class PTDetector:
 
 
     def __init__(self, model_path):
-        self.device = torch.device('cuda:0') if torch.cuda.is_available() else 'cpu'    
+        self.device = torch.device('cuda:0') if torch.cuda.is_available() else 'cpu'
         self.is_pt = False if model_path.endswith('.torchscript.pt') else True
         if self.is_pt:
             try:
