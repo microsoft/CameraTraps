@@ -6,12 +6,12 @@ This repo contains the tools for training, running, and evaluating detectors and
 - Training and evaluation of detectors, particularly our "[MegaDetector](https://github.com/microsoft/CameraTraps/blob/master/megadetector.md)", which does a pretty good job finding animals, people, and vechicles (and therefore is pretty good at finding empty images) in a variety of terrestrial ecosystems
 - A [batch processing API](https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing) that runs MegaDetector on large image collections, to accelerate population surveys
 - A [real-time API](https://github.com/microsoft/CameraTraps/tree/master/api/synchronous) that runs MegaDetector (and some species classifiers) synchronously, primarily to support anti-poaching scenarios (e.g. see this [blog post](https://customers.microsoft.com/en-us/story/1384184517929343083-wildlife-protection-solutions-nonprofit-ai-for-earth) describing how this API supports [Wildlife Protection Solutions](https://wildlifeprotectionsolutions.org/))
-- A [Web-based demo](https://aka.ms/cameratrapdemo) that calls our real-time API
+- A [Web-based demo](https://github.com/microsoft/CameraTraps/tree/main/demo) that calls our real-time API
 - Training and evaluation of species-level classifiers for specific data sets
 - Miscellaneous useful tools for manipulating camera trap data
 - Research experiments we're doing around camera trap data (i.e., some directories are highly experimental and you should take them with a grain of salt)
 
-This repo is maintained by folks at [Ecologize](http://ecologize.org/) and folks in the [Microsoft AI for Earth](http://aka.ms/aiforearth) program who like looking at pictures of animals.  I mean, we want to use machine learning to support conservation too, but we also really like looking at pictures of animals.
+This repo is maintained by folks at [Ecologize](http://ecologize.org/) and folks in the [Microsoft AI for Earth](http://aka.ms/aiforearth) program who like looking at pictures of animals.  We want to support conservation, of course, but we also really like looking at pictures of animals.
 
 
 # How do I get started?
@@ -19,13 +19,11 @@ This repo is maintained by folks at [Ecologize](http://ecologize.org/) and folks
 Especially if you're not aiming to dig in and write lots of Python code, and you just want help getting through lots of camera trap imgaes, we recommend reading [this page](collaborations.md) first.
 
 
-# Who is using the AI for Earth camera trap tools?
+# Who is using MegaDetector?
 
-We work with ecologists all over the world to help them spend less time annotating images and more time thinking about conservation.  You can read a little more about how this works on our [AI for Earth camera trap collaborations page](collaborations.md).
+We work with ecologists all over the world to help them spend less time annotating images and more time thinking about conservation.  You can read a little more about how this works on our [getting started with MegaDetector](collaborations.md) page.
 
-You can also read about what we do to support camera trap researchers in our [blog post](https://medium.com/microsoftazure/accelerating-biodiversity-surveys-with-azure-machine-learning-9be53f41e674).
-
-Here are a few of the organizations that have used AI for Earth camera trap tools... we're only listing organizations who (a) we know about and (b) have generously allowed us to refer to them here, so if you're using MegaDetector or other tools from this repo and would like to be added to this list, <a href="mailto:cameratraps@lila.science">email us</a>!
+Here are a few of the organizations that have used MegaDetector... we're only listing organizations who (a) we know about and (b) have kindly given us permission to refer to them here, so if you're using MegaDetector or other tools from this repo and would like to be added to this list, <a href="mailto:cameratraps@lila.science">email us</a>!
 
 * Idaho Department of Fish and Game
 * San Diego Zoo Global
@@ -76,6 +74,7 @@ Here are a few of the organizations that have used AI for Earth camera trap tool
 * Taronga Conservation Society
 * Myall Lakes Dingo Project
 * Irvine Ranch Conservancy ([story](https://www.ocregister.com/2022/03/30/ai-software-is-helping-researchers-focus-on-learning-about-ocs-wild-animals/))
+* SUMHAL, Estación Biológica de Doñana
 
 # Data
 
