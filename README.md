@@ -127,12 +127,12 @@ Code for:
 
 ## demo
 
-Source for the Web-based demo of our MegaDetector model (we'll release the demo soon!).
+Source for the Web-based demo of our MegaDetector model.
 
 
 ## detection
 
-Code for training and evaluating detectors.
+Code for training, running, and evaluating MegaDetector.
 
 
 ## research
