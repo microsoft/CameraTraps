@@ -119,8 +119,8 @@ We provide four ways to apply this model to new images:
   <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open in Colab"/>
 </a>
 
-2. A simple test script that makes neat pictures with bounding boxes, but doesn't produce a useful output file ([run_tf_detector.py](https://github.com/microsoft/CameraTraps/blob/master/detection/run_tf_detector.py)) 
-3. A script for running large batches of images on a local GPU ([run_tf_detector_batch.py](https://github.com/microsoft/CameraTraps/blob/master/detection/run_tf_detector_batch.py)) 
+2. A simple test script that makes neat pictures with bounding boxes, but doesn't produce a useful output file ([run_detector.py](https://github.com/microsoft/CameraTraps/blob/master/detection/run_detector.py)) 
+3. A script for running large batches of images on a local GPU ([run_detector_batch.py](https://github.com/microsoft/CameraTraps/blob/master/detection/run_detector_batch.py)) 
 4. A [batch processing API](https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing) that runs images on many GPUs at once on Azure
 
 This section describes how to run the two scripts (options 2 and 3), including installing all the necessary Python dependencies. If your computer is also used for other Python projects, we recommend you set up the environment as described in the [Installation](https://github.com/microsoft/CameraTraps#installation) section of our main README, and use conda to set up a virtual environment in which to run scripts from this repo. This reduces potential version conflict headaches with your other projects. The environment file you should use to run the two scripts below is `environment-detector.yml`. You will still need to add the required repos to `PYTHONPATH`, but don't have to worry about installing Python, pip or any packages yourself.
@@ -154,41 +154,41 @@ cd c:\git\cameratraps\api\batch_processing\postprocessing
 set PYTHONPATH=c:\git\cameratraps;c:\git\ai4eutils
 ```
 
-### 1. run_tf_detector.py
+### 1. run_detector.py
 
-To "test" this model on small sets of images and get super-satisfying visual output, we provide [run_tf_detector.py](https://github.com/Microsoft/CameraTraps/blob/master/detection/run_tf_detector.py), an example script for invoking this detector on new images.  This isn't how we recommend running lots of images through MegaDetector (see [run_tf_detector_batch.py](#2-run_tf_detector_batchpy) below for "real" usage), but it's a quick way to test things out.  [Let us know](mailto:cameratraps@lila.science) how it works on your images!
+To "test" this model on small sets of images and get super-satisfying visual output, we provide [run_detector.py](https://github.com/Microsoft/CameraTraps/blob/master/detection/run_detector.py), an example script for invoking this detector on new images.  This isn't how we recommend running lots of images through MegaDetector (see [run_detector_batch.py](#2-run_detector_batchpy) below for "real" usage), but it's a quick way to test things out.  [Let us know](mailto:cameratraps@lila.science) how it works on your images!
 
-#### Running run_tf_detector.py on Linux
+#### Running run_detector.py on Linux
 
 To try this out (on Linux), assuming you have Python 3 and pip installed, you can run the following:
 
 ```bash
 # Download the script and the MegaDetector model file
-wget https://raw.githubusercontent.com/microsoft/CameraTraps/master/detection/run_tf_detector_batch.py
+wget https://raw.githubusercontent.com/microsoft/CameraTraps/master/detection/run_detector.py
 wget https://lilablobssc.blob.core.windows.net/models/camera_traps/megadetector/md_v4.1.0/md_v4.1.0.pb
 
 # Install dependencies
 pip install tensorflow pillow humanfriendly matplotlib tqdm jsonpickle statistics requests
 
 # Run MegaDetector
-python run_tf_detector.py md_v4.1.0.pb --image_file some_image_file.jpg
+python run_detector.py md_v4.1.0.pb --image_file some_image_file.jpg
 ```
 
-Run `python run_tf_detector.py` for a full list of options.
+Run `python run_detector.py` for a full list of options.
 
-#### Running run_tf_detector.py on Windows
+#### Running run_detector.py on Windows
 
 This assumes you've run the [prerequisites](#0-prerequisites) steps above.  After that, you can run the following in your Anaconda prompt:
 
 ```batch
-python c:\git\CameraTraps\detection\run_tf_detector.py c:\wherever\you\downloaded\the\detector\file\md_v4.1.0.pb --image_file some_image_file.jpg
+python c:\git\CameraTraps\detection\run_detector.py c:\wherever\you\downloaded\the\detector\file\md_v4.1.0.pb --image_file some_image_file.jpg
 ```
 
-### 2. run_tf_detector_batch.py
+### 2. run_detector_batch.py
 
-To apply this model to larger image sets on a single machine, we recommend a slightly different script, [run_tf_detector_batch.py](https://github.com/Microsoft/CameraTraps/blob/master/detection/run_tf_detector_batch.py).  This outputs data in the same format as our [batch processing API](https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing), so you can leverage all of our post-processing tools.
+To apply this model to larger image sets on a single machine, we recommend a slightly different script, [run_detector_batch.py](https://github.com/Microsoft/CameraTraps/blob/master/detection/run_detector_batch.py).  This outputs data in the same format as our [batch processing API](https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing), so you can leverage all of our post-processing tools.
 
-#### Running run_tf_detector_batch.py on Linux
+#### Running run_detector_batch.py on Linux
 
 To try this out (on Linux), assuming you have Python 3 and pip installed, you can do:
 
@@ -207,17 +207,17 @@ wget -O ~/md_v4.1.0.pb https://lilablobssc.blob.core.windows.net/models/camera_t
 pip install tensorflow pandas tqdm pillow humanfriendly matplotlib tqdm jsonpickle statistics requests
 
 # Run MegaDetector
-python CameraTraps/detection/run_tf_detector_batch.py ~/md_v4.1.0.pb some_image_file.jpg some_output_file.json
+python CameraTraps/detection/run_detector_batch.py ~/md_v4.1.0.pb some_image_file.jpg some_output_file.json
 ```
 
-Run `python run_tf_detector_batch.py` for a full list of options.
+Run `python run_detector_batch.py` for a full list of options.
 
-#### Running run_tf_detector_batch.py on Windows
+#### Running run_detector_batch.py on Windows
 
 This assumes you've run the [prerequisites](#0-prerequisites) steps above.  After that, you can run the following in your Anaconda prompt:
 
 ```batch
-python c:\git\CameraTraps\detection\run_tf_detector_batch.py c:\wherever\you\downloaded\the\detector\file\md_v4.1.0.pb some_image_folder some_output_file.json --output_relative_filenames --recursive
+python c:\git\CameraTraps\detection\run_detector_batch.py c:\wherever\you\downloaded\the\detector\file\md_v4.1.0.pb some_image_folder some_output_file.json --output_relative_filenames --recursive
 ```
 
 <b>If you are running very large batches, we strongly recommend adding the `--checkpoint_frequency` option to save checkpoints every N images</b> (you don't want to lose all the work your GPU has done if your computer crashes!).  10000 is a good value for checkpoint frequency; that will save the results every 10000 images.
