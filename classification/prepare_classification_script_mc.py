@@ -63,7 +63,6 @@ assert os.path.isfile(target_mapping_path)
 classifier_output_suffix = '_megaclassifier_output.csv.gz'
 final_output_suffix = '_megaclassifier.json'
 
-detector_version_str = '4.1'
 threshold_str = '0.65'
 n_threads_str = '50'
 image_size_str = '300'
@@ -102,7 +101,6 @@ for fn in input_files:
     	 input_file_path + ' \\\n' + \
          crop_path + ' \\\n' + \
          '--images-dir "' + image_base + '"' + ' \\\n' + \
-         '--detector-version "' + detector_version_str + '"' + ' \\\n' + \
          '--threshold "' + threshold_str + '"' + ' \\\n' + \
          '--square-crops ' + ' \\\n' + \
          '--threads "' + n_threads_str + '"' + ' \\\n' + \
