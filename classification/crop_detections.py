@@ -110,9 +110,11 @@ def main(detections_json_path: str,
 
     # get detector version
     if 'info' in js and 'detector' in js['info']:
-        api_det_version = js['info']['detector'].rsplit('v', maxsplit=1)[1]
+        api_det_version = js['info']['detector'] # .rsplit('v', maxsplit=1)[1]
         if detector_version is not None:
-            assert api_det_version == detector_version
+            assert api_det_version == detector_version,\
+            '.json file specifies a detector version of {}, but the caller has specified {}'.format(
+            api_det_version,detector_version)
         else:
             detector_version = api_det_version
     if detector_version is None:
@@ -221,7 +223,7 @@ def download_and_crop(
         True: os.path.join(cropped_images_dir, '{img_path}___crop{n:>02d}.jpg'),
         False: os.path.join(
             cropped_images_dir,
-            '{img_path}___crop{n:>02d}_' + f'mdv{detector_version}.jpg')
+            '{img_path}___crop{n:>02d}_' + f'{detector_version}.jpg')
     }
 
     pool = futures.ThreadPoolExecutor(max_workers=threads)
