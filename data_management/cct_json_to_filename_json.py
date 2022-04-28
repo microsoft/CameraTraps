@@ -1,8 +1,8 @@
 #
 # cct_json_to_filename_json.py
 #
-# Converts a .json file in COCO Camera Traps format to a .json-formatted list of
-# relative file names.
+# Given a .json file in COCO Camera Traps format, outputs a .json-formatted list of
+# relative file names present in the CCT file.
 #
 
 #%% Constants and environment

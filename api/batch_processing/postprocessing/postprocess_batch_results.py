@@ -108,7 +108,7 @@ class PostProcessingOptions:
     # detections_animal, detections_person, detections_vehicle
     rendering_bypass_sets = []
 
-    confidence_threshold = 0.85
+    confidence_threshold = 0.8
     classification_confidence_threshold = 0.5
 
     # Used for summary statistics only
