@@ -1396,6 +1396,10 @@ def main():
         default=options.confidence_threshold,
         help='Confidence threshold for statistics and visualization')
     parser.add_argument(
+        '--almost_detection_confidence_threshold', type=float,
+        default=options.almost_detection_confidence_threshold,
+        help='Almost-detection confidence threshold for statistics and visualization')
+    parser.add_argument(
         '--target_recall', type=float, default=options.target_recall,
         help='Target recall (for statistics only)')
     parser.add_argument(
@@ -1405,6 +1409,9 @@ def main():
     parser.add_argument(
         '--viz_target_width', type=int, default=options.viz_target_width,
         help='Output image width')
+    parser.add_argument(
+        '--include_almost_detections', action='store_true',
+        help='Include a separate category for images just above a second confidence threshold')
     parser.add_argument(
         '--random_output_sort', action='store_true',
         help='Sort output randomly (defaults to sorting by filename)')
