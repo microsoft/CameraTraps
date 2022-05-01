@@ -4,7 +4,8 @@
 # "Converts" a COCO Camera Traps .json file to .csv, in quotes because 
 # all kinds of assumptions are made here, and if you have a particular .csv
 # format in mind, YMMV.  Most notably, does not include any bounding box information
-# or any non-standard fields that may be present in the .json file.
+# or any non-standard fields that may be present in the .json file.  Does not
+# propagate information about sequence-level vs. image-level annotations.
 #
 # Does not assume access to the images, therefore does not open .jpg files to find
 # datetime information if it's not in the metadata, just writes datetime as 'unknown'.
@@ -71,7 +72,7 @@ def cct_to_csv(input_file,output_file=None):
             if 'datetime' in im:
                 datetime = im['datetime']
             else:
-                datetime = annotation['category_id']
+                datetime = 'unknown'
             
             if 'location' in im:
                 location = im['location']
@@ -102,13 +103,14 @@ def cct_to_csv(input_file,output_file=None):
 if False:
 
     #%%
-                
-    # input_file = r"G:\temp\cct-to-csv\ena24.json"
-    # input_file = r"G:\temp\cct-to-csv\swg_camera_traps.json"
-    input_file = r"G:\temp\cct-to-csv\snapshot-safari-all.json"
-    assert os.path.isfile(input_file)
-
-    cct_to_csv(input_file)
+    
+    input_dir = r"G:\temp\cct-to-csv"
+    files = os.listdir(input_dir)
+    files = [s for s in files if s.endswith('.json')]
+    for fn in files:
+        input_file = os.path.join(input_dir,fn)
+        assert os.path.isfile(input_file)
+        cct_to_csv(input_file)
 
 
 #%% Command-line driver
