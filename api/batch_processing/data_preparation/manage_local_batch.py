@@ -36,6 +36,12 @@ use_image_queue = False
 # Only relevant when we're using a single GPU
 default_gpu_number = 0
 
+# Only relevant when we're using a single GPU, set to -1 to force CPU
+default_gpu_number = -1
+
+# Only relevant when running on CPU
+ncores = 1
+
 
 #%% Constants I set per script
 
@@ -150,7 +156,11 @@ for i_task,task in enumerate(task_info):
     if (use_image_queue):
         use_image_queue_string = '--use_image_queue'
 
-    cmd = f'{cuda_string} python run_detector_batch.py {model_file} {chunk_file} {output_fn} {checkpoint_frequency_string} {checkpoint_path_string} {use_image_queue_string}'
+    ncores_string = ''
+    if (ncores > 1):
+        ncores_string = '--ncores {}'.format(ncores)
+        
+    cmd = f'{cuda_string} python run_detector_batch.py {model_file} {chunk_file} {output_fn} {checkpoint_frequency_string} {checkpoint_path_string} {use_image_queue_string} {ncores_string}'    
     
     cmd_file = os.path.join(filename_base,'run_chunk_{}_gpu_{}.sh'.format(str(i_task).zfill(2),
                             str(gpu_number).zfill(2)))
@@ -200,8 +210,12 @@ if False:
         if (use_image_queue):
             use_image_queue_string = '--use_image_queue'
 
-        cmd = f'{cuda_string} python run_detector_batch.py {model_file} {chunk_file} {output_fn} {checkpoint_frequency_string} {checkpoint_path_string} {use_image_queue_string}'
-        
+        ncores_string = ''
+        if (ncores > 1):
+            ncores_string = '--ncores {}'.format(ncores)
+                    
+        cmd = f'{cuda_string} python run_detector_batch.py {model_file} {chunk_file} {output_fn} {checkpoint_frequency_string} {checkpoint_path_string} {use_image_queue_string} {ncores_string}'
+                        
         task['command'] = cmd
         commands.append(cmd)
         if i_task != task_set[-1]:
