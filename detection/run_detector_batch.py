@@ -69,9 +69,9 @@ max_queue_size = 10
 use_threads_for_queue = False
 verbose = False
 
-# Useful hack to force CPU inference
+# Useful hack to force CPU inference.
 #
-# Need to do this before any TF/PT imports
+# Need to do this before any PT/TF imports
 force_cpu = False
 if force_cpu:
     os.environ['CUDA_VISIBLE_DEVICES'] = '-1'

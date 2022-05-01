@@ -147,16 +147,18 @@ def is_gpu_available(model_file):
         raise ValueError('Unrecognized model file extension for model {}'.format(model_file))
 
 
-def load_detector(model_file):
+def load_detector(model_file, force_cpu=False):
     """Load a TF or PT detector, depending on the extension of model_file."""
     
     start_time = time.time()
     if model_file.endswith('.pb'):
         from detection.tf_detector import TFDetector
+        if force_cpu:
+            raise ValueError('force_cpu option is not currently supported for TF detectors, use CUDA_VISIBLE_DEVICES=-1')
         detector = TFDetector(model_file)
     elif model_file.endswith('.pt'):
         from detection.pytorch_detector import PTDetector
-        detector = PTDetector(model_file)
+        detector = PTDetector(model_file, force_cpu)
     else:
         raise ValueError('Unrecognized model format: {}'.format(model_file))
     elapsed = time.time() - start_time
