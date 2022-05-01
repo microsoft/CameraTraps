@@ -31,22 +31,23 @@ class PTDetector:
     STRIDE = 64
 
 
-    def __init__(self, model_path):
-        self.device = torch.device('cuda:0') if torch.cuda.is_available() else 'cpu'
+    def __init__(self, model_path, force_cpu=False):
+        if (torch.cuda.is_available() and not force_cpu):
+            self.device = torch.device('cuda:0') 
+        else:
+            self.device = 'cpu'
         self.is_pt = False if model_path.endswith('.torchscript.pt') else True
         if self.is_pt:
             try:
                 from models.yolo import Model
             except ModuleNotFoundError:
-                print('The yolov5 module is not found.')
-                sys.exit(1)
+                raise ValueError('Could not import Yolov5')                
             print('Using the PyTorch checkpoint to perform inference.')
-            # deserialization in torch.load() will error if models.yolo.Model is not imported
             self.model = PTDetector.__load_model(model_path, self.device)
         else:
             self.model = PTDetector.__load_torchscript_model(model_path)
         
-        if torch.cuda.is_available():
+        if (self.device != 'cpu') and torch.cuda.is_available():
             print('Sending model to GPU')
             self.model.to(self.device)
 
