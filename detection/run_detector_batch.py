@@ -151,7 +151,7 @@ def consumer_func(q,return_queue,model_file,confidence_threshold):
         q.task_done()
             
 
-def run_detector_with_image_queue(image_files,model_file,confidence_threshold):
+def run_detector_with_image_queue(image_files,model_file,confidence_threshold,quiet=False):
     """
     Driver function for the (optional) multiprocessing-based image queue; only used when --use_image_queue
     is specified.  Starts a reader process to read images from disk, but processes images in the 
@@ -220,7 +220,7 @@ def chunks_by_number_of_chunks(ls, n):
 
 #%% Image processing functions
 
-def process_images(im_files, detector, confidence_threshold, use_image_queue=False):
+def process_images(im_files, detector, confidence_threshold, use_image_queue=False, quiet=False):
     """
     Runs MegaDetector over a list of image files.
 
@@ -241,15 +241,15 @@ def process_images(im_files, detector, confidence_threshold, use_image_queue=Fal
         print('Loaded model (batch level) in {}'.format(humanfriendly.format_timespan(elapsed)))
 
     if use_image_queue:
-        run_detector_with_image_queue(im_files, detector, confidence_threshold)
+        run_detector_with_image_queue(im_files, detector, confidence_threshold, quiet=quiet)
     else:
         results = []
         for im_file in im_files:
-            results.append(process_image(im_file, detector, confidence_threshold))
+            results.append(process_image(im_file, detector, confidence_threshold, quiet=quiet))
         return results
     
 
-def process_image(im_file, detector, confidence_threshold, image=None):
+def process_image(im_file, detector, confidence_threshold, image=None, quiet=False):
     """
     Runs MegaDetector over a single image file.
 
@@ -264,13 +264,15 @@ def process_image(im_file, detector, confidence_threshold, image=None):
         see the 'images' key in https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing#batch-processing-api-output-format
     """
     
-    print('Processing image {}'.format(im_file))
+    if not quiet:
+        print('Processing image {}'.format(im_file))
     
     if image is None:
         try:
             image = viz_utils.load_image(im_file)
         except Exception as e:
-            print('Image {} cannot be loaded. Exception: {}'.format(im_file, e))
+            if not quiet:
+                print('Image {} cannot be loaded. Exception: {}'.format(im_file, e))
             result = {
                 'file': im_file,
                 'failure': FAILURE_IMAGE_OPEN
@@ -281,7 +283,8 @@ def process_image(im_file, detector, confidence_threshold, image=None):
         result = detector.generate_detections_one_image(
             image, im_file, detection_threshold=confidence_threshold)
     except Exception as e:
-        print('Image {} cannot be processed. Exception: {}'.format(im_file, e))
+        if not quiet:
+            print('Image {} cannot be processed. Exception: {}'.format(im_file, e))
         result = {
             'file': im_file,
             'failure': FAILURE_INFER
@@ -295,7 +298,7 @@ def process_image(im_file, detector, confidence_threshold, image=None):
 
 def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=None,
                                 confidence_threshold=0, checkpoint_frequency=-1,
-                                results=None, n_cores=0, use_image_queue=False):
+                                results=None, n_cores=0, use_image_queue=False, quiet=False):
     """
     Args
     - model_file: str, path to .pb model file
@@ -328,7 +331,7 @@ def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=No
     if use_image_queue:
         
         assert n_cores <= 1
-        results = run_detector_with_image_queue(image_file_names, model_file, confidence_threshold)        
+        results = run_detector_with_image_queue(image_file_names, model_file, confidence_threshold, quiet)        
         
     elif n_cores <= 1:
 
@@ -345,12 +348,13 @@ def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=No
 
             # Will not add additional entries not in the starter checkpoint
             if im_file in already_processed:
-                print('Bypassing image {}'.format(im_file))
+                if not quiet:
+                    print('Bypassing image {}'.format(im_file))
                 continue
 
             count += 1
 
-            result = process_image(im_file, detector, confidence_threshold)
+            result = process_image(im_file, detector, confidence_threshold, quiet=quiet)
             results.append(result)
 
             # Write a checkpoint if necessary
@@ -451,6 +455,7 @@ if False:
     results = None
     ncores = 1
     use_image_queue = True
+    quiet = False
     image_dir = r'G:\temp\demo_images\ssmini'
     image_file_names = image_file_names = ImagePathUtils.find_images(image_dir, recursive=False)
     # image_file_names = image_file_names[0:2]
@@ -466,7 +471,8 @@ if False:
                                           checkpoint_frequency=checkpoint_frequency,
                                           results=results,
                                           n_cores=ncores,
-                                          use_image_queue=use_image_queue)
+                                          use_image_queue=use_image_queue,
+                                          quiet=quiet)
     
     elapsed = time.time() - start_time
     
@@ -496,6 +502,10 @@ def main():
         '--output_relative_filenames',
         action='store_true',
         help='Output relative file names, only meaningful if image_file points to a directory')
+    parser.add_argument(
+        '--quiet',
+        action='store_true',
+        help='Suppress per-image console output')
     parser.add_argument(
         '--use_image_queue',
         action='store_true',
@@ -609,7 +619,8 @@ def main():
                                           checkpoint_frequency=args.checkpoint_frequency,
                                           results=results,
                                           n_cores=args.ncores,
-                                          use_image_queue=args.use_image_queue)
+                                          use_image_queue=args.use_image_queue,
+                                          quiet=args.quiet)
 
     elapsed = time.time() - start_time
     print('Finished inference for {} images in {}'.format(
