@@ -13,6 +13,7 @@ import os
 import random
 import sys
 import subprocess
+import copy
 
 from tqdm import tqdm
 from visualization import visualization_utils
@@ -33,11 +34,8 @@ def open_file(filename):
     else:
         opener = "open" if sys.platform == "darwin" else "xdg-open"
         subprocess.call([opener, filename])
-    
-class BatchComparisonOptions:
 
-    output_folder = None
-    image_folder = None
+class PairwiseBatchComparisonOptions:
     
     results_filename_a = None
     results_filename_b = None
@@ -48,49 +46,83 @@ class BatchComparisonOptions:
     detection_thresholds_a = {'animal':0.7,'person':0.7,'vehicle':0.7}
     detection_thresholds_b = {'animal':0.7,'person':0.7,'vehicle':0.7}
 
-    max_images_per_category = 100
+    rendering_confidence_threshold_a = 0.2
+    rendering_confidence_threshold_b = 0.2
+
+class BatchComparisonOptions:
+    
+    output_folder = None
+    image_folder = None    
+    html_so_far = None
+    
+    max_images_per_category = 50
     colormap_a = ['Red']
     colormap_b = ['RoyalBlue']
 
-    rendering_confidence_threshold_a = 0.1
-    rendering_confidence_threshold_b = 0.1
-
-    target_width = 800
+    target_width = 800    
+    n_rendering_threads = 50        
+    random_seed = 0    
     
-    n_rendering_threads = 50    
-    
-    random_seed = 0
+    pairwise_options = PairwiseBatchComparisonOptions()
     
     
 class BatchComparisonResults:
     
     html_output_file = None
     
-    
+
+main_page_style_header = """<head>
+    <style type="text/css">
+    a { text-decoration: none; }
+    body { font-family: segoe ui, calibri, "trebuchet ms", verdana, arial, sans-serif; }
+    div.contentdiv { margin-left: 20px; }
+    </style>
+    </head>"""
+
+main_page_header = '<html>\n{}\n<body>\n'.format(main_page_style_header)
+main_page_footer = '<br/><br/><br/></body></html>\n'
+
+
 #%% Main function
 
-def compare_batch_results(options):
+def _compare_batch_results(options,output_index,pairwise_options):
+        
+    assert options.pairwise_options is None
     
     random.seed(options.random_seed)
 
     ##%% Validate inputs
     
-    assert os.path.isfile(options.results_filename_a)
-    assert os.path.isfile(options.results_filename_b)
+    assert os.path.isfile(pairwise_options.results_filename_a)
+    assert os.path.isfile(pairwise_options.results_filename_b)
     assert os.path.isdir(options.image_folder)
     os.makedirs(options.output_folder,exist_ok=True)
     
     
     ##%% Load both result sets
     
-    with open(options.results_filename_a,'r') as f:
+    with open(pairwise_options.results_filename_a,'r') as f:
         results_a = json.load(f)
     
-    with open(options.results_filename_b,'r') as f:
+    with open(pairwise_options.results_filename_b,'r') as f:
         results_b = json.load(f)
         
     assert results_a['detection_categories'] == detection_categories
     assert results_b['detection_categories'] == detection_categories
+    
+    if pairwise_options.results_description_a is None:
+        if 'detector' not in results_a['info']:
+            print('No model metadata supplied for results-A, assuming MDv4')
+            pairwise_options.results_description_a = 'MDv4 (assumed)'
+        else:            
+            pairwise_options.results_description_a = results_a['info']['detector']
+    
+    if pairwise_options.results_description_b is None:
+        if 'detector' not in results_b['info']:
+            print('No model metadata supplied for results-B, assuming MDv4')
+            pairwise_options.results_description_b = 'MDv4 (assumed)'
+        else:            
+            pairwise_options.results_description_b = results_b['info']['detector']
     
     images_a = results_a['images']
     images_b = results_b['images']
@@ -147,7 +179,7 @@ def compare_batch_results(options):
             else:
                 max_conf_a = conf
                 max_conf_category_a = category_id
-            if conf >= options.detection_thresholds_a[detection_categories[category_id]]:
+            if conf >= pairwise_options.detection_thresholds_a[detection_categories[category_id]]:
                 detection_a = True
                 break
             
@@ -159,7 +191,7 @@ def compare_batch_results(options):
             else:
                 max_conf_b = conf
                 max_conf_category_b = category_id
-            if conf >= options.detection_thresholds_b[detection_categories[category_id]]:
+            if conf >= pairwise_options.detection_thresholds_b[detection_categories[category_id]]:
                 detection_b = True
                 break
     
@@ -203,13 +235,26 @@ def compare_batch_results(options):
         'class_transitions':class_transitions
     }
     
-    def render_detection_comparisons(category,image_pairs,image_filnames):
+    categories_to_page_titles = {
+        'common_detections':'Detections common to both models',
+        'common_non_detections':'Non-detections common to both models',
+        'detections_a_only':'Detections reported by model A only',
+        'detections_b_only':'Detections reported by model B only',
+        'class_transitions':'Detections reported as different classes by models A and B'
+    }
+
+    local_output_folder = os.path.join(options.output_folder,'cmp_' + \
+                                       str(output_index).zfill(3))
+
+    def render_detection_comparisons(category,image_pairs,image_filenames):
         
         print('Rendering detections for category {}'.format(category))
-        
-        category_folder = os.path.join(options.output_folder,category)
+                
+        category_folder = os.path.join(local_output_folder,category)
         os.makedirs(category_folder,exist_ok=True)
         
+        # Render two sets of results (i.e., a comparison) for a single
+        # image.
         def render_image_pair(fn):
             
             input_image_path = os.path.join(options.image_folder,fn)
@@ -233,12 +278,12 @@ def compare_batch_results(options):
                 im = visualization_utils.resize_image(im, options.target_width)
                 
             visualization_utils.render_detection_bounding_boxes(detections_a,im,
-                                                                confidence_threshold=options.rendering_confidence_threshold_a,
+                                                                confidence_threshold=pairwise_options.rendering_confidence_threshold_a,
                                                                 thickness=4,expansion=0,
                                                                 colormap=options.colormap_a,
                                                                 textalign=visualization_utils.TEXTALIGN_LEFT)
             visualization_utils.render_detection_bounding_boxes(detections_b,im,
-                                                                confidence_threshold=options.rendering_confidence_threshold_b,
+                                                                confidence_threshold=pairwise_options.rendering_confidence_threshold_b,
                                                                 thickness=2,expansion=0,
                                                                 colormap=options.colormap_b,
                                                                 textalign=visualization_utils.TEXTALIGN_RIGHT)
@@ -262,6 +307,9 @@ def compare_batch_results(options):
     
     # ...def render_detection_comparisons()
     
+    # For each category, generate comparison images and the 
+    # comparison HTML page.
+    #
     # category = 'common_detections'
     for category in categories_to_image_pairs.keys():
         
@@ -276,91 +324,133 @@ def compare_batch_results(options):
             image_filenames = random.sample(image_filenames,
                                             options.max_images_per_category)
         assert len(image_filenames) <= options.max_images_per_category
-        category_image_paths = render_detection_comparisons(category,
+
+        input_image_absolute_paths = [os.path.join(options.image_folder,fn) for fn in image_filenames]
+        
+        category_image_output_paths = render_detection_comparisons(category,
                                                             image_pairs,image_filenames)
         
-        category_html_filename = os.path.join(options.output_folder,
+        category_html_filename = os.path.join(local_output_folder,
                                               category + '.html')
-        category_image_paths_relative = [os.path.relpath(s,
-                                                         options.output_folder) for s in category_image_paths]
+        category_image_output_paths_relative = [os.path.relpath(s,local_output_folder) \
+                                         for s in category_image_output_paths]
         
         image_info = []
-        for fn in category_image_paths_relative:
+        
+        assert len(category_image_output_paths_relative) == len(input_image_absolute_paths)
+        
+        import urllib
+        for i_fn,fn in enumerate(category_image_output_paths_relative): 
             info = {
                 'filename': fn,
                 'title': fn,
-                'textStyle': 'font-family:verdana,arial,calibri;font-size:80%;text-align:left;margin-top:20;margin-bottom:5'
+                'textStyle': 'font-family:verdana,arial,calibri;font-size:80%;text-align:left;margin-top:20;margin-bottom:5',
+                'linkTarget': urllib.parse.quote(input_image_absolute_paths[i_fn])
             }
             image_info.append(info)
     
+        category_page_header_string = '<h1>{}</h1>'.format(categories_to_page_titles[category])
+        category_page_header_string += '<p style="font-weight:bold;">\n'
+        category_page_header_string += 'Model A: {}<br/>\n'.format(pairwise_options.results_description_a)
+        category_page_header_string += 'Model B: {}'.format(pairwise_options.results_description_b)
+        category_page_header_string += '</p>\n'
+        
+        category_page_header_string += '<p>\n'
+        category_page_header_string += 'Detection thresholds for A ({}):\n{}<br/>'.format(
+            pairwise_options.results_description_a,str(pairwise_options.detection_thresholds_a))
+        category_page_header_string += 'Detection thresholds for B ({}):\n{}<br/>'.format(
+            pairwise_options.results_description_b,str(pairwise_options.detection_thresholds_b))
+        category_page_header_string += 'Rendering threshold for A ({}):\n{}<br/>'.format(
+            pairwise_options.results_description_a,str(pairwise_options.rendering_confidence_threshold_a))
+        category_page_header_string += 'Rendering threshold for B ({}):\n{}<br/>'.format(
+            pairwise_options.results_description_b,str(pairwise_options.rendering_confidence_threshold_b))
+        category_page_header_string += '</p>\n'        
+        
         write_html_image_list(
             category_html_filename,
             images=image_info,
             options={
-                'headerHtml': '<h1>{}</h1>'.format(category)
+                'headerHtml': category_page_header_string
             })
         
     # ...for each category
     
     
-    ##%% Write the top-level HTML file
+    ##%% Write the top-level HTML file content
+
+    html_output_string  = ''
     
-    html_output_file = os.path.join(options.output_folder,'index.html')
+    html_output_string += '<p>Comparing <b>{}</b> (A, red) to <b>{}</b> (B, blue)</p>'.format(
+        pairwise_options.results_description_a,pairwise_options.results_description_b)
+    html_output_string += '<div class="contentdiv">\n'
+    html_output_string += 'Detection thresholds for {}:\n{}<br/>'.format(
+        pairwise_options.results_description_a,str(pairwise_options.detection_thresholds_a))
+    html_output_string += 'Detection thresholds for {}:\n{}<br/>'.format(
+        pairwise_options.results_description_b,str(pairwise_options.detection_thresholds_b))
+    html_output_string += 'Rendering threshold for {}:\n{}<br/>'.format(
+        pairwise_options.results_description_a,str(pairwise_options.rendering_confidence_threshold_a))
+    html_output_string += 'Rendering threshold for {}:\n{}<br/>'.format(
+        pairwise_options.results_description_b,str(pairwise_options.rendering_confidence_threshold_b))
     
-    style_header = """<head>
-        <style type="text/css">
-        a { text-decoration: none; }
-        body { font-family: segoe ui, calibri, "trebuchet ms", verdana, arial, sans-serif; }
-        div.contentdiv { margin-left: 20px; }
-        </style>
-        </head>"""
+    html_output_string += '<br/>'
     
-    index_page = ''
-    index_page += '<html>\n{}\n<body>\n'.format(style_header)
-    index_page += '<h2>Comparison of results for {}</h2>\n'.format(
-        options.job_name)
-    index_page += '<p>Comparing <b>{}</b> (A, red) to <b>{}</b> (B, blue)</p>'.format(
-        options.results_description_a,options.results_description_b)
-    index_page += '<div class="contentdiv">\n'
-    index_page += 'Detection thresholds for {}:\n{}<br/>'.format(
-        options.results_description_a,str(options.detection_thresholds_a))
-    index_page += 'Detection thresholds for {}:\n{}<br/>'.format(
-        options.results_description_b,str(options.detection_thresholds_b))
-    index_page += 'Rendering threshold for {}:\n{}<br/>'.format(
-        options.results_description_a,str(options.rendering_confidence_threshold_a))
-    index_page += 'Rendering threshold for {}:\n{}<br/>'.format(
-        options.results_description_b,str(options.rendering_confidence_threshold_b))
+    html_output_string += 'Rendering a maximum of {} images per category<br/>'.format(options.max_images_per_category)
     
-    index_page += '<br/>'
+    html_output_string += '<br/>'
     
-    index_page += 'Rendering a maximum of {} images per category<br/>'.format(options.max_images_per_category)
-    
-    index_page += '<br/>'
-    
-    index_page += ('Of {} total files:<br/><br/><div style="margin-left:15px;">{} common detections<br/>{} common non-detections<br/>{} A only<br/>{} B only<br/>{} class transitions</div><br/>'.format(
+    html_output_string += ('Of {} total files:<br/><br/><div style="margin-left:15px;">{} common detections<br/>{} common non-detections<br/>{} A only<br/>{} B only<br/>{} class transitions</div><br/>'.format(
         len(filenames_a),len(common_detections),
         len(common_non_detections),len(detections_a_only),
         len(detections_b_only),len(class_transitions)))
     
-    index_page += 'Comparison pages:<br/><br/>\n'
-    index_page += '<div style="margin-left:15px;">\n'
-    
+    html_output_string += 'Comparison pages:<br/><br/>\n'
+    html_output_string += '<div style="margin-left:15px;">\n'
+        
+    comparison_path_relative = os.path.relpath(local_output_folder,options.output_folder)    
     for category in categories_to_image_pairs.keys():
-        category_html_filename = category + '.html'
-        index_page += '<a href="{}">{}</a><br/>\n'.format(
+        category_html_filename = os.path.join(comparison_path_relative,category + '.html')
+        html_output_string += '<a href="{}">{}</a><br/>\n'.format(
             category_html_filename,category)
     
-    index_page += '</div>'    
-    index_page += '</div></body></html>\n'
+    html_output_string += '</div>\n'
+    html_output_string += '</div>\n'
     
-    with open(html_output_file,'w') as f:
-        f.write(index_page) 
+    return html_output_string
+        
+# ...def compare_batch_results()
 
+def compare_batch_results(options):
+    
+    assert options.pairwise_options is not None    
+    options = copy.deepcopy(options)
+ 
+    if not isinstance(options.pairwise_options,list):
+        options.pairwise_options = [options.pairwise_options]
+    
+    pairwise_options_list = options.pairwise_options
+    n_comparisons = len(pairwise_options_list)
+    
+    options.pairwise_options = None
+    
+    html_content = ''
+        
+    for i_comparison,pairwise_options in enumerate(pairwise_options_list):
+        print('Running comparison {} of {}'.format(i_comparison,n_comparisons))
+        html_content += _compare_batch_results(options,i_comparison,pairwise_options)
+            
+    html_output_string = main_page_header
+    html_output_string += '<h2>Comparison of results for {}</h2>\n'.format(
+        options.job_name)
+    html_output_string += html_content
+    html_output_string += main_page_footer
+    
+    html_output_file = os.path.join(options.output_folder,'index.html')    
+    with open(html_output_file,'w') as f:
+        f.write(html_output_string) 
+    
     results = BatchComparisonResults()
     results.html_output_file = html_output_file
     return results
-    
-# ...def compare_batch_results()
 
 
 #%% Interactive driver
@@ -371,19 +461,18 @@ if False:
     
     options = BatchComparisonOptions()
     options.output_folder = os.path.expanduser('~/tmp/kru-comparison')
-    
+    options.job_name = 'KRU'    
     options.image_folder = os.path.expanduser('~/data/KRU')
     
-    options.results_filename_a = os.path.expanduser('~/postprocessing/snapshot-safari/snapshot-safari-2022-04-07/combined_api_outputs/snapshot-safari-2022-04-07_detections.kru-only.json')
-    # options.results_filename_b = os.path.expanduser('~/postprocessing/snapshot-safari/snapshot-safari-mdv5_camonly-5a-2022-04-12/combined_api_outputs/snapshot-safari-mdv5_camonly-5a-2022-04-12_detections.json')
-    options.results_filename_b = os.path.expanduser('~/postprocessing/snapshot-safari/snapshot-safari-mdv5_torchscript_camonly-2022-04-14/combined_api_outputs/snapshot-safari-mdv5_torchscript_camonly-2022-04-14_detections.json')
+    pairwise_options = PairwiseBatchComparisonOptions()
     
-    options.job_name = 'KRU'
-    options.results_description_a = 'MDv4'
-    options.results_description_b = 'MDv5-camonly-28-torchscript'
+    pairwise_options.results_filename_a = os.path.expanduser('~/postprocessing/snapshot-safari/snapshot-safari-2022-04-07/combined_api_outputs/snapshot-safari-2022-04-07_detections.kru-only.json')
+    pairwise_options.results_filename_b = os.path.expanduser('~/postprocessing/snapshot-safari/snapshot-safari-mdv5_torchscript_camonly-2022-04-14/combined_api_outputs/snapshot-safari-mdv5_torchscript_camonly-2022-04-14_detections.json')
     
-    options.detection_thresholds_a = {'animal':0.7,'person':0.7,'vehicle':0.7}
-    options.detection_thresholds_b = {'animal':0.4,'person':0.4,'vehicle':0.4}
+    pairwise_options.detection_thresholds_a = {'animal':0.7,'person':0.7,'vehicle':0.7}
+    pairwise_options.detection_thresholds_b = {'animal':0.4,'person':0.4,'vehicle':0.4}
+    
+    options.pairwise_options = pairwise_options
     
     results = compare_batch_results(options)
     
