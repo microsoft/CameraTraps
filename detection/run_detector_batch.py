@@ -117,7 +117,7 @@ def producer_func(q,image_files):
     print('Finished image loading'); sys.stdout.flush()
     
     
-def consumer_func(q,return_queue,model_file,confidence_threshold, quiet = False):
+def consumer_func(q,return_queue,model_file,confidence_threshold, pbar, quiet = False):
     """ 
     Consumer function; only used when using the (optional) image queue.
     
@@ -146,6 +146,7 @@ def consumer_func(q,return_queue,model_file,confidence_threshold, quiet = False)
         if verbose:
             print('De-queued image {}'.format(im_file)); sys.stdout.flush()
         results.append(process_image(im_file,detector,confidence_threshold,image, quiet = quiet))
+        pbar.update(1)
         if verbose:
             print('Processed image {}'.format(im_file)); sys.stdout.flush()
         q.task_done()
@@ -178,16 +179,17 @@ def run_detector_with_image_queue(image_files,model_file,confidence_threshold,qu
     # To enable proper multi-GPU support, we may need to move the TF import to a separate module
     # that isn't loaded until very close to where inference actually happens.
     run_separate_consumer_process = False
+    pbar = tqdm(total = len(image_files))
 
     if run_separate_consumer_process:
         if use_threads_for_queue:
-            consumer = Thread(target=consumer_func,args=(q,return_queue,model_file,confidence_threshold,))
+            consumer = Thread(target=consumer_func,args=(q,return_queue,model_file,confidence_threshold,pbar))
         else:
-            consumer = Process(target=consumer_func,args=(q,return_queue,model_file,confidence_threshold,))
+            consumer = Process(target=consumer_func,args=(q,return_queue,model_file,confidence_threshold,pbar))
         consumer.daemon = True
         consumer.start()
     else:
-        consumer_func(q,return_queue,model_file,confidence_threshold, quiet = quiet)
+        consumer_func(q,return_queue,model_file,confidence_threshold, pbar, quiet = quiet)
 
     producer.join()
     print('Producer finished')
@@ -198,6 +200,7 @@ def run_detector_with_image_queue(image_files,model_file,confidence_threshold,qu
     
     q.join()
     print('Queue joined')
+    pbar.close()
 
     results = return_queue.get()
     
