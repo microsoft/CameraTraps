@@ -117,7 +117,7 @@ def producer_func(q,image_files):
     print('Finished image loading'); sys.stdout.flush()
     
     
-def consumer_func(q,return_queue,model_file,confidence_threshold):
+def consumer_func(q,return_queue,model_file,confidence_threshold, quiet = False):
     """ 
     Consumer function; only used when using the (optional) image queue.
     
@@ -145,7 +145,7 @@ def consumer_func(q,return_queue,model_file,confidence_threshold):
         image = r[1]
         if verbose:
             print('De-queued image {}'.format(im_file)); sys.stdout.flush()
-        results.append(process_image(im_file,detector,confidence_threshold,image))
+        results.append(process_image(im_file,detector,confidence_threshold,image, quiet = quiet))
         if verbose:
             print('Processed image {}'.format(im_file)); sys.stdout.flush()
         q.task_done()
@@ -187,7 +187,7 @@ def run_detector_with_image_queue(image_files,model_file,confidence_threshold,qu
         consumer.daemon = True
         consumer.start()
     else:
-        consumer_func(q,return_queue,model_file,confidence_threshold)
+        consumer_func(q,return_queue,model_file,confidence_threshold, quiet = quiet)
 
     producer.join()
     print('Producer finished')
