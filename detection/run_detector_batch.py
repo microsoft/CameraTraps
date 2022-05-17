@@ -339,10 +339,7 @@ def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=No
     elif n_cores <= 1:
 
         # Load the detector
-        start_time = time.time()
         detector = load_detector(model_file)
-        elapsed = time.time() - start_time
-        print('Loaded model in {}'.format(humanfriendly.format_timespan(elapsed)))
 
         # Does not count those already processed
         count = 0
