@@ -307,8 +307,24 @@ Image credit [eMammal](https://emammal.si.edu/).
 
 ## Can you share the training data?
 
-This model is trained on bounding boxes from a variety of ecosystems, and many of the images we use in training are not publicly-shareable for license reasons.  But in addition to the private training data we use, we also use more or less all the bounding boxes available on lila.science:
+This model is trained on bounding boxes from a variety of ecosystems, and many of the images we use in training are not publicly-shareable for license reasons.  But in addition to the private training data we use, we also use many of the bounding boxes available on lila.science:
 
 <https://lila.science/category/camera-traps/>
 
-...so if our detector performs really well on those data sets, that's great, but it's a little bit cheating, because we haven't published the set of locations from those data sets that we use during training.
+Specifically, MegaDetector v4 was trained on private data, plus some data from:
+
+* Caltech Camera Traps
+* Snapshot Serengeti
+* WCS Camera Traps
+* NACTI (North American Camera Trap Images)
+* Island Conservation Camera Traps
+* Idaho Camera Traps
+
+For posterity, MegaDetector v3 was trained on private data, plus some data from:
+
+* Caltech Camera Traps
+* Snapshot Serengeti
+* Idaho Camera Traps
+
+So if MegaDetector performs really well on those data sets, that's great, but it's a little bit cheating, because we haven't published the set of locations from those data sets that we use during training.
+

@@ -75,6 +75,8 @@ Here are a few of the organizations that have used MegaDetector... we're only li
 * Myall Lakes Dingo Project
 * Irvine Ranch Conservancy ([story](https://www.ocregister.com/2022/03/30/ai-software-is-helping-researchers-focus-on-learning-about-ocs-wild-animals/))
 * SUMHAL, Estación Biológica de Doñana
+* Capitol Reef National Park and Utah Valley University
+
 
 # Data
 
