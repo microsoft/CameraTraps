@@ -9,17 +9,15 @@
 
 #%% Imports and constants
 
-import sys
 import json
 import os
-import subprocess
 
 from datetime import date
 
 import humanfriendly
 
-import ai4e_azure_utils  # from ai4eutils
-import path_utils        # from ai4eutils
+import ai4e_azure_utils          # from ai4eutils
+import path_utils                # from ai4eutils
 
 from api.batch_processing.postprocessing.postprocess_batch_results import (
     PostProcessingOptions, process_batch_results)
@@ -81,16 +79,6 @@ os.makedirs(postprocessing_output_folder, exist_ok=True)
 if input_path.endswith('/'):
     input_path = input_path[0:-1]
 
-
-#%% Support functions
-
-def open_file(filename):
-    if sys.platform == "win32":
-        os.startfile(filename)
-    else:
-        opener = "open" if sys.platform == "darwin" else "xdg-open"
-        subprocess.call([opener, filename])
-        
 
 #%% Enumerate files
 
@@ -369,7 +357,7 @@ options.api_output_file = combined_api_output_file
 options.output_dir = output_base
 ppresults = process_batch_results(options)
 html_output_file = ppresults.output_html_file
-open_file(html_output_file)
+path_utils.open_file(html_output_file)
 
 
 #%% RDE (sample directory collapsing)
@@ -495,7 +483,7 @@ options.output_dir = output_base
 ppresults = process_batch_results(options)
 html_output_file = ppresults.output_html_file
 
-open_file(html_output_file)
+path_utils.open_file(html_output_file)
 
 
 #%% Scrap
@@ -618,4 +606,4 @@ for classification_detection_file in classification_detection_files:
     options.api_output_file = classification_detection_file
     options.output_dir = output_base
     ppresults = process_batch_results(options)
-    open_file(ppresults.output_html_file)
+    path_utils.open_file(ppresults.output_html_file)
