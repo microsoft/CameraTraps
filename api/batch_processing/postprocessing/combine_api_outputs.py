@@ -15,6 +15,9 @@ combine_api_outputs input1.json input2.json ... inputN.json output.json
 
 Also see combine_api_shard_files() (not exposed via the command line yet) to
 combine the intermediate files created by the API.
+
+This does no checking for redundancy; if you are looking to ensemble
+the results of multiple model versions, see merge_detections.py.
 """
 
 #%% Constants and imports

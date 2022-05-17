@@ -11,8 +11,6 @@ Currently supports only detection results (not classification results).
 import json
 import os
 import random
-import sys
-import subprocess
 import copy
 
 from tqdm import tqdm
@@ -28,13 +26,6 @@ import path_utils
 # We will confirm that this matches what we load from each file
 detection_categories = {'1': 'animal', '2': 'person', '3': 'vehicle'}
     
-def open_file(filename):
-    if sys.platform == "win32":
-        os.startfile(filename)
-    else:
-        opener = "open" if sys.platform == "darwin" else "xdg-open"
-        subprocess.call([opener, filename])
-
 class PairwiseBatchComparisonOptions:
     
     results_filename_a = None
@@ -55,7 +46,7 @@ class BatchComparisonOptions:
     image_folder = None    
     html_so_far = None
     
-    max_images_per_category = 50
+    max_images_per_category = 1000
     colormap_a = ['Red']
     colormap_b = ['RoyalBlue']
 
@@ -157,48 +148,38 @@ def _compare_batch_results(options,output_index,pairwise_options):
     
     # fn = filenames_a[0]
     for fn in tqdm(filenames_a):
-        
+    
         im_a = filename_to_image_a[fn]
         im_b = filename_to_image_b[fn]
         
-        detection_a = False
-        detection_b = False
-        
-        max_conf_a = -1
-        max_conf_category_a = ''
-        
-        max_conf_b = -1
-        max_conf_category_b = ''
+        categories_above_threshold_a = set()
         
         # det = im_a['detections'][0]
         for det in im_a['detections']:
-            category_id = det['category']
-            conf = det['conf']
-            if conf < max_conf_a:
-                continue
-            else:
-                max_conf_a = conf
-                max_conf_category_a = category_id
-            if conf >= pairwise_options.detection_thresholds_a[detection_categories[category_id]]:
-                detection_a = True
-                break
             
-        for det in im_b['detections']:
             category_id = det['category']
             conf = det['conf']
-            if conf < max_conf_b:
-                continue
-            else:
-                max_conf_b = conf
-                max_conf_category_b = category_id
+            
+            if conf >= pairwise_options.detection_thresholds_a[detection_categories[category_id]]:
+                categories_above_threshold_a.add(category_id)
+                            
+        categories_above_threshold_b = set()
+        
+        for det in im_b['detections']:
+            
+            category_id = det['category']
+            conf = det['conf']
+            
             if conf >= pairwise_options.detection_thresholds_b[detection_categories[category_id]]:
-                detection_b = True
-                break
-    
+                categories_above_threshold_b.add(category_id)
+                            
         im_pair = (im_a,im_b)
         
-        if detection_a and detection_b:
-            if max_conf_category_a == max_conf_category_b:
+        detection_a = (len(categories_above_threshold_a) > 0)
+        detection_b = (len(categories_above_threshold_b) > 0)
+                
+        if detection_a and detection_b:            
+            if categories_above_threshold_a == categories_above_threshold_b:
                 common_detections[fn] = im_pair
             else:
                 class_transitions[fn] = im_pair
@@ -476,7 +457,7 @@ if False:
     
     results = compare_batch_results(options)
     
-    open_file(results.html_output_file)
+    path_utils.open_file(results.html_output_file)
     
 
 #%% Command-line driver
