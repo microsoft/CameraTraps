@@ -88,7 +88,7 @@ def load_api_results(api_output_path: str, normalize_paths: bool = True,
 
     print('De-serializing API results')
 
-    # Sanity-check that this is really a detector output file
+    # Validate that this is really a detector output file
     for s in ['info', 'detection_categories', 'images']:
         assert s in detection_results, 'Missing field {} in detection results'.format(s)
 
