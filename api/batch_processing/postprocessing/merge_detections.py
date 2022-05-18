@@ -36,6 +36,8 @@ class MergeDetectionsOptions:
 
 def merge_detections(source_files,target_file,output_file,options=None):
     
+    #%%
+    
     if isinstance(source_files,str):
         source_files = [source_files]    
         
@@ -122,6 +124,7 @@ def merge_detections(source_files,target_file,output_file,options=None):
         for source_im in tqdm(source_data['images']):
             
             image_filename = source_im['file']            
+            
             assert image_filename in fn_to_image
             
             source_detections_this_image = source_im['detections']
