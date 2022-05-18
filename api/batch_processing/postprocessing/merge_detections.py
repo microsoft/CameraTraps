@@ -55,7 +55,7 @@ def merge_detections(source_files,target_file,output_file,options=None):
     assert len(source_files) == len(options.source_confidence_thresholds)
     
     for fn in source_files:
-        assert os.path.isfile(fn)
+        assert os.path.isfile(fn), 'Could not find source file {}'.format(fn)
     
     assert os.path.isfile(target_file)
     
@@ -167,7 +167,12 @@ def merge_detections(source_files,target_file,output_file,options=None):
             
             if len(detections_to_transfer) > 0:
                 # print('Adding {} detections to image {}'.format(len(detections_to_transfer),image_filename))
-                fn_to_image[image_filename]['detections'].extend(detections_to_transfer)
+                detections = fn_to_image[image_filename]['detections']                
+                detections.extend(detections_to_transfer)
+
+                # Update the max_detection_conf field
+                fn_to_image[image_filename]['max_detection_conf'] = \
+                    max([d['conf'] for d in detections])
                 
         # ...for each image
         
@@ -185,12 +190,12 @@ if False:
     
     #%%
     
-    organization = ''
+    organization = 'sdsu-schmidt'
     options = MergeDetectionsOptions()
     options.max_detection_size = 0.1
     options.target_confidence_threshold = 0.3
     options.categories_to_include = [1]
-    source_files = ['/home/user/postprocessing/' + organization + '-2022-05-14/combined_api_outputs/' + organization + '-2022-05-14_detections.filtered_rde_file_0_mdv4_0.60_0.85_15_0.20.json']
+    source_files = ['/home/user/postprocessing/' + organization + '/' + organization + '-2022-05-14/combined_api_outputs/' + organization + '-2022-05-14_detections.filtered_rde_file_0_mdv4_0.60_0.85_15_0.20.json']
     options.source_confidence_thresholds = [0.8]
     target_file = '/home/user/postprocessing/' + organization + '/' + organization + '-mdv5-camcocoinat-2022-05-12/combined_api_outputs/' + organization + '-mdv5-camcocoinat-2022-05-12_detections.filtered_rde_file_1_mdv5-camcocoinat_0.20_0.85_15_0.20.json'
     output_file = '/home/user/postprocessing/' + organization + '/merged-detections/mdv4_mdv5-camcocoinat-2022-05-12.json'
