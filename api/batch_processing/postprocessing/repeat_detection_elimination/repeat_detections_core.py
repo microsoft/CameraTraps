@@ -196,6 +196,11 @@ class IndexedDetection:
             filename: path to the image of this detection
             bbox: [x_min, y_min, width_of_box, height_of_box]
         """
+        assert isinstance(iDetection,int)
+        assert isinstance(filename,str)
+        assert isinstance(bbox,list)
+        assert isinstance(category,str)
+        
         self.iDetection = iDetection
         self.filename = filename
         self.bbox = bbox
@@ -214,8 +219,15 @@ class DetectionLocation:
     will be stored in "instances".
     """
 
-    def __init__(self, instance, detection, relativeDir, id=None):
+    def __init__(self, instance, detection, relativeDir, category, id=None):
+        
+        assert isinstance(detection,dict)
+        assert isinstance(instance,IndexedDetection)
+        assert isinstance(relativeDir,str)
+        assert isinstance(category,str)
+        
         self.instances = [instance]  # list of IndexedDetections
+        self.category = category
         self.bbox = detection['bbox']
         self.relativeDir = relativeDir
         self.sampleImageRelativeFileName = ''
@@ -387,8 +399,9 @@ def sort_detections_for_directory(candidateDetections,options):
 
 def find_matches_in_directory(dirName, options, rowsByDirectory):
     """
-    Find all unique detections in [dirName].  Returns a list of DetectionLocation
-    objects.
+    Find all unique detections in [dirName].
+    
+    Returns a list of DetectionLocation objects.
     """
     
     if options.pbar is not None:
@@ -523,6 +536,7 @@ def find_matches_in_directory(dirName, options, rowsByDirectory):
 
             rtree_rect = detection_rect_to_rtree_rect(bbox)
             
+            # This will return candidates of all classes
             overlappingCandidateDetections =\
                 candidateDetectionsIndex.intersect(rtree_rect)
             
@@ -532,7 +546,10 @@ def find_matches_in_directory(dirName, options, rowsByDirectory):
             # For each detection in our candidate list
             for iCandidate, candidate in enumerate(
                     overlappingCandidateDetections):
-
+                
+                # Don't match across categories
+                if candidate.category != category:
+                    continue
                 
                 # Is this a match?                    
                 try:
@@ -559,7 +576,8 @@ def find_matches_in_directory(dirName, options, rowsByDirectory):
             # If we found no matches, add this to the candidate list
             if not bFoundSimilarDetection:
                 
-                candidate = DetectionLocation(instance, detection, dirName, id=i_iteration)
+                candidate = DetectionLocation(instance=instance, detection=detection, relativeDir=dirName,
+                                              category=category, id=i_iteration)
 
                 # candidateDetections.append(candidate)                
                                 
@@ -969,7 +987,7 @@ def find_repeat_detections(inputFilename, outputFilename=None, options=None):
     if options.customDirNameFunction is not None:
         print('Custom dir name function made {} replacements (of {} images)'.format(
             nCustomDirReplacements,len(detectionResults)))
-        
+    
     # Convert lists of rows to proper DataFrames
     dirs = list(rowsByDirectory.keys())
     for d in dirs:
@@ -1002,7 +1020,7 @@ def find_repeat_detections(inputFilename, outputFilename=None, options=None):
         if not options.bParallelizeComparisons:
 
             options.pbar = None
-            # iDir = 0; dirName = dirsToSearch[iDir]
+            # iDir = 4; dirName = dirsToSearch[iDir]
             # for iDir, dirName in enumerate(tqdm(dirsToSearch)):
             for iDir, dirName in enumerate(dirsToSearch):
                 print('Processing dir {} of {}: {}'.format(iDir,len(dirsToSearch),dirName))
@@ -1047,14 +1065,18 @@ def find_repeat_detections(inputFilename, outputFilename=None, options=None):
                 nSuspiciousDetections += 1
 
                 suspiciousDetectionsThisDir.append(candidateLocation)
-                # Find the images corresponding to this bounding box, render boxes
 
             suspiciousDetections[iDir] = suspiciousDetectionsThisDir
 
             # Sort the above-threshold detections for easier review
             if options.smartSort is not None:
                 suspiciousDetections[iDir] = sort_detections_for_directory(suspiciousDetections[iDir],options)
-            
+                
+            print('Found {} suspicious detections in directory {} ({})'.format(
+                  len(suspiciousDetections[iDir]),iDir,dirsToSearch[iDir]))
+        
+        # ...for each directory
+        
         print(
             'Finished searching for repeat detections\nFound {} unique detections on {} images that are suspicious'.format(
                 nSuspiciousDetections, nImagesWithSuspiciousDetections))
