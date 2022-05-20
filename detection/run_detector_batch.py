@@ -319,7 +319,7 @@ def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=No
     if results is None:
         results = []
 
-    already_processed = set([i['file'] for i in results])
+    already_processed = set([i['file'].replace(os.sep, '/') for i in results])
 
     print('GPU available: {}'.format(is_gpu_available(model_file)))
     
@@ -347,7 +347,7 @@ def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=No
         for im_file in tqdm(image_file_names):
 
             # Will not add additional entries not in the starter checkpoint
-            if im_file in already_processed:
+            if im_file.replace(os.sep, '/') in already_processed:
                 if not quiet:
                     print('Bypassing image {}'.format(im_file))
                 continue
