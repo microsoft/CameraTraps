@@ -36,8 +36,6 @@ class MergeDetectionsOptions:
 
 def merge_detections(source_files,target_file,output_file,options=None):
     
-    #%%
-    
     if isinstance(source_files,str):
         source_files = [source_files]    
         
@@ -193,31 +191,6 @@ if False:
     
     #%%
     
-    organization = 'sdsu-schmidt'
-    options = MergeDetectionsOptions()
-    options.max_detection_size = 0.1
-    options.target_confidence_threshold = 0.3
-    options.categories_to_include = [1]
-    source_files = ['/home/user/postprocessing/' + organization + '/' + organization + '-2022-05-14/combined_api_outputs/' + organization + '-2022-05-14_detections.filtered_rde_file_0_mdv4_0.60_0.85_15_0.20.json']
-    options.source_confidence_thresholds = [0.8]
-    target_file = '/home/user/postprocessing/' + organization + '/' + organization + '-mdv5-camcocoinat-2022-05-12/combined_api_outputs/' + organization + '-mdv5-camcocoinat-2022-05-12_detections.filtered_rde_file_1_mdv5-camcocoinat_0.20_0.85_15_0.20.json'
-    output_file = '/home/user/postprocessing/' + organization + '/merged-detections/mdv4_mdv5-camcocoinat-2022-05-12.json'
-    merge_detections(source_files, target_file, output_file, options)
-    
-    options = MergeDetectionsOptions()
-    options.max_detection_size = 0.1
-    options.target_confidence_threshold = 0.3
-    options.categories_to_include = [1]
-    source_files = [
-        '/home/user/postprocessing/' + organization + '/' + organization + '-2022-05-14/combined_api_outputs/' + organization + '-2022-05-14_detections.filtered_rde_file_0_mdv4_0.60_0.85_15_0.20.json',
-        '/home/user/postprocessing/' + organization + '/' + organization + '-mdv5-camonly-2022-05-12/combined_api_outputs/' + organization + '-mdv5-camonly-2022-05-12_detections.filtered_rde_file_2_mdv5-camonly_0.20_0.85_15_0.20.json']
-    options.source_confidence_thresholds = [0.8,0.5]
-    target_file = '/home/user/postprocessing/' + organization + '/' + organization + '-mdv5-camcocoinat-2022-05-12/combined_api_outputs/' + organization + '-mdv5-camcocoinat-2022-05-12_detections.filtered_rde_file_1_mdv5-camcocoinat_0.20_0.85_15_0.20.json'
-    output_file = '/home/user/postprocessing/' + organization + '/merged-detections/mdv4_mdv5-camonly_mdv5-camcocoinat-2022-05-12.json'
-    merge_detections(source_files, target_file, output_file, options)
-    
-    #%%
-    
     options = MergeDetectionsOptions()
     options.max_detection_size = 0.1
     options.target_confidence_threshold = 0.3
@@ -240,9 +213,6 @@ if False:
     target_file = '/home/user/postprocessing/iwildcam/iwildcam-mdv5-camcocoinat-2022-05-02/combined_api_outputs/iwildcam-mdv5-camcocoinat-2022-05-02_detections.json'
     output_file = '/home/user/postprocessing/iwildcam/merged-detections/mdv4_mdv5-camonly_mdv5-camcocoinat-2022-05-02.json'
     merge_detections(source_files, target_file, output_file, options)
-
-
-
     
     
-#%% Command-line driver    
+#%% Command-line driver (TODO)
