@@ -16,8 +16,9 @@ from datetime import date
 
 import humanfriendly
 
-import ai4e_azure_utils          # from ai4eutils
-import path_utils                # from ai4eutils
+# from ai4eutils
+import ai4e_azure_utils 
+import path_utils
 
 from api.batch_processing.postprocessing.postprocess_batch_results import (
     PostProcessingOptions, process_batch_results)

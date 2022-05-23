@@ -550,6 +550,29 @@ def process_batch_results(options: PostProcessingOptions
         print('...and {} almost-positives'.format(n_almosts))
 
 
+    ##%% Pull out descriptive metadata
+
+    if options.job_name_string is not None:
+        job_name_string = options.job_name_string
+    else:
+        # This is rare; it only happens during debugging when the caller
+        # is supplying already-loaded API results.
+        if options.api_output_file is None:
+            job_name_string = 'unknown'
+        else:
+            job_name_string = os.path.basename(options.api_output_file)
+    
+    if options.model_version_string is not None:
+        model_version_string = options.model_version_string
+    else:
+        
+        if 'info' not in other_fields or 'detector' not in other_fields['info']:
+            print('No model metadata supplied, assuming MDv4')
+            model_version_string = 'MDv4 (assumed)'
+        else:            
+            model_version_string = other_fields['info']['detector']
+    
+        
     ##%% If we have ground truth, remove images we can't match to ground truth
 
     if ground_truth_indexed_db is not None:
@@ -950,26 +973,6 @@ def process_batch_results(options: PostProcessingOptions
             image_counts['tp']
         )
 
-        if options.job_name_string is not None:
-            job_name_string = options.job_name_string
-        else:
-            # This is rare; it only happens during debugging when the caller
-            # is supplying already-loaded API results.
-            if options.api_output_file is None:
-                job_name_string = 'unknown'
-            else:
-                job_name_string = os.path.basename(options.api_output_file)
-        
-        if options.model_version_string is not None:
-            model_version_string = options.model_version_string
-        else:
-            
-            if 'info' not in other_fields or 'detector' not in other_fields['info']:
-                print('No model metadata supplied, assuming MDv4')
-                model_version_string = 'MDv4 (assumed)'
-            else:            
-                model_version_string = other_fields['info']['detector']
-        
         index_page = """<html>
         {}
         <body>
@@ -1275,12 +1278,17 @@ def process_batch_results(options: PostProcessingOptions
                 options.almost_detection_confidence_threshold)
 
         index_page = """<html>\n{}\n<body>\n
-        <h2>Visualization of results</h2>\n
+        <h2>Visualization of results for {}</h2>\n
         <p>A sample of {} images (of {} total)FAILURE_PLACEHOLDER, annotated with detections above {:.1%} confidence{}.</p>\n
+        
+        <div class="contentdiv">
+        <p>Model version: {}</p>
+        </div>
+        
         <h3>Sample images</h3>\n
         <div class="contentdiv">\n""".format(
-            style_header, image_count, len(detections_df), options.confidence_threshold,
-            almost_detection_string)
+            style_header, job_name_string, image_count, len(detections_df), options.confidence_threshold,
+            almost_detection_string, model_version_string)
 
         failure_string = ''
         if n_failures is not None:

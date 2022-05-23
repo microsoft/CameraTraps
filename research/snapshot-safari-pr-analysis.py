@@ -11,18 +11,47 @@ import json
 
 from tqdm import tqdm
 
-ground_truth_file = os.path.expanduser('~/postprocessing/snapshot-safari/' + \
-  'ground_truth/SnapshotKgalagadi_S1_v1.0.json')
-    
-results_file_all = os.path.expanduser('~/postprocessing/' + \
- 'snapshot-safari/snapshot-safari-mdv5-camcocoinat-2022-05-02/combined_api_outputs/snapshot-safari-mdv5-camcocoinat-2022-05-02_detections.json'                                      )
+if True:
+    results_file_all = os.path.expanduser('~/postprocessing/' + \
+        'snapshot-safari/snapshot-safari-2022-04-07/combined_api_outputs/snapshot-safari-2022-04-07_detections.json')
 
-# results_file_all = os.path.expanduser('~/postprocessing/' + \
-#  'snapshot-safari/snapshot-safari-mdv5-camonly-2022-05-02/combined_api_outputs/snapshot-safari-mdv5-camonly-2022-05-02_detections.json')
-    
-results_file_replacements = {'KGA/KGA_public/':''}
+if False:
+    results_file_all = os.path.expanduser('~/postprocessing/' + \
+        'snapshot-safari/snapshot-safari-mdv5-camcocoinat-2022-05-02/combined_api_outputs/snapshot-safari-mdv5-camcocoinat-2022-05-02_detections.json'                                      )
 
-required_prefix = 'KGA'
+if False:
+    results_file_all = os.path.expanduser('~/postprocessing/' + \
+                                          'snapshot-safari/snapshot-safari-mdv5-camonly-2022-05-02/combined_api_outputs/snapshot-safari-mdv5-camonly-2022-05-02_detections.json')
+
+if False:    
+    results_file_replacements = {'KGA/KGA_public/':''}
+    required_prefix = 'KGA'
+    ground_truth_file = os.path.expanduser('~/postprocessing/snapshot-safari/' + \
+      'ground_truth/SnapshotKgalagadi_S1_v1.0.json')
+
+if False:
+    results_file_replacements = {'KRU/KRU_public/':''}
+    required_prefix = 'KRU'
+    ground_truth_file = os.path.expanduser('~/postprocessing/snapshot-safari/' + \
+      'ground_truth/SnapshotKruger_S1_v1.0.json')
+
+if False:
+    results_file_replacements = {'KAR/KAR_public/':''}
+    required_prefix = 'KAR'
+    ground_truth_file = os.path.expanduser('~/postprocessing/snapshot-safari/' + \
+      'ground_truth/SnapshotKaroo_S1_v1.0.json')
+
+if False:
+    results_file_replacements = {'ENO/ENO_public/':''}
+    required_prefix = 'ENO'
+    ground_truth_file = os.path.expanduser('~/postprocessing/snapshot-safari/' + \
+      'ground_truth/SnapshotEnonkishu_S1_v1.0.json')
+
+if True:
+    results_file_replacements = {'MTZ/MTZ_public/':''}
+    required_prefix = 'MTZ'
+    ground_truth_file = os.path.expanduser('~/postprocessing/snapshot-safari/' + \
+      'ground_truth/SnapshotMountainZebra_S1_v1.0.json')
 
 empty_categories = ['empty']
 human_categories = ['human']
@@ -166,6 +195,9 @@ for seq_id in sequence_id_to_annotations:
 
 sequence_id_to_confidence_values = {}
 
+n_failures = 0
+n_missing = 0
+
 # seq_id = list(sequence_id_to_images.keys())[1000]
 for seq_id in sequence_id_to_images:
     
@@ -186,6 +218,7 @@ for seq_id in sequence_id_to_images:
         md_result = filename_to_md_result[fn]
         if 'detections' not in md_result or md_result['detections'] is None:
             assert 'failure' in md_result
+            n_failures += 1
             continue
         
         found_image = True
@@ -203,10 +236,13 @@ for seq_id in sequence_id_to_images:
     
     if not found_image:
         sequence_id_to_confidence_values[seq_id] = None
+        n_missing += 1
     else:
         sequence_id_to_confidence_values[seq_id] = max_confidence_values
     
 # ...for each sequence
+
+print('Found {} failures, {} missing'.format(n_failures, n_missing))
 
 
 #%% Prepare for precision/recall analysis
@@ -327,7 +363,7 @@ print('** Precision/recall analysis for animals **\n')
 precision_recall_analysis(animal_gt_labels,animal_prediction_probs,'animals',
                           confidence_threshold=0.8,target_recall=0.9)
 precision_recall_analysis(animal_gt_labels,animal_prediction_probs,'animals',
-                          confidence_threshold=0.1,target_recall=0.9)
+                          confidence_threshold=0.1,target_recall=0.95)
 
 
 #%% Scrap
@@ -335,6 +371,12 @@ precision_recall_analysis(animal_gt_labels,animal_prediction_probs,'animals',
 if False:
     
     #%% Find and manually review all sequence-level MegaDetector animal misses
+    
+    import shutil
+    sequence_preview_dir = os.path.expanduser('~/tmp/sequence_preview')
+    os.makedirs(sequence_preview_dir,exist_ok=True)    
+    # input_base = '/media/user/lila-01/lila/snapshot-safari/KGA/KGA_public'
+    input_base = '/media/user/lila-01/lila/snapshot-safari/MTZ/MTZ_public'
     
     fn_threshold = 0.15
     
@@ -351,12 +393,34 @@ if False:
             
     print('Found {} sequence-level false negatives'.format(len(false_negative_sequences)))
     
-    
-
+    # i_seq = 0; seq_id = false_negative_sequences[i_seq]
+    for i_seq,seq_id in enumerate(false_negative_sequences):
+        
+        seq_images = sequence_id_to_images[seq_id]    
+        image_files = [im['file_name'] for im in seq_images]
+        
+        # sequence_folder = os.path.join(sequence_preview_dir,'seq_{}'.format(str(i_seq).zfill(3)))
+        sequence_folder = sequence_preview_dir
+        os.makedirs(sequence_folder,exist_ok=True)
+        
+        # fn = image_files[0]
+        for fn in image_files:
+            
+            input_path = os.path.join(input_base,fn)
+            assert os.path.isfile(input_path)
+            
+            output_path = os.path.join(sequence_folder,fn.replace('/','_'))
+            # print('Copying {} to {}'.format(input_path,output_path))
+            shutil.copyfile(input_path, output_path)
+        
+        # ...for each file in this sequence.
+        
+    # ...for each sequence        
     
 
     #%% Image-level postprocessing
     
+    input_base = '/media/user/lila-01/lila/snapshot-safari/MTZ/MTZ_public'
     import sys,subprocess
     
     def open_file(filename):
@@ -377,10 +441,10 @@ if False:
     os.makedirs(output_base,exist_ok=True)
         
     options = PostProcessingOptions()
-    options.image_base_dir = input_path
+    options.image_base_dir = input_base
     options.parallelize_rendering = True
     options.include_almost_detections = True
-    options.num_images_to_sample = 7500
+    options.num_images_to_sample = 10000
     options.confidence_threshold = 0.75
     options.classification_confidence_threshold = 0.75
     options.almost_detection_confidence_threshold = options.confidence_threshold - 0.05
@@ -390,6 +454,4 @@ if False:
     options.output_dir = output_base
     ppresults = process_batch_results(options)
     open_file(ppresults.output_html_file)
-
-
     
