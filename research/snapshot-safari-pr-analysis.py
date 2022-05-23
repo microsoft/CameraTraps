@@ -11,10 +11,14 @@ import json
 
 from tqdm import tqdm
 
-if True:
+if False:
     results_file_all = os.path.expanduser('~/postprocessing/' + \
         'snapshot-safari/snapshot-safari-2022-04-07/combined_api_outputs/snapshot-safari-2022-04-07_detections.json')
 
+if True:
+    results_file_all = os.path.expanduser('~/postprocessing/' + \
+        'snapshot-safari/snapshot-safari-2022-04-07/combined_api_outputs/snapshot-safari-2022-04-07_detections.filtered_rde_0.60_0.85_10_0.20.json')
+        
 if False:
     results_file_all = os.path.expanduser('~/postprocessing/' + \
         'snapshot-safari/snapshot-safari-mdv5-camcocoinat-2022-05-02/combined_api_outputs/snapshot-safari-mdv5-camcocoinat-2022-05-02_detections.json'                                      )
@@ -420,7 +424,6 @@ if False:
 
     #%% Image-level postprocessing
     
-    input_base = '/media/user/lila-01/lila/snapshot-safari/MTZ/MTZ_public'
     import sys,subprocess
     
     def open_file(filename):
@@ -433,6 +436,8 @@ if False:
     from api.batch_processing.postprocessing.postprocess_batch_results import (
         PostProcessingOptions, process_batch_results)
 
+    input_base = '/media/user/lila-01/lila/snapshot-safari/MTZ/MTZ_public'
+    
     temporary_results_file = os.path.expanduser('~/tmp/filtered_results.json')
     with open(temporary_results_file,'w') as f:
         json.dump(md_results,f,indent=2)
@@ -454,4 +459,3 @@ if False:
     options.output_dir = output_base
     ppresults = process_batch_results(options)
     open_file(ppresults.output_html_file)
-    
