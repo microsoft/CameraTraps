@@ -35,9 +35,6 @@ use_image_queue = False
 # Only relevant when we're using a single GPU
 default_gpu_number = 0
 
-# Only relevant when we're using a single GPU, set to -1 to force CPU
-default_gpu_number = -1
-
 quiet_mode = True
 
 # Only relevant when running on CPU
@@ -361,6 +358,24 @@ html_output_file = ppresults.output_html_file
 path_utils.open_file(html_output_file)
 
 
+#%% Merge in high-confidence detections from another results file
+
+from api.batch_processing.postprocessing.merge_detections import MergeDetectionsOptions,merge_detections
+
+source_files = ['']
+target_file = ''
+output_file = target_file.replace('.json','_merged.json')
+
+options = MergeDetectionsOptions()
+options.max_detection_size = 1.0
+options.target_confidence_threshold = 0.25
+options.categories_to_include = [1]
+options.source_confidence_thresholds = [0.2]
+merge_detections(source_files, target_file, output_file, options)
+
+merged_detections_file = output_file
+
+
 #%% RDE (sample directory collapsing)
 
 def remove_overflow_folders(relativePath):
@@ -429,7 +444,7 @@ suspiciousDetectionResults = repeat_detections_core.find_repeat_detections(combi
                                                                            options)
 
 # import clipboard; clipboard.copy(os.path.dirname(suspiciousDetectionResults.filterFile))
-# open_file(os.path.dirname(suspiciousDetectionResults.filterFile))
+# path_utils.open_file(os.path.dirname(suspiciousDetectionResults.filterFile))
 
 
 #%% Manual RDE step
