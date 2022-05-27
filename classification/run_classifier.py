@@ -135,7 +135,10 @@ def main(model_path: str,
          device_id:int=None) -> None:
     """Main function."""
     # evaluating with accimage is much faster than Pillow or Pillow-SIMD
-    tv.set_image_backend('accimage')
+    try:
+        tv.set_image_backend('accimage')
+    except:
+        print('Warning: could not start accimage backend (ignore this if you\'re not using Linux)')
 
     # create dataset
     print('Creating data loader')
