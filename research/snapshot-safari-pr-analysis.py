@@ -11,11 +11,11 @@ import json
 
 from tqdm import tqdm
 
-if False:
+if True:
     results_file_all = os.path.expanduser('~/postprocessing/' + \
         'snapshot-safari/snapshot-safari-2022-04-07/combined_api_outputs/snapshot-safari-2022-04-07_detections.json')
 
-if True:
+if False:
     results_file_all = os.path.expanduser('~/postprocessing/' + \
         'snapshot-safari/snapshot-safari-2022-04-07/combined_api_outputs/snapshot-safari-2022-04-07_detections.filtered_rde_0.60_0.85_10_0.20.json')
         
@@ -27,7 +27,7 @@ if False:
     results_file_all = os.path.expanduser('~/postprocessing/' + \
                                           'snapshot-safari/snapshot-safari-mdv5-camonly-2022-05-02/combined_api_outputs/snapshot-safari-mdv5-camonly-2022-05-02_detections.json')
 
-if False:    
+if True:    
     results_file_replacements = {'KGA/KGA_public/':''}
     required_prefix = 'KGA'
     ground_truth_file = os.path.expanduser('~/postprocessing/snapshot-safari/' + \
@@ -51,7 +51,7 @@ if False:
     ground_truth_file = os.path.expanduser('~/postprocessing/snapshot-safari/' + \
       'ground_truth/SnapshotEnonkishu_S1_v1.0.json')
 
-if True:
+if False:
     results_file_replacements = {'MTZ/MTZ_public/':''}
     required_prefix = 'MTZ'
     ground_truth_file = os.path.expanduser('~/postprocessing/snapshot-safari/' + \
@@ -313,14 +313,27 @@ def precision_recall_analysis(gt_labels,prediction_probs,name,confidence_thresho
 
     precisions,recalls,thresholds = precision_recall_curve(gt_labels,prediction_probs)
     
-    # Thresholds go up throughout precisions/recalls/thresholds; find the last
+    # Confirm that thresholds are increasing, recall is decreasing
+    assert np.all(thresholds[:-1] <= thresholds[1:])
+    assert np.all(recalls[:-1] >= recalls[1:])
+    
+    # This is not necessarily true
+    # assert np.all(precisions[:-1] <= precisions[1:])
+    
+    # Thresholds go up throughout precisions/recalls/thresholds; find the max
     # value where recall is at or above target.  That's our precision @ target recall.
+    # This is very slightly optimistic in its handling of non-monotonic recall curves,
+    # but is an easy scheme to deal with.
     b_above_target_recall = np.where(recalls >= target_recall)
     if not np.any(b_above_target_recall):
         precision_at_target_recall = 0.0
     else:
-        i_target_recall = np.argmax(b_above_target_recall)
-        precision_at_target_recall = precisions[i_target_recall]
+        precisions_above_target_recall = []
+        for i_recall,recall in enumerate(recalls):
+            if recall >= target_recall:
+                precisions_above_target_recall.append(precisions[i_recall])
+        assert len(precisions_above_target_recall) > 0
+        precision_at_target_recall = max(precisions_above_target_recall)
     print('Precision at {:.1%} recall: {:.1%}'.format(target_recall, precision_at_target_recall))
     
     cm = confusion_matrix(gt_labels, np.array(prediction_probs) > confidence_threshold)
@@ -343,14 +356,14 @@ def precision_recall_analysis(gt_labels,prediction_probs,name,confidence_thresho
     display(fig)
     
     if False:
-        min_recall = 0.825
+        min_recall = 0.945
         indices = recalls > min_recall
         recalls_trimmed = recalls[indices]
         precisions_trimmed = precisions[indices]
         t = 'Precision-recall curve for {}: P@{:0.1%}={:0.1%}'.format(
             name, target_recall, precision_at_target_recall)
         fig = plot_utils.plot_precision_recall_curve(precisions_trimmed, recalls_trimmed, t, 
-                                                     xlim=(min_recall,1.0),ylim=(0.875,1.0))
+                                                     xlim=(min_recall,1.0),ylim=(0.6,1.0))
         display(fig)
             
     if False:
@@ -365,7 +378,7 @@ def precision_recall_analysis(gt_labels,prediction_probs,name,confidence_thresho
 
 print('** Precision/recall analysis for animals **\n')
 precision_recall_analysis(animal_gt_labels,animal_prediction_probs,'animals',
-                          confidence_threshold=0.8,target_recall=0.9)
+                          confidence_threshold=0.1,target_recall=0.9)
 precision_recall_analysis(animal_gt_labels,animal_prediction_probs,'animals',
                           confidence_threshold=0.1,target_recall=0.95)
 
