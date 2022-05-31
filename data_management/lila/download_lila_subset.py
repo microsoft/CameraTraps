@@ -294,7 +294,6 @@ if use_azcopy_for_download:
         else: 
             assert(len(container_and_folder.split('/')) == 1)
             container_name = container_and_folder
-            filenames = ['/' + s for s in filenames]
         
         container_sas_url = account_path + '/' + container_name
         if len(sas_token) > 0:
