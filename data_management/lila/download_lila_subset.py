@@ -285,9 +285,16 @@ if use_azcopy_for_download:
         assert account_path == 'https://lilablobssc.blob.core.windows.net'
         
         container_and_folder = p.path[1:]
-        
-        container_name = container_and_folder.split('/')[0]
-        folder = container_and_folder.split('/',1)[1]
+           
+        # check if the base url contains a folder, then split it. Otherwise, ignore the nonexistant folder. 
+        if len(container_and_folder.split('/')) == 2:
+            container_name = container_and_folder.split('/')[0]
+            folder = container_and_folder.split('/',1)[1]
+            filenames = [folder + '/' + s for s in filenames]
+        else: 
+            assert(len(container_and_folder.split('/')) == 1)
+            container_name = container_and_folder
+            filenames = ['/' + s for s in filenames]
         
         container_sas_url = account_path + '/' + container_name
         if len(sas_token) > 0:
