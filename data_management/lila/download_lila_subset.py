@@ -21,13 +21,13 @@ from urllib.parse import urlparse
 metadata_url = 'http://lila.science/wp-content/uploads/2020/03/lila_sas_urls.txt'
 
 # In this example, we're using the Missouri Camera Traps data set and the Caltech Camera Traps dataset
-datasets_of_interest = ['Missouri Camera Traps','ENA24','Caltech Camera Traps']
+datasets_of_interest = ['Missouri Camera Traps','ENA24','Caltech Camera Traps','SWG Camera Traps']
 
 # All lower-case; we'll convert category names to lower-case when comparing
-species_of_interest = ['red_fox','fox','grey fox','red fox']
+species_of_interest = ['red_fox','fox','grey fox','red fox','leopard_cat']
 
 # We'll write images, metadata downloads, and temporary files here
-lila_local_base = r'g:\temp\lila'
+lila_local_base = os.path.expanduser('~/tmp/lila')
 
 output_dir = os.path.join(lila_local_base,'lila_downloads_by_species')
 os.makedirs(output_dir,exist_ok=True)
@@ -260,6 +260,8 @@ print('Found {} images to download'.format(len(urls_to_download)))
 
 if use_azcopy_for_download:
     
+    # ds_name = 'Caltech Camera Traps'
+    # ds_name = 'SWG Camera Traps'
     for ds_name in downloads_by_dataset:
     
         print('Downloading images for {} with azcopy'.format(ds_name))
@@ -284,30 +286,42 @@ if use_azcopy_for_download:
         account_path = p.scheme + '://' + p.netloc
         assert account_path == 'https://lilablobssc.blob.core.windows.net'
         
+        # For example:
+        #
+        # caltech-unzipped/cct_images
+        # swg-camera-traps
         container_and_folder = p.path[1:]
-        
-        container_name = container_and_folder.split('/')[0]
-        folder = container_and_folder.split('/',1)[1]
+           
+        # Check whether the URL includes a folder
+        if len(container_and_folder.split('/')) > 1:
+            # E.g. caltech-unzipped
+            container_name = container_and_folder.split('/')[0]
+            # E.g. cct_images
+            folder = container_and_folder.split('/',1)[1]
+            filenames = [folder + '/' + s for s in filenames]
+        else: 
+            # E.g. swg-camera-traps
+            container_name = container_and_folder            
         
         container_sas_url = account_path + '/' + container_name
         if len(sas_token) > 0:
             container_sas_url += '?' + sas_token
         
-        # The container name will be included because it's part of the file name
-        container_output_dir = output_dir # os.path.join(output_dir,container_name)
-        os.makedirs(container_output_dir,exist_ok=True)
-        
-        filenames = [folder + '/' + s for s in filenames]
-    
-        # Write out a list of files, and use the azcopy "list-of-files" option to download those files
-        # this azcopy feature is unofficially documented at https://github.com/Azure/azure-storage-azcopy/wiki/Listing-specific-files-to-transfer
+        os.makedirs(output_dir,exist_ok=True)
+            
+        # Write out a list of files, and use the azcopy "list-of-files" option to download those files.
+        #
+        # This azcopy feature is unofficially documented at:
+        #
+        # https://github.com/Azure/azure-storage-azcopy/wiki/Listing-specific-files-to-transfer
+        #
         az_filename = os.path.join(output_dir, 'filenames_{}.txt'.format(ds_name.lower().replace(' ','_')))
         with open(az_filename, 'w') as f:
             for fn in filenames:
                 f.write(fn.replace('\\','/') + '\n')
                 
         cmd = 'azcopy cp "{0}" "{1}" --list-of-files "{2}"'.format(
-                container_sas_url, container_output_dir, az_filename)            
+                container_sas_url, output_dir, az_filename)            
         
         # import clipboard; clipboard.copy(cmd)
         
