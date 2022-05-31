@@ -205,7 +205,7 @@ Example output with both detection and classification results:
 ```json
 {
     "info": {
-        "detector": "megadetector_v3",
+        "detector": "md_v4.1.0.pb",
         "detection_completion_time": "2019-05-22 02:12:19",
         "classifier": "ecosystem1_v2",
         "classification_completion_time": "2019-05-26 01:52:08",
@@ -226,7 +226,7 @@ Example output with both detection and classification results:
     "images": [
         {
             "file": "path/from/base/dir/image1.jpg",
-            "meta": "a string of metadata if it was available in the list at images_requested_json_sas",
+            "meta": "optional free-text metadata",
             "max_detection_conf": 0.926,
             "detections": [
                 {
@@ -260,8 +260,19 @@ Example output with both detection and classification results:
 }
 ```
 
-A full output example computed on the Snapshot Serengeti data can be found [here](http://dolphinvm.westus2.cloudapp.azure.com/data/snapshot_serengeti/serengeti_val_detections_from_pkl_MDv1_20190528_w_classifications.json).
+##### Model metadata
 
+The 'detector' field (within the 'info' field) specifies the filename of the detector model that produced this results file.  It was omitted in old files generated with run_detector_batch.py, so with extremely high probability, if this field is not present, you can assume the file was generated with MegaDetector v4.
+
+In newer files, this should contain the filename (base name only) of the model file, which typically will be one of:
+
+* megadetector_v4.1 (MegaDetector v4, run via the batch API) 
+* md_v4.1.0.pb (MegaDetector v4, run locally) 
+* md_v5a.0.0.pt (MegaDetector v5a) 
+* md_v5b.0.0.pt (MegaDetector v5b) 
+
+This string is used by some tools to choose appropriate default confidence values, which depend on the model version.  If you change the name of the MegaDetector file, you will break this convention, and YMMV.
+ 
 
 ##### Detector outputs
 
