@@ -303,9 +303,7 @@ if use_azcopy_for_download:
         # The container name will be included because it's part of the file name
         container_output_dir = output_dir # os.path.join(output_dir,container_name)
         os.makedirs(container_output_dir,exist_ok=True)
-        
-        filenames = [folder + '/' + s for s in filenames]
-    
+            
         # Write out a list of files, and use the azcopy "list-of-files" option to download those files
         # this azcopy feature is unofficially documented at https://github.com/Azure/azure-storage-azcopy/wiki/Listing-specific-files-to-transfer
         az_filename = os.path.join(output_dir, 'filenames_{}.txt'.format(ds_name.lower().replace(' ','_')))
