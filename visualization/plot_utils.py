@@ -84,7 +84,7 @@ def plot_confusion_matrix(
 
 def plot_precision_recall_curve(
         precisions: Sequence[float], recalls: Sequence[float],
-        title: str = 'Precision/Recall curve',
+        title: str = 'Precision/recall curve',
         xlim=(0.0,1.05),ylim=(0.0,1.05)
         ) -> matplotlib.figure.Figure:
     """
@@ -113,7 +113,7 @@ def plot_precision_recall_curve(
     # 
     except Exception:
         ax.set_xlabel('Recall')
-        ax.set_ylabel('Prediction')
+        ax.set_ylabel('Precision')
         ax.set_title(title)
         ax.set_xlim(xlim[0],xlim[1])
         ax.set_ylim(ylim[0],ylim[1])

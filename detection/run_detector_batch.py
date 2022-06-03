@@ -527,7 +527,7 @@ def main():
         help='File name to which checkpoints will be written if checkpoint_frequency is > 0')
     parser.add_argument(
         '--resume_from_checkpoint',
-        help='Path to a JSON checkpoint file to resume from, must be in same directory as output_file')
+        help='Path to a JSON checkpoint file to resume from')
     parser.add_argument(
         '--ncores',
         type=int,

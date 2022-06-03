@@ -9,17 +9,16 @@
 
 #%% Imports and constants
 
-import sys
 import json
 import os
-import subprocess
 
 from datetime import date
 
 import humanfriendly
 
-import ai4e_azure_utils  # from ai4eutils
-import path_utils        # from ai4eutils
+# from ai4eutils
+import ai4e_azure_utils 
+import path_utils
 
 from api.batch_processing.postprocessing.postprocess_batch_results import (
     PostProcessingOptions, process_batch_results)
@@ -35,9 +34,6 @@ use_image_queue = False
 
 # Only relevant when we're using a single GPU
 default_gpu_number = 0
-
-# Only relevant when we're using a single GPU, set to -1 to force CPU
-default_gpu_number = -1
 
 quiet_mode = True
 
@@ -81,16 +77,6 @@ os.makedirs(postprocessing_output_folder, exist_ok=True)
 if input_path.endswith('/'):
     input_path = input_path[0:-1]
 
-
-#%% Support functions
-
-def open_file(filename):
-    if sys.platform == "win32":
-        os.startfile(filename)
-    else:
-        opener = "open" if sys.platform == "darwin" else "xdg-open"
-        subprocess.call([opener, filename])
-        
 
 #%% Enumerate files
 
@@ -369,7 +355,25 @@ options.api_output_file = combined_api_output_file
 options.output_dir = output_base
 ppresults = process_batch_results(options)
 html_output_file = ppresults.output_html_file
-open_file(html_output_file)
+path_utils.open_file(html_output_file)
+
+
+#%% Merge in high-confidence detections from another results file
+
+from api.batch_processing.postprocessing.merge_detections import MergeDetectionsOptions,merge_detections
+
+source_files = ['']
+target_file = ''
+output_file = target_file.replace('.json','_merged.json')
+
+options = MergeDetectionsOptions()
+options.max_detection_size = 1.0
+options.target_confidence_threshold = 0.25
+options.categories_to_include = [1]
+options.source_confidence_thresholds = [0.2]
+merge_detections(source_files, target_file, output_file, options)
+
+merged_detections_file = output_file
 
 
 #%% RDE (sample directory collapsing)
@@ -440,7 +444,7 @@ suspiciousDetectionResults = repeat_detections_core.find_repeat_detections(combi
                                                                            options)
 
 # import clipboard; clipboard.copy(os.path.dirname(suspiciousDetectionResults.filterFile))
-# open_file(os.path.dirname(suspiciousDetectionResults.filterFile))
+# path_utils.open_file(os.path.dirname(suspiciousDetectionResults.filterFile))
 
 
 #%% Manual RDE step
@@ -495,7 +499,7 @@ options.output_dir = output_base
 ppresults = process_batch_results(options)
 html_output_file = ppresults.output_html_file
 
-open_file(html_output_file)
+path_utils.open_file(html_output_file)
 
 
 #%% Scrap
@@ -618,4 +622,4 @@ for classification_detection_file in classification_detection_files:
     options.api_output_file = classification_detection_file
     options.output_dir = output_base
     ppresults = process_batch_results(options)
-    open_file(ppresults.output_html_file)
+    path_utils.open_file(ppresults.output_html_file)
