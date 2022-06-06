@@ -37,14 +37,13 @@ class PairwiseBatchComparisonOptions:
     detection_thresholds_a = {'animal':0.7,'person':0.7,'vehicle':0.7}
     detection_thresholds_b = {'animal':0.7,'person':0.7,'vehicle':0.7}
 
-    rendering_confidence_threshold_a = 0.2
-    rendering_confidence_threshold_b = 0.2
+    rendering_confidence_threshold_a = 0.1
+    rendering_confidence_threshold_b = 0.1
 
 class BatchComparisonOptions:
     
     output_folder = None
     image_folder = None    
-    html_so_far = None
     
     max_images_per_category = 1000
     colormap_a = ['Red']
