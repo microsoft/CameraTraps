@@ -23,6 +23,7 @@ class MergeDetectionsOptions:
     def __init__(self):
         
         self.max_detection_size = 1.01
+        self.min_detection_size = 0
         self.source_confidence_thresholds = [0.8]
         self.target_confidence_threshold = 0.8
         
@@ -157,7 +158,9 @@ def merge_detections(source_files,target_file,output_file,options=None):
                 # Only look at boxes below the size threshold
                 source_detections_this_category_filtered = [
                     det for det in source_detections_this_category_raw if \
-                        det['bbox'][2]*det['bbox'][3] <= options.max_detection_size]
+                        (det['bbox'][2]*det['bbox'][3] <= options.max_detection_size) and \
+                        (det['bbox'][2]*det['bbox'][3] >= options.min_detection_size) \
+                        ]
                                 
                 for det in source_detections_this_category_filtered:
                     if det['conf'] >= source_confidence_threshold:
