@@ -137,7 +137,8 @@ def main(classification_csv_path: str,
          samples_per_label: Optional[int],
          seed: int,
          label_pos: Optional[str],
-         relative_conf: bool) -> None:
+         relative_conf: bool,
+         typical_confidence_threshold: float) -> None:
     """Main function."""
     # input validation
     assert os.path.exists(classification_csv_path)
@@ -189,7 +190,8 @@ def main(classification_csv_path: str,
         detection_js=detection_js, df=df, idx_to_label=idx_to_label,
         label_names=label_names, classifier_name=classifier_name,
         classifier_timestamp=classifier_timestamp, threshold=threshold,
-        label_pos=label_pos, relative_conf=relative_conf)
+        label_pos=label_pos, relative_conf=relative_conf,
+        typical_confidence_threshold=typical_confidence_threshold)
 
     os.makedirs(os.path.dirname(output_json_path), exist_ok=True)
     with open(output_json_path, 'w') as f:
@@ -325,7 +327,8 @@ def combine_classification_with_detection(
         classifier_timestamp: str,
         threshold: float,
         label_pos: Optional[str] = None,
-        relative_conf: bool = False
+        relative_conf: bool = False,
+        typical_confidence_threshold: float = None
         ) -> dict[str, Any]:
     """Adds classification information to a detection JSON. Classification
     information may include the true label and/or the predicted confidences
@@ -351,11 +354,17 @@ def combine_classification_with_detection(
 
     Returns: dict, detections JSON file updated with classification results
     """
-    detection_js['info'].update({
+    classification_metadata = {
         'classifier': classifier_name,
         'classification_completion_time': classifier_timestamp,
-        'format_version': '1.0'
-    })
+        'format_version': '1.1'
+    }
+    
+    if typical_confidence_threshold is not None:
+        classification_metadata['classifier_metadata'] = \
+        {'typical_classification_threshold':typical_confidence_threshold}
+        
+    detection_js['info'].update(classification_metadata)
     detection_js['classification_categories'] = idx_to_label
 
     contains_preds = (set(label_names) <= set(df.columns))
@@ -408,6 +417,10 @@ def _parse_args() -> argparse.Namespace:
         '-d', '--datasets', nargs='*',
         help='optionally limit output to images from certain datasets. Assumes '
              'that image paths are given as <dataset>/<img_file>.')
+    parser.add_argument(
+        '--typical-confidence-threshold', type=float, default=None,
+        help='useful default confidence threshold, not used directly, just passed along to the output file')
+    
 
     detection_json_group = parser.add_argument_group(
         'arguments for passing in a detections JSON file')
@@ -460,4 +473,5 @@ if __name__ == '__main__':
          samples_per_label=args.samples_per_label,
          seed=args.seed,
          label_pos=args.label,
-         relative_conf=args.relative_conf)
+         relative_conf=args.relative_conf,
+         typical_confidence_threshold=args.typical_confidence_threshold)
