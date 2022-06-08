@@ -191,7 +191,7 @@ Note that the field `Status` in the returned body is capitalized (since July 202
 
 The URL to the output file is valid for 180 days from the time the request has finished. If you neglected to retrieve them before the link expired, contact us with the RequestID and we can send the results to you. 
 
-The output file is a JSON in the format described below, last updated in February 2021 (`"format_version": "1.1"`).
+The output file is a JSON in the format described below.
 
 
 #### Batch processing API output format
@@ -205,11 +205,19 @@ Example output with both detection and classification results:
 ```json
 {
     "info": {
+        "format_version": "1.2",
         "detector": "md_v4.1.0.pb",
         "detection_completion_time": "2019-05-22 02:12:19",
         "classifier": "ecosystem1_v2",
         "classification_completion_time": "2019-05-26 01:52:08",
-        "format_version": "1.1"
+        "detector_metadata": {
+           "megadetector_version":"v4.1.0",
+           "typical_detection_threshold":0.8,
+           "conservative_detection_threshold":0.6
+        }
+        "classifier_metadata": {
+           "typical_classification_threshold":0.75
+        }
     },
     "detection_categories": {
         "1": "animal",
@@ -273,6 +281,7 @@ In newer files, this should contain the filename (base name only) of the model f
 
 This string is used by some tools to choose appropriate default confidence values, which depend on the model version.  If you change the name of the MegaDetector file, you will break this convention, and YMMV.
  
+The "detector_metadata" and "classifier_metadata" fields are also optionally added as of format version 1.2.  These currently contain useful default confidence values for downstream tools (particularly Timelapse), but we strongly recommend against blindly trusting these defaults; always explore your data before choosing a confidence threshold, as the optimal value can vary widely.
 
 ##### Detector outputs
 
