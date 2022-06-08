@@ -285,6 +285,43 @@ print('Processed all {} images with {} failures'.format(
     len(all_images),n_total_failures))
         
 
+#%% Merge results files and make images relative
+
+import copy
+
+combined_results = None
+
+for i_task,task in enumerate(task_info):
+
+    if i_task == 0:
+        combined_results = copy.deepcopy(task['results'])
+        combined_results['images'] = copy.deepcopy(task['results']['images'])
+        continue
+    task_results = task['results']
+    assert task_results['info']['format_version'] == combined_results['info']['format_version']
+    assert task_results['detection_categories'] == combined_results['detection_categories']
+    combined_results['images'].extend(copy.deepcopy(task_results['images']))
+    
+assert len(combined_results['images']) == len(all_images)
+
+result_filenames = [im['file'] for im in combined_results['images']]
+assert len(combined_results['images']) == len(set(result_filenames))
+
+# im = combined_results['images'][0]
+for im in combined_results['images']:
+    assert im['file'].startswith(input_path + '/')
+    im['file']= im['file'].replace(input_path + '/','',1)    
+    
+combined_api_output_file = os.path.join(
+    combined_api_output_folder,
+    '{}_detections.json'.format(base_task_name))
+
+with open(combined_api_output_file,'w') as f:
+    json.dump(combined_results,f,indent=2)
+
+print('Wrote results to {}'.format(combined_api_output_file))
+
+
 #%% Compare results files for different model versions (or before/after RDE)
 
 import itertools
@@ -325,43 +362,6 @@ results = compare_batch_results(options)
 
 from path_utils import open_file # from ai4eutils
 open_file(results.html_output_file)
-
-
-#%% Merge results files and make images relative
-
-import copy
-
-combined_results = None
-
-for i_task,task in enumerate(task_info):
-
-    if i_task == 0:
-        combined_results = copy.deepcopy(task['results'])
-        combined_results['images'] = copy.deepcopy(task['results']['images'])
-        continue
-    task_results = task['results']
-    assert task_results['info']['format_version'] == combined_results['info']['format_version']
-    assert task_results['detection_categories'] == combined_results['detection_categories']
-    combined_results['images'].extend(copy.deepcopy(task_results['images']))
-    
-assert len(combined_results['images']) == len(all_images)
-
-result_filenames = [im['file'] for im in combined_results['images']]
-assert len(combined_results['images']) == len(set(result_filenames))
-
-# im = combined_results['images'][0]
-for im in combined_results['images']:
-    assert im['file'].startswith(input_path + '/')
-    im['file']= im['file'].replace(input_path + '/','',1)    
-    
-combined_api_output_file = os.path.join(
-    combined_api_output_folder,
-    '{}_detections.json'.format(base_task_name))
-
-with open(combined_api_output_file,'w') as f:
-    json.dump(combined_results,f,indent=2)
-
-print('Wrote results to {}'.format(combined_api_output_file))
 
 
 #%% Post-processing (no ground truth)
@@ -467,6 +467,9 @@ options.confidenceMax = 1.01
 options.iouThreshold = 0.85
 options.occurrenceThreshold = 10
 options.maxSuspiciousDetectionSize = 0.2
+
+# options.lineThickness = 5
+# options.boxExpansion = 8
 
 # To invoke custom collapsing of folders for a particular manufacturer's naming scheme
 # options.customDirNameFunction = remove_overflow_folders
