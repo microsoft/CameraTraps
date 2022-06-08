@@ -71,14 +71,18 @@ verbose = False
 
 # Useful hack to force CPU inference.
 #
-# Need to do this before any PT/TF imports
+# Need to do this before any PT/TF imports, which happen when we import
+# from run_detector.
 force_cpu = False
 if force_cpu:
     os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
-from detection.run_detector import ImagePathUtils, is_gpu_available, load_detector
-from detection.run_detector import FAILURE_INFER, DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD,\
-    FAILURE_IMAGE_OPEN, DEFAULT_DETECTOR_LABEL_MAP
+from detection.run_detector import ImagePathUtils, is_gpu_available,\
+    load_detector,\
+    get_detector_version_from_filename,\
+    get_detector_metadata_from_version_string,\
+    FAILURE_INFER, FAILURE_IMAGE_OPEN,\
+    DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD, DEFAULT_DETECTOR_LABEL_MAP
 
 import visualization.visualization_utils as viz_utils
 
@@ -405,7 +409,8 @@ def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=No
 
 def write_results_to_file(results, output_file, relative_path_base=None, detector_file=None):
     """
-    Writes list of detection results to JSON output file. Format matches
+    Writes list of detection results to JSON output file. Format matches:
+
     https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing#batch-processing-api-output-format
 
     Args
@@ -424,11 +429,18 @@ def write_results_to_file(results, output_file, relative_path_base=None, detecto
 
     info = { 
         'detection_completion_time': datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'),
-        'format_version': '1.1' 
+        'format_version': '1.2' 
     }
     
     if detector_file is not None:
-        info['detector'] = os.path.basename(detector_file)
+        detector_filename = os.path.basename(detector_file)
+        detector_version = get_detector_version_from_filename(detector_filename)
+        detector_metadata = get_detector_metadata_from_version_string(detector_version)
+        info['detector'] = detector_filename  
+        info['detector_metadata'] = detector_metadata
+    else:
+        info['detector'] = 'unknown'
+        info['detector_metadata'] = 'unknown'
         
     final_output = {
         'images': results,
