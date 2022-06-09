@@ -419,7 +419,7 @@ def _parse_args() -> argparse.Namespace:
              'that image paths are given as <dataset>/<img_file>.')
     parser.add_argument(
         '--typical-confidence-threshold', type=float, default=None,
-        help='useful default confidence threshold, not used directly, just passed along to the output file')
+        help='useful default confidence threshold; not used directly, just passed along to the output file')
     
 
     detection_json_group = parser.add_argument_group(

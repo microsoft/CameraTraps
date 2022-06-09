@@ -90,11 +90,11 @@ DETECTOR_METADATA = {
     'v2.0.0':
         {'megadetector_version':'v2.0.0',
          'typical_detection_threshold':0.8,
-         'conservative_detection_threshold':0.6},
+         'conservative_detection_threshold':0.4},
     'v3.0.0':
         {'megadetector_version':'v3.0.0',
          'typical_detection_threshold':0.8,
-         'conservative_detection_threshold':0.6},
+         'conservative_detection_threshold':0.4},
     'v4.1.0':
         {'megadetector_version':'v4.1.0',
          'typical_detection_threshold':0.8,
