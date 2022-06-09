@@ -284,7 +284,7 @@ assert n_total_failures < max_tolerable_failed_images,\
 print('Processed all {} images with {} failures'.format(
     len(all_images),n_total_failures))
         
-        
+
 #%% Merge results files and make images relative
 
 import copy
@@ -320,6 +320,48 @@ with open(combined_api_output_file,'w') as f:
     json.dump(combined_results,f,indent=2)
 
 print('Wrote results to {}'.format(combined_api_output_file))
+
+
+#%% Compare results files for different model versions (or before/after RDE)
+
+import itertools
+
+from api.batch_processing.postprocessing.compare_batch_results import (
+    BatchComparisonOptions,PairwiseBatchComparisonOptions,compare_batch_results)
+
+options = BatchComparisonOptions()
+
+options.job_name = 'organization-short'
+options.output_folder = os.path.expanduser('~/tmp/organization-short')
+options.image_folder = '/datadrive/home/sftp/organization-short_/data'
+
+options.pairwise_options = []
+
+filenames = [
+    '/postprocessing/organization/mdv4_results.json',
+    '/postprocessing/organization/mdv5a_results.json',
+    '/postprocessing/organization/mdv5b_results.json'    
+    ]
+
+detection_thresholds = [0.7,0.3,0.3]
+
+for i, j in itertools.combinations([0,1,2],2):
+        
+    pairwise_options = PairwiseBatchComparisonOptions()
+    pairwise_options.results_filename_a = filenames[i]
+    pairwise_options.results_filename_b = filenames[j]
+    pairwise_options.detection_thresholds_a = {'animal':detection_thresholds[i],
+                                               'person':detection_thresholds[i],
+                                               'vehicle':detection_thresholds[i]}
+    pairwise_options.detection_thresholds_b = {'animal':detection_thresholds[j],
+                                               'person':detection_thresholds[j],
+                                               'vehicle':detection_thresholds[j]}
+    options.pairwise_options.append(pairwise_options)
+
+results = compare_batch_results(options)
+
+from path_utils import open_file # from ai4eutils
+open_file(results.html_output_file)
 
 
 #%% Post-processing (no ground truth)
@@ -392,9 +434,22 @@ def remove_overflow_folders(relativePath):
     return dirName
 
 if False:
+
+    pass
+
+    #%%
     
     relativePath = 'a/b/c/d/100EK113/blah.jpg'
     print(remove_overflow_folders(relativePath))
+    
+    #%%
+    
+    from tqdm import tqdm
+    with open(combined_api_output_file,'r') as f:
+        d = json.load(f)
+    image_filenames = [im['file'] for im in d['images']]
+    for relativePath in tqdm(image_filenames):
+        remove_overflow_folders(relativePath)
 
 
 #%% Repeat detection elimination, phase 1
@@ -412,6 +467,9 @@ options.confidenceMax = 1.01
 options.iouThreshold = 0.85
 options.occurrenceThreshold = 10
 options.maxSuspiciousDetectionSize = 0.2
+
+# options.lineThickness = 5
+# options.boxExpansion = 8
 
 # To invoke custom collapsing of folders for a particular manufacturer's naming scheme
 # options.customDirNameFunction = remove_overflow_folders

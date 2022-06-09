@@ -37,14 +37,13 @@ class PairwiseBatchComparisonOptions:
     detection_thresholds_a = {'animal':0.7,'person':0.7,'vehicle':0.7}
     detection_thresholds_b = {'animal':0.7,'person':0.7,'vehicle':0.7}
 
-    rendering_confidence_threshold_a = 0.2
-    rendering_confidence_threshold_b = 0.2
+    rendering_confidence_threshold_a = 0.1
+    rendering_confidence_threshold_b = 0.1
 
 class BatchComparisonOptions:
     
     output_folder = None
     image_folder = None    
-    html_so_far = None
     
     max_images_per_category = 1000
     colormap_a = ['Red']
@@ -153,19 +152,43 @@ def _compare_batch_results(options,output_index,pairwise_options):
         im_b = filename_to_image_b[fn]
         
         categories_above_threshold_a = set()
+
+        if not 'detections' in im_a:
+            assert 'failure' in im_a and im_a['failure'] is not None
+            continue
+        
+        if not 'detections' in im_b:
+            assert 'failure' in im_b and im_b['failure'] is not None
+            continue
+        
+        invalid_category_error = False
         
         # det = im_a['detections'][0]
         for det in im_a['detections']:
             
             category_id = det['category']
+            
+            if category_id not in detection_categories:
+                print('Warning: unexpected category {} for model A on file {}'.format(category_id,fn))
+                invalid_category_error = True
+                break
+                
             conf = det['conf']
             
             if conf >= pairwise_options.detection_thresholds_a[detection_categories[category_id]]:
                 categories_above_threshold_a.add(category_id)
                             
+        if invalid_category_error:
+            continue
+        
         categories_above_threshold_b = set()
         
         for det in im_b['detections']:
+            
+            if category_id not in detection_categories:
+                print('Warning: unexpected category {} for model B on file {}'.format(category_id,fn))
+                invalid_category_error = True
+                break
             
             category_id = det['category']
             conf = det['conf']
@@ -173,6 +196,9 @@ def _compare_batch_results(options,output_index,pairwise_options):
             if conf >= pairwise_options.detection_thresholds_b[detection_categories[category_id]]:
                 categories_above_threshold_b.add(category_id)
                             
+        if invalid_category_error:
+            continue
+        
         im_pair = (im_a,im_b)
         
         detection_a = (len(categories_above_threshold_a) > 0)

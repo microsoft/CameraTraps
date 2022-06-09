@@ -70,17 +70,43 @@ FAILURE_INFER = 'Failure inference'
 FAILURE_IMAGE_OPEN = 'Failure image access'
 
 DEFAULT_RENDERING_CONFIDENCE_THRESHOLD = 0.85  # to render bounding boxes
-DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD = 0.1  # to include in the output json file
+DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD = 0.01  # to include in the output json file
 
 # Number of decimal places to round to for confidence and bbox coordinates
 CONF_DIGITS = 3
 COORD_DIGITS = 4
 
-# Label mapping for the MegaDetector
+# Label mapping for MegaDetector
 DEFAULT_DETECTOR_LABEL_MAP = {
     '1': 'animal',
     '2': 'person',
     '3': 'vehicle'  # available in megadetector v4+
+}
+
+# Each version of the detector is associated with some "typical" values
+# that are included in output files, so that downstream applications can 
+# use them as defaults.
+DETECTOR_METADATA = {
+    'v2.0.0':
+        {'megadetector_version':'v2.0.0',
+         'typical_detection_threshold':0.8,
+         'conservative_detection_threshold':0.4},
+    'v3.0.0':
+        {'megadetector_version':'v3.0.0',
+         'typical_detection_threshold':0.8,
+         'conservative_detection_threshold':0.4},
+    'v4.1.0':
+        {'megadetector_version':'v4.1.0',
+         'typical_detection_threshold':0.8,
+         'conservative_detection_threshold':0.6},
+    'v5a.0.0':
+        {'megadetector_version':'v5a.0.0',
+         'typical_detection_threshold':0.25,
+         'conservative_detection_threshold':0.1},
+    'v5b.0.0':
+        {'megadetector_version':'v5b.0.0',
+         'typical_detection_threshold':0.25,
+         'conservative_detection_threshold':0.1}    
 }
 
 
@@ -127,6 +153,54 @@ class ImagePathUtils:
 
 #%% Utility functions
 
+def get_detector_metadata_from_version_string(detector_version):
+    """
+    Given a MegaDetector version string (e.g. "v4.1.0"), return the metadata for
+    the model.  Used for writing standard defaults to batch output files.
+    """
+    if detector_version not in DETECTOR_METADATA:
+        print('Warning: no metadata for unknown detector version {}'.format(detector_version))
+        return None
+    else:
+        return DETECTOR_METADATA[detector_version]
+
+
+def get_detector_version_from_filename(detector_filename):
+    """
+    Get the version number component of the detector from the model filename.  
+    
+    *detector_filename* will almost always end with one of the following:
+        
+    megadetector_v2.pb
+    megadetector_v3.pb
+    megadetector_v4.1 (not produed by run_detector_batch.py, only found in Azure Batch API output files)
+    md_v4.1.0.pb
+    md_v5a.0.0.pt
+    md_v5b.0.0.pt
+    
+    ...for which we identify the version number as "v2.0.0", "v3.0.0", "v4.1.0", 
+    "v4.1.0", "v5a.0.0", and "v5b.0.0", respectively.
+    """
+    fn = os.path.basename(detector_filename)
+    known_model_versions = {'v2':'v2.0.0',
+                            'v3':'v3.0.0',
+                            'v4.1':'v4.1.0',
+                            'v5a.0.0':'v5a.0.0',
+                            'v5b.0.0':'v5b.0.0'}
+    matches = []
+    for s in known_model_versions.keys():
+        if s in fn:
+            matches.append(s)
+    if len(matches) == 0:
+        print('Warning: could not determine MegaDetector version for model file {}'.format(detector_filename))
+        return 'unknown'
+    elif len(matches) > 1:
+        print('Warning: multiple MegaDetector versions for model file {}'.format(detector_filename))
+        return 'multiple'
+    else:
+        return known_model_versions[matches[0]]
+    
+    
 def is_gpu_available(model_file):
     """Decide whether a GPU is available, importing PyTorch or TF depending on the extension
     of model_file.  Does not actually load model_file, just uses that to determine how to check 

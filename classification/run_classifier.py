@@ -249,5 +249,5 @@ if __name__ == '__main__':
          classifier_categories_json_path=args.classifier_categories,
          img_size=args.image_size,
          batch_size=args.batch_size,
-         num_workers=args.num_workers,
+         num_workers=args.num_workers,         
          device_id=args.device)
