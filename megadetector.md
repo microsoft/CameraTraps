@@ -334,7 +334,7 @@ MegaDetector v5b was trained on all MDv4 training data, plus new private data, a
 * [SWG Camera Traps](https://lila.science/datasets/swg-camera-traps)
 * [Several datasets from Snapshot Safari](https://lila.science/category/camera-traps/snapshot-safari/)
 
-MegaDetector v5a was trained on all of the MDv5a training data, and new public data from:
+MegaDetector v5a was trained on all of the MDv5b training data, and new public data from:
 
 * The [iNaturalist Dataset 2017](https://github.com/visipedia/inat_comp/tree/master/2017)
 * [COCO](https://cocodataset.org/#home)
