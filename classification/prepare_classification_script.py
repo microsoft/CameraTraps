@@ -67,6 +67,11 @@ num_workers_str = '8'
 logdir = working_dir_base
 
 classification_threshold_str = '0.05'
+
+# This is just passed along to the metadata in the output file, it has no impact
+# on how the classification scripts run.
+typical_classification_threshold_str = '0.75'
+
 classifier_name = 'idfg4'
         
 
@@ -166,6 +171,7 @@ for fn in input_files:
          '--detection-json "' + input_file_path + '"' + ' \\\n' + \
          '--classifier-name "' + classifier_name + '"' + ' \\\n' + \
          '--threshold "' + classification_threshold_str + '"' + ' \\\n' + \
+         '--typical-confidence-threshold "' + typical_classification_threshold_str + '"' + ' \\\n' + \
          '\n'
     merge_cmd = '{}'.format(merge_cmd)
     commands.append(merge_cmd)
