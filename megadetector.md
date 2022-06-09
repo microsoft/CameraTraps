@@ -316,19 +316,27 @@ This model is trained on bounding boxes from a variety of ecosystems, and many o
 
 <https://lila.science/category/camera-traps/>
 
-Specifically, MegaDetector v4 was trained on private data, plus some data from:
+Specifically, MegaDetector v3 was trained on private data, plus public data from:
 
-* Caltech Camera Traps
-* Snapshot Serengeti
-* WCS Camera Traps
-* NACTI (North American Camera Trap Images)
-* Island Conservation Camera Traps
-* Idaho Camera Traps
+* [Caltech Camera Traps](https://lila.science/datasets/caltech-camera-traps)
+* [Snapshot Serengeti](https://lila.science/datasets/snapshot-serengeti)
+* [Idaho Camera Traps](https://lila.science/datasets/idaho-camera-traps/)
 
-For posterity, MegaDetector v3 was trained on private data, plus some data from:
+MegaDetector v4 was trained on all MDv3 training data, plus new private data, and new public data from:
 
-* Caltech Camera Traps
-* Snapshot Serengeti
-* Idaho Camera Traps
+* [WCS Camera Traps](https://lila.science/datasets/wcscameratraps)
+* [NACTI (North American Camera Trap Images)](https://lila.science/datasets/nacti)
+* [Island Conservation Camera Traps](https://lila.science/datasets/island-conservation-camera-traps)
+
+MegaDetector v5b was trained on all MDv4 training data, plus new private data, and new public data from:
+
+* [Orinoquía Camera Traps](https://lila.science/orinoquia-camera-traps/)
+* [SWG Camera Traps](https://lila.science/datasets/swg-camera-traps)
+* [Several datasets from Snapshot Safari](https://lila.science/category/camera-traps/snapshot-safari/)
+
+MegaDetector v5a was trained on all of the MDv5a training data, and new public data from:
+
+* The [iNaturalist Dataset 2017](https://github.com/visipedia/inat_comp/tree/master/2017)
+* [COCO](https://cocodataset.org/#home)
 
 So if MegaDetector performs really well on those data sets, that's great, but it's a little bit cheating, because we haven't published the set of locations from those data sets that we use during training.
