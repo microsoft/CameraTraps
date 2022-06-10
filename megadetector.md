@@ -141,34 +141,33 @@ When we describe how to run our two inference scripts below, we assume the follo
 1. You have Python 3 installed.  We recommend installing [Anaconda](https://www.anaconda.com/products/individual), which is Python plus a zillion useful packages.
 2. You have downloaded our [MegaDetector model](https://lilablobssc.blob.core.windows.net/models/camera_traps/megadetector/md_v4.1.0/md_v4.1.0.pb) to some location on your computer.
 3. You have cloned this git repo, and the [AI for Earth Utilities](http://github.com/microsoft/ai4eutils) repo.  If you're not familiar with git and are on a Windows machine, we recommend installing [Git for Windows](https://git-scm.com/download/win).  Specific instructions for cloning the repo are included in the command line instructions at the end of this step.
-4. You have added both directories where you cloned the two repos to your PYTHONPATH environment variable.  Here's a [good page](https://www.computerhope.com/issues/ch000549.htm) about editing environment variables in Windows.  You will need administrative access to your PC to set an environment variable.
-
-    Here are Windows instructions for steps 3 and 4 that assume you *don't* have administrative access to your PC (if you set the environment variable as per above, you can skip the "set PYTHONPATH" step here).  We're going to clone the repos to "c:\git", but you can use any folder you like.
-
-    After installing git and Anaconda, open an Anaconda Prompt, and run:
-
-```batch
-    mkdir c:\git
-    cd c:\git
-    git clone https://github.com/Microsoft/cameratraps
-    git clone https://github.com/Microsoft/ai4eutils
-    pip install tensorflow pillow humanfriendly matplotlib tqdm jsonpickle statistics requests
-    set PYTHONPATH=c:\git\cameratraps;c:\git\ai4eutils
-```
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;On subsequent times you open your Anaconda prompt, you just need to do:
-
-```batch
-    cd c:\git\cameratraps\api\batch_processing\postprocessing
-    set PYTHONPATH=c:\git\cameratraps;c:\git\ai4eutils
-```
-
+4. You have added both directories where you cloned the two repos to your PYTHONPATH environment variable.  Here's a [good page](https://www.computerhope.com/issues/ch000549.htm) about editing environment variables in Windows.  You will need administrative access to your PC to set an environment variable.  Specific instructions for managing your PYTHONPATH are included in the command line instructions at the end of this step.
 5. If you plan to use a GPU, you need to have a recent version of the [appropriate NVIDIA driver](https://www.nvidia.com/download/index.aspx) for your GPU, as well as the [CUDA toolkit](https://developer.nvidia.com/cuda-toolkit) and [cuDNN library](https://developer.nvidia.com/cudnn).  If you're not sure whether you already have CUDA/cuDNN installed, we recommend trying to run MegaDetector first, and if your GPU is not recognized, then install them.  There are a few ways to install CUDA/cuDNN, but all other things being equal, this is probably a good way to install CUDA and cuDNN (at your Anaconda prompt):
 
     `conda install -c conda-forge cudatoolkit=11.2 cudnn=8.1.0`
 
     Those versions are appropriate as of June 2022.  [This table](https://www.tensorflow.org/install/source#tested_build_configurations) lists compatibility between TensorFlow versions and CUDA/cuDNN versions (TensorFlow compatibility is only relevant to MegaDetector versions 4 and earlier).
-    
+
+Here are Windows instructions for steps 3 and 4 that assume you *don't* have administrative access to your PC (if you set the environment variable as per above, you can skip the "set PYTHONPATH" step here).  We're going to clone the repos to "c:\git", but you can use any folder you like.
+
+After installing git and Anaconda, open an Anaconda Prompt, and run:
+
+```batch
+mkdir c:\git
+cd c:\git
+git clone https://github.com/Microsoft/cameratraps
+git clone https://github.com/Microsoft/ai4eutils
+pip install tensorflow pillow humanfriendly matplotlib tqdm jsonpickle statistics requests
+set PYTHONPATH=c:\git\cameratraps;c:\git\ai4eutils
+```
+
+On subsequent times you open your Anaconda prompt, you just need to do:
+
+```batch
+cd c:\git\cameratraps\api\batch_processing\postprocessing
+set PYTHONPATH=c:\git\cameratraps;c:\git\ai4eutils
+```
+
 ### 1. run_detector.py
 
 To "test" this model on small sets of images and get super-satisfying visual output, we provide [run_detector.py](https://github.com/Microsoft/CameraTraps/blob/master/detection/run_detector.py), an example script for invoking this detector on new images.  This isn't how we recommend running lots of images through MegaDetector (see [run_detector_batch.py](#2-run_detector_batchpy) below for "real" usage), but it's a quick way to test things out.  [Let us know](mailto:cameratraps@lila.science) how it works on your images!
