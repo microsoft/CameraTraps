@@ -163,6 +163,12 @@ cd c:\git\cameratraps\api\batch_processing\postprocessing
 set PYTHONPATH=c:\git\cameratraps;c:\git\ai4eutils
 ```
 
+5. If you plan to use a GPU, you need to have a recent version of the [appropriate NVIDIA driver](https://www.nvidia.com/download/index.aspx) for your GPU, as well as the [CUDA toolkit](https://developer.nvidia.com/cuda-toolkit) and [cuDNN library](https://developer.nvidia.com/cudnn).  If you're not sure whether you already have CUDA/cuDNN installed, we recommend trying to run MegaDetector first, and if your GPU is not recognized, then install them.  There are a few ways to install CUDA/cuDNN, but all other things being equal, this is probably a good way to install CUDA and cuDNN (at your Anaconda prompt):
+
+`conda install -c conda-forge cudatoolkit=11.2 cudnn=8.1.0`
+
+Those versions are appropriate as of June 2022.  [This table](https://www.tensorflow.org/install/source#tested_build_configurations) lists compatibility between TensorFlow versions and CUDA/cuDNN versions (TensorFlow compatibility is only relevant to MegaDetector versions 4 and earlier).
+    
 ### 1. run_detector.py
 
 To "test" this model on small sets of images and get super-satisfying visual output, we provide [run_detector.py](https://github.com/Microsoft/CameraTraps/blob/master/detection/run_detector.py), an example script for invoking this detector on new images.  This isn't how we recommend running lots of images through MegaDetector (see [run_detector_batch.py](#2-run_detector_batchpy) below for "real" usage), but it's a quick way to test things out.  [Let us know](mailto:cameratraps@lila.science) how it works on your images!
