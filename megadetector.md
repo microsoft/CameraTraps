@@ -141,7 +141,12 @@ When we describe how to run our two inference scripts below, we assume the follo
 1. You have Python 3 installed.  We recommend installing [Anaconda](https://www.anaconda.com/products/individual), which is Python plus a zillion useful packages.
 2. You have downloaded our [MegaDetector model](https://lilablobssc.blob.core.windows.net/models/camera_traps/megadetector/md_v4.1.0/md_v4.1.0.pb) to some location on your computer.
 3. You have cloned this git repo, and the [AI for Earth Utilities](http://github.com/microsoft/ai4eutils) repo.  If you're not familiar with git and are on a Windows machine, we recommend installing [Git for Windows](https://git-scm.com/download/win).  Specific instructions for cloning the repo are included in the command line instructions at the end of this step.
-4. You have added both directories where you cloned the two repos to your PYTHONPATH environment variable.  Here's a [good page](https://www.computerhope.com/issues/ch000549.htm) about editing environment variables in Windows.  You will need administrative access to your PC to set an environment variable.
+4. You have added both directories where you cloned the two repos to your PYTHONPATH environment variable.  Here's a [good page](https://www.computerhope.com/issues/ch000549.htm) about editing environment variables in Windows.  You will need administrative access to your PC to set an environment variable.  Specific instructions for managing your PYTHONPATH are included in the command line instructions at the end of this step.
+5. If you plan to use a GPU, you need to have a recent version of the [appropriate NVIDIA driver](https://www.nvidia.com/download/index.aspx) for your GPU, as well as the [CUDA toolkit](https://developer.nvidia.com/cuda-toolkit) and [cuDNN library](https://developer.nvidia.com/cudnn).  If you're not sure whether you already have CUDA/cuDNN installed, we recommend trying to run MegaDetector first, and if your GPU is not recognized, then install them.  There are a few ways to install CUDA/cuDNN, but all other things being equal, this is probably a good way to install CUDA and cuDNN (at your Anaconda prompt):
+
+    `conda install -c conda-forge cudatoolkit=11.2 cudnn=8.1.0`
+
+    Those versions are appropriate as of June 2022.  [This table](https://www.tensorflow.org/install/source#tested_build_configurations) lists compatibility between TensorFlow versions and CUDA/cuDNN versions (TensorFlow compatibility is only relevant to MegaDetector versions 4 and earlier).
 
 Here are Windows instructions for steps 3 and 4 that assume you *don't* have administrative access to your PC (if you set the environment variable as per above, you can skip the "set PYTHONPATH" step here).  We're going to clone the repos to "c:\git", but you can use any folder you like.
 
@@ -316,19 +321,28 @@ This model is trained on bounding boxes from a variety of ecosystems, and many o
 
 <https://lila.science/category/camera-traps/>
 
-Specifically, MegaDetector v4 was trained on private data, plus some data from:
+Specifically, MegaDetector v3 was trained on private data, plus public data from:
 
-* Caltech Camera Traps
-* Snapshot Serengeti
-* WCS Camera Traps
-* NACTI (North American Camera Trap Images)
-* Island Conservation Camera Traps
-* Idaho Camera Traps
+* [Caltech Camera Traps](https://lila.science/datasets/caltech-camera-traps)
+* [Snapshot Serengeti](https://lila.science/datasets/snapshot-serengeti)
+* [Idaho Camera Traps](https://lila.science/datasets/idaho-camera-traps/)
 
-For posterity, MegaDetector v3 was trained on private data, plus some data from:
+MegaDetector v4 was trained on all MDv3 training data, plus new private data, and new public data from:
 
-* Caltech Camera Traps
-* Snapshot Serengeti
-* Idaho Camera Traps
+* [WCS Camera Traps](https://lila.science/datasets/wcscameratraps)
+* [NACTI (North American Camera Trap Images)](https://lila.science/datasets/nacti)
+* [Island Conservation Camera Traps](https://lila.science/datasets/island-conservation-camera-traps)
+
+MegaDetector v5b was trained on all MDv4 training data, plus new private data, and new public data from:
+
+* [Orinoquía Camera Traps](https://lila.science/orinoquia-camera-traps/)
+* [SWG Camera Traps](https://lila.science/datasets/swg-camera-traps)
+* [ENA24](https://lila.science/datasets/ena24detection)
+* [Several datasets from Snapshot Safari](https://lila.science/category/camera-traps/snapshot-safari/)
+
+MegaDetector v5a was trained on all of the MDv5b training data, and new public data from:
+
+* The [iNaturalist Dataset 2017](https://github.com/visipedia/inat_comp/tree/master/2017)
+* [COCO](https://cocodataset.org/#home)
 
 So if MegaDetector performs really well on those data sets, that's great, but it's a little bit cheating, because we haven't published the set of locations from those data sets that we use during training.
