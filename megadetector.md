@@ -237,6 +237,39 @@ python c:\git\CameraTraps\detection\run_detector_batch.py c:\wherever\you\downlo
 <b>If you are running very large batches, we strongly recommend adding the `--checkpoint_frequency` option to save checkpoints every N images</b> (you don't want to lose all the work your GPU has done if your computer crashes!).  10000 is a good value for checkpoint frequency; that will save the results every 10000 images.
 
 
+### 3. Running run_detector.py or run_detector_batch.py using MegaDetector v5
+
+#### Setting up the `cameratraps-detector` conda environment
+MegaDetector v5 uses a single-stage object detector implemented by https://github.com/ultralytics/yolov5 using the PyTorch framework. The environment described by `environment-detector.yml` contains packages and their versions required to run MDv5. See the [Installation](https://github.com/microsoft/CameraTraps/tree/main#installation) section on our main README for instructions on setting up this Conda environment. 
+
+Make sure the environment is active:
+```bash
+conda activate cameratraps-detector
+```
+
+#### Clone the YOLOv5 repo
+
+We use image-preprocessing and results post-processing functions from this repo. To clone it:
+
+```bash
+git clone https://github.com/ultralytics/yolov5/
+```
+
+You also need to add this repo to your Python path:
+
+```bash 
+export PYTHONPATH="$PYTHONPATH:$PWD/yolov5"
+```
+
+Now change into this repo and check out a commit which has been tested to work with our model files and packages:
+```bash
+cd yolov5
+git checkout c23a441c9df7ca9b1f275e8c8719c949269160d1
+```
+
+Now when you return to the root directory of this repo (`CameraTraps`), you should be able to run the detection scripts, e.g. `python detection/run_detector.py`.
+
+
 ## Is there a GUI?
 
 Not exactly... most of our users either use our Python tools to run MegaDetector or have us run MegaDetector for them (see [this page](collaborations.md) for more information about that), then most of those users use [Timelapse](https://saul.cpsc.ucalgary.ca/timelapse/) to use their MegaDetector results in an image review workflow.

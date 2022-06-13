@@ -170,7 +170,7 @@ sudo apt install build-essential
 
 ### Machine learning scripts
 
-Scripts that execute machine learning code &ndash; specifically, scripts in the folders `api`, `detection`, and `classification` &ndash; require additional depdendencies.  In particular, the `detection/run_tf_detector*.py` scripts should use [environment-detector.yml](environment-detector.yml) to set up the environment, as follows:
+Scripts that execute machine learning code &ndash; specifically, scripts in the folders `api`, `detection`, and `classification` &ndash; require additional dependencies. In particular, the `detection/run_detector.py` script should use [environment-detector.yml](environment-detector.yml) to set up the environment, as follows:
 
 ```
 conda env create --file environment-detector.yml
