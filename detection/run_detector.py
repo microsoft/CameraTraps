@@ -69,9 +69,6 @@ warnings.filterwarnings('ignore', category=FutureWarning)
 FAILURE_INFER = 'Failure inference'
 FAILURE_IMAGE_OPEN = 'Failure image access'
 
-DEFAULT_RENDERING_CONFIDENCE_THRESHOLD = 0.85  # to render bounding boxes
-DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD = 0.01  # to include in the output json file
-
 # Number of decimal places to round to for confidence and bbox coordinates
 CONF_DIGITS = 3
 COORD_DIGITS = 4
@@ -108,6 +105,9 @@ DETECTOR_METADATA = {
          'typical_detection_threshold':0.25,
          'conservative_detection_threshold':0.1}    
 }
+
+DEFAULT_RENDERING_CONFIDENCE_THRESHOLD = DETECTOR_METADATA['v5b.0.0']['typical_detection_threshold']
+DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD = 0.01  # to include in the output json file
 
 
 #%% Classes
