@@ -34,9 +34,7 @@ class PTDetector:
             self.device = torch.device('cuda:0')
         else:
             self.device = 'cpu'
-
         self.model = PTDetector._load_model(model_path, self.device)
-
         if (self.device != 'cpu') and torch.cuda.is_available():
             print('Sending model to GPU')
             self.model.to(self.device)
