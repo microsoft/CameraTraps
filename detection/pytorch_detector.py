@@ -42,7 +42,6 @@ class PTDetector:
                 from models.yolo import Model
             except ModuleNotFoundError:
                 raise ValueError('Could not import Yolov5')                
-            print('Using the PyTorch checkpoint to perform inference.')
             self.model = PTDetector.__load_model(model_path, self.device)
         else:
             self.model = PTDetector.__load_torchscript_model(model_path)
