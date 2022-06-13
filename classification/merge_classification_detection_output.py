@@ -356,8 +356,7 @@ def combine_classification_with_detection(
     """
     classification_metadata = {
         'classifier': classifier_name,
-        'classification_completion_time': classifier_timestamp,
-        'format_version': '1.1'
+        'classification_completion_time': classifier_timestamp        
     }
     
     if typical_confidence_threshold is not None:
