@@ -70,7 +70,7 @@ FAILURE_INFER = 'Failure inference'
 FAILURE_IMAGE_OPEN = 'Failure image access'
 
 DEFAULT_RENDERING_CONFIDENCE_THRESHOLD = 0.85  # to render bounding boxes
-DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD = 0.01  # to include in the output json file
+DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD = 0.005  # to include in the output json file
 
 # Number of decimal places to round to for confidence and bbox coordinates
 CONF_DIGITS = 3
