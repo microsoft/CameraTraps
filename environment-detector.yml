@@ -2,21 +2,32 @@
 
 name: cameratraps-detector
 
+channels:
+  - conda-forge
+  - pytorch
+
 dependencies:
-- python>=3.5, <=3.7.6
-- nb_conda_kernels
-- ipykernel
-- tensorflow>=2.0
-- tqdm
-- jsonpickle
-- Pillow>=5.3.0
-- humanfriendly
-- numpy
-- matplotlib
-- nb_conda_kernels
-- ipykernel
-- opencv
-- requests
+  - python
+  - nb_conda_kernels
+  - ipykernel
+  # - tensorflow>=2.0  # if running MegaDetector v4
+  - tqdm
+  - jsonpickle
+  - Pillow=9.1.0
+  - humanfriendly
+  - numpy
+  - matplotlib
+  - nb_conda_kernels
+  - ipykernel
+  - opencv
+  - requests
+
+  # for running MegaDetector v5
+  - pytorch=1.10.1
+  - torchvision=0.11.2
+  - pandas
+  - PyYAML>=5.3.1
+  - seaborn>=0.11.0
 
 # the `nb_conda_kernels` and `ipykernel` packages are installed so that we
 # can use Jupyter Notebooks with this environment as a kernel
