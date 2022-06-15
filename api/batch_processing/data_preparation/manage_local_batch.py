@@ -22,6 +22,7 @@ import path_utils
 
 from api.batch_processing.postprocessing.postprocess_batch_results import (
     PostProcessingOptions, process_batch_results)
+from detection.run_detector import get_detector_version_from_filename
 
 max_task_name_length = 92
 
@@ -44,9 +45,15 @@ ncores = 1
 #%% Constants I set per script
 
 input_path = os.path.expanduser('~/data/organization/2021-12-24')
-organization_name_short = 'organization'
 
-model_file = os.path.expanduser('~/models/camera_traps/megadetector/md_v4.1.0/md_v4.1.0.pb')
+organization_name_short = 'organization'
+job_date = date.today().strftime('%Y-%m-%d')
+# job_date = '2022-01-01'
+
+model_file = os.path.expanduser('~/models/camera_traps/megadetector/md_v5.0.0/md_v5a.0.0.pt')
+# model_file = os.path.expanduser('~/models/camera_traps/megadetector/md_v5.0.0/md_v5b.0.0.pt')
+# model_file = os.path.expanduser('~/models/camera_traps/megadetector/md_v4.1.0/md_v4.1.0.pb')
+
 postprocessing_base = os.path.expanduser('~/postprocessing')
 
 # Number of jobs to split data into, typically equal to the number of available GPUs
@@ -54,11 +61,14 @@ n_jobs = 2
 n_gpus = 2
 
 # Only used to print out a time estimate
-gpu_images_per_second = 2.9
+if ('v5') in model_file:
+    gpu_images_per_second = 10
+else:
+    gpu_images_per_second = 2.9
 
 checkpoint_frequency = 10000
 
-base_task_name = organization_name_short + '-' + date.today().strftime('%Y-%m-%d')
+base_task_name = organization_name_short + '-' + job_date + '-' + get_detector_version_from_filename(model_file)
 base_output_folder_name = os.path.join(postprocessing_base,organization_name_short)
 os.makedirs(base_output_folder_name,exist_ok=True)
 
@@ -596,9 +606,9 @@ n_threads_str = '50'
 image_size_str = '300'
 batch_size_str = '64'
 num_workers_str = '8'
-logdir = filename_base
-
 classification_threshold_str = '0.05'
+
+logdir = filename_base
 
 # This is just passed along to the metadata in the output file, it has no impact
 # on how the classification scripts run.
@@ -754,6 +764,159 @@ st = os.stat(output_file)
 os.chmod(output_file, st.st_mode | stat.S_IEXEC)
 
 
+#%% Run a non-MegaClassifier classifier (i.e., a classifier with no output mapping)
+
+classifier_name_short = 'idfgclassifier'
+threshold_str = '0.1' # 0.6
+classifier_name = 'idfg_classifier_ckpt_14_compiled'
+
+organization_name = organization_name_short
+job_name = base_task_name
+input_filename = filtered_output_filename # combined_api_output_file
+input_files = [input_filename]
+image_base = input_path
+crop_path = os.path.join(os.path.expanduser('~/crops'),job_name + '_crops')
+output_base = combined_api_output_folder
+device_id = 0
+
+output_file = os.path.join(filename_base,'run_{}_'.format(classifier_name_short) + job_name +  '.sh')
+
+classifier_base = os.path.expanduser('~/models/camera_traps/idfg_classifier/idfg_classifier_20200905_042558')
+assert os.path.isdir(classifier_base)
+
+checkpoint_path = os.path.join(classifier_base,'idfg_classifier_ckpt_14_compiled.pt')
+assert os.path.isfile(checkpoint_path)
+
+classifier_categories_path = os.path.join(classifier_base,'label_index.json')
+assert os.path.isfile(classifier_categories_path)
+
+classifier_output_suffix = '_{}_output.csv.gz'.format(classifier_name_short)
+final_output_suffix = '_{}.json'.format(classifier_name_short)
+
+threshold_str = '0.65'
+n_threads_str = '50'
+image_size_str = '300'
+batch_size_str = '64'
+num_workers_str = '8'
+logdir = filename_base
+
+classification_threshold_str = '0.05'
+
+# This is just passed along to the metadata in the output file, it has no impact
+# on how the classification scripts run.
+typical_classification_threshold_str = '0.75'
+
+
+##%% Set up environment
+
+commands = []
+
+
+##%% Crop images
+    
+commands.append('\n### Cropping ###\n')
+
+# fn = input_files[0]
+for fn in input_files:
+
+    input_file_path = fn
+    crop_cmd = ''
+    
+    crop_comment = '\n# Cropping {}\n'.format(fn)
+    crop_cmd += crop_comment
+    
+    crop_cmd += "python crop_detections.py \\\n" + \
+    	 input_file_path + ' \\\n' + \
+         crop_path + ' \\\n' + \
+         '--images-dir "' + image_base + '"' + ' \\\n' + \
+         '--threshold "' + threshold_str + '"' + ' \\\n' + \
+         '--square-crops ' + ' \\\n' + \
+         '--threads "' + n_threads_str + '"' + ' \\\n' + \
+         '--logdir "' + logdir + '"' + ' \\\n' + \
+         '\n'
+    crop_cmd = '{}'.format(crop_cmd)
+    commands.append(crop_cmd)
+
+
+##%% Run classifier
+
+commands.append('\n### Classifying ###\n')
+
+# fn = input_files[0]
+for fn in input_files:
+
+    input_file_path = fn
+    classifier_output_path = crop_path + classifier_output_suffix
+    
+    classify_cmd = ''
+    
+    classify_comment = '\n# Classifying {}\n'.format(fn)
+    classify_cmd += classify_comment
+    
+    classify_cmd += "python run_classifier.py \\\n" + \
+    	 checkpoint_path + ' \\\n' + \
+         crop_path + ' \\\n' + \
+         classifier_output_path + ' \\\n' + \
+         '--detections-json "' + input_file_path + '"' + ' \\\n' + \
+         '--classifier-categories "' + classifier_categories_path + '"' + ' \\\n' + \
+         '--image-size "' + image_size_str + '"' + ' \\\n' + \
+         '--batch-size "' + batch_size_str + '"' + ' \\\n' + \
+         '--num-workers "' + num_workers_str + '"' + ' \\\n'
+    
+    if device_id is not None:
+        classify_cmd += '--device {}'.format(device_id)
+        
+    classify_cmd += '\n\n'    
+    classify_cmd = '{}'.format(classify_cmd)
+    commands.append(classify_cmd)
+		
+
+##%% Merge classification and detection outputs
+
+commands.append('\n### Merging ###\n')
+
+# fn = input_files[0]
+for fn in input_files:
+
+    input_file_path = fn
+    classifier_output_path = crop_path + classifier_output_suffix
+    final_output_path = os.path.join(output_base,
+                                     os.path.basename(classifier_output_path)).\
+                                     replace(classifier_output_suffix,
+                                     final_output_suffix)
+    final_output_path = final_output_path.replace('_detections','')
+    final_output_path = final_output_path.replace('_crops','')
+    final_output_path_ic = final_output_path
+    
+    merge_cmd = ''
+    
+    merge_comment = '\n# Merging {}\n'.format(fn)
+    merge_cmd += merge_comment
+    
+    merge_cmd += "python merge_classification_detection_output.py \\\n" + \
+    	 classifier_output_path + ' \\\n' + \
+         classifier_categories_path + ' \\\n' + \
+         '--output-json "' + final_output_path_ic + '"' + ' \\\n' + \
+         '--detection-json "' + input_file_path + '"' + ' \\\n' + \
+         '--classifier-name "' + classifier_name + '"' + ' \\\n' + \
+         '--threshold "' + classification_threshold_str + '"' + ' \\\n' + \
+         '--typical-confidence-threshold "' + typical_classification_threshold_str + '"' + ' \\\n' + \
+         '\n'
+    merge_cmd = '{}'.format(merge_cmd)
+    commands.append(merge_cmd)
+
+
+##%% Write everything out
+
+with open(output_file,'w') as f:
+    for s in commands:
+        f.write('{}'.format(s))
+
+import stat
+st = os.stat(output_file)
+os.chmod(output_file, st.st_mode | stat.S_IEXEC)
+
+        
 #%% Create a new category for large boxes
 
 from api.batch_processing.postprocessing import categorize_detections_by_size
