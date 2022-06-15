@@ -87,27 +87,27 @@ DETECTOR_METADATA = {
     'v2.0.0':
         {'megadetector_version':'v2.0.0',
          'typical_detection_threshold':0.8,
-         'conservative_detection_threshold':0.4},
+         'conservative_detection_threshold':0.3},
     'v3.0.0':
         {'megadetector_version':'v3.0.0',
          'typical_detection_threshold':0.8,
-         'conservative_detection_threshold':0.4},
+         'conservative_detection_threshold':0.3},
     'v4.1.0':
         {'megadetector_version':'v4.1.0',
          'typical_detection_threshold':0.8,
-         'conservative_detection_threshold':0.6},
+         'conservative_detection_threshold':0.3},
     'v5a.0.0':
         {'megadetector_version':'v5a.0.0',
-         'typical_detection_threshold':0.25,
-         'conservative_detection_threshold':0.1},
+         'typical_detection_threshold':0.2,
+         'conservative_detection_threshold':0.05},
     'v5b.0.0':
         {'megadetector_version':'v5b.0.0',
-         'typical_detection_threshold':0.25,
-         'conservative_detection_threshold':0.1}    
+         'typical_detection_threshold':0.2,
+         'conservative_detection_threshold':0.05}    
 }
 
 DEFAULT_RENDERING_CONFIDENCE_THRESHOLD = DETECTOR_METADATA['v5b.0.0']['typical_detection_threshold']
-DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD = 0.01  # to include in the output json file
+DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD = 0.005  # to include in the output json file
 
 
 #%% Classes
