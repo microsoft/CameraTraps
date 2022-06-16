@@ -22,11 +22,9 @@ Conservation biologists invest a huge amount of time reviewing camera trap image
 
 *Machine learning can accelerate this process, letting biologists spend their time on the images that matter.*
 
-To this end, this page hosts a model we've trained - called "MegaDetector" - to detect animals, people, and vehicles in camera trap images.  It does not identify animals, it just finds them.  
+To this end, this page hosts a model we've trained - called "MegaDetector" - to detect animals, people, and vehicles in camera trap images.  It does not identify animals to the species level, it just finds them.  
 
-This page is about the technical elements of MegaDetector; if you are an ecologist looking to use MegaDetector, you may prefer to start at our [MegaDetector collaborations page](collaborations.md).
-
-The current model is based on Faster-RCNN with an InceptionResNetv2 base network, and was trained with the TensorFlow Object Detection API, using several hundred thousand bounding boxes from a variety of ecosystems.
+This page is about the technical elements of MegaDetector; if you are an ecologist looking to use MegaDetector, you may prefer to start at our ["Getting started with MegaDetector"](collaborations.md) page.
 
 
 ## Our ask to MegaDetector users
@@ -36,9 +34,9 @@ MegaDetector is free, and it makes us super-happy when people use it, so we put 
 
 ## How fast is MegaDetector, and can I run it on my giant/small computer?
 
-We often run MegaDetector on behalf of users as a free service; see our [MegaDetector collaborations page](collaborations.md) for more information.  But there are many reasons to run MegaDetector on your own, and how practical this is will depend in part on how many images you need to process and what kind of computer hardware you have available.  MegaDetector is designed to favor accuracy over speed, and we typically run it on <a href="https://en.wikipedia.org/wiki/Graphics_processing_unit">GPU</a>-enabled computers.  That said, you can run anything on anything if you have enough time, and we're happy to support users who run MegaDetector on their own GPUs (in the cloud or on their own PCs), on their own CPUs, or even on embedded devices.  If you only need to process a few thousand images per week, for example, a typical laptop will be just fine.  If you want to crunch through 20 million images as fast as possible, you'll want at least one GPU.
+We often run MegaDetector on behalf of users as a free service; see our ["Getting started with MegaDetector"](collaborations.md) page for more information.  But there are many reasons to run MegaDetector on your own; how practical this is will depend in part on how many images you need to process and what kind of computer hardware you have available.  MegaDetector is designed to favor accuracy over speed, and we typically run it on <a href="https://en.wikipedia.org/wiki/Graphics_processing_unit">GPU</a>-enabled computers.  That said, you can run anything on anything if you have enough time, and we're happy to support users who run MegaDetector on their own GPUs (in the cloud or on their own PCs), on their own CPUs, or even on embedded devices.  If you only need to process a few thousand images per week, for example, a typical laptop will be just fine.  If you want to crunch through 20 million images as fast as possible, you'll want at least one GPU.
 
-Here are some rules of thumb to help you estimate how fast you can run MegaDetector on different types of hardware...
+Here are some rules of thumb to help you estimate how fast you can run MegaDetector on different types of hardware.
 
 * On a decent laptop (without a fancy deep learning GPU) that is neither the fastest nor slowest laptop you can buy in 2021, MegaDetector v4 takes somewhere between eight and twenty seconds per image, depending on how many CPUs you use.  This works out to being able to process somewhere between 4,000 and 10,000 image per day.  This might be totally fine for scenarios where you have even hundreds of thousands of images, as long as you can wait a few days.
 * On a dedicated deep learning GPU that is neither the fastest nor slowest GPU you can buy in 2021, MegaDetector v4 takes between 0.3 and 0.5 seconds per image, which works out to between 200,000 and 250,000 images per day.  We also include a few <a href="#benchmark-timings">benchmark timings</a> below on some specific GPUs.
@@ -81,11 +79,11 @@ This release incorporates additional training data, specifically aiming to impro
 * Rodents, particularly at close range
 * Reptiles and small birds
 
-This release also represents a change in MegaDetector's architecture, from Faster-RCNN in TensorFlow to [YoloV5](https://github.com/ultralytics/yolov5).  All of our inference scripts have been updated to support both architectures, so the transition should be <i>mostly</i> seamless.
+This release also represents a change in MegaDetector's architecture, from Faster-RCNN to [YoloV5](https://github.com/ultralytics/yolov5).  All of our inference scripts have been updated to support both architectures, so the transition should be <i>mostly</i> seamless.
 
-MDv5 is actually two models (MDv5a and MDv5b), differing only in their training data (see the [training data](#can-you-share-the-training-data) section for details).  Both appear to be more accurate than MDv4, and both are 3x-4x faster than MDv4, but each MDv5 model can outperform the other slightly, depending on your data.  Guidelines about which to start with are TBD, we will work with the community to develop these guidelines over the next few months.  When in doubt, for now, try them both.
+MDv5 is actually two models (MDv5a and MDv5b), differing only in their training data (see the [training data](#can-you-share-the-training-data) section for details).  Both appear to be more accurate than MDv4, and both are 3x-4x faster than MDv4, but each MDv5 model can outperform the other slightly, depending on your data.  Guidelines about which to start with are TBD; we will work with the community to develop these guidelines over the next few months.  When in doubt, for now, try them both.  If you really twist our arms to recommend one... we recommend MDv5a.  But try them both and tell us which works better for you!
 
-See the [release page]() for more details, and in particular, be aware that the range of confidence values produced by MDv5 is very different from the range of confidence values produced by MDv4!  <i>Don't use your MDv4 confidence thresholds with MDv5!</i>
+See the [release page](TODO) for more details, and in particular, be aware that the range of confidence values produced by MDv5 is very different from the range of confidence values produced by MDv4!  <i>Don't use your MDv4 confidence thresholds with MDv5!</i>
 
 
 #### Download links
@@ -181,9 +179,9 @@ If you have a deep-learning-friendly GPU, you will also need to have a recent [N
 
 ### 2. Download the MegaDetector model(s)
 
-Download one or more MegaDetector model files (v4, v5a, and/or v5b) to your computer.  These instructions will assume that you have downloaded MegaDetector v5a to a folder called "c:\megadetector", but if you put it somewhere else, that's fine, just be sure to change it in the steps that point to a model file.  If you don't care where it goes, you'll have an easier time working through these instructions if you download it to a folder called "c:\megadetector", i.e. if the model file lives at "c:\megadetector\md_v5a.0.0.pt".
+Download one or more MegaDetector model files ([MDv5a](TODO), [MDv5b](TODO), and/or [MDv4](https://lilablobssc.blob.core.windows.net/models/camera_traps/megadetector/md_v4.1.0/md_v4.1.0.pb)) to your computer.  These instructions will assume that you have downloaded MegaDetector to a folder called "c:\megadetector", but if you put it somewhere else, that's fine, just be sure to change it in the steps below that point to a model file.  If you don't care where it goes, and you don't know yet which version you want to use, you'll have an easier time working through these instructions if you download [MDv5a](TODO) to a folder called "c:\megadetector", i.e. if the model file lives at "c:\megadetector\md_v5a.0.0.pt".
 
-The instructions below will assume that you are using MDv5; one step will be slightly different for MDv4, but we'll call that out when we get there.
+The instructions below will assume that you are using MDv5a; one step will be slightly different for MDv4, but we'll call that out when we get there.
 
 
 ### 3. Clone the relevant git repos and add them to your path, and set up your Python environment
@@ -205,21 +203,33 @@ git clone https://github.com/Microsoft/ai4eutils
 cd c:\git\cameratraps
 conda env create --file environment-detector.yml
 conda activate cameratraps-detector
-set PYTHONPATH="%PYTHONPATH%;c:\git\cameratraps;c:\git\ai4eutils;c:\git\yolov5"
+set PYTHONPATH=%PYTHONPATH%;c:\git\cameratraps;c:\git\ai4eutils;c:\git\yolov5
 
-REM *** You can skip the rest of this step if you are not using MDv5 ***
-git clone git clone https://github.com/ultralytics/yolov5/
+REM ***
+REM The rest of this step is specific to MDv5; you can skip the rest of this step if you are
+REM only using MDv4.  If you're new to MegaDetector, you want MDv5, so you probably want to run the
+REM rest of this step.
+REM ***
+cd c:\git
+git clone https://github.com/ultralytics/yolov5/
 cd c:\git\yolov5
 git checkout c23a441c9df7ca9b1f275e8c8719c949269160d1
 cd c:\git\cameratraps
 ```
 
-On subsequent times you open your Anaconda prompt, you just need to do:
+If you want to use MDv4, there's one extra setup step (this will not break your MDv5 setup, you can run both in the same environment):
+
+```batch
+conda activate cameratraps-detector
+pip install tensorflow
+```
+
+Your environment is set up now!  In the future, when you open an Anaconda prompt, you only need to run:
 
 ```batch
 cd c:\git\cameratraps
 conda activate cameratraps-detector
-set PYTHONPATH="%PYTHONPATH%;c:\git\cameratraps;c:\git\ai4eutils;c:\git\yolov5"
+set PYTHONPATH=%PYTHONPATH%;c:\git\cameratraps;c:\git\ai4eutils;c:\git\yolov5
 ```
 
 Pro tip: if you have administrative access to your machine, rather than using the "set PYTHONPATH" steps, you can also create a permanent PYTHONPATH environment variable.  Here's a [good page](https://www.computerhope.com/issues/ch000549.htm) about editing environment variables in Windows.  But if you just want to "stick to the script" and do it exactly the way we recommend above, that's fine.
@@ -239,14 +249,26 @@ conda env create --file environment-detector.yml
 conda activate cameratraps-detector
 export PYTHONPATH="$PYTHONPATH:$HOME/git/cameratraps:$HOME/git/ai4eutils:$HOME/git/yolov5"
 
-# *** You can skip the rest of this step if you are not using MDv5 ***
-git clone git clone https://github.com/ultralytics/yolov5/
+# ***
+# The rest of this step is specific to MDv5; you can skip the rest of this step if you are
+# only using MDv4.  If you're new to MegaDetector, you want MDv5, so you probably want to run the
+# rest of this step.
+# ***
+cd ~/git
+git clone https://github.com/ultralytics/yolov5/
 cd ~/git/yolov5
 git checkout c23a441c9df7ca9b1f275e8c8719c949269160d1
 cd ~/git/cameratraps
 ```
 
-In the future, whenever you start a new shell, you just need to do:
+If you want to use MDv4, there's one extra setup step (this will not break your MDv5 setup, you can run both in the same environment):
+
+```batch
+conda activate cameratraps-detector
+pip install tensorflow
+```
+
+Your environment is set up now!  In the future, whenever you start a new shell, you just need to do:
 
 ```batch
 cd ~/git/cameratraps
@@ -257,7 +279,7 @@ export PYTHONPATH="$PYTHONPATH:$HOME/git/cameratraps:$HOME/git/ai4eutils:$HOME/g
 Pro tip: rather than updating your PYTHONPATH every time you start a new shell, you can add the "export" line to your .bashrc file.
 
 
-#### OSX instructions for git/Python stuff
+#### Mac instructions for git/Python stuff
 
 These are exactly like the Linux instructions, with just one change, so we're not going to copy and paste, because if we copy and paste, there's a 100% chance the copies will drift out of sync.
 
@@ -285,12 +307,18 @@ The following examples assume you have an Anaconda prompt open, and have put thi
 To use run_detector.py on Windows:
 
 ```batch
-cd g:\git\CameraTraps
-python detection\run_detector.py "c:\megadetector\md_v5a.1.0.0.pt" --image_file "some_image_file.jpg" --threshold 0.2
+cd c:\git\CameraTraps
+python detection\run_detector.py "c:\megadetector\md_v5a.0.0.pt" --image_file "some_image_file.jpg" --threshold 0.2
 ```
 Change "some_image_file.jpg" to point to a real image on your computer.
 
-This will produce a file called "some_image_file_detections.jpg", which - if everything worked right - has boxes on objects of interest.
+If you ran this script on "some_image_file.jpg", it will produce a file called "some_image_file_detections.jpg", which - if everything worked right - has boxes on objects of interest.
+
+If you have a GPU, and it's being utilized correctly, near the beginning of the output, you should see:
+
+`GPU available: True`
+
+If you see "False" instead, your GPU environment may not be set up correctly; <a href="mailto:cameratraps@lila.science">email us</a> if you need help, or <a href="https://github.com/microsoft/CameraTraps/issues">create an issue on GitHub</a>.
 
 <b>This is really just a test script, you will mostly only use this to make sure your environment is set up correctly</b>.  run_detector_batch.py (see below) is where the interesting stuff happens.
 
@@ -304,7 +332,7 @@ To use this script on Linux/Mac:
  
 ```batch
 cd ~/git/CameraTraps
-python detection/run_detector.py "~/megadetector/md_v5a.1.0.0.pt" --image_file "some_image_file.jpg" --threshold 0.2
+python detection/run_detector.py "~/megadetector/md_v5a.0.0.pt" --image_file "some_image_file.jpg" --threshold 0.2
 ```
 
 #### 4b. run_detector_batch.py
@@ -314,15 +342,21 @@ To apply this model to larger image sets on a single machine, we recommend a dif
 To use run_detector_batch.py on Windows:
 
 ```batch
-cd g:\git\CameraTraps
-python detection\run_detector_batch.py "c:\megadetector\md_v5a.1.0.0.pt" "c:\some_image_folder" "c:\megadetector\test_output.json" --output_relative_filenames --recursive --threshold 0.2 --checkpoint_frequency 10000
+cd c:\git\CameraTraps
+python detection\run_detector_batch.py "c:\megadetector\md_v5a.0.0.pt" "c:\some_image_folder" "c:\megadetector\test_output.json" --output_relative_filenames --recursive --threshold 0.2 --checkpoint_frequency 10000
 ```
 
-Change "c:\some_image_folder.jpg" to point to the real folder on your computer where your images live.
+Change "c:\some_image_folder" to point to the real folder on your computer where your images live.
 
 This will produce a file called "c:\megadetector\test_output.json", which - if everything worked right - contains information about where objects of interest are in your images.  You can use that file with any of our [postprocessing](api/batch_processing/postprocessing) scripts, but most users will read this file into [Timelapse](https://saul.cpsc.ucalgary.ca/timelapse/).
 
 <b>If you are running very large batches, we strongly recommend adding the `--checkpoint_frequency` option to save checkpoints every N images</b> (you don't want to lose all the work your GPU has done if your computer crashes!).  10000 is a good value for checkpoint frequency; that will save the results every 10000 images.  This is what we've used in the example above.
+
+If you have a GPU, and it's being utilized correctly, near the beginning of the output, you should see:
+
+`GPU available: True`
+
+If you see "False" instead, your GPU environment may not be set up correctly; <a href="mailto:cameratraps@lila.science">email us</a> if you need help, or <a href="https://github.com/microsoft/CameraTraps/issues">create an issue on GitHub</a>.
 
 You can see all the options for this script by running:
 
@@ -418,11 +452,15 @@ Image credit [eMammal](https://emammal.si.edu/).  Video created by [Sara Beery](
 
 ## Can you share the training data?
 
-This model is trained on bounding boxes from a variety of ecosystems, and many of the images we use in training are not publicly-shareable for license reasons.  But in addition to the private training data we use, we also use many of the bounding boxes available on lila.science:
+This model is trained on bounding boxes from a variety of ecosystems, and many of the images we use in training can't be shared publicly.  But in addition to the private training data we use, we also use many of the bounding boxes available on lila.science:
 
 <https://lila.science/category/camera-traps/>
 
-Specifically, MegaDetector v3 was trained on private data, plus public data from:
+Each version of MegaDetector uses all the training data from the previous version, plus a bunch of new stuff.  Specifically...
+
+MegaDetector v2 was trained on... actually, we don't remember, that was before the dawn of time.
+
+MegaDetector v3 was trained on private data, plus public data from:
 
 * [Caltech Camera Traps](https://lila.science/datasets/caltech-camera-traps)
 * [Snapshot Serengeti](https://lila.science/datasets/snapshot-serengeti)
@@ -441,7 +479,7 @@ MegaDetector v5b was trained on all MDv4 training data, plus new private data, a
 * [ENA24](https://lila.science/datasets/ena24detection)
 * [Several datasets from Snapshot Safari](https://lila.science/category/camera-traps/snapshot-safari/)
 
-MegaDetector v5a was trained on all of the MDv5b training data, and new public data from:
+MegaDetector v5a was trained on all MDv5b training data, and new public data from:
 
 * The [iNaturalist Dataset 2017](https://github.com/visipedia/inat_comp/tree/master/2017)
 * [COCO](https://cocodataset.org/#home)
