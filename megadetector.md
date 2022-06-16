@@ -207,8 +207,8 @@ set PYTHONPATH=%PYTHONPATH%;c:\git\cameratraps;c:\git\ai4eutils;c:\git\yolov5
 
 REM ***
 REM The rest of this step is specific to MDv5; you can skip the rest of this step if you are
-REM only using MDv4.  If you're new to MegaDetector, you want MDv5, so you probably want to run the
-REM rest of this step.
+REM only using MDv4.  If you're new to MegaDetector, you probably want MDv5, so you probably
+REM want to run the rest of this step.
 REM ***
 cd c:\git
 git clone https://github.com/ultralytics/yolov5/
@@ -244,15 +244,15 @@ mkdir ~/git
 cd ~/git
 git clone https://github.com/Microsoft/cameratraps
 git clone https://github.com/Microsoft/ai4eutils
-cd ~/git\cameratraps
+cd ~/git/cameratraps
 conda env create --file environment-detector.yml
 conda activate cameratraps-detector
 export PYTHONPATH="$PYTHONPATH:$HOME/git/cameratraps:$HOME/git/ai4eutils:$HOME/git/yolov5"
 
 # ***
 # The rest of this step is specific to MDv5; you can skip the rest of this step if you are
-# only using MDv4.  If you're new to MegaDetector, you want MDv5, so you probably want to run the
-# rest of this step.
+# only using MDv4.  If you're new to MegaDetector, you probably want MDv5, so you probably
+# want to run the rest of this step.
 # ***
 cd ~/git
 git clone https://github.com/ultralytics/yolov5/
@@ -332,7 +332,7 @@ To use this script on Linux/Mac:
  
 ```batch
 cd ~/git/CameraTraps
-python detection/run_detector.py "~/megadetector/md_v5a.0.0.pt" --image_file "some_image_file.jpg" --threshold 0.2
+python detection/run_detector.py "$HOME/megadetector/md_v5a.0.0.pt" --image_file "some_image_file.jpg" --threshold 0.2
 ```
 
 #### 4b. run_detector_batch.py
@@ -368,7 +368,7 @@ To use this script on Linux/Mac:
 
 ```batch
 cd ~/git/CameraTraps
-python detection/run_detector_batch.py "~/megadetector/md_v5a.1.0.0.pt" "~/some_image_folder" "~/megadetector/test_output.json" --output_relative_filenames --recursive --threshold 0.2 --checkpoint_frequency 10000
+python detection/run_detector_batch.py "$HOME/megadetector/md_v5a.0.0.pt" "/some/image/folder" "$HOME/megadetector/test_output.json" --output_relative_filenames --recursive --threshold 0.2 --checkpoint_frequency 10000
 ```
 
 
