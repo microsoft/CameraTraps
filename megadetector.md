@@ -79,17 +79,17 @@ This release incorporates additional training data, specifically aiming to impro
 * Rodents, particularly at close range
 * Reptiles and small birds
 
-This release also represents a change in MegaDetector's architecture, from Faster-RCNN to [YoloV5](https://github.com/ultralytics/yolov5).  All of our inference scripts have been updated to support both architectures, so the transition should be <i>mostly</i> seamless.
+This release also represents a change in MegaDetector's architecture, from Faster-RCNN to [YoloV5](https://github.com/ultralytics/yolov5).  Our inference scripts have been updated to support both architectures, so the transition should be <i>mostly</i> seamless.
 
 MDv5 is actually two models (MDv5a and MDv5b), differing only in their training data (see the [training data](#can-you-share-the-training-data) section for details).  Both appear to be more accurate than MDv4, and both are 3x-4x faster than MDv4, but each MDv5 model can outperform the other slightly, depending on your data.  Guidelines about which to start with are TBD; we will work with the community to develop these guidelines over the next few months.  When in doubt, for now, try them both.  If you really twist our arms to recommend one... we recommend MDv5a.  But try them both and tell us which works better for you!
 
-See the [release page](TODO) for more details, and in particular, be aware that the range of confidence values produced by MDv5 is very different from the range of confidence values produced by MDv4!  <i>Don't use your MDv4 confidence thresholds with MDv5!</i>
+See the [release page](https://github.com/microsoft/CameraTraps/releases/tag/v5.0) for more details, and in particular, be aware that the range of confidence values produced by MDv5 is very different from the range of confidence values produced by MDv4!  <i>Don't use your MDv4 confidence thresholds with MDv5!</i>
 
 
 #### Download links
 
-* [MegaDetector v5a (.pt)](TODO)
-* [MegaDetector v5b (.pt)](TODO)
+* [MegaDetector v5a (.pt)](https://github.com/microsoft/CameraTraps/releases/download/v5.0/md_v5a.0.0.pt)
+* [MegaDetector v5b (.pt)](https://github.com/microsoft/CameraTraps/releases/download/v5.0/md_v5b.0.0.pt)
 
 
 ### MegaDetector v4.1, 2020.04.27
@@ -179,7 +179,7 @@ If you have a deep-learning-friendly GPU, you will also need to have a recent [N
 
 ### 2. Download the MegaDetector model(s)
 
-Download one or more MegaDetector model files ([MDv5a](TODO), [MDv5b](TODO), and/or [MDv4](https://lilablobssc.blob.core.windows.net/models/camera_traps/megadetector/md_v4.1.0/md_v4.1.0.pb)) to your computer.  These instructions will assume that you have downloaded MegaDetector to a folder called "c:\megadetector", but if you put it somewhere else, that's fine, just be sure to change it in the steps below that point to a model file.  If you don't care where it goes, and you don't know yet which version you want to use, you'll have an easier time working through these instructions if you download [MDv5a](TODO) to a folder called "c:\megadetector", i.e. if the model file lives at "c:\megadetector\md_v5a.0.0.pt".
+Download one or more MegaDetector model files ([MDv5a](https://github.com/microsoft/CameraTraps/releases/download/v5.0/md_v5a.0.0.pt), [MDv5b](https://github.com/microsoft/CameraTraps/releases/download/v5.0/md_v5b.0.0.pt), and/or [MDv4](https://lilablobssc.blob.core.windows.net/models/camera_traps/megadetector/md_v4.1.0/md_v4.1.0.pb)) to your computer.  These instructions will assume that you have downloaded MegaDetector to a folder called "c:\megadetector", but if you put it somewhere else, that's fine, just be sure to change it in the steps below that point to a model file.  If you don't care where it goes, and you don't know yet which version you want to use, you'll have an easier time working through these instructions if you download [MDv5a](https://github.com/microsoft/CameraTraps/releases/download/v5.0/md_v5a.0.0.pt) to a folder called "c:\megadetector", i.e. if the model file lives at "c:\megadetector\md_v5a.0.0.pt".
 
 The instructions below will assume that you are using MDv5a; one step will be slightly different for MDv4, but we'll call that out when we get there.
 
