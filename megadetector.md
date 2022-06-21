@@ -79,7 +79,7 @@ This release incorporates additional training data, specifically aiming to impro
 * Rodents, particularly at close range
 * Reptiles and small birds
 
-This release also represents a change in MegaDetector's architecture, from Faster-RCNN to [YoloV5](https://github.com/ultralytics/yolov5).  Our inference scripts have been updated to support both architectures, so the transition should be <i>mostly</i> seamless.
+This release also represents a change in MegaDetector's architecture, from Faster-RCNN to [YOLOv5](https://github.com/ultralytics/yolov5).  Our inference scripts have been updated to support both architectures, so the transition should be <i>mostly</i> seamless.
 
 MDv5 is actually two models (MDv5a and MDv5b), differing only in their training data (see the [training data](#can-you-share-the-training-data) section for details).  Both appear to be more accurate than MDv4, and both are 3x-4x faster than MDv4, but each MDv5 model can outperform the other slightly, depending on your data.  Guidelines about which to start with are TBD; we will work with the community to develop these guidelines over the next few months.  When in doubt, for now, try them both.  If you really twist our arms to recommend one... we recommend MDv5a.  But try them both and tell us which works better for you!
 
