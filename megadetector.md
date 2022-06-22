@@ -376,15 +376,18 @@ python detection/run_detector_batch.py "$HOME/megadetector/md_v5a.0.0.pt" "/some
 
 Not exactly... most of our users either use our Python tools to run MegaDetector or have us run MegaDetector for them (see [this page](collaborations.md) for more information about that), then most of those users use [Timelapse](https://saul.cpsc.ucalgary.ca/timelapse/) to use their MegaDetector results in an image review workflow.
 
-But we recognize that Python tools can be a bit daunting, so we're excited that a few different graphical tools have sprung up that allow you to run MegaDetector in a GUI:
+But we recognize that Python tools can be a bit daunting, so we're excited that a few different graphical tools have sprung up that allow you to run MegaDetector in a GUI.  We haven't tried these, but they look great, and if you find them useful - or if you know of others - [let us know](mailto:cameratraps@lila.science)!
+
+As of June 2022, the following interactive tools support MegaDetector v5:
+
+* [Hendry Lydecker](https://github.com/hlydecker) set up a [Hugging Face app](https://huggingface.co/spaces/hlydecker/MegaDetector_v5)
+
+The following support MegaDetector v4 (let us know if any of these adopt MDv5!):
 
 * [EcoAssist](https://github.com/PetervanLunteren/EcoAssist) is a GUI-based tool for running MegaDetector in MacOS environments
 * [MegaDetector-GUI](https://github.com/petargyurov/megadetector-gui) is a GUI-based tool for running MegaDetector in Windows environments
-* [Ben Evans](https://bencevans.io/) set up a [Web-based MegaDetector demo](https://replicate.com/bencevans/megadetector) at <replicate.com>, good for small-volume testing/demos
+* [Ben Evans](https://bencevans.io/) set up a [Web-based MegaDetector demo](https://replicate.com/bencevans/megadetector) at <replicate.com>
 * The [Zooniverse ML Subject Assistant](https://subject-assistant.zooniverse.org/#/intro) allows Zooniverse camera trap project owners to run MegaDetector and get "AI votes" on their camera trap images
-
-We haven't tried these, but they look great, and if you find them useful - or if you know of others - [let us know](mailto:cameratraps@lila.science)!
-
 
 ## How do I use the results?
 
