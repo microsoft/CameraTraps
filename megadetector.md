@@ -380,7 +380,7 @@ But we recognize that Python tools can be a bit daunting, so we're excited that 
 
 As of June 2022, the following interactive tools support MegaDetector v5:
 
-* [Hendry Lydecker](https://github.com/hlydecker) set up a [Hugging Face app](https://huggingface.co/spaces/hlydecker/MegaDetector_v5)
+* [Hendry Lydecker](https://github.com/hlydecker) set up a [Hugging Face app](https://huggingface.co/spaces/hlydecker/MegaDetector_v5) for running MDv5
 
 The following support MegaDetector v4 (let us know if any of these adopt MDv5!):
 
