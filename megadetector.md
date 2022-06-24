@@ -304,7 +304,7 @@ The main environment file (environment-detector.yml) installs the "cudatoolkit" 
 
 If you set up your environment in a previous session, and you're starting a fresh Anaconda shell to run MegaDetector, remember to follow the "whenever you start a new shell" instructions from the previous section (<a href="#windows-new-shell">here</a> for Windows, <a href="#linux-new-shell">here</a> for Linux/Mac).
 
-#### 4a. run_detector.py
+#### run_detector.py
 
 To "test" this model on small sets of images and get super-satisfying visual output, we provide [run_detector.py](https://github.com/Microsoft/CameraTraps/blob/master/detection/run_detector.py), an example script for invoking this detector on new images.  This isn't how we recommend running lots of images through MegaDetector (see [run_detector_batch.py](#2-run_detector_batchpy) below for "real" usage), but it's a quick way to test things out.  [Let us know](mailto:cameratraps@lila.science) how it works on your images!
 
@@ -341,7 +341,7 @@ cd ~/git/CameraTraps
 python detection/run_detector.py "$HOME/megadetector/md_v5a.0.0.pt" --image_file "some_image_file.jpg" --threshold 0.2
 ```
 
-#### 4b. run_detector_batch.py
+#### run_detector_batch.py
 
 To apply this model to larger image sets on a single machine, we recommend a different script, [run_detector_batch.py](https://github.com/Microsoft/CameraTraps/blob/master/detection/run_detector_batch.py).  This outputs data in the same format as our [batch processing API](https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing), so you can leverage all of our post-processing tools.  The format that this script produces is also compatible with [Timelapse](https://saul.cpsc.ucalgary.ca/timelapse/).
 
