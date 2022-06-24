@@ -304,9 +304,12 @@ The main environment file (environment-detector.yml) installs the "cudatoolkit" 
 
 If you set up your environment in a previous session, and you're starting a fresh Anaconda shell to run MegaDetector, remember to follow the "whenever you start a new shell" instructions from the previous section (<a href="#windows-new-shell">here</a> for Windows, <a href="#linux-new-shell">here</a> for Linux/Mac).
 
+OK, now for real, let's run MegaDetector.
+
+
 #### run_detector.py
 
-To "test" this model on small sets of images and get super-satisfying visual output, we provide [run_detector.py](https://github.com/Microsoft/CameraTraps/blob/master/detection/run_detector.py), an example script for invoking this detector on new images.  This isn't how we recommend running lots of images through MegaDetector (see [run_detector_batch.py](#2-run_detector_batchpy) below for "real" usage), but it's a quick way to test things out.  [Let us know](mailto:cameratraps@lila.science) how it works on your images!
+To test MegaDetector out on small sets of images and get super-satisfying visual output, we provide [run_detector.py](https://github.com/Microsoft/CameraTraps/blob/master/detection/run_detector.py), an example script for invoking this detector on new images.  This isn't how we recommend running lots of images through MegaDetector (see [run_detector_batch.py](#2-run_detector_batchpy) below for "real" usage), but it's a quick way to test things out.  [Let us know](mailto:cameratraps@lila.science) how it works on your images!
 
 The following examples assume you have an Anaconda prompt open, and have put things in the same directories we put things in the above instructions.  If you put things in different places, adjust these examples to match your folders, and most importantly, adjust these examples to point to your images.
 
