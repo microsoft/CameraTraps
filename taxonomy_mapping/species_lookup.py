@@ -26,13 +26,15 @@ from tqdm import tqdm
 
 import ai4e_web_utils
 
+taxonomy_download_dir = r'g:\temp\taxonomy'
+
 taxonomy_urls = {
-    'GBIF': 'http://rs.gbif.org/datasets/backbone/backbone-current.zip',
+    'GBIF': 'https://hosted-datasets.gbif.org/datasets/backbone/current/backbone.zip',
     'iNaturalist': 'https://www.inaturalist.org/observations/inaturalist-dwca-with-taxa.zip'  # pylint: disable=line-too-long
 }
 
 files_to_unzip = {
-    'GBIF': ['Taxon.tsv', 'VernacularName.tsv'],
+    'GBIF': ['backbone/Taxon.tsv', 'backbone/VernacularName.tsv'],
     'iNaturalist': ['taxa.csv']
 }
 
@@ -41,7 +43,6 @@ files_to_unzip = {
 # GBIF: ~777MB zipped, ~1.6GB taxonomy
 # iNat: ~2.2GB zipped, ~51MB taxonomy
 
-taxonomy_download_dir = r'c:\temp\taxonomy'
 os.makedirs(taxonomy_download_dir, exist_ok=True)
 for taxonomy_name in taxonomy_urls:
     taxonomy_dir = os.path.join(taxonomy_download_dir, taxonomy_name)
@@ -124,6 +125,7 @@ def initialize_taxonomy_lookup() -> None:
     ## If we don't have serialized taxonomy info, create it from scratch.
 
     # Download and unzip taxonomy files
+    # taxonomy_name = list(taxonomy_urls.items())[0][0]; zip_url = list(taxonomy_urls.items())[0][1]
     for taxonomy_name, zip_url in taxonomy_urls.items():
 
         need_to_download = False
@@ -156,11 +158,12 @@ def initialize_taxonomy_lookup() -> None:
             for fn in files_we_need:
                 print('Unzipping {}'.format(fn))
                 target_file = os.path.join(
-                    taxonomy_download_dir, taxonomy_name, fn)
+                    taxonomy_download_dir, taxonomy_name, os.path.basename(fn))
 
                 if os.path.isfile(target_file):
                     print(f'Bypassing unzip of {target_file}, file exists')
                 else:
+                    os.makedirs(os.path.basename(target_file),exist_ok=True)
                     with zipH.open(fn) as zf, open(target_file, 'wb') as f:
                         shutil.copyfileobj(zf, f)
 
@@ -536,18 +539,21 @@ if False:
     #%% Taxonomic lookup
 
     # query = 'lion'
-    query = 'great blue heron'
+    query = 'viverridae'
     matches = get_taxonomic_info(query)
     # print(matches)
 
     print_taxonomy_matches(matches,verbose=True)
     
+    print('\n\n')
+    
     # Print the taxonomy in the taxonomy spreadsheet format
-    t = matches[1]['taxonomy']
-    [(4956, 'species', 'ardea herodias', ['great blue heron']), (4950, 'genus', 'ardea', ['great herons']), (597395, 'subfamily', 'ardeinae', ['typical herons']), (4929, 'family', 'ardeidae', ['herons, egrets, and bitterns']), (67566, 'order', 'pelecaniformes', ['pelicans, herons, ibises, and allies']), (3, 'class', 'aves', ['birds']), (355675, 'subphylum', 'vertebrata', ['vertebrates']), (2, 'phylum', 'chordata', ['chordates']), (1, 'kingdom', 'animalia', ['animals']), (48460, 'stateofmatter', 'life', [])]
+    assert matches[1]['source'] == 'inat'
+    t = str(matches[1]['taxonomy'])
+    print(t)
+    import clipboard; clipboard.copy(t)
         
-    print_taxonomy_matches(matches, verbose=True)
-
+    
 
     #%% Directly access the taxonomy tables
 
