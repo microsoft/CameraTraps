@@ -29,7 +29,7 @@ import taxonomy_mapping.retrieve_sample_image as retrieve_sample_image
 
 #%% Constants
 
-output_base = r'C:\git\ai4edev\camera-traps-private\taxonomy_archive'
+output_base = r"G:\git\agentmorrisprivate\camera-traps-taxonomy\taxonomy_archive"
 xlsx_basename = 'species_by_dataset_2020_09_02_ic_ubc.xlsx'
 
 # Input file
