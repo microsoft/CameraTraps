@@ -253,7 +253,7 @@ if False:
     #%%
     q = 'equus quagga'
     # q = "grevy's zebra"
-    taxonomy_preference = 'gbif'
+    taxonomy_preference = 'inat'
     m = get_preferred_taxonomic_match(q)
     print(m.source)
     print(m.taxonomy_string)
