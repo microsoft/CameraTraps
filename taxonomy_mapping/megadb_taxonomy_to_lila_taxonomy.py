@@ -1,10 +1,11 @@
 # 
-# From a variety of inputs, create a file mapping LILA entities to common and
-# scientific names.
+# Takes the megadb taxonomy mapping, extracts the rows that are relevant to
+# LILA, and does some cleanup.
 #
 
 #%% Constants and imports
 
+import os
 import pandas as pd
 import json
 
@@ -143,6 +144,7 @@ print('Made {} replacements'.format(n_replacements))
 
 #%% Re-write the input file in the target format
 
+assert not os.path.isfile(output_taxonomy_file), 'You don\'t really want to overwrite the output file'
 output_entries = []
 
 # mapping_string = list(taxonomy_mappings.keys())[0]
@@ -172,57 +174,3 @@ df.to_csv(output_taxonomy_file)
 
 print('Wrote updated table to {}'.format(output_taxonomy_file))
 
-
-#%% List null mappings
-
-# i_row = 0; row = df.iloc[i_row]
-for i_row,row in df.iterrows():
-    if (not isinstance(row['taxonomy_string'],str)) or (len(row['taxonomy_string']) == 0):
-        print('No mapping for {}:{}'.format(row['dataset_name'],row['query']))
-
-
-#%% List mappings that map to different things in different data sets
-
-import numpy as np
-def isnan(x):
-    if not isinstance(x,float):
-        return False
-    return np.isnan(x)
-
-from collections import defaultdict
-query_to_rows = defaultdict(list)
-
-queries_with_multiple_mappings = set()
-
-for i_row,row in df.iterrows():
-    
-    query = row['query']
-    taxonomy_string = row['taxonomy_string']
-    
-    for previous_i_row in query_to_rows[query]:
-        previous_row = df.iloc[previous_i_row]
-        assert previous_row['query'] == query
-        query_match = False
-        if isnan(row['taxonomy_string']):
-            query_match = isnan(previous_row['taxonomy_string'])
-        elif isnan(previous_row['taxonomy_string']):
-            query_match = isnan(row['taxonomy_string'])
-        else:
-            query_match = previous_row['taxonomy_string'][0:10] == taxonomy_string[0:10]
-        
-        if not query_match:
-            print('Query {} in {} and {}:\n\n{}\n\n{}\n'.format(
-                query, row['dataset_name'], previous_row['dataset_name'],
-                taxonomy_string, previous_row['taxonomy_string']))
-            queries_with_multiple_mappings.add(query)
-                
-    # ...for each row where we saw this query
-    
-    query_to_rows[query].append(i_row)
-    
-# ...for each row
-
-print('Found {} queries with multiple mappings'.format(len(queries_with_multiple_mappings)))
-
-
-#%% Produce HTML preview
