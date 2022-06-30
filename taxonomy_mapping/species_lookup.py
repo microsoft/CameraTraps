@@ -53,26 +53,26 @@ serialized_structures_file = os.path.join(taxonomy_download_dir,
 
 # These are un-initialized globals that must be initialized by
 # the initialize_taxonomy_lookup() function below.
-inat_taxonomy: pd.DataFrame
-gbif_taxonomy: pd.DataFrame
-gbif_common_mapping: pd.DataFrame
-inat_taxon_id_to_row: Dict[np.int64, int]
-gbif_taxon_id_to_row: Dict[np.int64, int]
-inat_taxon_id_to_vernacular: Dict[np.int64, Set[str]]
-inat_vernacular_to_taxon_id: Dict[str, np.int64]
-inat_taxon_id_to_scientific: Dict[np.int64, Set[str]]
-inat_scientific_to_taxon_id: Dict[str, np.int64]
-gbif_taxon_id_to_vernacular: Dict[np.int64, Set[str]]
-gbif_vernacular_to_taxon_id: Dict[str, np.int64]
-gbif_taxon_id_to_scientific: Dict[np.int64, Set[str]]
-gbif_scientific_to_taxon_id: Dict[str, np.int64]
+inat_taxonomy = None # : pd.DataFrame
+gbif_taxonomy = None # : pd.DataFrame
+gbif_common_mapping = None # : pd.DataFrame
+inat_taxon_id_to_row = None # : Dict[np.int64, int]
+gbif_taxon_id_to_row = None # : Dict[np.int64, int]
+inat_taxon_id_to_vernacular = None # : Dict[np.int64, Set[str]]
+inat_vernacular_to_taxon_id = None # : Dict[str, np.int64]
+inat_taxon_id_to_scientific = None # : Dict[np.int64, Set[str]]
+inat_scientific_to_taxon_id = None # : Dict[str, np.int64]
+gbif_taxon_id_to_vernacular = None # : Dict[np.int64, Set[str]]
+gbif_vernacular_to_taxon_id = None # : Dict[str, np.int64]
+gbif_taxon_id_to_scientific = None # : Dict[np.int64, Set[str]]
+gbif_scientific_to_taxon_id = None # : Dict[str, np.int64]
 
 
 #%% Functions
 
 # Initialization function
 
-def initialize_taxonomy_lookup() -> None:
+def initialize_taxonomy_lookup(force_init=False) -> None:
     """
     Initialize this module by doing the following:
 
@@ -99,6 +99,10 @@ def initialize_taxonomy_lookup() -> None:
 
     ## Load serialized taxonomy info if we've already saved it
 
+    if (not force_init) and (inat_taxonomy is not None):
+        print('Skipping taxonomy re-init')
+        return
+    
     if os.path.isfile(serialized_structures_file):
 
         print(f'Reading taxonomy data from {serialized_structures_file}')
@@ -527,6 +531,221 @@ def print_taxonomy_matches(matches, verbose=False):
 # ...def print_taxonomy_matches()
 
 
+#%% Taxonomy functions that make subjective judgements
+
+import unicodedata
+import re
+
+def slugify(value: Any, allow_unicode: bool = False) -> str:
+    """
+    From:
+    https://github.com/django/django/blob/master/django/utils/text.py
+
+    Convert to ASCII if 'allow_unicode' is False. Convert spaces to hyphens.
+    Remove characters that aren't alphanumerics, underscores, or hyphens.
+    Convert to lowercase. Also strip leading and trailing whitespace.
+    """
+
+    value = str(value)
+    value = unicodedata.normalize('NFKC', value)
+    if not allow_unicode:
+        value = value.encode('ascii', 'ignore').decode('ascii')
+    value = re.sub(r'[^\w\s-]', '', value.lower()).strip()
+    return re.sub(r'[-\s]+', '-', value)
+
+
+class TaxonomicMatch:
+
+    def __init__(self, scientific_name, common_name, taxonomic_level, source,
+                 taxonomy_string, match):
+        self.scientific_name = scientific_name
+        self.common_name = common_name
+        self.taxonomic_level = taxonomic_level
+        self.source = source
+        self.taxonomy_string = taxonomy_string
+        self.match = match
+
+    def __repr__(self):
+        return ('TaxonomicMatch('
+            f'scientific_name={self.scientific_name}, '
+            f'common_name={self.common_name}, '
+            f'taxonomic_level={self.taxonomic_level}, '
+            f'source={self.source}')
+
+
+hyphenated_terms = ['crowned', 'backed', 'throated', 'tailed', 'headed', 'cheeked',
+                    'ruffed', 'browed', 'eating', 'striped', 'shanked', 
+                    'fronted', 'bellied', 'spotted', 'eared', 'collared', 'breasted',
+                    'necked']
+
+def get_preferred_taxonomic_match(query: str, taxonomy_preference = 'inat', retry=True) -> TaxonomicMatch:
+    """
+    Wrapper for species_lookup.py, but expressing a variety of heuristics and
+    preferences that are specific to our scenario.
+    """
+
+    m,query = _get_preferred_taxonomic_match(query=query,taxonomy_preference=taxonomy_preference)
+    if (len(m.scientific_name) > 0) or (not retry):
+        return m
+    
+    for s in hyphenated_terms:
+        query = query.replace(' ' + s,'-' + s)
+    m,query = _get_preferred_taxonomic_match(query=query,taxonomy_preference=taxonomy_preference)
+    return m
+    
+    
+def _get_preferred_taxonomic_match(query: str, taxonomy_preference = 'inat') -> TaxonomicMatch:
+    
+    query = query.lower().strip().replace('_', ' ')
+    query = query.replace('unidentified','')
+    query = query.replace('unknown','')
+    if query.endswith(' sp'):
+        query = query.replace(' sp','')
+    if query.endswith(' group'):
+        query = query.replace(' group','')    
+    
+    query = query.strip()
+
+    # query = 'person'
+    matches = get_taxonomic_info(query)
+
+    # Do we have an iNat match?
+    inat_matches = [m for m in matches if m['source'] == 'inat']
+    gbif_matches = [m for m in matches if m['source'] == 'gbif']
+
+    # print_taxonomy_matches(inat_matches, verbose=True)
+    # print_taxonomy_matches(gbif_matches, verbose=True)
+
+    scientific_name = ''
+    common_name = ''
+    taxonomic_level = ''
+    match = ''
+    source = ''
+    taxonomy_string = ''
+
+    n_inat_matches = len(inat_matches)
+    n_gbif_matches = len(gbif_matches)
+    
+    selected_matches = None
+    
+    assert taxonomy_preference in ['gbif','inat'],\
+        'Unrecognized taxonomy preference: {}'.format(taxonomy_preference)
+        
+    if n_inat_matches > 0 and taxonomy_preference == 'inat':
+        selected_matches = 'inat'
+    elif n_gbif_matches > 0:
+        selected_matches = 'gbif'
+        
+    if selected_matches == 'inat':
+
+        i_match = 0
+
+        if len(inat_matches) > 1:
+            # print('Warning: multiple iNat matches for {}'.format(query))
+
+            # Prefer chordates... most of the names that aren't what we want
+            # are esoteric insects, like a moth called "cheetah"
+            #
+            # If we can't find a chordate, just take the first match.
+            #
+            # i_test_match = 0
+            for i_test_match, match in enumerate(inat_matches):
+                found_vertebrate = False
+                taxonomy = match['taxonomy']
+                for taxonomy_level in taxonomy:
+                    taxon_rank = taxonomy_level[1]
+                    scientific_name = taxonomy_level[2]
+                    if taxon_rank == 'phylum' and scientific_name == 'chordata':
+                        i_match = i_test_match
+                        found_vertebrate = True
+                        break
+                if found_vertebrate:
+                    break
+
+        match = inat_matches[i_match]['taxonomy']
+
+        # This is (taxonID, taxonLevel, scientific, [list of common])
+        lowest_level = match[0]
+        taxonomic_level = lowest_level[1]
+        scientific_name = lowest_level[2]
+        assert len(scientific_name) > 0
+        common_names = lowest_level[3]
+        if len(common_names) > 1:
+            # print(f'Warning: multiple iNat common names for {query}')
+            # Default to returning the query
+            if query in common_names:
+                common_name = query
+            else:
+                common_name = common_names[0]
+        elif len(common_names) > 0:
+            common_name = common_names[0]
+
+        # print(f'Matched iNat {query} to {scientific_name},{common_name}')
+        source = 'inat'
+
+    # ...if we had iNat matches
+
+    # If we either prefer GBIF or didn't have iNat matches
+    #
+    # Code is deliberately redundant here; I'm expecting some subtleties in how
+    # handle GBIF and iNat.
+    elif selected_matches == 'gbif':
+
+        i_match = 0
+
+        if len(gbif_matches) > 1:
+            # print('Warning: multiple GBIF matches for {}'.format(query))
+
+            # Prefer chordates... most of the names that aren't what we want
+            # are esoteric insects, like a moth called "cheetah"
+            #
+            # If we can't find a chordate, just take the first match.
+            #
+            # i_test_match = 0
+            for i_test_match, match in enumerate(gbif_matches):
+                found_vertebrate = False
+                taxonomy = match['taxonomy']
+                for taxonomy_level in taxonomy:
+                    taxon_rank = taxonomy_level[1]
+                    scientific_name = taxonomy_level[2]
+                    if taxon_rank == 'phylum' and scientific_name == 'chordata':
+                        i_match = i_test_match
+                        found_vertebrate = True
+                        break
+                if found_vertebrate:
+                    break
+
+        match = gbif_matches[i_match]['taxonomy']
+
+        # This is (taxonID, taxonLevel, scientific, [list of common])
+        lowest_level = match[0]
+        taxonomic_level = lowest_level[1]
+        scientific_name = lowest_level[2]
+        assert len(scientific_name) > 0
+
+        common_names = lowest_level[3]
+        if len(common_names) > 1:
+            # print(f'Warning: multiple GBIF common names for {query}')
+            # Default to returning the query
+            if query in common_names:
+                common_name = query
+            else:
+                common_name = common_names[0]
+        elif len(common_names) > 0:
+            common_name = common_names[0]
+
+        source = 'gbif'
+
+    # ...if we needed to look in the GBIF taxonomy
+
+    taxonomy_string = str(match)
+
+    return TaxonomicMatch(scientific_name, common_name, taxonomic_level, source,
+                          taxonomy_string, match),query
+
+# ...def _get_preferred_taxonomic_match()
+
+
 #%% Interactive drivers and debug
 
 if False:
@@ -539,7 +758,7 @@ if False:
     #%% Taxonomic lookup
 
     # query = 'lion'
-    query = 'viverridae'
+    query = 'xenoperdix'
     matches = get_taxonomic_info(query)
     # print(matches)
 
