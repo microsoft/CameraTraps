@@ -384,7 +384,7 @@ options.parallelize_rendering = True
 options.include_almost_detections = True
 options.num_images_to_sample = 7500
 options.parallelize_rendering_n_cores = n_rendering_threads
-options.confidence_threshold = 0.8
+options.confidence_threshold = 0.2
 options.almost_detection_confidence_threshold = options.confidence_threshold - 0.05
 options.ground_truth_json_file = None
 options.separate_detections_by_category = True
@@ -542,7 +542,7 @@ options.image_base_dir = input_path
 options.parallelize_rendering = True
 options.include_almost_detections = True
 options.num_images_to_sample = 7500
-options.confidence_threshold = 0.8
+options.confidence_threshold = 0.2
 options.almost_detection_confidence_threshold = options.confidence_threshold - 0.05
 options.ground_truth_json_file = None
 options.separate_detections_by_category = True
@@ -922,7 +922,10 @@ os.chmod(output_file, st.st_mode | stat.S_IEXEC)
 from api.batch_processing.postprocessing import categorize_detections_by_size
 
 options = categorize_detections_by_size.SizeCategorizationOptions()
+
+# This is a size threshold, not a confidence threshold
 options.threshold = 0.85
+
 input_file = r"g:\organization\file.json"
 size_separated_file = input_file.replace('.json','-size-separated-{}.json'.format(options.threshold))
 d = categorize_detections_by_size.categorize_detections_by_size(input_file,size_separated_file,options)
@@ -954,7 +957,7 @@ for i_folder, folder_name in enumerate(folders):
           output_filename))
 
     options = SubsetJsonDetectorOutputOptions()
-    options.confidence_threshold = 0.4
+    options.confidence_threshold = 0.01
     options.overwrite_json_files = True
     options.make_folder_relative = True
     options.query = folder_name + '\\'
@@ -983,7 +986,7 @@ subset_json_detector_output(input_filename,output_filename,options)
 from api.batch_processing.postprocessing.separate_detections_into_folders import (
     separate_detections_into_folders, SeparateDetectionsIntoFoldersOptions)
 
-default_threshold = 0.8
+default_threshold = 0.2
 base_output_folder = r'e:\{}-{}-separated'.format(base_task_name,default_threshold)
 
 options = SeparateDetectionsIntoFoldersOptions(default_threshold)
@@ -1015,7 +1018,7 @@ for classification_detection_file in classification_detection_files:
     options.parallelize_rendering = True
     options.include_almost_detections = True
     options.num_images_to_sample = 10000
-    options.confidence_threshold = 0.75
+    options.confidence_threshold = 0.2
     options.classification_confidence_threshold = 0.75
     options.almost_detection_confidence_threshold = options.confidence_threshold - 0.05
     options.ground_truth_json_file = None
