@@ -6,7 +6,7 @@ When a new .json file comes in and needs to be mapped to scientific names...
 
 * Use map_new_lila_datasets.py to create a .csv file mapping each of those categories to a scientific name and taxonomy.  This will eventually become a subset of rows in the "master" .csv file.  This is a semi-automated process; it will look up common names against the iNat and GBIF taxonomies, with some heuristics to avoid simple problems (like making sure that "greater_kudu" matches "greater kudu", or that "black backed jackal" matches "black-backed jackal"), but you will need to fill in a few gaps manually.  I do this with three windows open: a .csv editor, Spyder (with the cell called "manual lookup" from this script open), and a browser.  Once you generate this .csv file, it's considered permanent, i.e., the cell that wrote it won't re-write it, so manually edit to your heart's content.
 
-* Use preview_lila_taxonomy.py to produce an HTML file full of images that you can use to make sure that the matches were sensible; be particularly suspicious of anything that doesn't look like a mammal, bird, or reptile.  Go back and fix things in the .csv file.
+* Use preview_lila_taxonomy.py to produce an HTML file full of images that you can use to make sure that the matches were sensible; be particularly suspicious of anything that doesn't look like a mammal, bird, or reptile.  Go back and fix things in the .csv file.  This script/notebook also does a bunch of other consistency checking.
 
 * When you are totally satisfied with that .csv file, manually append it to the "master" .csv file (lila-taxonomy-mapping.csv), which is currently in a private repository
 

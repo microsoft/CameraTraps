@@ -17,9 +17,144 @@ os.makedirs(preview_base,exist_ok=True)
 html_output_file = os.path.join(preview_base,'index.html')
 
 
-#%% Read the output file back
+#%% Support functions
+
+def taxonomy_string_to_common_name(taxonomy_string):
+    taxonomic_match = eval(taxonomy_string)        
+    matched_entity = taxonomic_match[0]
+    assert len(matched_entity) == 4
+    common_names = matched_entity[3]
+    if len(common_names) == 1:
+        common_names_from_taxonomy = common_names[0]
+    else:
+        common_names_from_taxonomy = str(common_names)
+    return common_names_from_taxonomy
+
+
+def taxonomy_string_to_scientific(taxonomy_string):
+    taxonomic_match = eval(taxonomy_string)        
+    matched_entity = taxonomic_match[0]
+    assert len(matched_entity) == 4
+    scientific_name = matched_entity[2]
+    return scientific_name
+
+
+#%% Read the taxonomy mapping file
 
 df = pd.read_csv(lila_taxonomy_file)
+
+
+#%% Optionally remap all gbif-based mappings to inat (or vice-versa)
+
+if False:
+    
+    #%%
+    
+    from taxonomy_mapping.species_lookup import (
+        initialize_taxonomy_lookup,
+        get_preferred_taxonomic_match)
+
+    # from taxonomy_mapping.species_lookup import (
+    #    get_taxonomic_info, print_taxonomy_matche)
+
+    initialize_taxonomy_lookup()
+
+    #%%
+    
+    source_mappings = ['gbif','manual']
+    target_mapping = 'inat'
+    valid_mappings = ['gbif','inat','manual']
+    
+    assert target_mapping in valid_mappings
+    for source_mapping in source_mappings:
+        assert source_mapping != target_mapping and \
+            source_mapping in valid_mappings
+    
+    n_remappings = 0
+    
+    # i_row = 1; row = df.iloc[i_row]; row
+    for i_row,row in df.iterrows():
+        
+        if row['source'] not in source_mappings:            
+            continue
+        
+        scientific_name = row['scientific_name']
+        old_common = taxonomy_string_to_common_name(row['taxonomy_string'])
+        
+        m = get_preferred_taxonomic_match(scientific_name,target_mapping)
+        
+        if m is None or m.source != target_mapping:
+            print('No mapping for {} ({}) ({})'.format(scientific_name,row['query'],old_common))
+            continue
+        
+        assert m.scientific_name == row['scientific_name']
+        
+        if m.taxonomic_level == 'variety' and row['taxonomy_level'] == 'subspecies':
+            pass
+        else:
+            assert m.taxonomic_level == row['taxonomy_level']
+        
+        new_common = taxonomy_string_to_common_name(m.taxonomy_string)
+        
+        if row['taxonomy_string'] != m.taxonomy_string:
+            print('Remapping {} ({} to {})'.format(scientific_name, old_common, new_common))
+            n_remappings += 1
+            df.loc[i_row,'taxonomy_string'] = m.taxonomy_string
+            
+        if row['source'] != 'manual':
+            df.loc[i_row,'source'] = m.source                        
+
+    # This should be zero for the release .csv
+    print('Made {} remappings'.format(n_remappings))
+    
+    #%%
+    
+    df.to_csv(lila_taxonomy_file.replace('.csv','_remapped.csv'),header=True,index=False)
+    
+
+#%% Check for mappings that disagree with the taxonomy string
+
+import tqdm
+
+df = pd.read_csv(lila_taxonomy_file)
+
+n_taxonomy_changes = 0
+
+# Look for internal inconsistency
+for i_row,row in df.iterrows():
+    
+    sn = row['scientific_name']
+    if not isinstance(sn,str):
+        continue
+    
+    ts = row['taxonomy_string'] 
+    assert sn == taxonomy_string_to_scientific(ts)
+
+# Look for outdated mappings
+taxonomy_preference = 'inat'
+
+# i_row = 0; row = df.iloc[i_row]
+for i_row,row in tqdm.tqdm(df.iterrows(),total=len(df)):
+    
+    sn = row['scientific_name']
+    if not isinstance(sn,str):
+        continue
+    
+    m = get_preferred_taxonomic_match(sn,taxonomy_preference)
+    assert m.scientific_name == sn
+    
+    ts = row['taxonomy_string']
+    assert m.taxonomy_string[0:50] == ts[0:50], 'Mismatch for {}:\n\n{}\n\n{}\n'.format(
+        row['dataset_name'],ts,m.taxonomy_string)
+    
+    if ts != m.taxonomy_string:
+        n_taxonomy_changes += 1
+        df.loc[i_row,'taxonomy_string'] = m.taxonomy_string
+
+print('\nMade {} taxonomy changes'.format(n_taxonomy_changes))
+
+if False:
+    df.to_csv(lila_taxonomy_file,header=True,index=False)
 
 
 #%% List null mappings
@@ -34,7 +169,7 @@ for i_row,row in df.iterrows():
         print('No mapping for {}:{}'.format(row['dataset_name'],row['query']))
 
 
-#%% List mappings without common names
+#%% List mappings with scientific names but no common names
 
 for i_row,row in df.iterrows():
     cn = row['common_name']
@@ -68,9 +203,33 @@ suppress_multiple_matches = [
     ['porcupine','Snapshot Kruger','Idaho Camera Traps'],
     ['porcupine','Snapshot Mountain Zebra','Idaho Camera Traps'],
     ['porcupine','Snapshot Serengeti','Idaho Camera Traps'],
+    
+    ['porcupine','Snapshot Serengeti','Snapshot Mountain Zebra'],
+    ['porcupine','Snapshot Serengeti','Snapshot Kruger'],
+    ['porcupine','Snapshot Serengeti','Snapshot Kgalagadi'],
+    ['porcupine','Snapshot Serengeti','Snapshot Karoo'],
+    ['porcupine','Snapshot Serengeti','Snapshot Camdeboo'],
+    
+    ['porcupine','Snapshot Enonkishu','Snapshot Camdeboo'],
+    ['porcupine','Snapshot Enonkishu','Snapshot Mountain Zebra'],
+    ['porcupine','Snapshot Enonkishu','Snapshot Kruger'],
+    ['porcupine','Snapshot Enonkishu','Snapshot Kgalagadi'],
+    ['porcupine','Snapshot Enonkishu','Snapshot Karoo'],
+    
+    ['kudu','Snapshot Serengeti','Snapshot Mountain Zebra'],
+    ['kudu','Snapshot Serengeti','Snapshot Kruger'],
+    ['kudu','Snapshot Serengeti','Snapshot Kgalagadi'],
+    ['kudu','Snapshot Serengeti','Snapshot Karoo'],
+    ['kudu','Snapshot Serengeti','Snapshot Camdeboo'],
+    
     ['fox','Caltech Camera Traps','Channel Islands Camera Traps'],
     ['fox','Idaho Camera Traps','Channel Islands Camera Traps'],
-    ['pangolin','Snapshot Serengeti','SWG Camera Traps']
+    ['fox','Idaho Camera Traps','Caltech Camera Traps'],
+    
+    ['pangolin','Snapshot Serengeti','SWG Camera Traps'],
+    
+    ['deer', 'Wellington Camera Traps', 'Idaho Camera Traps'],
+    ['deer', 'Wellington Camera Traps', 'Caltech Camera Traps']
 ]
 
 for i_row,row in df.iterrows():
@@ -156,7 +315,57 @@ for i_row,row in df.iterrows():
                 ))
 
 
+#%% Print all taxonomic levels and sources
+
+sources = set(list(df['source']))
+levels = set(list(df['taxonomy_level']))
+
+# Make sure there are valid source and level values for everything with a mapping
+for i_row,row in df.iterrows():
+    if isinstance(row['scientific_name'],str):
+        assert isinstance(row['source'],str)
+        assert isinstance(row['taxonomy_level'],str)
+        
+
+#%% Find WCS mappings that aren't species or aren't the same as the input
+
+# row = df.iloc[-500]
+for i_row,row in df.iterrows():
+    
+    if not isinstance(row['scientific_name'],str):
+        continue
+    if 'WCS' not in row['dataset_name']:
+        continue
+    
+    query = row['query']
+    scientific_name = row['scientific_name']
+    common_name = row['common_name']
+    level = row['taxonomy_level']    
+    taxonomy_string = row['taxonomy_string']
+    
+    common_name_from_taxonomy = taxonomy_string_to_common_name(taxonomy_string)   
+    query_string = query.replace(' sp','')
+    query_string = query_string.replace('unknown ','')
+    
+    # Anything marked "species" or "unknown" by definition doesn't map to a species,
+    # so ignore these.
+    if (' sp' not in query) and ('unknown' not in query) and \
+        (level != 'species') and (level != 'subspecies'):
+        print('WCS query {} ({}) remapped to {} {} ({})'.format(
+            query,common_name,level,scientific_name,common_name_from_taxonomy))
+
+    if query_string != scientific_name:        
+        pass
+        # print('WCS query {} ({}) remapped to {} ({})'.format(
+        #     query,common_name,scientific_name,common_names_from_taxonomy))
+
+
 #%% Download sample images for all scientific names
+
+remapped_queries = {'papio':'papio+baboon',
+                    'damaliscus lunatus jimela':'damaliscus lunatus',
+                    'mazama':'genus+mazama',
+                    'mirafra':'genus+mirafra'}
 
 import os
 from taxonomy_mapping import retrieve_sample_image
@@ -171,31 +380,40 @@ for i_row,row in df.iterrows():
     
     s = row['scientific_name']
     
-    if not isinstance(s,str):
+    # if s != 'mirafra':
+    #    continue
+    
+    if (not isinstance(s,str)) or (len(s)==0):
         continue
     
     query = s.replace(' ','+')
+    
+    if query in remapped_queries:
+        query = remapped_queries[query]
+        
     query_folder = os.path.join(image_base,query)
+    
+    # Check whether we already have enough images for this query
     if os.path.isdir(query_folder):
         image_files = os.listdir(query_folder)
         image_fullpaths = [os.path.join(query_folder,fn) for fn in image_files]
         sizes = [os.path.getsize(p) for p in image_fullpaths]
         sizes_above_threshold = [x for x in sizes if x > min_valid_image_size]
         if len(sizes_above_threshold) > min_valid_images_per_query:
-            print('Skipping query {}, already have {} images'.format(s,len(sizes_above_threshold)))
+            # print('Skipping query {}, already have {} images'.format(s,len(sizes_above_threshold)))
             continue
     
-    if (not isinstance(s,str)) or (len(s)==0):
+    # Check whether we've already run this query for a previous row
+    if query in scientific_name_to_paths:
         continue
-    if s in scientific_name_to_paths:
-        continue
-    print('Processing query {} of {} ({})'.format(i_row,len(df),s))
-    paths = retrieve_sample_image.download_images(query=s,
+    
+    print('Processing query {} of {} ({})'.format(i_row,len(df),query))
+    paths = retrieve_sample_image.download_images(query=query,
                                              output_directory=image_base,
                                              limit=images_per_query,
                                              verbose=True)
-    print('Downloaded {} images for {}'.format(len(paths),s))
-    scientific_name_to_paths[s] = paths
+    print('Downloaded {} images for {}'.format(len(paths),query))
+    scientific_name_to_paths[query] = paths
 
 # ...for each row in the mapping table
 
@@ -212,13 +430,32 @@ for s in list(df.scientific_name):
         continue
     
     query = s.replace(' ','+')
+    
+    if query in remapped_queries:
+        query = remapped_queries[query]
+    
     query_folder = os.path.join(image_base,query)
     assert os.path.isdir(query_folder)
     image_files = os.listdir(query_folder)
     image_fullpaths = [os.path.join(query_folder,fn) for fn in image_files]    
     sizes = [os.path.getsize(p) for p in image_fullpaths]
+    path_to_size = {}
+    for i_fp,fp in enumerate(image_fullpaths):
+        path_to_size[fp] = sizes[i_fp]
     paths_by_size = [x for _, x in sorted(zip(sizes, image_fullpaths),reverse=True)]
-    preferred_paths = paths_by_size[:max_images_per_query]
+    
+    # Be suspicious of duplicate sizes
+    b_duplicate_sizes = [False] * len(paths_by_size)
+    
+    for i_path,p in enumerate(paths_by_size):
+        if i_path == len(paths_by_size) - 1:
+            continue
+        if path_to_size[p] == path_to_size[paths_by_size[i_path+1]]:
+            b_duplicate_sizes[i_path] = True
+    
+    paths_by_size_non_dup = [i for (i, v) in zip(paths_by_size, b_duplicate_sizes) if not v]
+    
+    preferred_paths = paths_by_size_non_dup[:max_images_per_query]
     scientific_name_to_preferred_images[s] = preferred_paths
 
 # ...for each scientific name    
@@ -238,6 +475,7 @@ with open(html_output_file, 'w') as f:
     f.write('<p class="speciesinfo_p" style="font-weight:bold;font-size:130%">')
     f.write('datset_name: <b><u>category</u></b> mapped to taxonomy_level scientific_name (taxonomic_common_name) (manual_common_name)</p>\n'.format())
     f.write('</p>')
+    
     # i_row = 2; row = df.iloc[i_row]
     for i_row, row in tqdm(df.iterrows(), total=len(df)):
         
@@ -292,3 +530,9 @@ with open(html_output_file, 'w') as f:
 
 from path_utils import open_file # from ai4eutils
 open_file(html_output_file)
+
+
+#%%
+
+
+# https://en.wikipedia.org/wiki/Taxonomic_rank#All_ranks
