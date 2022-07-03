@@ -72,14 +72,17 @@ if False:
     
     #%%
     
-    # This should auto-insert a hyphen before "eating"
-    q = 'cebinae'
+    # q = 'white-throated monkey'
+    q = 'rhynchocyon cirnei'
     taxonomy_preference = 'inat'
     m = get_preferred_taxonomic_match(q,taxonomy_preference)
     
     if m is None:
         print('No match')
     else:
+        if m.source != taxonomy_preference:
+            print('\n*** non-preferred match ***\n')
+            # raise ValueError('')
         print(m.source)
         print(m.taxonomy_string)
         import clipboard; clipboard.copy(m.taxonomy_string)
@@ -126,4 +129,3 @@ output_df = pd.DataFrame(data=output_rows, columns=[
     'dataset_name', 'query', 'source', 'taxonomy_level',
     'scientific_name', 'common_name', 'taxonomy_string'])
 output_df.to_csv(output_file, index=None, header=True)
-
