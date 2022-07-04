@@ -6,6 +6,8 @@
 
 #%% Imports and constants
 
+from tqdm import tqdm
+
 import os
 import pandas as pd
 
@@ -127,8 +129,6 @@ if False:
 
 #%% Check for mappings that disagree with the taxonomy string
 
-import tqdm
-
 df = pd.read_csv(lila_taxonomy_file)
 
 n_taxonomy_changes = 0
@@ -149,7 +149,7 @@ for i_row,row in df.iterrows():
 taxonomy_preference = 'inat'
 
 # i_row = 0; row = df.iloc[i_row]
-for i_row,row in tqdm.tqdm(df.iterrows(),total=len(df)):
+for i_row,row in tqdm(df.iterrows(),total=len(df)):
     
     sn = row['scientific_name']
     if not isinstance(sn,str):
@@ -438,6 +438,18 @@ for i_row,row in df.iterrows():
 # ...for each row in the mapping table
 
 
+#%% Rename .jpeg to .jpg
+
+import path_utils
+all_images = path_utils.recursive_file_list(image_base,False)
+
+for fn in tqdm(all_images):
+    if fn.endswith('.jpeg'):
+        new_fn = fn[0:-5] + '.jpg'
+        # print('Renaming {} to {}'.format(fn,new_fn))
+        os.rename(fn, new_fn)
+
+
 #%% Choose representative images for each scientific name
 
 max_images_per_query = 4
@@ -501,13 +513,11 @@ for fn in all_images:
 print('{} of {} files unused (diff {})'.format(len(unused_images),len(all_images),
                                                len(all_images) - len(unused_images)))
 
-from tqdm import tqdm
 for fn in tqdm(unused_images):
     os.remove(fn)    
 
-#%% Produce HTML preview
 
-from tqdm import tqdm
+#%% Produce HTML preview
 
 with open(html_output_file, 'w') as f:
     
