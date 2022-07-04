@@ -12,31 +12,42 @@ import pandas as pd
 lila_taxonomy_file = r"G:\git\agentmorrisprivate\lila-taxonomy\lila-taxonomy-mapping.csv"
 # lila_taxonomy_file = r"G:\temp\lila\lila_additions_2022.06.29.csv"
 
-preview_base = r'g:\temp\lila_taxonomy_preview'
+preview_base = r'g:\temp\lila\lila_taxonomy_preview'
 os.makedirs(preview_base,exist_ok=True)
 html_output_file = os.path.join(preview_base,'index.html')
 
 
 #%% Support functions
 
-def taxonomy_string_to_common_name(taxonomy_string):
+def parse_taxonomy_string(taxonomy_string):
+
     taxonomic_match = eval(taxonomy_string)        
     matched_entity = taxonomic_match[0]
     assert len(matched_entity) == 4
+    
+    level = matched_entity[1]
+    
+    scientific_name = matched_entity[2]
+    
     common_names = matched_entity[3]
     if len(common_names) == 1:
-        common_names_from_taxonomy = common_names[0]
+        common_name = common_names[0]
     else:
-        common_names_from_taxonomy = str(common_names)
-    return common_names_from_taxonomy
+        common_name = str(common_names)
+    
+    return scientific_name,common_name,level,taxonomic_match
 
+def taxonomy_string_to_common_name(taxonomy_string):
+    _,cn,_,_ = parse_taxonomy_string(taxonomy_string)
+    return cn
 
 def taxonomy_string_to_scientific(taxonomy_string):
-    taxonomic_match = eval(taxonomy_string)        
-    matched_entity = taxonomic_match[0]
-    assert len(matched_entity) == 4
-    scientific_name = matched_entity[2]
-    return scientific_name
+    sn,_,_,_ = parse_taxonomy_string(taxonomy_string)
+    return sn
+
+def taxonomy_string_to_level(taxonomy_string):
+    _,_,level,_ = parse_taxonomy_string(taxonomy_string)
+    return level
 
 
 #%% Read the taxonomy mapping file
@@ -44,21 +55,22 @@ def taxonomy_string_to_scientific(taxonomy_string):
 df = pd.read_csv(lila_taxonomy_file)
 
 
+#%% Prepare taxonomy lookup
+
+from taxonomy_mapping.species_lookup import (
+    initialize_taxonomy_lookup,
+    get_preferred_taxonomic_match)
+
+# from taxonomy_mapping.species_lookup import (
+#    get_taxonomic_info, print_taxonomy_matche)
+
+initialize_taxonomy_lookup()
+
+
 #%% Optionally remap all gbif-based mappings to inat (or vice-versa)
 
 if False:
     
-    #%%
-    
-    from taxonomy_mapping.species_lookup import (
-        initialize_taxonomy_lookup,
-        get_preferred_taxonomic_match)
-
-    # from taxonomy_mapping.species_lookup import (
-    #    get_taxonomic_info, print_taxonomy_matche)
-
-    initialize_taxonomy_lookup()
-
     #%%
     
     source_mappings = ['gbif','manual']
@@ -129,6 +141,8 @@ for i_row,row in df.iterrows():
     
     ts = row['taxonomy_string'] 
     assert sn == taxonomy_string_to_scientific(ts)
+    
+    assert row['taxonomy_level'] == taxonomy_string_to_level(ts)
 
 # Look for outdated mappings
 taxonomy_preference = 'inat'
@@ -146,7 +160,7 @@ for i_row,row in tqdm.tqdm(df.iterrows(),total=len(df)):
     ts = row['taxonomy_string']
     assert m.taxonomy_string[0:50] == ts[0:50], 'Mismatch for {}:\n\n{}\n\n{}\n'.format(
         row['dataset_name'],ts,m.taxonomy_string)
-    
+        
     if ts != m.taxonomy_string:
         n_taxonomy_changes += 1
         df.loc[i_row,'taxonomy_string'] = m.taxonomy_string
@@ -229,7 +243,10 @@ suppress_multiple_matches = [
     ['pangolin','Snapshot Serengeti','SWG Camera Traps'],
     
     ['deer', 'Wellington Camera Traps', 'Idaho Camera Traps'],
-    ['deer', 'Wellington Camera Traps', 'Caltech Camera Traps']
+    ['deer', 'Wellington Camera Traps', 'Caltech Camera Traps'],
+    
+    ['unknown cervid', 'WCS Camera Traps', 'Idaho Camera Traps']
+    
 ]
 
 for i_row,row in df.iterrows():
@@ -315,12 +332,8 @@ for i_row,row in df.iterrows():
                 ))
 
 
-#%% Print all taxonomic levels and sources
+#%% Make sure there are valid source and level values for everything with a mapping
 
-sources = set(list(df['source']))
-levels = set(list(df['taxonomy_level']))
-
-# Make sure there are valid source and level values for everything with a mapping
 for i_row,row in df.iterrows():
     if isinstance(row['scientific_name'],str):
         assert isinstance(row['source'],str)
@@ -532,7 +545,117 @@ from path_utils import open_file # from ai4eutils
 open_file(html_output_file)
 
 
-#%%
+#%% Find out which categories are actually used
 
+import json
 
-# https://en.wikipedia.org/wiki/Taxonomic_rank#All_ranks
+# Created by get_lila_category_list.py... contains counts for each category
+lila_dataset_to_categories_file = r"G:\temp\lila\lila_categories_list\lila_dataset_to_categories.json"
+lila_taxonomy_file = r"G:\temp\lila\lila-taxonomy-mapping_release.22.07.03.1608.csv"
+
+assert os.path.isfile(lila_dataset_to_categories_file)
+assert os.path.isfile(lila_taxonomy_file)
+
+with open(lila_dataset_to_categories_file,'r') as f:
+    lila_dataset_to_categories = json.load(f)
+
+used_category_mappings = []
+
+# dataset_name = datasets_to_map[0]
+for dataset_name in lila_dataset_to_categories.keys():
+    
+    ds_categories = lila_dataset_to_categories[dataset_name]
+    for category in ds_categories:
+        category_name = category['name'].lower()
+        assert ':' not in category_name
+        mapping_name = dataset_name + ':' + category_name
+        used_category_mappings.append(mapping_name)
+
+b_used_rows = [False] * len(df)
+
+# i_row = 0; row = df.iloc[i_row]; row
+for i_row,row in df.iterrows():
+    ds_name = row['dataset_name']
+    query = row['query']
+    mapping_name = ds_name + ':' + query
+    if mapping_name in used_category_mappings:
+        b_used_rows[i_row] = True
+    else:
+        print('Dropping unused mapping {}'.format(mapping_name))
+        
+
+#%% Generate the final output file
+
+df = pd.read_csv(lila_taxonomy_file)
+
+# release_taxonomy_file = lila_taxonomy_file.replace('.csv','_release.csv')
+release_taxonomy_file = r"G:\temp\lila\lila-taxonomy-mapping_release.22.07.03.1608.csv"
+assert not os.path.isfile(release_taxonomy_file)
+
+known_levels = ['stateofmatter',
+                     'kingdom',
+                     'phylum','subphylum',
+                     'superclass','class','subclass','infraclass',
+                     'superorder','order','parvorder','suborder','infraorder',
+                     'zoosection',
+                     'superfamily','family','subfamily','tribe',
+                     'genus',
+                     'species','subspecies','variety']
+
+levels_to_include = ['kingdom',
+                     'phylum','subphylum',
+                     'superclass','class','subclass','infraclass',
+                     'superorder','order','suborder','infraorder',
+                     'superfamily','family','subfamily','tribe',
+                     'genus',
+                     'species','subspecies','variety']
+
+levels_to_exclude = ['stateofmatter','zoosection','parvorder']
+
+for s in levels_to_exclude:
+    assert s not in levels_to_include
+    
+levels_used = set()
+
+# i_row = 0; row = df.iloc[i_row]; row
+for i_row,row in df.iterrows():
+    
+    if not isinstance(row['scientific_name'],str):
+        assert not isinstance(row['taxonomy_string'],str)
+        continue
+    
+    taxonomic_match = eval(row['taxonomy_string'])
+    
+    # match_at_level = taxonomic_match[0]
+    for match_at_level in taxonomic_match:
+        assert len(match_at_level) == 4
+        levels_used.add(match_at_level[1])
+        
+levels_used = [s for s in levels_used if isinstance(s,str)]
+
+for s in levels_used:
+    assert s in levels_to_exclude or s in levels_to_include, 'Unrecognized level {}'.format(s)
+
+for s in levels_to_include:
+    assert s in levels_used
+    
+for s in levels_to_include:
+    df[s] = ''
+    
+# i_row = 0; row = df.iloc[i_row]; row
+for i_row,row in df.iterrows():
+    
+    if not isinstance(row['scientific_name'],str):
+        assert not isinstance(row['taxonomy_string'],str)
+        continue
+    
+    # E.g.: (43117, 'genus', 'lepus', ['hares and jackrabbits']
+    taxonomic_match = eval(row['taxonomy_string'])
+    
+    for match_at_level in taxonomic_match:
+        level = match_at_level[1]
+        if level in levels_to_include:
+            df.loc[i_row,level] = match_at_level[2]
+
+df = df.drop('source',1)
+df.to_csv(release_taxonomy_file,header=True,index=False)    

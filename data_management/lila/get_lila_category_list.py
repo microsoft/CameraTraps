@@ -2,7 +2,7 @@
 # get_lila_category_list.py
 #
 # Generates a .json-formatted dictionary mapping each LILA dataset to all categories
-# that exist for that dataset.
+# that exist for that dataset, with counts for the number of occurrences of each category.
 #
 
 #%% Constants and imports
@@ -174,8 +174,12 @@ for ds_name in datasets_of_interest:
 
 #%% Get category names for each dataset
 
+from collections import defaultdict
+
 dataset_to_categories = {}
 
+# ds_name = datasets_of_interest[0]
+# ds_name = 'NACTI'
 for ds_name in datasets_of_interest:
     
     print('Finding categories in {}'.format(ds_name))
@@ -192,8 +196,25 @@ for ds_name in datasets_of_interest:
     
     # Collect list of categories and mappings to category name
     categories = data['categories']
-    dataset_to_categories[ds_name] = categories
     
+    category_id_to_count = defaultdict(int)
+    annotations = data['annotations']    
+    
+    # ann = annotations[0]
+    for ann in annotations:
+        category_id_to_count[ann['category_id']] = category_id_to_count[ann['category_id']] + 1
+    
+    # c = categories[0]
+    for c in categories:
+       count = category_id_to_count[c['id']] 
+       if 'count' in c:
+           assert 'bbox' in ds_name or c['count'] == count       
+       c['count'] = count
+    
+    dataset_to_categories[ds_name] = categories
+
+# ...for each dataset    
+
 
 #%% Save dict
 
