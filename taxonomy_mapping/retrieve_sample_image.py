@@ -46,7 +46,8 @@ def download_images(query,output_directory,limit=100,verbose=False):
     elif method == 'google_images_download':
         
         response = google_images_download.googleimagesdownload()    
-        arguments = {'keywords':query,'limit':limit,'print_urls':verbose,'image-directory':output_directory}
+        arguments = {'keywords':query,'limit':limit,'print_urls':verbose,
+                     'image-directory':output_directory}
         response.download(arguments)
         return None
 
