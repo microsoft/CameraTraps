@@ -558,7 +558,7 @@ def main():
     if args.checkpoint_frequency != -1:
         assert args.checkpoint_frequency > 0, 'Checkpoint_frequency needs to be > 0 or == -1'
     if args.output_relative_filenames:
-        assert os.path.isdir(args.image_file), 'image_file must be a directory when --output_relative_filenames is set'
+        assert os.path.isdir(args.image_file), 'Could not find folder {}, must supply a folder when --output_relative_filenames is set'.format(args.image_file)
 
     if os.path.exists(args.output_file):
         print('Warning: output_file {} already exists and will be overwritten'.format(args.output_file))

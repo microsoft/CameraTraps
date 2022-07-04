@@ -196,6 +196,8 @@ def main(classification_csv_path: str,
     os.makedirs(os.path.dirname(output_json_path), exist_ok=True)
     with open(output_json_path, 'w') as f:
         json.dump(classification_js, f, indent=1)
+    
+    print('Wrote merged classification/detection results to {}'.format(classification_js))
 
 
 def process_queried_images(
@@ -356,8 +358,7 @@ def combine_classification_with_detection(
     """
     classification_metadata = {
         'classifier': classifier_name,
-        'classification_completion_time': classifier_timestamp,
-        'format_version': '1.1'
+        'classification_completion_time': classifier_timestamp        
     }
     
     if typical_confidence_threshold is not None:

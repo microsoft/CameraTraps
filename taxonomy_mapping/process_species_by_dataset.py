@@ -29,7 +29,7 @@ import taxonomy_mapping.retrieve_sample_image as retrieve_sample_image
 
 #%% Constants
 
-output_base = r'C:\git\ai4edev\camera-traps-private\taxonomy_archive'
+output_base = r"G:\git\agentmorrisprivate\camera-traps-taxonomy\taxonomy_archive"
 xlsx_basename = 'species_by_dataset_2020_09_02_ic_ubc.xlsx'
 
 # Input file
@@ -253,7 +253,7 @@ if False:
     #%%
     q = 'equus quagga'
     # q = "grevy's zebra"
-    taxonomy_preference = 'gbif'
+    taxonomy_preference = 'inat'
     m = get_preferred_taxonomic_match(q)
     print(m.source)
     print(m.taxonomy_string)
