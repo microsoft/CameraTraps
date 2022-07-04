@@ -10,14 +10,12 @@ import json
 # Created by get_lila_category_list.py
 input_lila_category_list_file = r"G:\temp\lila\lila_categories_list\lila_dataset_to_categories.json"
 
-output_file = r'g:\temp\lila\lila_additions_2022.06.29.csv'
+output_file = r'g:\temp\lila\lila_additions_2022.07.03.csv'
 
 datasets_to_map = [
-    'Channel Islands Camera Traps',
-    'SWG Camera Traps',
-    'Orinoquia Camera Traps',
-    'Missouri Camera Traps',
-    'Wellington Camera Traps'
+    # 'NACTI'
+    # 'Channel Islands Camera Traps'
+    'ENA24'
     ]
 
 
@@ -73,7 +71,7 @@ if False:
     #%%
     
     # q = 'white-throated monkey'
-    q = 'rhynchocyon cirnei'
+    q = 'clark\'s nutcracker'
     taxonomy_preference = 'inat'
     m = get_preferred_taxonomic_match(q,taxonomy_preference)
     
@@ -92,6 +90,8 @@ if False:
 
 output_rows = []
 
+taxonomy_preference = 'inat'
+
 # mapping_string = category_mappings[1]; print(mapping_string)
 for mapping_string in category_mappings:
     
@@ -101,18 +101,32 @@ for mapping_string in category_mappings:
     dataset_name = tokens[0]
     query = tokens[1]
 
-    taxonomic_match = get_preferred_taxonomic_match(query)
+    taxonomic_match = get_preferred_taxonomic_match(query,taxonomy_preference=taxonomy_preference)
     
-    output_row = {
-        'dataset_name': dataset_name,
-        'query': query,
-        'source': taxonomic_match.source,
-        'taxonomy_level': taxonomic_match.taxonomic_level,
-        'scientific_name': taxonomic_match.scientific_name,
-        'common_name': taxonomic_match.common_name,
-        'taxonomy_string': taxonomic_match.taxonomy_string
-    }
+    if taxonomic_match.source == taxonomy_preference:
     
+        output_row = {
+            'dataset_name': dataset_name,
+            'query': query,
+            'source': taxonomic_match.source,
+            'taxonomy_level': taxonomic_match.taxonomic_level,
+            'scientific_name': taxonomic_match.scientific_name,
+            'common_name': taxonomic_match.common_name,
+            'taxonomy_string': taxonomic_match.taxonomy_string
+        }
+    
+    else:
+        
+        output_row = {
+            'dataset_name': dataset_name,
+            'query': query,
+            'source': '',
+            'taxonomy_level': '',
+            'scientific_name': '',
+            'common_name': '',
+            'taxonomy_string': ''
+        }
+        
     output_rows.append(output_row)
     
 # ...for each mapping    
