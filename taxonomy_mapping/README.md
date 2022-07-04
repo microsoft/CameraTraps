@@ -18,6 +18,8 @@ When a new .json file comes in and needs to be mapped to scientific names...
 python taxonomy_mapping/taxonomy_csv_checker.py /path/to/taxonomy.csv
 ```
 
-* The `visualize_taxonomy.ipynb` notebook demonstrates how to visualize the taxonomy hierarchy. It requires the *networkx* and *graphviz* Python packages.
+* Prepare the "release" taxonomy file (which removes a couple columns and removes unused rows) using prepare_lila_taxonomy_release.py .
 
 * Use map_lila_categories.py to get a mapping of every LILA data set to the common taxonomy.
+
+* The `visualize_taxonomy.ipynb` notebook demonstrates how to visualize the taxonomy hierarchy. It requires the *networkx* and *graphviz* Python packages.
