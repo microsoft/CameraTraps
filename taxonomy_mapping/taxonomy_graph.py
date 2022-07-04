@@ -50,6 +50,7 @@ from typing import (ClassVar, Container, Dict, Iterable, List, Optional, Set,
 import networkx as nx
 import pandas as pd
 
+default_source = 'inat'
 
 class TaxonNode:
     """
@@ -224,7 +225,10 @@ def build_taxonomy_graph(taxonomy_df: pd.DataFrame
     for _, row in taxonomy_df.iterrows():
         ds = row['dataset_name'].lower()
         ds_label = row['query'].lower()
-        id_source = row['source']
+        if 'source' in row:
+            id_source = row['source']
+        else:
+            id_source = default_source
         taxa_ancestry = row['taxonomy_string']
         if pd.isna(taxa_ancestry):
             # taxonomy CSV rows without 'taxonomy_string' entries are excluded

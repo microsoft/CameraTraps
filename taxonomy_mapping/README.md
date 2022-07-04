@@ -1,3 +1,5 @@
+## Mapping labels to a standard taxonomy (usually for new LILA datasets)
+
 When a new .json file comes in and needs to be mapped to scientific names...
 
 * Assuming this is a LILA dataset, edit the [LILA metadata file](http://lila.science/wp-content/uploads/2020/03/lila_sas_urls.txt) to include the new .json and dataset name.
@@ -8,17 +10,14 @@ When a new .json file comes in and needs to be mapped to scientific names...
 
 * Use preview_lila_taxonomy.py to produce an HTML file full of images that you can use to make sure that the matches were sensible; be particularly suspicious of anything that doesn't look like a mammal, bird, or reptile.  Go back and fix things in the .csv file.  This script/notebook also does a bunch of other consistency checking.
 
-* When you are totally satisfied with that .csv file, manually append it to the "master" .csv file (lila-taxonomy-mapping.csv), which is currently in a private repository
+* When you are totally satisfied with that .csv file, manually append it to the "master" .csv file (lila-taxonomy-mapping.csv), which is currently in a private repository.  preview_lila_taxonomy can also be run against the master file.
 
-## TODO
-
-* Check for errors by running
+* Check for errors (one more time) (this should be redundant with what's now included in preview_lila_taxonomy.py, but it can't hurt) by running:
 
 ```bash
 python taxonomy_mapping/taxonomy_csv_checker.py /path/to/taxonomy.csv
 ```
 
-* Produce final output by running [...]
-
 * The `visualize_taxonomy.ipynb` notebook demonstrates how to visualize the taxonomy hierarchy. It requires the *networkx* and *graphviz* Python packages.
 
+* Use map_lila_categories.py to get a mapping of every LILA data set to the common taxonomy.
