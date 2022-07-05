@@ -526,13 +526,13 @@ with open(html_output_file, 'w') as f:
     names = scientific_name_to_preferred_images.keys()
     names = sorted(names)
     
-    f.write('<p class="speciesinfo_p" style="font-weight:bold;font-size:130%">')
-    f.write('datset_name: <b><u>category</u></b> mapped to taxonomy_level scientific_name (taxonomic_common_name) (manual_common_name)</p>\n'.format())
-    f.write('</p>')
-    
+    f.write('<p class="speciesinfo_p" style="font-weight:bold;font-size:130%">'
+            'dataset_name: <b><u>category</u></b> mapped to taxonomy_level scientific_name (taxonomic_common_name) (manual_common_name)</p>\n'
+            '</p>')
+
     # i_row = 2; row = df.iloc[i_row]
     for i_row, row in tqdm(df.iterrows(), total=len(df)):
-        
+
         s = row['scientific_name']
         
         taxonomy_string = row['taxonomy_string']
@@ -547,9 +547,9 @@ with open(html_output_file, 'w') as f:
                 common_name_string = str(common_names)
         else:
             common_name_string = ''
-        
+
         f.write('<p class="speciesinfo_p" style="font-weight:bold;font-size:130%">')
-        
+
         if isinstance(row.scientific_name,str):
             f.write('{}: <b><u>{}</u></b> mapped to {} {} ({}) ({})</p>\n'.format(
                 row.dataset_name, row.query, 
@@ -557,7 +557,7 @@ with open(html_output_file, 'w') as f:
                 row.common_name))
         else:
             f.write('{}: <b><u>{}</u></b> unmapped'.format(row.dataset_name,row.query))
-        
+
         if s is None or s not in names:
             f.write('<p class="content_p">no images available</p>')
         else:
