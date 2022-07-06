@@ -29,6 +29,7 @@ import os
 import sys
 import time
 import uuid
+import urllib
 import warnings
 
 from typing import Any, Dict, Iterable, Optional, Tuple
@@ -130,6 +131,8 @@ class PostProcessingOptions:
     
     sort_html_by_filename = True
 
+    link_images_to_originals = True
+    
     # Optionally separate detections into categories (animal/vehicle/human)
     separate_detections_by_category = True
 
@@ -350,6 +353,8 @@ def render_bounding_boxes(
     image = Image.open(stream).resize(viz_size)
     """
 
+    image_full_path = None
+    
     if res in options.rendering_bypass_sets:
 
         sample_name = res + '_' + path_utils.flatten_path(image_relative_path)
@@ -403,11 +408,17 @@ def render_bounding_boxes(
     # Use slashes regardless of os
     file_name = '{}/{}'.format(res,sample_name)
 
-    return {
+    info = {
         'filename': file_name,
         'title': display_name,
         'textStyle': 'font-family:verdana,arial,calibri;font-size:80%;text-align:left;margin-top:20;margin-bottom:5'
     }
+    
+    # Optionally add links back to the original images
+    if options.link_images_to_originals and (image_full_path is not None):
+        info['linkTarget'] = urllib.parse.quote(image_full_path)
+        
+    return info
 
 # ...render_bounding_boxes
 
