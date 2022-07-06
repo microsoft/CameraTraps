@@ -1,7 +1,8 @@
 #
 # get_lila_category_list.py
 #
-# Example of making a text file listing all category names in specific LILA datasets
+# Generates a .json-formatted dictionary mapping each LILA dataset to all categories
+# that exist for that dataset, with counts for the number of occurrences of each category.
 #
 
 #%% Constants and imports
@@ -26,7 +27,7 @@ category_list = []
 use_all_datasets = True 
 
 # only need if restrict_category is false
-datasets_of_interest = [] 
+datasets_of_interest = []
 
 # We'll write images, metadata downloads, and temporary files here
 lila_local_base = r'g:\temp\lila'
@@ -37,7 +38,7 @@ os.makedirs(output_dir,exist_ok=True)
 metadata_dir = os.path.join(lila_local_base,'metadata')
 os.makedirs(metadata_dir,exist_ok=True)
 
-output_file = os.path.join(output_dir,'category_list.txt')
+output_file = os.path.join(output_dir,'lila_dataset_to_categories.json')
 
 
 #%% Support functions
@@ -102,6 +103,9 @@ def unzip_file(input_file, output_folder=None):
 p = urlparse(metadata_url)
 metadata_filename = os.path.join(metadata_dir,os.path.basename(p.path))
 
+# Download the metadata file if necessary
+download_url(metadata_url,metadata_filename)
+
 # Read lines from the master metadata file
 with open(metadata_filename,'r') as f:
     metadata_lines = f.readlines()
@@ -124,7 +128,6 @@ for s in metadata_lines:
     
     # Create a separate entry for bounding boxes if they exist
     if len(tokens[3].strip()) > 0:
-        print('Adding bounding box dataset for {}'.format(ds_name))
         bbox_url_mapping = {'sas_url':tokens[1],'json_url':tokens[3]}
         metadata_table[tokens[0]+'_bbox'] = bbox_url_mapping
         assert 'https' in bbox_url_mapping['json_url']
@@ -133,10 +136,15 @@ for s in metadata_lines:
     assert 'https' in url_mapping['sas_url']
     assert 'https' in url_mapping['json_url']
 
+print('Read {} entries from the metadata file (including bboxes)'.format(len(metadata_table)))
+
 
 #%% Download and extract metadata for the datasets we're interested in
 
-if use_all_datasets: datasets_of_interest = list(metadata_table.keys())
+if use_all_datasets:
+    
+    datasets_of_interest = list(metadata_table.keys())
+
 for ds_name in datasets_of_interest:
     
     assert ds_name in metadata_table
@@ -164,8 +172,14 @@ for ds_name in datasets_of_interest:
 # ...for each dataset of interest
 
 
-#%% Get category names
+#%% Get category names for each dataset
 
+from collections import defaultdict
+
+dataset_to_categories = {}
+
+# ds_name = datasets_of_interest[0]
+# ds_name = 'NACTI'
 for ds_name in datasets_of_interest:
     
     print('Finding categories in {}'.format(ds_name))
@@ -182,19 +196,27 @@ for ds_name in datasets_of_interest:
     
     # Collect list of categories and mappings to category name
     categories = data['categories']
-    category_ids = [c['id'] for c in categories]
-    for c in categories:
-        c['name'] = c['name'].lower()
-        category_id_to_name = {c['id']:c['name'] for c in categories}
     
-    # Append category to categories_list
-    for category_id in category_ids:
-        category_name = category_id_to_name[category_id]
-        if category_name not in category_list: category_list.append(category_name)
+    category_id_to_count = defaultdict(int)
+    annotations = data['annotations']    
+    
+    # ann = annotations[0]
+    for ann in annotations:
+        category_id_to_count[ann['category_id']] = category_id_to_count[ann['category_id']] + 1
+    
+    # c = categories[0]
+    for c in categories:
+       count = category_id_to_count[c['id']] 
+       if 'count' in c:
+           assert 'bbox' in ds_name or c['count'] == count       
+       c['count'] = count
+    
+    dataset_to_categories[ds_name] = categories
+
+# ...for each dataset    
 
 
-#%% Save category names to file
+#%% Save dict
 
-with open(output_file, 'w') as txt_file:
-    for line in category_list:
-        txt_file.write(line + '\n')
+with open(output_file, 'w') as f:
+    json.dump(dataset_to_categories,f,indent=2)
