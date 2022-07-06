@@ -11,21 +11,56 @@
 
 #%% Imports and environment
 
-from taxonomy_mapping import simple_image_download
-google_image_downloader = simple_image_download.simple_image_download()
+method = 'simple_image_download' # 'google_images_download'
 
+if method == 'simple_image_download':
+    
+    from taxonomy_mapping import simple_image_download
+    google_image_downloader = simple_image_download.Downloader()
+    google_image_downloader.directory = r'g:\temp\downloads'
+ 
+elif method == 'google_images_download':
+    
+    from google_images_download import google_images_download
+
+else:
+    
+    raise ValueError('Unrecognized method {}'.format(method))
+
+#%%
+
+
+#%% Main entry point
+
+def download_images(query,output_directory,limit=100,verbose=False):
+
+    query = query.replace(' ','+')        
+    
+    if method == 'simple_image_download':
+        
+        google_image_downloader.directory = output_directory
+        paths = google_image_downloader.download(query, limit=limit,
+          verbose=verbose, cache=False, download_cache=False)
+        return paths
+        
+    elif method == 'google_images_download':
+        
+        response = google_images_download.googleimagesdownload()    
+        arguments = {'keywords':query,'limit':limit,'print_urls':verbose,
+                     'image-directory':output_directory}
+        response.download(arguments)
+        return None
+
+    else:
+        
+        raise ValueError('Unrecognized method {}'.format(method))
+        
 
 #%% Test driver
 
 if False:
     
-    paths = google_image_downloader.download(keywords='redunca',output_directory=r'c:\temp\downloads',limit=5)
-    print(paths)
-
-
-#%% Main entry point
+    #%%
     
-def download_images(query,output_directory,limit=100,verbose=False):
-    paths = google_image_downloader.download(keywords=query,output_directory=output_directory,
-                                             limit=limit)
-    return paths
+    paths = download_images(query='redunca',output_directory=r'g:\temp\download-test',
+                    limit=20,verbose=True) 
