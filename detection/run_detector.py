@@ -28,7 +28,7 @@ variable CUDA_VISIBLE_DEVICES to "-1".
 If no output directory is specified, writes detections for c:\foo\bar.jpg to
 c:\foo\bar_detections.jpg.
 
-This script will only consider detections with > 0.1 confidence at all times.
+This script will only consider detections with > 0.005 confidence at all times.
 The `threshold` you provide is only for rendering the results. If you need to
 see lower-confidence detections, you can change
 DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD.
@@ -417,7 +417,7 @@ def main():
         type=float,
         default=DEFAULT_RENDERING_CONFIDENCE_THRESHOLD,
         help=('Confidence threshold between 0 and 1.0; only render boxes above this confidence'
-              ' (but only boxes above 0.1 confidence will be considered at all)'))
+              ' (but only boxes above 0.005 confidence will be considered at all)'))
     parser.add_argument(
         '--crop',
         default=False,
