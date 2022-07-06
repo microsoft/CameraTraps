@@ -339,9 +339,7 @@ def frame_results_to_video_results(input_file,output_file,options:FrameToVideoOp
     with open(output_file,'w') as f:
         f.write(s)
     
-    #%%
-    
-    
+        
 #%% Test driver
 
 if False:

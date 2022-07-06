@@ -134,6 +134,6 @@ if False:
     
     #%%
     
-    csv_path = r"C:\git\ai4edev\camera-traps-private\camera_trap_taxonomy_mapping.csv"
+    csv_path = r"G:\git\agentmorrisprivate\lila-taxonomy\lila-taxonomy-mapping-input.csv"
     check_taxonomy_csv(csv_path)
     
