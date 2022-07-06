@@ -90,7 +90,7 @@ Here are a few of the organizations that have used MegaDetector... we're only li
 * SUMHAL, Estación Biológica de Doñana
 * Capitol Reef National Park and Utah Valley University
 * University of Victoria Applied Conservation Macro Ecology (ACME) Lab 
-* Université du Québec en Outaouais (UQO) Institut des Science de la forêt tempérée (ISFORT)
+* Université du Québec en Outaouais Institut des Science de la Forêt Tempérée (ISFORT)
 
 # Data
 
