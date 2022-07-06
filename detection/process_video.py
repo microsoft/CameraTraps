@@ -2,7 +2,7 @@
 #
 # process_video.py
 #
-# Split a video into frames, run the frames through run_tf_detector_batch.py, and
+# Split a video into frames, run the frames through run_detector_batch.py, and
 # optionally stitch together results into a new video with detection boxes.
 #
 ######
@@ -15,7 +15,7 @@ import shutil
 import argparse
 import itertools
 
-from detection import run_tf_detector_batch
+from detection import run_detector_batch
 from visualization import visualize_detector_output
 from ct_utils import args_to_object
 from detection.video_utils import video_to_frames
@@ -80,15 +80,14 @@ def process_video(options):
             print('Loading results from {}'.format(options.output_json_file))
             results = None
     else:
-        results = run_tf_detector_batch.load_and_run_detector_batch(
+        results = run_detector_batch.load_and_run_detector_batch(
             options.model_file, image_file_names,
             confidence_threshold=options.json_confidence_threshold,
             n_cores=options.n_cores)
     
-        run_tf_detector_batch.write_results_to_file(
+        run_detector_batch.write_results_to_file(
             results, options.output_json_file,
             relative_path_base=frame_output_folder)
-
 
     if options.render_output_video:
         
@@ -172,12 +171,12 @@ def process_video_folder(options):
             print('Loading results from {}'.format(frames_json))
             results = None
     else:
-        results = run_tf_detector_batch.load_and_run_detector_batch(
+        results = run_detector_batch.load_and_run_detector_batch(
             options.model_file, image_file_names,
             confidence_threshold=options.json_confidence_threshold,
             n_cores=options.n_cores)
     
-        run_tf_detector_batch.write_results_to_file(
+        run_detector_batch.write_results_to_file(
             results, frames_json,
             relative_path_base=frame_output_folder)
     
