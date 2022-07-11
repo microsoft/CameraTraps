@@ -12,8 +12,6 @@
 import json
 import os
 
-from datetime import date
-
 import humanfriendly
 
 # from ai4eutils
@@ -47,8 +45,9 @@ ncores = 1
 input_path = os.path.expanduser('~/data/organization/2021-12-24')
 
 organization_name_short = 'organization'
-job_date = date.today().strftime('%Y-%m-%d')
 # job_date = '2022-01-01'
+job_date = None
+assert job_date is not None
 
 model_file = os.path.expanduser('~/models/camera_traps/megadetector/md_v5.0.0/md_v5a.0.0.pt')
 # model_file = os.path.expanduser('~/models/camera_traps/megadetector/md_v5.0.0/md_v5b.0.0.pt')
@@ -464,19 +463,24 @@ if False:
 
 #%% Repeat detection elimination, phase 1
 
-# Deliberately leaving these imports here, rather than at the top, because this cell is not
-# typically executed
+# Deliberately leaving these imports here, rather than at the top, because this
+# cell is not typically executed
 from api.batch_processing.postprocessing.repeat_detection_elimination import repeat_detections_core
 import path_utils
 task_index = 0
 
 options = repeat_detections_core.RepeatDetectionOptions()
 
-options.confidenceMin = 0.6
+options.confidenceMin = 0.15
 options.confidenceMax = 1.01
 options.iouThreshold = 0.85
 options.occurrenceThreshold = 10
 options.maxSuspiciousDetectionSize = 0.2
+
+# This will cause a very light gray box to get drawn around all the detections
+# we're *not* considering as suspicious.
+options.bRenderOtherDetections = True
+options.otherDetectionsThreshold = options.confidenceMin
 
 # options.lineThickness = 5
 # options.boxExpansion = 8
