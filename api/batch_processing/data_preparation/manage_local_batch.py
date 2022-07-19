@@ -1080,8 +1080,13 @@ classification_confidence_threshold = 0.6
 
 category_name_to_id = {d['classification_categories'][k]:k for k in d['classification_categories']}
 other_category_ids = []
+
 for s in other_category_names:
-    other_category_ids.append(category_name_to_id[s])
+    if s in category_name_to_id:
+        other_category_ids.append(category_name_to_id[s])
+    else:
+        print('Warning: "other" category {} not present in file {}'.format(
+            s,classifier_output_path))
 
 n_other_classifications_changed = 0
 n_other_images_changed = 0
