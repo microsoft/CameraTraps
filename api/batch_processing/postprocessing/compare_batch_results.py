@@ -82,6 +82,18 @@ def _compare_batch_results(options,output_index,pairwise_options):
     
     random.seed(options.random_seed)
 
+    # Warn the user if some "detections" might not get rendered
+    max_classification_threshold_a = max(list(pairwise_options.detection_thresholds_a.values()))
+    max_classification_threshold_b = max(list(pairwise_options.detection_thresholds_b.values()))
+    
+    if pairwise_options.rendering_confidence_threshold_a > max_classification_threshold_a:
+        print('*** Warning: rendering threshold A ({}) is higher than max confidence threshold A ({}) ***'.format(
+            pairwise_options.rendering_confidence_threshold_a,max_classification_threshold_a))
+    
+    if pairwise_options.rendering_confidence_threshold_b < max_classification_threshold_b:
+        print('*** Warning: rendering threshold B ({}) is higher than max confidence threshold B ({}) ***'.format(
+            pairwise_options.rendering_confidence_threshold_b,max_classification_threshold_b))
+        
     ##%% Validate inputs
     
     assert os.path.isfile(pairwise_options.results_filename_a)
