@@ -1062,142 +1062,193 @@ for classification_detection_file in classification_detection_files:
 # Optionally treat some classes as particularly unreliable, typically used to overwrite an 
 # "other" class.
 
-classifier_output_path = final_output_path
-classifier_output_path_within_image_smoothing = classifier_output_path.replace(
-    '.json','_within_image_smoothing.json')
+classification_detection_files = [    
+    "xyz","abc"
+    ]
 
-with open(classifier_output_path,'r') as f:
-    d = json.load(f)
+# Only count detections with a classification confidence threshold above
+# *classification_confidence_threshold*, which in practice means we're only
+# looking at one category per detection.
+#
+# If an image has at least *min_detections_above_threshold* such detections
+# in the most common category, and no more than *max_detections_secondary_class*
+# in the second-most-common category, flip all detections to the most common
+# category.
+#
+# Optionally treat some classes as particularly unreliable, typically used to overwrite an 
+# "other" class.
 
-# d['classification_categories']
+for final_output_path in classification_detection_files:
 
-# im['detections']
-
-# path_utils.open_file(os.path.join(input_path,im['file']))
-
-from collections import defaultdict
-
-min_detections_above_threshold = 4
-max_detections_secondary_class = 3
-
-min_detections_to_overwrite_other = 2
-other_category_names = ['other']
-
-classification_confidence_threshold = 0.6
-
-category_name_to_id = {d['classification_categories'][k]:k for k in d['classification_categories']}
-other_category_ids = []
-
-for s in other_category_names:
-    if s in category_name_to_id:
-        other_category_ids.append(category_name_to_id[s])
-    else:
-        print('Warning: "other" category {} not present in file {}'.format(
-            s,classifier_output_path))
-
-n_other_classifications_changed = 0
-n_other_images_changed = 0
-
-n_detections_flipped = 0
-n_images_changed = 0
-
-# im = d['images'][0]    
-for im in d['images']:    
+    classifier_output_path = final_output_path
+    classifier_output_path_within_image_smoothing = classifier_output_path.replace(
+        '.json','_within_image_smoothing.json')
     
-    if 'detections' not in im or len(im['detections']) == 0:
-        continue
+    with open(classifier_output_path,'r') as f:
+        d = json.load(f)
     
-    detections = im['detections']
+    # d['classification_categories']
+    
+    # im['detections']
+    
+    # path_utils.open_file(os.path.join(input_path,im['file']))
+    
+    from collections import defaultdict
+    
+    min_detections_above_threshold = 4
+    max_detections_secondary_class = 3
+    
+    min_detections_to_overwrite_other = 2
+    other_category_names = ['other']
+    
+    classification_confidence_threshold = 0.6
+    
+    # Which classifications should we even bother over-writing?
+    classification_overwrite_threshold = 0.3 # classification_confidence_threshold
+    
+    # Detection confidence threshold for things we count
+    detection_confidence_threshold = 0.2
+    
+    # Which detections should we even bother over-writing?
+    detection_overwrite_threshold = 0.05
+        
+    category_name_to_id = {d['classification_categories'][k]:k for k in d['classification_categories']}
+    other_category_ids = []
+    for s in other_category_names:
+        if s in category_name_to_id:
+            other_category_ids.append(category_name_to_id[s])
+        else:
+            print('Warning: "other" category {} not present in file {}'.format(
+                s,classifier_output_path))
+    
+    n_other_classifications_changed = 0
+    n_other_images_changed = 0
+    
+    n_detections_flipped = 0
+    n_images_changed = 0
+    
+    # im = d['images'][0]    
+    for im in d['images']:    
+        
+        if 'Pronghorn Test Dataset/Drinker/SED/I__00030.JPG' in im['file']:
+            pass
+            
+        if 'detections' not in im or len(im['detections']) == 0:
+            continue
+        
+        detections = im['detections']
+    
+        category_to_count = defaultdict(int)
+        for det in detections:
+            if ('classifications' in det) and (det['conf'] >= detection_confidence_threshold):
+                for c in det['classifications']:
+                    if c[1] >= classification_confidence_threshold:
+                        category_to_count[c[0]] += 1
+                # ...for each classification
+            # ...if there are classifications for this detection
+        # ...for each detection
+                        
+        if len(category_to_count) <= 1:
+            continue
+        
+        category_to_count = {k: v for k, v in sorted(category_to_count.items(),
+                                                     key=lambda item: item[1], 
+                                                     reverse=True)}
+        
+        keys = list(category_to_count.keys())
+        
+        # Handle a quirky special case: if the most common category is "other" and 
+        # it's "tied" with the second-most-common category, swap them
+        if (len(keys) > 1) and (keys[0] in other_category_ids) and (keys[1] not in other_category_ids) and\
+            (category_to_count[keys[0]] == category_to_count[keys[1]]):
+                keys[1], keys[0] = keys[0], keys[1]
+        
+        max_count = category_to_count[keys[0]]
+        # secondary_count = category_to_count[keys[1]]
+        # The 'secondary count' is the most common non-other class
+        secondary_count = 0
+        for i_key in range(1,len(keys)):
+            if keys[i_key] not in other_category_ids:
+                secondary_count = category_to_count[keys[i_key]]
+                break
 
-    category_to_count = defaultdict(int)
-    for det in detections:
-        if 'classifications' in det:
-            for c in det['classifications']:
-                if c[1] >= classification_confidence_threshold:
-                    category_to_count[c[0]] += 1
-            # ...for each classification
-        # ...if there are classifications for this detection
-    # ...for each detection
+        most_common_category = keys[0]
+        
+        assert max_count >= secondary_count
+        
+        # If we have at least *min_detections_to_overwrite_other* in a category that isn't
+        # "other", change all "other" classifications to that category
+        if max_count >= min_detections_to_overwrite_other and \
+            most_common_category not in other_category_ids:
+            
+            other_change_made = False
+            
+            for det in detections:
+                
+                if ('classifications' in det) and (det['conf'] >= detection_overwrite_threshold): 
                     
-    if len(category_to_count) <= 1:
-        continue
+                    for c in det['classifications']:                
+                        
+                        if c[1] >= classification_overwrite_threshold and \
+                            c[0] in other_category_ids:
+                                
+                            n_other_classifications_changed += 1
+                            other_change_made = True
+                            c[0] = most_common_category
+                            
+                    # ...for each classification
+                    
+                # ...if there are classifications for this detection
+                
+            # ...for each detection
+            
+            if other_change_made:
+                n_other_images_changed += 1
+            
+        # ...if we should overwrite all "other" classifications
     
-    category_to_count = {k: v for k, v in sorted(category_to_count.items(),
-                                                 key=lambda item: item[1], 
-                                                 reverse=True)}
-    
-    keys = list(category_to_count.keys())
-    max_count = category_to_count[keys[0]]
-    secondary_count = category_to_count[keys[1]]
-    most_common_category = keys[0]
-    
-    assert max_count >= secondary_count
-    
-    # If we have at least *min_detections_to_overwrite_other* in a category that isn't
-    # "other", change all "other" classifications to that category
-    if max_count >= min_detections_to_overwrite_other and \
-        most_common_category not in other_category_ids:
+        if max_count < min_detections_above_threshold:
+            continue
         
-        other_change_made = False
+        if secondary_count >= max_detections_secondary_class:
+            continue
         
+        # At this point, we know we have a dominant category; change all other above-threshold
+        # classifications to that category.  That category may have been "other", in which case we may have
+        # already made the relevant changes.
+        
+        n_detections_flipped_this_image = 0
+        
+        # det = detections[0]
         for det in detections:
             
-            if 'classifications' in det:            
+            if ('classifications' in det) and (det['conf'] >= detection_overwrite_threshold):
                 
-                for c in det['classifications']:                
-                    
-                    if c[1] >= classification_confidence_threshold and \
-                        c[0] in other_category_ids:
+                for c in det['classifications']:
+                    if c[1] >= classification_overwrite_threshold and \
+                        c[0] != most_common_category:
                             
-                        n_other_classifications_changed += 1
-                        other_change_made = True
                         c[0] = most_common_category
-                        
+                        n_detections_flipped += 1
+                        n_detections_flipped_this_image += 1
+                
                 # ...for each classification
                 
             # ...if there are classifications for this detection
             
         # ...for each detection
         
-        if other_change_made:
-            n_other_images_changed += 1
+        if n_detections_flipped_this_image > 0:
+            n_images_changed += 1
+    
+    # ...for each image    
+    
+    print('Classification smoothing: changed {} detections on {} images'.format(
+        n_detections_flipped,n_images_changed))
+    
+    print('"Other" smoothing: changed {} detections on {} images'.format(
+          n_other_classifications_changed,n_other_images_changed))
+    
+    with open(classifier_output_path_within_image_smoothing,'w') as f:
+        json.dump(d,f,indent=2)
         
-    # ...if we should overwrite all "other" classifications
-
-    if max_count < min_detections_above_threshold:
-        continue
-    
-    if secondary_count >= max_detections_secondary_class:
-        continue
-    
-    # At this point, we know we have a dominant category; change all other above-threshold
-    # classifications to that category.  That category may have been "other", in which case we may have
-    # already made the relevant changes.
-    
-    n_detections_flipped_this_image = 0
-    
-    # det = detections[0]
-    for det in detections:
-        if 'classifications' in det:
-            for c in det['classifications']:
-                if c[1] >= classification_confidence_threshold and \
-                    c[0] != most_common_category:
-                        
-                    c[0] = most_common_category
-                    n_detections_flipped += 1
-                    n_detections_flipped_this_image += 1
-            
-    if n_detections_flipped_this_image > 0:
-        n_images_changed += 1
-
-# ...for each image    
-
-print('Classification smoothing: changed {} detections on {} images'.format(
-    n_detections_flipped,n_images_changed))
-
-print('"Other" smoothing: changed {} detections on {} images'.format(
-      n_other_classifications_changed,n_other_images_changed))
-
-with open(classifier_output_path_within_image_smoothing,'w') as f:
-    json.dump(d,f,indent=2)
-    
