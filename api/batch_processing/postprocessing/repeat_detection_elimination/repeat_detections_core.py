@@ -83,6 +83,9 @@ class RepeatDetectionOptions:
     # taking up the whole image.  This is expressed as a fraction of the image size.
     maxSuspiciousDetectionSize = 0.2
 
+    # Ignore "suspicious" detections smaller than some size
+    minSuspiciousDetectionSize = 0.0
+
     # Ignore folders with more than this many images in them, which can stall the process
     maxImagesPerFolder = 20000
     
@@ -545,6 +548,10 @@ def find_matches_in_directory(dirName, options, rowsByDirectory):
             # These are relative coordinates
             assert area >= 0.0 and area <= 1.0, 'Illegal bounding box area {}'.format(area)
 
+            if area < options.minSuspiciousDetectionSize:
+                # print('Ignoring very small detection with area {}'.format(area))
+                continue
+            
             if area > options.maxSuspiciousDetectionSize:
                 # print('Ignoring very large detection with area {}'.format(area))
                 continue
