@@ -335,12 +335,14 @@ def render_detection_bounding_boxes(detections, image,
 
         score = detection['conf']
         if score >= confidence_threshold:
-
+            
             x1, y1, w_box, h_box = detection['bbox']
             display_boxes.append([y1, x1, y1 + h_box, x1 + w_box])
             clss = detection['category']
             
-            if label_map:
+            # {} is the default, which means "show labels with no mapping", so don't use "if label_map" here
+            # if label_map:
+            if label_map is not None:
                 label = label_map[clss] if clss in label_map else clss
                 displayed_label = ['{}: {}%'.format(label, round(100 * score))]
             else:
@@ -361,12 +363,11 @@ def render_detection_bounding_boxes(detections, image,
                     if p < classification_confidence_threshold:
                         continue
                     class_key = classification[0]
-                    if classification_label_map:
-                        if class_key in classification_label_map:
-                            class_name = classification_label_map[class_key]
-                        else:
-                            class_name = class_key
-                        displayed_label += ['{}: {:5.1%}'.format(class_name.lower(), classification[1])]
+                    if (classification_label_map is not None) and (class_key in classification_label_map):
+                        class_name = classification_label_map[class_key]
+                    else:
+                        class_name = class_key
+                    displayed_label += ['{}: {:5.1%}'.format(class_name.lower(), classification[1])]
                     
                 # ...for each classification
 
@@ -531,7 +532,7 @@ def draw_bounding_box_on_image(image,
 
     # Reverse list and print from bottom to top.
     for display_str in display_str_list[::-1]:
-        
+
         # Skip empty strings
         if len(display_str) == 0:
             continue

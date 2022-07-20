@@ -25,6 +25,9 @@ class MergeDetectionsOptions:
         self.max_detection_size = 1.01
         self.min_detection_size = 0
         self.source_confidence_thresholds = [0.8]
+        
+        # Don't bother merging into target images where the max detection is already
+        # higher than this threshold
         self.target_confidence_threshold = 0.8
         
         # If you want to merge only certain categories, specify one
