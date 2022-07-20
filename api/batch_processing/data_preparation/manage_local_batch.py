@@ -352,13 +352,20 @@ filenames = [
     '/postprocessing/organization/mdv5b_results.json'    
     ]
 
-detection_thresholds = [0.7,0.3,0.3]
+detection_thresholds = [0.7,0.15,0.15]
+# rendering_thresholds = [0.5,0.1,0.1]
+rendering_thresholds = [(x*0.6666) for x in detection_thresholds]
 
 for i, j in itertools.combinations([0,1,2],2):
         
     pairwise_options = PairwiseBatchComparisonOptions()
+    
     pairwise_options.results_filename_a = filenames[i]
     pairwise_options.results_filename_b = filenames[j]
+    
+    pairwise_options.rendering_confidence_threshold_a = rendering_thresholds[i]
+    pairwise_options.rendering_confidence_threshold_b = rendering_thresholds[j]
+    
     pairwise_options.detection_thresholds_a = {'animal':detection_thresholds[i],
                                                'person':detection_thresholds[i],
                                                'vehicle':detection_thresholds[i]}
