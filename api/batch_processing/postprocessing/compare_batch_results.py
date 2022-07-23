@@ -90,7 +90,7 @@ def _compare_batch_results(options,output_index,pairwise_options):
         print('*** Warning: rendering threshold A ({}) is higher than max confidence threshold A ({}) ***'.format(
             pairwise_options.rendering_confidence_threshold_a,max_classification_threshold_a))
     
-    if pairwise_options.rendering_confidence_threshold_b < max_classification_threshold_b:
+    if pairwise_options.rendering_confidence_threshold_b > max_classification_threshold_b:
         print('*** Warning: rendering threshold B ({}) is higher than max confidence threshold B ({}) ***'.format(
             pairwise_options.rendering_confidence_threshold_b,max_classification_threshold_b))
         
@@ -198,12 +198,13 @@ def _compare_batch_results(options,output_index,pairwise_options):
         
         for det in im_b['detections']:
             
+            category_id = det['category']
+            
             if category_id not in detection_categories:
                 print('Warning: unexpected category {} for model B on file {}'.format(category_id,fn))
                 invalid_category_error = True
                 break
             
-            category_id = det['category']
             conf = det['conf']
             
             if conf >= pairwise_options.detection_thresholds_b[detection_categories[category_id]]:
