@@ -172,7 +172,7 @@ The instructions will assume you are running at an Anaconda prompt.  You will kn
 
 <img src="images/anaconda-prompt-ct.jpg" style="margin-left:25px;">
 
-On Windows, when you install Anaconda, you will actually get two different Anaconda command prompts; in your start menu, they will be called "Anaconda Prompt (anaconda3)" and "Anaconda Powershell Prompt (anaconda3)".  Either is fine, though we have tested these instructions in the "regular" Anaconda prompt (i.e., not the Powershell prompt).
+On Windows, when you install Anaconda, you will actually get two different Anaconda command prompts; in your start menu, they will be called "Anaconda Prompt (anaconda3)" and "Anaconda Powershell Prompt (anaconda3)".  These instructions assume you are using the "regular" Anaconda prompt, <b>not</b> the Powershell prompt.
 
 If you have a deep-learning-friendly GPU, you will also need to have a recent [NVIDIA driver](https://www.nvidia.com/download/index.aspx) installed. 
 
