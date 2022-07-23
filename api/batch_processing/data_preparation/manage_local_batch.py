@@ -1252,3 +1252,5 @@ for final_output_path in classification_detection_files:
     with open(classifier_output_path_within_image_smoothing,'w') as f:
         json.dump(d,f,indent=2)
         
+    print('Wrote results to:\n{}'.format(classifier_output_path_within_image_smoothing))
+    
