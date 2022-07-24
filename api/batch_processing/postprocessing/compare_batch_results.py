@@ -166,16 +166,16 @@ def _compare_batch_results(options,output_index,pairwise_options):
         
         categories_above_threshold_a = set()
 
-        if not 'detections' in im_a:
+        if not 'detections' in im_a or im_a['detections'] is None:
             assert 'failure' in im_a and im_a['failure'] is not None
             continue
         
-        if not 'detections' in im_b:
+        if not 'detections' in im_b or im_b['detections'] is None:
             assert 'failure' in im_b and im_b['failure'] is not None
             continue
-        
+                
         invalid_category_error = False
-        
+
         # det = im_a['detections'][0]
         for det in im_a['detections']:
             

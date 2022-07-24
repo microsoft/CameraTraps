@@ -483,6 +483,7 @@ options.confidenceMax = 1.01
 options.iouThreshold = 0.85
 options.occurrenceThreshold = 10
 options.maxSuspiciousDetectionSize = 0.2
+# options.minSuspiciousDetectionSize = 0.05
 
 # This will cause a very light gray box to get drawn around all the detections
 # we're *not* considering as suspicious.
@@ -1128,7 +1129,7 @@ for final_output_path in classification_detection_files:
     n_images_changed = 0
     
     # im = d['images'][0]    
-    for im in d['images']:    
+    for im in tqdm(d['images']):
         
         if 'Pronghorn Test Dataset/Drinker/SED/I__00030.JPG' in im['file']:
             pass
@@ -1253,4 +1254,5 @@ for final_output_path in classification_detection_files:
         json.dump(d,f,indent=2)
         
     print('Wrote results to:\n{}'.format(classifier_output_path_within_image_smoothing))
-    
+
+# ...for each file we want to smooth

@@ -128,9 +128,16 @@ def merge_detections(source_files,target_file,output_file,options=None):
             image_filename = source_im['file']            
             
             assert image_filename in fn_to_image
+            target_im = fn_to_image[image_filename]
             
+            if 'detections' not in source_im or source_im['detections'] is None:
+                continue
+            
+            if 'detections' not in target_im or target_im['detections'] is None:
+                continue
+                    
             source_detections_this_image = source_im['detections']
-            target_detections_this_image = fn_to_image[image_filename]['detections']
+            target_detections_this_image = target_im['detections']
               
             detections_to_transfer = []
             
