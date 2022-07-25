@@ -14,6 +14,8 @@ import os
 
 import humanfriendly
 
+from tqdm import tqdm
+
 # from ai4eutils
 import ai4e_azure_utils 
 import path_utils
@@ -460,7 +462,6 @@ if False:
     
     #%%
     
-    from tqdm import tqdm
     with open(combined_api_output_file,'r') as f:
         d = json.load(f)
     image_filenames = [im['file'] for im in d['images']]
@@ -928,126 +929,6 @@ import stat
 st = os.stat(output_file)
 os.chmod(output_file, st.st_mode | stat.S_IEXEC)
 
-        
-#%% Create a new category for large boxes
-
-from api.batch_processing.postprocessing import categorize_detections_by_size
-
-options = categorize_detections_by_size.SizeCategorizationOptions()
-
-# This is a size threshold, not a confidence threshold
-options.threshold = 0.85
-
-input_file = r"g:\organization\file.json"
-size_separated_file = input_file.replace('.json','-size-separated-{}.json'.format(options.threshold))
-d = categorize_detections_by_size.categorize_detections_by_size(input_file,size_separated_file,options)
-
-
-#%% Subsetting
-
-data = None
-
-from api.batch_processing.postprocessing.subset_json_detector_output import (
-    subset_json_detector_output, SubsetJsonDetectorOutputOptions)
-
-input_filename = filtered_output_filename
-output_base = os.path.join(filename_base,'json_subsets')
-
-folders = os.listdir(input_path)
-
-if data is None:
-    with open(input_filename) as f:
-        data = json.load(f)
-
-print('Data set contains {} images'.format(len(data['images'])))
-
-# i_folder = 0; folder_name = folders[i_folder]
-for i_folder, folder_name in enumerate(folders):
-
-    output_filename = os.path.join(output_base, folder_name + '.json')
-    print('Processing folder {} of {} ({}) to {}'.format(i_folder, len(folders), folder_name,
-          output_filename))
-
-    options = SubsetJsonDetectorOutputOptions()
-    options.confidence_threshold = 0.01
-    options.overwrite_json_files = True
-    options.make_folder_relative = True
-    options.query = folder_name + '\\'
-
-    subset_data = subset_json_detector_output(input_filename, output_filename, options, data)
-
-
-#%% String replacement
-    
-data = None
-
-from api.batch_processing.postprocessing.subset_json_detector_output import (
-    subset_json_detector_output, SubsetJsonDetectorOutputOptions)
-
-input_filename = filtered_output_filename
-output_filename = input_filename.replace('.json','_replaced.json')
-
-options = SubsetJsonDetectorOutputOptions()
-options.query = folder_name + '/'
-options.replacement = ''
-subset_json_detector_output(input_filename,output_filename,options)
-
-
-#%% Folder splitting
-
-from api.batch_processing.postprocessing.separate_detections_into_folders import (
-    separate_detections_into_folders, SeparateDetectionsIntoFoldersOptions)
-
-default_threshold = 0.2
-base_output_folder = r'e:\{}-{}-separated'.format(base_task_name,default_threshold)
-
-options = SeparateDetectionsIntoFoldersOptions(default_threshold)
-
-options.results_file = filtered_output_filename
-options.base_input_folder = input_path
-options.base_output_folder = os.path.join(base_output_folder,folder_name)
-options.n_threads = 100
-options.allow_existing_directory = False
-
-separate_detections_into_folders(options)
-
-
-#%% Post-processing (post-classification)
-
-classification_detection_files = [    
-    "/home/user/postprocessing/organization/organization-2022-02-19/combined_api_outputs/organization-2022-02-19_megaclassifier.json",
-    "/home/user/postprocessing/organization/organization-2022-02-19/combined_api_outputs/organization-2022-02-19_idfgclassifier.json"
-    ]
-    
-for fn in classification_detection_files:
-    assert os.path.isfile(fn)
-    
-# classification_detection_file = classification_detection_files[1]
-for classification_detection_file in classification_detection_files:
-    
-    options = PostProcessingOptions()
-    options.image_base_dir = input_path
-    options.parallelize_rendering = True
-    options.include_almost_detections = True
-    options.num_images_to_sample = 10000
-    options.confidence_threshold = 0.2
-    options.classification_confidence_threshold = 0.75
-    options.almost_detection_confidence_threshold = options.confidence_threshold - 0.05
-    options.ground_truth_json_file = None
-    options.separate_detections_by_category = True
-    
-    folder_token = classification_detection_file.split('/')[-1].replace('classifier.json','')
-    
-    output_base = os.path.join(postprocessing_output_folder, folder_token + \
-        base_task_name + '_{:.3f}'.format(options.confidence_threshold))
-    os.makedirs(output_base, exist_ok=True)
-    print('Processing {} to {}'.format(base_task_name, output_base))
-    
-    options.api_output_file = classification_detection_file
-    options.output_dir = output_base
-    ppresults = process_batch_results(options)
-    path_utils.open_file(ppresults.output_html_file)
-
 
 #%% Within-image classification smoothing
 
@@ -1256,3 +1137,124 @@ for final_output_path in classification_detection_files:
     print('Wrote results to:\n{}'.format(classifier_output_path_within_image_smoothing))
 
 # ...for each file we want to smooth
+
+
+
+#%% Post-processing (post-classification)
+
+classification_detection_files = [    
+    "/home/user/postprocessing/organization/organization-2022-02-19/combined_api_outputs/organization-2022-02-19_megaclassifier.json",
+    "/home/user/postprocessing/organization/organization-2022-02-19/combined_api_outputs/organization-2022-02-19_idfgclassifier.json"
+    ]
+    
+for fn in classification_detection_files:
+    assert os.path.isfile(fn)
+    
+# classification_detection_file = classification_detection_files[1]
+for classification_detection_file in classification_detection_files:
+    
+    options = PostProcessingOptions()
+    options.image_base_dir = input_path
+    options.parallelize_rendering = True
+    options.include_almost_detections = True
+    options.num_images_to_sample = 10000
+    options.confidence_threshold = 0.2
+    options.classification_confidence_threshold = 0.75
+    options.almost_detection_confidence_threshold = options.confidence_threshold - 0.05
+    options.ground_truth_json_file = None
+    options.separate_detections_by_category = True
+    
+    folder_token = classification_detection_file.split('/')[-1].replace('classifier.json','')
+    
+    output_base = os.path.join(postprocessing_output_folder, folder_token + \
+        base_task_name + '_{:.3f}'.format(options.confidence_threshold))
+    os.makedirs(output_base, exist_ok=True)
+    print('Processing {} to {}'.format(base_task_name, output_base))
+    
+    options.api_output_file = classification_detection_file
+    options.output_dir = output_base
+    ppresults = process_batch_results(options)
+    path_utils.open_file(ppresults.output_html_file)
+
+
+#%% Create a new category for large boxes
+
+from api.batch_processing.postprocessing import categorize_detections_by_size
+
+options = categorize_detections_by_size.SizeCategorizationOptions()
+
+# This is a size threshold, not a confidence threshold
+options.threshold = 0.85
+
+input_file = r"g:\organization\file.json"
+size_separated_file = input_file.replace('.json','-size-separated-{}.json'.format(options.threshold))
+d = categorize_detections_by_size.categorize_detections_by_size(input_file,size_separated_file,options)
+
+
+#%% Subsetting
+
+data = None
+
+from api.batch_processing.postprocessing.subset_json_detector_output import (
+    subset_json_detector_output, SubsetJsonDetectorOutputOptions)
+
+input_filename = filtered_output_filename
+output_base = os.path.join(filename_base,'json_subsets')
+
+folders = os.listdir(input_path)
+
+if data is None:
+    with open(input_filename) as f:
+        data = json.load(f)
+
+print('Data set contains {} images'.format(len(data['images'])))
+
+# i_folder = 0; folder_name = folders[i_folder]
+for i_folder, folder_name in enumerate(folders):
+
+    output_filename = os.path.join(output_base, folder_name + '.json')
+    print('Processing folder {} of {} ({}) to {}'.format(i_folder, len(folders), folder_name,
+          output_filename))
+
+    options = SubsetJsonDetectorOutputOptions()
+    options.confidence_threshold = 0.01
+    options.overwrite_json_files = True
+    options.make_folder_relative = True
+    options.query = folder_name + '\\'
+
+    subset_data = subset_json_detector_output(input_filename, output_filename, options, data)
+
+
+#%% String replacement
+    
+data = None
+
+from api.batch_processing.postprocessing.subset_json_detector_output import (
+    subset_json_detector_output, SubsetJsonDetectorOutputOptions)
+
+input_filename = filtered_output_filename
+output_filename = input_filename.replace('.json','_replaced.json')
+
+options = SubsetJsonDetectorOutputOptions()
+options.query = folder_name + '/'
+options.replacement = ''
+subset_json_detector_output(input_filename,output_filename,options)
+
+
+#%% Folder splitting
+
+from api.batch_processing.postprocessing.separate_detections_into_folders import (
+    separate_detections_into_folders, SeparateDetectionsIntoFoldersOptions)
+
+default_threshold = 0.2
+base_output_folder = r'e:\{}-{}-separated'.format(base_task_name,default_threshold)
+
+options = SeparateDetectionsIntoFoldersOptions(default_threshold)
+
+options.results_file = filtered_output_filename
+options.base_input_folder = input_path
+options.base_output_folder = os.path.join(base_output_folder,folder_name)
+options.n_threads = 100
+options.allow_existing_directory = False
+
+separate_detections_into_folders(options)
