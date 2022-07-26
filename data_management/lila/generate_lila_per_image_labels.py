@@ -21,10 +21,13 @@ import pandas as pd
 import numpy as np
 
 from collections import defaultdict
+from tqdm import tqdm
 
 from data_management.lila.lila_common import read_lila_metadata, \
     get_json_file_for_dataset, \
     read_lila_taxonomy_mapping
+
+from url_utils import download_url
 
 # array to fill for output
 category_list = []
@@ -74,7 +77,7 @@ for i_row,row in taxonomy_df.iterrows():
 
 import csv
 
-header = ['url','dataset_name','image_id','sequence_id','location_id','frame_num','original_label','scientific_name','common_name']
+header = ['dataset_name','url','image_id','sequence_id','location_id','frame_num','original_label','scientific_name','common_name']
 
 taxonomy_levels_to_include = \
     ['kingdom','phylum','subphylum','superclass','class','subclass','infraclass','superorder','order',
@@ -206,3 +209,107 @@ with open(output_file,'w') as f:
 #%% Preview a sample of files to make sure everything worked
 
 df = pd.read_csv(output_file)
+
+print('Read {} lines from {}'.format(len(df),output_file))
+
+n_empty_images_per_dataset = 3
+n_non_empty_images_per_dataset = 3
+
+preview_folder = os.path.join(lila_local_base,'csv_preview')
+os.makedirs(preview_folder,exist_ok=True)
+
+
+#%% Choose images to download
+
+np.random.seed(0)
+
+images_to_download = []
+
+# ds_name = list(metadata_table.keys())[2]
+for ds_name in metadata_table.keys():
+    
+    if 'bbox' in ds_name:
+        continue
+    
+    # Find all rows for this dataset
+    ds_rows = df.loc[df['dataset_name'] == ds_name]
+    
+    print('{} rows available for {}'.format(len(ds_rows),ds_name))
+    assert len(ds_rows) > 0
+    
+    empty_rows = ds_rows[ds_rows['scientific_name'].isnull()]
+    non_empty_rows = ds_rows[~ds_rows['scientific_name'].isnull()]
+    
+    if len(empty_rows) == 0:
+        print('No empty images available for {}'.format(ds_name))
+    else:
+        empty_rows_to_download = empty_rows.sample(n=n_empty_images_per_dataset)
+        images_to_download.extend(empty_rows_to_download.to_dict('records'))
+
+    if len(non_empty_rows) == 0:
+        print('No non-empty images available for {}'.format(ds_name))
+    else:
+        non_empty_rows_to_download = non_empty_rows.sample(n=n_non_empty_images_per_dataset)
+        images_to_download.extend(non_empty_rows_to_download.to_dict('records'))
+    
+ # ...for each dataset
+
+print('Selected {} total images'.format(len(images_to_download)))
+
+
+#%% Download images
+
+import urllib.request
+
+# i_image = 0; image = images_to_download[i_image]
+for i_image,image in tqdm(enumerate(images_to_download),total=len(images_to_download)):
+    
+    url = image['url']
+    ext = os.path.splitext(url)[1]
+    output_file = os.path.join(preview_folder,'image_{}'.format(str(i_image).zfill(4)) + ext)
+    relative_file = os.path.relpath(output_file,preview_folder)
+    try:
+        download_url(url,output_file,verbose=False)
+        image['relative_file'] = relative_file
+    except urllib.error.HTTPError:
+        print('Image {} does not exist ({}:{})'.format(
+            i_image,image['dataset_name'],image['original_label']))
+        image['relative_file'] = None
+
+
+#%% Write HTML
+
+import write_html_image_list
+
+"""
+filename: the output file
+
+image: a list of image filenames or dictionaries with one or more of the following fields:
+    
+    filename
+    imageStyle
+    textStyle
+    title
+    linkTarget
+"""
+
+html_filename = os.path.join(preview_folder,'index.html')
+
+html_images = []
+for im in images_to_download:
+    
+    if im['relative_file'] is None:
+        continue
+    
+    output_im = {}
+    output_im['filename'] = im['relative_file']
+    output_im['linkTarget'] = im['url']
+    output_im['title'] = str(im)
+    output_im['imageStyle'] = 'width:600px;'
+    output_im['textStyle'] = 'font-weight:normal;font-size:100%;'
+    html_images.append(output_im)
+    
+write_html_image_list.write_html_image_list(html_filename,html_images)
+
+from path_utils import open_file
+open_file(html_filename)
