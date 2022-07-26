@@ -780,7 +780,7 @@ os.chmod(output_file, st.st_mode | stat.S_IEXEC)
 #%% Run a non-MegaClassifier classifier (i.e., a classifier with no output mapping)
 
 classifier_name_short = 'idfgclassifier'
-threshold_str = '0.1' # 0.6
+threshold_str = '0.15' # 0.6
 classifier_name = 'idfg_classifier_ckpt_14_compiled'
 
 organization_name = organization_name_short
