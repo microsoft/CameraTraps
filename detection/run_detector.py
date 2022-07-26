@@ -103,7 +103,7 @@ DETECTOR_METADATA = {
     'v5b.0.0':
         {'megadetector_version':'v5b.0.0',
          'typical_detection_threshold':0.2,
-         'conservative_detection_threshold':0.05}    
+         'conservative_detection_threshold':0.05}
 }
 
 DEFAULT_RENDERING_CONFIDENCE_THRESHOLD = DETECTOR_METADATA['v5b.0.0']['typical_detection_threshold']
@@ -160,7 +160,10 @@ def get_detector_metadata_from_version_string(detector_version):
     """
     if detector_version not in DETECTOR_METADATA:
         print('Warning: no metadata for unknown detector version {}'.format(detector_version))
-        return None
+        default_detector_metadata = {
+            'megadetector_version':'unknown'
+        }
+        return default_detector_metadata
     else:
         return DETECTOR_METADATA[detector_version]
 
