@@ -87,7 +87,8 @@ def process_video(options):
     
         run_detector_batch.write_results_to_file(
             results, options.output_json_file,
-            relative_path_base=frame_output_folder)
+            relative_path_base=frame_output_folder,
+            detector_file=options.model_file)
 
     if options.render_output_video:
         
