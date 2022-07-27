@@ -179,71 +179,6 @@ for i_task,task in enumerate(task_info):
     task['command_file'] = cmd_file
 
 
-#%% Generate combined commands for a handful of tasks
-
-if False:
-
-    #%%    
-
-    task_set = [8,10,12,14,16]; gpu_number = 0; sleep_time_between_tasks = 60; sleep_time_before_tasks = 0
-    commands = []
-    
-    # i_task = 8
-    for i_task in task_set:
-        
-        if i_task == task_set[0]:
-            commands.append('sleep {}'.format(str(sleep_time_before_tasks)))            
-        
-        task = task_info[i_task]
-        chunk_file = task['input_file']
-        output_fn = chunk_file.replace('.json','_results.json')
-        
-        task['output_file'] = output_fn
-
-        cuda_string = f'CUDA_VISIBLE_DEVICES={gpu_number}'
-        
-        checkpoint_frequency_string = ''
-        checkpoint_path_string = ''
-        if checkpoint_frequency is not None and checkpoint_frequency > 0:
-            checkpoint_frequency_string = f'--checkpoint_frequency {checkpoint_frequency}'
-            checkpoint_path_string = '--checkpoint_path {}'.format(chunk_file.replace(
-                '.json','_checkpoint.json'))
-                
-        use_image_queue_string = ''
-        if (use_image_queue):
-            use_image_queue_string = '--use_image_queue'
-
-        ncores_string = ''
-        if (ncores > 1):
-            ncores_string = '--ncores {}'.format(ncores)
-                    
-        quiet_string = ''
-        if quiet_mode:
-            quiet_string = '--quiet'
-            
-        cmd = f'{cuda_string} python run_detector_batch.py {model_file} {chunk_file} {output_fn} {checkpoint_frequency_string} {checkpoint_path_string} {use_image_queue_string} {ncores_string} {quiet_string}'
-                        
-        task['command'] = cmd
-        commands.append(cmd)
-        if i_task != task_set[-1]:
-            commands.append('sleep {}'.format(str(sleep_time_between_tasks)))            
-        
-    # ...for each task
-    
-    task_strings = [str(k).zfill(2) for k in task_set]
-    task_set_string = '_'.join(task_strings)
-    cmd_file = os.path.join(filename_base,'run_chunk_{}_gpu_{}.sh'.format(task_set_string,
-                            str(gpu_number).zfill(2)))
-    
-    with open(cmd_file,'w') as f:
-        for cmd in commands:
-            f.write(cmd + '\n')
-        
-    import stat
-    st = os.stat(cmd_file)
-    os.chmod(cmd_file, st.st_mode | stat.S_IEXEC)
-    
-
 #%% Run the tasks
 
 # Prefer to run manually
@@ -1139,7 +1074,6 @@ for final_output_path in classification_detection_files:
 # ...for each file we want to smooth
 
 
-
 #%% Post-processing (post-classification)
 
 classification_detection_files = [    
@@ -1258,3 +1192,64 @@ options.n_threads = 100
 options.allow_existing_directory = False
 
 separate_detections_into_folders(options)
+
+
+#%% Generate commands for a subset of tasks
+
+task_set = [8,10,12,14,16]; gpu_number = 0; sleep_time_between_tasks = 60; sleep_time_before_tasks = 0
+commands = []
+
+# i_task = 8
+for i_task in task_set:
+    
+    if i_task == task_set[0]:
+        commands.append('sleep {}'.format(str(sleep_time_before_tasks)))            
+    
+    task = task_info[i_task]
+    chunk_file = task['input_file']
+    output_fn = chunk_file.replace('.json','_results.json')
+    
+    task['output_file'] = output_fn
+
+    cuda_string = f'CUDA_VISIBLE_DEVICES={gpu_number}'
+    
+    checkpoint_frequency_string = ''
+    checkpoint_path_string = ''
+    if checkpoint_frequency is not None and checkpoint_frequency > 0:
+        checkpoint_frequency_string = f'--checkpoint_frequency {checkpoint_frequency}'
+        checkpoint_path_string = '--checkpoint_path {}'.format(chunk_file.replace(
+            '.json','_checkpoint.json'))
+            
+    use_image_queue_string = ''
+    if (use_image_queue):
+        use_image_queue_string = '--use_image_queue'
+
+    ncores_string = ''
+    if (ncores > 1):
+        ncores_string = '--ncores {}'.format(ncores)
+                
+    quiet_string = ''
+    if quiet_mode:
+        quiet_string = '--quiet'
+        
+    cmd = f'{cuda_string} python run_detector_batch.py {model_file} {chunk_file} {output_fn} {checkpoint_frequency_string} {checkpoint_path_string} {use_image_queue_string} {ncores_string} {quiet_string}'
+                    
+    task['command'] = cmd
+    commands.append(cmd)
+    if i_task != task_set[-1]:
+        commands.append('sleep {}'.format(str(sleep_time_between_tasks)))            
+    
+# ...for each task
+
+task_strings = [str(k).zfill(2) for k in task_set]
+task_set_string = '_'.join(task_strings)
+cmd_file = os.path.join(filename_base,'run_chunk_{}_gpu_{}.sh'.format(task_set_string,
+                        str(gpu_number).zfill(2)))
+
+with open(cmd_file,'w') as f:
+    for cmd in commands:
+        f.write(cmd + '\n')
+    
+import stat
+st = os.stat(cmd_file)
+os.chmod(cmd_file, st.st_mode | stat.S_IEXEC)
