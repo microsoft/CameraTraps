@@ -489,6 +489,7 @@ MegaDetector v5b was trained on all MDv4 training data, plus new private data, a
 * [Orinoquía Camera Traps](https://lila.science/orinoquia-camera-traps/)
 * [SWG Camera Traps](https://lila.science/datasets/swg-camera-traps)
 * [ENA24](https://lila.science/datasets/ena24detection)
+* [Wellington Camera Traps](https://lila.science/datasets/wellingtoncameratraps)
 * [Several datasets from Snapshot Safari](https://lila.science/category/camera-traps/snapshot-safari/)
 
 MegaDetector v5a was trained on all MDv5b training data, and new public data from:
