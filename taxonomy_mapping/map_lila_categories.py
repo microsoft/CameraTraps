@@ -1,20 +1,27 @@
 #
 # Using the taxonomy .csv file, map all LILA datasets to the standard taxonomy 
 #
+# Does not currently produce results; this is just used to confirm that all category names
+# have mappings in the taxonomy file.
+#
 
 #%% Constants and imports
 
 import json
 import os
 
-import pandas as pd
+from data_management.lila.lila_common import read_lila_taxonomy_mapping
+
+lila_local_base = os.path.expanduser('~/lila')
+
+metadata_dir = os.path.join(lila_local_base,'metadata')
+os.makedirs(metadata_dir,exist_ok=True)
 
 # Created by get_lila_category_list.py... contains counts for each category
-lila_dataset_to_categories_file = r"G:\temp\lila\lila_categories_list\lila_dataset_to_categories.json"
-lila_taxonomy_file = r"G:\temp\lila\lila-taxonomy-mapping_release.22.07.03.1608.csv"
+category_list_dir = os.path.join(lila_local_base,'lila_categories_list')
+lila_dataset_to_categories_file = os.path.join(category_list_dir,'lila_dataset_to_categories.json')
 
 assert os.path.isfile(lila_dataset_to_categories_file)
-assert os.path.isfile(lila_taxonomy_file)
     
 
 #%% Load category and taxonomy files
@@ -22,7 +29,7 @@ assert os.path.isfile(lila_taxonomy_file)
 with open(lila_dataset_to_categories_file,'r') as f:
     lila_dataset_to_categories = json.load(f)
 
-taxonomy_df = pd.read_csv(lila_taxonomy_file)
+taxonomy_df = read_lila_taxonomy_mapping(metadata_dir)
 
 
 #%% Map dataset names and category names to scientific names

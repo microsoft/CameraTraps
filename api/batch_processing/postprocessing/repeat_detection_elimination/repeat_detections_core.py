@@ -10,16 +10,16 @@
 
 import os
 import warnings
-from datetime import datetime
-from itertools import compress
-
-import jsonpickle
-import pandas as pd
-from joblib import Parallel, delayed
-from tqdm import tqdm
-
 import sklearn.cluster
 import numpy as np
+import jsonpickle
+import pandas as pd
+
+from joblib import Parallel, delayed
+from tqdm import tqdm
+from operator import attrgetter
+from datetime import datetime
+from itertools import compress
 
 import pyqtree
 
@@ -82,6 +82,9 @@ class RepeatDetectionOptions:
     # Ignore "suspicious" detections larger than some size; these are often animals
     # taking up the whole image.  This is expressed as a fraction of the image size.
     maxSuspiciousDetectionSize = 0.2
+
+    # Ignore "suspicious" detections smaller than some size
+    minSuspiciousDetectionSize = 0.0
 
     # Ignore folders with more than this many images in them, which can stall the process
     maxImagesPerFolder = 20000
@@ -146,6 +149,19 @@ class RepeatDetectionOptions:
     includeFolders = None
     excludeFolders = None
 
+    # Optionally show *other* detections in a light gray
+    bRenderOtherDetections = False
+    otherDetectionsThreshold = 0.2    
+    otherDetectionsLineWidth = 1
+    
+    # In theory I'd like these "other detection" rectangles to be partially 
+    # transparent, but this is not straightforward, and the alpha is ignored
+    # here.  But maybe if I leave it here and wish hard enough, someday it 
+    # will work.
+    #
+    # otherDetectionsColors = ['dimgray']
+    otherDetectionsColors = [(105,105,105,100)]
+    
     # Sort detections within a directory so nearby detections are adjacent
     # in the list, for faster review.
     #
@@ -243,6 +259,16 @@ class DetectionLocation:
         Converts to a 'detection' dictionary, making the semi-arbitrary assumption that
         the first instance is representative of confidence.
         """
+        
+        # This is a bit of a hack right now, but for future-proofing, I don't want to call this
+        # retrieve anything other than the highest-confidence detection, and I'm assuming this is already 
+        # sorted, so assert() that.
+        confidences = [i.confidence for i in self.instances]
+        assert confidences[0] == max(confidences), 'Cannot convert an unsorted DetectionLocation to an API detection'
+        
+        # It's not clear whether it's better to use instances[0].bbox or self.bbox here... they should be very
+        # similar, unless iouThreshold is very low.  self.bbox is a better representation of the overal
+        #DetectionLocation.
         detection = {'conf':self.instances[0].confidence,'bbox':self.bbox,'category':self.instances[0].category}
         return detection
 
@@ -522,6 +548,10 @@ def find_matches_in_directory(dirName, options, rowsByDirectory):
             # These are relative coordinates
             assert area >= 0.0 and area <= 1.0, 'Illegal bounding box area {}'.format(area)
 
+            if area < options.minSuspiciousDetectionSize:
+                # print('Ignoring very small detection with area {}'.format(area))
+                continue
+            
             if area > options.maxSuspiciousDetectionSize:
                 # print('Ignoring very large detection with area {}'.format(area))
                 continue
@@ -1229,6 +1259,10 @@ def find_repeat_detections(inputFilename, outputFilename=None, options=None):
             # iDetection = 0; detection = suspiciousDetectionsThisDir[0]
             for iDetection, detection in enumerate(suspiciousDetectionsThisDir):
                 
+                # Sort instances in descending order by confidence
+                detection.instances.sort(key=attrgetter('confidence'),reverse=True)
+                
+                # Choose the highest-confidence index
                 instance = detection.instances[0]
                 relativePath = instance.filename
                 
@@ -1248,15 +1282,58 @@ def find_repeat_detections(inputFilename, outputFilename=None, options=None):
                     assert (os.path.isfile(inputFullPath)), 'Not a file: {}'.format(inputFullPath)
                     
                 try:
-                    render_bounding_box(detection, inputFullPath, outputFullPath,
-                                        lineWidth=options.lineThickness, expansion=options.boxExpansion)
+                    
+                    # Should we render (typically in a very light color) detections *other* than
+                    # the one we're highlighting here?
+                    if options.bRenderOtherDetections:
+                    
+                        iRow = filenameToRow[relativePath]
+                        row = detectionResults.iloc[iRow]
+                        detections_this_image = row['detections']
+
+                        im = open_image(inputFullPath)
+                        
+                        # Render other detections first (typically in a thin+light box)
+                        render_detection_bounding_boxes(detections_this_image,
+                                                        im,
+                                                        label_map=None,
+                                                        thickness=options.otherDetectionsLineWidth,
+                                                        expansion=options.boxExpansion,
+                                                        colormap=options.otherDetectionsColors,
+                                                        confidence_threshold=options.otherDetectionsThreshold)
+                        
+                        # Now render the example detection (on top of at least one of the other detections)
+
+                        # This converts the *first* instance to an API standard detection; because we
+                        # just sorted this list in descending order by confidence, this is the
+                        # highest-confidence detection.
+                        d = detection.to_api_detection()
+                        
+                        render_detection_bounding_boxes([d],im,thickness=options.lineThickness,
+                                                        expansion=options.boxExpansion,
+                                                        confidence_threshold=-10)
+                    
+                        im.save(outputFullPath)
+                        
+                    else:
+                        
+                        render_bounding_box(detection, inputFullPath, outputFullPath,
+                            lineWidth=options.lineThickness, expansion=options.boxExpansion)
+                    
+                    # ...if we are/aren't rendering other bounding boxes
+                
                 except Exception as e:
                     print('Warning: error rendering bounding box from {} to {}: {}'.format(
                         inputFullPath,outputFullPath,e))                    
                     if options.bFailOnRenderError:
                         raise
+                        
                 detection.sampleImageRelativeFileName = outputRelativePath
 
+            # ...for each detection in this folder
+            
+        # ...for each folder
+        
         # Write out the detection index
         detectionIndexFileName = os.path.join(filteringDir, DETECTION_INDEX_FILE_NAME)
         jsonpickle.set_encoder_options('json', sort_keys=True, indent=4)
@@ -1276,4 +1353,3 @@ def find_repeat_detections(inputFilename, outputFilename=None, options=None):
     return toReturn
 
 # ...find_repeat_detections()
-

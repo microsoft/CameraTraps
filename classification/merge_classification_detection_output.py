@@ -197,7 +197,7 @@ def main(classification_csv_path: str,
     with open(output_json_path, 'w') as f:
         json.dump(classification_js, f, indent=1)
     
-    print('Wrote merged classification/detection results to {}'.format(classification_js))
+    print('Wrote merged classification/detection results to {}'.format(output_json_path))
 
 
 def process_queried_images(

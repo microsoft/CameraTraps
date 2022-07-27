@@ -97,11 +97,19 @@ But some are just animals that aren&rsquo;t moving much:
 
 <b>You should delete the above image.</b>
 
-Anything left in this folder will be considered a false positive and removed from your results in subsequent steps, so the next task is to <i>delete all the images in this folder that have bounding boxes on actual objects of interest</i>.
+Anything left in this folder will be considered a false positive and removed from your results in subsequent steps, so the next task is to <i>delete all the images in this folder that have bounding boxes on actual objects of interest: animals, people, or vehicles</i>.
 
 Note that it&rsquo;s common to have a false positive in an image that also has an animal in it; you can safely leave these in the folder (telling the scripts that this is indeed a false positive), because these scripts operate on individual <i>detections</i>, not <i>images</i>.  So the following image is safe to leave in place, and you&rsquo;ll be telling the script that the box is a false positive, but you <i>won&rsquo;t</i> be telling it that the deer is a false positive:
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<img src="../images/mixed_positive.jpg" width="500"><br/>
+
+<b>You don&rsquo;t need to delete the above image; just leave it in the folder.</b>
+
+Sometimes it's actually distracting when an obvious animal like the one in the above image <i>doesn't</i> have a box around it; even though it shouldn't have a box on it here, it can feel like MegaDetector is missing things.  So, depending on the options you choose, you can have very light gray boxes put around detections <i>other</i> than the one we're actually evaluating, just to give us some comfort that the animal was found, like so:
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<img src="../images/gray_box.jpg" width="500"><br/>
+
+You may not even be able to see the gray box if you're viewing this on GitHub, but if you open the image in a new tab, you'll see a thin gray line around the elk.  The thick red box is the one we're interested in, so the elk doesn't matter here.
 
 <b>You don&rsquo;t need to delete the above image; just leave it in the folder.</b>
 
