@@ -14,9 +14,9 @@ When a new .json file comes in and needs to be mapped to scientific names...
 
 * Check for errors (one more time) (this should be redundant with what's now included in preview_lila_taxonomy.py, but it can't hurt) by running:
 
-```bash
-python taxonomy_mapping/taxonomy_csv_checker.py /path/to/taxonomy.csv
-```
+    ```bash
+    python taxonomy_mapping/taxonomy_csv_checker.py /path/to/taxonomy.csv
+    ```
 
 * Prepare the "release" taxonomy file (which removes a couple columns and removes unused rows) using prepare_lila_taxonomy_release.py .
 

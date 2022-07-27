@@ -12,9 +12,9 @@
 import json
 import os
 
-from datetime import date
-
 import humanfriendly
+
+from tqdm import tqdm
 
 # from ai4eutils
 import ai4e_azure_utils 
@@ -47,8 +47,9 @@ ncores = 1
 input_path = os.path.expanduser('~/data/organization/2021-12-24')
 
 organization_name_short = 'organization'
-job_date = date.today().strftime('%Y-%m-%d')
 # job_date = '2022-01-01'
+job_date = None
+assert job_date is not None
 
 model_file = os.path.expanduser('~/models/camera_traps/megadetector/md_v5.0.0/md_v5a.0.0.pt')
 # model_file = os.path.expanduser('~/models/camera_traps/megadetector/md_v5.0.0/md_v5b.0.0.pt')
@@ -178,71 +179,6 @@ for i_task,task in enumerate(task_info):
     task['command_file'] = cmd_file
 
 
-#%% Generate combined commands for a handful of tasks
-
-if False:
-
-    #%%    
-
-    task_set = [8,10,12,14,16]; gpu_number = 0; sleep_time_between_tasks = 60; sleep_time_before_tasks = 0
-    commands = []
-    
-    # i_task = 8
-    for i_task in task_set:
-        
-        if i_task == task_set[0]:
-            commands.append('sleep {}'.format(str(sleep_time_before_tasks)))            
-        
-        task = task_info[i_task]
-        chunk_file = task['input_file']
-        output_fn = chunk_file.replace('.json','_results.json')
-        
-        task['output_file'] = output_fn
-
-        cuda_string = f'CUDA_VISIBLE_DEVICES={gpu_number}'
-        
-        checkpoint_frequency_string = ''
-        checkpoint_path_string = ''
-        if checkpoint_frequency is not None and checkpoint_frequency > 0:
-            checkpoint_frequency_string = f'--checkpoint_frequency {checkpoint_frequency}'
-            checkpoint_path_string = '--checkpoint_path {}'.format(chunk_file.replace(
-                '.json','_checkpoint.json'))
-                
-        use_image_queue_string = ''
-        if (use_image_queue):
-            use_image_queue_string = '--use_image_queue'
-
-        ncores_string = ''
-        if (ncores > 1):
-            ncores_string = '--ncores {}'.format(ncores)
-                    
-        quiet_string = ''
-        if quiet_mode:
-            quiet_string = '--quiet'
-            
-        cmd = f'{cuda_string} python run_detector_batch.py {model_file} {chunk_file} {output_fn} {checkpoint_frequency_string} {checkpoint_path_string} {use_image_queue_string} {ncores_string} {quiet_string}'
-                        
-        task['command'] = cmd
-        commands.append(cmd)
-        if i_task != task_set[-1]:
-            commands.append('sleep {}'.format(str(sleep_time_between_tasks)))            
-        
-    # ...for each task
-    
-    task_strings = [str(k).zfill(2) for k in task_set]
-    task_set_string = '_'.join(task_strings)
-    cmd_file = os.path.join(filename_base,'run_chunk_{}_gpu_{}.sh'.format(task_set_string,
-                            str(gpu_number).zfill(2)))
-    
-    with open(cmd_file,'w') as f:
-        for cmd in commands:
-            f.write(cmd + '\n')
-        
-    import stat
-    st = os.stat(cmd_file)
-    os.chmod(cmd_file, st.st_mode | stat.S_IEXEC)
-    
-
 #%% Run the tasks
 
 # Prefer to run manually
@@ -353,13 +289,20 @@ filenames = [
     '/postprocessing/organization/mdv5b_results.json'    
     ]
 
-detection_thresholds = [0.7,0.3,0.3]
+detection_thresholds = [0.7,0.15,0.15]
+# rendering_thresholds = [0.5,0.1,0.1]
+rendering_thresholds = [(x*0.6666) for x in detection_thresholds]
 
 for i, j in itertools.combinations([0,1,2],2):
         
     pairwise_options = PairwiseBatchComparisonOptions()
+    
     pairwise_options.results_filename_a = filenames[i]
     pairwise_options.results_filename_b = filenames[j]
+    
+    pairwise_options.rendering_confidence_threshold_a = rendering_thresholds[i]
+    pairwise_options.rendering_confidence_threshold_b = rendering_thresholds[j]
+    
     pairwise_options.detection_thresholds_a = {'animal':detection_thresholds[i],
                                                'person':detection_thresholds[i],
                                                'vehicle':detection_thresholds[i]}
@@ -454,7 +397,6 @@ if False:
     
     #%%
     
-    from tqdm import tqdm
     with open(combined_api_output_file,'r') as f:
         d = json.load(f)
     image_filenames = [im['file'] for im in d['images']]
@@ -464,19 +406,25 @@ if False:
 
 #%% Repeat detection elimination, phase 1
 
-# Deliberately leaving these imports here, rather than at the top, because this cell is not
-# typically executed
+# Deliberately leaving these imports here, rather than at the top, because this
+# cell is not typically executed
 from api.batch_processing.postprocessing.repeat_detection_elimination import repeat_detections_core
 import path_utils
 task_index = 0
 
 options = repeat_detections_core.RepeatDetectionOptions()
 
-options.confidenceMin = 0.6
+options.confidenceMin = 0.15
 options.confidenceMax = 1.01
 options.iouThreshold = 0.85
 options.occurrenceThreshold = 10
 options.maxSuspiciousDetectionSize = 0.2
+# options.minSuspiciousDetectionSize = 0.05
+
+# This will cause a very light gray box to get drawn around all the detections
+# we're *not* considering as suspicious.
+options.bRenderOtherDetections = True
+options.otherDetectionsThreshold = options.confidenceMin
 
 # options.lineThickness = 5
 # options.boxExpansion = 8
@@ -767,7 +715,7 @@ os.chmod(output_file, st.st_mode | stat.S_IEXEC)
 #%% Run a non-MegaClassifier classifier (i.e., a classifier with no output mapping)
 
 classifier_name_short = 'idfgclassifier'
-threshold_str = '0.1' # 0.6
+threshold_str = '0.15' # 0.6
 classifier_name = 'idfg_classifier_ckpt_14_compiled'
 
 organization_name = organization_name_short
@@ -916,7 +864,253 @@ import stat
 st = os.stat(output_file)
 os.chmod(output_file, st.st_mode | stat.S_IEXEC)
 
+
+#%% Within-image classification smoothing
+
+# Only count detections with a classification confidence threshold above
+# *classification_confidence_threshold*, which in practice means we're only
+# looking at one category per detection.
+#
+# If an image has at least *min_detections_above_threshold* such detections
+# in the most common category, and no more than *max_detections_secondary_class*
+# in the second-most-common category, flip all detections to the most common
+# category.
+#
+# Optionally treat some classes as particularly unreliable, typically used to overwrite an 
+# "other" class.
+
+classification_detection_files = [    
+    "xyz","abc"
+    ]
+
+# Only count detections with a classification confidence threshold above
+# *classification_confidence_threshold*, which in practice means we're only
+# looking at one category per detection.
+#
+# If an image has at least *min_detections_above_threshold* such detections
+# in the most common category, and no more than *max_detections_secondary_class*
+# in the second-most-common category, flip all detections to the most common
+# category.
+#
+# Optionally treat some classes as particularly unreliable, typically used to overwrite an 
+# "other" class.
+
+for final_output_path in classification_detection_files:
+
+    classifier_output_path = final_output_path
+    classifier_output_path_within_image_smoothing = classifier_output_path.replace(
+        '.json','_within_image_smoothing.json')
+    
+    with open(classifier_output_path,'r') as f:
+        d = json.load(f)
+    
+    # d['classification_categories']
+    
+    # im['detections']
+    
+    # path_utils.open_file(os.path.join(input_path,im['file']))
+    
+    from collections import defaultdict
+    
+    min_detections_above_threshold = 4
+    max_detections_secondary_class = 3
+    
+    min_detections_to_overwrite_other = 2
+    other_category_names = ['other']
+    
+    classification_confidence_threshold = 0.6
+    
+    # Which classifications should we even bother over-writing?
+    classification_overwrite_threshold = 0.3 # classification_confidence_threshold
+    
+    # Detection confidence threshold for things we count
+    detection_confidence_threshold = 0.2
+    
+    # Which detections should we even bother over-writing?
+    detection_overwrite_threshold = 0.05
         
+    category_name_to_id = {d['classification_categories'][k]:k for k in d['classification_categories']}
+    other_category_ids = []
+    for s in other_category_names:
+        if s in category_name_to_id:
+            other_category_ids.append(category_name_to_id[s])
+        else:
+            print('Warning: "other" category {} not present in file {}'.format(
+                s,classifier_output_path))
+    
+    n_other_classifications_changed = 0
+    n_other_images_changed = 0
+    
+    n_detections_flipped = 0
+    n_images_changed = 0
+    
+    # im = d['images'][0]    
+    for im in tqdm(d['images']):
+        
+        if 'Pronghorn Test Dataset/Drinker/SED/I__00030.JPG' in im['file']:
+            pass
+            
+        if 'detections' not in im or len(im['detections']) == 0:
+            continue
+        
+        detections = im['detections']
+    
+        category_to_count = defaultdict(int)
+        for det in detections:
+            if ('classifications' in det) and (det['conf'] >= detection_confidence_threshold):
+                for c in det['classifications']:
+                    if c[1] >= classification_confidence_threshold:
+                        category_to_count[c[0]] += 1
+                # ...for each classification
+            # ...if there are classifications for this detection
+        # ...for each detection
+                        
+        if len(category_to_count) <= 1:
+            continue
+        
+        category_to_count = {k: v for k, v in sorted(category_to_count.items(),
+                                                     key=lambda item: item[1], 
+                                                     reverse=True)}
+        
+        keys = list(category_to_count.keys())
+        
+        # Handle a quirky special case: if the most common category is "other" and 
+        # it's "tied" with the second-most-common category, swap them
+        if (len(keys) > 1) and (keys[0] in other_category_ids) and (keys[1] not in other_category_ids) and\
+            (category_to_count[keys[0]] == category_to_count[keys[1]]):
+                keys[1], keys[0] = keys[0], keys[1]
+        
+        max_count = category_to_count[keys[0]]
+        # secondary_count = category_to_count[keys[1]]
+        # The 'secondary count' is the most common non-other class
+        secondary_count = 0
+        for i_key in range(1,len(keys)):
+            if keys[i_key] not in other_category_ids:
+                secondary_count = category_to_count[keys[i_key]]
+                break
+
+        most_common_category = keys[0]
+        
+        assert max_count >= secondary_count
+        
+        # If we have at least *min_detections_to_overwrite_other* in a category that isn't
+        # "other", change all "other" classifications to that category
+        if max_count >= min_detections_to_overwrite_other and \
+            most_common_category not in other_category_ids:
+            
+            other_change_made = False
+            
+            for det in detections:
+                
+                if ('classifications' in det) and (det['conf'] >= detection_overwrite_threshold): 
+                    
+                    for c in det['classifications']:                
+                        
+                        if c[1] >= classification_overwrite_threshold and \
+                            c[0] in other_category_ids:
+                                
+                            n_other_classifications_changed += 1
+                            other_change_made = True
+                            c[0] = most_common_category
+                            
+                    # ...for each classification
+                    
+                # ...if there are classifications for this detection
+                
+            # ...for each detection
+            
+            if other_change_made:
+                n_other_images_changed += 1
+            
+        # ...if we should overwrite all "other" classifications
+    
+        if max_count < min_detections_above_threshold:
+            continue
+        
+        if secondary_count >= max_detections_secondary_class:
+            continue
+        
+        # At this point, we know we have a dominant category; change all other above-threshold
+        # classifications to that category.  That category may have been "other", in which case we may have
+        # already made the relevant changes.
+        
+        n_detections_flipped_this_image = 0
+        
+        # det = detections[0]
+        for det in detections:
+            
+            if ('classifications' in det) and (det['conf'] >= detection_overwrite_threshold):
+                
+                for c in det['classifications']:
+                    if c[1] >= classification_overwrite_threshold and \
+                        c[0] != most_common_category:
+                            
+                        c[0] = most_common_category
+                        n_detections_flipped += 1
+                        n_detections_flipped_this_image += 1
+                
+                # ...for each classification
+                
+            # ...if there are classifications for this detection
+            
+        # ...for each detection
+        
+        if n_detections_flipped_this_image > 0:
+            n_images_changed += 1
+    
+    # ...for each image    
+    
+    print('Classification smoothing: changed {} detections on {} images'.format(
+        n_detections_flipped,n_images_changed))
+    
+    print('"Other" smoothing: changed {} detections on {} images'.format(
+          n_other_classifications_changed,n_other_images_changed))
+    
+    with open(classifier_output_path_within_image_smoothing,'w') as f:
+        json.dump(d,f,indent=2)
+        
+    print('Wrote results to:\n{}'.format(classifier_output_path_within_image_smoothing))
+
+# ...for each file we want to smooth
+
+
+#%% Post-processing (post-classification)
+
+classification_detection_files = [    
+    "/home/user/postprocessing/organization/organization-2022-02-19/combined_api_outputs/organization-2022-02-19_megaclassifier.json",
+    "/home/user/postprocessing/organization/organization-2022-02-19/combined_api_outputs/organization-2022-02-19_idfgclassifier.json"
+    ]
+    
+for fn in classification_detection_files:
+    assert os.path.isfile(fn)
+    
+# classification_detection_file = classification_detection_files[1]
+for classification_detection_file in classification_detection_files:
+    
+    options = PostProcessingOptions()
+    options.image_base_dir = input_path
+    options.parallelize_rendering = True
+    options.include_almost_detections = True
+    options.num_images_to_sample = 10000
+    options.confidence_threshold = 0.2
+    options.classification_confidence_threshold = 0.75
+    options.almost_detection_confidence_threshold = options.confidence_threshold - 0.05
+    options.ground_truth_json_file = None
+    options.separate_detections_by_category = True
+    
+    folder_token = classification_detection_file.split('/')[-1].replace('classifier.json','')
+    
+    output_base = os.path.join(postprocessing_output_folder, folder_token + \
+        base_task_name + '_{:.3f}'.format(options.confidence_threshold))
+    os.makedirs(output_base, exist_ok=True)
+    print('Processing {} to {}'.format(base_task_name, output_base))
+    
+    options.api_output_file = classification_detection_file
+    options.output_dir = output_base
+    ppresults = process_batch_results(options)
+    path_utils.open_file(ppresults.output_html_file)
+
+
 #%% Create a new category for large boxes
 
 from api.batch_processing.postprocessing import categorize_detections_by_size
@@ -1000,188 +1194,62 @@ options.allow_existing_directory = False
 separate_detections_into_folders(options)
 
 
-#%% Post-processing (post-classification)
+#%% Generate commands for a subset of tasks
 
-classification_detection_files = [    
-    "/home/user/postprocessing/organization/organization-2022-02-19/combined_api_outputs/organization-2022-02-19_megaclassifier.json",
-    "/home/user/postprocessing/organization/organization-2022-02-19/combined_api_outputs/organization-2022-02-19_idfgclassifier.json"
-    ]
+task_set = [8,10,12,14,16]; gpu_number = 0; sleep_time_between_tasks = 60; sleep_time_before_tasks = 0
+commands = []
+
+# i_task = 8
+for i_task in task_set:
     
-for fn in classification_detection_files:
-    assert os.path.isfile(fn)
+    if i_task == task_set[0]:
+        commands.append('sleep {}'.format(str(sleep_time_before_tasks)))            
     
-# classification_detection_file = classification_detection_files[1]
-for classification_detection_file in classification_detection_files:
+    task = task_info[i_task]
+    chunk_file = task['input_file']
+    output_fn = chunk_file.replace('.json','_results.json')
     
-    options = PostProcessingOptions()
-    options.image_base_dir = input_path
-    options.parallelize_rendering = True
-    options.include_almost_detections = True
-    options.num_images_to_sample = 10000
-    options.confidence_threshold = 0.2
-    options.classification_confidence_threshold = 0.75
-    options.almost_detection_confidence_threshold = options.confidence_threshold - 0.05
-    options.ground_truth_json_file = None
-    options.separate_detections_by_category = True
+    task['output_file'] = output_fn
+
+    cuda_string = f'CUDA_VISIBLE_DEVICES={gpu_number}'
     
-    folder_token = classification_detection_file.split('/')[-1].replace('classifier.json','')
-    
-    output_base = os.path.join(postprocessing_output_folder, folder_token + \
-        base_task_name + '_{:.3f}'.format(options.confidence_threshold))
-    os.makedirs(output_base, exist_ok=True)
-    print('Processing {} to {}'.format(base_task_name, output_base))
-    
-    options.api_output_file = classification_detection_file
-    options.output_dir = output_base
-    ppresults = process_batch_results(options)
-    path_utils.open_file(ppresults.output_html_file)
-
-
-#%% Within-image classification smoothing
-
-# Only count detections with a classification confidence threshold above
-# *classification_confidence_threshold*, which in practice means we're only
-# looking at one category per detection.
-#
-# If an image has at least *min_detections_above_threshold* such detections
-# in the most common category, and no more than *max_detections_secondary_class*
-# in the second-most-common category, flip all detections to the most common
-# category.
-#
-# Optionally treat some classes as particularly unreliable, typically used to overwrite an 
-# "other" class.
-
-classifier_output_path = final_output_path
-classifier_output_path_within_image_smoothing = classifier_output_path.replace(
-    '.json','_within_image_smoothing.json')
-
-with open(classifier_output_path,'r') as f:
-    d = json.load(f)
-
-# d['classification_categories']
-
-# im['detections']
-
-# path_utils.open_file(os.path.join(input_path,im['file']))
-
-from collections import defaultdict
-
-min_detections_above_threshold = 4
-max_detections_secondary_class = 3
-
-min_detections_to_overwrite_other = 2
-other_category_names = ['other']
-
-classification_confidence_threshold = 0.6
-
-category_name_to_id = {d['classification_categories'][k]:k for k in d['classification_categories']}
-other_category_ids = []
-for s in other_category_names:
-    other_category_ids.append(category_name_to_id[s])
-
-n_other_classifications_changed = 0
-n_other_images_changed = 0
-
-n_detections_flipped = 0
-n_images_changed = 0
-
-# im = d['images'][0]    
-for im in d['images']:    
-    
-    if 'detections' not in im or len(im['detections']) == 0:
-        continue
-    
-    detections = im['detections']
-
-    category_to_count = defaultdict(int)
-    for det in detections:
-        if 'classifications' in det:
-            for c in det['classifications']:
-                if c[1] >= classification_confidence_threshold:
-                    category_to_count[c[0]] += 1
-            # ...for each classification
-        # ...if there are classifications for this detection
-    # ...for each detection
-                    
-    if len(category_to_count) <= 1:
-        continue
-    
-    category_to_count = {k: v for k, v in sorted(category_to_count.items(),
-                                                 key=lambda item: item[1], 
-                                                 reverse=True)}
-    
-    keys = list(category_to_count.keys())
-    max_count = category_to_count[keys[0]]
-    secondary_count = category_to_count[keys[1]]
-    most_common_category = keys[0]
-    
-    assert max_count >= secondary_count
-    
-    # If we have at least *min_detections_to_overwrite_other* in a category that isn't
-    # "other", change all "other" classifications to that category
-    if max_count >= min_detections_to_overwrite_other and \
-        most_common_category not in other_category_ids:
-        
-        other_change_made = False
-        
-        for det in detections:
+    checkpoint_frequency_string = ''
+    checkpoint_path_string = ''
+    if checkpoint_frequency is not None and checkpoint_frequency > 0:
+        checkpoint_frequency_string = f'--checkpoint_frequency {checkpoint_frequency}'
+        checkpoint_path_string = '--checkpoint_path {}'.format(chunk_file.replace(
+            '.json','_checkpoint.json'))
             
-            if 'classifications' in det:            
+    use_image_queue_string = ''
+    if (use_image_queue):
+        use_image_queue_string = '--use_image_queue'
+
+    ncores_string = ''
+    if (ncores > 1):
+        ncores_string = '--ncores {}'.format(ncores)
                 
-                for c in det['classifications']:                
+    quiet_string = ''
+    if quiet_mode:
+        quiet_string = '--quiet'
+        
+    cmd = f'{cuda_string} python run_detector_batch.py {model_file} {chunk_file} {output_fn} {checkpoint_frequency_string} {checkpoint_path_string} {use_image_queue_string} {ncores_string} {quiet_string}'
                     
-                    if c[1] >= classification_confidence_threshold and \
-                        c[0] in other_category_ids:
-                            
-                        n_other_classifications_changed += 1
-                        other_change_made = True
-                        c[0] = most_common_category
-                        
-                # ...for each classification
-                
-            # ...if there are classifications for this detection
-            
-        # ...for each detection
-        
-        if other_change_made:
-            n_other_images_changed += 1
-        
-    # ...if we should overwrite all "other" classifications
-
-    if max_count < min_detections_above_threshold:
-        continue
+    task['command'] = cmd
+    commands.append(cmd)
+    if i_task != task_set[-1]:
+        commands.append('sleep {}'.format(str(sleep_time_between_tasks)))            
     
-    if secondary_count >= max_detections_secondary_class:
-        continue
-    
-    # At this point, we know we have a dominant category; change all other above-threshold
-    # classifications to that category.  That category may have been "other", in which case we may have
-    # already made the relevant changes.
-    
-    n_detections_flipped_this_image = 0
-    
-    # det = detections[0]
-    for det in detections:
-        if 'classifications' in det:
-            for c in det['classifications']:
-                if c[1] >= classification_confidence_threshold and \
-                    c[0] != most_common_category:
-                        
-                    c[0] = most_common_category
-                    n_detections_flipped += 1
-                    n_detections_flipped_this_image += 1
-            
-    if n_detections_flipped_this_image > 0:
-        n_images_changed += 1
+# ...for each task
 
-# ...for each image    
+task_strings = [str(k).zfill(2) for k in task_set]
+task_set_string = '_'.join(task_strings)
+cmd_file = os.path.join(filename_base,'run_chunk_{}_gpu_{}.sh'.format(task_set_string,
+                        str(gpu_number).zfill(2)))
 
-print('Classification smoothing: changed {} detections on {} images'.format(
-    n_detections_flipped,n_images_changed))
-
-print('"Other" smoothing: changed {} detections on {} images'.format(
-      n_other_classifications_changed,n_other_images_changed))
-
-with open(classifier_output_path_within_image_smoothing,'w') as f:
-    json.dump(d,f,indent=2)
+with open(cmd_file,'w') as f:
+    for cmd in commands:
+        f.write(cmd + '\n')
     
+import stat
+st = os.stat(cmd_file)
+os.chmod(cmd_file, st.st_mode | stat.S_IEXEC)
