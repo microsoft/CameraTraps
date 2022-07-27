@@ -12,6 +12,7 @@ import json
 import os
 import random
 import copy
+import urllib
 
 from tqdm import tqdm
 from visualization import visualization_utils
@@ -81,6 +82,18 @@ def _compare_batch_results(options,output_index,pairwise_options):
     
     random.seed(options.random_seed)
 
+    # Warn the user if some "detections" might not get rendered
+    max_classification_threshold_a = max(list(pairwise_options.detection_thresholds_a.values()))
+    max_classification_threshold_b = max(list(pairwise_options.detection_thresholds_b.values()))
+    
+    if pairwise_options.rendering_confidence_threshold_a > max_classification_threshold_a:
+        print('*** Warning: rendering threshold A ({}) is higher than max confidence threshold A ({}) ***'.format(
+            pairwise_options.rendering_confidence_threshold_a,max_classification_threshold_a))
+    
+    if pairwise_options.rendering_confidence_threshold_b > max_classification_threshold_b:
+        print('*** Warning: rendering threshold B ({}) is higher than max confidence threshold B ({}) ***'.format(
+            pairwise_options.rendering_confidence_threshold_b,max_classification_threshold_b))
+        
     ##%% Validate inputs
     
     assert os.path.isfile(pairwise_options.results_filename_a)
@@ -153,16 +166,16 @@ def _compare_batch_results(options,output_index,pairwise_options):
         
         categories_above_threshold_a = set()
 
-        if not 'detections' in im_a:
+        if not 'detections' in im_a or im_a['detections'] is None:
             assert 'failure' in im_a and im_a['failure'] is not None
             continue
         
-        if not 'detections' in im_b:
+        if not 'detections' in im_b or im_b['detections'] is None:
             assert 'failure' in im_b and im_b['failure'] is not None
             continue
-        
+                
         invalid_category_error = False
-        
+
         # det = im_a['detections'][0]
         for det in im_a['detections']:
             
@@ -185,12 +198,13 @@ def _compare_batch_results(options,output_index,pairwise_options):
         
         for det in im_b['detections']:
             
+            category_id = det['category']
+            
             if category_id not in detection_categories:
                 print('Warning: unexpected category {} for model B on file {}'.format(category_id,fn))
                 invalid_category_error = True
                 break
             
-            category_id = det['category']
             conf = det['conf']
             
             if conf >= pairwise_options.detection_thresholds_b[detection_categories[category_id]]:
@@ -346,11 +360,25 @@ def _compare_batch_results(options,output_index,pairwise_options):
         
         assert len(category_image_output_paths_relative) == len(input_image_absolute_paths)
         
-        import urllib
         for i_fn,fn in enumerate(category_image_output_paths_relative): 
+            
+            input_path_relative = image_filenames[i_fn]
+            image_pair = image_pairs[input_path_relative]
+            assert len(image_pair) == 2; image_a = image_pair[0]; image_b = image_pair[1]
+            
+            def maxempty(L):
+                if len(L) == 0:
+                    return 0
+                else:
+                    return max(L)
+                
+            max_conf_a = maxempty([det['conf'] for det in image_a['detections']])
+            max_conf_b = maxempty([det['conf'] for det in image_b['detections']])
+            
+            title = input_path_relative + ' (max conf {:.2f},{:.2f})'.format(max_conf_a,max_conf_b)
             info = {
                 'filename': fn,
-                'title': fn,
+                'title': title,
                 'textStyle': 'font-family:verdana,arial,calibri;font-size:80%;text-align:left;margin-top:20;margin-bottom:5',
                 'linkTarget': urllib.parse.quote(input_image_absolute_paths[i_fn])
             }
