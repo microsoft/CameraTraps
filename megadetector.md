@@ -317,7 +317,7 @@ To use run_detector.py on Windows:
 
 ```batch
 cd c:\git\CameraTraps
-python detection\run_detector.py "c:\megadetector\md_v5a.0.0.pt" --image_file "some_image_file.jpg" --threshold 0.2
+python detection\run_detector.py "c:\megadetector\md_v5a.0.0.pt" --image_file "some_image_file.jpg" --threshold 0.1
 ```
 Change "some_image_file.jpg" to point to a real image on your computer.
 
@@ -341,7 +341,7 @@ To use this script on Linux/Mac:
  
 ```batch
 cd ~/git/CameraTraps
-python detection/run_detector.py "$HOME/megadetector/md_v5a.0.0.pt" --image_file "some_image_file.jpg" --threshold 0.2
+python detection/run_detector.py "$HOME/megadetector/md_v5a.0.0.pt" --image_file "some_image_file.jpg" --threshold 0.1
 ```
 
 #### run_detector_batch.py
@@ -352,7 +352,7 @@ To use run_detector_batch.py on Windows:
 
 ```batch
 cd c:\git\CameraTraps
-python detection\run_detector_batch.py "c:\megadetector\md_v5a.0.0.pt" "c:\some_image_folder" "c:\megadetector\test_output.json" --output_relative_filenames --recursive --threshold 0.2 --checkpoint_frequency 10000
+python detection\run_detector_batch.py "c:\megadetector\md_v5a.0.0.pt" "c:\some_image_folder" "c:\megadetector\test_output.json" --output_relative_filenames --recursive --checkpoint_frequency 10000
 ```
 
 Change "c:\some_image_folder" to point to the real folder on your computer where your images live.
@@ -377,7 +377,7 @@ To use this script on Linux/Mac:
 
 ```batch
 cd ~/git/CameraTraps
-python detection/run_detector_batch.py "$HOME/megadetector/md_v5a.0.0.pt" "/some/image/folder" "$HOME/megadetector/test_output.json" --output_relative_filenames --recursive --threshold 0.2 --checkpoint_frequency 10000
+python detection/run_detector_batch.py "$HOME/megadetector/md_v5a.0.0.pt" "/some/image/folder" "$HOME/megadetector/test_output.json" --output_relative_filenames --recursive --checkpoint_frequency 10000
 ```
 
 
