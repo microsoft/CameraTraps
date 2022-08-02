@@ -407,7 +407,7 @@ def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=No
     return results
 
 
-def write_results_to_file(results, output_file, relative_path_base=None, detector_file=None):
+def write_results_to_file(results, output_file, relative_path_base=None, detector_file=None, info=None):
     """
     Writes list of detection results to JSON output file. Format matches:
 
@@ -427,21 +427,31 @@ def write_results_to_file(results, output_file, relative_path_base=None, detecto
             results_relative.append(r_relative)
         results = results_relative
 
-    info = { 
-        'detection_completion_time': datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'),
-        'format_version': '1.2' 
-    }
-    
-    if detector_file is not None:
-        detector_filename = os.path.basename(detector_file)
-        detector_version = get_detector_version_from_filename(detector_filename)
-        detector_metadata = get_detector_metadata_from_version_string(detector_version)
-        info['detector'] = detector_filename  
-        info['detector_metadata'] = detector_metadata
-    else:
-        info['detector'] = 'unknown'
-        info['detector_metadata'] = 'unknown'
+    # The typical case: we need to build the 'info' struct
+    if info is None:
         
+        info = { 
+            'detection_completion_time': datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'),
+            'format_version': '1.2' 
+        }
+        
+        if detector_file is not None:
+            detector_filename = os.path.basename(detector_file)
+            detector_version = get_detector_version_from_filename(detector_filename)
+            detector_metadata = get_detector_metadata_from_version_string(detector_version)
+            info['detector'] = detector_filename  
+            info['detector_metadata'] = detector_metadata
+        else:
+            info['detector'] = 'unknown'
+            info['detector_metadata'] = get_detector_metadata_from_version_string('unknown')
+        
+    # If the caller supplied the entire "info" struct
+    else:
+        
+        if detector_file is not None:
+            
+            print('Warning (write_results_to_file): info struct and detector file supplied, ignoring detector file')
+                  
     final_output = {
         'images': results,
         'detection_categories': DEFAULT_DETECTOR_LABEL_MAP,

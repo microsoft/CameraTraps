@@ -172,7 +172,7 @@ The instructions will assume you are running at an Anaconda prompt.  You will kn
 
 <img src="images/anaconda-prompt-ct.jpg" style="margin-left:25px;">
 
-On Windows, when you install Anaconda, you will actually get two different Anaconda command prompts; in your start menu, they will be called "Anaconda Prompt (anaconda3)" and "Anaconda Powershell Prompt (anaconda3)".  Either is fine, though we have tested these instructions in the "regular" Anaconda prompt (i.e., not the Powershell prompt).
+On Windows, when you install Anaconda, you will actually get two different Anaconda command prompts; in your start menu, they will be called "Anaconda Prompt (anaconda3)" and "Anaconda Powershell Prompt (anaconda3)".  These instructions assume you are using the "regular" Anaconda prompt, <b>not</b> the Powershell prompt.
 
 If you have a deep-learning-friendly GPU, you will also need to have a recent [NVIDIA driver](https://www.nvidia.com/download/index.aspx) installed. 
 
@@ -317,7 +317,7 @@ To use run_detector.py on Windows:
 
 ```batch
 cd c:\git\CameraTraps
-python detection\run_detector.py "c:\megadetector\md_v5a.0.0.pt" --image_file "some_image_file.jpg" --threshold 0.2
+python detection\run_detector.py "c:\megadetector\md_v5a.0.0.pt" --image_file "some_image_file.jpg" --threshold 0.1
 ```
 Change "some_image_file.jpg" to point to a real image on your computer.
 
@@ -341,7 +341,7 @@ To use this script on Linux/Mac:
  
 ```batch
 cd ~/git/CameraTraps
-python detection/run_detector.py "$HOME/megadetector/md_v5a.0.0.pt" --image_file "some_image_file.jpg" --threshold 0.2
+python detection/run_detector.py "$HOME/megadetector/md_v5a.0.0.pt" --image_file "some_image_file.jpg" --threshold 0.1
 ```
 
 #### run_detector_batch.py
@@ -352,7 +352,7 @@ To use run_detector_batch.py on Windows:
 
 ```batch
 cd c:\git\CameraTraps
-python detection\run_detector_batch.py "c:\megadetector\md_v5a.0.0.pt" "c:\some_image_folder" "c:\megadetector\test_output.json" --output_relative_filenames --recursive --threshold 0.2 --checkpoint_frequency 10000
+python detection\run_detector_batch.py "c:\megadetector\md_v5a.0.0.pt" "c:\some_image_folder" "c:\megadetector\test_output.json" --output_relative_filenames --recursive --checkpoint_frequency 10000
 ```
 
 Change "c:\some_image_folder" to point to the real folder on your computer where your images live.
@@ -377,7 +377,7 @@ To use this script on Linux/Mac:
 
 ```batch
 cd ~/git/CameraTraps
-python detection/run_detector_batch.py "$HOME/megadetector/md_v5a.0.0.pt" "/some/image/folder" "$HOME/megadetector/test_output.json" --output_relative_filenames --recursive --threshold 0.2 --checkpoint_frequency 10000
+python detection/run_detector_batch.py "$HOME/megadetector/md_v5a.0.0.pt" "/some/image/folder" "$HOME/megadetector/test_output.json" --output_relative_filenames --recursive --checkpoint_frequency 10000
 ```
 
 
@@ -395,7 +395,7 @@ The following support MegaDetector v4 (let us know if any of these adopt MDv5!):
 
 * [EcoAssist](https://github.com/PetervanLunteren/EcoAssist) is a GUI-based tool for running MegaDetector in MacOS environments
 * [MegaDetector-GUI](https://github.com/petargyurov/megadetector-gui) is a GUI-based tool for running MegaDetector in Windows environments
-* [Ben Evans](https://bencevans.io/) set up a [Web-based MegaDetector demo](https://replicate.com/bencevans/megadetector) at <replicate.com>
+* [Ben Evans](https://bencevans.io/) set up a [Web-based MegaDetector demo](https://replicate.com/bencevans/megadetector) at [replicate.com](https://replicate.com)
 * The [Zooniverse ML Subject Assistant](https://subject-assistant.zooniverse.org/#/intro) allows Zooniverse camera trap project owners to run MegaDetector and get "AI votes" on their camera trap images
 
 ## How do I use the results?
@@ -489,6 +489,7 @@ MegaDetector v5b was trained on all MDv4 training data, plus new private data, a
 * [Orinoquía Camera Traps](https://lila.science/orinoquia-camera-traps/)
 * [SWG Camera Traps](https://lila.science/datasets/swg-camera-traps)
 * [ENA24](https://lila.science/datasets/ena24detection)
+* [Wellington Camera Traps](https://lila.science/datasets/wellingtoncameratraps)
 * [Several datasets from Snapshot Safari](https://lila.science/category/camera-traps/snapshot-safari/)
 
 MegaDetector v5a was trained on all MDv5b training data, and new public data from:
