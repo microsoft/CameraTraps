@@ -127,7 +127,7 @@ def merge_detections(source_files,target_file,output_file,options=None):
             
             image_filename = source_im['file']            
             
-            assert image_filename in fn_to_image
+            assert image_filename in fn_to_image, 'Image {} not in target image set'.format(image_filename)
             target_im = fn_to_image[image_filename]
             
             if 'detections' not in source_im or source_im['detections'] is None:

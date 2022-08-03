@@ -26,6 +26,9 @@ from detection.run_detector import get_detector_version_from_filename
 
 max_task_name_length = 92
 
+# To specify a non-default confidence threshold for including detections in the .json file
+json_threshold = None
+
 # Turn warnings into errors if more than this many images are missing
 max_tolerable_failed_images = 100
 
@@ -155,6 +158,10 @@ for i_task,task in enumerate(task_info):
     if (use_image_queue):
         use_image_queue_string = '--use_image_queue'
 
+    json_threshold_string = ''
+    if json_threshold is not None:
+        json_threshold_string = '--threshold {}'.format(json_threshold)
+        
     ncores_string = ''
     if (ncores > 1):
         ncores_string = '--ncores {}'.format(ncores)
@@ -163,7 +170,7 @@ for i_task,task in enumerate(task_info):
     if quiet_mode:
         quiet_string = '--quiet'
         
-    cmd = f'{cuda_string} python run_detector_batch.py {model_file} {chunk_file} {output_fn} {checkpoint_frequency_string} {checkpoint_path_string} {use_image_queue_string} {ncores_string} {quiet_string}'
+    cmd = f'{cuda_string} python run_detector_batch.py {model_file} {chunk_file} {output_fn} {checkpoint_frequency_string} {checkpoint_path_string} {use_image_queue_string} {ncores_string} {quiet_string} {json_threshold_string}'
     
     cmd_file = os.path.join(filename_base,'run_chunk_{}_gpu_{}.sh'.format(str(i_task).zfill(2),
                             str(gpu_number).zfill(2)))
