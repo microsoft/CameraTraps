@@ -5,6 +5,7 @@
 #%% Imports and constants
 
 import os
+import json
 import zipfile
 import pandas as pd
 
@@ -15,6 +16,12 @@ lila_metadata_url = 'http://lila.science/wp-content/uploads/2020/03/lila_sas_url
 
 lila_taxonomy_mapping_url = 'https://lila.science/wp-content/uploads/2022/07/lila-taxonomy-mapping_release.csv'
 
+wildlife_insights_page_size = 30000
+wildlife_insights_taxonomy_url = 'https://api.wildlifeinsights.org/api/v1/taxonomy?fields=class,order,family,genus,species,authority,taxonomyType,uniqueIdentifier,commonNameEnglish&page[size]={}'.format(wildlife_insights_page_size)
+wildlife_insights_taxonomy_local_json_filename = 'wi_taxonomy.json'
+wildlife_insights_taxonomy_local_csv_filename = \
+    wildlife_insights_taxonomy_local_json_filename.replace('.json','.csv')
+
 # from ai4eutils
 from url_utils import download_url
 from path_utils import unzip_file
@@ -22,6 +29,45 @@ from path_utils import unzip_file
 
 #%% Common functions
 
+def read_wildlife_insights_taxonomy_mapping(metadata_dir):
+    """
+    Reads the WI taxonomy mapping file, downloading the .json data (and writing to .csv) if necessary.
+    
+    Returns a Pandas dataframe
+    """
+    
+    wi_taxonomy_csv_path = os.path.join(metadata_dir,wildlife_insights_taxonomy_local_csv_filename)
+    
+    if os.path.exists(wi_taxonomy_csv_path):
+        df = pd.read_csv(wi_taxonomy_csv_path)
+    else:
+        wi_taxonomy_json_path = os.path.join(metadata_dir,wildlife_insights_taxonomy_local_json_filename)
+        download_url(wildlife_insights_taxonomy_url, wi_taxonomy_json_path)
+        with open(wi_taxonomy_json_path,'r') as f:
+            d = json.load(f)
+            
+        # We haven't implemented paging, make sure that's not an issue
+        assert d['meta']['totalItems'] < wildlife_insights_page_size
+            
+        # d['data'] is a list of items that look like:
+        """
+         {'id': 2000003,
+         'class': 'Mammalia',
+         'order': 'Rodentia',
+         'family': 'Abrocomidae',
+         'genus': 'Abrocoma',
+         'species': 'bennettii',
+         'authority': 'Waterhouse, 1837',
+         'commonNameEnglish': "Bennett's Chinchilla Rat",
+         'taxonomyType': 'biological',
+         'uniqueIdentifier': '7a6c93a5-bdf7-4182-82f9-7a67d23f7fe1'}
+        """
+        df = pd.DataFrame(d['data'])
+        df.to_csv(wi_taxonomy_csv_path,index=False)
+        
+    return df
+
+    
 def read_lila_taxonomy_mapping(metadata_dir):
     """
     Reads the LILA taxonomy mapping file, downloading the .csv file if necessary.
