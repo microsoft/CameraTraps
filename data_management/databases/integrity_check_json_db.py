@@ -289,7 +289,8 @@ def integrity_check_json_db(jsonFile, options=None):
     
         # Confirm validity
         assert ann['category_id'] in catIdToCat, 'Category {} not found in category list'.format(ann['category_id'])
-        assert ann['image_id'] in imageIdToImage
+        assert ann['image_id'] in imageIdToImage, 'Image ID {} referred to by annotation {}, not available'.format(
+            ann['image_id'],ann['id'])
     
         imageIdToImage[ann['image_id']]['_count'] += 1
         catIdToCat[ann['category_id']]['_count'] +=1 
