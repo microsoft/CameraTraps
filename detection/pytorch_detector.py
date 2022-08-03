@@ -137,4 +137,4 @@ if __name__ == '__main__':
     detector = PTDetector(model_file)
     image = viz_utils.load_image(im_file)
 
-    res = detector.generate_detections_one_image(image, im_file, detection_threshold=0.2)
+    res = detector.generate_detections_one_image(image, im_file, detection_threshold=0.00001)
