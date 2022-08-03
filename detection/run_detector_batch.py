@@ -536,7 +536,7 @@ def main():
         '--threshold',
         type=float,
         default=DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD,
-        help="Confidence threshold between 0 and 1.0, don't include boxes below this confidence in the output file. Default is 0.1")
+        help="Confidence threshold between 0 and 1.0, don't include boxes below this confidence in the output file. Default is {}".format(DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD))
     parser.add_argument(
         '--checkpoint_frequency',
         type=int,

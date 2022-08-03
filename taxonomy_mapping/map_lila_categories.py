@@ -73,4 +73,3 @@ for _dataset_name in lila_dataset_to_categories.keys():
             print('Could not find mapping for {}'.format(ds_query))            
         else:
             scientific_name = ds_query_to_scientific_name[ds_query]
-
