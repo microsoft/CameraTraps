@@ -11,6 +11,7 @@
 
 import json
 import os
+import stat
 
 import humanfriendly
 
@@ -52,7 +53,7 @@ input_path = os.path.expanduser('~/data/organization/2021-12-24')
 organization_name_short = 'organization'
 # job_date = '2022-01-01'
 job_date = None
-assert job_date is not None
+assert job_date is not None and organization_name_short != 'organization'
 
 model_file = os.path.expanduser('~/models/camera_traps/megadetector/md_v5.0.0/md_v5a.0.0.pt')
 # model_file = os.path.expanduser('~/models/camera_traps/megadetector/md_v5.0.0/md_v5b.0.0.pt')
@@ -149,19 +150,16 @@ for i_task,task in enumerate(task_info):
     
     checkpoint_frequency_string = ''
     checkpoint_path_string = ''
+    checkpoint_filename = chunk_file.replace('.json','_checkpoint.json')
+    
     if checkpoint_frequency is not None and checkpoint_frequency > 0:
         checkpoint_frequency_string = f'--checkpoint_frequency {checkpoint_frequency}'
-        checkpoint_path_string = '--checkpoint_path {}'.format(chunk_file.replace(
-            '.json','_checkpoint.json'))
+        checkpoint_path_string = '--checkpoint_path "{}"'.format(checkpoint_filename)
             
     use_image_queue_string = ''
     if (use_image_queue):
         use_image_queue_string = '--use_image_queue'
 
-    json_threshold_string = ''
-    if json_threshold is not None:
-        json_threshold_string = '--threshold {}'.format(json_threshold)
-        
     ncores_string = ''
     if (ncores > 1):
         ncores_string = '--ncores {}'.format(ncores)
@@ -169,21 +167,38 @@ for i_task,task in enumerate(task_info):
     quiet_string = ''
     if quiet_mode:
         quiet_string = '--quiet'
+
+    # Generate the script to run MD
         
-    cmd = f'{cuda_string} python run_detector_batch.py {model_file} {chunk_file} {output_fn} {checkpoint_frequency_string} {checkpoint_path_string} {use_image_queue_string} {ncores_string} {quiet_string} {json_threshold_string}'
+    cmd = f'{cuda_string} python run_detector_batch.py "{model_file}" "{chunk_file}" "{output_fn}" {checkpoint_frequency_string} {checkpoint_path_string} {use_image_queue_string} {ncores_string} {quiet_string}'
     
     cmd_file = os.path.join(filename_base,'run_chunk_{}_gpu_{}.sh'.format(str(i_task).zfill(2),
                             str(gpu_number).zfill(2)))
     
     with open(cmd_file,'w') as f:
         f.write(cmd + '\n')
-        
-    import stat
+    
     st = os.stat(cmd_file)
     os.chmod(cmd_file, st.st_mode | stat.S_IEXEC)
     
     task['command'] = cmd
     task['command_file'] = cmd_file
+
+    # Generate the script to resume from the checkpoint
+    
+    resume_string = ' --resume_from_checkpoint "{}"'.format(checkpoint_filename)
+    resume_cmd = cmd + resume_string
+    resume_cmd_file = os.path.join(filename_base,'resume_chunk_{}_gpu_{}.sh'.format(str(i_task).zfill(2),
+                            str(gpu_number).zfill(2)))
+    
+    with open(resume_cmd_file,'w') as f:
+        f.write(resume_cmd + '\n')
+    
+    st = os.stat(resume_cmd_file)
+    os.chmod(resume_cmd_file, st.st_mode | stat.S_IEXEC)
+    
+    task['resume_command'] = resume_cmd
+    task['resume_command_file'] = resume_cmd_file
 
 
 #%% Run the tasks
@@ -957,7 +972,7 @@ for final_output_path in classification_detection_files:
         if 'Pronghorn Test Dataset/Drinker/SED/I__00030.JPG' in im['file']:
             pass
             
-        if 'detections' not in im or len(im['detections']) == 0:
+        if 'detections' not in im or im['detections'] is None or len(im['detections']) == 0:
             continue
         
         detections = im['detections']
