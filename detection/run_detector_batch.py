@@ -580,9 +580,10 @@ def main():
     if args.resume_from_checkpoint:
         assert os.path.exists(args.resume_from_checkpoint), 'File at resume_from_checkpoint specified does not exist'
         with open(args.resume_from_checkpoint) as f:
+            print('Loading previous results from checkpoint file {}'.format(args.resume_from_checkpoint))
             saved = json.load(f)
         assert 'images' in saved, \
-            'The file saved as checkpoint does not have the correct fields; cannot be restored'
+            'The checkpoint file does not have the correct fields; cannot be restored'
         results = saved['images']
         print('Restored {} entries from the checkpoint'.format(len(results)))
     else:

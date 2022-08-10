@@ -111,7 +111,7 @@ class SubsetJsonDetectorOutputOptions:
     confidence_threshold = None
     
     # Should we remove failed images?
-    remove_failed_images = True
+    remove_failed_images = False
     
     debug_max_images = -1
     
