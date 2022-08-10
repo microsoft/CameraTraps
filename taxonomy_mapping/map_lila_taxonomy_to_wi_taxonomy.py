@@ -42,6 +42,7 @@ wi_taxonomy_df = read_wildlife_insights_taxonomy_mapping(metadata_dir)
 lila_taxonomy = lila_taxonomy_df.to_dict('records')
 wi_taxonomy = wi_taxonomy_df.to_dict('records')
 
+
 #%% Cache WI taxonomy lookups
 
 import numpy as np
@@ -72,27 +73,44 @@ wi_taxon_name_to_taxon = {}
 # This is just a handy lookup table that we'll use to debug mismatches
 wi_common_name_to_taxon = {}
 
-human_identifiers = set()
+object_name_to_taxon = {}
+
+blank_taxon = None
+animal_taxon = None
+unknown_taxon = None
 
 ignore_taxa = set(['No CV Result','CV Needed','CV Failed'])
-literal_taxa = set(['Animal','Unknown'])
 
 # taxon = wi_taxonomy[1000]; print(taxon)
 for taxon in tqdm(wi_taxonomy):
     
     taxon_name = None
     
+    assert taxon['taxonomyType'] == 'object' or taxon['taxonomyType'] == 'biological'
+
     if taxon['commonNameEnglish'] in ignore_taxa:
         continue
-    
+
     if isinstance(taxon['commonNameEnglish'],str):
-        wi_common_name_to_taxon[taxon['commonNameEnglish'].strip().lower()] = taxon
         
-    if taxon['commonNameEnglish'] in literal_taxa:
-        taxon_name = taxon['commonNameEnglish'].lower()
+        wi_common_name_to_taxon[taxon['commonNameEnglish'].strip().lower()] = taxon
+
+        if taxon['commonNameEnglish'].strip().lower() == 'blank':
+            blank_taxon = taxon
+            continue
+        
+        if taxon['commonNameEnglish'].strip().lower() == 'animal':
+            assert animal_taxon is None
+            animal_taxon = taxon
+            continue
+        
+        if taxon['commonNameEnglish'].strip().lower() == 'unknown':
+            assert unknown_taxon is None
+            unknown_taxon = taxon
+            continue
         
     # Do we have a species name?
-    elif not is_empty_wi_item(taxon['species']):
+    if not is_empty_wi_item(taxon['species']):
         
         # If 'species' is populated, 'genus' should always be populated; one item currently breaks
         # this rule.
@@ -132,6 +150,7 @@ for taxon in tqdm(wi_taxonomy):
     else:
         assert taxon['taxonomyType'] == 'object'
         taxon_name = taxon['commonNameEnglish'].strip().lower()
+        object_name_to_taxon[taxon_name] = taxon
     
     if taxon_name in wi_taxon_name_to_taxon:
         previous_taxon = wi_taxon_name_to_taxon[taxon_name]
@@ -141,29 +160,84 @@ for taxon in tqdm(wi_taxonomy):
     taxon['taxon_name'] = taxon_name
     wi_taxon_name_to_taxon[taxon_name] = taxon
     
-    
+# ...for each taxon
+
+assert unknown_taxon is not None    
+assert animal_taxon is not None
+assert blank_taxon is not None
+
+
+# object_name_to_taxon.keys()
+#
+# dict_keys(['dirt bike', 'motorcycle', 'truck', 'atv', 'vehicle', 'official vehicle',
+#            'setup_pickup', 'measurement scale', 'timelapse', 'snowmobile', 'misfire',
+#            'trash', 'snow', 'fire', 'water craft'])
+
+
 #%% Map LILA categories to WI categories
 
 mismatches = set()
 mismatches_with_common_mappings = set()
 all_searches = set()
 
+lila_taxonomy_levels = ['kingdom','phylum','subphylum','superclass','class','subclass',
+                        'infraclass','superorder','order','suborder','infraorder',
+                        'superfamily','family','subfamily','tribe','genus','species']
+
+unknown_queries = set(['unidentifiable','other','unidentified','unknown','unclassifiable'])
+blank_queries = set(['empty'])
+animal_queries = set(['animalia'])
+
+
+# TODO:
+# ['subspecies','variety']
+
+query_to_wi_taxon = {}
+
 # i_taxon = 0; taxon = lila_taxonomy[i_taxon]; print(taxon)
 for i_taxon,taxon in enumerate(lila_taxonomy):
     
-    if isinstance(taxon['species'],str):
+    query = None
+    
+    for level in lila_taxonomy_levels:
+        if isinstance(taxon[level],str):
+            query = taxon[level]        
+            all_searches.add(query)            
         
-        all_searches.add(taxon['species'])
-        
-        if taxon['species'] not in wi_taxon_name_to_taxon:
-            
-            print('No match for {}'.format(taxon['species']))
-            mismatches.add(taxon['species'])
-            lila_common_name = taxon['common_name']
-            if lila_common_name in wi_common_name_to_taxon:
-                print('Common name maps to {}'.format(wi_common_name_to_taxon[lila_common_name]))
-                mismatches_with_common_mappings.add(taxon['species'])
+    if query is None:
+        # E.g., 'car'
+        query = taxon['query']
 
+    wi_taxon = None
+    
+    if query in unknown_queries:    
+        
+        wi_taxon = unknown_taxon
+    
+    elif query in blank_queries:
+        
+        wi_taxon = blank_taxon
+        
+    elif query in animal_queries:
+        
+        wi_taxon = animal_taxon
+    
+    elif query in wi_taxon_name_to_taxon:
+        
+        wi_taxon = wi_taxon_name_to_taxon[query]
+        
+    else:
+        
+        print('No match for {}'.format(query))
+        mismatches.add(query)
+        lila_common_name = taxon['common_name']
+        if lila_common_name in wi_common_name_to_taxon:
+            # print('Common name maps to {}'.format(wi_common_name_to_taxon[lila_common_name]))
+            mismatches_with_common_mappings.add(query)
+            
+    query_to_wi_taxon[query] = wi_taxon
+    
+# ...for each LILA taxon    
 print('Of {} entities, there are {} mismatches ({} of which have common name mappings)'.format(
     len(all_searches),len(mismatches),len(mismatches_with_common_mappings)))
             
