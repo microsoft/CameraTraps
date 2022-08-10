@@ -91,6 +91,7 @@ Here are a few of the organizations that have used MegaDetector... we're only li
 * Capitol Reef National Park and Utah Valley University
 * University of Victoria Applied Conservation Macro Ecology (ACME) Lab 
 * Université du Québec en Outaouais Institut des Science de la Forêt Tempérée (ISFORT)
+* [WildTrax](https://www.wildtrax.ca/)
 
 # Data
 
