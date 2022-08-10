@@ -1,57 +1,69 @@
-FROM ai4eregistry.azurecr.io/camera-trap/2.0-detection-sync:5
 
+ARG BASE_IMAGE=tensorflow/tensorflow:1.14.0-gpu-py3
+FROM $BASE_IMAGE
+
+# install and expose redis default port
+RUN  apt-get update && apt-get install -y redis-server
+EXPOSE  6379
+
+RUN apt-get update --fix-missing \
+    && apt-get install -y software-properties-common \
+    && add-apt-repository ppa:deadsnakes/ppa \
+    && apt-get update \
+    && apt-get install -y apt-utils \
+        supervisor \
+        curl \
+        bzip2 \
+        ca-certificates \
+        libglib2.0-0 \
+        libxext6 \
+        libsm6 \
+        libxrender1 \
+        python3-setuptools \
+        python3.7-dev \
+        python3.7 \
+        apt-transport-https \
+        build-essential \
+        gcc
 # the base image uses Python 3.6. TODO use TF2 for inference
 
 # Install additional packages
 RUN pip3 install --upgrade pip
 
 RUN pip3 install \
+    redis \
+    numpy \
+    requests \
     matplotlib \
     pillow \
     requests_toolbelt \
     tqdm \
-    humanfriendly \
+    humanfriendly\
     jsonpickle
-# numpy and requests are already included in the base image
+
+
+COPY ./requirements.txt /
+RUN pip3 install -r ./requirements.txt
 
 # Copy your API code
-COPY ./animal_detection_classification_api /app/animal_detection_classification_api/
+COPY ./animal_detection_api /app/animal_detection_api/
+RUN true
 
 COPY ./supervisord.conf /etc/supervisord.conf
+RUN true
 
 # startup.sh is a helper script
 COPY ./startup.sh /
 RUN chmod +x /startup.sh
 
-# Enter your Application Insights instrumentation key to enable Azure monitoring.  You can find the key here:
-#   https://docs.microsoft.com/en-us/azure/azure-monitor/app/create-new-resource#copy-the-instrumentation-key
-ENV APPINSIGHTS_INSTRUMENTATIONKEY=f85104ff-1da9-4301-8f77-5b24c68788aa \
-    TRACE_SAMPLING_RATE=1.0
 
-# The following variables will allow you to filter logs in AppInsights
-ENV SERVICE_OWNER="AI4E_camera_trap" \
-    SERVICE_CLUSTER=Local\ Docker \
-    SERVICE_MODEL_NAME="camera_trap_sync" \
-    SERVICE_MODEL_FRAMEWORK=Python \
-    SERVICE_MODEL_FRAMEOWRK_VERSION=3.7 \
-    ENVSERVICE_MODEL_VERSION=1.0 \
-    DISABLE_CURRENT_REQUEST_METRIC=False
-
-# This is the prefix for your API.
-# In this example, the default_post function has api_path set to '/example', so the URL will be:
-#   /v1/my_api/tasker/example - API_PREFIX + api_path
-# The supervisor.conf file sets the webserver port to 1212, so if you run this locally, the complete URL will be:
-#   http://localhost:1212/v1/my_api/tasker/example
-ENV API_PREFIX=/v1/camera-trap/sync
-
-ENV PYTHONPATH="${PYTHONPATH}:/app/animal_detection_classification_api/"
+ENV PYTHONPATH="${PYTHONPATH}:/app/animal_detection_api/"
 ENV PYTHONUNBUFFERED=TRUE
 
 # Expose the port that is to be used when calling your API
+
+#!!! IF YOU CHANGE THE PORT HERE REMEMBER TO UPDATE supervisord.conf FILE AS WELL
 EXPOSE 1212
 
-HEALTHCHECK --interval=1m --timeout=3s --start-period=20s \
-  CMD curl -f http://localhost:1212/${API_PREFIX}/ || exit 1
+# starts the supervisor.conf (which starts up the detector, flask app and redis server)
 ENTRYPOINT [ "/startup.sh" ]
-# Comment out the line above and uncomment the following line to debug and see output messages.
-# ENTRYPOINT ["gunicorn", "-b", "0.0.0.0:1212", "runserver:app"]
