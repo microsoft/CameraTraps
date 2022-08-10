@@ -110,12 +110,7 @@ This repo is organized into the following folders...
 
 ## api
 
-Code for hosting our models as an API, either for synchronous operation (e.g. for real-time inference or for our Web-based demo) or as a batch process (for large biodiversity surveys).  The synchronous API in this folder does a bunch of fancy load-balancing stuff, in comparison to...
-
-
-## api-flask-redis
-
-Code for a simplified synchronous API that runs as a single-node Flask app.
+Code for hosting our models as an API, either for synchronous operation (e.g. for real-time inference or for our Web-based demo) or as a batch process (for large biodiversity surveys).
 
 
 ## classification
