@@ -218,7 +218,6 @@ python crop_detections.py \
     /path/to/crops \
     --images-dir /path/to/images \
     --container-url "https://account.blob.core.windows.net/container?sas_token" \
-    --detector-version "4.1" \
     --threshold 0.8 \
     --save-full-images --square-crops \
     --threads 50 \
