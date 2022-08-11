@@ -93,7 +93,7 @@ Here are a few of the organizations that have used MegaDetector... we're only li
 * Université du Québec en Outaouais Institut des Science de la Forêt Tempérée (ISFORT)
 * [WildTrax](https://www.wildtrax.ca/)
 * Alberta Biodiversity Monitoring Institute (ABMI) ([blog post](https://wildcams.ca/blog/the-abmi-visits-the-zoo/))
-* Felidae Conservation Fund ([platform](https://wildepod.org/)) ([blog post](https://abhaykashyap.com/blog/ai-powered-camera-trap-image-annotation-system/)
+* Felidae Conservation Fund ([platform](https://wildepod.org/)) ([blog post](https://abhaykashyap.com/blog/ai-powered-camera-trap-image-annotation-system/))
 
 # Data
 
