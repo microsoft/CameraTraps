@@ -80,19 +80,19 @@ Here are a few of the organizations that have used MegaDetector... we're only li
 * The Nature Conservancy in Wyoming
 * Seattle Urban Carnivore Project
 * Road Ecology Center, University of California, Davis
-* [TrapTagger](https://wildeyeconservation.org/trap-tagger-about/)
 * Blackbird Environmental
 * UNSW Sydney
 * Taronga Conservation Society
 * Myall Lakes Dingo Project
-* Irvine Ranch Conservancy ([story](https://www.ocregister.com/2022/03/30/ai-software-is-helping-researchers-focus-on-learning-about-ocs-wild-animals/))
 * SUMHAL, Estación Biológica de Doñana
 * Capitol Reef National Park and Utah Valley University
 * University of Victoria Applied Conservation Macro Ecology (ACME) Lab 
 * Université du Québec en Outaouais Institut des Science de la Forêt Tempérée (ISFORT)
+* [TrapTagger](https://wildeyeconservation.org/trap-tagger-about/)
 * [WildTrax](https://www.wildtrax.ca/)
 * Alberta Biodiversity Monitoring Institute (ABMI) ([blog post](https://wildcams.ca/blog/the-abmi-visits-the-zoo/))
 * Felidae Conservation Fund ([platform](https://wildepod.org/)) ([blog post](https://abhaykashyap.com/blog/ai-powered-camera-trap-image-annotation-system/))
+* Irvine Ranch Conservancy ([story](https://www.ocregister.com/2022/03/30/ai-software-is-helping-researchers-focus-on-learning-about-ocs-wild-animals/))
 
 # Data
 
