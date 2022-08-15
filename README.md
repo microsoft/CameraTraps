@@ -46,7 +46,6 @@ Here are a few of the organizations that have used MegaDetector... we're only li
 * Australian Wildlife Conservancy
 * Lab of Dr. Bilal Habib at the Wildlife Institute of India
 * Royal Society for the Protection of Birds (RSPB)
-* Wildlife Protection Solutions
 * Island Conservation
 * Synthetaic
 * School of Natural Sciences, University of Tasmania
@@ -66,10 +65,8 @@ Here are a few of the organizations that have used MegaDetector... we're only li
 * TU Berlin, Department of Ecology
 * DC Cat Count, led by the Humane Rescue Alliance
 * Center for Biodiversity and Conservation at the American Museum of Natural History
-* Camelot
 * Graeme Shannon's Research Group at Bangor University 
 * Snapshot USA
-* University of British Columbia Wildlife Coexistence Lab
 * Michigan Department of Natural Resources, Wildlife Division
 * Serra dos Órgãos National Park / ICMBio
 * McLoughlin Lab in Population Ecology, University of Saskatchewan
@@ -88,11 +85,14 @@ Here are a few of the organizations that have used MegaDetector... we're only li
 * Capitol Reef National Park and Utah Valley University
 * University of Victoria Applied Conservation Macro Ecology (ACME) Lab 
 * Université du Québec en Outaouais Institut des Science de la Forêt Tempérée (ISFORT)
+* University of British Columbia Wildlife Coexistence Lab ([OSS tool](https://github.com/WildCoLab/WildCo_Face_Blur))
 * [TrapTagger](https://wildeyeconservation.org/trap-tagger-about/)
 * [WildTrax](https://www.wildtrax.ca/)
+* [Camelot](https://camelotproject.org/)
 * Alberta Biodiversity Monitoring Institute (ABMI) ([blog post](https://wildcams.ca/blog/the-abmi-visits-the-zoo/))
 * Felidae Conservation Fund ([platform](https://wildepod.org/)) ([blog post](https://abhaykashyap.com/blog/ai-powered-camera-trap-image-annotation-system/))
 * Irvine Ranch Conservancy ([story](https://www.ocregister.com/2022/03/30/ai-software-is-helping-researchers-focus-on-learning-about-ocs-wild-animals/))
+* Wildlife Protection Solutions ([story](https://customers.microsoft.com/en-us/story/1384184517929343083-wildlife-protection-solutions-nonprofit-ai-for-earth))
 
 # Data
 
