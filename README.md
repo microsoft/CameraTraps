@@ -86,13 +86,13 @@ Here are a few of the organizations that have used MegaDetector... we're only li
 * University of Victoria Applied Conservation Macro Ecology (ACME) Lab 
 * Université du Québec en Outaouais Institut des Science de la Forêt Tempérée (ISFORT)
 * University of British Columbia Wildlife Coexistence Lab ([OSS tool](https://github.com/WildCoLab/WildCo_Face_Blur))
-* [TrapTagger](https://wildeyeconservation.org/trap-tagger-about/)
-* [WildTrax](https://www.wildtrax.ca/)
-* [Camelot](https://camelotproject.org/)
 * Alberta Biodiversity Monitoring Institute (ABMI) ([blog post](https://wildcams.ca/blog/the-abmi-visits-the-zoo/))
 * Felidae Conservation Fund ([platform](https://wildepod.org/)) ([blog post](https://abhaykashyap.com/blog/ai-powered-camera-trap-image-annotation-system/))
 * Irvine Ranch Conservancy ([story](https://www.ocregister.com/2022/03/30/ai-software-is-helping-researchers-focus-on-learning-about-ocs-wild-animals/))
 * Wildlife Protection Solutions ([story](https://customers.microsoft.com/en-us/story/1384184517929343083-wildlife-protection-solutions-nonprofit-ai-for-earth))
+* [TrapTagger](https://wildeyeconservation.org/trap-tagger-about/)
+* [WildTrax](https://www.wildtrax.ca/)
+* [Camelot](https://camelotproject.org/)
 
 # Data
 
