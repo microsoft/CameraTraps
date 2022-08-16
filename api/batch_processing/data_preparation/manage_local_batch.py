@@ -55,6 +55,14 @@ organization_name_short = 'organization'
 job_date = None
 assert job_date is not None and organization_name_short != 'organization'
 
+# Optional descriptor
+job_tag = None
+
+if job_tag is None:
+    job_description_string = ''
+else:
+    job_description_string = '-' + job_tag
+
 model_file = os.path.expanduser('~/models/camera_traps/megadetector/md_v5.0.0/md_v5a.0.0.pt')
 # model_file = os.path.expanduser('~/models/camera_traps/megadetector/md_v5.0.0/md_v5b.0.0.pt')
 # model_file = os.path.expanduser('~/models/camera_traps/megadetector/md_v4.1.0/md_v4.1.0.pb')
@@ -73,7 +81,7 @@ else:
 
 checkpoint_frequency = 10000
 
-base_task_name = organization_name_short + '-' + job_date + '-' + get_detector_version_from_filename(model_file)
+base_task_name = organization_name_short + '-' + job_date + job_description_string + '-' + get_detector_version_from_filename(model_file)
 base_output_folder_name = os.path.join(postprocessing_base,organization_name_short)
 os.makedirs(base_output_folder_name,exist_ok=True)
 
@@ -91,6 +99,8 @@ os.makedirs(postprocessing_output_folder, exist_ok=True)
 
 if input_path.endswith('/'):
     input_path = input_path[0:-1]
+
+print('Output folder:\n{}'.format(filename_base))
 
 
 #%% Enumerate files
@@ -312,10 +322,13 @@ filenames = [
     ]
 
 detection_thresholds = [0.7,0.15,0.15]
-# rendering_thresholds = [0.5,0.1,0.1]
+
+assert len(detection_thresholds) == len(filenames)
+
 rendering_thresholds = [(x*0.6666) for x in detection_thresholds]
 
-for i, j in itertools.combinations([0,1,2],2):
+# Choose all pairwise combinations of the files in [filenames]
+for i, j in itertools.combinations(list(range(0,len(filenames))),2):
         
     pairwise_options = PairwiseBatchComparisonOptions()
     
