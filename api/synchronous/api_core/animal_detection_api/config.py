@@ -17,7 +17,7 @@ MAX_IMAGES_ACCEPTED = 8
 
 IMAGE_CONTENT_TYPES = ['image/png', 'application/octet-stream', 'image/jpeg']
 
-DETECTOR_MODEL_PATH = '/app/animal_detection_api/model/md_v4.1.0.pb'
+DETECTOR_MODEL_PATH = '/app/animal_detection_api/model/md_v5a.0.0.pt'
 
 DETECTOR_MODEL_VERSION = 'v4.1.0'
 
@@ -32,4 +32,4 @@ API_PREFIX = '/v1/camera-trap/sync'
 API_KEYS_FILE = 'allowed_keys.txt'
 
 # Use this when testing without Docker
-DETECTOR_MODEL_PATH_DEBUG = 'model/md_v4.1.0.pb'
+DETECTOR_MODEL_PATH_DEBUG = 'model/md_v5a.0.0.pt'
