@@ -24,7 +24,10 @@ RUN apt-get update --fix-missing \
         python3.7 \
         apt-transport-https \
         build-essential \
-        gcc
+        gcc \
+        ffmpeg \
+        libsm6 \
+        libxext6
 # the base image uses Python 3.6. TODO use TF2 for inference
 
 # Install additional packages
@@ -42,11 +45,19 @@ RUN pip3 install \
     jsonpickle
 
 
+# install yolo5 requirements
+COPY ./yolov5/requirements.txt /yolov5_requirements.txt
+RUN pip3 install -r ./yolov5_requirements.txt
+
 COPY ./requirements.txt /
 RUN pip3 install -r ./requirements.txt
 
 # Copy your API code
 COPY ./animal_detection_api /app/animal_detection_api/
+RUN true
+
+#Copy yolo5 code
+COPY ./yolov5 /app/yolov5/
 RUN true
 
 COPY ./supervisord.conf /etc/supervisord.conf
@@ -57,13 +68,13 @@ COPY ./startup.sh /
 RUN chmod +x /startup.sh
 
 
-ENV PYTHONPATH="${PYTHONPATH}:/app/animal_detection_api/"
+ENV PYTHONPATH="${PYTHONPATH}:/app/animal_detection_api/:/app/yolov5/"
 ENV PYTHONUNBUFFERED=TRUE
 
 # Expose the port that is to be used when calling your API
 
 #!!! IF YOU CHANGE THE PORT HERE REMEMBER TO UPDATE supervisord.conf FILE AS WELL
-EXPOSE 1212
+EXPOSE 1213
 
 # starts the supervisor.conf (which starts up the detector, flask app and redis server)
 ENTRYPOINT [ "/startup.sh" ]

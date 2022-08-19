@@ -16,7 +16,8 @@ import PIL
 
 from io import BytesIO
 
-from run_tf_detector import TFDetector
+from detection.run_detector import load_detector
+from tf_detector import TFDetector
 import config
 import visualization.visualization_utils as viz_utils 
 
@@ -57,7 +58,7 @@ def detect_process():
                     image = viz_utils.load_image(image)
 
                     start_time = time.time()
-                    result = detector.generate_detections_one_image(image, filename)
+                    result = detector.generate_detections_one_image(image, filename, detection_threshold=0.00001)
                     all_detection_results.append(result)
 
                     elapsed = time.time() - start_time
@@ -140,12 +141,12 @@ if __name__ == '__main__':
     else:
         model_path = config.DETECTOR_MODEL_PATH
 
-    detector = TFDetector(model_path)
+    detector = load_detector(model_path)
 
     # run detections on a test image to load the model
     print('Running initial detection to load model...')
     test_image = PIL.Image.new(mode="RGB", size=(200, 200))
-    result = detector.generate_detections_one_image(test_image, "test_image")
+    result = detector.generate_detections_one_image(test_image, "test_image", detection_threshold=0.00001)
     print(result)
     print('\n')
 
