@@ -16,11 +16,14 @@
 # a/b/d/2.jpg
 # a/b/e/3.jpg
 # a/b/f/4.jpg
+# a/x/y/5.jpg
 #
 # And let's say:
 #
 # * The results say that the first three images are empty/person/vehicle, respectively
 # * The fourth image is above threshold for "animal" and "person"
+# * The fifth image contains an animal
+#
 # * You specify an output base folder of c:\out
 #
 # You will get the following files:
@@ -29,13 +32,31 @@
 # c:\out\people\a\b\d\2.jpg
 # c:\out\vehicles\a\b\e\3.jpg
 # c:\out\animal_person\a\b\f\4.jpg
+# c:\out\animals\a\x\y\5.jpg
 #
 # By default, images are just copied to the target output folder.  If you specify --render_boxes,
 # bounding boxes will be rendered on the output images.  Because this is no longer strictly
 # a copy operation, this may result in the loss of metadata.  More accurately, this *may*
 # result in the loss of some EXIF metadata; this *will* result in the loss of IPTC/XMP metadata.
 #
-
+# If you have a results file with classification data, you can also specify classes to put
+# in their own folders, within the "animals" folder, like this:
+#
+# --classification_thresholds "deer=0.75,cow=0.75"
+#
+# So, e.g., you might get:
+#
+# c:\out\animals\deer\a\x\y\5.jpg
+#
+# In this scenario, the folders within "animals" will be:
+#
+# deer, cow, multiple, unclassified
+#
+# "multiple" in this case only means "deer and cow"; if an image is classified as containing a 
+# bird and a bear, that would end up in "unclassified", since the folder separation is based only
+# on the categories you provide at the command line.
+#
+   
 #%% Constants and imports
 
 import argparse
@@ -95,9 +116,16 @@ class SeparateDetectionsIntoFoldersOptions:
         self.category_id_to_category_name = None
         self.debug_max_images = None
         
+        # Populated only when using classification results
+        self.classification_category_id_to_name = None
+        self.classification_categories = None
+                
         self.render_boxes = False
         self.line_thickness = default_line_thickness
         self.box_expansion = default_box_expansion
+        
+        # Originally specified as a string, converted to a dict mapping name:threshold
+        self.classification_thresholds = None
         
     # ...__init__()
     
@@ -107,6 +135,16 @@ class SeparateDetectionsIntoFoldersOptions:
 #%% Support functions
     
 def path_is_abs(p): return (len(p) > 1) and (p[0] == '/' or p[1] == ':')
+
+def is_float(v):
+    """
+    Determines whether v is either a float or a string representation of a float.
+    """
+    try:
+        _ = float(v)
+        return True
+    except ValueError:
+        return False
 
 printed_missing_file_warning = False
     
@@ -168,22 +206,86 @@ def process_detections(im,options):
             assert threshold is not None
                 
             max_confidence_this_category = category_name_to_max_confidence[category_name]
-            if max_confidence_this_category > threshold:
+            if max_confidence_this_category >= threshold:
                 categories_above_threshold.append(category_name)
         
         # ...for each category
         
         categories_above_threshold.sort()
         
+        using_classification_folders = (options.classification_thresholds is not None and \
+                                        len(options.classification_thresholds) > 0)
+        
         # If this is above multiple thresholds
         if len(categories_above_threshold) > 1:
+            
+            # TODO: handle species-based separation in, e.g., the animal_person case
             target_folder = options.category_name_to_folder['_'.join(categories_above_threshold)]
     
         elif len(categories_above_threshold) == 0:
             target_folder = options.category_name_to_folder['empty']
             
         else:
+            
+            assert len(categories_above_threshold) == 1
+            
             target_folder = options.category_name_to_folder[categories_above_threshold[0]]
+            
+            # Are we making species classification folders, and is this an animal?
+            if ('animal' in categories_above_threshold) and using_classification_folders:
+                   
+                # Do we need to put this into a specific species folder?
+                
+                # Find the animal-class detections that are above threshold
+                category_name_to_id = {v: k for k, v in options.category_id_to_category_name.items()}
+                animal_category_id = category_name_to_id['animal']
+                valid_animal_detections = [d for d in detections if \
+                                           (d['category'] == animal_category_id and \
+                                           d['conf'] >= options.category_name_to_threshold['animal'])]
+                    
+                # Count the number of classification categories that are above threshold for at
+                # least one detection
+                classification_categories_above_threshold = set()
+                
+                # d = valid_animal_detections[0]
+                for d in valid_animal_detections:
+                    
+                    if 'classifications' not in d or d['classifications'] is None:
+                        continue
+                    
+                    # classification = d['classifications'][0]
+                    for classification in d['classifications']:
+                        
+                        classification_category_id = classification[0]
+                        classification_confidence = classification[1]
+                        
+                        # Do we have a threshold for this category, and if so, is this classification above threshold?
+                        assert options.classification_category_id_to_name is not None
+                        classification_category_name = \
+                            options.classification_category_id_to_name[classification_category_id]
+                        if (classification_category_name in options.classification_thresholds) and \
+                            (classification_confidence > options.classification_thresholds[classification_category_name]):
+                            classification_categories_above_threshold.add(classification_category_name)
+                            
+                    # ...for each classification
+                
+                # ...for each detection
+                                
+                if len(classification_categories_above_threshold) == 0:
+                    classification_folder_name = 'unclassified'
+                    
+                elif len(classification_categories_above_threshold) > 1:
+                    classification_folder_name = 'multiple'
+                    
+                else:
+                    assert len(classification_categories_above_threshold) == 1
+                    classification_folder_name = list(classification_categories_above_threshold)[0]                    
+                
+                target_folder = os.path.join(target_folder,classification_folder_name)
+                
+            # ...if we have to deal with classification subfolders            
+            
+        # ...if we have 0/1/more categories above threshold
         
     # ...if this is/isn't a failure case
             
@@ -220,6 +322,10 @@ def process_detections(im,options):
         category_name_to_id = {v: k for k, v in options.category_id_to_category_name.items()}
         assert len(category_name_to_id) == len(options.category_id_to_category_name)
         
+        classification_label_map = None
+        if using_classification_folders:
+            classification_label_map = options.classification_categories
+            
         for category_name in categories_above_threshold:
             
             category_id = category_name_to_id[category_name]
@@ -227,18 +333,18 @@ def process_detections(im,options):
             assert category_threshold is not None
             category_detections = [d for d in detections if d['category'] == category_id]
             
-            # Until we support classification, remove classification information to 
-            # maintain standard detection colors.
-            #
-            # TODO: remove this later
-            for d in category_detections:
-                if 'classifications' in d:
-                    del d['classifications']
-            
+            # When we're not using classification folders, remove classification
+            # information to maintain standard detection colors.
+            if not using_classification_folders:
+                for d in category_detections:
+                    if 'classifications' in d:
+                        del d['classifications']
+                
             viz_utils.render_detection_bounding_boxes(
                 category_detections, 
                 pil_image,
                 label_map=options.detection_categories,                                                  
+                classification_label_map=classification_label_map,
                 confidence_threshold=category_threshold,
                 thickness=options.line_thickness,
                 expansion=options.box_expansion)
@@ -354,10 +460,49 @@ def separate_detections_into_folders(options):
     # Create the actual folders
     for folder in options.category_name_to_folder.values():
         os.makedirs(folder,exist_ok=True)            
+    
+    # Handle species classification thresholds, if specified
+    if options.classification_thresholds is not None:
         
+        assert 'classification_categories' in results and results['classification_categories'] is not None, \
+            'Classification thresholds specified, but no classification results available'
+        
+        classification_categories = results['classification_categories']
+        classification_category_name_to_id = {v: k for k, v in classification_categories.items()}
+        classification_category_id_to_name = {k: v for k, v in classification_categories.items()}
+        options.classification_category_id_to_name = classification_category_id_to_name
+        options.classification_categories = classification_categories
+        
+        if isinstance(options.classification_thresholds,str):
+            
+            # E.g. deer=0.75,cow=0.75
+            tokens = options.classification_thresholds.split(',')
+            classification_thresholds = {}
+            
+            # token = tokens[0]
+            for token in tokens:
+                subtokens = token.split('=')
+                assert len(subtokens) == 2 and is_float(subtokens[1]), \
+                    'Illegal classification threshold {}'.format(token)                                
+                classification_thresholds[subtokens[0]] = float(subtokens[1])
+                
+            # ...for each token
+            
+            options.classification_thresholds = classification_thresholds
+            
+        # ...if classification thresholds are still in string format
+        
+        # Validate the classes in the threshold list
+        for class_name in options.classification_thresholds.keys():
+            assert class_name in classification_category_name_to_id, \
+                'Category {} specified at the command line, but is not available in the results file'.format(
+                    class_name)
+
+    # ...if we need to deal with classification categories
+    
     if options.n_threads <= 1 or options.debug_max_images is not None:
     
-        # i_image = 1; im = images[i_image]; im
+        # i_image = 14; im = images[i_image]; im
         for i_image,im in enumerate(tqdm(images)):
             if options.debug_max_images is not None and i_image > options.debug_max_images:
                 break
@@ -393,16 +538,34 @@ if False:
     
     #%%
     
-    separate_detections_into_folders(options)
+    options = SeparateDetectionsIntoFoldersOptions()
+    
+    options.results_file = os.path.expanduser('~/data/ena24-2022-06-15-v5a.0.0_megaclassifier.json')
+    options.base_input_folder = os.path.expanduser('~/data/ENA24/images')
+    options.base_output_folder = os.path.expanduser('~/data/ENA24-separated')
+    options.n_threads = 100
+    options.classification_thresholds = 'deer=0.75,cow=0.75,bird=0.75'
+    options.render_boxes = True
+    options.allow_existing_directory = True
     
     #%%
     
+    separate_detections_into_folders(options)
+    
+    #%% Testing various command-line invocations
+    
     """
-    # With boxes
+    # With boxes, no classification
     python separate_detections_into_folders.py ~/data/ena24-2022-06-15-v5a.0.0_megaclassifier.json ~/data/ENA24/images ~/data/ENA24-separated --threshold 0.17 --animal_threshold 0.2 --n_threads 10 --allow_existing_directory --render_boxes --line_thickness 10 --box_expansion 10
     
-    # No boxes
+    # No boxes, no classification
     python separate_detections_into_folders.py ~/data/ena24-2022-06-15-v5a.0.0_megaclassifier.json ~/data/ENA24/images ~/data/ENA24-separated --threshold 0.17 --animal_threshold 0.2 --n_threads 10 --allow_existing_directory
+    
+    # With boxes, with classification
+    python separate_detections_into_folders.py ~/data/ena24-2022-06-15-v5a.0.0_megaclassifier.json ~/data/ENA24/images ~/data/ENA24-separated --threshold 0.17 --animal_threshold 0.2 --n_threads 10 --allow_existing_directory --render_boxes --line_thickness 10 --box_expansion 10 --classification_thresholds "deer=0.75,cow=0.75,bird=0.75"
+    
+    # No boxes, with classification
+    python separate_detections_into_folders.py ~/data/ena24-2022-06-15-v5a.0.0_megaclassifier.json ~/data/ENA24/images ~/data/ENA24-separated --threshold 0.17 --animal_threshold 0.2 --n_threads 10 --allow_existing_directory --classification_thresholds "deer=0.75,cow=0.75,bird=0.75"
     """    
     
 #%% Command-line driver   
@@ -443,6 +606,9 @@ def main():
                         help='Box expansion (in pixels) for rendering, only meaningful if using render_boxes (defaults to {})'.format(
                             default_box_expansion))
         
+    parser.add_argument('--classification_thresholds', type=str, default=None,
+                        help='List of classification thresholds to use for species-based folder separation, formatted like deer=0.75,cow=0.75"')
+    
     if len(sys.argv[1:])==0:
         parser.print_help()
         parser.exit()
