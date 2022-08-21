@@ -56,6 +56,9 @@
 # bird and a bear, that would end up in "unclassified", since the folder separation is based only
 # on the categories you provide at the command line.
 #
+# No classification-based separation is done within the animal_person, animal_vehicle, or 
+# animal_person_vehicle folders.
+#
    
 #%% Constants and imports
 
