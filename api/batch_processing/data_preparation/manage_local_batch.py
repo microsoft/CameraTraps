@@ -12,6 +12,7 @@
 import json
 import os
 import stat
+import time
 
 import humanfriendly
 
@@ -20,6 +21,9 @@ from tqdm import tqdm
 # from ai4eutils
 import ai4e_azure_utils 
 import path_utils
+
+from detection.run_detector_batch import load_and_run_detector_batch, write_results_to_file
+from detection.run_detector import DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD
 
 from api.batch_processing.postprocessing.postprocess_batch_results import (
     PostProcessingOptions, process_batch_results)
@@ -79,7 +83,7 @@ if ('v5') in model_file:
 else:
     gpu_images_per_second = 2.9
 
-checkpoint_frequency = 10000
+checkpoint_frequency = 2000
 
 base_task_name = organization_name_short + '-' + job_date + job_description_string + '-' + get_detector_version_from_filename(model_file)
 base_output_folder_name = os.path.join(postprocessing_base,organization_name_short)
@@ -213,9 +217,64 @@ for i_task,task in enumerate(task_info):
 
 #%% Run the tasks
 
-# Prefer to run manually
+"""
+I strongly prefer to manually run the scripts we just generated, but this cell demonstrates
+how one would invoke run_detector_batch programmatically.  Normally when I run manually on 
+a multi-GPU machine, I run the scripts in N separate shells, one for each GPU.  This programmatic
+approach does not yet know how to do something like that, so all chunks will run serially.
+This is a no-op if you're on a single-GPU machine.
+"""
 
+if False:
+    
+    #%%
 
+    # i_task = 0; task = task_info[i_task]
+    for i_task,task in enumerate(task_info):
+    
+        chunk_file = task['input_file']
+        output_fn = task['output_file']
+        
+        checkpoint_filename = chunk_file.replace('.json','_checkpoint.json')
+        
+        """    
+        def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=None,
+                                        confidence_threshold=0, checkpoint_frequency=-1,
+                                        results=None, n_cores=0, use_image_queue=False, quiet=False):
+        """        
+        if json_threshold is not None:
+            confidence_threshold = json_threshold
+        else:
+            confidence_threshold = DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD
+            
+        if checkpoint_frequency is not None and checkpoint_frequency > 0:
+            cp_freq_arg = checkpoint_frequency
+        else:
+            cp_freq_arg = -1
+            
+        start_time = time.time()
+        results = load_and_run_detector_batch(model_file=model_file, image_file_names=chunk_file, 
+                                    checkpoint_path=checkpoint_filename, confidence_threshold=confidence_threshold,
+                                    checkpoint_frequency=cp_freq_arg, results=None,
+                                    n_cores=ncores, use_image_queue=use_image_queue,
+                                    quiet=quiet_mode)        
+        elapsed = time.time() - start_time
+        
+        print('Task {}: finished inference for {} images in {}'.format(
+            i_task, len(results),humanfriendly.format_timespan(elapsed)))
+
+        relative_path_base = input_path
+        write_results_to_file(results, output_fn, relative_path_base=relative_path_base,
+                              detector_file=model_file)
+
+        if checkpoint_frequency is not None and checkpoint_frequency > 0:
+            os.remove(checkpoint_filename)
+            print('Deleted checkpoint file {}'.format(checkpoint_filename))
+                
+    # ...for each chunk
+    
+# ...if False
+    
 #%% Load results, look for failed or missing images in each task
 
 n_total_failures = 0
