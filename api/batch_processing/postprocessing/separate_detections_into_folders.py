@@ -1,11 +1,16 @@
 #
 # separate_detections_into_folders.py
 #
+### Overview
+#
 # Given a .json file with batch processing results, separate the files in that
 # set of results into folders that contain animals/people/vehicles/nothing, 
 # according to per-class thresholds.
 #
 # Image files are copied, not moved.
+#
+#
+### Output structure
 #
 # Preserves relative paths within each of those folders; cannot be used with .json
 # files that have absolute paths in them.
@@ -34,10 +39,16 @@
 # c:\out\animal_person\a\b\f\4.jpg
 # c:\out\animals\a\x\y\5.jpg
 #
+### Rendering bounding boxes
+#
 # By default, images are just copied to the target output folder.  If you specify --render_boxes,
 # bounding boxes will be rendered on the output images.  Because this is no longer strictly
 # a copy operation, this may result in the loss of metadata.  More accurately, this *may*
 # result in the loss of some EXIF metadata; this *will* result in the loss of IPTC/XMP metadata.
+#
+# Rendering boxes also makes this script a lot slower.
+#
+### Classification-based separation
 #
 # If you have a results file with classification data, you can also specify classes to put
 # in their own folders, within the "animals" folder, like this:
@@ -561,7 +572,7 @@ if False:
     # With boxes, no classification
     python separate_detections_into_folders.py ~/data/ena24-2022-06-15-v5a.0.0_megaclassifier.json ~/data/ENA24/images ~/data/ENA24-separated --threshold 0.17 --animal_threshold 0.2 --n_threads 10 --allow_existing_directory --render_boxes --line_thickness 10 --box_expansion 10
     
-    # No boxes, no classification
+    # No boxes, no classification (default)
     python separate_detections_into_folders.py ~/data/ena24-2022-06-15-v5a.0.0_megaclassifier.json ~/data/ENA24/images ~/data/ENA24-separated --threshold 0.17 --animal_threshold 0.2 --n_threads 10 --allow_existing_directory
     
     # With boxes, with classification
