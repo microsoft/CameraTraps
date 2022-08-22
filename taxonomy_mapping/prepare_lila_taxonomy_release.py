@@ -11,11 +11,11 @@ import os
 import json
 import pandas as pd
 
-release_taxonomy_file = r"G:\temp\lila\lila-taxonomy-mapping_release.22.07.03.1608.csv"
-lila_taxonomy_file = r"G:\git\agentmorrisprivate\lila-taxonomy\lila-taxonomy-mapping.csv"
+lila_taxonomy_file = os.path.expanduser('~/git/agentmorrisprivate/lila-taxonomy/lila-taxonomy-mapping.csv')
+release_taxonomy_file = os.path.expanduser('~/lila/lila-taxonomy-mapping_release.22.08.22.0000.csv')
 
 # Created by get_lila_category_list.py... contains counts for each category
-lila_dataset_to_categories_file = r"G:\temp\lila\lila_categories_list\lila_dataset_to_categories.json"
+lila_dataset_to_categories_file = os.path.expanduser('~/lila/lila_categories_list/lila_dataset_to_categories.json')
 
 assert os.path.isfile(lila_dataset_to_categories_file)
 assert os.path.isfile(lila_taxonomy_file)
