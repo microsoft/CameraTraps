@@ -211,6 +211,7 @@ supplementary_mappings = set()
 
 all_searches = set()
 
+# Must be ordered from kingdom --> species
 lila_taxonomy_levels = ['kingdom','phylum','subphylum','superclass','class','subclass',
                         'infraclass','superorder','order','suborder','infraorder',
                         'superfamily','family','subfamily','tribe','genus','species']
@@ -228,7 +229,8 @@ query_to_wi_taxon = {}
 for i_taxon,lila_taxon in enumerate(lila_taxonomy):
     
     query = None
-    
+
+    # Go from kingdom --> species, choosing the lowest-level description as the query    
     for level in lila_taxonomy_levels:
         if isinstance(lila_taxon[level],str):
             query = lila_taxon[level]        
@@ -302,3 +304,4 @@ else:
     print('{} exists, not re-writing'.format(lila_to_wi_supplementary_mapping_file)) 
 
 
+#%% Pr
