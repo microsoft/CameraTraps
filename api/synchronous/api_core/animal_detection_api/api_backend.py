@@ -16,8 +16,7 @@ import PIL
 
 from io import BytesIO
 
-from detection.run_detector import load_detector
-from tf_detector import TFDetector
+from detection.run_detector import load_detector, convert_to_tf_coords
 import config
 import visualization.visualization_utils as viz_utils 
 
@@ -95,7 +94,7 @@ def detect_process():
 
                     for d in _detections:
                         if d['conf'] > return_confidence_threshold:
-                            res = TFDetector.convert_to_tf_coords(d['bbox'])
+                            res = convert_to_tf_coords(d['bbox'])
                             res.append(d['conf'])
                             res.append(int(d['category']))
                             detections[image_name].append(res)
