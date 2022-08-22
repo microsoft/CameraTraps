@@ -58,7 +58,7 @@ def detect_process():
                     image = viz_utils.load_image(image)
 
                     start_time = time.time()
-                    result = detector.generate_detections_one_image(image, filename, detection_threshold=0.00001)
+                    result = detector.generate_detections_one_image(image, filename, detection_threshold=config.DEFAULT_CONFIDENCE_THRESHOLD)
                     all_detection_results.append(result)
 
                     elapsed = time.time() - start_time
@@ -146,7 +146,7 @@ if __name__ == '__main__':
     # run detections on a test image to load the model
     print('Running initial detection to load model...')
     test_image = PIL.Image.new(mode="RGB", size=(200, 200))
-    result = detector.generate_detections_one_image(test_image, "test_image", detection_threshold=0.00001)
+    result = detector.generate_detections_one_image(test_image, "test_image", detection_threshold=config.DEFAULT_CONFIDENCE_THRESHOLD)
     print(result)
     print('\n')
 
