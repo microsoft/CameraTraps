@@ -576,6 +576,8 @@ def main():
         help='File name to which checkpoints will be written if checkpoint_frequency is > 0')
     parser.add_argument(
         '--resume_from_checkpoint',
+        type=str,
+        default=None,
         help='Path to a JSON checkpoint file to resume from')
     parser.add_argument(
         '--allow_checkpoint_overwrite',
@@ -608,7 +610,7 @@ def main():
     #
     # Relative file names are only output at the end; all file paths in the checkpoint are
     # still full paths.
-    if args.resume_from_checkpoint:
+    if args.resume_from_checkpoint is not None:
         assert os.path.exists(args.resume_from_checkpoint), 'File at resume_from_checkpoint specified does not exist'
         with open(args.resume_from_checkpoint) as f:
             print('Loading previous results from checkpoint file {}'.format(args.resume_from_checkpoint))
@@ -660,16 +662,21 @@ def main():
         
         # Don't overwrite existing checkpoint files, this is a sure-fire way to eventually
         # erase someone's checkpoint.
-        if (checkpoint_path is not None) and (not args.allow_checkpoint_overwrite):
+        if (checkpoint_path is not None) and (not args.allow_checkpoint_overwrite) and (args.resume_from_checkpoint is not None):
+            
             assert not os.path.isfile(checkpoint_path), \
                 'Checkpoint path {} already exists, delete or move it before re-using the same checkpoint path, or specify --allow_checkpoint_overwrite'.format(
                 checkpoint_path)
 
-        # Confirm that we can write to the checkpoint path; this avoids issues where we crash after 
-        # several thousand images.
-        with open(checkpoint_path, 'w') as f:
-            json.dump({'images': []}, f)
-            
+        # Commenting this out for now... the scenario where we are resuming from a checkpoint,
+        # then immediately overwrite that checkpoint with empty data is higher-risk than the 
+        # annoyance of crashing a few minutes after starting a job.
+        if False:
+            # Confirm that we can write to the checkpoint path; this avoids issues where we crash after 
+            # several thousand images.
+            with open(checkpoint_path, 'w') as f:
+                json.dump({'images': []}, f)
+                
         print('The checkpoint file will be written to {}'.format(checkpoint_path))
         
     else:
