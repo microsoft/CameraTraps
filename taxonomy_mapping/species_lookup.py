@@ -26,7 +26,7 @@ from tqdm import tqdm
 
 import ai4e_web_utils
 
-taxonomy_download_dir = r'g:\temp\taxonomy'
+taxonomy_download_dir = os.path.expanduser('~/taxonomy')
 
 taxonomy_urls = {
     'GBIF': 'https://hosted-datasets.gbif.org/datasets/backbone/current/backbone.zip',
