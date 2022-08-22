@@ -92,7 +92,6 @@ os.makedirs(base_output_folder_name,exist_ok=True)
 
 #%% Derived variables, path setup
 
-# local folders
 filename_base = os.path.join(base_output_folder_name, base_task_name)
 combined_api_output_folder = os.path.join(filename_base, 'combined_api_outputs')
 postprocessing_output_folder = os.path.join(filename_base, 'postprocessing')
@@ -227,7 +226,7 @@ This is a no-op if you're on a single-GPU machine.
 
 if False:
     
-    #%%
+    #%%% Run the tasks (commented out)
 
     # i_task = 0; task = task_info[i_task]
     for i_task,task in enumerate(task_info):
@@ -237,11 +236,6 @@ if False:
         
         checkpoint_filename = chunk_file.replace('.json','_checkpoint.json')
         
-        """    
-        def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=None,
-                                        confidence_threshold=0, checkpoint_frequency=-1,
-                                        results=None, n_cores=0, use_image_queue=False, quiet=False):
-        """        
         if json_threshold is not None:
             confidence_threshold = json_threshold
         else:
@@ -253,27 +247,32 @@ if False:
             cp_freq_arg = -1
             
         start_time = time.time()
-        results = load_and_run_detector_batch(model_file=model_file, image_file_names=chunk_file, 
-                                    checkpoint_path=checkpoint_filename, confidence_threshold=confidence_threshold,
-                                    checkpoint_frequency=cp_freq_arg, results=None,
-                                    n_cores=ncores, use_image_queue=use_image_queue,
-                                    quiet=quiet_mode)        
+        results = load_and_run_detector_batch(model_file=model_file, 
+                                              image_file_names=chunk_file, 
+                                              checkpoint_path=checkpoint_filename, 
+                                              confidence_threshold=confidence_threshold,
+                                              checkpoint_frequency=cp_freq_arg, 
+                                              results=None,
+                                              n_cores=ncores, 
+                                              use_image_queue=use_image_queue,
+                                              quiet=quiet_mode)        
         elapsed = time.time() - start_time
         
         print('Task {}: finished inference for {} images in {}'.format(
             i_task, len(results),humanfriendly.format_timespan(elapsed)))
 
-        relative_path_base = input_path
-        write_results_to_file(results, output_fn, relative_path_base=relative_path_base,
-                              detector_file=model_file)
+        # This will write absolute paths to the file, we'll fix this later
+        write_results_to_file(results, output_fn, detector_file=model_file)
 
         if checkpoint_frequency is not None and checkpoint_frequency > 0:
-            os.remove(checkpoint_filename)
-            print('Deleted checkpoint file {}'.format(checkpoint_filename))
+            if os.path.isfile(checkpoint_filename):                
+                os.remove(checkpoint_filename)
+                print('Deleted checkpoint file {}'.format(checkpoint_filename))
                 
     # ...for each chunk
     
 # ...if False
+
     
 #%% Load results, look for failed or missing images in each task
 
@@ -1347,3 +1346,79 @@ with open(cmd_file,'w') as f:
 import stat
 st = os.stat(cmd_file)
 os.chmod(cmd_file, st.st_mode | stat.S_IEXEC)
+
+
+#%% End notebook: turn this script into a notebook (how meta!)
+
+import nbformat as nbf
+
+input_py_file = os.path.expanduser('~/git/CameraTraps/api/batch_processing/data_preparation/manage_local_batch.py')
+assert os.path.isfile(input_py_file)
+output_ipynb_file = input_py_file.replace('.py','.ipynb')
+
+nb_header = '# Managing a local MegaDetector batch'
+
+nb_header += '\n'
+
+nb_header += \
+"""
+This notebook represents an interactive process for running MegaDetector on large batches of images, including typical and optional postprocessing steps.  Everything after "Merge results..." is basically optional, and we typically do a mix of these optional steps, depending on the job.
+
+This notebook is auto-generated from manage_local_batch.py (a cell-delimited .py file that is used the same way, typically in Spyder or VS Code).    
+
+"""
+
+with open(input_py_file,'r') as f:
+    lines = f.readlines()
+
+nb = nbf.v4.new_notebook()
+nb['cells'].append(nbf.v4.new_markdown_cell(nb_header))
+
+i_line = 0
+
+# Exclude everything before the first cell
+while(not lines[i_line].startswith('#%%')):
+    i_line += 1
+
+current_cell = []
+
+def write_code_cell(c):
+    
+    first_non_empty_line = None
+    last_non_empty_line = None
+    
+    for i_code_line,code_line in enumerate(c):
+        if len(code_line.strip()) > 0:
+            if first_non_empty_line is None:
+                first_non_empty_line = i_code_line
+            last_non_empty_line = i_code_line
+            
+    # Remove the first [first_non_empty_lines] from the list
+    c = c[first_non_empty_line:]
+    last_non_empty_line -= first_non_empty_line
+    c = c[:last_non_empty_line+1]
+    
+    nb['cells'].append(nbf.v4.new_code_cell('\n'.join(c)))
+        
+while(True):    
+            
+    line = lines[i_line].rstrip()
+    
+    if 'end notebook' in line.lower():
+        break
+    
+    if lines[i_line].startswith('#%% '):
+        if len(current_cell) > 0:
+            write_code_cell(current_cell)
+            current_cell = []
+        markdown_content = line.replace('#%%','##')
+        nb['cells'].append(nbf.v4.new_markdown_cell(markdown_content))
+    else:
+        current_cell.append(line)
+
+    i_line += 1
+
+# Add the last cell
+write_code_cell(current_cell)
+
+nbf.write(nb,output_ipynb_file)
