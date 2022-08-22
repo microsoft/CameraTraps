@@ -775,6 +775,7 @@ for fn in input_files:
         final_output_suffix)
     final_output_path = final_output_path.replace('_detections','')
     final_output_path = final_output_path.replace('_crops','')
+    final_output_path_mc = final_output_path
     
     merge_cmd = ''
     
@@ -818,7 +819,7 @@ input_files = [input_filename]
 image_base = input_path
 crop_path = os.path.join(os.path.expanduser('~/crops'),job_name + '_crops')
 output_base = combined_api_output_folder
-device_id = 0
+device_id = 1
 
 output_file = os.path.join(filename_base,'run_{}_'.format(classifier_name_short) + job_name +  '.sh')
 
@@ -973,8 +974,11 @@ os.chmod(output_file, st.st_mode | stat.S_IEXEC)
 # "other" class.
 
 classification_detection_files = [    
-    "xyz","abc"
+    final_output_path_mc,
+    final_output_path_ic    
     ]
+
+assert all([os.path.isfile(fn) for fn in classification_detection_files])
 
 # Only count detections with a classification confidence threshold above
 # *classification_confidence_threshold*, which in practice means we're only
@@ -987,6 +991,8 @@ classification_detection_files = [
 #
 # Optionally treat some classes as particularly unreliable, typically used to overwrite an 
 # "other" class.
+
+smoothed_classification_files = []
 
 for final_output_path in classification_detection_files:
 
@@ -1040,9 +1046,6 @@ for final_output_path in classification_detection_files:
     # im = d['images'][0]    
     for im in tqdm(d['images']):
         
-        if 'Pronghorn Test Dataset/Drinker/SED/I__00030.JPG' in im['file']:
-            pass
-            
         if 'detections' not in im or im['detections'] is None or len(im['detections']) == 0:
             continue
         
@@ -1163,19 +1166,16 @@ for final_output_path in classification_detection_files:
         json.dump(d,f,indent=2)
         
     print('Wrote results to:\n{}'.format(classifier_output_path_within_image_smoothing))
+    smoothed_classification_files.append(classifier_output_path_within_image_smoothing)
 
 # ...for each file we want to smooth
 
 
 #%% Post-processing (post-classification)
 
-classification_detection_files = [    
-    "/home/user/postprocessing/organization/organization-2022-02-19/combined_api_outputs/organization-2022-02-19_megaclassifier.json",
-    "/home/user/postprocessing/organization/organization-2022-02-19/combined_api_outputs/organization-2022-02-19_idfgclassifier.json"
-    ]
+classification_detection_files = smoothed_classification_files
     
-for fn in classification_detection_files:
-    assert os.path.isfile(fn)
+assert all([os.path.isfile(fn) for fn in classification_detection_files])
     
 # classification_detection_file = classification_detection_files[1]
 for classification_detection_file in classification_detection_files:
