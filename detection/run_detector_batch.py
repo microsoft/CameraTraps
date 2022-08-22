@@ -662,7 +662,7 @@ def main():
         
         # Don't overwrite existing checkpoint files, this is a sure-fire way to eventually
         # erase someone's checkpoint.
-        if (checkpoint_path is not None) and (not args.allow_checkpoint_overwrite) and (args.resume_from_checkpoint is not None):
+        if (checkpoint_path is not None) and (not args.allow_checkpoint_overwrite) and (args.resume_from_checkpoint is None):
             
             assert not os.path.isfile(checkpoint_path), \
                 'Checkpoint path {} already exists, delete or move it before re-using the same checkpoint path, or specify --allow_checkpoint_overwrite'.format(
