@@ -343,10 +343,6 @@ def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=No
         else:        
             raise ValueError('image_file_names is a string, but is not a directory, a json list (.json), or an image file (png/jpg/jpeg/gif)')
     
-    # Handle the case where [image_file_names] is a file containing a list of filenames
-    if isinstance(image_file_names,str) and not (ImagePathUtils.is_image_file(image_file_names)):
-        
-        
     if results is None:
         results = []
 
