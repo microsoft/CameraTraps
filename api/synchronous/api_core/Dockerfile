@@ -2,7 +2,7 @@
 ARG BASE_IMAGE=tensorflow/tensorflow:1.14.0-gpu-py3
 FROM $BASE_IMAGE
 
-# install and expose redis default port
+# Install and expose redis default port
 RUN  apt-get update && apt-get install -y redis-server
 EXPOSE  6379
 
@@ -24,8 +24,10 @@ RUN apt-get update --fix-missing \
         python3.7 \
         apt-transport-https \
         build-essential \
-        gcc
-# the base image uses Python 3.6. TODO use TF2 for inference
+        gcc \
+        ffmpeg \
+        libsm6 \
+        libxext6
 
 # Install additional packages
 RUN pip3 install --upgrade pip
@@ -42,11 +44,19 @@ RUN pip3 install \
     jsonpickle
 
 
+# Install yolo5 requirements
+COPY ./yolov5/requirements.txt /yolov5_requirements.txt
+RUN pip3 install -r ./yolov5_requirements.txt
+
 COPY ./requirements.txt /
 RUN pip3 install -r ./requirements.txt
 
 # Copy your API code
 COPY ./animal_detection_api /app/animal_detection_api/
+RUN true
+
+# Copy yolo5 code
+COPY ./yolov5 /app/yolov5/
 RUN true
 
 COPY ./supervisord.conf /etc/supervisord.conf
@@ -57,13 +67,13 @@ COPY ./startup.sh /
 RUN chmod +x /startup.sh
 
 
-ENV PYTHONPATH="${PYTHONPATH}:/app/animal_detection_api/"
+ENV PYTHONPATH="${PYTHONPATH}:/app/animal_detection_api/:/app/yolov5/"
 ENV PYTHONUNBUFFERED=TRUE
 
 # Expose the port that is to be used when calling your API
 
-#!!! IF YOU CHANGE THE PORT HERE REMEMBER TO UPDATE supervisord.conf FILE AS WELL
-EXPOSE 1212
+# If you change the port here, remember to update supervisord.conf 
+EXPOSE 1213
 
-# starts the supervisor.conf (which starts up the detector, flask app and redis server)
+# Starts up the detector, Flask app and Redis server
 ENTRYPOINT [ "/startup.sh" ]
