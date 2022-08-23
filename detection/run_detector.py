@@ -153,6 +153,20 @@ class ImagePathUtils:
 
 #%% Utility functions
 
+def convert_to_tf_coords(array):
+    """From [x1, y1, width, height] to [y1, x1, y2, x2], where x1 is x_min, x2 is x_max
+
+    This is only used to keep the interface of the synchronous API.
+    """
+    x1 = array[0]
+    y1 = array[1]
+    width = array[2]
+    height = array[3]
+    x2 = x1 + width
+    y2 = y1 + height
+    return [y1, x1, y2, x2]
+
+
 def get_detector_metadata_from_version_string(detector_version):
     """
     Given a MegaDetector version string (e.g. "v4.1.0"), return the metadata for
