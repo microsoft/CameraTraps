@@ -7,6 +7,7 @@
 
 #%% Constants and imports
 
+import numpy as np
 import json
 import os
 
@@ -17,21 +18,23 @@ from data_management.lila.lila_common import read_lila_taxonomy_mapping, \
 
 lila_local_base = os.path.expanduser('~/lila')
 
-metadata_dir = os.path.join(lila_local_base,'metadata')
-os.makedirs(metadata_dir,exist_ok=True)
+metadata_dir = os.path.join(lila_local_base, 'metadata')
+os.makedirs(metadata_dir, exist_ok=True)
 
 # Created by get_lila_category_list.py... contains counts for each category
-category_list_dir = os.path.join(lila_local_base,'lila_categories_list')
-lila_dataset_to_categories_file = os.path.join(category_list_dir,'lila_dataset_to_categories.json')
+category_list_dir = os.path.join(lila_local_base, 'lila_categories_list')
+lila_dataset_to_categories_file = os.path.join(
+    category_list_dir, 'lila_dataset_to_categories.json')
 
-lila_to_wi_supplementary_mapping_file = os.path.expanduser('~/git/CameraTraps/taxonomy_mapping/lila_to_wi_supplementary_mapping_file.csv')
+lila_to_wi_supplementary_mapping_file = os.path.expanduser(
+    '~/git/CameraTraps/taxonomy_mapping/lila_to_wi_supplementary_mapping_file.csv')
 
 assert os.path.isfile(lila_dataset_to_categories_file)
-    
+
 
 #%% Load category and taxonomy files
 
-with open(lila_dataset_to_categories_file,'r') as f:
+with open(lila_dataset_to_categories_file, 'r') as f:
     lila_dataset_to_categories = json.load(f)
 
 lila_taxonomy_df = read_lila_taxonomy_mapping(metadata_dir)
@@ -47,26 +50,27 @@ wi_taxonomy = wi_taxonomy_df.to_dict('records')
 
 #%% Cache WI taxonomy lookups
 
-import numpy as np
 
 def is_empty_wi_item(v):
-    if isinstance(v,str):
+    if isinstance(v, str):
         assert len(v) > 0
         return False
     else:
-        assert isinstance(v,float) and np.isnan(v)
+        assert isinstance(v, float) and np.isnan(v)
         return True
-    
-def taxonomy_items_equal(a,b):
-    if isinstance(a,str) and (not isinstance(b,str)):
+
+
+def taxonomy_items_equal(a, b):
+    if isinstance(a, str) and (not isinstance(b, str)):
         return False
-    if isinstance(b,str) and (not isinstance(a,str)):
+    if isinstance(b, str) and (not isinstance(a, str)):
         return False
-    if (not isinstance(a,str)) or (not isinstance(b,str)):
-        assert isinstance(a,float) and isinstance(b,float)
+    if (not isinstance(a, str)) or (not isinstance(b, str)):
+        assert isinstance(a, float) and isinstance(b, float)
         return True
     return a == b
-    
+
+
 for taxon in wi_taxonomy:
     taxon['taxon_name'] = None
 
@@ -84,45 +88,46 @@ animal_taxon = None
 unknown_taxon_name = 'unknown'
 unknown_taxon = None
 
-ignore_taxa = set(['No CV Result','CV Needed','CV Failed'])
+ignore_taxa = set(['No CV Result', 'CV Needed', 'CV Failed'])
 
 # taxon = wi_taxonomy[1000]; print(taxon)
 for taxon in tqdm(wi_taxonomy):
-    
+
     taxon_name = None
-    
+
     assert taxon['taxonomyType'] == 'object' or taxon['taxonomyType'] == 'biological'
 
     if taxon['commonNameEnglish'] in ignore_taxa:
         continue
 
-    if isinstance(taxon['commonNameEnglish'],str):
-        
-        wi_common_name_to_taxon[taxon['commonNameEnglish'].strip().lower()] = taxon
+    if isinstance(taxon['commonNameEnglish'], str):
+
+        wi_common_name_to_taxon[taxon['commonNameEnglish'].strip(
+        ).lower()] = taxon
 
         special_taxon = False
-        
+
         if taxon['commonNameEnglish'].strip().lower() == blank_taxon_name:
-            blank_taxon = taxon                        
+            blank_taxon = taxon
             special_taxon = True
-        
+
         elif taxon['commonNameEnglish'].strip().lower() == animal_taxon_name:
             animal_taxon = taxon
             special_taxon = True
-        
+
         elif taxon['commonNameEnglish'].strip().lower() == unknown_taxon_name:
             unknown_taxon = taxon
             special_taxon = True
-        
-        if special_taxon:            
+
+        if special_taxon:
             taxon_name = taxon['commonNameEnglish'].strip().lower()
             taxon['taxon_name'] = taxon_name
             wi_taxon_name_to_taxon[taxon_name] = taxon
             continue
-        
+
     # Do we have a species name?
     if not is_empty_wi_item(taxon['species']):
-        
+
         # If 'species' is populated, 'genus' should always be populated; one item currently breaks
         # this rule.
         if is_empty_wi_item(taxon['genus']):
@@ -131,50 +136,51 @@ for taxon in tqdm(wi_taxonomy):
             taxon['commonNameEnglish'] = 'Mongooses'
             taxon_name = taxon['family'].strip().lower()
         else:
-            taxon_name = (taxon['genus'].strip() + ' ' + taxon['species'].strip()).strip().lower()
+            taxon_name = (taxon['genus'].strip() + ' ' +
+                          taxon['species'].strip()).strip().lower()
             assert not is_empty_wi_item(taxon['class']) and \
                 not is_empty_wi_item(taxon['order']) and \
                 not is_empty_wi_item(taxon['family'])
-    
+
     elif not is_empty_wi_item(taxon['genus']):
-        
+
         assert not is_empty_wi_item(taxon['class']) and \
             not is_empty_wi_item(taxon['order']) and \
             not is_empty_wi_item(taxon['family'])
         taxon_name = taxon['genus'].strip().lower()
-        
+
     elif not is_empty_wi_item(taxon['family']):
-        
+
         assert not is_empty_wi_item(taxon['class']) and \
             not is_empty_wi_item(taxon['order'])
         taxon_name = taxon['family'].strip().lower()
-                    
+
     elif not is_empty_wi_item(taxon['order']):
-        
+
         assert not is_empty_wi_item(taxon['class'])
         taxon_name = taxon['order'].strip().lower()
-        
+
     elif not is_empty_wi_item(taxon['class']):
-        
+
         taxon_name = taxon['class'].strip().lower()
-    
+
     if taxon_name is not None:
         assert taxon['taxonomyType'] == 'biological'
     else:
         assert taxon['taxonomyType'] == 'object'
-        taxon_name = taxon['commonNameEnglish'].strip().lower()        
-    
+        taxon_name = taxon['commonNameEnglish'].strip().lower()
+
     if taxon_name in wi_taxon_name_to_taxon:
         previous_taxon = wi_taxon_name_to_taxon[taxon_name]
-        for level in ['class','order','family','genus','species']:
-            assert taxonomy_items_equal(previous_taxon[level],taxon[level])
-        
-    taxon['taxon_name'] = taxon_name    
+        for level in ['class', 'order', 'family', 'genus', 'species']:
+            assert taxonomy_items_equal(previous_taxon[level], taxon[level])
+
+    taxon['taxon_name'] = taxon_name
     wi_taxon_name_to_taxon[taxon_name] = taxon
-    
+
 # ...for each taxon
 
-assert unknown_taxon is not None    
+assert unknown_taxon is not None
 assert animal_taxon is not None
 assert blank_taxon is not None
 
@@ -188,7 +194,7 @@ assert blank_taxon is not None
 
 #%% Read supplementary mappings
 
-with open(lila_to_wi_supplementary_mapping_file,'r') as f:
+with open(lila_to_wi_supplementary_mapping_file, 'r') as f:
     lines = f.readlines()
 
 supplementary_lila_query_to_wi_query = {}
@@ -201,8 +207,8 @@ for line in lines:
     wi_taxon_name = tokens[1].strip().lower()
     assert wi_taxon_name in wi_taxon_name_to_taxon
     supplementary_lila_query_to_wi_query[lila_query] = wi_taxon_name
-    
-    
+
+
 #%% Map LILA categories to WI categories
 
 mismatches = set()
@@ -212,65 +218,68 @@ supplementary_mappings = set()
 all_searches = set()
 
 # Must be ordered from kingdom --> species
-lila_taxonomy_levels = ['kingdom','phylum','subphylum','superclass','class','subclass',
-                        'infraclass','superorder','order','suborder','infraorder',
-                        'superfamily','family','subfamily','tribe','genus','species']
+lila_taxonomy_levels = ['kingdom', 'phylum', 'subphylum', 'superclass', 'class', 'subclass',
+                        'infraclass', 'superorder', 'order', 'suborder', 'infraorder',
+                        'superfamily', 'family', 'subfamily', 'tribe', 'genus', 'species']
 
-unknown_queries = set(['unidentifiable','other','unidentified','unknown','unclassifiable'])
+unknown_queries = set(
+    ['unidentifiable', 'other', 'unidentified', 'unknown', 'unclassifiable'])
 blank_queries = set(['empty'])
 animal_queries = set(['animalia'])
 
 # TODO:
 # ['subspecies','variety']
 
-query_to_wi_taxon = {}
+lila_dataset_category_to_wi_taxon = {}
 
 # i_taxon = 0; taxon = lila_taxonomy[i_taxon]; print(taxon)
-for i_taxon,lila_taxon in enumerate(lila_taxonomy):
-    
+for i_taxon, lila_taxon in enumerate(lila_taxonomy):
+
     query = None
 
-    # Go from kingdom --> species, choosing the lowest-level description as the query    
+    lila_dataset_category = lila_taxon['dataset_name'] + ':' + lila_taxon['query']
+    
+    # Go from kingdom --> species, choosing the lowest-level description as the query
     for level in lila_taxonomy_levels:
-        if isinstance(lila_taxon[level],str):
-            query = lila_taxon[level]        
+        if isinstance(lila_taxon[level], str):
+            query = lila_taxon[level]
             all_searches.add(query)
-        
+
     if query is None:
         # E.g., 'car'
         query = lila_taxon['query']
 
     wi_taxon = None
-    
-    if query in unknown_queries:    
-        
+
+    if query in unknown_queries:
+
         wi_taxon = unknown_taxon
-    
+
     elif query in blank_queries:
-        
+
         wi_taxon = blank_taxon
-        
+
     elif query in animal_queries:
-        
+
         wi_taxon = animal_taxon
-    
+
     elif query in wi_taxon_name_to_taxon:
-        
+
         wi_taxon = wi_taxon_name_to_taxon[query]
-        
+
     elif query in supplementary_lila_query_to_wi_query:
-        
+
         wi_taxon = wi_taxon_name_to_taxon[supplementary_lila_query_to_wi_query[query]]
         supplementary_mappings.add(query)
         # print('Made a supplementary mapping from {} to {}'.format(query,wi_taxon['taxon_name']))
-        
+
     else:
-        
+
         # print('No match for {}'.format(query))
         lila_common_name = lila_taxon['common_name']
-        
+
         if lila_common_name in wi_common_name_to_taxon:
-            wi_taxon = wi_common_name_to_taxon[lila_common_name]            
+            wi_taxon = wi_common_name_to_taxon[lila_common_name]
             wi_common_name = wi_taxon['commonNameEnglish']
             wi_taxon_name = wi_taxon['taxon_name']
             if False:
@@ -278,17 +287,17 @@ for i_taxon,lila_taxon in enumerate(lila_taxonomy):
                                                                             wi_taxon_name,
                                                                             wi_common_name))
             mismatches_with_common_mappings.add(query)
-        
+
         else:
-            
+
             mismatches.add(query)
-            
-    query_to_wi_taxon[query] = wi_taxon
-    
+
+    lila_dataset_category_to_wi_taxon[lila_dataset_category] = wi_taxon
+
 # ...for each LILA taxon
 
 print('Of {} entities, there are {} mismatches ({} mapped by common name) ({} mapped by supplementary mapping file)'.format(
-    len(all_searches),len(mismatches),len(mismatches_with_common_mappings),len(supplementary_mappings)))
+    len(all_searches), len(mismatches), len(mismatches_with_common_mappings), len(supplementary_mappings)))
 
 assert len(mismatches) == 0
 
@@ -296,12 +305,59 @@ assert len(mismatches) == 0
 #%% Manual mapping
 
 if not os.path.isfile(lila_to_wi_supplementary_mapping_file):
-    print('Creating mapping file {}'.format(lila_to_wi_supplementary_mapping_file))
-    with open(lila_to_wi_supplementary_mapping_file,'w') as f:
+    print('Creating mapping file {}'.format(
+        lila_to_wi_supplementary_mapping_file))
+    with open(lila_to_wi_supplementary_mapping_file, 'w') as f:
         for query in mismatches:
             f.write(query + ',' + '\n')
 else:
-    print('{} exists, not re-writing'.format(lila_to_wi_supplementary_mapping_file)) 
+    print('{} exists, not re-writing'.format(lila_to_wi_supplementary_mapping_file))
 
 
-#%% Pr
+#%% Build a dictionary from LILA dataset names and categories to LILA taxa
+lila_dataset_category_to_lila_taxon = {}
+
+# i_d = 0; d = lila_taxonomy[i_d]
+for i_d,d in enumerate(lila_taxonomy):
+    lila_dataset_category = d['dataset_name'] + ':' + d['query']
+    assert lila_dataset_category not in lila_dataset_category_to_lila_taxon
+    lila_dataset_category_to_lila_taxon[lila_dataset_category] = d
+
+
+#%% Map LILA datasets to WI taxa, and count the number of each taxon available in each dataset
+
+wi_mapping_table_file = os.path.join(lila_local_base,'lila_wi_mapping_table.csv')
+
+with open(wi_mapping_table_file,'w') as f:
+    
+    f.write('lila_dataset_name,lila_category_name,wi_guid,wi_taxon_name,wi_common,count\n')
+    
+    # dataset_name = list(lila_dataset_to_categories.keys())[0]
+    for dataset_name in lila_dataset_to_categories.keys():
+        
+        if '_bbox' in dataset_name:
+            continue
+        
+        dataset_categories = lila_dataset_to_categories[dataset_name]
+        
+        # dataset_category = dataset_categories[0]
+        for category in dataset_categories:
+            
+            lila_dataset_category = dataset_name + ':' + category['name'].strip().lower()
+            if '#' in lila_dataset_category:
+                continue
+            assert lila_dataset_category in lila_dataset_category_to_lila_taxon
+            assert lila_dataset_category in lila_dataset_category_to_wi_taxon
+            assert 'count' in category
+    
+            wi_taxon = lila_dataset_category_to_wi_taxon[lila_dataset_category]
+            
+            # Write out the dataset name, category name, WI GUID, WI scientific name, WI common name, 
+            # and count
+            s = f"{dataset_name},{category['name']},{wi_taxon['uniqueIdentifier']},"+\
+                f"{wi_taxon['taxon_name']},{wi_taxon['commonNameEnglish']},{category['count']}\n"
+            f.write(s)
+            
+        # ...for each category in this dataset
+            
+    # ...for each dataset    
