@@ -1,5 +1,6 @@
-
-ARG BASE_IMAGE=tensorflow/tensorflow:1.14.0-gpu-py3
+# Default to an image with CUDA and NVIDIA drivers installed; the
+# README recommends a different image for CPU-only installations.
+ARG BASE_IMAGE=nvidia/cuda:11.3.1-cudnn8-runtime-ubuntu20.04
 FROM $BASE_IMAGE
 
 # Install and expose redis default port
@@ -22,6 +23,7 @@ RUN apt-get update --fix-missing \
         python3-setuptools \
         python3.7-dev \
         python3.7 \
+        python3-pip \
         apt-transport-https \
         build-essential \
         gcc \
@@ -44,7 +46,7 @@ RUN pip3 install \
     jsonpickle
 
 
-# Install yolo5 requirements
+# Install YOLOv5 requirements
 COPY ./yolov5/requirements.txt /yolov5_requirements.txt
 RUN pip3 install -r ./yolov5_requirements.txt
 
@@ -55,7 +57,7 @@ RUN pip3 install -r ./requirements.txt
 COPY ./animal_detection_api /app/animal_detection_api/
 RUN true
 
-# Copy yolo5 code
+# Copy YOLOv5 code
 COPY ./yolov5 /app/yolov5/
 RUN true
 
@@ -66,14 +68,14 @@ RUN true
 COPY ./startup.sh /
 RUN chmod +x /startup.sh
 
-
 ENV PYTHONPATH="${PYTHONPATH}:/app/animal_detection_api/:/app/yolov5/"
 ENV PYTHONUNBUFFERED=TRUE
 
-# Expose the port that is to be used when calling your API
-
+# Expose the API port
+#
 # If you change the port here, remember to update supervisord.conf 
 EXPOSE 1213
 
 # Starts up the detector, Flask app and Redis server
 ENTRYPOINT [ "/startup.sh" ]
+
