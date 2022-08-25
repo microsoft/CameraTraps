@@ -23,7 +23,7 @@ cd CameraTraps
     
 ### Download the model file
 
-Download the MegaDetector model file(s) to `api_flask_redis/api_core/animal_detection_api/model`.  We will download both MDv5a and MDv5b here, though currently the API is hard-coded to use MDv5a.
+Download the MegaDetector model file(s) to `api/synchronous/animal_detection_api/model`.  We will download both MDv5a and MDv5b here, though currently the API is hard-coded to use MDv5a.
 
 ```bash
 wget "https://github.com/microsoft/CameraTraps/releases/download/v5.0/md_v5a.0.0.pt" -O api/synchronous/api_core/animal_detection_api/model/md_v5a.0.0.pt
@@ -37,39 +37,35 @@ To authenticate the API via a key, create a file with name `allowed_keys.txt`, a
  
 ### Build the Docker image
 
-- Switch to the `api/synchronous/api_core` folder, from which the Docker image expects to be built
+- Switch to the `api/synchronous/api_core` folder, from which the Docker image expects to be built.
 
     ```bash
     cd api/synchronous/api_core
     ```
 
-- Name the API's Docker image (the name doesn't matter, having a name is just a convenience if you are experimenting with multiple versions, but subsequent steps will assume you have set this environment variable to something)
+- Name the API's Docker image (the name doesn't matter, having a name is just a convenience if you are experimenting with multiple versions, but subsequent steps will assume you have set this environment variable to something).
 
     ```bash
     export API_DOCKER_IMAGE=camera-trap-api:1.0
     ```
 
-- Select the Docker base image... the following is the image against which we've tested, so if you aren't particularl about your Docker environment, we recommend this one (for GPU support):
+- Select the Docker base image... we recommend this one:
 
     ```bash
-    export BASE_IMAGE=nvidia/cuda:11.3.1-cudnn8-runtime-ubuntu20.04
+    export BASE_IMAGE=pytorch/pytorch:1.10.0-cuda11.3-cudnn8-runtime
     ```
     
-- ...or this one (for CPU-only deployments):
+- Build the Docker image using build_docker.sh.
 
     ```bash
-    export BASE_IMAGE=ubuntu:20.04
+    sudo sh build_docker.sh $BASE_IMAGE $API_DOCKER_IMAGE
     ```
 
-### Build the Docker image
-
-```bash
-sudo sh build_docker.sh $BASE_IMAGE $API_DOCKER_IMAGE
-```
+Building may take 5-10 minutes.
 
 ### Run the Docker image
 
-The following will run the API locally on port 5050.
+The following will run the API on port 5050, but you can change that to the port on which you want to run the API.
 
 - For GPU environments:
 
@@ -89,13 +85,13 @@ The following will run the API locally on port 5050.
 
   `http://100.100.200.200:5050/v1/camera-trap/sync/detect`
   
- - Select `POST`
- - Optionally add the `min_confidence` parameter, which sets the minimum detection confidence that's returned to the caller (defaults to 0.1)
- - Optionally add the `min_rendering_confidence` parameter, which sets the minimum detection confidence that's rendered to returned images (defaults to 0.8) (not meaningful if "render" is False)
- - Optionally add the `render` parameter, set to `true` if you would like the images to be rendered with bounding boxes
- - If you enabled authentication by adding the file `allowed_keys.txt` under `api_flask_redis/api_core/animal_detection_api`then in the headers tab add the `key` parameter and enter the key value (this would be one of the keys that you saved to the file `allowed_keys.txt`)
- - Under `Body` select `form-data`, create one key/value pair per image, with values of type "file" (to upload an image file)
- - Click `Send`
+ - Select `POST`.
+ - Optionally add the `min_confidence` parameter, which sets the minimum detection confidence that's returned to the caller (defaults to 0.1).
+ - Optionally add the `min_rendering_confidence` parameter, which sets the minimum detection confidence that's rendered to returned images (defaults to 0.8) (not meaningful if "render" is False).
+ - Optionally add the `render` parameter, set to `true` if you would like the images to be rendered with bounding boxes.
+ - If you enabled authentication by adding the file `allowed_keys.txt` under `api/synchronous/api_core/animal_detection_api`then in the headers tab add the `key` parameter and enter the key value (this would be one of the keys that you saved to the file `allowed_keys.txt`).
+ - Under `Body` select `form-data`, and create one key/value pair per image, with values of type "file" (to upload an image file).  To create a k/v pair of type "file", hover over the right side of the box where it says "key"; a drop-down will appear where you can select "file".
+ - Click `Send`.
 
 ### Setting header options
 
@@ -105,7 +101,7 @@ The following will run the API locally on port 5050.
 
 ![Test in postman](images/postman_api_key.jpg)
 
-### Sending an image
+### Sending one or more images
 
 ![Test in postman](images/postman_formdata_images.jpg)
 
