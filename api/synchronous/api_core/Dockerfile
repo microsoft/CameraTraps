@@ -1,9 +1,10 @@
-# Default to an image with CUDA and NVIDIA drivers installed; the
-# README recommends a different image for CPU-only installations.
-ARG BASE_IMAGE=nvidia/cuda:11.3.1-cudnn8-runtime-ubuntu20.04
+# Default to an image with PyTorch installed, for GPU installations.
+#
+# The README recommends a different image for CPU-only installations.
+ARG BASE_IMAGE=pytorch/pytorch:1.10.0-cuda11.3-cudnn8-runtime
 FROM $BASE_IMAGE
 
-# Install and expose redis default port
+# Install Redis and expose the default Redis port 
 RUN  apt-get update && apt-get install -y redis-server
 EXPOSE  6379
 
@@ -31,40 +32,54 @@ RUN apt-get update --fix-missing \
         libsm6 \
         libxext6
 
-# Install additional packages
+# Prepare to install Python dependencies
 RUN pip3 install --upgrade pip
 
+# These are the standard MDv5 dependencies, other than PyTorch.
+#
+# PyTorch, CUDA, and CuDNN come from the base image.
 RUN pip3 install \
     redis \
     numpy \
     requests \
     matplotlib \
-    pillow \
     requests_toolbelt \
+    pillow \
     tqdm \
-    humanfriendly\
-    jsonpickle
+    humanfriendly \
+    jsonpickle \
+    opencv-python \
+    pandas \
+    seaborn==0.11.0 \
+    PyYAML==6.0 
 
+# Commenting this out, but leaving it here for posterity.  We don't
+# want to use YOLOv5's requirements file, because it will choose a
+# version of PyTorch that - ironically - won't work with YOLOv5 (at
+# least as of the time this Dockerfile was last edited).
+#
+# COPY ./yolov5/requirements.txt /yolov5_requirements.txt
+# RUN pip3 install -r ./yolov5_requirements.txt
 
-# Install YOLOv5 requirements
-COPY ./yolov5/requirements.txt /yolov5_requirements.txt
-RUN pip3 install -r ./yolov5_requirements.txt
+WORKDIR /
 
+# This requirements file contains that are specific to the API, i.e.,
+# not used by other parts of the repo, e.g. Flask.
 COPY ./requirements.txt /
-RUN pip3 install -r ./requirements.txt
+RUN TRUE
+RUN pip3 install -r /requirements.txt
 
-# Copy your API code
+# Copy API code into the container
 COPY ./animal_detection_api /app/animal_detection_api/
 RUN true
 
-# Copy YOLOv5 code
+# Copy YOLOv5 code into the container
 COPY ./yolov5 /app/yolov5/
 RUN true
 
+# Copy startup scripts/config into the container
 COPY ./supervisord.conf /etc/supervisord.conf
 RUN true
-
-# startup.sh is a helper script
 COPY ./startup.sh /
 RUN chmod +x /startup.sh
 
