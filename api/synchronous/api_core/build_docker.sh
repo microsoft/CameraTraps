@@ -4,13 +4,15 @@
 # use the COPY action in the Dockerfile to copy them into the Docker image.
 
 # This is the main dependency
-cp ../../../detection/tf_detector.py animal_detection_api/
 mkdir animal_detection_api/detection/
 cp -a ../../../detection/. animal_detection_api/detection/
 
-# Copy yolo5 dependencies
+# Copy YOLOv5 dependencies
 git clone https://github.com/ultralytics/yolov5/
 cd yolov5
+
+# To ensure forward-compatibility, we pin a particular version
+# of YOLOv5
 git checkout c23a441c9df7ca9b1f275e8c8719c949269160d1
 cd ../
 
