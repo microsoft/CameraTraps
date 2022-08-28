@@ -23,7 +23,7 @@ from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from datetime import datetime
 import json
 import os
-from typing import Any, Optional
+from typing import Any
 
 import numpy as np
 import PIL.Image
@@ -77,10 +77,10 @@ class SimpleDataset(torch.utils.data.Dataset):
     def __init__(self,
                  img_files: Sequence[str],
                  labels: Sequence[Any],
-                 sample_weights: Optional[Sequence[float]] = None,
+                 sample_weights: Sequence[float] | None = None,
                  img_base_dir: str = '',
-                 transform: Optional[Callable[[PIL.Image.Image], Any]] = None,
-                 target_transform: Optional[Callable[[Any], Any]] = None):
+                 transform: Callable[[PIL.Image.Image], Any] | None = None,
+                 target_transform: Callable[[Any], Any] | None = None):
         """Creates a SimpleDataset."""
         self.img_files = img_files
         self.labels = labels
@@ -171,7 +171,7 @@ def create_dataloaders(
         is_train = (split == 'train') and augment_train
         split_df = df[df['dataset_location'].isin(locs)]
 
-        sampler: Optional[torch.utils.data.Sampler] = None
+        sampler: torch.utils.data.Sampler | None = None
         weights = None
         if label_weighted or weight_by_detection_conf:
             # weights sums to:
@@ -261,29 +261,33 @@ def build_model(model_name: str, num_classes: int, pretrained: bool | str,
     return model
 
 
-def prep_device(model: torch.nn.Module, device_id:int=None) -> tuple[torch.nn.Module, torch.device]:
+def prep_device(model: torch.nn.Module, device_id: int | None = None
+                ) -> tuple[torch.nn.Module, torch.device]:
     """Place model on appropriate device.
 
     Args:
         model: torch.nn.Module, not already wrapped with DataParallel
+        device_id: optional int, GPU device to use
+            if None, then uses DataParallel when possible
+            if specified, then only uses specified device
 
     Returns:
         model: torch.nn.Module, model placed on <device>, wrapped with
             DataParallel if more than 1 GPU is found
-        device: torch.device, 'cuda:0' if GPU is found, otherwise 'cpu'
+        device: torch.device, 'cuda:{device_id}' if GPU is found, otherwise 'cpu'
     """
     # detect GPU, use all if available
     if torch.cuda.is_available():
         print('CUDA available')
+        torch.backends.cudnn.benchmark = True
         if device_id is not None:
-            print('Starting CUDA device {}'.format(device_id))
-            device = torch.device('cuda:{}'.format(str(device_id)))            
+            print(f'Starting CUDA device {device_id}')
+            device = torch.device(f'cuda:{device_id}')
         else:
             device = torch.device('cuda:0')
-            torch.backends.cudnn.benchmark = True
             device_ids = list(range(torch.cuda.device_count()))
             if len(device_ids) > 1:
-                print('Found multiple devices, enabling data parallelism ({})'.format(str(device_ids)))
+                print(f'Found multiple devices, enabling data parallelism ({device_ids})')
                 model = torch.nn.DataParallel(model, device_ids=device_ids)
     else:
         print('CUDA not available, running on the CPU')
@@ -307,7 +311,7 @@ def main(dataset_dir: str,
          num_workers: int,
          logdir: str,
          log_extreme_examples: int,
-         seed: Optional[int] = None) -> None:
+         seed: int | None = None) -> None:
     """Main function."""
     # input validation
     assert os.path.exists(dataset_dir)
@@ -463,7 +467,7 @@ def main(dataset_dir: str,
 
 def log_run(split: str, epoch: int, writer: tensorboard.SummaryWriter,
             label_names: Sequence[str], metrics: MutableMapping[str, float],
-            heaps: Optional[Mapping[str, Mapping[int, list[HeapItem]]]],
+            heaps: Mapping[str, Mapping[int, list[HeapItem]]] | None,
             cm: np.ndarray) -> None:
     """Logs the outputs (metrics, confusion matrix, tp/fp/fn images) from a
     single epoch run to Tensorboard.
@@ -583,7 +587,7 @@ def track_extreme_examples(tp_heaps: dict[int, list[HeapItem]],
 
 
 def correct(outputs: torch.Tensor, labels: torch.Tensor,
-            weights: Optional[torch.Tensor] = None,
+            weights: torch.Tensor | None = None,
             top: Sequence[int] = (1,)) -> dict[int, float]:
     """
     Args:
@@ -614,13 +618,13 @@ def run_epoch(model: torch.nn.Module,
               weighted: bool,
               device: torch.device,
               top: Sequence[int] = (1, 3),
-              loss_fn: Optional[torch.nn.Module] = None,
+              loss_fn: torch.nn.Module | None = None,
               finetune: bool = False,
-              optimizer: Optional[torch.optim.Optimizer] = None,
+              optimizer: torch.optim.Optimizer | None = None,
               k_extreme: int = 0
               ) -> tuple[
                   dict[str, float],
-                  Optional[dict[str, dict[int, list[HeapItem]]]],
+                  dict[str, dict[int, list[HeapItem]]] | None,
                   np.ndarray
               ]:
     """Runs for 1 epoch.
