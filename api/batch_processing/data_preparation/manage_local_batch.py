@@ -338,7 +338,9 @@ for i_task,task in enumerate(task_info):
     assert task_results['detection_categories'] == combined_results['detection_categories']
     combined_results['images'].extend(copy.deepcopy(task_results['images']))
     
-assert len(combined_results['images']) == len(all_images)
+assert len(combined_results['images']) == len(all_images), \
+    'Expected {} images in combined results, found {}'.format(
+        len(all_images),len(combined_results['images']))
 
 result_filenames = [im['file'] for im in combined_results['images']]
 assert len(combined_results['images']) == len(set(result_filenames))
@@ -1218,7 +1220,39 @@ size_separated_file = input_file.replace('.json','-size-separated-{}.json'.forma
 d = categorize_detections_by_size.categorize_detections_by_size(input_file,size_separated_file,options)
 
 
-#%% Subsetting
+#%% .json splitting
+
+data = None
+
+from api.batch_processing.postprocessing.subset_json_detector_output import (
+    subset_json_detector_output, SubsetJsonDetectorOutputOptions)
+
+input_filename = filtered_output_filename
+output_base = os.path.join(filename_base,'json_subsets')
+
+if False:
+    if data is None:
+        with open(input_filename) as f:
+            data = json.load(f)
+    print('Data set contains {} images'.format(len(data['images'])))
+
+print('Processing file {} to {}'.format(input_filename,output_base))          
+
+options = SubsetJsonDetectorOutputOptions()
+# options.query = None
+# options.replacement = None
+
+options.split_folders = True
+options.make_folder_relative = True
+options.split_folder_mode = 'bottom'  # 'top', 'n_from_top', 'n_from_bottom'
+options.split_folder_param = 0
+options.overwrite_json_files = False
+options.confidence_threshold = 0.01
+
+subset_data = subset_json_detector_output(input_filename, output_base, options, data)
+
+
+#%% Custom splitting/subsetting
 
 data = None
 
@@ -1268,13 +1302,13 @@ options.replacement = ''
 subset_json_detector_output(input_filename,output_filename,options)
 
 
-#%% Folder splitting
+#%% Splitting images into folders
 
 from api.batch_processing.postprocessing.separate_detections_into_folders import (
     separate_detections_into_folders, SeparateDetectionsIntoFoldersOptions)
 
 default_threshold = 0.2
-base_output_folder = r'e:\{}-{}-separated'.format(base_task_name,default_threshold)
+base_output_folder = os.path.expanduser('~/data/{}-{}-separated'.format(base_task_name,default_threshold))
 
 options = SeparateDetectionsIntoFoldersOptions(default_threshold)
 
