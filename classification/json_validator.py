@@ -66,7 +66,7 @@ import json
 import os
 import pprint
 import random
-from typing import Any, Optional
+from typing import Any
 
 import pandas as pd
 import path_utils  # from ai4eutils
@@ -83,11 +83,11 @@ def main(label_spec_json_path: str,
          allow_multilabel: bool = False,
          single_parent_taxonomy: bool = False,
          check_blob_exists: bool | str = False,
-         min_locs: Optional[int] = None,
-         output_dir: Optional[str] = None,
-         json_indent: Optional[int] = None,
+         min_locs: int | None = None,
+         output_dir: str | None = None,
+         json_indent: int | None = None,
          seed: int = 123,
-         mislabeled_images_dir: Optional[str] = None) -> None:
+         mislabeled_images_dir: str | None = None) -> None:
     """Main function."""
     # input validation
     assert os.path.exists(label_spec_json_path)
@@ -251,7 +251,7 @@ def validate_json(input_js: dict[str, dict[str, Any]],
 
 
 def get_output_json(label_to_inclusions: dict[str, set[tuple[str, str]]],
-                    mislabeled_images_dir: Optional[str] = None
+                    mislabeled_images_dir: str | None = None
                     ) -> dict[str, dict[str, Any]]:
     """Queries MegaDB to get image paths matching dataset_labels.
 
@@ -432,7 +432,7 @@ def remove_non_images(js: MutableMapping[str, dict[str, Any]],
 
 def remove_nonexistent_images(js: MutableMapping[str, dict[str, Any]],
                               log: MutableMapping[str, Any],
-                              check_local: Optional[str] = None,
+                              check_local: str | None = None,
                               num_threads: int = 50) -> None:
     """Remove images that don't actually exist locally or on Azure Blob Storage.
     Modifies [js] and [log] in-place.
@@ -518,7 +518,7 @@ def remove_images_insufficient_locs(js: MutableMapping[str, dict[str, Any]],
 
 
 def filter_images(output_js: Mapping[str, Mapping[str, Any]], label: str,
-                  datasets: Optional[Container[str]] = None) -> set[str]:
+                  datasets: Container[str] | None = None) -> set[str]:
     """Finds image files from output_js that have a given label and are from
     a set of datasets.
 
