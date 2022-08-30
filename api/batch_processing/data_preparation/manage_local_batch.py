@@ -1280,9 +1280,11 @@ for i_folder, folder_name in enumerate(folders):
     options = SubsetJsonDetectorOutputOptions()
     options.confidence_threshold = 0.01
     options.overwrite_json_files = True
-    options.make_folder_relative = True
-    options.query = folder_name + '\\'
+    options.query = folder_name + '/'
 
+    # This doesn't do anything in this case, since we're not splitting folders
+    # options.make_folder_relative = True        
+    
     subset_data = subset_json_detector_output(input_filename, output_filename, options, data)
 
 
