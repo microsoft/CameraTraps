@@ -4,7 +4,6 @@ on images.
 """
 
 #%% Imports
-import sys
 
 import torch
 import numpy as np
@@ -16,7 +15,7 @@ try:
     # import pre- and post-processing functions from the YOLOv5 repo https://github.com/ultralytics/yolov5
     from utils.general import non_max_suppression, scale_coords, xyxy2xywh
     from utils.augmentations import letterbox
-except ModuleNotFoundError as e:
+except ModuleNotFoundError:
     raise ModuleNotFoundError('Could not import YOLOv5 functions.')
 
 print(f'Using PyTorch version {torch.__version__}')
@@ -45,7 +44,7 @@ class PTDetector:
         model = checkpoint['model'].float().fuse().eval()  # FP32 model
         return model
 
-    def generate_detections_one_image(self, img_original, image_id, detection_threshold):
+    def generate_detections_one_image(self, img_original, image_id, detection_threshold, image_size=None):
         """Apply the detector to an image.
 
         Args:
@@ -71,8 +70,19 @@ class PTDetector:
             img_original = np.asarray(img_original)
 
             # padded resize
-            img = letterbox(img_original, new_shape=PTDetector.IMAGE_SIZE,
+            target_size = PTDetector.IMAGE_SIZE
+            
+            # Image size can be an int (which translates to a square target size) or (h,w)
+            if image_size is not None:
+                assert isinstance(image_size,int) or (len(image_size)==2)
+                if False:
+                    if (not isinstance(image_size,int)) or (image_size != PTDetector.IMAGE_SIZE):
+                        print('Warning: using non-standard image size {}'.format(image_size))
+                target_size = image_size
+                
+            img = letterbox(img_original, new_shape=target_size,
                                  stride=PTDetector.STRIDE, auto=True)[0]  # JIT requires auto=False
+            
             img = img.transpose((2, 0, 1))  # HWC to CHW; PIL Image is RGB already
             img = np.ascontiguousarray(img)
             img = torch.from_numpy(img)

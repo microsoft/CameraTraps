@@ -46,6 +46,9 @@ default_gpu_number = 0
 
 quiet_mode = True
 
+# Specify a target image size when running MD... strongly recommended to leave this at "None"
+image_size = None
+
 # Only relevant when running on CPU
 ncores = 1
 
@@ -181,9 +184,13 @@ for i_task,task in enumerate(task_info):
     if quiet_mode:
         quiet_string = '--quiet'
 
+    image_size_string = ''
+    if image_size is not None:
+        image_size_string = '--image_size {}'.format(image_size)
+        
     # Generate the script to run MD
         
-    cmd = f'{cuda_string} python run_detector_batch.py "{model_file}" "{chunk_file}" "{output_fn}" {checkpoint_frequency_string} {checkpoint_path_string} {use_image_queue_string} {ncores_string} {quiet_string}'
+    cmd = f'{cuda_string} python run_detector_batch.py "{model_file}" "{chunk_file}" "{output_fn}" {checkpoint_frequency_string} {checkpoint_path_string} {use_image_queue_string} {ncores_string} {quiet_string} {image_size_string}'
     
     cmd_file = os.path.join(filename_base,'run_chunk_{}_gpu_{}.sh'.format(str(i_task).zfill(2),
                             str(gpu_number).zfill(2)))
@@ -255,7 +262,8 @@ if False:
                                               results=None,
                                               n_cores=ncores, 
                                               use_image_queue=use_image_queue,
-                                              quiet=quiet_mode)        
+                                              quiet=quiet_mode,
+                                              image_size=image_size)        
         elapsed = time.time() - start_time
         
         print('Task {}: finished inference for {} images in {}'.format(
