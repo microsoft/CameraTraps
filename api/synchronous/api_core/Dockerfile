@@ -1,57 +1,96 @@
-FROM ai4eregistry.azurecr.io/camera-trap/2.0-detection-sync:5
+# Default to an image with PyTorch installed, for GPU installations.
+#
+# The README recommends a different image for CPU-only installations.
+ARG BASE_IMAGE=pytorch/pytorch:1.10.0-cuda11.3-cudnn8-runtime
+FROM $BASE_IMAGE
 
-# the base image uses Python 3.6. TODO use TF2 for inference
+# Install Redis and expose the default Redis port 
+RUN  apt-get update && apt-get install -y redis-server
+EXPOSE  6379
 
-# Install additional packages
+RUN apt-get update --fix-missing \
+    && apt-get install -y software-properties-common \
+    && add-apt-repository ppa:deadsnakes/ppa \
+    && apt-get update \
+    && apt-get install -y apt-utils \
+        supervisor \
+        curl \
+        bzip2 \
+        ca-certificates \
+        libglib2.0-0 \
+        libxext6 \
+        libsm6 \
+        libxrender1 \
+        python3-setuptools \
+        python3.7-dev \
+        python3.7 \
+        python3-pip \
+        apt-transport-https \
+        build-essential \
+        gcc \
+        ffmpeg \
+        libsm6 \
+        libxext6
+
+# Prepare to install Python dependencies
 RUN pip3 install --upgrade pip
 
+# These are the standard MDv5 dependencies, other than PyTorch.
+#
+# PyTorch, CUDA, and CuDNN come from the base image.
 RUN pip3 install \
+    redis \
+    numpy \
+    requests \
     matplotlib \
-    pillow \
     requests_toolbelt \
+    pillow \
     tqdm \
     humanfriendly \
-    jsonpickle
-# numpy and requests are already included in the base image
+    jsonpickle \
+    opencv-python \
+    pandas \
+    seaborn==0.11.0 \
+    PyYAML==6.0 
 
-# Copy your API code
-COPY ./animal_detection_classification_api /app/animal_detection_classification_api/
+# Commenting this out, but leaving it here for posterity.  We don't
+# want to use YOLOv5's requirements file, because it will choose a
+# version of PyTorch that - ironically - won't work with YOLOv5 (at
+# least as of the time this Dockerfile was last edited).
+#
+# COPY ./yolov5/requirements.txt /yolov5_requirements.txt
+# RUN pip3 install -r ./yolov5_requirements.txt
 
+WORKDIR /
+
+# This requirements file contains that are specific to the API, i.e.,
+# not used by other parts of the repo, e.g. Flask.
+COPY ./requirements.txt /
+RUN TRUE
+RUN pip3 install -r /requirements.txt
+
+# Copy API code into the container
+COPY ./animal_detection_api /app/animal_detection_api/
+RUN true
+
+# Copy YOLOv5 code into the container
+COPY ./yolov5 /app/yolov5/
+RUN true
+
+# Copy startup scripts/config into the container
 COPY ./supervisord.conf /etc/supervisord.conf
-
-# startup.sh is a helper script
+RUN true
 COPY ./startup.sh /
 RUN chmod +x /startup.sh
 
-# Enter your Application Insights instrumentation key to enable Azure monitoring.  You can find the key here:
-#   https://docs.microsoft.com/en-us/azure/azure-monitor/app/create-new-resource#copy-the-instrumentation-key
-ENV APPINSIGHTS_INSTRUMENTATIONKEY=f85104ff-1da9-4301-8f77-5b24c68788aa \
-    TRACE_SAMPLING_RATE=1.0
-
-# The following variables will allow you to filter logs in AppInsights
-ENV SERVICE_OWNER="AI4E_camera_trap" \
-    SERVICE_CLUSTER=Local\ Docker \
-    SERVICE_MODEL_NAME="camera_trap_sync" \
-    SERVICE_MODEL_FRAMEWORK=Python \
-    SERVICE_MODEL_FRAMEOWRK_VERSION=3.7 \
-    ENVSERVICE_MODEL_VERSION=1.0 \
-    DISABLE_CURRENT_REQUEST_METRIC=False
-
-# This is the prefix for your API.
-# In this example, the default_post function has api_path set to '/example', so the URL will be:
-#   /v1/my_api/tasker/example - API_PREFIX + api_path
-# The supervisor.conf file sets the webserver port to 1212, so if you run this locally, the complete URL will be:
-#   http://localhost:1212/v1/my_api/tasker/example
-ENV API_PREFIX=/v1/camera-trap/sync
-
-ENV PYTHONPATH="${PYTHONPATH}:/app/animal_detection_classification_api/"
+ENV PYTHONPATH="${PYTHONPATH}:/app/animal_detection_api/:/app/yolov5/"
 ENV PYTHONUNBUFFERED=TRUE
 
-# Expose the port that is to be used when calling your API
-EXPOSE 1212
+# Expose the API port
+#
+# If you change the port here, remember to update supervisord.conf 
+EXPOSE 1213
 
-HEALTHCHECK --interval=1m --timeout=3s --start-period=20s \
-  CMD curl -f http://localhost:1212/${API_PREFIX}/ || exit 1
+# Starts up the detector, Flask app and Redis server
 ENTRYPOINT [ "/startup.sh" ]
-# Comment out the line above and uncomment the following line to debug and see output messages.
-# ENTRYPOINT ["gunicorn", "-b", "0.0.0.0:1212", "runserver:app"]
+

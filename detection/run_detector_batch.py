@@ -304,12 +304,14 @@ def process_image(im_file, detector, confidence_threshold, image=None, quiet=Fal
 #%% Main function
 
 def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=None,
-                                confidence_threshold=0, checkpoint_frequency=-1,
+                                confidence_threshold=DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD, checkpoint_frequency=-1,
                                 results=None, n_cores=0, use_image_queue=False, quiet=False):
     """
     Args
     - model_file: str, path to .pb model file
-    - image_file_names: list of str, paths to image files
+    - image_file_names: list of strings (image filenames), a single image filename, 
+                        a folder to recursively search for images in, or a .json file containing
+                        a list of images.
     - checkpoint_path: str, path to JSON checkpoint file
     - confidence_threshold: float, only detections above this threshold are returned
     - checkpoint_frequency: int, write results to JSON checkpoint file every N images
@@ -319,6 +321,30 @@ def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=No
     Returns
     - results: list of dict, each dict represents detections on one image
     """
+    
+    # Handle the case where image_file_names is not yet actually a list
+    if isinstance(image_file_names,str):
+        
+        # Find the images to score; images can be a directory, may need to recurse
+        if os.path.isdir(image_file_names):
+            image_dir = image_file_names
+            image_file_names = ImagePathUtils.find_images(image_dir, True)
+            print('{} image files found in folder {}'.format(len(image_file_names),image_dir))
+            
+        # A json list of image paths
+        elif os.path.isfile(image_file_names) and image_file_names.endswith('.json'):
+            list_file = image_file_names
+            with open(list_file) as f:
+                image_file_names = json.load(f)
+            print('Loaded {} image filenames from list file {}'.format(len(image_file_names),list_file))
+            
+        # A single image file
+        elif os.path.isfile(image_file_names) and ImagePathUtils.is_image_file(image_file_names):
+            image_file_names = [image_file_names]
+            print('Processing image {}'.format(image_file_names[0]))
+            
+        else:        
+            raise ValueError('image_file_names is a string, but is not a directory, a json list (.json), or an image file (png/jpg/jpeg/gif)')
     
     if results is None:
         results = []
@@ -366,9 +392,10 @@ def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=No
                 
                 print('Writing a new checkpoint after having processed {} images since last restart'.format(count))
                 
-                assert checkpoint_path is not None
+                assert checkpoint_path is not None                
                 
-                # Back up any previous checkpoints
+                # Back up any previous checkpoints, to protect against crashes while we're writing
+                # the checkpoint file.
                 checkpoint_tmp_path = None
                 if os.path.isfile(checkpoint_path):
                     checkpoint_tmp_path = checkpoint_path + '_tmp'
@@ -536,7 +563,7 @@ def main():
         '--threshold',
         type=float,
         default=DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD,
-        help="Confidence threshold between 0 and 1.0, don't include boxes below this confidence in the output file. Default is 0.1")
+        help="Confidence threshold between 0 and 1.0, don't include boxes below this confidence in the output file. Default is {}".format(DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD))
     parser.add_argument(
         '--checkpoint_frequency',
         type=int,
@@ -549,7 +576,13 @@ def main():
         help='File name to which checkpoints will be written if checkpoint_frequency is > 0')
     parser.add_argument(
         '--resume_from_checkpoint',
+        type=str,
+        default=None,
         help='Path to a JSON checkpoint file to resume from')
+    parser.add_argument(
+        '--allow_checkpoint_overwrite',
+        action='store_true',
+        help='By default, this script will bail if the specified checkpoint file already exists; this options allows it to overwrite existing checkpoints')
     parser.add_argument(
         '--ncores',
         type=int,
@@ -577,12 +610,13 @@ def main():
     #
     # Relative file names are only output at the end; all file paths in the checkpoint are
     # still full paths.
-    if args.resume_from_checkpoint:
+    if args.resume_from_checkpoint is not None:
         assert os.path.exists(args.resume_from_checkpoint), 'File at resume_from_checkpoint specified does not exist'
         with open(args.resume_from_checkpoint) as f:
+            print('Loading previous results from checkpoint file {}'.format(args.resume_from_checkpoint))
             saved = json.load(f)
         assert 'images' in saved, \
-            'The file saved as checkpoint does not have the correct fields; cannot be restored'
+            'The checkpoint file does not have the correct fields; cannot be restored'
         results = saved['images']
         print('Restored {} entries from the checkpoint'.format(len(results)))
     else:
@@ -592,16 +626,19 @@ def main():
     if os.path.isdir(args.image_file):
         image_file_names = ImagePathUtils.find_images(args.image_file, args.recursive)
         print('{} image files found in the input directory'.format(len(image_file_names)))
+        
     # A json list of image paths
     elif os.path.isfile(args.image_file) and args.image_file.endswith('.json'):
         with open(args.image_file) as f:
             image_file_names = json.load(f)
-        print('{} image files found in the json list'.format(len(image_file_names)))
+        print('Loaded {} image filenames from list file {}'.format(len(image_file_names),args.image_file))
+        
     # A single image file
     elif os.path.isfile(args.image_file) and ImagePathUtils.is_image_file(args.image_file):
         image_file_names = [args.image_file]
-        print('A single image at {} is the input file'.format(args.image_file))
-    else:
+        print('Processing image {}'.format(args.image_file))
+        
+    else:        
         raise ValueError('image_file specified is not a directory, a json list, or an image file, '
                          '(or does not have recognizable extensions).')
 
@@ -623,9 +660,23 @@ def main():
         else:
             checkpoint_path = os.path.join(output_dir, 'checkpoint_{}.json'.format(datetime.utcnow().strftime("%Y%m%d%H%M%S")))
         
-        # Confirm that we can write to the checkpoint path, rather than failing after 10000 images
-        with open(checkpoint_path, 'w') as f:
-            json.dump({'images': []}, f)
+        # Don't overwrite existing checkpoint files, this is a sure-fire way to eventually
+        # erase someone's checkpoint.
+        if (checkpoint_path is not None) and (not args.allow_checkpoint_overwrite) and (args.resume_from_checkpoint is None):
+            
+            assert not os.path.isfile(checkpoint_path), \
+                'Checkpoint path {} already exists, delete or move it before re-using the same checkpoint path, or specify --allow_checkpoint_overwrite'.format(
+                checkpoint_path)
+
+        # Commenting this out for now... the scenario where we are resuming from a checkpoint,
+        # then immediately overwrite that checkpoint with empty data is higher-risk than the 
+        # annoyance of crashing a few minutes after starting a job.
+        if False:
+            # Confirm that we can write to the checkpoint path; this avoids issues where we crash after 
+            # several thousand images.
+            with open(checkpoint_path, 'w') as f:
+                json.dump({'images': []}, f)
+                
         print('The checkpoint file will be written to {}'.format(checkpoint_path))
         
     else:

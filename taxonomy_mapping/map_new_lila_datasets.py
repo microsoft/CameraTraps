@@ -5,12 +5,13 @@
 
 #%% Constants and imports
 
+import os
 import json
 
 # Created by get_lila_category_list.py
-input_lila_category_list_file = r"G:\temp\lila\lila_categories_list\lila_dataset_to_categories.json"
+input_lila_category_list_file = os.path.expanduser('~/lila/lila_categories_list/lila_dataset_to_categories.json')
 
-output_file = r'g:\temp\lila\lila_additions_2022.07.03.csv'
+output_file = os.path.expanduser('~/lila/lila_additions_2022.08.22.csv')
 
 datasets_to_map = [
     # 'NACTI'
@@ -71,7 +72,7 @@ if False:
     #%%
     
     # q = 'white-throated monkey'
-    q = 'clark\'s nutcracker'
+    q = 'cingulata'
     taxonomy_preference = 'inat'
     m = get_preferred_taxonomic_match(q,taxonomy_preference)
     

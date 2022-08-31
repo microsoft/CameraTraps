@@ -7,7 +7,7 @@
 5. [Downloading the model](#downloading-the-model)
 6. [Using the model](#using-the-model)
 7. [Is there a GUI?](#is-there-a-gui)
-8.  [How do I use the results?](#how-do-i-use-the-results)
+8. [How do I use the results?](#how-do-i-use-the-results)
 9. [Have you evaluated MegaDetector's accuracy?](#have-you-evaluated-megadetectors-accuracy)
 10. [Citing MegaDetector](#citing-megadetector)
 11. [Tell me more about why detectors are a good first step for camera trap images](#tell-me-more-about-why-detectors-are-a-good-first-step-for-camera-trap-images)
@@ -385,18 +385,31 @@ python detection/run_detector_batch.py "$HOME/megadetector/md_v5a.0.0.pt" "/some
 
 Not exactly... most of our users either use our Python tools to run MegaDetector or have us run MegaDetector for them (see [this page](collaborations.md) for more information about that), then most of those users use [Timelapse](https://saul.cpsc.ucalgary.ca/timelapse/) to use their MegaDetector results in an image review workflow.
 
-But we recognize that Python tools can be a bit daunting, so we're excited that a few different graphical tools have sprung up that allow you to run MegaDetector in a GUI.  We haven't tried these, but they look great, and if you find them useful - or if you know of others - [let us know](mailto:cameratraps@lila.science)!
+But we recognize that Python tools can be a bit daunting, so we're excited that a variety of tools allow you to run MegaDetector in a GUI.  We're interested in users' perspectives on all of these tools, so if you find them useful - or if you know of others - [let us know](mailto:cameratraps@lila.science)!
 
-As of June 2022, the following interactive tools support MegaDetector v5:
+### Tools for running MegaDetector locally
+
+* [EcoAssist](https://github.com/PetervanLunteren/EcoAssist) is a GUI-based tool for running MegaDetector in MacOS environments (supports MDv5)
+* [MegaDetector-GUI](https://github.com/petargyurov/megadetector-gui) is a GUI-based tool for running MegaDetector in Windows environments (MDv4 only as far as we know)
+
+### Interactive demos/APIs
 
 * [Hendry Lydecker](https://github.com/hlydecker) set up a [Hugging Face app](https://huggingface.co/spaces/hlydecker/MegaDetector_v5) for running MDv5
-
-The following support MegaDetector v4 (let us know if any of these adopt MDv5!):
-
-* [EcoAssist](https://github.com/PetervanLunteren/EcoAssist) is a GUI-based tool for running MegaDetector in MacOS environments
-* [MegaDetector-GUI](https://github.com/petargyurov/megadetector-gui) is a GUI-based tool for running MegaDetector in Windows environments
 * [Ben Evans](https://bencevans.io/) set up a [Web-based MegaDetector demo](https://replicate.com/bencevans/megadetector) at [replicate.com](https://replicate.com)
-* The [Zooniverse ML Subject Assistant](https://subject-assistant.zooniverse.org/#/intro) allows Zooniverse camera trap project owners to run MegaDetector and get "AI votes" on their camera trap images
+
+### Cloud-based platforms that leverage MegaDetector
+
+It's not quite as simple as "these platforms all run MegaDetector on your images", but to varying degrees, all of the following online platforms use MegaDetector:
+
+* [Wildlife Insights](https://wildlifeinsights.org/)
+* [TrapTagger](https://wildeyeconservation.org/trap-tagger-about/)
+* [WildTrax](https://www.wildtrax.ca/)
+* [Camelot](https://camelotproject.org/)
+* [WildePod](https://wildepod.org/)
+* [wpsWatch](https://wildlifeprotectionsolutions.org/wpswatch/)
+* [Animl](https://github.com/tnc-ca-geo/animl-frontend)
+* [Cam-WON](https://wildlifeobserver.net/)
+* [Zooniverse ML Subject Assistant](https://subject-assistant.zooniverse.org/#/intro)
 
 ## How do I use the results?
 
@@ -410,6 +423,12 @@ Internally, we track metrics on a validation set when we train MegaDetector, but
 Consequently, when we work with new users, we always start with a "test batch" to get a sense for how well MegaDetector works for <i>your</i> images.  We make this as quick and painless as possible, so that in the (hopefully rare) cases where MegaDetector will not help you, we find that out quickly.
 
 All of those caveats aside, we are aware of some external validation studies... and we'll list them here... but still, try MegaDetector on your images before you assume any performance numbers!
+
+### MDv5 evaluations
+
+* WildEye. [MegaDetector Version 5 evaluation](https://wildeyeconservation.org/megadetector-version-5/).
+
+### MDv4 evaluations
 
 * Fennell M, Beirne C, Burton AC. [Use of object detection in camera trap image identification: assessing a method to rapidly and accurately classify human and animal detections for research and application in recreation ecology](https://www.sciencedirect.com/science/article/pii/S2351989422001068?via%3Dihub). Global Ecology and Conservation. 2022 Mar 25:e02104.
 * Vélez J, Castiblanco-Camacho PJ, Tabak MA, Chalmers C, Fergus P, Fieberg J.  [Choosing an Appropriate Platform and Workflow for Processing Camera Trap Data using Artificial Intelligence](https://arxiv.org/abs/2202.02283). arXiv. 2022 Feb 4.

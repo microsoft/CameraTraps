@@ -11,6 +11,8 @@
 
 import json
 import os
+import stat
+import time
 
 import humanfriendly
 
@@ -20,11 +22,17 @@ from tqdm import tqdm
 import ai4e_azure_utils 
 import path_utils
 
+from detection.run_detector_batch import load_and_run_detector_batch, write_results_to_file
+from detection.run_detector import DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD
+
 from api.batch_processing.postprocessing.postprocess_batch_results import (
     PostProcessingOptions, process_batch_results)
 from detection.run_detector import get_detector_version_from_filename
 
 max_task_name_length = 92
+
+# To specify a non-default confidence threshold for including detections in the .json file
+json_threshold = None
 
 # Turn warnings into errors if more than this many images are missing
 max_tolerable_failed_images = 100
@@ -49,7 +57,15 @@ input_path = os.path.expanduser('~/data/organization/2021-12-24')
 organization_name_short = 'organization'
 # job_date = '2022-01-01'
 job_date = None
-assert job_date is not None
+assert job_date is not None and organization_name_short != 'organization'
+
+# Optional descriptor
+job_tag = None
+
+if job_tag is None:
+    job_description_string = ''
+else:
+    job_description_string = '-' + job_tag
 
 model_file = os.path.expanduser('~/models/camera_traps/megadetector/md_v5.0.0/md_v5a.0.0.pt')
 # model_file = os.path.expanduser('~/models/camera_traps/megadetector/md_v5.0.0/md_v5b.0.0.pt')
@@ -67,16 +83,15 @@ if ('v5') in model_file:
 else:
     gpu_images_per_second = 2.9
 
-checkpoint_frequency = 10000
+checkpoint_frequency = 2000
 
-base_task_name = organization_name_short + '-' + job_date + '-' + get_detector_version_from_filename(model_file)
+base_task_name = organization_name_short + '-' + job_date + job_description_string + '-' + get_detector_version_from_filename(model_file)
 base_output_folder_name = os.path.join(postprocessing_base,organization_name_short)
 os.makedirs(base_output_folder_name,exist_ok=True)
 
 
 #%% Derived variables, path setup
 
-# local folders
 filename_base = os.path.join(base_output_folder_name, base_task_name)
 combined_api_output_folder = os.path.join(filename_base, 'combined_api_outputs')
 postprocessing_output_folder = os.path.join(filename_base, 'postprocessing')
@@ -87,6 +102,8 @@ os.makedirs(postprocessing_output_folder, exist_ok=True)
 
 if input_path.endswith('/'):
     input_path = input_path[0:-1]
+
+print('Output folder:\n{}'.format(filename_base))
 
 
 #%% Enumerate files
@@ -146,10 +163,11 @@ for i_task,task in enumerate(task_info):
     
     checkpoint_frequency_string = ''
     checkpoint_path_string = ''
+    checkpoint_filename = chunk_file.replace('.json','_checkpoint.json')
+    
     if checkpoint_frequency is not None and checkpoint_frequency > 0:
         checkpoint_frequency_string = f'--checkpoint_frequency {checkpoint_frequency}'
-        checkpoint_path_string = '--checkpoint_path {}'.format(chunk_file.replace(
-            '.json','_checkpoint.json'))
+        checkpoint_path_string = '--checkpoint_path "{}"'.format(checkpoint_filename)
             
     use_image_queue_string = ''
     if (use_image_queue):
@@ -162,28 +180,100 @@ for i_task,task in enumerate(task_info):
     quiet_string = ''
     if quiet_mode:
         quiet_string = '--quiet'
+
+    # Generate the script to run MD
         
-    cmd = f'{cuda_string} python run_detector_batch.py {model_file} {chunk_file} {output_fn} {checkpoint_frequency_string} {checkpoint_path_string} {use_image_queue_string} {ncores_string} {quiet_string}'
+    cmd = f'{cuda_string} python run_detector_batch.py "{model_file}" "{chunk_file}" "{output_fn}" {checkpoint_frequency_string} {checkpoint_path_string} {use_image_queue_string} {ncores_string} {quiet_string}'
     
     cmd_file = os.path.join(filename_base,'run_chunk_{}_gpu_{}.sh'.format(str(i_task).zfill(2),
                             str(gpu_number).zfill(2)))
     
     with open(cmd_file,'w') as f:
         f.write(cmd + '\n')
-        
-    import stat
+    
     st = os.stat(cmd_file)
     os.chmod(cmd_file, st.st_mode | stat.S_IEXEC)
     
     task['command'] = cmd
     task['command_file'] = cmd_file
 
+    # Generate the script to resume from the checkpoint
+    
+    resume_string = ' --resume_from_checkpoint "{}"'.format(checkpoint_filename)
+    resume_cmd = cmd + resume_string
+    resume_cmd_file = os.path.join(filename_base,'resume_chunk_{}_gpu_{}.sh'.format(str(i_task).zfill(2),
+                            str(gpu_number).zfill(2)))
+    
+    with open(resume_cmd_file,'w') as f:
+        f.write(resume_cmd + '\n')
+    
+    st = os.stat(resume_cmd_file)
+    os.chmod(resume_cmd_file, st.st_mode | stat.S_IEXEC)
+    
+    task['resume_command'] = resume_cmd
+    task['resume_command_file'] = resume_cmd_file
+
 
 #%% Run the tasks
 
-# Prefer to run manually
+"""
+I strongly prefer to manually run the scripts we just generated, but this cell demonstrates
+how one would invoke run_detector_batch programmatically.  Normally when I run manually on 
+a multi-GPU machine, I run the scripts in N separate shells, one for each GPU.  This programmatic
+approach does not yet know how to do something like that, so all chunks will run serially.
+This is a no-op if you're on a single-GPU machine.
+"""
 
+if False:
+    
+    #%%% Run the tasks (commented out)
 
+    # i_task = 0; task = task_info[i_task]
+    for i_task,task in enumerate(task_info):
+    
+        chunk_file = task['input_file']
+        output_fn = task['output_file']
+        
+        checkpoint_filename = chunk_file.replace('.json','_checkpoint.json')
+        
+        if json_threshold is not None:
+            confidence_threshold = json_threshold
+        else:
+            confidence_threshold = DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD
+            
+        if checkpoint_frequency is not None and checkpoint_frequency > 0:
+            cp_freq_arg = checkpoint_frequency
+        else:
+            cp_freq_arg = -1
+            
+        start_time = time.time()
+        results = load_and_run_detector_batch(model_file=model_file, 
+                                              image_file_names=chunk_file, 
+                                              checkpoint_path=checkpoint_filename, 
+                                              confidence_threshold=confidence_threshold,
+                                              checkpoint_frequency=cp_freq_arg, 
+                                              results=None,
+                                              n_cores=ncores, 
+                                              use_image_queue=use_image_queue,
+                                              quiet=quiet_mode)        
+        elapsed = time.time() - start_time
+        
+        print('Task {}: finished inference for {} images in {}'.format(
+            i_task, len(results),humanfriendly.format_timespan(elapsed)))
+
+        # This will write absolute paths to the file, we'll fix this later
+        write_results_to_file(results, output_fn, detector_file=model_file)
+
+        if checkpoint_frequency is not None and checkpoint_frequency > 0:
+            if os.path.isfile(checkpoint_filename):                
+                os.remove(checkpoint_filename)
+                print('Deleted checkpoint file {}'.format(checkpoint_filename))
+                
+    # ...for each chunk
+    
+# ...if False
+
+    
 #%% Load results, look for failed or missing images in each task
 
 n_total_failures = 0
@@ -248,7 +338,9 @@ for i_task,task in enumerate(task_info):
     assert task_results['detection_categories'] == combined_results['detection_categories']
     combined_results['images'].extend(copy.deepcopy(task_results['images']))
     
-assert len(combined_results['images']) == len(all_images)
+assert len(combined_results['images']) == len(all_images), \
+    'Expected {} images in combined results, found {}'.format(
+        len(all_images),len(combined_results['images']))
 
 result_filenames = [im['file'] for im in combined_results['images']]
 assert len(combined_results['images']) == len(set(result_filenames))
@@ -290,10 +382,13 @@ filenames = [
     ]
 
 detection_thresholds = [0.7,0.15,0.15]
-# rendering_thresholds = [0.5,0.1,0.1]
+
+assert len(detection_thresholds) == len(filenames)
+
 rendering_thresholds = [(x*0.6666) for x in detection_thresholds]
 
-for i, j in itertools.combinations([0,1,2],2):
+# Choose all pairwise combinations of the files in [filenames]
+for i, j in itertools.combinations(list(range(0,len(filenames))),2):
         
     pairwise_options = PairwiseBatchComparisonOptions()
     
@@ -682,6 +777,7 @@ for fn in input_files:
         final_output_suffix)
     final_output_path = final_output_path.replace('_detections','')
     final_output_path = final_output_path.replace('_crops','')
+    final_output_path_mc = final_output_path
     
     merge_cmd = ''
     
@@ -725,7 +821,7 @@ input_files = [input_filename]
 image_base = input_path
 crop_path = os.path.join(os.path.expanduser('~/crops'),job_name + '_crops')
 output_base = combined_api_output_folder
-device_id = 0
+device_id = 1
 
 output_file = os.path.join(filename_base,'run_{}_'.format(classifier_name_short) + job_name +  '.sh')
 
@@ -880,8 +976,11 @@ os.chmod(output_file, st.st_mode | stat.S_IEXEC)
 # "other" class.
 
 classification_detection_files = [    
-    "xyz","abc"
+    final_output_path_mc,
+    final_output_path_ic    
     ]
+
+assert all([os.path.isfile(fn) for fn in classification_detection_files])
 
 # Only count detections with a classification confidence threshold above
 # *classification_confidence_threshold*, which in practice means we're only
@@ -894,6 +993,8 @@ classification_detection_files = [
 #
 # Optionally treat some classes as particularly unreliable, typically used to overwrite an 
 # "other" class.
+
+smoothed_classification_files = []
 
 for final_output_path in classification_detection_files:
 
@@ -947,10 +1048,7 @@ for final_output_path in classification_detection_files:
     # im = d['images'][0]    
     for im in tqdm(d['images']):
         
-        if 'Pronghorn Test Dataset/Drinker/SED/I__00030.JPG' in im['file']:
-            pass
-            
-        if 'detections' not in im or len(im['detections']) == 0:
+        if 'detections' not in im or im['detections'] is None or len(im['detections']) == 0:
             continue
         
         detections = im['detections']
@@ -1070,19 +1168,16 @@ for final_output_path in classification_detection_files:
         json.dump(d,f,indent=2)
         
     print('Wrote results to:\n{}'.format(classifier_output_path_within_image_smoothing))
+    smoothed_classification_files.append(classifier_output_path_within_image_smoothing)
 
 # ...for each file we want to smooth
 
 
 #%% Post-processing (post-classification)
 
-classification_detection_files = [    
-    "/home/user/postprocessing/organization/organization-2022-02-19/combined_api_outputs/organization-2022-02-19_megaclassifier.json",
-    "/home/user/postprocessing/organization/organization-2022-02-19/combined_api_outputs/organization-2022-02-19_idfgclassifier.json"
-    ]
+classification_detection_files = smoothed_classification_files
     
-for fn in classification_detection_files:
-    assert os.path.isfile(fn)
+assert all([os.path.isfile(fn) for fn in classification_detection_files])
     
 # classification_detection_file = classification_detection_files[1]
 for classification_detection_file in classification_detection_files:
@@ -1125,7 +1220,39 @@ size_separated_file = input_file.replace('.json','-size-separated-{}.json'.forma
 d = categorize_detections_by_size.categorize_detections_by_size(input_file,size_separated_file,options)
 
 
-#%% Subsetting
+#%% .json splitting
+
+data = None
+
+from api.batch_processing.postprocessing.subset_json_detector_output import (
+    subset_json_detector_output, SubsetJsonDetectorOutputOptions)
+
+input_filename = filtered_output_filename
+output_base = os.path.join(filename_base,'json_subsets')
+
+if False:
+    if data is None:
+        with open(input_filename) as f:
+            data = json.load(f)
+    print('Data set contains {} images'.format(len(data['images'])))
+
+print('Processing file {} to {}'.format(input_filename,output_base))          
+
+options = SubsetJsonDetectorOutputOptions()
+# options.query = None
+# options.replacement = None
+
+options.split_folders = True
+options.make_folder_relative = True
+options.split_folder_mode = 'bottom'  # 'top', 'n_from_top', 'n_from_bottom'
+options.split_folder_param = 0
+options.overwrite_json_files = False
+options.confidence_threshold = 0.01
+
+subset_data = subset_json_detector_output(input_filename, output_base, options, data)
+
+
+#%% Custom splitting/subsetting
 
 data = None
 
@@ -1153,9 +1280,11 @@ for i_folder, folder_name in enumerate(folders):
     options = SubsetJsonDetectorOutputOptions()
     options.confidence_threshold = 0.01
     options.overwrite_json_files = True
-    options.make_folder_relative = True
-    options.query = folder_name + '\\'
+    options.query = folder_name + '/'
 
+    # This doesn't do anything in this case, since we're not splitting folders
+    # options.make_folder_relative = True        
+    
     subset_data = subset_json_detector_output(input_filename, output_filename, options, data)
 
 
@@ -1175,13 +1304,13 @@ options.replacement = ''
 subset_json_detector_output(input_filename,output_filename,options)
 
 
-#%% Folder splitting
+#%% Splitting images into folders
 
 from api.batch_processing.postprocessing.separate_detections_into_folders import (
     separate_detections_into_folders, SeparateDetectionsIntoFoldersOptions)
 
 default_threshold = 0.2
-base_output_folder = r'e:\{}-{}-separated'.format(base_task_name,default_threshold)
+base_output_folder = os.path.expanduser('~/data/{}-{}-separated'.format(base_task_name,default_threshold))
 
 options = SeparateDetectionsIntoFoldersOptions(default_threshold)
 
@@ -1253,3 +1382,79 @@ with open(cmd_file,'w') as f:
 import stat
 st = os.stat(cmd_file)
 os.chmod(cmd_file, st.st_mode | stat.S_IEXEC)
+
+
+#%% End notebook: turn this script into a notebook (how meta!)
+
+import nbformat as nbf
+
+input_py_file = os.path.expanduser('~/git/CameraTraps/api/batch_processing/data_preparation/manage_local_batch.py')
+assert os.path.isfile(input_py_file)
+output_ipynb_file = input_py_file.replace('.py','.ipynb')
+
+nb_header = '# Managing a local MegaDetector batch'
+
+nb_header += '\n'
+
+nb_header += \
+"""
+This notebook represents an interactive process for running MegaDetector on large batches of images, including typical and optional postprocessing steps.  Everything after "Merge results..." is basically optional, and we typically do a mix of these optional steps, depending on the job.
+
+This notebook is auto-generated from manage_local_batch.py (a cell-delimited .py file that is used the same way, typically in Spyder or VS Code).    
+
+"""
+
+with open(input_py_file,'r') as f:
+    lines = f.readlines()
+
+nb = nbf.v4.new_notebook()
+nb['cells'].append(nbf.v4.new_markdown_cell(nb_header))
+
+i_line = 0
+
+# Exclude everything before the first cell
+while(not lines[i_line].startswith('#%%')):
+    i_line += 1
+
+current_cell = []
+
+def write_code_cell(c):
+    
+    first_non_empty_line = None
+    last_non_empty_line = None
+    
+    for i_code_line,code_line in enumerate(c):
+        if len(code_line.strip()) > 0:
+            if first_non_empty_line is None:
+                first_non_empty_line = i_code_line
+            last_non_empty_line = i_code_line
+            
+    # Remove the first [first_non_empty_lines] from the list
+    c = c[first_non_empty_line:]
+    last_non_empty_line -= first_non_empty_line
+    c = c[:last_non_empty_line+1]
+    
+    nb['cells'].append(nbf.v4.new_code_cell('\n'.join(c)))
+        
+while(True):    
+            
+    line = lines[i_line].rstrip()
+    
+    if 'end notebook' in line.lower():
+        break
+    
+    if lines[i_line].startswith('#%% '):
+        if len(current_cell) > 0:
+            write_code_cell(current_cell)
+            current_cell = []
+        markdown_content = line.replace('#%%','##')
+        nb['cells'].append(nbf.v4.new_markdown_cell(markdown_content))
+    else:
+        current_cell.append(line)
+
+    i_line += 1
+
+# Add the last cell
+write_code_cell(current_cell)
+
+nbf.write(nb,output_ipynb_file)

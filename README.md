@@ -6,7 +6,6 @@ This repo contains the tools for training, running, and evaluating detectors and
 - Training and evaluation of detectors, particularly [MegaDetector](megadetector.md), an object detection model that does a pretty good job finding animals, people, and vehicles (and therefore is pretty good at finding empty images) in a variety of terrestrial ecosystems
 - A [batch processing API](https://github.com/microsoft/CameraTraps/tree/main/api/batch_processing) that runs MegaDetector on large image collections, to accelerate population surveys
 - A [real-time API](https://github.com/microsoft/CameraTraps/tree/main/api/synchronous) that runs MegaDetector (and some species classifiers) synchronously, primarily to support anti-poaching scenarios (e.g. see this [blog post](https://customers.microsoft.com/en-us/story/1384184517929343083-wildlife-protection-solutions-nonprofit-ai-for-earth) describing how this API supports [Wildlife Protection Solutions](https://wildlifeprotectionsolutions.org/))
-- A [Web-based demo](https://github.com/microsoft/CameraTraps/tree/main/demo) that calls our real-time API
 - Training and evaluation of species-level classifiers for specific data sets
 - Miscellaneous useful tools for manipulating camera trap data
 - Research experiments we're doing around camera trap data (i.e., some directories are highly experimental and you should take them with a grain of salt)
@@ -36,7 +35,7 @@ If you're already familiar with MegaDetector and you're ready to run it on your 
 
 We work with ecologists all over the world to help them spend less time annotating images and more time thinking about conservation.  You can read a little more about how this works on our [getting started with MegaDetector](collaborations.md) page.
 
-Here are a few of the organizations that have used MegaDetector... we're only listing organizations who (a) we know about and (b) have kindly given us permission to refer to them here, so if you're using MegaDetector or other tools from this repo and would like to be added to this list, <a href="mailto:cameratraps@lila.science">email us</a>!
+Here are a few of the organizations that have used MegaDetector... we're only listing organizations who (a) we know about and (b) have kindly given us permission to refer to them here (or have posted publicly about their use of MegaDetector), so if you're using MegaDetector or other tools from this repo and would like to be added to this list, <a href="mailto:cameratraps@lila.science">email us</a>!
 
 * Idaho Department of Fish and Game
 * San Diego Zoo Global
@@ -47,7 +46,6 @@ Here are a few of the organizations that have used MegaDetector... we're only li
 * Australian Wildlife Conservancy
 * Lab of Dr. Bilal Habib at the Wildlife Institute of India
 * Royal Society for the Protection of Birds (RSPB)
-* Wildlife Protection Solutions
 * Island Conservation
 * Synthetaic
 * School of Natural Sciences, University of Tasmania
@@ -67,10 +65,8 @@ Here are a few of the organizations that have used MegaDetector... we're only li
 * TU Berlin, Department of Ecology
 * DC Cat Count, led by the Humane Rescue Alliance
 * Center for Biodiversity and Conservation at the American Museum of Natural History
-* Camelot
 * Graeme Shannon's Research Group at Bangor University 
 * Snapshot USA
-* University of British Columbia Wildlife Coexistence Lab
 * Michigan Department of Natural Resources, Wildlife Division
 * Serra dos Órgãos National Park / ICMBio
 * McLoughlin Lab in Population Ecology, University of Saskatchewan
@@ -80,17 +76,23 @@ Here are a few of the organizations that have used MegaDetector... we're only li
 * Conservation X Labs
 * The Nature Conservancy in Wyoming
 * Seattle Urban Carnivore Project
-* Road Ecology Center, University of California, Davis
-* [TrapTagger](https://wildeyeconservation.org/trap-tagger-about/)
 * Blackbird Environmental
 * UNSW Sydney
 * Taronga Conservation Society
 * Myall Lakes Dingo Project
-* Irvine Ranch Conservancy ([story](https://www.ocregister.com/2022/03/30/ai-software-is-helping-researchers-focus-on-learning-about-ocs-wild-animals/))
 * SUMHAL, Estación Biológica de Doñana
 * Capitol Reef National Park and Utah Valley University
 * University of Victoria Applied Conservation Macro Ecology (ACME) Lab 
 * Université du Québec en Outaouais Institut des Science de la Forêt Tempérée (ISFORT)
+* University of British Columbia Wildlife Coexistence Lab ([WildCo-FaceBlur tool](https://github.com/WildCoLab/WildCo_Face_Blur))
+* Road Ecology Center, University of California, Davis ([Wildlife Observer Network platform](https://wildlifeobserver.net/))
+* The Nature Conservancy in California ([Animl platform](https://github.com/tnc-ca-geo/animl-frontend))
+* Felidae Conservation Fund ([WildePod platform](https://wildepod.org/)) ([blog post](https://abhaykashyap.com/blog/ai-powered-camera-trap-image-annotation-system/))
+* Alberta Biodiversity Monitoring Institute (ABMI) ([WildTrax platform](https://www.wildtrax.ca/)) ([blog post](https://wildcams.ca/blog/the-abmi-visits-the-zoo/))
+* Irvine Ranch Conservancy ([story](https://www.ocregister.com/2022/03/30/ai-software-is-helping-researchers-focus-on-learning-about-ocs-wild-animals/))
+* Wildlife Protection Solutions ([story](https://customers.microsoft.com/en-us/story/1384184517929343083-wildlife-protection-solutions-nonprofit-ai-for-earth))
+* [TrapTagger](https://wildeyeconservation.org/trap-tagger-about/)
+* [Camelot](https://camelotproject.org/)
 
 # Data
 
@@ -109,12 +111,7 @@ This repo is organized into the following folders...
 
 ## api
 
-Code for hosting our models as an API, either for synchronous operation (e.g. for real-time inference or for our Web-based demo) or as a batch process (for large biodiversity surveys).  The synchronous API in this folder does a bunch of fancy load-balancing stuff, in comparison to...
-
-
-## api-flask-redis
-
-Code for a simplified synchronous API that runs as a single-node Flask app.
+Code for hosting our models as an API, either for synchronous operation (e.g. for real-time inference or for our Web-based demo) or as a batch process (for large biodiversity surveys).
 
 
 ## classification

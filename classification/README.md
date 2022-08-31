@@ -177,9 +177,13 @@ Run MegaDetector on the new images to get an output JSON file in the format of t
 <details>
     <summary>Basic instructions for running MegaDetector locally</summary>
 
+Note: these instructions have not been updated to refer to [MegaDetector v5](https://github.com/microsoft/CameraTraps/releases/tag/v5.0).  You probably want to use MDv5, so if it's not clear how to adapt these instructions to MDv5, [email us](mailto:cameratraps@lila.science).  General instructions for running MegaDetector (any version) are [here](https://github.com/microsoft/CameraTraps/blob/main/megadetector.md#using-the-model).
+
+But, the short version...
+
 We assume that the images are in a local folder `/path/to/images`. Use [AzCopy](http://aka.ms/azcopy) if necessary to download the images from Azure Blob Storage.
 
-From the CameraTraps repo folder, run the following. On a fast GPU, this should process ~3 images per second.
+From the CameraTraps repo folder, run the following.
 
 ```bash
 # Download the MegaDetector model file
@@ -190,7 +194,7 @@ conda env update -f environment-detector.yml --prune
 conda activate cameratraps-detector
 
 # run MegaDetector
-python detection/run_tf_detector_batch.py md_v4.1.0.pb /path/to/images detections.json --recursive --output_relative_filenames
+python detection/run_detector_batch.py md_v4.1.0.pb /path/to/images detections.json --recursive --output_relative_filenames
 ```
 
 For more details, consult the [MegaDetector README](https://github.com/microsoft/CameraTraps/blob/master/megadetector.md).
@@ -206,7 +210,7 @@ See [`api/batch_processing/data_preparation/manage_api_submission.py`](https://g
 
 ## 2. Crop images
 
-Run `crop_detections.py` to crop the bounding boxes according to the detections JSON. Pass in an Azure Blob Storage container URL if the images are not stored locally and the detections were obtained from the Batch API. The crops are saved to `/path/to/crops`. Unless you have a good reason not to, use the `--square-crops` flag, which crops the tightest square enclosing each bounding box (which may have an arbitrary aspect ratio).
+Run `crop_detections.py` to crop the bounding boxes according to the detections JSON. Pass in an Azure Blob Storage container URL if the images are not stored locally. The crops are saved to `/path/to/crops`. Unless you have a good reason not to, use the `--square-crops` flag, which crops the tightest square enclosing each bounding box (which may have an arbitrary aspect ratio).
 
 ```bash
 python crop_detections.py \
@@ -214,7 +218,6 @@ python crop_detections.py \
     /path/to/crops \
     --images-dir /path/to/images \
     --container-url "https://account.blob.core.windows.net/container?sas_token" \
-    --detector-version "4.1" \
     --threshold 0.8 \
     --save-full-images --square-crops \
     --threads 50 \

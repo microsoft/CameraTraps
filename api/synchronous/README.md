@@ -1,75 +1,109 @@
-# Camera trap real-time API
+# Camera trap real-time flask-redis API
 
-Though most of our users either use the [MegaDetector](https://github.com/Microsoft/CameraTraps#megadetector) model directly or work with us to run MegaDetector on the cloud, we also offer an open-source reference implementation for a an API that processes images in real-time, to support closed-loop scenarios (e.g. anti-poaching scenarios).
+## Sample notebook
+
+This README documents the configuration of the MegaDetector API; a notebook that demonstrates the *calling* of the API is available [here](camera_trap_flask_api_test.ipynb).
+
+## Setup
+
+### Prerequisites
+
+The most notable prerequisite is nvidia-docker; install according to:
+
+<https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html>
 
 
-## Set-up
-
-All paths are relative to this directory `api/synchronous`
-
-(Do not need `sudo` if you added the user to the Docker group)
-
-Prepare the model files and configuration
-
-- Download the MegaDetector model files (the `.pb` files) to `api_core/animal_detection_classification_api/model`
-
-- Download the classification models to TBD
-
-- Download the class names lists to `api_core/animal_detection_classification_api/class_names`
-
-- Modify `api_core/animal_detection_classification_api/api_config.py` to point to the desired model files.
-
-Build the Docker image
-
-- Clone the API Framework repo, and there, in `Containers/base-py/Dockerfile`, remove `RUN easy_install3 pip` and add `python3-pip` to the list of packages installed in the `RUN apt-get` command.
-
-- Build our custom base Docker image to solve TensorFlow version and GPU finding issues. From the Framework repo's `Containers` directory,
-```bash
-sudo docker build . -f base-py/Dockerfile --build-arg BASE_IMAGE=tensorflow/tensorflow:1.14.0-gpu-py3 -t yasiyu.azurecr.io/aiforearth/tensorflow:1.14.0-gpu-py3
-```
-
-We call our base image `yasiyu.azurecr.io/aiforearth/tensorflow:1.14.0-gpu-py3` and it's used as the base image in the API's Dockerfile.
-
-- Name the API's Docker image; modify its version and build number as needed:
-```bash
-export API_DOCKER_IMAGE=yasiyu.azurecr.io/camera-trap/2.0-detection-sync:1
-```
-
-- From `api_core` (Docker context is that directory), run
+### Clone this repo
 
 ```bash
-sudo sh build_docker.sh $API_DOCKER_IMAGE
+git clone "https://github.com/microsoft/CameraTraps/"
+cd CameraTraps
 ```
 
-- Start the Docker container to host the API locally at port 6002 of the VM:
-```bash
-sudo docker run --gpus all -p 6002:1212 $API_DOCKER_IMAGE
-```
+    
+### Download the model file
 
-Now test the locally deployed API (see [Testing](#testing)). Then push the image to a container registry so we can deploy it on the production cluster.
-
-```bash
-sudo az acr login --name name_of_registry
-
-sudo docker push $API_DOCKER_IMAGE
-```
-
-
-## Deployment
-
-
-## Testing
-
-From this directory (`synchronous`),
+Download the MegaDetector model file(s) to `api/synchronous/animal_detection_api/model`.  We will download both MDv5a and MDv5b here, though currently the API is hard-coded to use MDv5a.
 
 ```bash
-python test_synchronous_api.py "url_of_api"
+wget "https://github.com/microsoft/CameraTraps/releases/download/v5.0/md_v5a.0.0.pt" -O api/synchronous/api_core/animal_detection_api/model/md_v5a.0.0.pt
+wget "https://github.com/microsoft/CameraTraps/releases/download/v5.0/md_v5b.0.0.pt" -O api/synchronous/api_core/animal_detection_api/model/md_v5b.0.0.pt
 ```
 
-The URL looks like `http://vm-name.eastus.cloudapp.azure.com:6002/v1/camera-trap/sync/`
+### Enable API key authentication (optional)
 
-Also need to provide an API key to test the API in production:
+To authenticate the API via a key, create a file with name `allowed_keys.txt`, add it to the folder `api/synchronous/api_core/animal_detection_api`, then add a list of keys to the file, with one key per line.
+ 
+ 
+### Build the Docker image
 
-```bash
-python test_synchronous_api.py "url_of_api" "api_key"
-```
+- Switch to the `api/synchronous/api_core` folder, from which the Docker image expects to be built.
+
+    ```bash
+    cd api/synchronous/api_core
+    ```
+
+- Name the API's Docker image (the name doesn't matter, having a name is just a convenience if you are experimenting with multiple versions, but subsequent steps will assume you have set this environment variable to something).
+
+    ```bash
+    export API_DOCKER_IMAGE=camera-trap-api:1.0
+    ```
+
+- Select the Docker base image... we recommend this one:
+
+    ```bash
+    export BASE_IMAGE=pytorch/pytorch:1.10.0-cuda11.3-cudnn8-runtime
+    ```
+    
+- Build the Docker image using build_docker.sh.
+
+    ```bash
+    sudo sh build_docker.sh $BASE_IMAGE $API_DOCKER_IMAGE
+    ```
+
+Building may take 5-10 minutes.
+
+### Run the Docker image
+
+The following will run the API on port 5050, but you can change that to the port on which you want to run the API.
+
+- For GPU environments:
+
+    ```bash
+    sudo nvidia-docker run -it -p 5050:1213 $API_DOCKER_IMAGE
+    ```
+
+- For non-GPU environments:
+
+    ```bash
+    sudo docker run -it -p 5050:1213 $API_DOCKER_IMAGE
+    ```
+
+## Test the API in Postman
+
+- To test in Postman, in a Postman tab, enter the URL of the API, e.g.:
+
+  `http://100.100.200.200:5050/v1/camera-trap/sync/detect`
+  
+ - Select `POST`.
+ - Optionally add the `min_confidence` parameter, which sets the minimum detection confidence that's returned to the caller (defaults to 0.1).
+ - Optionally add the `min_rendering_confidence` parameter, which sets the minimum detection confidence that's rendered to returned images (defaults to 0.8) (not meaningful if "render" is False).
+ - Optionally add the `render` parameter, set to `true` if you would like the images to be rendered with bounding boxes.
+ - If you enabled authentication by adding the file `allowed_keys.txt` under `api/synchronous/api_core/animal_detection_api`then in the headers tab add the `key` parameter and enter the key value (this would be one of the keys that you saved to the file `allowed_keys.txt`).
+ - Under `Body` select `form-data`, and create one key/value pair per image, with values of type "file" (to upload an image file).  To create a k/v pair of type "file", hover over the right side of the box where it says "key"; a drop-down will appear where you can select "file".
+ - Click `Send`.
+
+### Setting header options
+
+![Test in postman](images/postman_url_params.jpg) 
+
+### Specifying an API key
+
+![Test in postman](images/postman_api_key.jpg)
+
+### Sending one or more images
+
+![Test in postman](images/postman_formdata_images.jpg)
+
+<br/>
+

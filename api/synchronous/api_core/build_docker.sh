@@ -1,24 +1,32 @@
 #!/bin/bash
 
-# these dependency files are outside of the Docker context, so cannot use the COPY action in the Dockerfile to copy them into the Docker image.
+# These dependency files are outside of the Docker context, so we cannot 
+# use the COPY action in the Dockerfile to copy them into the Docker image.
 
-# this is the main dependency
-cp ../../../detection/run_tf_detector.py animal_detection_classification_api/
+# This is the main dependency
+mkdir animal_detection_api/detection/
+cp -a ../../../detection/. animal_detection_api/detection/
 
-# which depends on the following
-cp ../../../ct_utils.py animal_detection_classification_api/
+# Copy YOLOv5 dependencies
+git clone https://github.com/ultralytics/yolov5/
+cd yolov5
 
-mkdir animal_detection_classification_api/visualization/
-cp ../../../visualization/visualization_utils.py animal_detection_classification_api/visualization/
+# To ensure forward-compatibility, we pin a particular version
+# of YOLOv5
+git checkout c23a441c9df7ca9b1f275e8c8719c949269160d1
+cd ../
 
-# visualization_utils in turn depends on the following
-mkdir animal_detection_classification_api/data_management
-mkdir animal_detection_classification_api/data_management/annotations/
-cp ../../../data_management/annotations/annotation_constants.py animal_detection_classification_api/data_management/annotations/
+# Copy other required dependencies from our repo 
+cp ../../../ct_utils.py animal_detection_api/
 
+mkdir -p animal_detection_api/visualization/
+cp ../../../visualization/visualization_utils.py animal_detection_api/visualization/
 
-# Modify the version and build numbers as needed in the API_DOCKER_IMAGE argument passed to this script
+mkdir -p animal_detection_api/data_management
+mkdir -p animal_detection_api/data_management/annotations/
+cp ../../../data_management/annotations/annotation_constants.py animal_detection_api/data_management/annotations/
+
 echo $1
-sudo docker build . -t $1
-
+echo $2
+sudo docker build . --build-arg BASE_IMAGE=$1 -t $2 
 
