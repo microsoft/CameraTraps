@@ -411,6 +411,10 @@ It's not quite as simple as "these platforms all run MegaDetector on your images
 * [Cam-WON](https://wildlifeobserver.net/)
 * [Zooniverse ML Subject Assistant](https://subject-assistant.zooniverse.org/#/intro)
 
+### Other ways of running MegaDetector that don't fit easily into one of those categories
+
+* [FastAPI/Streamlit package for serving MD and visualizing results](https://github.com/abhayolo/megadetector-fastapi)
+
 ## How do I use the results?
 
 See the ["How do people use MegaDetector results?"](https://github.com/microsoft/CameraTraps/blob/main/collaborations.md#how-people-use-megadetector-results) section of our "getting started" page.
