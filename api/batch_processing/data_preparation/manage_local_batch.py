@@ -97,7 +97,7 @@ os.makedirs(base_output_folder_name,exist_ok=True)
 
 filename_base = os.path.join(base_output_folder_name, base_task_name)
 combined_api_output_folder = os.path.join(filename_base, 'combined_api_outputs')
-postprocessing_output_folder = os.path.join(filename_base, 'postprocessing')
+postprocessing_output_folder = os.path.join(filename_base, 'preview')
 
 os.makedirs(filename_base, exist_ok=True)
 os.makedirs(combined_api_output_folder, exist_ok=True)
@@ -1252,6 +1252,8 @@ options = SubsetJsonDetectorOutputOptions()
 
 options.split_folders = True
 options.make_folder_relative = True
+
+# Reminder: 'n_from_bottom' with a parameter of zero is the same as 'bottom'
 options.split_folder_mode = 'bottom'  # 'top', 'n_from_top', 'n_from_bottom'
 options.split_folder_param = 0
 options.overwrite_json_files = False
