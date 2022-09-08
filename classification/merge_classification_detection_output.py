@@ -5,7 +5,7 @@ This script takes 2 main files as input:
 1) Either a "dataset CSV" (output of create_classification_dataset.py) or a
     "classification results CSV" (output of evaluate_model.py). The CSV is
     expected to have columns listed below. The 'label' and [label names] columns
-    are optional, but at least one of them must be proided.
+    are optional, but at least one of them must be provided.
     - 'path': str, path to cropped image
         - if passing in a detections JSON, must match
             <img_file>___cropXX_mdvY.Y.jpg
@@ -66,7 +66,7 @@ from collections.abc import Mapping, Sequence
 import datetime
 import json
 import os
-from typing import Any, Optional
+from typing import Any
 
 import pandas as pd
 from tqdm import tqdm
@@ -77,7 +77,7 @@ from ct_utils import truncate_float
 def row_to_classification_list(row: Mapping[str, Any],
                                label_names: Sequence[str],
                                contains_preds: bool,
-                               label_pos: Optional[str],
+                               label_pos: str | None,
                                threshold: float,
                                relative_conf: bool = False
                                ) -> list[tuple[str, float]]:
@@ -129,14 +129,14 @@ def main(classification_csv_path: str,
          output_json_path: str,
          classifier_name: str,
          threshold: float,
-         datasets: Optional[Sequence[str]],
-         detection_json_path: Optional[str],
-         queried_images_json_path: Optional[str],
-         detector_output_cache_base_dir: Optional[str],
-         detector_version: Optional[str],
-         samples_per_label: Optional[int],
+         datasets: Sequence[str] | None,
+         detection_json_path: str | None,
+         queried_images_json_path: str | None,
+         detector_output_cache_base_dir: str | None,
+         detector_version: str | None,
+         samples_per_label: int | None,
          seed: int,
-         label_pos: Optional[str],
+         label_pos: str | None,
          relative_conf: bool,
          typical_confidence_threshold: float) -> None:
     """Main function."""
@@ -196,7 +196,7 @@ def main(classification_csv_path: str,
     os.makedirs(os.path.dirname(output_json_path), exist_ok=True)
     with open(output_json_path, 'w') as f:
         json.dump(classification_js, f, indent=1)
-    
+
     print('Wrote merged classification/detection results to {}'.format(output_json_path))
 
 
@@ -205,8 +205,8 @@ def process_queried_images(
          queried_images_json_path: str,
          detector_output_cache_base_dir: str,
          detector_version: str,
-         datasets: Optional[Sequence[str]] = None,
-         samples_per_label: Optional[int] = None,
+         datasets: Sequence[str] | None = None,
+         samples_per_label: int | None = None,
          seed: int = 123
          ) -> dict[str, Any]:
     """Creates a detection JSON object roughly in the Batch API detection
@@ -328,7 +328,7 @@ def combine_classification_with_detection(
         classifier_name: str,
         classifier_timestamp: str,
         threshold: float,
-        label_pos: Optional[str] = None,
+        label_pos: str | None = None,
         relative_conf: bool = False,
         typical_confidence_threshold: float = None
         ) -> dict[str, Any]:
@@ -353,18 +353,20 @@ def combine_classification_with_detection(
         relative_conf: bool, if True then for each class, outputs its relative
             confidence over the confidence of the true label, requires 'label'
             to be in CSV
+        typical_confidence_threshold: float, useful default confidence
+            threshold; not used directly, just passed along to the output file
 
     Returns: dict, detections JSON file updated with classification results
     """
     classification_metadata = {
         'classifier': classifier_name,
-        'classification_completion_time': classifier_timestamp        
+        'classification_completion_time': classifier_timestamp
     }
-    
+
     if typical_confidence_threshold is not None:
         classification_metadata['classifier_metadata'] = \
         {'typical_classification_threshold':typical_confidence_threshold}
-        
+
     detection_js['info'].update(classification_metadata)
     detection_js['classification_categories'] = idx_to_label
 
@@ -420,8 +422,8 @@ def _parse_args() -> argparse.Namespace:
              'that image paths are given as <dataset>/<img_file>.')
     parser.add_argument(
         '--typical-confidence-threshold', type=float, default=None,
-        help='useful default confidence threshold; not used directly, just passed along to the output file')
-    
+        help='useful default confidence threshold; not used directly, just '
+             'passed along to the output file')
 
     detection_json_group = parser.add_argument_group(
         'arguments for passing in a detections JSON file')

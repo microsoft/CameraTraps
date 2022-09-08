@@ -121,7 +121,7 @@ def producer_func(q,image_files):
     print('Finished image loading'); sys.stdout.flush()
     
     
-def consumer_func(q,return_queue,model_file,confidence_threshold):
+def consumer_func(q,return_queue,model_file,confidence_threshold,image_size=None):
     """ 
     Consumer function; only used when using the (optional) image queue.
     
@@ -149,13 +149,16 @@ def consumer_func(q,return_queue,model_file,confidence_threshold):
         image = r[1]
         if verbose:
             print('De-queued image {}'.format(im_file)); sys.stdout.flush()
-        results.append(process_image(im_file,detector,confidence_threshold,image))
+        results.append(process_image(im_file=im_file,detector=detector,
+                                     confidence_threshold=confidence_threshold,
+                                     image=image,quiet=True,image_size=image_size))
         if verbose:
             print('Processed image {}'.format(im_file)); sys.stdout.flush()
         q.task_done()
             
 
-def run_detector_with_image_queue(image_files,model_file,confidence_threshold,quiet=False):
+def run_detector_with_image_queue(image_files,model_file,confidence_threshold,
+                                  quiet=False,image_size=None):
     """
     Driver function for the (optional) multiprocessing-based image queue; only used when --use_image_queue
     is specified.  Starts a reader process to read images from disk, but processes images in the 
@@ -185,13 +188,15 @@ def run_detector_with_image_queue(image_files,model_file,confidence_threshold,qu
 
     if run_separate_consumer_process:
         if use_threads_for_queue:
-            consumer = Thread(target=consumer_func,args=(q,return_queue,model_file,confidence_threshold,))
+            consumer = Thread(target=consumer_func,args=(q,return_queue,model_file,
+                                                         confidence_threshold,image_size,))
         else:
-            consumer = Process(target=consumer_func,args=(q,return_queue,model_file,confidence_threshold,))
+            consumer = Process(target=consumer_func,args=(q,return_queue,model_file,
+                                                          confidence_threshold,image_size,))
         consumer.daemon = True
         consumer.start()
     else:
-        consumer_func(q,return_queue,model_file,confidence_threshold)
+        consumer_func(q,return_queue,model_file,confidence_threshold,image_size)
 
     producer.join()
     print('Producer finished')
@@ -224,7 +229,8 @@ def chunks_by_number_of_chunks(ls, n):
 
 #%% Image processing functions
 
-def process_images(im_files, detector, confidence_threshold, use_image_queue=False, quiet=False):
+def process_images(im_files, detector, confidence_threshold, use_image_queue=False, 
+                   quiet=False, image_size=None):
     """
     Runs MegaDetector over a list of image files.
 
@@ -245,15 +251,18 @@ def process_images(im_files, detector, confidence_threshold, use_image_queue=Fal
         print('Loaded model (batch level) in {}'.format(humanfriendly.format_timespan(elapsed)))
 
     if use_image_queue:
-        run_detector_with_image_queue(im_files, detector, confidence_threshold, quiet=quiet)
+        run_detector_with_image_queue(im_files, detector, confidence_threshold, 
+                                      quiet=quiet, image_size=image_size)
     else:
         results = []
         for im_file in im_files:
-            results.append(process_image(im_file, detector, confidence_threshold, quiet=quiet))
+            results.append(process_image(im_file, detector, confidence_threshold,
+                                         quiet=quiet, image_size=image_size))
         return results
     
 
-def process_image(im_file, detector, confidence_threshold, image=None, quiet=False):
+def process_image(im_file, detector, confidence_threshold, image=None, 
+                  quiet=False, image_size=None):
     """
     Runs MegaDetector over a single image file.
 
@@ -285,7 +294,7 @@ def process_image(im_file, detector, confidence_threshold, image=None, quiet=Fal
 
     try:
         result = detector.generate_detections_one_image(
-            image, im_file, detection_threshold=confidence_threshold)
+            image, im_file, detection_threshold=confidence_threshold, image_size=image_size)
     except Exception as e:
         if not quiet:
             print('Image {} cannot be processed. Exception: {}'.format(im_file, e))
@@ -301,8 +310,9 @@ def process_image(im_file, detector, confidence_threshold, image=None, quiet=Fal
 #%% Main function
 
 def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=None,
-                                confidence_threshold=DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD, checkpoint_frequency=-1,
-                                results=None, n_cores=0, use_image_queue=False, quiet=False):
+                                confidence_threshold=DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD,
+                                checkpoint_frequency=-1, results=None, n_cores=0,
+                                use_image_queue=False, quiet=False, image_size=None):
     """
     Args
     - model_file: str, path to .pb model file
@@ -318,7 +328,7 @@ def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=No
     Returns
     - results: list of dict, each dict represents detections on one image
     """
-    
+        
     # Handle the case where image_file_names is not yet actually a list
     if isinstance(image_file_names,str):
         
@@ -361,7 +371,9 @@ def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=No
     if use_image_queue:
         
         assert n_cores <= 1
-        results = run_detector_with_image_queue(image_file_names, model_file, confidence_threshold, quiet)        
+        results = run_detector_with_image_queue(image_file_names, model_file, 
+                                                confidence_threshold, quiet, 
+                                                image_size=image_size)
         
     elif n_cores <= 1:
 
@@ -384,7 +396,9 @@ def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=No
 
             count += 1
 
-            result = process_image(im_file, detector, confidence_threshold, quiet=quiet)
+            result = process_image(im_file, detector, 
+                                   confidence_threshold, quiet=quiet, 
+                                   image_size=image_size)
             results.append(result)
 
             # Write a checkpoint if necessary
@@ -425,7 +439,8 @@ def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=No
 
         image_batches = list(chunks_by_number_of_chunks(image_file_names, n_cores))
         results = pool.map(partial(process_images, detector=detector,
-                                   confidence_threshold=confidence_threshold), image_batches)
+                                   confidence_threshold=confidence_threshold,image_size=image_size), 
+                           image_batches)
 
         results = list(itertools.chain.from_iterable(results))
 
@@ -434,7 +449,8 @@ def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=No
     return results
 
 
-def write_results_to_file(results, output_file, relative_path_base=None, detector_file=None, info=None):
+def write_results_to_file(results, output_file, relative_path_base=None, 
+                          detector_file=None, info=None):
     """
     Writes list of detection results to JSON output file. Format matches:
 
@@ -503,9 +519,10 @@ if False:
     checkpoint_frequency = -1
     results = None
     ncores = 1
-    use_image_queue = True
+    use_image_queue = False
     quiet = False
     image_dir = r'G:\temp\demo_images\ssmini'
+    image_size = None
     image_file_names = image_file_names = ImagePathUtils.find_images(image_dir, recursive=False)
     # image_file_names = image_file_names[0:2]
     
@@ -521,7 +538,8 @@ if False:
                                           results=results,
                                           n_cores=ncores,
                                           use_image_queue=use_image_queue,
-                                          quiet=quiet)
+                                          quiet=quiet,
+                                          image_size=image_size)
     
     elapsed = time.time() - start_time
     
@@ -555,6 +573,11 @@ def main():
         '--quiet',
         action='store_true',
         help='Suppress per-image console output')
+    parser.add_argument(
+        '--image_size',
+        type=int,
+        default=None,
+        help=('Force image resizing to a (square) integer size (not recommended to change this)'))    
     parser.add_argument(
         '--use_image_queue',
         action='store_true',
@@ -693,7 +716,8 @@ def main():
                                           results=results,
                                           n_cores=args.ncores,
                                           use_image_queue=args.use_image_queue,
-                                          quiet=args.quiet)
+                                          quiet=args.quiet,
+                                          image_size=args.image_size)
 
     elapsed = time.time() - start_time
     print('Finished inference for {} images in {}'.format(
@@ -705,7 +729,7 @@ def main():
     write_results_to_file(results, args.output_file, relative_path_base=relative_path_base,
                           detector_file=args.detector_file)
 
-    if checkpoint_path:
+    if checkpoint_path and os.path.isfile(checkpoint_path):
         os.remove(checkpoint_path)
         print('Deleted checkpoint file {}'.format(checkpoint_path))
 
