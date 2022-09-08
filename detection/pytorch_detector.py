@@ -29,12 +29,17 @@ class PTDetector:
     STRIDE = 64
 
     def __init__(self, model_path: str, force_cpu: bool = False):
-        if torch.cuda.is_available() and not force_cpu:
-            self.device = torch.device('cuda:0')
-        else:
-            self.device = 'cpu'
+        self.device = 'cpu'
+        if not force_cpu:
+            if torch.cuda.is_available():
+                self.device = torch.device('cuda:0')
+            try:
+                if torch.backends.mps.is_built and torch.backends.mps.is_available():
+                    self.device = 'mps'
+            except AttributeError:
+                pass
         self.model = PTDetector._load_model(model_path, self.device)
-        if (self.device != 'cpu') and torch.cuda.is_available():
+        if (self.device != 'cpu'):
             print('Sending model to GPU')
             self.model.to(self.device)
 
@@ -74,12 +79,18 @@ class PTDetector:
             
             # Image size can be an int (which translates to a square target size) or (h,w)
             if image_size is not None:
-                assert isinstance(image_size,int) or (len(image_size)==2)
-                if False:
-                    if (not isinstance(image_size,int)) or (image_size != PTDetector.IMAGE_SIZE):
-                        print('Warning: using non-standard image size {}'.format(image_size))
-                target_size = image_size
                 
+                assert isinstance(image_size,int) or (len(image_size)==2)
+                
+                # This is a really annoying warning, but in most cases this is such a bad idea that
+                # I want to leave no doubt about how bad an idea we think it is.
+                if (not isinstance(image_size,int)) or (image_size != PTDetector.IMAGE_SIZE):
+                    print('Warning: using non-standard image size {}'.format(image_size))
+                    
+                target_size = image_size
+            
+            # ...if the caller has specified an image size
+            
             img = letterbox(img_original, new_shape=target_size,
                                  stride=PTDetector.STRIDE, auto=True)[0]  # JIT requires auto=False
             
@@ -96,7 +107,12 @@ class PTDetector:
             pred: list = self.model(img)[0]
 
             # NMS
-            pred = non_max_suppression(prediction=pred, conf_thres=detection_threshold)
+            if self.device == 'mps':
+                # Current v1.13.0.dev20220824 torchvision::nms is not current implemented for the MPS device
+                # Send pred back to cpu to fix
+                pred = non_max_suppression(prediction=pred.cpu(), conf_thres=detection_threshold)
+            else: 
+                pred = non_max_suppression(prediction=pred, conf_thres=detection_threshold)
 
             # format detections/bounding boxes
             gn = torch.tensor(img_original.shape)[[1, 0, 1, 0]]  # normalization gain whwh
