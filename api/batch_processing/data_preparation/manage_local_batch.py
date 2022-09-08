@@ -46,6 +46,9 @@ default_gpu_number = 0
 
 quiet_mode = True
 
+# Specify a target image size when running MD... strongly recommended to leave this at "None"
+image_size = None
+
 # Only relevant when running on CPU
 ncores = 1
 
@@ -94,7 +97,7 @@ os.makedirs(base_output_folder_name,exist_ok=True)
 
 filename_base = os.path.join(base_output_folder_name, base_task_name)
 combined_api_output_folder = os.path.join(filename_base, 'combined_api_outputs')
-postprocessing_output_folder = os.path.join(filename_base, 'postprocessing')
+postprocessing_output_folder = os.path.join(filename_base, 'preview')
 
 os.makedirs(filename_base, exist_ok=True)
 os.makedirs(combined_api_output_folder, exist_ok=True)
@@ -181,9 +184,13 @@ for i_task,task in enumerate(task_info):
     if quiet_mode:
         quiet_string = '--quiet'
 
+    image_size_string = ''
+    if image_size is not None:
+        image_size_string = '--image_size {}'.format(image_size)
+        
     # Generate the script to run MD
         
-    cmd = f'{cuda_string} python run_detector_batch.py "{model_file}" "{chunk_file}" "{output_fn}" {checkpoint_frequency_string} {checkpoint_path_string} {use_image_queue_string} {ncores_string} {quiet_string}'
+    cmd = f'{cuda_string} python run_detector_batch.py "{model_file}" "{chunk_file}" "{output_fn}" {checkpoint_frequency_string} {checkpoint_path_string} {use_image_queue_string} {ncores_string} {quiet_string} {image_size_string}'
     
     cmd_file = os.path.join(filename_base,'run_chunk_{}_gpu_{}.sh'.format(str(i_task).zfill(2),
                             str(gpu_number).zfill(2)))
@@ -255,7 +262,8 @@ if False:
                                               results=None,
                                               n_cores=ncores, 
                                               use_image_queue=use_image_queue,
-                                              quiet=quiet_mode)        
+                                              quiet=quiet_mode,
+                                              image_size=image_size)        
         elapsed = time.time() - start_time
         
         print('Task {}: finished inference for {} images in {}'.format(
@@ -338,7 +346,9 @@ for i_task,task in enumerate(task_info):
     assert task_results['detection_categories'] == combined_results['detection_categories']
     combined_results['images'].extend(copy.deepcopy(task_results['images']))
     
-assert len(combined_results['images']) == len(all_images)
+assert len(combined_results['images']) == len(all_images), \
+    'Expected {} images in combined results, found {}'.format(
+        len(all_images),len(combined_results['images']))
 
 result_filenames = [im['file'] for im in combined_results['images']]
 assert len(combined_results['images']) == len(set(result_filenames))
@@ -1218,7 +1228,41 @@ size_separated_file = input_file.replace('.json','-size-separated-{}.json'.forma
 d = categorize_detections_by_size.categorize_detections_by_size(input_file,size_separated_file,options)
 
 
-#%% Subsetting
+#%% .json splitting
+
+data = None
+
+from api.batch_processing.postprocessing.subset_json_detector_output import (
+    subset_json_detector_output, SubsetJsonDetectorOutputOptions)
+
+input_filename = filtered_output_filename
+output_base = os.path.join(filename_base,'json_subsets')
+
+if False:
+    if data is None:
+        with open(input_filename) as f:
+            data = json.load(f)
+    print('Data set contains {} images'.format(len(data['images'])))
+
+print('Processing file {} to {}'.format(input_filename,output_base))          
+
+options = SubsetJsonDetectorOutputOptions()
+# options.query = None
+# options.replacement = None
+
+options.split_folders = True
+options.make_folder_relative = True
+
+# Reminder: 'n_from_bottom' with a parameter of zero is the same as 'bottom'
+options.split_folder_mode = 'bottom'  # 'top', 'n_from_top', 'n_from_bottom'
+options.split_folder_param = 0
+options.overwrite_json_files = False
+options.confidence_threshold = 0.01
+
+subset_data = subset_json_detector_output(input_filename, output_base, options, data)
+
+
+#%% Custom splitting/subsetting
 
 data = None
 
@@ -1246,9 +1290,11 @@ for i_folder, folder_name in enumerate(folders):
     options = SubsetJsonDetectorOutputOptions()
     options.confidence_threshold = 0.01
     options.overwrite_json_files = True
-    options.make_folder_relative = True
-    options.query = folder_name + '\\'
+    options.query = folder_name + '/'
 
+    # This doesn't do anything in this case, since we're not splitting folders
+    # options.make_folder_relative = True        
+    
     subset_data = subset_json_detector_output(input_filename, output_filename, options, data)
 
 
@@ -1268,13 +1314,13 @@ options.replacement = ''
 subset_json_detector_output(input_filename,output_filename,options)
 
 
-#%% Folder splitting
+#%% Splitting images into folders
 
 from api.batch_processing.postprocessing.separate_detections_into_folders import (
     separate_detections_into_folders, SeparateDetectionsIntoFoldersOptions)
 
 default_threshold = 0.2
-base_output_folder = r'e:\{}-{}-separated'.format(base_task_name,default_threshold)
+base_output_folder = os.path.expanduser('~/data/{}-{}-separated'.format(base_task_name,default_threshold))
 
 options = SeparateDetectionsIntoFoldersOptions(default_threshold)
 

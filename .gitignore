@@ -53,3 +53,9 @@ api_config*.py
 *.pth
 *.o
 debug.log
+*.swp
+
+# Things created when building the sync API
+yolov5
+api/synchronous/api_core/animal_detection_api/detection
+

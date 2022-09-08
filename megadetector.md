@@ -7,7 +7,7 @@
 5. [Downloading the model](#downloading-the-model)
 6. [Using the model](#using-the-model)
 7. [Is there a GUI?](#is-there-a-gui)
-8.  [How do I use the results?](#how-do-i-use-the-results)
+8. [How do I use the results?](#how-do-i-use-the-results)
 9. [Have you evaluated MegaDetector's accuracy?](#have-you-evaluated-megadetectors-accuracy)
 10. [Citing MegaDetector](#citing-megadetector)
 11. [Tell me more about why detectors are a good first step for camera trap images](#tell-me-more-about-why-detectors-are-a-good-first-step-for-camera-trap-images)
@@ -389,7 +389,7 @@ But we recognize that Python tools can be a bit daunting, so we're excited that 
 
 ### Tools for running MegaDetector locally
 
-* [EcoAssist](https://github.com/PetervanLunteren/EcoAssist) is a GUI-based tool for running MegaDetector in MacOS environments (MDv4 only as far as we know)
+* [EcoAssist](https://github.com/PetervanLunteren/EcoAssist) is a GUI-based tool for running MegaDetector in MacOS environments (supports MDv5)
 * [MegaDetector-GUI](https://github.com/petargyurov/megadetector-gui) is a GUI-based tool for running MegaDetector in Windows environments (MDv4 only as far as we know)
 
 ### Interactive demos/APIs
@@ -407,7 +407,13 @@ It's not quite as simple as "these platforms all run MegaDetector on your images
 * [Camelot](https://camelotproject.org/)
 * [WildePod](https://wildepod.org/)
 * [wpsWatch](https://wildlifeprotectionsolutions.org/wpswatch/)
-* The [Zooniverse ML Subject Assistant](https://subject-assistant.zooniverse.org/#/intro) allows Zooniverse camera trap project owners to run MegaDetector and get "AI votes" on their camera trap images
+* [Animl](https://github.com/tnc-ca-geo/animl-frontend)
+* [Cam-WON](https://wildlifeobserver.net/)
+* [Zooniverse ML Subject Assistant](https://subject-assistant.zooniverse.org/#/intro)
+
+### Other ways of running MegaDetector that don't fit easily into one of those categories
+
+* [FastAPI/Streamlit package for serving MD and visualizing results](https://github.com/abhayolo/megadetector-fastapi)
 
 ## How do I use the results?
 

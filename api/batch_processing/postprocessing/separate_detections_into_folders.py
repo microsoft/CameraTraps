@@ -416,6 +416,10 @@ def separate_detections_into_folders(options):
         if 'detector_metadata' in results['info'] and \
             'typical_detection_threshold' in results['info']['detector_metadata']:
             default_threshold = results['info']['detector_metadata']['typical_detection_threshold']
+        elif ('detector' not in results['info']) or (results['info']['detector'] is None):
+            print('Warning: detector version not available in results file, using MDv5 defaults')
+            detector_metadata = get_detector_metadata_from_version_string('v5a.0.0')
+            default_threshold = detector_metadata['typical_detection_threshold']
         else:
             print('Warning: detector metadata not available in results file, inferring from MD version')
             detector_filename = results['info']['detector']
@@ -634,6 +638,24 @@ def main():
     
     args_to_object(args, options)
 
+    def validate_threshold(v,name):
+        print('{} {}'.format(v,name))
+        if v is not None:
+            assert v >= 0.0 and v <= 1.0, \
+                'Illegal {} threshold {}'.format(name,v)
+    
+    validate_threshold(args.threshold,'default')
+    validate_threshold(args.animal_threshold,'animal')
+    validate_threshold(args.vehicle_threshold,'vehicle')
+    validate_threshold(args.human_threshold,'human')
+    
+    if args.threshold is not None:
+        if args.animal_threshold is not None \
+            and args.human_threshold is not None \
+            and args.vehicle_threshold is not None:
+                raise ValueError('Default threshold specified, but all category thresholds also specified... not exactly wrong, but it\'s likely that you meant something else.')        
+    
+                
     options.category_name_to_threshold['animal'] = args.animal_threshold
     options.category_name_to_threshold['person'] = args.human_threshold
     options.category_name_to_threshold['vehicle'] = args.vehicle_threshold
