@@ -165,6 +165,9 @@ def subset_json_detector_output_by_confidence(data, options):
     # iImage = 0; im = images_in[0]
     for iImage, im in tqdm(enumerate(images_in), total=len(images_in)):
         
+        if ('detections' not in im) or (im['detections'] is None):
+            continue
+        
         p_orig = im['max_detection_conf']
 
         # Find all detections above threshold for this image
