@@ -729,7 +729,7 @@ def main():
     write_results_to_file(results, args.output_file, relative_path_base=relative_path_base,
                           detector_file=args.detector_file)
 
-    if checkpoint_path:
+    if checkpoint_path and os.path.isfile(checkpoint_path):
         os.remove(checkpoint_path)
         print('Deleted checkpoint file {}'.format(checkpoint_path))
 
