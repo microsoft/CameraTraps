@@ -8,6 +8,9 @@
 #    optionally replacing that query with a replacement token. If the query is blank, 
 #    can also be used to prepend content to all filenames.
 #
+#    Does not support regex's, but supports a special case of ^string to indicate "must start with
+#    to match".
+#
 # 2) Create separate .jsons for each unique path, optionally making the filenames 
 #    in those .json's relative paths.  In this case, you specify an output directory, 
 #    rather than an output path.  All images in the folder blah\foo\bar will end up 
@@ -59,7 +62,6 @@ import re
 from tqdm import tqdm
 
 from ct_utils import args_to_object
-from data_management.annotations import annotation_constants
 
 
 #%% Helper classes
@@ -118,42 +120,6 @@ class SubsetJsonDetectorOutputOptions:
     
 #%% Main function
 
-def add_missing_detection_results_fields(data):
-    """
-    Temporary fix for a sort-of-bug that is causing us to remove fields other than "images"
-    from detection output in certain scenarios.
-    
-    Modifies *data* in-place, also returns *data*.
-    """
-    
-    # Format spec:
-    #
-    # https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing
-    
-    if 'images' not in data:
-        data['images'] = []
-    
-    if 'info' not in data:
-        print('Adding "info" field to .json')
-        info = {
-            "detector": "unknown",
-            "detection_completion_time": "unknown",
-            "classifier": "unknown",
-            "classification_completion_time": "unknown"
-        }
-        data['info'] = info
-    
-    if 'classification_categories' not in data:
-        print('Adding "classification_categories" field to .json')
-        data['classification_categories'] = {}
-        
-    if 'detection_categories' not in data:
-        print('Adding "detection_categories" field to .json')
-        data['detection_categories'] = annotation_constants.bbox_category_id_to_name
-    
-    return data
-    
-
 def write_detection_results(data, output_filename, options):
     """
     Write the detector-output-formatted dict *data* to *output_filename*.
@@ -178,6 +144,8 @@ def write_detection_results(data, output_filename, options):
         f.write(s)
     print(' ...done')
 
+# ...write_detection_results()
+
 
 def subset_json_detector_output_by_confidence(data, options):
     """
@@ -196,6 +164,9 @@ def subset_json_detector_output_by_confidence(data, options):
     
     # iImage = 0; im = images_in[0]
     for iImage, im in tqdm(enumerate(images_in), total=len(images_in)):
+        
+        if ('detections' not in im) or (im['detections'] is None):
+            continue
         
         p_orig = im['max_detection_conf']
 
@@ -233,6 +204,8 @@ def subset_json_detector_output_by_confidence(data, options):
     
     return data
 
+# ...subset_json_detector_output_by_confidence()
+
 
 def remove_failed_images(data,options):
     """
@@ -262,6 +235,8 @@ def remove_failed_images(data,options):
     
     return data
 
+# ...remove_failed_images()
+
 
 def subset_json_detector_output_by_query(data, options):
     """
@@ -274,18 +249,31 @@ def subset_json_detector_output_by_query(data, options):
     
     print('Subsetting by query {}, replacement {}...'.format(options.query, options.replacement), end='')
     
+    query_string = options.query
+    query_starts_with = False
+    
+    # Support a special case regex-like notation for "starts with"
+    if query_string is not None and query_string.startswith('^'):
+        query_string = query_string[1:]
+        query_starts_with = True
+        
     # i_image = 0; im = images_in[0]
     for i_image, im in tqdm(enumerate(images_in), total=len(images_in)):
         
         fn = im['file']
         
         # Only take images that match the query
-        if (options.query is not None) and (options.query not in fn):
-            continue
+        if query_string is not None:
+            if query_starts_with:
+                if (not fn.startswith(query_string)):
+                    continue
+            else:
+                if query_string not in fn:
+                    continue
         
         if options.replacement is not None:
-            if options.query is not None:
-                fn = fn.replace(options.query, options.replacement)
+            if query_string is not None:
+                fn = fn.replace(query_string, options.replacement)
             else:
                 fn = options.replacement + fn
             
@@ -299,6 +287,8 @@ def subset_json_detector_output_by_query(data, options):
     print('done, found {} matches (of {})'.format(len(data['images']), len(images_in)))
     
     return data
+
+# ...subset_json_detector_output_by_query()
 
 
 def split_path(path, maxdepth=100):
@@ -317,6 +307,8 @@ def split_path(path, maxdepth=100):
     return split_path(head, maxdepth - 1) + [tail] \
         if maxdepth and head and head != path \
         else [head or tail]
+
+# ...split_path()
 
     
 def top_level_folder(p):
@@ -342,8 +334,12 @@ def top_level_folder(p):
         return os.path.join(parts[0], parts[1])
     else:
         return parts[0]
+
+# ...top_level_folder()
+
     
-if False:        
+if False:  
+      
     p = 'blah/foo/bar'; s = top_level_folder(p); print(s); assert s == 'blah'
     p = '/blah/foo/bar'; s = top_level_folder(p); print(s); assert s == '/blah'
     p = 'bar'; s = top_level_folder(p); print(s); assert s == 'bar'
@@ -383,10 +379,10 @@ def subset_json_detector_output(input_filename, output_filename, options, data=N
             print('Trimming to {} images'.format(options.debug_max_images))
             data['images'] = data['images'][:options.debug_max_images]
     else:
+        print('Copying data')
         data = copy.deepcopy(data)
+        print('...done')
         
-    # data = add_missing_detection_results_fields(data)
-    
     if options.query is not None:
         
         data = subset_json_detector_output_by_query(data, options)
@@ -456,6 +452,8 @@ def subset_json_detector_output(input_filename, output_filename, options, data=N
                 
             folders_to_images.setdefault(dirname, []).append(im)
         
+        # ...for each image
+                
         print('Found {} unique folders'.format(len(folders_to_images)))
         
         # Optionally make paths relative
@@ -470,7 +468,9 @@ def subset_json_detector_output(input_filename, output_filename, options, data=N
                     fn = im['file']
                     relfn = os.path.relpath(fn, dirname).replace('\\', '/')
                     im['file'] = relfn
-                    
+        
+        # ...if we need to convert paths to be folder-relative
+        
         print('Finished converting to json-relative paths, writing output')
                        
         os.makedirs(output_filename, exist_ok=True)
@@ -501,6 +501,8 @@ def subset_json_detector_output(input_filename, output_filename, options, data=N
     
     # ...if we're splitting folders
 
+# ...subset_json_detector_output()
+
     
 #%% Interactive driver
                 
@@ -522,7 +524,7 @@ if False:
 
     #%% Subset and split, but don't copy to individual folders
 
-    input_filename = r"C:\temp\tnc-hardage-20201028_detections.filtered_rde_0.60_0.85_10_0.05_r2_export\tnc-hardage-20201028_detections.filtered_rde_0.60_0.85_10_0.05_r2_export.json"
+    input_filename = r"C:\temp\xxx-20201028_detections.filtered_rde_0.60_0.85_10_0.05_r2_export\xxx-20201028_detections.filtered_rde_0.60_0.85_10_0.05_r2_export.json"
     output_filename = r"c:\temp\out"
     
     options = SubsetJsonDetectorOutputOptions()
@@ -546,13 +548,6 @@ if False:
     
     data = subset_json_detector_output(input_filename,output_filename,options,data)
     
-    
-    #%% Just do a filename replacement
-    
-    # python subset_json_detector_output.py "D:\temp\idfg\detections_idfg_20190625_refiltered.json" "D:\temp\idfg\detections_idfg_20190625_refiltered_renamed.json" --query "20190625-hddrop/" --replacement ""
-    
-    # python subset_json_detector_output.py "D:\temp\idfg\detections_idfg_20190625_refiltered_renamed.json" "D:\temp\idfg\output" --split_folders --make_folder_relative --copy_jsons_to_folders
-
 
 #%% Command-line driver
 
