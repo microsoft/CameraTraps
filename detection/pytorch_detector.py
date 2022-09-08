@@ -79,12 +79,18 @@ class PTDetector:
             
             # Image size can be an int (which translates to a square target size) or (h,w)
             if image_size is not None:
-                assert isinstance(image_size,int) or (len(image_size)==2)
-                if False:
-                    if (not isinstance(image_size,int)) or (image_size != PTDetector.IMAGE_SIZE):
-                        print('Warning: using non-standard image size {}'.format(image_size))
-                target_size = image_size
                 
+                assert isinstance(image_size,int) or (len(image_size)==2)
+                
+                # This is a really annoying warning, but in most cases this is such a bad idea that
+                # I want to leave no doubt about how bad an idea we think it is.
+                if (not isinstance(image_size,int)) or (image_size != PTDetector.IMAGE_SIZE):
+                    print('Warning: using non-standard image size {}'.format(image_size))
+                    
+                target_size = image_size
+            
+            # ...if the caller has specified an image size
+            
             img = letterbox(img_original, new_shape=target_size,
                                  stride=PTDetector.STRIDE, auto=True)[0]  # JIT requires auto=False
             
