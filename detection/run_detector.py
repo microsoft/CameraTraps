@@ -236,6 +236,14 @@ def is_gpu_available(model_file):
         import torch
         gpu_available = torch.cuda.is_available()
         print('PyTorch reports {} available CUDA devices'.format(torch.cuda.device_count()))
+        if not gpu_available:
+            try:
+                # mps backend only available in torch >= 1.12.0
+                if torch.backends.mps.is_built and torch.backends.mps.is_available():
+                    gpu_available = True
+                    print('PyTorch reports Metal Performance Shaders are available')
+            except AttributeError:
+                pass
         return gpu_available
     else:
         raise ValueError('Unrecognized model file extension for model {}'.format(model_file))
