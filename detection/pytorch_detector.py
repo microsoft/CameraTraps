@@ -42,6 +42,8 @@ class PTDetector:
         if (self.device != 'cpu'):
             print('Sending model to GPU')
             self.model.to(self.device)
+            
+        self.printed_image_size_warning = False
 
     @staticmethod
     def _load_model(model_pt_path, device):
@@ -82,13 +84,16 @@ class PTDetector:
                 
                 assert isinstance(image_size,int) or (len(image_size)==2)
                 
-                # This is a really annoying warning, but in most cases this is such a bad idea that
-                # I want to leave no doubt about how bad an idea we think it is.
-                if (not isinstance(image_size,int)) or (image_size != PTDetector.IMAGE_SIZE):
-                    print('Warning: using non-standard image size {}'.format(image_size))
-                    
+                if not self.printed_image_size_warning:
+                    print('Warning: using user-supplied image size {}'.format(image_size))
+                    self.printed_image_size_warning = True
+            
                 target_size = image_size
             
+            else:
+                
+                self.printed_image_size_warning = False
+                
             # ...if the caller has specified an image size
             
             img = letterbox(img_original, new_shape=target_size,

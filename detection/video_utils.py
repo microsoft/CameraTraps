@@ -43,7 +43,7 @@ def find_video_strings(strings: Iterable[str]) -> List[str]:
     Given a list of strings that are potentially video file names, looks for
     strings that actually look like video file names (based on extension).
     """
-    return [s for s in strings if is_video_file(s)]
+    return [s for s in strings if is_video_file(s.lower())]
 
 
 def find_videos(dirname: str, recursive: bool = False) -> List[str]:
