@@ -236,6 +236,14 @@ def is_gpu_available(model_file):
         import torch
         gpu_available = torch.cuda.is_available()
         print('PyTorch reports {} available CUDA devices'.format(torch.cuda.device_count()))
+        if not gpu_available:
+            try:
+                # mps backend only available in torch >= 1.12.0
+                if torch.backends.mps.is_built and torch.backends.mps.is_available():
+                    gpu_available = True
+                    print('PyTorch reports Metal Performance Shaders are available')
+            except AttributeError:
+                pass
         return gpu_available
     else:
         raise ValueError('Unrecognized model file extension for model {}'.format(model_file))
@@ -265,7 +273,7 @@ def load_detector(model_file, force_cpu=False):
 def load_and_run_detector(model_file, image_file_names, output_dir,
                           render_confidence_threshold=DEFAULT_RENDERING_CONFIDENCE_THRESHOLD,
                           crop_images=False, box_thickness=DEFAULT_BOX_THICKNESS, 
-                          box_expansion=DEFAULT_BOX_EXPANSION,
+                          box_expansion=DEFAULT_BOX_EXPANSION, image_size=None
                           ):
     """Load and run detector on target images, and visualize the results."""
     
@@ -329,6 +337,8 @@ def load_and_run_detector(model_file, image_file_names, output_dir,
         fn = os.path.join(output_dir, fn)
         return fn
 
+    # ...def input_file_to_detection_file()
+    
     for im_file in tqdm(image_file_names):
 
         try:
@@ -352,7 +362,8 @@ def load_and_run_detector(model_file, image_file_names, output_dir,
             start_time = time.time()
 
             result = detector.generate_detections_one_image(image, im_file,
-                                                            detection_threshold=DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD)
+                                                            detection_threshold=DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD,
+                                                            image_size=image_size)
             detection_results.append(result)
 
             elapsed = time.time() - start_time
@@ -434,6 +445,12 @@ def main():
         help='Directory for output images (defaults to same as input)')
     
     parser.add_argument(
+        '--image_size',
+        type=int,
+        default=None,
+        help=('Force image resizing to a (square) integer size (not recommended to change this)'))
+    
+    parser.add_argument(
         '--threshold',
         type=float,
         default=DEFAULT_RENDERING_CONFIDENCE_THRESHOLD,
@@ -494,7 +511,8 @@ def main():
                           render_confidence_threshold=args.threshold,
                           box_thickness=args.box_thickness,
                           box_expansion=args.box_expansion,                          
-                          crop_images=args.crop)
+                          crop_images=args.crop,
+                          image_size=args.image_size)
 
 
 if __name__ == '__main__':

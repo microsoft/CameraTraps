@@ -4,7 +4,6 @@ on images.
 """
 
 #%% Imports
-import sys
 
 import torch
 import numpy as np
@@ -16,7 +15,7 @@ try:
     # import pre- and post-processing functions from the YOLOv5 repo https://github.com/ultralytics/yolov5
     from utils.general import non_max_suppression, scale_coords, xyxy2xywh
     from utils.augmentations import letterbox
-except ModuleNotFoundError as e:
+except ModuleNotFoundError:
     raise ModuleNotFoundError('Could not import YOLOv5 functions.')
 
 print(f'Using PyTorch version {torch.__version__}')
@@ -30,14 +29,21 @@ class PTDetector:
     STRIDE = 64
 
     def __init__(self, model_path: str, force_cpu: bool = False):
-        if torch.cuda.is_available() and not force_cpu:
-            self.device = torch.device('cuda:0')
-        else:
-            self.device = 'cpu'
+        self.device = 'cpu'
+        if not force_cpu:
+            if torch.cuda.is_available():
+                self.device = torch.device('cuda:0')
+            try:
+                if torch.backends.mps.is_built and torch.backends.mps.is_available():
+                    self.device = 'mps'
+            except AttributeError:
+                pass
         self.model = PTDetector._load_model(model_path, self.device)
-        if (self.device != 'cpu') and torch.cuda.is_available():
+        if (self.device != 'cpu'):
             print('Sending model to GPU')
             self.model.to(self.device)
+            
+        self.printed_image_size_warning = False
 
     @staticmethod
     def _load_model(model_pt_path, device):
@@ -45,7 +51,7 @@ class PTDetector:
         model = checkpoint['model'].float().fuse().eval()  # FP32 model
         return model
 
-    def generate_detections_one_image(self, img_original, image_id, detection_threshold):
+    def generate_detections_one_image(self, img_original, image_id, detection_threshold, image_size=None):
         """Apply the detector to an image.
 
         Args:
@@ -71,8 +77,28 @@ class PTDetector:
             img_original = np.asarray(img_original)
 
             # padded resize
-            img = letterbox(img_original, new_shape=PTDetector.IMAGE_SIZE,
+            target_size = PTDetector.IMAGE_SIZE
+            
+            # Image size can be an int (which translates to a square target size) or (h,w)
+            if image_size is not None:
+                
+                assert isinstance(image_size,int) or (len(image_size)==2)
+                
+                if not self.printed_image_size_warning:
+                    print('Warning: using user-supplied image size {}'.format(image_size))
+                    self.printed_image_size_warning = True
+            
+                target_size = image_size
+            
+            else:
+                
+                self.printed_image_size_warning = False
+                
+            # ...if the caller has specified an image size
+            
+            img = letterbox(img_original, new_shape=target_size,
                                  stride=PTDetector.STRIDE, auto=True)[0]  # JIT requires auto=False
+            
             img = img.transpose((2, 0, 1))  # HWC to CHW; PIL Image is RGB already
             img = np.ascontiguousarray(img)
             img = torch.from_numpy(img)
@@ -86,7 +112,12 @@ class PTDetector:
             pred: list = self.model(img)[0]
 
             # NMS
-            pred = non_max_suppression(prediction=pred, conf_thres=detection_threshold)
+            if self.device == 'mps':
+                # Current v1.13.0.dev20220824 torchvision::nms is not current implemented for the MPS device
+                # Send pred back to cpu to fix
+                pred = non_max_suppression(prediction=pred.cpu(), conf_thres=detection_threshold)
+            else: 
+                pred = non_max_suppression(prediction=pred, conf_thres=detection_threshold)
 
             # format detections/bounding boxes
             gn = torch.tensor(img_original.shape)[[1, 0, 1, 0]]  # normalization gain whwh

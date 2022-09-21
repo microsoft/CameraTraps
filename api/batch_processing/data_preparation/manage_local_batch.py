@@ -46,6 +46,9 @@ default_gpu_number = 0
 
 quiet_mode = True
 
+# Specify a target image size when running MD... strongly recommended to leave this at "None"
+image_size = None
+
 # Only relevant when running on CPU
 ncores = 1
 
@@ -83,7 +86,7 @@ if ('v5') in model_file:
 else:
     gpu_images_per_second = 2.9
 
-checkpoint_frequency = 2000
+checkpoint_frequency = 10000
 
 base_task_name = organization_name_short + '-' + job_date + job_description_string + '-' + get_detector_version_from_filename(model_file)
 base_output_folder_name = os.path.join(postprocessing_base,organization_name_short)
@@ -94,7 +97,7 @@ os.makedirs(base_output_folder_name,exist_ok=True)
 
 filename_base = os.path.join(base_output_folder_name, base_task_name)
 combined_api_output_folder = os.path.join(filename_base, 'combined_api_outputs')
-postprocessing_output_folder = os.path.join(filename_base, 'postprocessing')
+postprocessing_output_folder = os.path.join(filename_base, 'preview')
 
 os.makedirs(filename_base, exist_ok=True)
 os.makedirs(combined_api_output_folder, exist_ok=True)
@@ -181,9 +184,13 @@ for i_task,task in enumerate(task_info):
     if quiet_mode:
         quiet_string = '--quiet'
 
+    image_size_string = ''
+    if image_size is not None:
+        image_size_string = '--image_size {}'.format(image_size)
+        
     # Generate the script to run MD
         
-    cmd = f'{cuda_string} python run_detector_batch.py "{model_file}" "{chunk_file}" "{output_fn}" {checkpoint_frequency_string} {checkpoint_path_string} {use_image_queue_string} {ncores_string} {quiet_string}'
+    cmd = f'{cuda_string} python run_detector_batch.py "{model_file}" "{chunk_file}" "{output_fn}" {checkpoint_frequency_string} {checkpoint_path_string} {use_image_queue_string} {ncores_string} {quiet_string} {image_size_string}'
     
     cmd_file = os.path.join(filename_base,'run_chunk_{}_gpu_{}.sh'.format(str(i_task).zfill(2),
                             str(gpu_number).zfill(2)))
@@ -255,7 +262,8 @@ if False:
                                               results=None,
                                               n_cores=ncores, 
                                               use_image_queue=use_image_queue,
-                                              quiet=quiet_mode)        
+                                              quiet=quiet_mode,
+                                              image_size=image_size)        
         elapsed = time.time() - start_time
         
         print('Task {}: finished inference for {} images in {}'.format(
@@ -1244,6 +1252,8 @@ options = SubsetJsonDetectorOutputOptions()
 
 options.split_folders = True
 options.make_folder_relative = True
+
+# Reminder: 'n_from_bottom' with a parameter of zero is the same as 'bottom'
 options.split_folder_mode = 'bottom'  # 'top', 'n_from_top', 'n_from_bottom'
 options.split_folder_param = 0
 options.overwrite_json_files = False
