@@ -86,7 +86,7 @@ if ('v5') in model_file:
 else:
     gpu_images_per_second = 2.9
 
-checkpoint_frequency = 2000
+checkpoint_frequency = 10000
 
 base_task_name = organization_name_short + '-' + job_date + job_description_string + '-' + get_detector_version_from_filename(model_file)
 base_output_folder_name = os.path.join(postprocessing_base,organization_name_short)

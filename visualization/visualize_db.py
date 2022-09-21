@@ -296,7 +296,10 @@ def process_images(db_path, output_dir, image_base_dir, options=None):
         try:
             original_image = vis_utils.open_image(img_path)
             original_size = original_image.size
-            image = vis_utils.resize_image(original_image, options.viz_size[0], options.viz_size[1])
+            if options.viz_size[0] == -1 and options.viz_size[1] == -1:
+                image = original_image
+            else:
+                image = vis_utils.resize_image(original_image, options.viz_size[0], options.viz_size[1])
         except Exception as e:
             print('Image {} failed to open. Error: {}'.format(img_path, e))
             return False
