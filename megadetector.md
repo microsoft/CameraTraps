@@ -283,9 +283,9 @@ Pro tip: rather than updating your PYTHONPATH every time you start a new shell, 
 
 #### Mac instructions for git/Python stuff
 
-These are exactly like the Linux instructions, with just one change, so we're not going to copy and paste, because if we copy and paste, there's a 100% chance the copies will drift out of sync.
+Instructions for <i>Intel</i> Macs are exactly like the Linux instructions, with just one change, so we're not going to copy and paste, because if we copy and paste, there's a 100% chance the copies will drift out of sync.
 
-So, on a Mac, follow the Linux instructions, but change this line:
+So, on an Intel Mac, follow the Linux instructions, but change this line:
 
 `conda env create --file environment-detector.yml`
 
@@ -293,7 +293,9 @@ So, on a Mac, follow the Linux instructions, but change this line:
 
 `conda env create --file environment-detector-mac.yml`
 
-<i>Advanced information about why there is a different environment file, skip this if you don't want extra detail...</i>
+M1 Macs are not officially supported right now, but with a bit of work, you can not only run MegaDetector on an M1 Mac, you can even use the M1 for accelerated inference.  Details about doing this are on <a href="https://github.com/microsoft/CameraTraps/issues/297">this issue</a>.  YMMV.
+
+<i>Advanced information about why there is a different environment file for MacOS, skip this if you don't want extra detail...</i>
 
 The main environment file (environment-detector.yml) installs the "cudatoolkit" and "cudnn" packages; recent versions of these only exist for Windows and Linux (at least as of June 2022).  So installation using this environment file will fail on a Mac.  On the other hand, if you are on a Mac and you want to use a GPU, you'll need to manually install appropriate versions of the CUDA toolkit and CuDNN.  This is a sufficiently niche scenario that we're not going to get into details about it, but if you are having trouble with this, <a href="mailto:cameratraps@lila.science">email us</a>.
 
