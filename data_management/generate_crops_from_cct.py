@@ -49,6 +49,8 @@ def generate_crops_from_cct(cct_file,image_dir,output_dir,padding=0,flat_output=
     
     ## Generate crops
         
+    # TODO: parallelize this loop
+    
     # im = d['images'][0]
     for im in tqdm(d['images']):
         
@@ -90,7 +92,7 @@ def generate_crops_from_cct(cct_file,image_dir,output_dir,padding=0,flat_output=
             output_fn = os.path.splitext(im['file_name'])[0].replace('\\','/')
             if flat_output:
                 output_fn = output_fn.replace('/','_')
-            output_fn = output_fn + '_crop' + str(i_ann).zfill(3)
+            output_fn = output_fn + '_crop' + str(i_ann).zfill(3) + '_id_' + ann['id']
             output_fn = output_fn + '.jpg'
                 
             output_full_path = os.path.join(output_dir,output_fn)
@@ -104,7 +106,9 @@ def generate_crops_from_cct(cct_file,image_dir,output_dir,padding=0,flat_output=
         
     # ...for each image
     
-    
+# ...generate_crops_from_cct()
+
+
 #%% Interactive driver
 
 if False:
@@ -119,7 +123,20 @@ if False:
     flat_output = True
     output_dir = '/home/user/tmp/noaa-fish-crops'
     
-    generate_crops_from_cct(cct_file,image_dir,output_dir,padding=0,flat_output=True)
+    #%%
+    
+    generate_crops_from_cct(cct_file,image_dir,output_dir,padding,flat_output=True)
+    files = os.listdir(output_dir)
+    
+    #%%
+    
+    import random
+    fn = os.path.join(output_dir,random.choice(files))
+    
+    from path_utils import open_file # from ai4eutils
+    open_file(fn)
+
+    
     
     
 #%% Command-line driver
@@ -142,10 +159,16 @@ if False:
     image_base_dir = image_dir
     
     options = DbVizOptions()
-    options.num_to_visualize = 100
+    options.num_to_visualize = None
+    
+    options.parallelize_rendering_n_cores = 5
+    options.parallelize_rendering = True    
     
     options.viz_size = (-1, -1)
     options.trim_to_images_with_bboxes = True
-        
+    
+    options.box_thickness = 4
+    options.box_expansion = 25
+    
     htmlOutputFile,db = process_images(db_path,output_dir,image_base_dir,options)
     
