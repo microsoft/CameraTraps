@@ -47,6 +47,9 @@ class DbVizOptions:
     add_search_links = False
     include_filename_links = False
     
+    box_thickness = 4
+    box_expansion = 0
+    
     # These are mutually exclusive; both are category names, not IDs
     classes_to_exclude = None
     classes_to_include = None
@@ -306,7 +309,10 @@ def process_images(db_path, output_dir, image_base_dir, options=None):
             
         vis_utils.render_db_bounding_boxes(boxes=bboxes, classes=bboxClasses,
                                            image=image, original_size=original_size,
-                                           label_map=label_map)
+                                           label_map=label_map,
+                                           thickness=options.box_thickness,
+                                           expansion=options.box_expansion)
+        
         image.save(os.path.join(output_dir, 'rendered_images', output_file_name))
         return True
     
