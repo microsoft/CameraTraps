@@ -283,21 +283,53 @@ Pro tip: rather than updating your PYTHONPATH every time you start a new shell, 
 
 #### Mac instructions for git/Python stuff
 
-Instructions for <i>Intel</i> Macs are exactly like the Linux instructions, with just one change, so we're not going to copy and paste, because if we copy and paste, there's a 100% chance the copies will drift out of sync.
+These are instructions for <i>Intel</i> Macs; see <a href="#regarding-m1-mac-support">below</a> for a note on M1 Mac support.
 
-So, on an Intel Mac, follow the Linux instructions, but change this line:
+If you have installed Anaconda on Linux, you are probably always at an Anaconda prompt; i.e., you should see "(base)" at your command prompt.  Assuming you see that, the first time you set all of this up, and run:
 
-`conda env create --file environment-detector.yml`
+```batch
+mkdir ~/git
+cd ~/git
+git clone https://github.com/Microsoft/cameratraps
+git clone https://github.com/Microsoft/ai4eutils
+cd ~/git/cameratraps
+conda env create --file environment-detector-mac.yml
+conda activate cameratraps-detector
+export PYTHONPATH="$PYTHONPATH:$HOME/git/cameratraps:$HOME/git/ai4eutils:$HOME/git/yolov5"
 
-...to:
+# ***
+# The rest of this step is specific to MDv5; you can skip the rest of this step if you are
+# only using MDv4.  If you're new to MegaDetector, you probably want MDv5, so you probably
+# want to run the rest of this step.
+# ***
+cd ~/git
+git clone https://github.com/ultralytics/yolov5/
+cd ~/git/yolov5
+git checkout c23a441c9df7ca9b1f275e8c8719c949269160d1
+cd ~/git/cameratraps
+```
 
-`conda env create --file environment-detector-mac.yml`
+If you want to use MDv4, there's one extra setup step (this will not break your MDv5 setup, you can run both in the same environment):
+
+```batch
+conda activate cameratraps-detector
+pip install tensorflow
+```
+
+<a name="linux-new-shell"></a>
+Your environment is set up now!  In the future, whenever you start a new shell, you just need to do:
+
+```batch
+cd ~/git/cameratraps
+conda activate cameratraps-detector
+export PYTHONPATH="$PYTHONPATH:$HOME/git/cameratraps:$HOME/git/ai4eutils:$HOME/git/yolov5"
+```
+
+Pro tip: rather than updating your PYTHONPATH every time you start a new shell, you can add the "export" line to your .bashrc file.
+
+##### Regarding M1 Mac support
 
 M1 Macs are not officially supported right now, but with a bit of work, you can not only run MegaDetector on an M1 Mac, you can even use the M1 for accelerated inference.  Details about doing this are on <a href="https://github.com/microsoft/CameraTraps/issues/297">this issue</a>.  YMMV.
-
-<i>Advanced information about why there is a different environment file for MacOS, skip this if you don't want extra detail...</i>
-
-The main environment file (environment-detector.yml) installs the "cudatoolkit" and "cudnn" packages; recent versions of these only exist for Windows and Linux (at least as of June 2022).  So installation using this environment file will fail on a Mac.  On the other hand, if you are on a Mac and you want to use a GPU, you'll need to manually install appropriate versions of the CUDA toolkit and CuDNN.  This is a sufficiently niche scenario that we're not going to get into details about it, but if you are having trouble with this, <a href="mailto:cameratraps@lila.science">email us</a>.
 
 
 ### 4. Hooray, we finally get to run MegaDetector!
