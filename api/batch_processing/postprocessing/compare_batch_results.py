@@ -44,7 +44,7 @@ class PairwiseBatchComparisonOptions:
 class BatchComparisonOptions:
     
     output_folder = None
-    image_folder = None    
+    image_folder = None
     
     max_images_per_category = 1000
     colormap_a = ['Red']
@@ -52,7 +52,9 @@ class BatchComparisonOptions:
 
     target_width = 800    
     n_rendering_threads = 50        
-    random_seed = 0    
+    random_seed = 0
+    
+    error_on_non_matching_lists = True
     
     pairwise_options = PairwiseBatchComparisonOptions()
     
@@ -139,11 +141,19 @@ def _compare_batch_results(options,output_index,pairwise_options):
     filenames_a = [im['file'] for im in images_a]
     filenames_b_set = set([im['file'] for im in images_b])
     
-    assert len(images_a) == len(images_b)
+    if len(images_a) != len(images_b):
+        s = 'set A has {} iamges, set B has {}'.format(len(images_a),len(images_b))
+        if options.error_on_non_matching_lists:
+            raise ValueError(s)
+        else:
+            print('Warning: ' + s)
+    else:
+        if options.error_on_non_matching_lists:
+            for fn in filenames_a:
+                assert fn in filenames_b_set
+
     assert len(filenames_a) == len(images_a)
-    assert len(filenames_b_set) == len(images_b)
-    for fn in filenames_a:
-        assert fn in filenames_b_set
+    assert len(filenames_b_set) == len(images_b)    
     
     
     ##%% Find differences
@@ -161,6 +171,14 @@ def _compare_batch_results(options,output_index,pairwise_options):
     # fn = filenames_a[0]
     for fn in tqdm(filenames_a):
     
+        if fn not in filename_to_image_b:
+            
+            # We shouldn't have gotten this far if error_on_non_matching_lists is set
+            assert not options.error_on_non_matching_lists
+            
+            print('Skipping filename {}, not in image set B'.format(fn))
+            continue
+        
         im_a = filename_to_image_a[fn]
         im_b = filename_to_image_b[fn]
         
