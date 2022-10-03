@@ -139,16 +139,24 @@ def consumer_func(q,return_queue,model_file,confidence_threshold,image_size=None
         
     results = []
     
+    n_images_processed = 0
+    
     while True:
         r = q.get()
         if r is None:
             q.task_done()
             return_queue.put(results)
             return
+        n_images_processed += 1
         im_file = r[0]
         image = r[1]
-        if verbose:
-            print('De-queued image {}'.format(im_file)); sys.stdout.flush()
+        if verbose or ((n_images_processed % 10) == 0):
+            elapsed = time.time() - start_time
+            images_per_second = n_images_processed / elapsed
+            print('De-queued image {} ({}/s) ({})'.format(n_images_processed,
+                                                          images_per_second,
+                                                          im_file));
+            sys.stdout.flush()
         results.append(process_image(im_file=im_file,detector=detector,
                                      confidence_threshold=confidence_threshold,
                                      image=image,quiet=True,image_size=image_size))
