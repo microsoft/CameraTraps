@@ -154,7 +154,7 @@ Before we add more detail, some bonus/third-party/unsupported tools for running 
 
 5. [Ben Evans](https://bencevans.io/) made a [pip-installable wrapper](https://github.com/bencevans/camtrapml) for MegaDetector (and other models).
 
-Also see the <a href="#is-there-a-gui">&ldquo;Is there a GUI?&rdquo;</a> section for graphical options.
+Also see the <a href="#is-there-a-gui">&ldquo;Is there a GUI?&rdquo;</a> section for graphical options and other ways of running MD.
 
 The remainder of this section provides instructions for our supported scripts (options 1 and 2 above), including installing all the necessary Python dependencies.
 
@@ -448,6 +448,7 @@ It's not quite as simple as "these platforms all run MegaDetector on your images
 ### Other ways of running MegaDetector that don't fit easily into one of those categories
 
 * [FastAPI/Streamlit package for serving MD and visualizing results](https://github.com/abhayolo/megadetector-fastapi)
+* [SpSeg](https://github.com/bhlab/SpSeg/) (pipeline for running MD along with a custom classifier)
 
 ## How do I use the results?
 
