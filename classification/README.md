@@ -52,36 +52,6 @@ Activate this conda environment:
 conda activate cameratraps-classifier
 ```
 
-Verify that *Pillow-SIMD* (installed from PyPI) overshadows the normal *Pillow* package (installed from conda) by running:
-
-```bash
-python -c "import PIL; print(PIL.__version__)"
-```
-
-Make sure that the *Pillow* version ends in `'.postX'`, which indicates *Pillow-SIMD*.
-
-If this is running on a VM, enable remote Jupyter notebook access by doing the following. For more information, see the [Jupyter notebook server guide](https://jupyter-notebook.readthedocs.io/en/stable/public_server.html).
-
-1. Make sure that the desired port (e.g., 8888) is publicly exposed on the VM.
-2. Run the following command to create a Jupyter config file at `$HOME/.jupyter/jupyter_notebook_config.py`.
-
-    ```bash
-    jupyter notebook --generate-config
-    ```
-
-3. Add the following line to the config file:
-
-    ```python
-    c.NotebookApp.ip = '*'
-    ```
-
-To use the *tqdm* widget in a notebook through JupyterLab (`jupyter lab`), make sure you have node.js installed, then run the following command. See the [*ipywidgets* installation guide](https://ipywidgets.readthedocs.io/en/latest/user_install.html) for more details.
-
-```bash
-jupyter labextension install @jupyter-widgets/jupyterlab-manager
-```
-
-
 ## Directory Structure
 
 The classifier pipeline assumes the following directories:
