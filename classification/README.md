@@ -40,7 +40,7 @@ The classifiers trained with this pipeline are intended to be used in conjunctio
 
 ## Installation
 
-Install [miniconda3](https://docs.conda.io/en/latest/miniconda.html). Then create the conda environment using the following command. If you want to run PyTorch on a GPU, be sure to comment out `cpuonly` and uncomment `cudatoolkit` in `environment-classifier.yml`. If you need to add/remove/modify packages, make the appropriate change in the `environment-classifier.yml` file and run the following command again.
+Install Anaconda or [miniconda3](https://docs.conda.io/en/latest/miniconda.html). Then create the conda environment using the following command:
 
 ```bash
 conda env update -f environment-classifier.yml --prune
