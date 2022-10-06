@@ -112,7 +112,7 @@ This repo is organized into the following folders...
 
 ## api
 
-Code for hosting our models as an API, either for synchronous operation (e.g. for real-time inference or for our Web-based demo) or as a batch process (for large biodiversity surveys).
+Code for hosting our models as an API, either for synchronous operation (i.e., for real-time inference) or as a batch process (for large biodiversity surveys).
 
 
 ## classification
@@ -130,11 +130,6 @@ Code for:
 
 * Converting frequently-used metadata formats to [COCO Camera Traps](https://github.com/Microsoft/CameraTraps/blob/main/data_management/README.md#coco-cameratraps-format) format
 * Creating, visualizing, and  editing COCO Camera Traps .json databases
-
-
-## demo
-
-Source for the Web-based demo of our MegaDetector model.
 
 
 ## detection
