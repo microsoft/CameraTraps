@@ -111,7 +111,7 @@ for i_entry,entry in enumerate(tqdm(data['images'])):
         
         if category_id != 0:
             ann['bbox'] = detection['bbox']
-            # MegaDetector: [x,y,width,eight] (normalized, origin upper-left)
+            # MegaDetector: [x,y,width,height] (normalized, origin upper-left)
             # CCT: [x,y,width,height] (absolute, origin upper-left)
             ann['bbox'][0] = ann['bbox'][0] * im['width']
             ann['bbox'][1] = ann['bbox'][1] * im['height']

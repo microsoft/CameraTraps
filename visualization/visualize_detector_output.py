@@ -74,6 +74,7 @@ def visualize_detector_output(detector_output_path: str,
 
     os.makedirs(out_dir, exist_ok=True)
 
+
     #%% Load detector output
 
     with open(detector_output_path) as f:
