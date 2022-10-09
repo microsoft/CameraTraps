@@ -26,10 +26,14 @@ category_list_dir = os.path.join(lila_local_base, 'lila_categories_list')
 lila_dataset_to_categories_file = os.path.join(
     category_list_dir, 'lila_dataset_to_categories.json')
 
+# This is a manually-curated file used to store mappings that had to be made manually
 lila_to_wi_supplementary_mapping_file = os.path.expanduser(
     '~/git/CameraTraps/taxonomy_mapping/lila_to_wi_supplementary_mapping_file.csv')
 
 assert os.path.isfile(lila_dataset_to_categories_file)
+
+# This is the main output file from this whole process
+wi_mapping_table_file = os.path.join(lila_local_base,'lila_wi_mapping_table.csv')
 
 
 #%% Load category and taxonomy files
@@ -50,13 +54,13 @@ wi_taxonomy = wi_taxonomy_df.to_dict('records')
 
 #%% Cache WI taxonomy lookups
 
-
 def is_empty_wi_item(v):
     if isinstance(v, str):
-        assert len(v) > 0
-        return False
+        return len(v) == 0        
+    elif v is None:
+        return True
     else:
-        assert isinstance(v, float) and np.isnan(v)
+        assert isinstance(v, float) and np.isnan(v), 'Invalid item: {}'.format(str(v))
         return True
 
 
@@ -66,7 +70,7 @@ def taxonomy_items_equal(a, b):
     if isinstance(b, str) and (not isinstance(a, str)):
         return False
     if (not isinstance(a, str)) or (not isinstance(b, str)):
-        assert isinstance(a, float) and isinstance(b, float)
+        assert (a is None and b is None) or (isinstance(a, float) and isinstance(b, float))
         return True
     return a == b
 
@@ -90,7 +94,7 @@ unknown_taxon = None
 
 ignore_taxa = set(['No CV Result', 'CV Needed', 'CV Failed'])
 
-# taxon = wi_taxonomy[1000]; print(taxon)
+# taxon = wi_taxonomy[21653]; print(taxon)
 for taxon in tqdm(wi_taxonomy):
 
     taxon_name = None
@@ -107,6 +111,7 @@ for taxon in tqdm(wi_taxonomy):
 
         special_taxon = False
 
+        # Look for keywords that don't refer to specific taxa: blank/animal/unknown
         if taxon['commonNameEnglish'].strip().lower() == blank_taxon_name:
             blank_taxon = taxon
             special_taxon = True
@@ -315,6 +320,7 @@ else:
 
 
 #%% Build a dictionary from LILA dataset names and categories to LILA taxa
+
 lila_dataset_category_to_lila_taxon = {}
 
 # i_d = 0; d = lila_taxonomy[i_d]
@@ -325,8 +331,6 @@ for i_d,d in enumerate(lila_taxonomy):
 
 
 #%% Map LILA datasets to WI taxa, and count the number of each taxon available in each dataset
-
-wi_mapping_table_file = os.path.join(lila_local_base,'lila_wi_mapping_table.csv')
 
 with open(wi_mapping_table_file,'w') as f:
     
@@ -361,3 +365,5 @@ with open(wi_mapping_table_file,'w') as f:
         # ...for each category in this dataset
             
     # ...for each dataset    
+
+# ...with open()
