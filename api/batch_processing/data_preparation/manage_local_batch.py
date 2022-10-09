@@ -368,58 +368,6 @@ with open(combined_api_output_file,'w') as f:
 print('Wrote results to {}'.format(combined_api_output_file))
 
 
-#%% Compare results files for different model versions (or before/after RDE)
-
-import itertools
-
-from api.batch_processing.postprocessing.compare_batch_results import (
-    BatchComparisonOptions,PairwiseBatchComparisonOptions,compare_batch_results)
-
-options = BatchComparisonOptions()
-
-options.job_name = organization_name_short
-options.output_folder = os.path.join(postprocessing_output_folder,'model_comparison')
-options.image_folder = input_path
-
-options.pairwise_options = []
-
-filenames = [
-    '/postprocessing/organization/mdv4_results.json',
-    '/postprocessing/organization/mdv5a_results.json',
-    '/postprocessing/organization/mdv5b_results.json'    
-    ]
-
-detection_thresholds = [0.7,0.15,0.15]
-
-assert len(detection_thresholds) == len(filenames)
-
-rendering_thresholds = [(x*0.6666) for x in detection_thresholds]
-
-# Choose all pairwise combinations of the files in [filenames]
-for i, j in itertools.combinations(list(range(0,len(filenames))),2):
-        
-    pairwise_options = PairwiseBatchComparisonOptions()
-    
-    pairwise_options.results_filename_a = filenames[i]
-    pairwise_options.results_filename_b = filenames[j]
-    
-    pairwise_options.rendering_confidence_threshold_a = rendering_thresholds[i]
-    pairwise_options.rendering_confidence_threshold_b = rendering_thresholds[j]
-    
-    pairwise_options.detection_thresholds_a = {'animal':detection_thresholds[i],
-                                               'person':detection_thresholds[i],
-                                               'vehicle':detection_thresholds[i]}
-    pairwise_options.detection_thresholds_b = {'animal':detection_thresholds[j],
-                                               'person':detection_thresholds[j],
-                                               'vehicle':detection_thresholds[j]}
-    options.pairwise_options.append(pairwise_options)
-
-results = compare_batch_results(options)
-
-from path_utils import open_file # from ai4eutils
-open_file(results.html_output_file)
-
-
 #%% Post-processing (no ground truth)
 
 render_animals_only = False
@@ -456,24 +404,6 @@ html_output_file = ppresults.output_html_file
 path_utils.open_file(html_output_file)
 
 
-#%% Merge in high-confidence detections from another results file
-
-from api.batch_processing.postprocessing.merge_detections import MergeDetectionsOptions,merge_detections
-
-source_files = ['']
-target_file = ''
-output_file = target_file.replace('.json','_merged.json')
-
-options = MergeDetectionsOptions()
-options.max_detection_size = 1.0
-options.target_confidence_threshold = 0.25
-options.categories_to_include = [1]
-options.source_confidence_thresholds = [0.2]
-merge_detections(source_files, target_file, output_file, options)
-
-merged_detections_file = output_file
-
-
 #%% RDE (sample directory collapsing)
 
 def remove_overflow_folders(relativePath):
@@ -503,6 +433,8 @@ if False:
     with open(combined_api_output_file,'r') as f:
         d = json.load(f)
     image_filenames = [im['file'] for im in d['images']]
+    
+    # relativePath = image_filenames[0]
     for relativePath in tqdm(image_filenames):
         remove_overflow_folders(relativePath)
 
@@ -1214,6 +1146,81 @@ for classification_detection_file in classification_detection_files:
     path_utils.open_file(ppresults.output_html_file)
 
 
+#%% 99.9% of jobs end here
+
+# Everything after this is run ad hoc and requires some manual editing.
+
+
+#%% Compare results files for different model versions (or before/after RDE)
+
+import itertools
+
+from api.batch_processing.postprocessing.compare_batch_results import (
+    BatchComparisonOptions,PairwiseBatchComparisonOptions,compare_batch_results)
+
+options = BatchComparisonOptions()
+
+options.job_name = organization_name_short
+options.output_folder = os.path.join(postprocessing_output_folder,'model_comparison')
+options.image_folder = input_path
+
+options.pairwise_options = []
+
+filenames = [
+    '/postprocessing/organization/mdv4_results.json',
+    '/postprocessing/organization/mdv5a_results.json',
+    '/postprocessing/organization/mdv5b_results.json'    
+    ]
+
+detection_thresholds = [0.7,0.15,0.15]
+
+assert len(detection_thresholds) == len(filenames)
+
+rendering_thresholds = [(x*0.6666) for x in detection_thresholds]
+
+# Choose all pairwise combinations of the files in [filenames]
+for i, j in itertools.combinations(list(range(0,len(filenames))),2):
+        
+    pairwise_options = PairwiseBatchComparisonOptions()
+    
+    pairwise_options.results_filename_a = filenames[i]
+    pairwise_options.results_filename_b = filenames[j]
+    
+    pairwise_options.rendering_confidence_threshold_a = rendering_thresholds[i]
+    pairwise_options.rendering_confidence_threshold_b = rendering_thresholds[j]
+    
+    pairwise_options.detection_thresholds_a = {'animal':detection_thresholds[i],
+                                               'person':detection_thresholds[i],
+                                               'vehicle':detection_thresholds[i]}
+    pairwise_options.detection_thresholds_b = {'animal':detection_thresholds[j],
+                                               'person':detection_thresholds[j],
+                                               'vehicle':detection_thresholds[j]}
+    options.pairwise_options.append(pairwise_options)
+
+results = compare_batch_results(options)
+
+from path_utils import open_file # from ai4eutils
+open_file(results.html_output_file)
+
+
+#%% Merge in high-confidence detections from another results file
+
+from api.batch_processing.postprocessing.merge_detections import MergeDetectionsOptions,merge_detections
+
+source_files = ['']
+target_file = ''
+output_file = target_file.replace('.json','_merged.json')
+
+options = MergeDetectionsOptions()
+options.max_detection_size = 1.0
+options.target_confidence_threshold = 0.25
+options.categories_to_include = [1]
+options.source_confidence_thresholds = [0.2]
+merge_detections(source_files, target_file, output_file, options)
+
+merged_detections_file = output_file
+
+
 #%% Create a new category for large boxes
 
 from api.batch_processing.postprocessing import categorize_detections_by_size
@@ -1396,6 +1403,7 @@ os.chmod(cmd_file, st.st_mode | stat.S_IEXEC)
 
 #%% End notebook: turn this script into a notebook (how meta!)
 
+import os
 import nbformat as nbf
 
 input_py_file = os.path.expanduser('~/git/CameraTraps/api/batch_processing/data_preparation/manage_local_batch.py')
