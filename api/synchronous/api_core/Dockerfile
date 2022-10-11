@@ -66,7 +66,7 @@ WORKDIR /
 # This requirements file contains that are specific to the API, i.e.,
 # not used by other parts of the repo, e.g. Flask.
 COPY ./requirements.txt /
-RUN TRUE
+RUN true
 RUN pip3 install -r /requirements.txt
 
 # Copy API code into the container
