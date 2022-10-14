@@ -19,6 +19,7 @@ import os
 import json
 import pandas as pd
 import numpy as np
+import dateparser
 
 from collections import defaultdict
 from tqdm import tqdm
@@ -29,11 +30,9 @@ from data_management.lila.lila_common import read_lila_metadata, \
 
 from url_utils import download_url
 
-# array to fill for output
-category_list = []
-
 # We'll write images, metadata downloads, and temporary files here
 lila_local_base = os.path.expanduser('~/lila')
+preview_folder = os.path.join(lila_local_base,'csv_preview')
 
 os.makedirs(lila_local_base,exist_ok=True)
 
@@ -41,6 +40,19 @@ metadata_dir = os.path.join(lila_local_base,'metadata')
 os.makedirs(metadata_dir,exist_ok=True)
 
 output_file = os.path.join(lila_local_base,'lila_image_urls_and_labels.csv')
+
+# Some datasets don't have "sequence_level_annotation" fields populated, but we know their 
+# annotation level
+ds_name_to_annotation_level = {}
+ds_name_to_annotation_level['Caltech Camera Traps'] = 'image'
+ds_name_to_annotation_level['ENA24'] = 'image'
+ds_name_to_annotation_level['Island Conservation Camera Traps'] = 'image'
+ds_name_to_annotation_level['Channel IslandsCamera Traps'] = 'image'
+ds_name_to_annotation_level['WCS Camera Traps'] = 'sequence'
+ds_name_to_annotation_level['Wellington Camera Traps'] = 'sequence'
+ds_name_to_annotation_level['NACTI'] = 'unknown'
+
+debug_max_images_per_dataset = None
 
 
 #%% Download and parse the metadata file
@@ -77,11 +89,13 @@ for i_row,row in taxonomy_df.iterrows():
 
 import csv
 
-header = ['dataset_name','url','image_id','sequence_id','location_id','frame_num','original_label','scientific_name','common_name']
+header = ['dataset_name','url','image_id','sequence_id','location_id','frame_num','original_label',\
+          'scientific_name','common_name','datetime','annotation_level']
 
 taxonomy_levels_to_include = \
     ['kingdom','phylum','subphylum','superclass','class','subclass','infraclass','superorder','order',
-     'suborder','infraorder','superfamily','family','subfamily','tribe','genus','species','subspecies','variety']
+     'suborder','infraorder','superfamily','family','subfamily','tribe','genus','species','subspecies',\
+     'variety']
     
 header.extend(taxonomy_levels_to_include)
 
@@ -120,29 +134,71 @@ with open(output_file,'w') as f:
         annotations = data['annotations']
         images = data['images']
         
-        image_id_to_category_names = defaultdict(set)
+        image_id_to_annotations = defaultdict(list)
         
         # Go through annotations, marking each image with the categories that are present
         #
         # ann = annotations[0]
         for ann in annotations:
             
-            category_name = category_id_to_name[ann['category_id']]
-            image_id_to_category_names[ann['image_id']].add(category_name)
+            image_id_to_annotations[ann['image_id']].append(ann)
     
         unannotated_images = []
         
+        found_date = False
+        found_location = False
+        found_annotation_level = False
+        
+        if ds_name in ds_name_to_annotation_level:
+            expected_annotation_level = ds_name_to_annotation_level[ds_name]
+        else:
+            expected_annotation_level = None
+                    
         # im = images[10]
-        for im in images:
+        for i_image,im in enumerate(images):
+            
+            if (debug_max_images_per_dataset is not None) and (debug_max_images_per_dataset > 0) \
+                and (i_image > debug_max_images_per_dataset):
+                break
             
             file_name = im['file_name'].replace('\\','/')
             base_url = metadata_table[ds_name]['sas_url']
             assert not base_url.endswith('/')
             url = base_url + '/' + file_name
             
+            for k in im.keys():
+                if ('date' in k or 'time' in k) and (k not in ['datetime','date_captured']):
+                    raise ValueError('Unrecognized datetime field')
+                    
+            # This field name was only used for Caltech Camera Traps
+            if 'date_captured' in im:
+                assert ds_name == 'Caltech Camera Traps'
+                im['datetime'] = im['date_captured']
+                
+            def has_valid_datetime(im):
+                if 'datetime' not in im:
+                    return False
+                v = im['datetime']
+                if v is None:
+                    return False
+                if isinstance(v,str):
+                    return len(v) > 0
+                else:
+                    assert isinstance(v,float) and np.isnan(v)
+                    return False
+                    
+            dt_string = ''                
+            if (has_valid_datetime(im)):
+                found_date = True
+                dt = dateparser.parse(im['datetime'])
+                if dt.year < 1990 or dt.year > 2030:
+                    raise ValueError('Suspicious date parsing result')
+                dt_string = dt.strftime("%m-%d-%Y %H:%M:%S")
+                
             # Location, sequence, and image IDs are only guaranteed to be unique within
             # a dataset, so for the output .csv file, include both
             if 'location' in im:
+                found_location = True
                 location_id = ds_name + ' : ' + str(im['location'])
             else:
                 location_id = ds_name
@@ -159,8 +215,27 @@ with open(output_file,'w') as f:
             else:
                 frame_num = -1
             
-            categories_this_image = image_id_to_category_names[im['id']]
+            annotations_this_image = image_id_to_annotations[im['id']]
             
+            categories_this_image = set()
+            
+            annotation_level = 'unknown'
+            
+            for ann in annotations_this_image:
+                assert ann['image_id'] == im['id']
+                categories_this_image.add(category_id_to_name[ann['category_id']])
+                if 'sequence_level_annotation' in ann:
+                    found_annotation_level = True
+                    if ann['sequence_level_annotation']:
+                        annotation_level = 'sequence'
+                    else:
+                        annotation_level = 'image'
+                    if expected_annotation_level is not None:
+                        assert expected_annotation_level == annotation_level,\
+                            'Unexpected annotation level'
+                elif expected_annotation_level is not None:
+                    annotation_level = expected_annotation_level
+                    
             if len(categories_this_image) == 0:
                 unannotated_images.append(im)
                 continue
@@ -190,7 +265,9 @@ with open(output_file,'w') as f:
                 row.append(taxonomy_labels['query'])
                 row.append(clearnan(taxonomy_labels['scientific_name']))
                 row.append(clearnan(taxonomy_labels['common_name']))
-                
+                row.append(dt_string)
+                row.append(annotation_level)
+                                
                 for s in taxonomy_levels_to_include:
                     row.append(clearnan(taxonomy_labels[s]))
                     
@@ -198,8 +275,21 @@ with open(output_file,'w') as f:
                         
             # ...for each category that was applied at least once to this image
             
-        # ...for each image
-        print('{} of {} images are un-annotated\n'.format(len(unannotated_images),len(images)))
+        # ...for each image in this dataset
+        
+        if not found_date:
+            pass
+            # print('Warning: no date information available for this dataset')
+        if not found_location:
+            pass
+            # print('Warning: no location information available for this dataset')
+        
+        if not found_annotation_level and (ds_name not in ds_name_to_annotation_level):
+            print('Warning: no annotation level information available for this dataset')
+        
+        if len(unannotated_images) > 0:
+            print('Warning: {} of {} images are un-annotated\n'.\
+                  format(len(unannotated_images),len(images)))
         
     # ...for each dataset
 
@@ -213,9 +303,8 @@ df = pd.read_csv(output_file)
 print('Read {} lines from {}'.format(len(df),output_file))
 
 n_empty_images_per_dataset = 3
-n_non_empty_images_per_dataset = 3
+n_non_empty_images_per_dataset = 10
 
-preview_folder = os.path.join(lila_local_base,'csv_preview')
 os.makedirs(preview_folder,exist_ok=True)
 
 
