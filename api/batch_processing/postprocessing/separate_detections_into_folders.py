@@ -120,6 +120,7 @@ class SeparateDetectionsIntoFoldersOptions:
         self.allow_existing_directory = False
         self.allow_missing_files = False
         self.overwrite = True
+        self.skip_empty_images = False
         
         self.results_file = None
         self.base_input_folder = None
@@ -137,6 +138,7 @@ class SeparateDetectionsIntoFoldersOptions:
         self.render_boxes = False
         self.line_thickness = default_line_thickness
         self.box_expansion = default_box_expansion
+        
         
         # Originally specified as a string, converted to a dict mapping name:threshold
         self.classification_thresholds = None
@@ -246,7 +248,7 @@ def process_detections(im,options):
             target_folder = options.category_name_to_folder[categories_above_threshold[0]]
             
             # Are we making species classification folders, and is this an animal?
-            if ('animal' in categories_above_threshold) and using_classification_folders:
+            if ('animal' in categories_above_threshold) and (using_classification_folders):
                    
                 # Do we need to put this into a specific species folder?
                 
@@ -273,12 +275,14 @@ def process_detections(im,options):
                         classification_category_id = classification[0]
                         classification_confidence = classification[1]
                         
-                        # Do we have a threshold for this category, and if so, is this classification above threshold?
+                        # Do we have a threshold for this category, and if so, is 
+                        # this classification above threshold?
                         assert options.classification_category_id_to_name is not None
                         classification_category_name = \
                             options.classification_category_id_to_name[classification_category_id]
                         if (classification_category_name in options.classification_thresholds) and \
-                            (classification_confidence > options.classification_thresholds[classification_category_name]):
+                            (classification_confidence > \
+                             options.classification_thresholds[classification_category_name]):
                             classification_categories_above_threshold.add(classification_category_name)
                             
                     # ...for each classification
@@ -320,8 +324,18 @@ def process_detections(im,options):
     target_dir = os.path.dirname(target_path)
     os.makedirs(target_dir,exist_ok=True)
     
+    # Skip this image if it's empty and we're not processing empty images
+    if ((categories_above_threshold is None) or (len(categories_above_threshold) == 0)) and \
+        options.skip_empty_images:
+        return
+        
+    # At this point, this image is getting copied; we may or may not also need to
+    # draw bounding boxes.
+    
     # Do a simple copy operation if we don't need to render any boxes
-    if (not options.render_boxes) or (categories_above_threshold is None):
+    if (not options.render_boxes) or \
+        (categories_above_threshold is None) or \
+        (len(categories_above_threshold) == 0):
         
         shutil.copyfile(source_path,target_path)
         
@@ -434,7 +448,8 @@ def separate_detections_into_folders(options):
     # Map class names to output folders
     options.category_name_to_folder = {}
     options.category_name_to_folder['empty'] = os.path.join(options.base_output_folder,'empty')
-    options.category_name_to_folder['failure'] = os.path.join(options.base_output_folder,'processing_failure')
+    options.category_name_to_folder['failure'] =\
+        os.path.join(options.base_output_folder,'processing_failure')
     
     # Create all combinations of categories
     category_names = list(detection_categories.values())
@@ -482,7 +497,8 @@ def separate_detections_into_folders(options):
     # Handle species classification thresholds, if specified
     if options.classification_thresholds is not None:
         
-        assert 'classification_categories' in results and results['classification_categories'] is not None, \
+        assert 'classification_categories' in results and \
+            results['classification_categories'] is not None, \
             'Classification thresholds specified, but no classification results available'
         
         classification_categories = results['classification_categories']
@@ -599,22 +615,24 @@ def main():
     parser.add_argument('base_output_folder', type=str, help='Output image folder')
 
     parser.add_argument('--threshold', type=float, default=None,
-                        help='Default confidence threshold for all categories (defaults to selection based on model version, other options may override this for specific categories)')
-    
+                        help='Default confidence threshold for all categories (defaults to selection based on model version, other options may override this for specific categories)')    
     parser.add_argument('--animal_threshold', type=float, default=None,
                         help='Confidence threshold for the animal category')
     parser.add_argument('--human_threshold', type=float, default=None,
                         help='Confidence threshold for the human category')
     parser.add_argument('--vehicle_threshold', type=float, default=None,
                         help='Confidence threshold for vehicle category')
+    parser.add_argument('--classification_thresholds', type=str, default=None,
+                        help='List of classification thresholds to use for species-based folder separation, formatted like deer=0.75,cow=0.75"')
     
     parser.add_argument('--n_threads', type=int, default=1,
                         help='Number of threads to use for parallel operation (default=1)')
     parser.add_argument('--allow_existing_directory', action='store_true', 
                         help='Proceed even if the target directory exists and is not empty')
     parser.add_argument('--no_overwrite', action='store_true', 
-                        help='Skip images that already exist in the target folder, must also specify --allow_existing_directory')
-    
+                        help='Skip images that already exist in the target folder, must also specify --allow_existing_directory')    
+    parser.add_argument('--skip_empty_images', action='store_true',
+                        help='Don\'t copy empty images to the output folder')
     parser.add_argument('--render_boxes', action='store_true',
                         help='Render bounding boxes on output images; may result in some metadata not being transferred')
     parser.add_argument('--line_thickness', type=int, default=default_line_thickness,
@@ -624,9 +642,6 @@ def main():
                         help='Box expansion (in pixels) for rendering, only meaningful if using render_boxes (defaults to {})'.format(
                             default_box_expansion))
         
-    parser.add_argument('--classification_thresholds', type=str, default=None,
-                        help='List of classification thresholds to use for species-based folder separation, formatted like deer=0.75,cow=0.75"')
-    
     if len(sys.argv[1:])==0:
         parser.print_help()
         parser.exit()
@@ -639,7 +654,7 @@ def main():
     args_to_object(args, options)
 
     def validate_threshold(v,name):
-        print('{} {}'.format(v,name))
+        # print('{} {}'.format(v,name))
         if v is not None:
             assert v >= 0.0 and v <= 1.0, \
                 'Illegal {} threshold {}'.format(name,v)
@@ -654,8 +669,7 @@ def main():
             and args.human_threshold is not None \
             and args.vehicle_threshold is not None:
                 raise ValueError('Default threshold specified, but all category thresholds also specified... not exactly wrong, but it\'s likely that you meant something else.')        
-    
-                
+                    
     options.category_name_to_threshold['animal'] = args.animal_threshold
     options.category_name_to_threshold['person'] = args.human_threshold
     options.category_name_to_threshold['vehicle'] = args.vehicle_threshold
