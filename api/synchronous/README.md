@@ -23,7 +23,7 @@ cd CameraTraps
     
 ### Download the model file
 
-Download the MegaDetector model file(s) to `api/synchronous/animal_detection_api/model`.  We will download both MDv5a and MDv5b here, though currently the API is hard-coded to use MDv5a.
+Download the MegaDetector model file(s) to `api/synchronous/api_core/animal_detection_api/model`.  We will download both MDv5a and MDv5b here, though currently the API is hard-coded to use MDv5a.
 
 ```bash
 wget "https://github.com/microsoft/CameraTraps/releases/download/v5.0/md_v5a.0.0.pt" -O api/synchronous/api_core/animal_detection_api/model/md_v5a.0.0.pt
@@ -54,7 +54,13 @@ To authenticate the API via a key, create a file with name `allowed_keys.txt`, a
     ```bash
     export BASE_IMAGE=pytorch/pytorch:1.10.0-cuda11.3-cudnn8-runtime
     ```
-    
+
+- If you use our recommended base image, skip this step.  If you choose a different base image that does not include PyTorch, you will need to make sure PyTorch gets installed.  The easiest way to do this is to edit api/synchronous/api_core/requirements.txt, and add the following to the end:
+
+    ```bash
+    torch==1.10.1
+    torchvision==0.11.2
+    ```
 - Build the Docker image using build_docker.sh.
 
     ```bash
