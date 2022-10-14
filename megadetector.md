@@ -60,6 +60,11 @@ With a test batch of around 13,000 images from the public <a href="https://lila.
 
 If you want to run this benchmark on your own, here are <a href="https://github.com/microsoft/CameraTraps/blob/master/download_megadetector_timing_benchmark_set.bat">azcopy commands</a> to download those 13,226 images, and we're happy to help you get MegaDetector running on your setup.  Or if you're using MegaDetector on other images with other GPUs, we'd love to include that data here as well.  <a href="mailto:cameratraps@lila.science">Email us</a>!
 
+### User-reported timings on other data
+
+Speed can vary widely based on image size, hard drive speed, etc., and in these numbers we're just taking what users report without asking what the deal was with the data, so... YMMV.
+
+* A GTX 1080 processed 699,530 images in 1:20:22:00 through MDv5 (4.37 images per second, or ~378,000 images per day)
 
 ## Who is using MegaDetector?
 
