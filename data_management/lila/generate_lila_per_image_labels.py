@@ -52,6 +52,8 @@ ds_name_to_annotation_level['WCS Camera Traps'] = 'sequence'
 ds_name_to_annotation_level['Wellington Camera Traps'] = 'sequence'
 ds_name_to_annotation_level['NACTI'] = 'unknown'
 
+known_unmapped_labels = set(['WCS Camera Traps:#ref!'])
+
 debug_max_images_per_dataset = None
 
 
@@ -189,11 +191,17 @@ with open(output_file,'w') as f:
                     
             dt_string = ''                
             if (has_valid_datetime(im)):
-                found_date = True
                 dt = dateparser.parse(im['datetime'])
-                if dt.year < 1990 or dt.year > 2030:
-                    raise ValueError('Suspicious date parsing result')
-                dt_string = dt.strftime("%m-%d-%Y %H:%M:%S")
+                
+                if dt is None or dt.year < 1990 or dt.year > 2025:
+                    # raise ValueError('Suspicious date parsing result')
+                    
+                    # Special case we don't want to print a warning about
+                    print('Suspicious date parsing result for image {}: {}'.format(im['id'],
+                      im['datetime']))                    
+                else:
+                    found_date = True
+                    dt_string = dt.strftime("%m-%d-%Y %H:%M:%S")
                 
             # Location, sequence, and image IDs are only guaranteed to be unique within
             # a dataset, so for the output .csv file, include both
@@ -247,6 +255,8 @@ with open(output_file,'w') as f:
                 
                 if ds_label not in ds_label_to_taxonomy:
                     
+                    assert ds_label in known_unmapped_labels
+                    
                     # Only print a warning the first time we see an unmapped label
                     if ds_label not in missing_annotations:
                         print('Warning: {} not in taxonomy file'.format(ds_label))
@@ -296,11 +306,13 @@ with open(output_file,'w') as f:
 # ...with open()    
 
 
-#%% Preview a sample of files to make sure everything worked
+#%% Read the .csv back
 
 df = pd.read_csv(output_file)
-
 print('Read {} lines from {}'.format(len(df),output_file))
+
+
+#%% Preview constants
 
 n_empty_images_per_dataset = 3
 n_non_empty_images_per_dataset = 10
@@ -311,7 +323,6 @@ os.makedirs(preview_folder,exist_ok=True)
 #%% Choose images to download
 
 np.random.seed(0)
-
 images_to_download = []
 
 # ds_name = list(metadata_table.keys())[2]
@@ -366,7 +377,7 @@ for i_image,image in tqdm(enumerate(images_to_download),total=len(images_to_down
         image['relative_file'] = None
 
 
-#%% Write HTML
+#%% Write preview HTML
 
 import write_html_image_list
 
@@ -385,6 +396,8 @@ image: a list of image filenames or dictionaries with one or more of the followi
 html_filename = os.path.join(preview_folder,'index.html')
 
 html_images = []
+
+# im = images_to_download[0]
 for im in images_to_download:
     
     if im['relative_file'] is None:
