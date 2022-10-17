@@ -22,21 +22,10 @@ Has preliminary multiprocessing support for CPUs only; if a GPU is available, it
 use the GPU instead of CPUs, and the --ncores option will be ignored.  Checkpointing
 is not supported when using multiprocessing.
 
-Sample invocation:
+Does not have a command-line option to bind the process to a particular GPU, but you can 
+prepend with "CUDA_VISIBLE_DEVICES=0 ", for example, to bind to GPU 0, e.g.:
 
-# All on the 1212-image test subset
-
-CUDA_VISIBLE_DEVICES=0 python detection/run_detector_batch.py ~/models/camera_traps/megadetector/md_v4.1.0/md_v4.1.0.pb ~/data/test-small ~/tmp/mdv4test.json --output_relative_filenames --recursive # 2.52 im/s
-CUDA_VISIBLE_DEVICES=0 python detection/run_detector_batch.py ~/models/camera_traps/megadetector/md_v4.1.0/md_v4.1.0.pb ~/data/test-small ~/tmp/mdv4test.json --output_relative_filenames --recursive --use_image_queue # 3.03 im/s
-
-CUDA_VISIBLE_DEVICES=0 python detection/run_detector_batch.py ~/models/camera_traps/megadetector/camonly_mosaic_xlarge_dist_5a_last.torchscript.pt ~/data/test-small ~/tmp/mdv5test-00.json --output_relative_filenames --recursive # 5.77 im/s
-CUDA_VISIBLE_DEVICES=0 python detection/run_detector_batch.py ~/models/camera_traps/megadetector/camonly_mosaic_xlarge_dist_5a_last.torchscript.pt ~/data/test-small ~/tmp/mdv5test-01.json --output_relative_filenames --recursive --use_image_queue # 7.2 im/s
-
-CUDA_VISIBLE_DEVICES=0 python detection/run_detector_batch.py ~/models/camera_traps/megadetector/camonly_mosaic_xlarge_dist_5a_last.pt ~/data/test-small ~/tmp/mdv5test-00.json --output_relative_filenames --recursive # 6.54 im/s
-CUDA_VISIBLE_DEVICES=0 python detection/run_detector_batch.py ~/models/camera_traps/megadetector/camonly_mosaic_xlarge_dist_5a_last.pt ~/data/test-small ~/tmp/mdv5test-01.json --output_relative_filenames --recursive --use_image_queue # 8.44 im/s
-
-CUDA_VISIBLE_DEVICES=0 python run_detector_batch.py ~/models/camera_traps/megadetector/camonly_mosaic_xlarge_dist_5a_last.pt ~/data/KRU ~/tmp/mdv5test-00.json --output_relative_filenames --recursive
-CUDA_VISIBLE_DEVICES=0 python run_detector_batch.py ~/models/camera_traps/megadetector/mdv5_camonly_mosaic_xlarge_dist_5c_epoch28.pt ~/data/KRU ~/tmp/mdv5test-00.json --output_relative_filenames --recursive
+CUDA_VISIBLE_DEVICES=0 python detection/run_detector_batch.py ~/models/camera_traps/megadetector/md_v4.1.0/md_v4.1.0.pb ~/data/test-small ~/tmp/mdv4test.json --output_relative_filenames --recursive
 
 """
 
