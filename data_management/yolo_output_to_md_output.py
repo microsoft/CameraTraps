@@ -28,7 +28,7 @@ import ct_utils
 
 #%% Support functions
 
-def yolo_output_to_md_output(input_results_folder,input_image_folder,output_file):
+def yolo_output_to_md_output(input_results_folder,input_image_folder,output_file,detector_tag=None):
     
     assert os.path.isdir(input_results_folder)
     assert os.path.isdir(input_image_folder)
@@ -98,9 +98,14 @@ def yolo_output_to_md_output(input_results_folder,input_image_folder,output_file
     
     ## Save output file
     
+    detector_string = 'converted_from_yolo_format'
+    
+    if detector_tag is not None:
+        detector_string = detector_tag
+        
     output_content = {
         'info': {
-            'detector': 'converted_from_yolo_format',
+            'detector': detector_string,
             'detector_metadata': {},
             'format_version': '1.2'
         },
