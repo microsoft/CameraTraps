@@ -52,6 +52,19 @@ Activate this conda environment:
 conda activate cameratraps-classifier
 ```
 
+Verify that CUDA is available (assumes that the current working directory is the CameraTraps repo root):
+
+```bash
+python sandbox/torch_test.py
+```
+
+If CUDA isn't available but should be (i.e., you have an NVIDIA GPU and recent drivers), in at least one driver/GPU environment, the following fixed this issue:
+
+```bash
+pip uninstall torch torchvision
+conda install pytorch=1.10.1 torchvision=0.11.2 -c pytorch
+```
+
 ## Directory Structure
 
 The classifier pipeline assumes the following directories:
