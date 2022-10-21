@@ -2,7 +2,7 @@
 # Partially-formed stub to get from MegaDetector output files to COCO Camera Traps data.
 #
 # Was actually written to convert *many* MD .json files to a single CCT file, hence 
-# the loop over .json file.
+# the loop over .json files.
 #
 # THIS CODE HAS NEVER BEEN RUN, it was added as a demonstration of how to do this.  YMMV.
 #
