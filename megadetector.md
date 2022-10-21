@@ -428,7 +428,7 @@ But we recognize that Python tools can be a bit daunting, so we're excited that 
 
 ### Tools for running MegaDetector locally
 
-* [EcoAssist](https://github.com/PetervanLunteren/EcoAssist) is a GUI-based tool for running MegaDetector in MacOS environments (supports MDv5)
+* [EcoAssist](https://github.com/PetervanLunteren/EcoAssist) is a GUI-based tool for running MegaDetector (supports MDv5)
 * [MegaDetector-GUI](https://github.com/petargyurov/megadetector-gui) is a GUI-based tool for running MegaDetector in Windows environments (MDv4 only as far as we know)
 
 ### Interactive demos/APIs
