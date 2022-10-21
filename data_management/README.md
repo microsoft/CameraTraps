@@ -1,6 +1,6 @@
 # Overview
 
-Everything in this directory creates or operates on COCO Camera Traps databases, which are .json files structured as...
+Almost all the scripts in this directory create or operates on COCO Camera Traps databases, which are .json files structured as...
 
 ## COCO Camera Traps format
 
