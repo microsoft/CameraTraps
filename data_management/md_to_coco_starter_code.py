@@ -6,6 +6,10 @@
 #
 # THIS CODE HAS NEVER BEEN RUN, it was added as a demonstration of how to do this.  YMMV.
 #
+# You may find a more polished, command-line-ready version of this code at:
+#
+# https://github.com/StewartWILDlab/mdtools
+#
 
 #%% Constants and imports
 
