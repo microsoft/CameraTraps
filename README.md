@@ -48,7 +48,6 @@ Here are a few of the organizations that have used MegaDetector... we're only li
 * Royal Society for the Protection of Birds (RSPB)
 * Island Conservation
 * Synthetaic
-* School of Natural Sciences, University of Tasmania
 * Arizona Department of Environmental Quality
 * Wildlife Research, Oregon Department of Fish and Wildlife
 * National Wildlife Refuge System, Southwest Region, US Fish and Wildlife
@@ -93,6 +92,7 @@ Here are a few of the organizations that have used MegaDetector... we're only li
 * Shan Shui Conservation Center ([blog post](https://mp.weixin.qq.com/s/iOIQF3ckj0-rEG4yJgerYw?fbclid=IwAR0alwiWbe3udIcFvqqwm7y5qgr9hZpjr871FZIa-ErGUukZ7yJ3ZhgCevs)) ([translated blog post](https://mp-weixin-qq-com.translate.goog/s/iOIQF3ckj0-rEG4yJgerYw?fbclid=IwAR0alwiWbe3udIcFvqqwm7y5qgr9hZpjr871FZIa-ErGUukZ7yJ3ZhgCevs&_x_tr_sl=auto&_x_tr_tl=en&_x_tr_hl=en&_x_tr_pto=wapp))
 * Irvine Ranch Conservancy ([story](https://www.ocregister.com/2022/03/30/ai-software-is-helping-researchers-focus-on-learning-about-ocs-wild-animals/))
 * Wildlife Protection Solutions ([story](https://customers.microsoft.com/en-us/story/1384184517929343083-wildlife-protection-solutions-nonprofit-ai-for-earth))
+* School of Natural Sciences, University of Tasmania ([story](https://www.utas.edu.au/about/news-and-stories/articles/2022/1204-innovative-camera-network-keeps-close-eye-on-tassie-wildlife))
 * [TrapTagger](https://wildeyeconservation.org/trap-tagger-about/)
 * [Camelot](https://camelotproject.org/)
 
