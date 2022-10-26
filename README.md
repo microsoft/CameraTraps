@@ -84,7 +84,7 @@ Here are a few of the organizations that have used MegaDetector... we're only li
 * Capitol Reef National Park and Utah Valley University
 * University of Victoria Applied Conservation Macro Ecology (ACME) Lab 
 * Université du Québec en Outaouais Institut des Science de la Forêt Tempérée (ISFORT)
-* [Cross-cultural Ecology Lab](https://crossculturalecology.net/) at Macquarie University
+* [Cross-Cultural Ecology Lab](https://crossculturalecology.net/) at Macquarie University
 * University of British Columbia Wildlife Coexistence Lab ([WildCo-FaceBlur tool](https://github.com/WildCoLab/WildCo_Face_Blur))
 * Road Ecology Center, University of California, Davis ([Wildlife Observer Network platform](https://wildlifeobserver.net/))
 * The Nature Conservancy in California ([Animl platform](https://github.com/tnc-ca-geo/animl-frontend))
