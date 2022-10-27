@@ -602,7 +602,7 @@ def main():
     parser.add_argument(
         '--allow_checkpoint_overwrite',
         action='store_true',
-        help='By default, this script will bail if the specified checkpoint file already exists; this options allows it to overwrite existing checkpoints')
+        help='By default, this script will bail if the specified checkpoint file already exists; this option allows it to overwrite existing checkpoints')
     parser.add_argument(
         '--ncores',
         type=int,
