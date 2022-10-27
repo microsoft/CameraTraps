@@ -1,6 +1,6 @@
 # Overview
 
-This folder contains scripts and configuration files for training and evaluating [MegaDetector](https://github.com/microsoft/CameraTraps/blob/main/megadetector.md).  If you are looking to use MegaDetector, you probably don't want to start with this page; instead, start with the [MegaDetector page](https://github.com/microsoft/CameraTraps/blob/main/megadetector.md).
+This folder contains scripts and configuration files for training and evaluating [MegaDetector](https://github.com/microsoft/CameraTraps/blob/main/megadetector.md).  If you are looking to <b>use</b> MegaDetector, you probably don't want to start with this page; instead, start with the [MegaDetector page](https://github.com/microsoft/CameraTraps/blob/main/megadetector.md).  If you are looking to fine-tune MegaDetector on new data, you also don't want to start with this page; instead, start with the [YOLOv5 training guide](https://github.com/ultralytics/yolov5/wiki/Train-Custom-Data).
 
 # Format notes
 
