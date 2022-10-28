@@ -1,3 +1,8 @@
+#
+# Simple script to verify CUDA availability, used to verify a CUDA/PyTorch
+# environment.
+#
+
 import torch
 print('CUDA available: {}'.format(torch.cuda.is_available()))
 
