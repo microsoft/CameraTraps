@@ -78,7 +78,7 @@ Here are a few of the organizations that have used MegaDetector... we're only li
 * [National Wildlife Refuge System, Southwest Region](https://www.fws.gov/about/region/southwest), US Fish and Wildlife
 * [Northern Great Plains Program](https://nationalzoo.si.edu/news/restoring-americas-prairie), Smithsonian
 * [Quantitative Ecology Lab](https://depts.washington.edu/sefsqel/), University of Washington
-* [Santa Monica Mountains Recreation Area](https://www.nps.gov/samo/index.hecosystem), National Park Service
+* [Santa Monica Mountains Recreation Area](https://www.nps.gov/samo/index.htm), National Park Service
 * [Seattle Urban Carnivore Project](https://www.zoo.org/seattlecarnivores), Woodland Park Zoo
 * [Serra dos Órgãos National Park](https://www.icmbio.gov.br/parnaserradosorgaos/), ICMBio
 * [Snapshot USA](https://emammal.si.edu/snapshot-usa), Smithsonian
