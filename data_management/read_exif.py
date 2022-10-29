@@ -2,10 +2,8 @@
 # read_exif.py
 #
 # Given a folder of images, read relevant EXIF fields from all images, and write them to 
-# a .json file.  Depends on having exiftool available, since every pure-Python approach
-# we've tried fails on at least some fields.
-#
-# Does not currently support command-line operation.
+# a .json or .csv file.  Depends on having exiftool available, since every pure-Python
+# approach we've tried fails on at least some fields.
 #
 
 #%% Imports and constants
