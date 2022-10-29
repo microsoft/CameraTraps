@@ -37,64 +37,70 @@ We work with ecologists all over the world to help them spend less time annotati
 
 Here are a few of the organizations that have used MegaDetector... we're only listing organizations who (a) we know about and (b) have kindly given us permission to refer to them here (or have posted publicly about their use of MegaDetector), so if you're using MegaDetector or other tools from this repo and would like to be added to this list, <a href="mailto:cameratraps@lila.science">email us</a>!
 
-* Idaho Department of Fish and Game
-* San Diego Zoo Global
-* University of Washington Quantitative Ecology Lab
-* University of Idaho
-* Borderlands Research Institute at Sul Ross State University
-* Parks Canada
-* Australian Wildlife Conservancy
-* Lab of Dr. Bilal Habib at the Wildlife Institute of India
-* Royal Society for the Protection of Birds (RSPB)
-* Island Conservation
-* Synthetaic
-* Arizona Department of Environmental Quality
-* Wildlife Research, Oregon Department of Fish and Wildlife
-* National Wildlife Refuge System, Southwest Region, US Fish and Wildlife
-* Mammal Spatial Ecology and Conservation Lab at Washington State University
-* Point No Point Treaty Council
-* SPEA (Portuguese Society for the Study of Birds)
-* Ghost Cat Analytics
-* EcoLogic Consultants Ltd.
-* Smithsonian Northern Great Plains Program
-* Federal University of Amapá, Ecology and Conservation of Amazonian Vertebrates Research Group
-* Hamaarag, The Steinhardt Museum of Natural History, Tel Aviv University
-* Czech University of Life Sciences Prague
-* Ramat Hanadiv Nature Park, Israel
-* TU Berlin, Department of Ecology
-* DC Cat Count, led by the Humane Rescue Alliance
-* Center for Biodiversity and Conservation at the American Museum of Natural History
-* Graeme Shannon's Research Group at Bangor University 
-* Snapshot USA
-* Michigan Department of Natural Resources, Wildlife Division
-* Serra dos Órgãos National Park / ICMBio
-* McLoughlin Lab in Population Ecology, University of Saskatchewan
-* Upper Yellowstone Watershed Group
-* Blumstein lab, UCLA
-* National Park Service Santa Monica Mountains Recreation Area
-* Conservation X Labs
-* The Nature Conservancy in Wyoming
-* Seattle Urban Carnivore Project
-* Blackbird Environmental
-* UNSW Sydney
-* Taronga Conservation Society
-* Myall Lakes Dingo Project
-* SUMHAL, Estación Biológica de Doñana
-* Capitol Reef National Park and Utah Valley University
-* University of Victoria Applied Conservation Macro Ecology (ACME) Lab 
-* Université du Québec en Outaouais Institut des Science de la Forêt Tempérée (ISFORT)
-* [Cross-Cultural Ecology Lab](https://crossculturalecology.net/) at Macquarie University
-* University of British Columbia Wildlife Coexistence Lab ([WildCo-FaceBlur tool](https://github.com/WildCoLab/WildCo_Face_Blur))
-* Road Ecology Center, University of California, Davis ([Wildlife Observer Network platform](https://wildlifeobserver.net/))
-* The Nature Conservancy in California ([Animl platform](https://github.com/tnc-ca-geo/animl-frontend))
-* Felidae Conservation Fund ([WildePod platform](https://wildepod.org/)) ([blog post](https://abhaykashyap.com/blog/ai-powered-camera-trap-image-annotation-system/))
-* Alberta Biodiversity Monitoring Institute (ABMI) ([WildTrax platform](https://www.wildtrax.ca/)) ([blog post](https://wildcams.ca/blog/the-abmi-visits-the-zoo/))
-* Shan Shui Conservation Center ([blog post](https://mp.weixin.qq.com/s/iOIQF3ckj0-rEG4yJgerYw?fbclid=IwAR0alwiWbe3udIcFvqqwm7y5qgr9hZpjr871FZIa-ErGUukZ7yJ3ZhgCevs)) ([translated blog post](https://mp-weixin-qq-com.translate.goog/s/iOIQF3ckj0-rEG4yJgerYw?fbclid=IwAR0alwiWbe3udIcFvqqwm7y5qgr9hZpjr871FZIa-ErGUukZ7yJ3ZhgCevs&_x_tr_sl=auto&_x_tr_tl=en&_x_tr_hl=en&_x_tr_pto=wapp))
-* Irvine Ranch Conservancy ([story](https://www.ocregister.com/2022/03/30/ai-software-is-helping-researchers-focus-on-learning-about-ocs-wild-animals/))
-* Wildlife Protection Solutions ([story](https://customers.microsoft.com/en-us/story/1384184517929343083-wildlife-protection-solutions-nonprofit-ai-for-earth))
-* School of Natural Sciences, University of Tasmania ([story](https://www.utas.edu.au/about/news-and-stories/articles/2022/1204-innovative-camera-network-keeps-close-eye-on-tassie-wildlife))
-* [TrapTagger](https://wildeyeconservation.org/trap-tagger-about/)
+* [Arizona Department of Environmental Quality](http://azdeq.gov/)
+* [Blackbird Environmental](https://blackbirdenv.com/)
 * [Camelot](https://camelotproject.org/)
+* [Conservation X Labs](https://conservationxlabs.com/)
+* [Czech University of Life Sciences Prague](https://www.czu.cz/en)
+* [EcoLogic Consultants Ltd.](https://www.consult-ecologic.com/)
+* [Estación Biológica de Doñana](http://www.ebd.csic.es/inicio)
+* [Idaho Department of Fish and Game](https://idfg.idaho.gov/)
+* [Island Conservation](https://www.islandconservation.org/)
+* [Myall Lakes Dingo Project](https://carnivorecoexistence.info/myall-lakes-dingo-project/)
+* [Point No Point Treaty Council](https://pnptc.org/)
+* [Ramat Hanadiv Nature Park](https://www.ramat-hanadiv.org.il/en/)
+* [SPEA (Portuguese Society for the Study of Birds)](https://spea.pt/en/)
+* [San Diego Zoo Wildlife Alliance](https://science.sandiegozoo.org/)
+* [Synthetaic](https://www.synthetaic.com/)
+* [Taronga Conservation Society](https://taronga.org.au/)
+* [The Nature Conservancy in Wyoming](https://www.nature.org/en-us/about-us/where-we-work/united-states/wyoming/)
+* [TrapTagger](https://wildeyeconservation.org/trap-tagger-about/)
+* [Upper Yellowstone Watershed Group](https://www.upperyellowstone.org/)
+
+* [Applied Conservation Macro Ecology Lab](http://www.acmelab.ca/), University of Victoria
+* [Banff National Park Resource Conservation](https://www.pc.gc.ca/en/pn-np/ab/banff/nature/conservation), Parks Canada
+* [Blumstein Lab](https://blumsteinlab.eeb.ucla.edu/), UCLA
+* [Borderlands Research Institute](https://bri.sulross.edu/), Sul Ross State University
+* [Capitol Reef National Park](https://www.nps.gov/care/index.htm) / Utah Valley University
+* [Center for Biodiversity and Conservation](https://www.amnh.org/research/center-for-biodiversity-conservation), American Museum of Natural History
+* [Centre for Ecosystem Science](https://www.unsw.edu.au/research/), UNSW Sydney
+* [Cross-Cultural Ecology Lab](https://crossculturalecology.net/), Macquarie University
+* [DC Cat Count](https://hub.dccatcount.org/), led by the Humane Rescue Alliance
+* [Department of Fish and Wildlife Sciences](https://www.uidaho.edu/cnr/departments/fish-and-wildlife-sciences), University of Idaho
+* [Ecology and Conservation of Amazonian Vertebrates Research Group](https://www.researchgate.net/lab/Fernanda-Michalski-Lab-4), Federal University of Amapá
+* [Gola Forest Programma](https://www.rspb.org.uk/our-work/conservation/projects/scientific-support-for-the-gola-forest-programme/), Royal Society for the Protection of Birds (RSPB)
+* [Graeme Shannon's Research Group](https://wildliferesearch.co.uk/group-1), Bangor University 
+* [Hamaarag](https://hamaarag.org.il/), The Steinhardt Museum of Natural History, Tel Aviv University
+* [Institut des Science de la Forêt Tempérée](https://isfort.uqo.ca/) (ISFORT), Université du Québec en Outaouais
+* [Lab of Dr. Bilal Habib](https://bhlab.in/about), the Wildlife Institute of India
+* [Mammal Spatial Ecology and Conservation Lab](https://labs.wsu.edu/dthornton/), Washington State University
+* [McLoughlin Lab in Population Ecology](http://mcloughlinlab.ca/lab/), University of Saskatchewan
+* [National Wildlife Refuge System, Southwest Region](https://www.fws.gov/about/region/southwest), US Fish and Wildlife
+* [Northern Great Plains Program](https://nationalzoo.si.edu/news/restoring-americas-prairie), Smithsonian
+* [Quantitative Ecology Lab](https://depts.washington.edu/sefsqel/), University of Washington
+* [Santa Monica Mountains Recreation Area](https://www.nps.gov/samo/index.hecosystem), National Park Service
+* [Seattle Urban Carnivore Project](https://www.zoo.org/seattlecarnivores), Woodland Park Zoo
+* [Serra dos Órgãos National Park](https://www.icmbio.gov.br/parnaserradosorgaos/), ICMBio
+* [Snapshot USA](https://emammal.si.edu/snapshot-usa), Smithsonian
+* [Wildlife Coexistence Lab](https://wildlife.forestry.ubc.ca/), University of British Columbia
+* [Wildlife Research](https://www.dfw.state.or.us/wildlife/research/index.asp), Oregon Department of Fish and Wildlife
+
+* Department of Ecology, TU Berlin
+* Ghost Cat Analytics
+* Wildlife Division, Michigan Department of Natural Resources
+
+* [School of Natural Sciences](https://www.utas.edu.au/natural-sciences), University of Tasmania ([story](https://www.utas.edu.au/about/news-and-stories/articles/2022/1204-innovative-camera-network-keeps-close-eye-on-tassie-wildlife))
+* [Australian Wildlife Conservancy](https://www.australianwildlife.org/) ([blog](https://www.australianwildlife.org/cutting-edge-technology-delivering-efficiency-gains-in-conservation/))
+* [Felidae Conservation Fund](https://felidaefund.org/) ([WildePod platform](https://wildepod.org/)) ([blog post](https://abhaykashyap.com/blog/ai-powered-camera-trap-image-annotation-system/))
+* [Alberta Biodiversity Monitoring Institute (ABMI)](https://www.abmi.ca/home.html) ([WildTrax platform](https://www.wildtrax.ca/)) ([blog post](https://wildcams.ca/blog/the-abmi-visits-the-zoo/))
+* [Shan Shui Conservation Center](http://en.shanshui.org/) ([blog post](https://mp.weixin.qq.com/s/iOIQF3ckj0-rEG4yJgerYw?fbclid=IwAR0alwiWbe3udIcFvqqwm7y5qgr9hZpjr871FZIa-ErGUukZ7yJ3ZhgCevs)) ([translated blog post](https://mp-weixin-qq-com.translate.goog/s/iOIQF3ckj0-rEG4yJgerYw?fbclid=IwAR0alwiWbe3udIcFvqqwm7y5qgr9hZpjr871FZIa-ErGUukZ7yJ3ZhgCevs&_x_tr_sl=auto&_x_tr_tl=en&_x_tr_hl=en&_x_tr_pto=wapp))
+* [Irvine Ranch Conservancy](http://www.irconservancy.org/) ([story](https://www.ocregister.com/2022/03/30/ai-software-is-helping-researchers-focus-on-learning-about-ocs-wild-animals/))
+* [Wildlife Protection Solutions](https://wildlifeprotectionsolutions.org/) ([story](https://customers.microsoft.com/en-us/story/1384184517929343083-wildlife-protection-solutions-nonprofit-ai-for-earth))
+
+* [Road Ecology Center](https://roadecology.ucdavis.edu/), University of California, Davis ([Wildlife Observer Network platform](https://wildlifeobserver.net/))
+* [The Nature Conservancy in California](https://www.nature.org/en-us/about-us/where-we-work/united-states/california/) ([Animl platform](https://github.com/tnc-ca-geo/animl-frontend))
+
+
 
 # Data
 
