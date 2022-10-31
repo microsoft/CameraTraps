@@ -1069,8 +1069,8 @@ for final_output_path in classification_detection_files:
             continue
         
         # At this point, we know we have a dominant category; change all other above-threshold
-        # classifications to that category.  That category may have been "other", in which case we may have
-        # already made the relevant changes.
+        # classifications to that category.  That category may have been "other", in which
+        # case we may have already made the relevant changes.
         
         n_detections_flipped_this_image = 0
         
