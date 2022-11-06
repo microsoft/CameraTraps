@@ -1014,7 +1014,9 @@ for final_output_path in classification_detection_files:
         
         # Handle a quirky special case: if the most common category is "other" and 
         # it's "tied" with the second-most-common category, swap them
-        if (len(keys) > 1) and (keys[0] in other_category_ids) and (keys[1] not in other_category_ids) and\
+        if (len(keys) > 1) and \
+            (keys[0] in other_category_ids) and \
+            (keys[1] not in other_category_ids) and \
             (category_to_count[keys[0]] == category_to_count[keys[1]]):
                 keys[1], keys[0] = keys[0], keys[1]
         

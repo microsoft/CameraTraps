@@ -42,7 +42,7 @@ if False:
     options.bRenderHtml = True
     options.imageBase = baseDir
     options.outputBase = os.path.join(baseDir, 'repeat_detections')
-    options.filenameReplacements = {}  # {'20190430cameratraps\\':''}
+    options.filenameReplacements = {}  # E.g., {'20190430cameratraps\\':''}
 
     options.confidenceMin = 0.85
     options.confidenceMax = 1.01
@@ -51,8 +51,7 @@ if False:
     options.maxSuspiciousDetectionSize = 0.2
 
     options.filterFileToLoad = ''
-    options.filterFileToLoad = os.path.join(baseDir,
-                                            r'repeatDetections\filtering_2019.05.16.18.43.01\detectionIndex.json')
+    options.filterFileToLoad = os.path.join(baseDir,'...\detectionIndex.json')
 
     options.debugMaxDir = -1
     options.debugMaxRenderDir = -1
@@ -63,8 +62,8 @@ if False:
     options.bParallelizeRendering = False
     options.excludeClasses = [2]
 
-    inputFilename = os.path.join(baseDir, 'detections_kitfox_20190620_short.json')
-    outputFilename = os.path.join(baseDir, 'detections_kitfox_20190620_short_filter.json')
+    inputFilename = os.path.join(baseDir, 'blah.json')
+    outputFilename = os.path.join(baseDir, 'blah.json')
 
     results = repeat_detections_core.find_repeat_detections(inputFilename, outputFilename, options)
 
@@ -78,13 +77,17 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('inputFile')
     parser.add_argument('--outputFile', action='store', type=str, default=None,
-                        help=".json file to write filtered results to... don't use this if you're going to do manual review of the repeat detection images")
+                        help=".json file to write filtered results to... don't use this " + \
+                            "if you're going to do manual review of the repeat detection images")
     parser.add_argument('--imageBase', action='store', type=str, default='',
-                        help='Image base dir, relevant if renderHtml is True or if omitFilteringFolder is not set')
+                        help='Image base dir, relevant if renderHtml is True or if " + \
+                            "omitFilteringFolder is not set')
     parser.add_argument('--outputBase', action='store', type=str, default='',
                         help='HTML or filtering folder output dir')
-    parser.add_argument('--filterFileToLoad', action='store', type=str, default='',  # checks for string length so default needs to be the empty string
-                        help='Path to detectionIndex.json, which should be inside a folder of images that are manually verified to _not_ contain valid animals')
+    parser.add_argument('--filterFileToLoad', action='store', type=str, default='',  
+                        help='Path to detectionIndex.json, which should be inside a ' + \
+                            'folder of images that are manually verified to _not_ ' + \
+                            'contain valid animals')
 
     parser.add_argument('--confidenceMax', action='store', type=float,
                         default=defaultOptions.confidenceMax,
@@ -94,16 +97,19 @@ def main():
                         help='Detection confidence threshold; don\'t process anything below this')
     parser.add_argument('--iouThreshold', action='store', type=float,
                         default=defaultOptions.iouThreshold,
-                        help='Detections with IOUs greater than this are considered "the same detection"')
+                        help='Detections with IOUs greater than this are considered ' + \
+                            '"the same detection"')
     parser.add_argument('--occurrenceThreshold', action='store', type=int,
                         default=defaultOptions.occurrenceThreshold,
-                        help='More than this many near-identical detections in a group (e.g. a folder) is considered suspicious')
+                        help='More than this many near-identical detections in a group ' + \
+                            '(e.g. a folder) is considered suspicious')
     parser.add_argument('--nWorkers', action='store', type=int,
                         default=defaultOptions.nWorkers,
                         help='Level of parallelism for rendering and IOU computation')
     parser.add_argument('--maxSuspiciousDetectionSize', action='store', type=float,
                         default=defaultOptions.maxSuspiciousDetectionSize,
-                        help='Detections larger than this fraction of image area are not considered suspicious')
+                        help='Detections larger than this fraction of image area are not ' + \
+                            'considered suspicious')
 
     parser.add_argument('--renderHtml', action='store_true',
                         dest='bRenderHtml', help='Should we render HTML output?')
@@ -115,7 +121,8 @@ def main():
                         help='List of classes (ints) to exclude from analysis, separated by spaces')
 
     parser.add_argument('--nDirLevelsFromLeaf', default=0, type=int,
-                        help='Number of levels from the leaf folders to use for repeat detection (0 == leaves)')
+                        help='Number of levels from the leaf folders to use for repeat ' + \
+                            'detection (0 == leaves)')
 
     parser.add_argument('--debugMaxDir', action='store', type=int, default=-1)
     parser.add_argument('--debugMaxRenderDir', action='store', type=int, default=-1)
