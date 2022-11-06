@@ -29,7 +29,8 @@ def remove_repeat_detections(inputFile,outputFile,filteringDir):
         options.filterFileToLoad = filteringDir
     else:
         assert os.path.isdir(filteringDir), '{} is not a valid folder'.format(filteringDir)
-        options.filterFileToLoad = os.path.join(filteringDir,repeat_detections_core.DETECTION_INDEX_FILE_NAME)
+        options.filterFileToLoad = \
+            os.path.join(filteringDir,repeat_detections_core.DETECTION_INDEX_FILE_NAME)
     repeat_detections_core.find_repeat_detections(inputFile, outputFile, options)
 
 
@@ -39,7 +40,6 @@ if False:
     
     #%%
     
-    # python remove_repeat_detections.py "F:\wpz\6714_detections_wpz_all_20191015233705.SUCP_subset.json" "F:\wpz\6714_detections_wpz_all_20191015233705.SUCP_subset_filtered.json" "F:\wpz\rde\filtering_2019.10.24.16.52.54"
     inputFile = r''
     outputFile = r''
     filteringDir = r''
@@ -54,8 +54,10 @@ def main():
     
     parser = argparse.ArgumentParser()
     parser.add_argument('inputFile', help='.json file containing the original, unfiltered API results')
-    parser.add_argument('outputFile', help='.json file to which you want to write the final, filtered API results')
-    parser.add_argument('filteringDir', help='directory where you looked at lots of images and decided which ones were really false positives')
+    parser.add_argument('outputFile', help='.json file to which you want to write the final, ' + \
+                        'filtered API results')
+    parser.add_argument('filteringDir', help='directory where you looked at lots of images and ' + \
+                        'decided which ones were really false positives')
     
     if len(sys.argv[1:]) == 0:
         parser.print_help()
