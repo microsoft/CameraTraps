@@ -11,12 +11,25 @@ import json
 
 class SizeCategorizationOptions:
 
-    threshold=0.95
+    threshold = 0.95
+    
+    # List of category numbers to use in separation; uses all categories if None
+    categories_to_separate = None
+    
+    # Can be "size", "width", or "height"
+    measurement = 'size'
+    
+    output_category_name = 'large_detection'
+    
     
 def categorize_detections_by_size(input_file,output_file,options=None):
     
     if options is None:
         options = SizeCategorizationOptions()
+    
+    if options.categories_to_separate is not None:
+        options.categories_to_separate = \
+            [str(c) for c in options.categories_to_separate]
     
     with open(input_file) as f:
         data = json.load(f)
@@ -26,9 +39,10 @@ def categorize_detections_by_size(input_file,output_file,options=None):
     category_keys = [int(k) for k in category_keys]
     max_key = max(category_keys)
     large_detection_category_id = str(max_key+1)
-    detection_categories[large_detection_category_id] = 'large_detection'
+    detection_categories[large_detection_category_id] = options.output_category_name    
     
-    print('Creating large-box category as {}'.format(large_detection_category_id))
+    print('Creating large-box category for {} with ID {}'.format(
+        options.output_category_name,large_detection_category_id))
     
     images = data['images']
     
@@ -49,17 +63,36 @@ def categorize_detections_by_size(input_file,output_file,options=None):
         # d = im['detections'][0]
         for d in im['detections']:
             
+            # Are there really any detections here?
             if (d is None) or ('bbox' not in d) or (d['bbox'] is None):
                 continue
             
+            # Is this a category we're supposed to process?
+            if (options.categories_to_separate is not None) and \
+               (d['category'] not in options.categories_to_separate):
+                continue
+               
             # https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing#detector-outputs
             w = d['bbox'][2]
             h = d['bbox'][3]
             detection_size = w*h
-            if detection_size >= options.threshold:
+            
+            metric = None
+            
+            if options.measurement == 'size':
+                metric = detection_size
+            elif options.measurement == 'width':
+                metric = w
+            else:
+                assert options.measurement == 'height', 'Unrecognized measurement metric'
+                metric = h                
+            assert metric is not None
+            
+            if metric >= options.threshold:
+                
                 d['category'] = large_detection_category_id
-                n_large_detections += 1
-        
+                n_large_detections += 1                
+                
         # ...for each detection
         
     # ...for each image
