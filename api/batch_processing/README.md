@@ -299,8 +299,6 @@ Detection categories not listed here are allowed by this format specification, b
 
 When the detector model detects no animal (or person or vehicle), the confidence `conf` is shown as 0.0 (not confident that there is an object of interest) and the `detections` field is an empty list.
 
-All detections above the confidence threshold of 0.1 are recorded in the output file.
-
 
 ##### Classifier outputs
 
