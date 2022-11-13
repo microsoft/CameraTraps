@@ -1227,14 +1227,34 @@ merged_detections_file = output_file
 
 from api.batch_processing.postprocessing import categorize_detections_by_size
 
-options = categorize_detections_by_size.SizeCategorizationOptions()
+size_options = categorize_detections_by_size.SizeCategorizationOptions()
 
 # This is a size threshold, not a confidence threshold
-options.threshold = 0.85
+size_options.threshold = 0.9
+size_options.output_category_name = 'large_detections'
+# size_options.categories_to_separate = [3]
+size_options.measurement = 'size' # 'width'
 
-input_file = r"g:\organization\file.json"
-size_separated_file = input_file.replace('.json','-size-separated-{}.json'.format(options.threshold))
-d = categorize_detections_by_size.categorize_detections_by_size(input_file,size_separated_file,options)
+input_file = filtered_output_filename
+size_separated_file = input_file.replace('.json','-size-separated-{}.json'.format(
+    size_options.threshold))
+d = categorize_detections_by_size.categorize_detections_by_size(input_file,size_separated_file,
+                                                                size_options)
+
+
+#%% Preview large boxes
+
+output_base_large_boxes = os.path.join(postprocessing_output_folder, 
+    base_task_name + '_{}_{:.3f}_large_boxes'.format(rde_string, options.confidence_threshold))    
+os.makedirs(output_base_large_boxes, exist_ok=True)
+print('Processing post-RDE, post-size-separation to {}'.format(output_base_large_boxes))
+
+options.api_output_file = size_separated_file
+options.output_dir = output_base_large_boxes
+
+ppresults = process_batch_results(options)
+html_output_file = ppresults.output_html_file
+path_utils.open_file(html_output_file)
 
 
 #%% .json splitting
