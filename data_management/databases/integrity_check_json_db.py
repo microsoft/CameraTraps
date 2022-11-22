@@ -24,11 +24,13 @@ import argparse
 import json
 import os
 import sys
+
 from multiprocessing.pool import ThreadPool
 from operator import itemgetter
-
 from PIL import Image
 from tqdm import tqdm
+
+import ct_utils
 
 
 #%% Functions
@@ -255,8 +257,7 @@ def integrity_check_json_db(jsonFile, options=None):
                 results.append(check_image_existence_and_size(im,options))
                 
         for iImage,r in enumerate(results):
-            if not r:
-                # print('Image validation error for image {} ({})'.format(iImage,images[iImage]['file_name']))
+            if not r:            
                 validationErrors.append(os.path.join(options.baseDir,images[iImage]['file_name']))
                             
     # ...for each image
@@ -288,8 +289,10 @@ def integrity_check_json_db(jsonFile, options=None):
         annIdToAnn[annId] = ann
     
         # Confirm validity
-        assert ann['category_id'] in catIdToCat, 'Category {} not found in category list'.format(ann['category_id'])
-        assert ann['image_id'] in imageIdToImage, 'Image ID {} referred to by annotation {}, not available'.format(
+        assert ann['category_id'] in catIdToCat, \
+            'Category {} not found in category list'.format(ann['category_id'])
+        assert ann['image_id'] in imageIdToImage, \
+          'Image ID {} referred to by annotation {}, not available'.format(
             ann['image_id'],ann['id'])
     
         imageIdToImage[ann['image_id']]['_count'] += 1
@@ -337,7 +340,7 @@ def integrity_check_json_db(jsonFile, options=None):
         print('DB contains images from {} locations\n'.format(len(imageLocationSet)))
     
     # Prints a list of categories sorted by count
-    
+    #
     # https://stackoverflow.com/questions/72899/how-do-i-sort-a-list-of-dictionaries-by-a-value-of-the-dictionary
     
     sortedCategories = sorted(categories, key=itemgetter('_count'), reverse=True)
@@ -361,33 +364,33 @@ def integrity_check_json_db(jsonFile, options=None):
 #%% Command-line driver
     
 def main():
-    
-    # python integrity_check_json_db.py "e:\wildlife_data\wellington_data\wellington_camera_traps.json" --baseDir "e:\wildlife_data\wellington_data\images" --bFindUnusedImages --bCheckImageSizes
-    # python integrity_check_json_db.py "D:/wildlife_data/mcgill_test/mcgill_test.json" --baseDir "D:/wildlife_data/mcgill_test" --bFindUnusedImages --bCheckImageSizes
-    
-    # Here the '-u' prevents buffering, which makes tee happier
-    #
-    # python -u integrity_check_json_db.py '/datadrive1/nacti_metadata.json' --baseDir '/datadrive1/nactiUnzip/' --bFindUnusedImages --bCheckImageSizes | tee ~/nactiTest.out
-    
+        
     parser = argparse.ArgumentParser()
     parser.add_argument('jsonFile')
     parser.add_argument('--bCheckImageSizes', action='store_true', 
-                        help='Validate image size, requires baseDir to be specified.  Implies existence checking.')
+                        help='Validate image size, requires baseDir to be specified. ' + \
+                             'Implies existence checking.')
     parser.add_argument('--bCheckImageExistence', action='store_true', 
                         help='Validate image existence, requires baseDir to be specified')
     parser.add_argument('--bFindUnusedImages', action='store_true', 
-                        help='Check for images in baseDir that aren''t in the database, requires baseDir to be specified')
+                        help='Check for images in baseDir that aren\'t in the database, ' + \
+                             'requires baseDir to be specified')
     parser.add_argument('--baseDir', action='store', type=str, default='', 
                         help='Base directory for images')
+    parser.add_argument('--bAllowNoLocation', action='store_true',
+                        help='Disable errors when no location is specified for an image')
     parser.add_argument('--iMaxNumImages', action='store', type=int, default=-1, 
-                        help='Cap on total number of images to check, mostly for debugging')
+                        help='Cap on total number of images to check')
     
     if len(sys.argv[1:])==0:
         parser.print_help()
         parser.exit()
         
-    args = parser.parse_args()    
-    integrity_check_json_db(args.jsonFile,args)
+    args = parser.parse_args()
+    args.bRequireLocation = (not args.bAllowNoLocation)
+    options = IntegrityCheckOptions()
+    ct_utils.args_to_object(args, options)
+    integrity_check_json_db(args.jsonFile,options)
 
 
 if __name__ == '__main__':
@@ -400,14 +403,19 @@ if __name__ == '__main__':
 if False:
     
     #%%
+
+    """    
+    python integrity_check_json_db.py ~/data/ena24.json --baseDir ~/data/ENA24 --bAllowNoLocation
+    """
     
     # Integrity-check .json files for LILA
-    jsonFiles = [r'c:\temp\nacti\nacti_metadata.json']
+    jsonFiles = [os.path.expanduser('~/data/ena24.json')]
     
     options = IntegrityCheckOptions()
-    options.baseDir = ''
+    options.baseDir = os.path.expanduser('~/data/ENA24')
     options.bCheckImageSizes = False
-    options.bFindUnusedImages = False
+    options.bFindUnusedImages = True
+    options.bRequireLocation = False
     
     # options.iMaxNumImages = 10    
     
