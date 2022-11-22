@@ -381,6 +381,9 @@ def main():
                         help='Disable errors when no location is specified for an image')
     parser.add_argument('--iMaxNumImages', action='store', type=int, default=-1, 
                         help='Cap on total number of images to check')
+    parser.add_argument('--nThreads', action='store', type=int, default=10, 
+                        help='Number of threads (only relevant when verifying image ' + \
+                             'sizes and/or existence)')
     
     if len(sys.argv[1:])==0:
         parser.print_help()
