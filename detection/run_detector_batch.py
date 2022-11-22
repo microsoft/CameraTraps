@@ -157,10 +157,10 @@ def consumer_func(q,return_queue,model_file,confidence_threshold,image_size=None
 def run_detector_with_image_queue(image_files,model_file,confidence_threshold,
                                   quiet=False,image_size=None):
     """
-    Driver function for the (optional) multiprocessing-based image queue; only used when --use_image_queue
-    is specified.  Starts a reader process to read images from disk, but processes images in the 
-    process from which this function is called (i.e., does not currently spawn a separate consumer
-    process).
+    Driver function for the (optional) multiprocessing-based image queue; only used 
+    when --use_image_queue is specified.  Starts a reader process to read images from disk, but 
+    processes images in the  process from which this function is called (i.e., does not currently
+    spawn a separate consumer process).
     """
     
     q = multiprocessing.JoinableQueue(max_queue_size)
@@ -348,7 +348,8 @@ def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=No
             print('Processing image {}'.format(image_file_names[0]))
             
         else:        
-            raise ValueError('image_file_names is a string, but is not a directory, a json list (.json), or an image file (png/jpg/jpeg/gif)')
+            raise ValueError('image_file_names is a string, but is not a directory, a json ' + \
+                             'list (.json), or an image file (png/jpg/jpeg/gif)')
     
     if results is None:
         results = []
@@ -358,11 +359,13 @@ def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=No
     print('GPU available: {}'.format(is_gpu_available(model_file)))
     
     if n_cores > 1 and is_gpu_available(model_file):
-        print('Warning: multiple cores requested, but a GPU is available; parallelization across GPUs is not currently supported, defaulting to one GPU')
+        print('Warning: multiple cores requested, but a GPU is available; parallelization across ' + \
+              'GPUs is not currently supported, defaulting to one GPU')
         n_cores = 1
 
     if n_cores > 1 and use_image_queue:
-        print('Warning: multiple cores requested, but the image queue is enabled; parallelization with the image queue is not currently supported, defaulting to one worker')
+        print('Warning: multiple cores requested, but the image queue is enabled; parallelization ' + \
+              'with the image queue is not currently supported, defaulting to one worker')
         n_cores = 1
         
     if use_image_queue:
@@ -490,7 +493,8 @@ def write_results_to_file(results, output_file, relative_path_base=None,
         
         if detector_file is not None:
             
-            print('Warning (write_results_to_file): info struct and detector file supplied, ignoring detector file')
+            print('Warning (write_results_to_file): info struct and detector file ' + \
+                  'supplied, ignoring detector file')
                   
     final_output = {
         'images': results,
@@ -578,17 +582,21 @@ def main():
     parser.add_argument(
         '--use_image_queue',
         action='store_true',
-        help='Pre-load images, may help keep your GPU busy; does not currently support checkpointing.  Useful if you have a very fast GPU and a very slow disk.')
+        help='Pre-load images, may help keep your GPU busy; does not currently support ' + \
+             'checkpointing.  Useful if you have a very fast GPU and a very slow disk.')
     parser.add_argument(
         '--threshold',
         type=float,
         default=DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD,
-        help="Confidence threshold between 0 and 1.0, don't include boxes below this confidence in the output file. Default is {}".format(DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD))
+        help="Confidence threshold between 0 and 1.0, don't include boxes below this " + \
+            "confidence in the output file. Default is {}".format(
+                DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD))
     parser.add_argument(
         '--checkpoint_frequency',
         type=int,
         default=-1,
-        help='Write results to a temporary file every N images; default is -1, which disables this feature')
+        help='Write results to a temporary file every N images; default is -1, which ' + \
+             'disables this feature')
     parser.add_argument(
         '--checkpoint_path',
         type=str,
@@ -602,12 +610,14 @@ def main():
     parser.add_argument(
         '--allow_checkpoint_overwrite',
         action='store_true',
-        help='By default, this script will bail if the specified checkpoint file already exists; this option allows it to overwrite existing checkpoints')
+        help='By default, this script will bail if the specified checkpoint file ' + \
+              'already exists; this option allows it to overwrite existing checkpoints')
     parser.add_argument(
         '--ncores',
         type=int,
         default=0,
-        help='Number of cores to use; only applies to CPU-based inference, does not support checkpointing when ncores > 1')
+        help='Number of cores to use; only applies to CPU-based inference, ' + \
+             'does not support checkpointing when ncores > 1')
 
     if len(sys.argv[1:]) == 0:
         parser.print_help()
@@ -615,16 +625,20 @@ def main():
 
     args = parser.parse_args()
 
-    assert os.path.exists(args.detector_file), 'detector file {} does not exist'.format(args.detector_file)
-    assert 0.0 < args.threshold <= 1.0, 'Confidence threshold needs to be between 0 and 1'  # Python chained comparison
+    assert os.path.exists(args.detector_file), \
+        'detector file {} does not exist'.format(args.detector_file)
+    assert 0.0 < args.threshold <= 1.0, 'Confidence threshold needs to be between 0 and 1'
     assert args.output_file.endswith('.json'), 'output_file specified needs to end with .json'
     if args.checkpoint_frequency != -1:
         assert args.checkpoint_frequency > 0, 'Checkpoint_frequency needs to be > 0 or == -1'
     if args.output_relative_filenames:
-        assert os.path.isdir(args.image_file), 'Could not find folder {}, must supply a folder when --output_relative_filenames is set'.format(args.image_file)
+        assert os.path.isdir(args.image_file), \
+            f'Could not find folder {args.image_file}, must supply a folder when ' + \
+                '--output_relative_filenames is set'
 
     if os.path.exists(args.output_file):
-        print('Warning: output_file {} already exists and will be overwritten'.format(args.output_file))
+        print('Warning: output_file {} already exists and will be overwritten'.format(
+            args.output_file))
 
     # Load the checkpoint if available
     #
@@ -633,7 +647,8 @@ def main():
     if args.resume_from_checkpoint is not None:
         assert os.path.exists(args.resume_from_checkpoint), 'File at resume_from_checkpoint specified does not exist'
         with open(args.resume_from_checkpoint) as f:
-            print('Loading previous results from checkpoint file {}'.format(args.resume_from_checkpoint))
+            print('Loading previous results from checkpoint file {}'.format(
+                args.resume_from_checkpoint))
             saved = json.load(f)
         assert 'images' in saved, \
             'The checkpoint file does not have the correct fields; cannot be restored'
@@ -651,7 +666,8 @@ def main():
     elif os.path.isfile(args.image_file) and args.image_file.endswith('.json'):
         with open(args.image_file) as f:
             image_file_names = json.load(f)
-        print('Loaded {} image filenames from list file {}'.format(len(image_file_names),args.image_file))
+        print('Loaded {} image filenames from list file {}'.format(
+            len(image_file_names),args.image_file))
         
     # A single image file
     elif os.path.isfile(args.image_file) and ImagePathUtils.is_image_file(args.image_file):
@@ -682,18 +698,19 @@ def main():
         
         # Don't overwrite existing checkpoint files, this is a sure-fire way to eventually
         # erase someone's checkpoint.
-        if (checkpoint_path is not None) and (not args.allow_checkpoint_overwrite) and (args.resume_from_checkpoint is None):
+        if (checkpoint_path is not None) and (not args.allow_checkpoint_overwrite) \
+            and (args.resume_from_checkpoint is None):
             
             assert not os.path.isfile(checkpoint_path), \
-                'Checkpoint path {} already exists, delete or move it before re-using the same checkpoint path, or specify --allow_checkpoint_overwrite'.format(
-                checkpoint_path)
+                f'Checkpoint path {checkpoint_path} already exists, delete or move it before ' + \
+                're-using the same checkpoint path, or specify --allow_checkpoint_overwrite'
 
         # Commenting this out for now... the scenario where we are resuming from a checkpoint,
         # then immediately overwrite that checkpoint with empty data is higher-risk than the 
         # annoyance of crashing a few minutes after starting a job.
         if False:
-            # Confirm that we can write to the checkpoint path; this avoids issues where we crash after 
-            # several thousand images.
+            # Confirm that we can write to the checkpoint path; this avoids issues where
+            # we crash after several thousand images.
             with open(checkpoint_path, 'w') as f:
                 json.dump({'images': []}, f)
                 
