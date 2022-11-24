@@ -115,47 +115,52 @@ def visualize_detector_output(detector_output_path: str,
     for entry in tqdm(images):
         image_id = entry['file']
 
-        if (entry['max_detection_conf'] < confidence) and render_detections_only:
-            continue
+        try:
         
-        if 'failure' in entry:
-            print(f'Skipping {image_id}, failure: "{entry["failure"]}"')
-            continue
-
-        # max_conf = entry['max_detection_conf']
-
-        if is_azure:
-            blob_uri = sas_blob_utils.build_blob_uri(
-                container_uri=images_dir, blob_name=image_id)
-            if not sas_blob_utils.check_blob_exists(blob_uri):
-                container = sas_blob_utils.get_container_from_uri(images_dir)
-                print(f'Image {image_id} not found in blob container '
-                      f'{container}; skipped.')
-                continue
-            image_obj, _ = sas_blob_utils.download_blob_to_stream(blob_uri)
-        else:
-            image_obj = os.path.join(images_dir, image_id)
-            if not os.path.exists(image_obj):
-                print(f'Image {image_id} not found in images_dir; skipped.')
+            if (entry['max_detection_conf'] < confidence) and render_detections_only:
                 continue
 
-        # resize is for displaying them more quickly
-        image = vis_utils.resize_image(
-            vis_utils.open_image(image_obj), output_image_width)
+            if 'failure' in entry:
+                print(f'Skipping {image_id}, failure: "{entry["failure"]}"')
+                continue
 
-        vis_utils.render_detection_bounding_boxes(
-            entry['detections'], image, label_map=detector_label_map,
-            confidence_threshold=confidence)
+            # max_conf = entry['max_detection_conf']
 
-        for char in ['/', '\\', ':']:
-            image_id = image_id.replace(char, '~')
-        annotated_img_path = os.path.join(out_dir, f'anno_{image_id}')
-        annotated_img_paths.append(annotated_img_path)
-        image.save(annotated_img_path)
-        num_saved += 1
+            if is_azure:
+                blob_uri = sas_blob_utils.build_blob_uri(
+                    container_uri=images_dir, blob_name=image_id)
+                if not sas_blob_utils.check_blob_exists(blob_uri):
+                    container = sas_blob_utils.get_container_from_uri(images_dir)
+                    print(f'Image {image_id} not found in blob container '
+                          f'{container}; skipped.')
+                    continue
+                image_obj, _ = sas_blob_utils.download_blob_to_stream(blob_uri)
+            else:
+                image_obj = os.path.join(images_dir, image_id)
+                if not os.path.exists(image_obj):
+                    print(f'Image {image_id} not found in images_dir; skipped.')
+                    continue
 
-        if is_azure:
-            image_obj.close()  # BytesIO object
+            # resize is for displaying them more quickly
+            image = vis_utils.resize_image(
+                vis_utils.open_image(image_obj), output_image_width)
+
+            vis_utils.render_detection_bounding_boxes(
+                entry['detections'], image, label_map=detector_label_map,
+                confidence_threshold=confidence)
+
+            for char in ['/', '\\', ':']:
+                image_id = image_id.replace(char, '~')
+            annotated_img_path = os.path.join(out_dir, f'anno_{image_id}')
+            annotated_img_paths.append(annotated_img_path)
+            image.save(annotated_img_path)
+            num_saved += 1
+
+            if is_azure:
+                image_obj.close()  # BytesIO object
+                
+        except:
+            print(f'Detection rendering failed on {image_id}')
 
     print(f'Rendered detection results on {num_saved} images, '
           f'saved to {out_dir}.')
