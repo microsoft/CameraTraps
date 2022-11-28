@@ -11,7 +11,7 @@ import json
 import os
 import random
 import sys
-from typing import Any, List, Optional
+from typing import List, Optional
 
 from tqdm import tqdm
 
@@ -107,23 +107,26 @@ def visualize_detector_output(detector_output_path: str,
 
     #%% Load images, annotate them and save
 
-    print('Rendering detections above a confidence threshold of {}...'.format(confidence))
+    print('Rendering detections above a confidence threshold of {}'.format(confidence))
+    
     num_saved = 0
     annotated_img_paths = []
-    image_obj: Any  # str for local images, BytesIO for Azure images
+    failed_images = []
+    missing_images = []
 
     for entry in tqdm(images):
+        
         image_id = entry['file']
 
+        if 'failure' in entry and entry['failure'] is not None:
+            failed_images.append(image_id)
+            continue
+
+        assert 'detections' in entry and entry['detections'] is not None
+        
         if (entry['max_detection_conf'] < confidence) and render_detections_only:
             continue
         
-        if 'failure' in entry:
-            print(f'Skipping {image_id}, failure: "{entry["failure"]}"')
-            continue
-
-        # max_conf = entry['max_detection_conf']
-
         if is_azure:
             blob_uri = sas_blob_utils.build_blob_uri(
                 container_uri=images_dir, blob_name=image_id)
@@ -132,14 +135,15 @@ def visualize_detector_output(detector_output_path: str,
                 print(f'Image {image_id} not found in blob container '
                       f'{container}; skipped.')
                 continue
+            # BytesIO object
             image_obj, _ = sas_blob_utils.download_blob_to_stream(blob_uri)
         else:
             image_obj = os.path.join(images_dir, image_id)
             if not os.path.exists(image_obj):
-                print(f'Image {image_id} not found in images_dir; skipped.')
+                print(f'Image {image_id} not found in images_dir')
+                missing_images.append(image_id)
                 continue
 
-        # resize is for displaying them more quickly
         image = vis_utils.resize_image(
             vis_utils.open_image(image_obj), output_image_width)
 
@@ -155,10 +159,15 @@ def visualize_detector_output(detector_output_path: str,
         num_saved += 1
 
         if is_azure:
-            image_obj.close()  # BytesIO object
+            image_obj.close()
 
+    # ...for each image
+    
+    print('Skipped {} failed images (of {})'.format(len(failed_images),len(images)))
+    print('Skipped {} missing images (of {})'.format(len(missing_images),len(images)))
+    
     print(f'Rendered detection results on {num_saved} images, '
-          f'saved to {out_dir}.')
+          f'saved to {out_dir}')
 
     return annotated_img_paths
 
