@@ -75,7 +75,8 @@ for relative_fn in video_filenames:
     if relative_fn not in folder_to_frame_files:
         missing_videos.append(relative_fn)
         
-print('{} folders are missing frames entirely'.format(len(missing_videos)))
+print('{} of {} folders are missing frames entirely'.format(len(missing_videos),
+                                                            len(video_filenames)))
 
 
 #%% Check for videos with very few frames
@@ -89,7 +90,8 @@ for folder_name in folder_to_frame_files.keys():
     if len(frame_files) < min_frames_for_valid_video:
         low_frame_videos.append(folder_name)
 
-print('{} folders have fewer than {} frames'.format(len(low_frame_videos),min_frames_for_valid_video))
+print('{} of {} folders have fewer than {} frames'.format(
+    len(low_frame_videos),len(video_filenames),min_frames_for_valid_video))
 
 
 #%% Print the list of videos that are problematic
