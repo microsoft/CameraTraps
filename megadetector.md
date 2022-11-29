@@ -7,13 +7,14 @@
 5. [Downloading the model](#downloading-the-model)
 6. [Using the model](#using-the-model)
 7. [Is there a GUI?](#is-there-a-gui)
-8. [How do I use the results?](#how-do-i-use-the-results)
-9. [Have you evaluated MegaDetector's accuracy?](#have-you-evaluated-megadetectors-accuracy)
-10. [Citing MegaDetector](#citing-megadetector)
-11. [Tell me more about why detectors are a good first step for camera trap images](#tell-me-more-about-why-detectors-are-a-good-first-step-for-camera-trap-images)
-12. [Pretty picture](#pretty-picture)
-13. [Mesmerizing video](#mesmerizing-video)
-14. [Can you share the training data?](#can-you-share-the-training-data)
+8. [What if I just want to run non-MD scripts from this repo?](#what-if-i-just-want-to-run-non-md-scripts-from-this-repo)
+9. [How do I use the results?](#how-do-i-use-the-results)
+10. [Have you evaluated MegaDetector's accuracy?](#have-you-evaluated-megadetectors-accuracy)
+11. [Citing MegaDetector](#citing-megadetector)
+12. [Tell me more about why detectors are a good first step for camera trap images](#tell-me-more-about-why-detectors-are-a-good-first-step-for-camera-trap-images)
+13. [Pretty picture](#pretty-picture)
+14. [Mesmerizing video](#mesmerizing-video)
+15. [Can you share the training data?](#can-you-share-the-training-data)
 
 
 ## MegaDetector overview
@@ -454,6 +455,34 @@ It's not quite as simple as "these platforms all run MegaDetector on your images
 
 * [FastAPI/Streamlit package for serving MD and visualizing results](https://github.com/abhayolo/megadetector-fastapi)
 * [SpSeg](https://github.com/bhlab/SpSeg/) (pipeline for running MD along with a custom classifier)
+
+## What if I just want to run non-MD scripts from this repo?
+
+If you want to run scripts from this repo, but you won't actually be running MegaDetector, you can install a lighter-weight version of the same environment by doing the following:
+
+1. Install Anaconda and Git as described in the [prerequisites](#1-install-prerequisites-anaconda-git-and-nvidia-stuff) section above.  You don't need to install Nvidia drivers.
+2. Run the following to create your environment (on Windows):
+
+```batch
+mkdir c:\git
+cd c:\git
+git clone https://github.com/Microsoft/cameratraps
+git clone https://github.com/Microsoft/ai4eutils
+cd c:\git\cameratraps
+conda env create --file environment.yml
+conda activate cameratraps-detector
+set PYTHONPATH=%PYTHONPATH%;c:\git\cameratraps;c:\git\ai4eutils
+```
+3. Whenever you want to start this environment again, run:
+
+```batch
+conda activate cameratraps-detector
+set PYTHONPATH=%PYTHONPATH%;c:\git\cameratraps;c:\git\ai4eutils
+```
+
+We're not including modified versions of all the Linux/Mac instructions here, since the most common use case for this section is a user running MegaDetector postprocessing scripts on Windows.  But if anyone needs Linux/Mac instructions for this, [email us](mailto:cameratraps@lila.science).
+
+Also, the environment file we use here ([environment.yml](environment.yml)) doesn't get quite the same level of TLC that our MegaDetector environment does, so if anyone tries to run scripts that don't directly involve MegaDetector using this environment, and packages are missing, [let us know](mailto:cameratraps@lila.science).
 
 ## How do I use the results?
 

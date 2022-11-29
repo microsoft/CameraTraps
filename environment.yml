@@ -1,33 +1,27 @@
 name: cameratraps
 
+channels:
+- conda-forge
+
 dependencies:
-- python>=3.6
-# The `nb_conda_kernels` and `ipykernel` packages are installed so that we
-# can use Jupyter Notebooks with this environment as a kernel.
-- nb_conda_kernels
-- ipykernel
-- humanfriendly
-- joblib
+
+# Dependencies in the MD environment
+- python=3.8
+- Pillow=9.1.0
+- tqdm
 - jsonpickle
+- humanfriendly
 - numpy
 - matplotlib
+- nb_conda_kernels
+- ipykernel
 - pandas
-- openpyxl
-- Pillow>=5.3.0
-- tqdm<4.21.0
+- requests
+
+# Dependencies not in the MD environment
+- joblib
 - scikit-image>=0.13.1
 - scikit-learn>=0.19.1
 - jsonschema
-- requests
-- unidecode   # needed sometimes for curating MegaDB entries
-- pip         # good to add pip as an explicit dependency
+- unidecode   
 
-# Some Azure packages or versions are only available from PyPI
-# These may require GCC to be installed
-#
-# See https://azure.github.io/azure-sdk/releases/latest/
-- pip:        
-  - azure-storage-blob
-  - azure-cosmos
-  - requests-toolbelt  # required to call the sync API
-  - locust  # load testing of sync API
