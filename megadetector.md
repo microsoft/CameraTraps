@@ -460,8 +460,20 @@ It's not quite as simple as "these platforms all run MegaDetector on your images
 
 If you want to run scripts from this repo, but you won't actually be running MegaDetector, you can install a lighter-weight version of the same environment by doing the following:
 
-1. Install Anaconda and Git as described in the [prerequisites](#1-install-prerequisites-anaconda-git-and-nvidia-stuff) section above.  You don't need to install Nvidia drivers.
-2. Run the following to create your environment (on Windows):
+1. Install [Anaconda](https://www.anaconda.com/products/individual).  Anaconda is an environment for installing and running Python stuff.
+2. Install git. If you're not familiar with git, and you are on a Windows machine, we recommend installing [Git for Windows](https://git-scm.com/download/win).
+
+The remaining steps will assume you are running at an Anaconda prompt.  You will know you are at an Anaconda prompt (as opposed to run-of-the-mill command prompt) if you see an environment name in parentheses before your current directory, like this:
+
+<img src="images/anaconda-prompt-base.jpg" style="margin-left:25px;">
+
+...or this:
+
+<img src="images/anaconda-prompt-ct.jpg" style="margin-left:25px;">
+
+On Windows, when you install Anaconda, you will actually get two different Anaconda command prompts; in your start menu, they will be called "Anaconda Prompt (anaconda3)" and "Anaconda Powershell Prompt (anaconda3)".  These instructions assume you are using the "regular" Anaconda prompt, <b>not</b> the Powershell prompt.
+
+3. In an Anaconda prompt, run the following to create your environment (on Windows):
 
 ```batch
 mkdir c:\git
@@ -473,7 +485,7 @@ conda env create --file environment.yml
 conda activate cameratraps-detector
 set PYTHONPATH=%PYTHONPATH%;c:\git\cameratraps;c:\git\ai4eutils
 ```
-3. Whenever you want to start this environment again, run:
+4. Whenever you want to start this environment again, run:
 
 ```batch
 conda activate cameratraps-detector
