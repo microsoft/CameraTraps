@@ -330,23 +330,21 @@ M1 Macs are not officially supported right now, but with a bit of work, you can 
 
 ### 4. Hooray, we finally get to run MegaDetector!
 
-#### Reminder of what you need to do every time you start a new shell
-
-If you set up your environment in a previous session, and you're starting a fresh Anaconda shell to run MegaDetector, remember to follow the "whenever you start a new shell" instructions from the previous section (<a href="#windows-new-shell">here</a> for Windows, <a href="#linux-new-shell">here</a> for Linux/Mac).
-
-OK, now for real, let's run MegaDetector.
-
-
 #### run_detector.py
 
 To test MegaDetector out on small sets of images and get super-satisfying visual output, we provide [run_detector.py](https://github.com/Microsoft/CameraTraps/blob/master/detection/run_detector.py), an example script for invoking this detector on new images.  This isn't how we recommend running lots of images through MegaDetector (see [run_detector_batch.py](#2-run_detector_batchpy) below for "real" usage), but it's a quick way to test things out.  [Let us know](mailto:cameratraps@lila.science) how it works on your images!
 
 The following examples assume you have an Anaconda prompt open, and have put things in the same directories we put things in the above instructions.  If you put things in different places, adjust these examples to match your folders, and most importantly, adjust these examples to point to your images.
 
-To use run_detector.py on Windows:
+To use run_detector.py on Windows, when you open a new Anaconda prompt, don't forget to do this:
+
+```cd c:\git\CameraTraps
+conda activate cameratraps-detector
+set PYTHONPATH=%PYTHONPATH%;c:\git\cameratraps;c:\git\ai4eutils;c:\git\yolov5```
+
+Then you can run the script like this:
 
 ```batch
-cd c:\git\CameraTraps
 python detection\run_detector.py "c:\megadetector\md_v5a.0.0.pt" --image_file "some_image_file.jpg" --threshold 0.1
 ```
 Change "some_image_file.jpg" to point to a real image on your computer.
@@ -367,10 +365,17 @@ You can see all the options for this script by running:
 python detection\run_detector.py
 ```
 
-To use this script on Linux/Mac:
+To use this script on Linux/Mac, when you open a new Anaconda prompt, don't forget to do this:
  
 ```batch
-cd ~/git/CameraTraps
+cd ~/git/cameratraps
+conda activate cameratraps-detector
+export PYTHONPATH="$PYTHONPATH:$HOME/git/cameratraps:$HOME/git/ai4eutils:$HOME/git/yolov5"
+```
+
+Then you can run the script like this:
+
+```batch
 python detection/run_detector.py "$HOME/megadetector/md_v5a.0.0.pt" --image_file "some_image_file.jpg" --threshold 0.1
 ```
 
@@ -378,10 +383,15 @@ python detection/run_detector.py "$HOME/megadetector/md_v5a.0.0.pt" --image_file
 
 To apply this model to larger image sets on a single machine, we recommend a different script, [run_detector_batch.py](https://github.com/Microsoft/CameraTraps/blob/master/detection/run_detector_batch.py).  This outputs data in the same format as our [batch processing API](https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing), so you can leverage all of our post-processing tools.  The format that this script produces is also compatible with [Timelapse](https://saul.cpsc.ucalgary.ca/timelapse/).
 
-To use run_detector_batch.py on Windows:
+To use run_detector_batch.py on Windows, when you open a new Anaconda prompt, don't forget to do this:
+
+```cd c:\git\CameraTraps
+conda activate cameratraps-detector
+set PYTHONPATH=%PYTHONPATH%;c:\git\cameratraps;c:\git\ai4eutils;c:\git\yolov5```
+
+Then you can run the script like this:
 
 ```batch
-cd c:\git\CameraTraps
 python detection\run_detector_batch.py "c:\megadetector\md_v5a.0.0.pt" "c:\some_image_folder" "c:\megadetector\test_output.json" --output_relative_filenames --recursive --checkpoint_frequency 10000
 ```
 
@@ -403,10 +413,17 @@ You can see all the options for this script by running:
 python detection\run_detector_batch.py
 ```
 
-To use this script on Linux/Mac:
+To use this script on Linux/Mac, when you open a new Anaconda prompt, don't forget to do this:
+ 
+```batch
+cd ~/git/cameratraps
+conda activate cameratraps-detector
+export PYTHONPATH="$PYTHONPATH:$HOME/git/cameratraps:$HOME/git/ai4eutils:$HOME/git/yolov5"
+```
+
+Then you can run the script like this:
 
 ```batch
-cd ~/git/CameraTraps
 python detection/run_detector_batch.py "$HOME/megadetector/md_v5a.0.0.pt" "/some/image/folder" "$HOME/megadetector/test_output.json" --output_relative_filenames --recursive --checkpoint_frequency 10000
 ```
 
