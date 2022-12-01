@@ -463,7 +463,7 @@ It's not quite as simple as "these platforms all run MegaDetector on your images
 If you want to run scripts from this repo, but you won't actually be running MegaDetector, you can install a lighter-weight version of the same environment by doing the following:
 
 1. Install [Anaconda](https://www.anaconda.com/products/individual).  Anaconda is an environment for installing and running Python stuff.
-2. Install git. If you're not familiar with git, and you are on a Windows machine, we recommend installing [Git for Windows](https://git-scm.com/download/win).
+2. Install git. If you're not familiar with git, we recommend installing git from git-scm ([Windows link](https://git-scm.com/download/win)) ([Mac link](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)).
 
 The remaining steps will assume you are running at an Anaconda prompt.  You will know you are at an Anaconda prompt (as opposed to run-of-the-mill command prompt) if you see an environment name in parentheses before your current directory, like this:
 
@@ -487,14 +487,35 @@ conda env create --file environment.yml
 conda activate cameratraps-detector
 set PYTHONPATH=%PYTHONPATH%;c:\git\cameratraps;c:\git\ai4eutils
 ```
-4. Whenever you want to start this environment again, run:
+
+...or the following (on MacOS):
 
 ```batch
+mkdir ~/git
+cd ~/git
+git clone https://github.com/Microsoft/cameratraps
+git clone https://github.com/Microsoft/ai4eutils
+cd ~/git/cameratraps
+conda env create --file environment-detector-mac.yml
+conda activate cameratraps-detector
+export PYTHONPATH="$PYTHONPATH:$HOME/git/cameratraps:$HOME/git/ai4eutils"
+```
+
+4. Whenever you want to start this environment again, run the following (on Windows):
+
+```batch
+cd c:\git\cameratraps
 conda activate cameratraps-detector
 set PYTHONPATH=%PYTHONPATH%;c:\git\cameratraps;c:\git\ai4eutils
 ```
 
-We're not including modified versions of all the Linux/Mac instructions here, since the most common use case for this section is a user running MegaDetector postprocessing scripts on Windows.  But if anyone needs Linux/Mac instructions for this, [email us](mailto:cameratraps@lila.science).
+...or the following (on MacOS):
+
+```batch
+cd ~/git/cameratraps
+conda activate cameratraps-detector
+export PYTHONPATH="$PYTHONPATH:$HOME/git/cameratraps:$HOME/git/ai4eutils"
+```
 
 Also, the environment file we use here ([environment.yml](environment.yml)) doesn't get quite the same level of TLC that our MegaDetector environment does, so if anyone tries to run scripts that don't directly involve MegaDetector using this environment, and packages are missing, [let us know](mailto:cameratraps@lila.science).
 
