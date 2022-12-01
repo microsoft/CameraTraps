@@ -443,13 +443,19 @@ It's not quite as simple as "these platforms all run MegaDetector on your images
 
 ### Other ways of running MegaDetector that don't fit easily into one of those categories
 
+#### Third-party, YMMV
+
 * [FastAPI/Streamlit package for serving MD and visualizing results](https://github.com/abhayolo/megadetector-fastapi)
 * [SpSeg](https://github.com/bhlab/SpSeg/) (pipeline for running MD along with a custom classifier)
 * [MegaDetectorLite](https://github.com/timmh/MegaDetectorLite) is a set of scripts to convert MDv5 into ONNX and TensorRT formats for embedded deployments.
-* [Ben Evans](https://bencevans.io/) made a [pip-installable wrapper](https://github.com/bencevans/camtrapml) for MegaDetector (and other models).
-* We developed a [batch processing API](https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing) that runs images on many GPUs at once on Azure.  There is no public instance of this API, but the code allows you to stand up your own endpoint.
-* We maintain a [Colab notebook](https://github.com/microsoft/CameraTraps/blob/master/detection/megadetector_colab.ipynb) ([open in Colab](https://colab.research.google.com/github/microsoft/CameraTraps/blob/master/detection/megadetector_colab.ipynb)) for running MDv5 on images stored in Google Drive.
-* We provide code for a [real-time MegaDetector API using Flask](https://github.com/microsoft/CameraTraps/tree/main/api/synchronous).  This is deployed via Docker, so the Dockerfile provided for the real-time may be a good starting point for other Docker-based MegaDetector deployments as well.
+* [Docker environment](https://github.com/zaandahl/megadetector) for running MDv5
+* [pip-installable wrapper](https://github.com/bencevans/camtrapml) for MegaDetector (and other camera-trap-related models)
+
+#### Maintained within this repo
+
+* [Batch processing API](https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing) that runs images on many GPUs at once on Azure.  There is no public instance of this API, but the code allows you to stand up your own endpoint.
+* [Colab notebook](https://github.com/microsoft/CameraTraps/blob/master/detection/megadetector_colab.ipynb) ([open in Colab](https://colab.research.google.com/github/microsoft/CameraTraps/blob/master/detection/megadetector_colab.ipynb)) for running MDv5 on images stored in Google Drive.
+* [Real-time MegaDetector API using Flask](https://github.com/microsoft/CameraTraps/tree/main/api/synchronous).  This is deployed via Docker, so the Dockerfile provided for the real-time may be a good starting point for other Docker-based MegaDetector deployments as well.
  
 
 ## What if I just want to run non-MD scripts from this repo?
