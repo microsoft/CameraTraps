@@ -387,7 +387,8 @@ To apply this model to larger image sets on a single machine, we recommend a dif
 
 To use run_detector_batch.py on Windows, when you open a new Anaconda prompt, don't forget to do this:
 
-```cd c:\git\CameraTraps
+```batch
+cd c:\git\CameraTraps
 conda activate cameratraps-detector
 set PYTHONPATH=%PYTHONPATH%;c:\git\cameratraps;c:\git\ai4eutils;c:\git\yolov5```
 
