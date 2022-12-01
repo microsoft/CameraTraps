@@ -150,19 +150,9 @@ We provide two ways to apply this model to new images:
 
 2. A script for running large batches of images on a local GPU ([run_detector_batch.py](https://github.com/microsoft/CameraTraps/blob/master/detection/run_detector_batch.py))
 
-Before we add more detail, some bonus/third-party/unsupported tools for running MegaDetector:
+Also see the <a href="#is-there-a-gui">&ldquo;Is there a GUI?&rdquo;</a> section for graphical options and other ways of running MD, including real-time APIs, Docker environments, and other goodies.
 
-3. We developed a [batch processing API](https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing) that runs images on many GPUs at once on Azure.  There is no public instance of this API, but the code allows you to stand up your own endpoint.  Likely only useful if you're processing millions of images in frequent, large batches.
-
-4. You can run MegaDetector on images stored in Google Drive using this [Colab notebook](https://github.com/microsoft/CameraTraps/blob/master/detection/megadetector_colab.ipynb) ([open in Colab](https://colab.research.google.com/github/microsoft/CameraTraps/blob/master/detection/megadetector_colab.ipynb)).
- 
-5. [Ben Evans](https://bencevans.io/) made a [pip-installable wrapper](https://github.com/bencevans/camtrapml) for MegaDetector (and other models).
-
-6. We provide code for a [real-time MegaDetector API using Flask](https://github.com/microsoft/CameraTraps/tree/main/api/synchronous).  This is deployed via Docker, so the Dockerfile provided for the real-time may be a good starting point for other Docker-based MegaDetector deployments as well.
- 
-Also see the <a href="#is-there-a-gui">&ldquo;Is there a GUI?&rdquo;</a> section for graphical options and other ways of running MD.
-
-The remainder of this section provides instructions for our supported scripts (options 1 and 2 above), including installing all the necessary Python dependencies.
+The remainder of this section provides instructions for running our "official" scripts, including installing all the necessary Python dependencies.
 
 ### 1. Install prerequisites: Anaconda, Git, and NVIDIA stuff
 
@@ -455,6 +445,12 @@ It's not quite as simple as "these platforms all run MegaDetector on your images
 
 * [FastAPI/Streamlit package for serving MD and visualizing results](https://github.com/abhayolo/megadetector-fastapi)
 * [SpSeg](https://github.com/bhlab/SpSeg/) (pipeline for running MD along with a custom classifier)
+* [MegaDetectorLite](https://github.com/timmh/MegaDetectorLite) is a set of scripts to convert MDv5 into ONNX and TensorRT formats for embedded deployments
+* We developed a [batch processing API](https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing) that runs images on many GPUs at once on Azure.  There is no public instance of this API, but the code allows you to stand up your own endpoint.
+* You can run MegaDetector on images stored in Google Drive using this [Colab notebook](https://github.com/microsoft/CameraTraps/blob/master/detection/megadetector_colab.ipynb) ([open in Colab](https://colab.research.google.com/github/microsoft/CameraTraps/blob/master/detection/megadetector_colab.ipynb)).
+* [Ben Evans](https://bencevans.io/) made a [pip-installable wrapper](https://github.com/bencevans/camtrapml) for MegaDetector (and other models).
+* We provide code for a [real-time MegaDetector API using Flask](https://github.com/microsoft/CameraTraps/tree/main/api/synchronous).  This is deployed via Docker, so the Dockerfile provided for the real-time may be a good starting point for other Docker-based MegaDetector deployments as well.
+ 
 
 ## What if I just want to run non-MD scripts from this repo?
 
