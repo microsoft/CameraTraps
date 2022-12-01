@@ -340,7 +340,8 @@ To use run_detector.py on Windows, when you open a new Anaconda prompt, don't fo
 
 ```cd c:\git\CameraTraps
 conda activate cameratraps-detector
-set PYTHONPATH=%PYTHONPATH%;c:\git\cameratraps;c:\git\ai4eutils;c:\git\yolov5```
+set PYTHONPATH=%PYTHONPATH%;c:\git\cameratraps;c:\git\ai4eutils;c:\git\yolov5
+```
 
 Then you can run the script like this:
 
