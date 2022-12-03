@@ -181,7 +181,14 @@ def process_video_folder(options):
             results, frames_json,
             relative_path_base=frame_output_folder)
     
+    ## Delete the frames on which we ran MegaDetector (if not disabled)
+    if not options.keep_output_frames:
+        try:
+            shutil.rmtree(frame_output_folder)
+        except Exception:
+            pass
     
+
     ## Convert frame-level results to video-level results
 
     frame_results_to_video_results(frames_json,video_json)
