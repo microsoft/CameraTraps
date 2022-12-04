@@ -55,11 +55,10 @@ ncores = 1
 
 #%% Constants I set per script
 
-input_path = os.path.expanduser('~/data/organization/2021-12-24')
+input_path = '/datadrive/organization/data'
 
 organization_name_short = 'organization'
-# job_date = '2022-01-01'
-job_date = None
+job_date = None # '2022-12-02'
 assert job_date is not None and organization_name_short != 'organization'
 
 # Optional descriptor
