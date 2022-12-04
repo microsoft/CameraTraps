@@ -112,14 +112,18 @@ def process_video(options):
         if not options.keep_output_frames:
             try:
                 shutil.rmtree(rendering_output_dir)
-            except Exception:
+            except Exception as e:
+                print('Warning: error deleting rendered detection folder {}:\n{}'.format(
+                    rendering_output_dir,str(e)))
                 pass
         
     # (Optionally) delete the frames on which we ran MegaDetector
     if not options.keep_output_frames:
         try:
             shutil.rmtree(frame_output_folder)
-        except Exception:
+        except Exception as e:
+            print('Warning: error deleting frame folder {}:\n{}'.format(
+                frame_output_folder,str(e)))
             pass
         
     return results
@@ -144,7 +148,8 @@ def process_video_folder(options):
             tempdir, os.path.basename(options.input_video_file) + '_frames_' + str(uuid1()))
     os.makedirs(frame_output_folder, exist_ok=True)
 
-    frame_filenames, Fs = video_folder_to_frames(input_folder=options.input_video_file, output_folder_base=frame_output_folder, 
+    frame_filenames, Fs = video_folder_to_frames(input_folder=options.input_video_file,
+                               output_folder_base=frame_output_folder, 
                                recursive=options.recursive, overwrite=True,
                                n_threads=options.n_cores,every_n_frames=options.frame_sample)
     
@@ -181,11 +186,15 @@ def process_video_folder(options):
             results, frames_json,
             relative_path_base=frame_output_folder)
     
-    ## Delete the frames on which we ran MegaDetector (if not disabled)
+    
+    ## (Optionally) delete the frames on which we ran MegaDetector
+    
     if not options.keep_output_frames:
         try:
             shutil.rmtree(frame_output_folder)
-        except Exception:
+        except Exception as e:
+            print('Warning: error deleting frame folder {}:\n{}'.format(
+                frame_output_folder,str(e)))
             pass
     
 
@@ -293,7 +302,9 @@ if False:
                 if 'bbox' in det:
                     bbox = det['bbox']
                     det_size = bbox[2] * bbox[3]
-                if det['category'] in allowed_categories and ((det_size is not None) and (det_size < max_box_size) and (det_size > min_box_size)):
+                if det['category'] in allowed_categories and \
+                    ((det_size is not None) and (det_size < max_box_size) and \
+                     (det_size > min_box_size)):
                     if det['conf'] > max_detection_conf:
                         max_detection_conf = det['conf']
                     if det['conf'] < min_valid_confidence:
@@ -358,7 +369,8 @@ if False:
 
 def main():
 
-    parser = argparse.ArgumentParser(description=('Run MegaDetector on each frame in a video (or every Nth frame), optionally producing a new video with detections annotated'))
+    parser = argparse.ArgumentParser(description=(
+        'Run MegaDetector on each frame in a video (or every Nth frame), optionally producing a new video with detections annotated'))
 
     parser.add_argument('model_file', type=str,
                         help='MegaDetector model file')
