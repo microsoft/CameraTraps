@@ -6,15 +6,16 @@
 4. [How fast is MegaDetector, and can I run it on my giant/small computer?](#how-fast-is-megadetector-and-can-i-run-it-on-my-giantsmall-computer)
 5. [Downloading the model](#downloading-the-model)
 6. [Using the model](#using-the-model)
-7. [Is there a GUI?](#is-there-a-gui)
-8. [What if I just want to run non-MD scripts from this repo?](#what-if-i-just-want-to-run-non-md-scripts-from-this-repo)
-9. [How do I use the results?](#how-do-i-use-the-results)
-10. [Have you evaluated MegaDetector's accuracy?](#have-you-evaluated-megadetectors-accuracy)
-11. [Citing MegaDetector](#citing-megadetector)
-12. [Tell me more about why detectors are a good first step for camera trap images](#tell-me-more-about-why-detectors-are-a-good-first-step-for-camera-trap-images)
-13. [Pretty picture](#pretty-picture)
-14. [Mesmerizing video](#mesmerizing-video)
-15. [Can you share the training data?](#can-you-share-the-training-data)
+7. [OK, but is that how the MD devs run the model?](#ok-but-is-that-how-the-md-devs-run-the-model)
+8. [Is there a GUI?](#is-there-a-gui)
+9. [What if I just want to run non-MD scripts from this repo?](#what-if-i-just-want-to-run-non-md-scripts-from-this-repo)
+10. [How do I use the results?](#how-do-i-use-the-results)
+11. [Have you evaluated MegaDetector's accuracy?](#have-you-evaluated-megadetectors-accuracy)
+12. [Citing MegaDetector](#citing-megadetector)
+13. [Tell me more about why detectors are a good first step for camera trap images](#tell-me-more-about-why-detectors-are-a-good-first-step-for-camera-trap-images)
+14. [Pretty picture](#pretty-picture)
+15. [Mesmerizing video](#mesmerizing-video)
+16. [Can you share the training data?](#can-you-share-the-training-data)
 
 
 ## MegaDetector overview
@@ -401,6 +402,27 @@ python detection/run_detector_batch.py "$HOME/megadetector/md_v5a.0.0.pt" "/some
 ```
 
 
+## OK, but is that how the MD devs run the model?
+
+Almost... we run a lot of MegaDetector on a lot of images, and in addition to just running the main "run_detector_batch" script described in the previous section, running a large batch of images also usually includes:
+
+* Dividing images into chunks for running on multiple GPUs
+* Making sure that the number of failed/corrupted images was reasonable
+* Eliminating frequent false detections using the [repeat detection elimination](https://github.com/microsoft/CameraTraps/tree/main/api/batch_processing/postprocessing/repeat_detection_elimination) process
+* Visualizing the results using [postprocess_batch_results.py](https://github.com/microsoft/CameraTraps/blob/main/api/batch_processing/postprocessing/postprocess_batch_results.py) to make "results preview" pages like [this one](https://lila.science/public/snapshot_safari_public/snapshot-safari-kar-2022-00-00-v5a.0.0_0.200/)
+
+...and, less frequently:
+
+* Running a species classifier on the MD crops
+* Moving images into folders based on MD output
+* Various manipulation of the output files, e.g. splitting .json files into smaller .json files for subfolders
+* Running and comparing multiple versions of MegaDetector
+
+There are separate scripts to do all of these things, but things would get chaotic if we ran each of these steps separately.  So in practice we almost always run MegaDetector using [manage_local_batch.py](https://github.com/microsoft/CameraTraps/blob/main/api/batch_processing/data_preparation/manage_local_batch.py), a script broken into cells for each of those steps.  We run this in an interactive console in [Spyder](https://github.com/spyder-ide/spyder), but we also periodically export this script to a [notebook](https://github.com/microsoft/CameraTraps/blob/main/api/batch_processing/data_preparation/manage_local_batch.ipynb) that does exactly the same thing.
+
+So, if you find yourself keeping track of lots of steps like this to manage large MD jobs, try the notebook out!  And let us know if it's useful/broken/wonderful/terrible.
+
+ 
 ## Is there a GUI?
 
 Not exactly... most of our users either use our Python tools to run MegaDetector or have us run MegaDetector for them (see [this page](collaborations.md) for more information about that), then most of those users use [Timelapse](https://saul.cpsc.ucalgary.ca/timelapse/) to use their MegaDetector results in an image review workflow.
