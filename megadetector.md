@@ -182,7 +182,7 @@ The instructions below will assume that you are using MDv5a; one step will be sl
 
 ### 3. Clone the relevant git repos and add them to your path, and set up your Python environment
 
-You will need the contents of three git repos to make everything work: this repo, the associated [ai4eutils](https://github.com/microsoft/ai4eutils) repo (some useful file management utilities), and - if you are running MegaDetector v5 - the [YOLOv5](https://github.com/ultralytics/yolov5) repo (in fact, a specific snapshot of that repo).  You will also need to set up an Anaconda environment with all the Python packages that our code depends on.
+You will need the contents of three git repos to make everything work: this repo, the associated [ai4eutils](https://github.com/microsoft/ai4eutils) repo (some useful file management utilities), and - if you are running MegaDetector v5 - the [YOLOv5](https://github.com/ultralytics/yolov5) repo (more specifically, a fork of that repo).  You will also need to set up an Anaconda environment with all the Python packages that our code depends on.
 
 In this section, we provide <a href="#windows-instructions-for-gitpython-stuff">Windows</a>, <a href="#linux-instructions-for-gitpython-stuff">Linux</a>, and <a href="#mac-instructions-for-gitpython-stuff">Mac</a> instructions for doing all of this stuff.
 
@@ -194,23 +194,13 @@ The first time you set all of this up, open an Anaconda Prompt, and run:
 ```batch
 mkdir c:\git
 cd c:\git
+git clone https://github.com/ecologize/yolov5/
 git clone https://github.com/Microsoft/cameratraps
 git clone https://github.com/Microsoft/ai4eutils
 cd c:\git\cameratraps
 conda env create --file environment-detector.yml
 conda activate cameratraps-detector
 set PYTHONPATH=%PYTHONPATH%;c:\git\cameratraps;c:\git\ai4eutils;c:\git\yolov5
-
-REM ***
-REM The rest of this step is specific to MDv5; you can skip the rest of this step if you are
-REM only using MDv4.  If you're new to MegaDetector, you probably want MDv5, so you probably
-REM want to run the rest of this step.
-REM ***
-cd c:\git
-git clone https://github.com/ultralytics/yolov5/
-cd c:\git\yolov5
-git checkout c23a441c9df7ca9b1f275e8c8719c949269160d1
-cd c:\git\cameratraps
 ```
 
 If you want to use MDv4, there's one extra setup step (this will not break your MDv5 setup, you can run both in the same environment):
@@ -239,23 +229,13 @@ If you have installed Anaconda on Linux, you are probably always at an Anaconda 
 ```batch
 mkdir ~/git
 cd ~/git
+git clone https://github.com/ecologize/yolov5/
 git clone https://github.com/Microsoft/cameratraps
 git clone https://github.com/Microsoft/ai4eutils
 cd ~/git/cameratraps
 conda env create --file environment-detector.yml
 conda activate cameratraps-detector
 export PYTHONPATH="$PYTHONPATH:$HOME/git/cameratraps:$HOME/git/ai4eutils:$HOME/git/yolov5"
-
-# ***
-# The rest of this step is specific to MDv5; you can skip the rest of this step if you are
-# only using MDv4.  If you're new to MegaDetector, you probably want MDv5, so you probably
-# want to run the rest of this step.
-# ***
-cd ~/git
-git clone https://github.com/ultralytics/yolov5/
-cd ~/git/yolov5
-git checkout c23a441c9df7ca9b1f275e8c8719c949269160d1
-cd ~/git/cameratraps
 ```
 
 If you want to use MDv4, there's one extra setup step (this will not break your MDv5 setup, you can run both in the same environment):
@@ -286,23 +266,13 @@ If you have installed Anaconda on Linux, you are probably always at an Anaconda 
 ```batch
 mkdir ~/git
 cd ~/git
+git clone https://github.com/ecologize/yolov5/
 git clone https://github.com/Microsoft/cameratraps
 git clone https://github.com/Microsoft/ai4eutils
 cd ~/git/cameratraps
 conda env create --file environment-detector-mac.yml
 conda activate cameratraps-detector
 export PYTHONPATH="$PYTHONPATH:$HOME/git/cameratraps:$HOME/git/ai4eutils:$HOME/git/yolov5"
-
-# ***
-# The rest of this step is specific to MDv5; you can skip the rest of this step if you are
-# only using MDv4.  If you're new to MegaDetector, you probably want MDv5, so you probably
-# want to run the rest of this step.
-# ***
-cd ~/git
-git clone https://github.com/ultralytics/yolov5/
-cd ~/git/yolov5
-git checkout c23a441c9df7ca9b1f275e8c8719c949269160d1
-cd ~/git/cameratraps
 ```
 
 If you want to use MDv4, there's one extra setup step (this will not break your MDv5 setup, you can run both in the same environment):
