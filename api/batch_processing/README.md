@@ -233,7 +233,7 @@ Example output with both detection and classification results:
     },
     "images": [
         {
-            "file": "path/from/base/dir/image1.jpg",
+            "file": "path/from/base/dir/image_with_animal.jpg",
             "meta": "optional free-text metadata",
             "max_detection_conf": 0.926,
             "detections": [
@@ -255,13 +255,13 @@ Example output with both detection and classification results:
             ]
         },
         {
-            "file": "/path/from/base/dir/image2.jpg",
+            "file": "/path/from/base/dir/empty_image.jpg",
             "meta": "",
             "max_detection_conf": 0,
             "detections": []
         },
         {
-            "file": "/path/from/base/dir2/corrupted.jpg",
+            "file": "/path/from/base/dir2/corrupted_image.jpg",
             "failure": "Failure image access"
         }
     ]
