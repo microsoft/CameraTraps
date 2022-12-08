@@ -114,6 +114,24 @@ all_images = path_utils.find_images(input_path,recursive=True)
 
 print('Enumerated {} image files in {}'.format(len(all_images),input_path))
 
+if False:
+
+    pass 
+    
+    #%% Load files from prior enumeration
+    
+    import re    
+    chunk_files = os.listdir(filename_base)
+    pattern = re.compile('chunk\d+.json')
+    chunk_files = [fn for fn in chunk_files if pattern.match(fn)]
+    all_images = []
+    for fn in chunk_files:
+        with open(os.path.join(filename_base,fn),'r') as f:
+            chunk = json.load(f)
+            assert isinstance(chunk,list)
+            all_images.extend(chunk)
+    print('Loaded {} image files from chunks in {}'.format(len(all_images),filename_base))
+    
 
 #%% Divide images into chunks 
 

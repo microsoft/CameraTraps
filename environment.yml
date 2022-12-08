@@ -24,4 +24,5 @@ dependencies:
 - scikit-learn>=0.19.1
 - jsonschema
 - unidecode   
+- pyqtree
 
