@@ -36,7 +36,7 @@ dependencies:
 - pip
 
 # from conda-forge
-- accimage      # faster Pillow replacement for torchvision
+# - accimage      # faster Pillow replacement for torchvision
 
 # Some packages or versions are only available from PyPI
 # These may require GCC to be installed
