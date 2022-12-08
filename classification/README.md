@@ -65,6 +65,14 @@ pip uninstall torch torchvision
 conda install pytorch=1.10.1 torchvision=0.11.2 -c pytorch
 ```
 
+If you are on Linux, you may also get some speedup by installing the [accimage](https://github.com/pytorch/accimage) package for acclerated image loading.  Because this is Linux-only and optional, we have commented it out of the environment file, but you can install it with:
+
+```bash
+conda install -c conda-forge accimage
+```
+
+The image-loading code in this folder is set up to work with or without accimage.
+
 ## Directory Structure
 
 The classifier pipeline assumes the following directories:
