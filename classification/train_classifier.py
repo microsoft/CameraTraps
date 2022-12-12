@@ -41,9 +41,6 @@ from classification.train_utils import (
 from visualization import plot_utils
 
 
-# accimage backend is faster than Pillow/Pillow-SIMD, but occasionally crashes
-# tv.set_image_backend('accimage')
-
 # mean/std values from https://pytorch.org/docs/stable/torchvision/models.html
 MEANS = np.asarray([0.485, 0.456, 0.406])
 STDS = np.asarray([0.229, 0.224, 0.225])
