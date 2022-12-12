@@ -119,8 +119,12 @@ def main(params_json_path: str, ckpt_path: str, output_dir: str,
         assert os.path.exists(target_mapping_json_path)
         assert os.path.exists(label_index_json_path)
 
-    # evaluating with accimage is much faster than Pillow or Pillow-SIMD
-    torchvision.set_image_backend('accimage')
+    # Evaluating with accimage is much faster than Pillow or Pillow-SIMD, but accimage
+    # is Linux-only.
+    try:
+        torchvision.set_image_backend('accimage')
+    except:
+        print('Warning: could not start accimage backend (ignore this if you\'re not using Linux)')
 
     # create output directory
     if not os.path.exists(output_dir):
