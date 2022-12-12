@@ -94,7 +94,8 @@ class CameraTrapJsonUtils:
             a dict with the 'images' and 'annotations' fields in the CCT format
         """
         locations = set(locations)
-        print('Original DB has {} image and {} annotation entries.'.format(len(db['images']), len(db['annotations'])))
+        print('Original DB has {} image and {} annotation entries.'.format(
+            len(db['images']), len(db['annotations'])))
         new_db: Dict[str, Any] = {
             'images': [],
             'annotations': []
@@ -109,7 +110,8 @@ class CameraTrapJsonUtils:
             if a['image_id'] in new_images:
                 new_db['annotations'].append(a)
         print(
-            'New DB has {} image and {} annotation entries.'.format(len(new_db['images']), len(new_db['annotations'])))
+            'New DB has {} image and {} annotation entries.'.format(
+                len(new_db['images']), len(new_db['annotations'])))
         return new_db
 
 
