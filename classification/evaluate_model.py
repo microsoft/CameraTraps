@@ -122,6 +122,7 @@ def main(params_json_path: str, ckpt_path: str, output_dir: str,
     # Evaluating with accimage is much faster than Pillow or Pillow-SIMD, but accimage
     # is Linux-only.
     try:
+        import accimage
         torchvision.set_image_backend('accimage')
     except:
         print('Warning: could not start accimage backend (ignore this if you\'re not using Linux)')
