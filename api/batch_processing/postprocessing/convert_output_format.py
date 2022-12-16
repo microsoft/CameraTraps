@@ -7,6 +7,8 @@
 # conversion - including between future .json versions - that we support in the 
 # future.
 #
+# Does not support classification results.
+#
 ########
 
 #%% Imports
@@ -47,11 +49,15 @@ def convert_json_to_csv(input_path,output_path=None,min_confidence=None,
         
     print('Iterating through results...')
     for im in tqdm(json_output['images']):
+        
+        image_id = im['file']
+        
         if 'failure' in im and im['failure'] is not None:
-            print('Skipping failed image', im['failure'])
+            row = [image_id, 'failure', im['failure']]
+            rows.append(row)
+            print('Skipping failed image {} ({})'.format(im['file'],im['failure']))
             continue
 
-        image_id = im['file']
         max_conf = im['max_detection_conf']
         detections = []
         max_category_probabilities = [None] * n_non_empty_categories
@@ -234,10 +240,21 @@ if False:
 def main():
     
     parser = argparse.ArgumentParser()
-    parser.add_argument('input_path')
-    parser.add_argument('output_path')
+    parser.add_argument('input_path',type=str,
+                        help='Input filename ending in .json or .csv')
+    parser.add_argument('--output_path',type=str,default=None,
+                        help='Output filename ending in .json or .csv (defaults to ' + \
+                            'input file, with .json/.csv replaced by .csv/.json)')
     args = parser.parse_args()
-
+    
+    if args.output_path is None:
+        if args.input_path.endswith('.csv'):
+            args.output_path = args.input_path[:-4] + '.json'
+        elif args.input_path.endswith('.json'):
+            args.output_path = args.input_path[:-5] + '.csv'
+        else:
+            raise ValueError('Illegal input file extension')    
+    
     if args.input_path.endswith('.csv') and args.output_path.endswith('.json'):
         convert_csv_to_json(args.input_path,args.output_path)
     elif args.input_path.endswith('.json') and args.output_path.endswith('.csv'):
