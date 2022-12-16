@@ -28,7 +28,7 @@ lila_dataset_to_categories_file = os.path.join(
 
 # This is a manually-curated file used to store mappings that had to be made manually
 lila_to_wi_supplementary_mapping_file = os.path.expanduser(
-    '~/git/CameraTraps/taxonomy_mapping/lila_to_wi_supplementary_mapping_file.csv')
+    '~/git/cameratraps/taxonomy_mapping/lila_to_wi_supplementary_mapping_file.csv')
 
 assert os.path.isfile(lila_dataset_to_categories_file)
 
@@ -78,7 +78,8 @@ def taxonomy_items_equal(a, b):
 for taxon in wi_taxonomy:
     taxon['taxon_name'] = None
 
-wi_taxon_name_to_taxon = {}
+from collections import defaultdict
+wi_taxon_name_to_taxa = defaultdict(list)
 
 # This is just a handy lookup table that we'll use to debug mismatches
 wi_common_name_to_taxon = {}
@@ -94,6 +95,10 @@ unknown_taxon = None
 
 ignore_taxa = set(['No CV Result', 'CV Needed', 'CV Failed'])
 
+known_problematic_taxon_ids = []
+
+human_taxa = []
+
 # taxon = wi_taxonomy[21653]; print(taxon)
 for taxon in tqdm(wi_taxonomy):
 
@@ -101,6 +106,11 @@ for taxon in tqdm(wi_taxonomy):
 
     assert taxon['taxonomyType'] == 'object' or taxon['taxonomyType'] == 'biological'
 
+    for k in taxon.keys():
+        v = taxon[k]
+        if isinstance(v,str):
+            taxon[k] = v.strip()
+            
     if taxon['commonNameEnglish'] in ignore_taxa:
         continue
 
@@ -127,7 +137,7 @@ for taxon in tqdm(wi_taxonomy):
         if special_taxon:
             taxon_name = taxon['commonNameEnglish'].strip().lower()
             taxon['taxon_name'] = taxon_name
-            wi_taxon_name_to_taxon[taxon_name] = taxon
+            wi_taxon_name_to_taxa[taxon_name].append(taxon)
             continue
 
     # Do we have a species name?
@@ -135,17 +145,13 @@ for taxon in tqdm(wi_taxonomy):
 
         # If 'species' is populated, 'genus' should always be populated; one item currently breaks
         # this rule.
-        if is_empty_wi_item(taxon['genus']):
-            assert taxon['species'] == 'Mongoose Species' and taxon['family'] == 'Herpestidae'
-            taxon['species'] = np.nan
-            taxon['commonNameEnglish'] = 'Mongooses'
-            taxon_name = taxon['family'].strip().lower()
-        else:
-            taxon_name = (taxon['genus'].strip() + ' ' +
-                          taxon['species'].strip()).strip().lower()
-            assert not is_empty_wi_item(taxon['class']) and \
-                not is_empty_wi_item(taxon['order']) and \
-                not is_empty_wi_item(taxon['family'])
+        assert not is_empty_wi_item(taxon['genus'])
+        
+        taxon_name = (taxon['genus'].strip() + ' ' +
+                      taxon['species'].strip()).strip().lower()
+        assert not is_empty_wi_item(taxon['class']) and \
+            not is_empty_wi_item(taxon['order']) and \
+            not is_empty_wi_item(taxon['family'])
 
     elif not is_empty_wi_item(taxon['genus']):
 
@@ -175,13 +181,19 @@ for taxon in tqdm(wi_taxonomy):
         assert taxon['taxonomyType'] == 'object'
         taxon_name = taxon['commonNameEnglish'].strip().lower()
 
-    if taxon_name in wi_taxon_name_to_taxon:
-        previous_taxon = wi_taxon_name_to_taxon[taxon_name]
-        for level in ['class', 'order', 'family', 'genus', 'species']:
-            assert taxonomy_items_equal(previous_taxon[level], taxon[level])
-
+    if taxon_name in wi_taxon_name_to_taxa:
+        if taxon['id'] in known_problematic_taxon_ids:
+            print('Skipping problematic taxon ID {}'.format(taxon['id']))
+        else:
+            previous_taxa = wi_taxon_name_to_taxa[taxon_name]
+            for previous_taxon in previous_taxa:
+                for level in ['class', 'order', 'family', 'genus', 'species']:
+                    assert taxonomy_items_equal(previous_taxon[level], taxon[level])
+                
     taxon['taxon_name'] = taxon_name
-    wi_taxon_name_to_taxon[taxon_name] = taxon
+    if taxon_name == 'homo sapiens':
+        human_taxa.append(taxon)
+    wi_taxon_name_to_taxa[taxon_name].append(taxon)
 
 # ...for each taxon
 
@@ -190,11 +202,71 @@ assert animal_taxon is not None
 assert blank_taxon is not None
 
 
-# object_name_to_taxon.keys()
-#
-# dict_keys(['dirt bike', 'motorcycle', 'truck', 'atv', 'vehicle', 'official vehicle',
-#            'setup_pickup', 'measurement scale', 'timelapse', 'snowmobile', 'misfire',
-#            'trash', 'snow', 'fire', 'water craft'])
+#%% Find redundant taxa
+
+taxon_names_with_multiple_entries = []
+for wi_taxon_name in wi_taxon_name_to_taxa:
+    if len(wi_taxon_name_to_taxa[wi_taxon_name]) > 1:
+        taxon_names_with_multiple_entries.append(wi_taxon_name)
+
+print('{} names have multiple entries\n:'.format(len(taxon_names_with_multiple_entries)))
+
+for s in taxon_names_with_multiple_entries:
+    print(s)
+
+if False:
+    pass
+
+    #%% Manual review of redundant taxa
+    
+    s = taxon_names_with_multiple_entries[-2]
+    taxa = wi_taxon_name_to_taxa[s]
+    for t in taxa:
+        print(t,end='\n\n')
+
+
+#%% Clean up redundant taxa
+
+taxon_name_to_preferred_taxon_id = {}
+taxon_name_to_preferred_taxon_id['diplopoda'] = 2021760 # redundant
+taxon_name_to_preferred_taxon_id['homo sapiens'] = 2002045 # multiple sensible human entries
+taxon_name_to_preferred_taxon_id['squamata'] = 2021703
+taxon_name_to_preferred_taxon_id['dremomys'] = 2019370
+taxon_name_to_preferred_taxon_id['numida meleagris'] = 2005826
+taxon_name_to_preferred_taxon_id['canis familiaris'] = 2021548 # "domestic dog" and "dog-on-leash"
+taxon_name_to_preferred_taxon_id['cervus canadensis'] = 2021592 # "domestic elk" and "elk" 
+taxon_name_to_preferred_taxon_id['muridae'] = 2021642 # different interpretations of "muridae"
+taxon_name_to_preferred_taxon_id['stagonopleura bella'] = 2021939
+taxon_name_to_preferred_taxon_id['bison bison'] = 2021593 # "American bison" vs. "domestic bison"
+taxon_name_to_preferred_taxon_id['meleagris gallopavo'] = 2021598 # "domestic turkey" vs. "wild turkey"
+taxon_name_to_preferred_taxon_id['tomopterna adiastola'] = 2021834
+taxon_name_to_preferred_taxon_id['mammalia'] = 2021108 # "small mammal" vs. "mammal"
+taxon_name_to_preferred_taxon_id['sericornis'] = 2021776
+taxon_name_to_preferred_taxon_id['motacilla flava'] = 2016194 # "yellow wagtail" vs. "yellow crowned-wagtail"
+
+# taxon_name = list(taxon_name_to_preferred_taxon_id.keys())[0]
+for taxon_name in taxon_name_to_preferred_taxon_id.keys():
+    
+    candidate_taxa = wi_taxon_name_to_taxa[taxon_name]
+    
+    # If we've gotten this far, we should be choosing from multiple taxa.
+    #
+    # This will become untrue if any of these are resolved later, at which point we shoudl
+    # remove them from taxon_name_to_preferred_id
+    assert len(candidate_taxa) > 1
+    
+    # Choose the preferred taxa
+    selected_taxa = [t for t in candidate_taxa if t['id'] == \
+                     taxon_name_to_preferred_taxon_id[taxon_name]]
+    assert len(selected_taxa) == 1
+    wi_taxon_name_to_taxa[taxon_name] = selected_taxa
+
+wi_taxon_name_to_taxon = {}
+
+for taxon_name in wi_taxon_name_to_taxa.keys():
+    taxa = wi_taxon_name_to_taxa[taxon_name]
+    assert len(taxa) == 1
+    wi_taxon_name_to_taxon[taxon_name] = taxa[0]
 
 
 #%% Read supplementary mappings
@@ -210,7 +282,7 @@ for line in lines:
     assert len(tokens) == 3
     lila_query = tokens[0].strip().lower()
     wi_taxon_name = tokens[1].strip().lower()
-    assert wi_taxon_name in wi_taxon_name_to_taxon
+    assert wi_taxon_name in wi_taxon_name_to_taxa
     supplementary_lila_query_to_wi_query[lila_query] = wi_taxon_name
 
 

@@ -17,7 +17,8 @@ lila_metadata_url = 'http://lila.science/wp-content/uploads/2020/03/lila_sas_url
 lila_taxonomy_mapping_url = 'https://lila.science/wp-content/uploads/2022/07/lila-taxonomy-mapping_release.csv'
 
 wildlife_insights_page_size = 30000
-wildlife_insights_taxonomy_url = 'https://api.wildlifeinsights.org/api/v1/taxonomy?fields=class,order,family,genus,species,authority,taxonomyType,uniqueIdentifier,commonNameEnglish&page[size]={}'.format(wildlife_insights_page_size)
+# wildlife_insights_taxonomy_url = 'https://api.wildlifeinsights.org/api/v1/taxonomy?fields=class,order,family,genus,species,authority,taxonomyType,uniqueIdentifier,commonNameEnglish&page[size]={}'.format(wildlife_insights_page_size)
+wildlife_insights_taxonomy_url = 'https://api.wildlifeinsights.org/api/v1/taxonomy/taxonomies-all?fields=class,order,family,genus,species,authority,taxonomyType,uniqueIdentifier,commonNameEnglish&page[size]={}'.format(wildlife_insights_page_size)
 wildlife_insights_taxonomy_local_json_filename = 'wi_taxonomy.json'
 wildlife_insights_taxonomy_local_csv_filename = \
     wildlife_insights_taxonomy_local_json_filename.replace('.json','.csv')
