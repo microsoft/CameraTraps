@@ -451,9 +451,17 @@ if False:
         d = json.load(f)
     image_filenames = [im['file'] for im in d['images']]
     
+    #%%
+    
+    dirNames = set()
+    
     # relativePath = image_filenames[0]
     for relativePath in tqdm(image_filenames):
-        remove_overflow_folders(relativePath)
+        dirName = remove_overflow_folders(relativePath)
+        dirNames.add(dirName)
+        
+    dirNames = list(dirNames)
+    dirNames.sort()
 
 
 #%% Repeat detection elimination, phase 1
@@ -1167,7 +1175,35 @@ for classification_detection_file in classification_detection_files:
 
 #%% 99.9% of jobs end here
 
-# Everything after this is run ad hoc and requires some manual editing.
+# Everything after this is run ad hoc and/or requires some manual editing.
+
+
+#%% Zip .json files
+
+json_files = os.listdir(combined_api_output_folder)
+json_files = [fn for fn in json_files if fn.endswith('.json')]
+json_files = [os.path.join(combined_api_output_folder,fn) for fn in json_files]
+
+import zipfile
+from zipfile import ZipFile
+
+output_path = combined_api_output_folder
+
+def zip_json_file(fn):
+    
+    assert fn.endswith('.json')
+    basename = os.path.basename(fn)
+    zip_file_name = os.path.join(output_path,basename + '.zip')
+    print('Zipping {} to {}'.format(fn,zip_file_name))
+    
+    with ZipFile(zip_file_name,'w',zipfile.ZIP_DEFLATED) as zipf:
+        zipf.write(fn,arcname=basename,compresslevel=9,compress_type=zipfile.ZIP_DEFLATED)
+
+from multiprocessing.pool import ThreadPool
+pool = ThreadPool(len(json_files))
+with tqdm(total=len(json_files)) as pbar:
+    for i,_ in enumerate(pool.imap_unordered(zip_json_file,json_files)):
+        pbar.update()
 
 
 #%% Compare results files for different model versions (or before/after RDE)
