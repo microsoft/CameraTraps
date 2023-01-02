@@ -372,8 +372,8 @@ assert len(combined_results['images']) == len(set(result_filenames))
 
 # im = combined_results['images'][0]
 for im in combined_results['images']:
-    assert im['file'].startswith(input_path + '/')
-    im['file']= im['file'].replace(input_path + '/','',1)    
+    assert im['file'].startswith(input_path + os.path.sep)
+    im['file']= im['file'].replace(input_path + os.path.sep,'',1)    
     
 combined_api_output_file = os.path.join(
     combined_api_output_folder,
@@ -1160,7 +1160,7 @@ for classification_detection_file in classification_detection_files:
     options.ground_truth_json_file = None
     options.separate_detections_by_category = True
     
-    folder_token = classification_detection_file.split('/')[-1].replace('classifier.json','')
+    folder_token = classification_detection_file.split(os.path.sep)[-1].replace('classifier.json','')
     
     output_base = os.path.join(postprocessing_output_folder, folder_token + \
         base_task_name + '_{:.3f}'.format(options.confidence_threshold))
