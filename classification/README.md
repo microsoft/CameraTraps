@@ -52,18 +52,31 @@ Activate this conda environment:
 conda activate cameratraps-classifier
 ```
 
+## Verifying that CUDA is available (and dealing with the case where it isn't)
+
 Verify that CUDA is available (assumes that the current working directory is the CameraTraps repo root):
 
 ```bash
 python sandbox/torch_test.py
 ```
 
-If CUDA isn't available but should be (i.e., you have an NVIDIA GPU and recent drivers), in at least one driver/GPU environment, the following fixed this issue:
+If CUDA isn't available but should be (i.e., you have an NVIDIA GPU and recent drivers)...
+
+YMMV, but in at least one Linux environment, the following fixed this issue:
 
 ```bash
 pip uninstall torch torchvision
 conda install pytorch=1.10.1 torchvision=0.11.2 -c pytorch
 ```
+
+YMMV again, but in at least one Windows environment, the following fixed this issue:
+
+```bash
+pip uninstall torch torchvision
+conda install pytorch==1.10.1 torchvision==0.11.2 torchaudio==0.10.1 cudatoolkit=11.3 -c pytorch -c conda-forge
+```
+
+## Optional steps to make classification faster in Linux
 
 If you are on Linux, you may also get some speedup by installing the [accimage](https://github.com/pytorch/accimage) package for acclerated image loading.  Because this is Linux-only and optional, we have commented it out of the environment file, but you can install it with:
 
@@ -71,7 +84,12 @@ If you are on Linux, you may also get some speedup by installing the [accimage](
 conda install -c conda-forge accimage
 ```
 
-The image-loading code in this folder is set up to work with or without accimage.
+Similarly, on Linux, you may get some speedup by installing [Pillow-SIMD](https://github.com/uploadcare/pillow-simd):
+
+```bash
+pip uninstall -y pillow
+pip install pillow-simd
+```
 
 ## Directory Structure
 
