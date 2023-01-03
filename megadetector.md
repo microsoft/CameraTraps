@@ -67,6 +67,8 @@ If you want to run this benchmark on your own, here are <a href="https://github.
 Speed can vary widely based on image size, hard drive speed, etc., and in these numbers we're just taking what users report without asking what the deal was with the data, so... YMMV.
 
 * A GTX 1080 processed 699,530 images in 1:20:22:00 through MDv5 (4.37 images per second, or ~378,000 images per day)
+* An RTX 3050 processes ~4.6 images per second, or ~397,000 images per day through MDv5
+* An RTX 3090 processes ~11 images per second, or ~950,000 images per day through MDv5
 
 ## Who is using MegaDetector?
 

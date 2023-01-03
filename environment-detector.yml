@@ -6,7 +6,8 @@ channels:
 
 dependencies:
   - python=3.8
-  - Pillow=9.1.0
+  # We pin Pillow to make it as likely as possible that images are loaded via a loader that's identical to the training environment
+  - Pillow=9.1.0 
   - nb_conda_kernels
   - ipykernel
   - tqdm
