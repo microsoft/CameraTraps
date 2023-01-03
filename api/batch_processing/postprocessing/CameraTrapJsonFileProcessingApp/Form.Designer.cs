@@ -424,7 +424,7 @@ namespace CameraTrapJsonManagerApp
             this.labelConfidenceThresholdHelpInfo.Name = "labelConfidenceThresholdHelpInfo";
             this.labelConfidenceThresholdHelpInfo.Size = new System.Drawing.Size(174, 19);
             this.labelConfidenceThresholdHelpInfo.TabIndex = 96;
-            this.labelConfidenceThresholdHelpInfo.Text = "(value between 0 and 1)";
+            this.labelConfidenceThresholdHelpInfo.Text = "(value between 0 and 1, blank for no thresholding)";
             // 
             // panelSplitFolderMode
             // 

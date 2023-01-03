@@ -268,6 +268,13 @@ namespace CameraTrapJsonManagerApp
 
                 // detections = [d for d in im['detections'] if d['conf'] >= options.confidence_threshold]
 
+                // Failed images have no detections array
+                if (item.detections == null)
+                {
+                    imagesOut.Add(item);
+                    continue;
+                }
+
                 // Find all detections above threshold for this image
                 foreach (var d in item.detections)
                 {
@@ -318,6 +325,8 @@ namespace CameraTrapJsonManagerApp
                 imagesOut.Add(item);
 
             } // for each image
+
+            if (imagesOut.Count != imagesIn.Count) { throw new Exception("Image array size mismatch"); }
 
             data.images = imagesOut;
 
