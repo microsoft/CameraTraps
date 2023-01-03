@@ -7,7 +7,7 @@ dependencies:
 
 # Dependencies in the MD environment
 - python=3.8
-- Pillow=9.1.0
+- Pillow
 - tqdm
 - jsonpickle
 - humanfriendly
@@ -23,6 +23,6 @@ dependencies:
 - scikit-image>=0.13.1
 - scikit-learn>=0.19.1
 - jsonschema
-- unidecode   
+- unidecode
 - pyqtree
 
