@@ -52,6 +52,16 @@ image_size = None
 # Only relevant when running on CPU
 ncores = 1
 
+# OS-specific script line continuation character
+slcc = '\\'
+
+# OS-specific script comment character
+scc = '#' 
+
+if os.name == 'nt':
+    slcc = '^'
+    scc = 'REM'
+
 
 #%% Constants I set per script
 
@@ -372,8 +382,8 @@ assert len(combined_results['images']) == len(set(result_filenames))
 
 # im = combined_results['images'][0]
 for im in combined_results['images']:
-    assert im['file'].startswith(input_path + '/')
-    im['file']= im['file'].replace(input_path + '/','',1)    
+    assert im['file'].startswith(input_path + os.path.sep)
+    im['file']= im['file'].replace(input_path + os.path.sep,'',1)    
     
 combined_api_output_file = os.path.join(
     combined_api_output_folder,
@@ -481,6 +491,9 @@ options.occurrenceThreshold = 10
 options.maxSuspiciousDetectionSize = 0.2
 # options.minSuspiciousDetectionSize = 0.05
 
+# options.parallelizationUsesThreads = True
+# options.nWorkers = 10
+
 # This will cause a very light gray box to get drawn around all the detections
 # we're *not* considering as suspicious.
 options.bRenderOtherDetections = True
@@ -498,7 +511,7 @@ rde_string = 'rde_{:.2f}_{:.2f}_{}_{:.2f}'.format(
     options.confidenceMin, options.iouThreshold,
     options.occurrenceThreshold, options.maxSuspiciousDetectionSize)
 options.outputBase = os.path.join(filename_base, rde_string + '_task_{}'.format(task_index))
-options.filenameReplacements = {'':''}
+options.filenameReplacements = None # {'':''}
 
 # Exclude people and vehicles from RDE
 # options.excludeClasses = [2,3]
@@ -628,10 +641,9 @@ commands = []
 # commands.append('cd CameraTraps/classification\n')
 # commands.append('conda activate cameratraps-classifier\n')
 
-
 ##%% Crop images
 
-commands.append('\n### Cropping ###\n')
+commands.append('\n' + scc + ' Cropping ' + scc + '\n')
 
 # fn = input_files[0]
 for fn in input_files:
@@ -639,25 +651,25 @@ for fn in input_files:
     input_file_path = fn
     crop_cmd = ''
     
-    crop_comment = '\n# Cropping {}\n'.format(fn)
+    crop_comment = '\n' + scc + ' Cropping {}\n'.format(fn)
     crop_cmd += crop_comment
     
-    crop_cmd += "python crop_detections.py \\\n" + \
-    	 input_file_path + ' \\\n' + \
-         crop_path + ' \\\n' + \
-         '--images-dir "' + image_base + '"' + ' \\\n' + \
-         '--threshold "' + threshold_str + '"' + ' \\\n' + \
-         '--square-crops ' + ' \\\n' + \
-         '--threads "' + n_threads_str + '"' + ' \\\n' + \
-         '--logdir "' + logdir + '"' + ' \\\n' + \
-         '\n'
+    crop_cmd += "python crop_detections.py " + slcc + "\n" + \
+    	 ' ' + input_file_path + ' ' + slcc + '\n' + \
+         ' ' + crop_path + ' ' + slcc + '\n' + \
+         ' ' + '--images-dir "' + image_base + '"' + ' ' + slcc + '\n' + \
+         ' ' + '--threshold "' + threshold_str + '"' + ' ' + slcc + '\n' + \
+         ' ' + '--square-crops ' + ' ' + slcc + '\n' + \
+         ' ' + '--threads "' + n_threads_str + '"' + ' ' + slcc + '\n' + \
+         ' ' + '--logdir "' + logdir + '"' + '\n' + \
+         ' ' + '\n'
     crop_cmd = '{}'.format(crop_cmd)
     commands.append(crop_cmd)
 
 
 ##%% Run classifier
 
-commands.append('\n### Classifying ###\n')
+commands.append('\n' + scc + ' Classifying ' + scc + '\n')
 
 # fn = input_files[0]
 for fn in input_files:
@@ -667,21 +679,21 @@ for fn in input_files:
     
     classify_cmd = ''
     
-    classify_comment = '\n# Classifying {}\n'.format(fn)
+    classify_comment = '\n' + scc + ' Classifying {}\n'.format(fn)
     classify_cmd += classify_comment
     
-    classify_cmd += "python run_classifier.py \\\n" + \
-    	 checkpoint_path + ' \\\n' + \
-         crop_path + ' \\\n' + \
-         classifier_output_path + ' \\\n' + \
-         '--detections-json "' + input_file_path + '"' + ' \\\n' + \
-         '--classifier-categories "' + classifier_categories_path + '"' + ' \\\n' + \
-         '--image-size "' + image_size_str + '"' + ' \\\n' + \
-         '--batch-size "' + batch_size_str + '"' + ' \\\n' + \
-         '--num-workers "' + num_workers_str + '"' + ' \\\n'
+    classify_cmd += "python run_classifier.py " + slcc + "\n" + \
+    	 ' ' + checkpoint_path + ' ' + slcc + '\n' + \
+         ' ' + crop_path + ' ' + slcc + '\n' + \
+         ' ' + classifier_output_path + ' ' + slcc + '\n' + \
+         ' ' + '--detections-json "' + input_file_path + '"' + ' ' + slcc + '\n' + \
+         ' ' + '--classifier-categories "' + classifier_categories_path + '"' + ' ' + slcc + '\n' + \
+         ' ' + '--image-size "' + image_size_str + '"' + ' ' + slcc + '\n' + \
+         ' ' + '--batch-size "' + batch_size_str + '"' + ' ' + slcc + '\n' + \
+         ' ' + '--num-workers "' + num_workers_str + '"' + ' ' + slcc + '\n'
     
     if device_id is not None:
-        classify_cmd += '--device {}'.format(device_id)
+        classify_cmd += ' ' + '--device {}'.format(device_id)
         
     classify_cmd += '\n\n'        
     classify_cmd = '{}'.format(classify_cmd)
@@ -690,7 +702,7 @@ for fn in input_files:
 
 ##%% Remap classifier outputs
 
-commands.append('\n### Remapping ###\n')
+commands.append('\n' + scc + ' Remapping ' + scc + '\n')
 
 # fn = input_files[0]
 for fn in input_files:
@@ -706,14 +718,14 @@ for fn in input_files:
                                        
     remap_cmd = ''
     
-    remap_comment = '\n# Remapping {}\n'.format(fn)
+    remap_comment = '\n' + scc + ' Remapping {}\n'.format(fn)
     remap_cmd += remap_comment
     
-    remap_cmd += "python aggregate_classifier_probs.py \\\n" + \
-        classifier_output_path + ' \\\n' + \
-        '--target-mapping "' + target_mapping_path + '"' + ' \\\n' + \
-        '--output-csv "' + classifier_output_path_remapped + '"' + ' \\\n' + \
-        '--output-label-index "' + output_label_index + '"' + ' \\\n' + \
+    remap_cmd += "python aggregate_classifier_probs.py " + slcc + "\n" + \
+        ' ' + classifier_output_path + ' ' + slcc + '\n' + \
+        ' ' + '--target-mapping "' + target_mapping_path + '"' + ' ' + slcc + '\n' + \
+        ' ' + '--output-csv "' + classifier_output_path_remapped + '"' + ' ' + slcc + '\n' + \
+        ' ' + '--output-label-index "' + output_label_index + '"' \
         '\n'
      
     remap_cmd = '{}'.format(remap_cmd)
@@ -722,7 +734,7 @@ for fn in input_files:
 
 ##%% Merge classification and detection outputs
 
-commands.append('\n### Merging ###\n')
+commands.append('\n' + scc + ' Merging ' + scc + '\n')
 
 # fn = input_files[0]
 for fn in input_files:
@@ -746,17 +758,17 @@ for fn in input_files:
     
     merge_cmd = ''
     
-    merge_comment = '\n# Merging {}\n'.format(fn)
+    merge_comment = '\n' + scc + ' Merging {}\n'.format(fn)
     merge_cmd += merge_comment
     
-    merge_cmd += "python merge_classification_detection_output.py \\\n" + \
-    	 classifier_output_path_remapped + ' \\\n' + \
-         output_label_index + ' \\\n' + \
-         '--output-json "' + final_output_path + '"' + ' \\\n' + \
-         '--detection-json "' + input_file_path + '"' + ' \\\n' + \
-         '--classifier-name "' + classifier_name + '"' + ' \\\n' + \
-         '--threshold "' + classification_threshold_str + '"' + ' \\\n' + \
-         '--typical-confidence-threshold "' + typical_classification_threshold_str + '"' + ' \\\n' + \
+    merge_cmd += "python merge_classification_detection_output.py " + slcc + "\n" + \
+    	 ' ' + classifier_output_path_remapped + ' ' + slcc + '\n' + \
+         ' ' + output_label_index + ' ' + slcc + '\n' + \
+         ' ' + '--output-json "' + final_output_path + '"' + ' ' + slcc + '\n' + \
+         ' ' + '--detection-json "' + input_file_path + '"' + ' ' + slcc + '\n' + \
+         ' ' + '--classifier-name "' + classifier_name + '"' + ' ' + slcc + '\n' + \
+         ' ' + '--threshold "' + classification_threshold_str + '"' + ' ' + slcc + '\n' + \
+         ' ' + '--typical-confidence-threshold "' + typical_classification_threshold_str + '"' + '\n' + \
          '\n'
     merge_cmd = '{}'.format(merge_cmd)
     commands.append(merge_cmd)
@@ -823,7 +835,7 @@ commands = []
 
 ##%% Crop images
     
-commands.append('\n### Cropping ###\n')
+commands.append('\n' + scc + ' Cropping ' + scc + '\n')
 
 # fn = input_files[0]
 for fn in input_files:
@@ -831,17 +843,17 @@ for fn in input_files:
     input_file_path = fn
     crop_cmd = ''
     
-    crop_comment = '\n# Cropping {}\n'.format(fn)
+    crop_comment = '\n' + scc + ' Cropping {}\n'.format(fn)
     crop_cmd += crop_comment
     
-    crop_cmd += "python crop_detections.py \\\n" + \
-    	 input_file_path + ' \\\n' + \
-         crop_path + ' \\\n' + \
-         '--images-dir "' + image_base + '"' + ' \\\n' + \
-         '--threshold "' + threshold_str + '"' + ' \\\n' + \
-         '--square-crops ' + ' \\\n' + \
-         '--threads "' + n_threads_str + '"' + ' \\\n' + \
-         '--logdir "' + logdir + '"' + ' \\\n' + \
+    crop_cmd += "python crop_detections.py " + slcc + "\n" + \
+    	 ' ' + input_file_path + ' ' + slcc + '\n' + \
+         ' ' + crop_path + ' ' + slcc + '\n' + \
+         ' ' + '--images-dir "' + image_base + '"' + ' ' + slcc + '\n' + \
+         ' ' + '--threshold "' + threshold_str + '"' + ' ' + slcc + '\n' + \
+         ' ' + '--square-crops ' + ' ' + slcc + '\n' + \
+         ' ' + '--threads "' + n_threads_str + '"' + ' ' + slcc + '\n' + \
+         ' ' + '--logdir "' + logdir + '"' + '\n' + \
          '\n'
     crop_cmd = '{}'.format(crop_cmd)
     commands.append(crop_cmd)
@@ -849,7 +861,7 @@ for fn in input_files:
 
 ##%% Run classifier
 
-commands.append('\n### Classifying ###\n')
+commands.append('\n' + scc + ' Classifying ' + scc + '\n')
 
 # fn = input_files[0]
 for fn in input_files:
@@ -859,21 +871,21 @@ for fn in input_files:
     
     classify_cmd = ''
     
-    classify_comment = '\n# Classifying {}\n'.format(fn)
+    classify_comment = '\n' + scc + ' Classifying {}\n'.format(fn)
     classify_cmd += classify_comment
     
-    classify_cmd += "python run_classifier.py \\\n" + \
-    	 checkpoint_path + ' \\\n' + \
-         crop_path + ' \\\n' + \
-         classifier_output_path + ' \\\n' + \
-         '--detections-json "' + input_file_path + '"' + ' \\\n' + \
-         '--classifier-categories "' + classifier_categories_path + '"' + ' \\\n' + \
-         '--image-size "' + image_size_str + '"' + ' \\\n' + \
-         '--batch-size "' + batch_size_str + '"' + ' \\\n' + \
-         '--num-workers "' + num_workers_str + '"' + ' \\\n'
+    classify_cmd += "python run_classifier.py " + slcc + "\n" + \
+    	 ' ' + checkpoint_path + ' ' + slcc + '\n' + \
+         ' ' + crop_path + ' ' + slcc + '\n' + \
+         ' ' + classifier_output_path + ' ' + slcc + '\n' + \
+         ' ' + '--detections-json "' + input_file_path + '"' + ' ' + slcc + '\n' + \
+         ' ' + '--classifier-categories "' + classifier_categories_path + '"' + ' ' + slcc + '\n' + \
+         ' ' + '--image-size "' + image_size_str + '"' + ' ' + slcc + '\n' + \
+         ' ' + '--batch-size "' + batch_size_str + '"' + ' ' + slcc + '\n' + \
+         ' ' + '--num-workers "' + num_workers_str + '"' + ' ' + slcc + '\n'
     
     if device_id is not None:
-        classify_cmd += '--device {}'.format(device_id)
+        classify_cmd += ' ' + '--device {}'.format(device_id)
         
     classify_cmd += '\n\n'    
     classify_cmd = '{}'.format(classify_cmd)
@@ -882,7 +894,7 @@ for fn in input_files:
 
 ##%% Merge classification and detection outputs
 
-commands.append('\n### Merging ###\n')
+commands.append('\n' + scc + ' Merging ' + scc + '\n')
 
 # fn = input_files[0]
 for fn in input_files:
@@ -899,17 +911,17 @@ for fn in input_files:
     
     merge_cmd = ''
     
-    merge_comment = '\n# Merging {}\n'.format(fn)
+    merge_comment = '\n' + scc + ' Merging {}\n'.format(fn)
     merge_cmd += merge_comment
     
-    merge_cmd += "python merge_classification_detection_output.py \\\n" + \
-    	 classifier_output_path + ' \\\n' + \
-         classifier_categories_path + ' \\\n' + \
-         '--output-json "' + final_output_path_ic + '"' + ' \\\n' + \
-         '--detection-json "' + input_file_path + '"' + ' \\\n' + \
-         '--classifier-name "' + classifier_name + '"' + ' \\\n' + \
-         '--threshold "' + classification_threshold_str + '"' + ' \\\n' + \
-         '--typical-confidence-threshold "' + typical_classification_threshold_str + '"' + ' \\\n' + \
+    merge_cmd += "python merge_classification_detection_output.py " + slcc + "\n" + \
+    	 ' ' + classifier_output_path + ' ' + slcc + '\n' + \
+         ' ' + classifier_categories_path + ' ' + slcc + '\n' + \
+         ' ' + '--output-json "' + final_output_path_ic + '"' + ' ' + slcc + '\n' + \
+         ' ' + '--detection-json "' + input_file_path + '"' + ' ' + slcc + '\n' + \
+         ' ' + '--classifier-name "' + classifier_name + '"' + ' ' + slcc + '\n' + \
+         ' ' + '--threshold "' + classification_threshold_str + '"' + ' ' + slcc + '\n' + \
+         ' ' + '--typical-confidence-threshold "' + typical_classification_threshold_str + '"' + '\n' + \
          '\n'
     merge_cmd = '{}'.format(merge_cmd)
     commands.append(merge_cmd)
@@ -1160,7 +1172,7 @@ for classification_detection_file in classification_detection_files:
     options.ground_truth_json_file = None
     options.separate_detections_by_category = True
     
-    folder_token = classification_detection_file.split('/')[-1].replace('classifier.json','')
+    folder_token = classification_detection_file.split(os.path.sep)[-1].replace('classifier.json','')
     
     output_base = os.path.join(postprocessing_output_folder, folder_token + \
         base_task_name + '_{:.3f}'.format(options.confidence_threshold))
@@ -1171,11 +1183,6 @@ for classification_detection_file in classification_detection_files:
     options.output_dir = output_base
     ppresults = process_batch_results(options)
     path_utils.open_file(ppresults.output_html_file)
-
-
-#%% 99.9% of jobs end here
-
-# Everything after this is run ad hoc and/or requires some manual editing.
 
 
 #%% Zip .json files
@@ -1204,6 +1211,11 @@ pool = ThreadPool(len(json_files))
 with tqdm(total=len(json_files)) as pbar:
     for i,_ in enumerate(pool.imap_unordered(zip_json_file,json_files)):
         pbar.update()
+
+
+#%% 99.9% of jobs end here
+
+# Everything after this is run ad hoc and/or requires some manual editing.
 
 
 #%% Compare results files for different model versions (or before/after RDE)
