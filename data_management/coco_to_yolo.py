@@ -1,24 +1,16 @@
 #
 # coco_to_yolo.py
 #
-# Converts a COCO-formatted dataset to a YOLO-formatted dataset.  "COCO" here
-# does *not* mean COCO Camera Traps by default, it means standard COCO, though you can
-# use the "source_format" parameter to specify that your .json is CCT-formatted.
+# Converts a COCO-formatted dataset to a YOLO-formatted dataset. 
 #
 # If the input and output folders are the same, writes .txt files to the input folder,
 # and neither moves nor modifies images.
 #
-# I am writing this for a very specific use case, so there are some quirky limitations
-# that will be easy to fix if/when we need to:
-#
-# * Currently ignores segmentation masks, and errors if an annotation has a 
-#   segmentation polygon but no bbox
-#
-# * The data set I'm writing this for has width/height information in the COCO
-#   .json file, so this script does not open up the images to read/verify width
-#   and height.  This is technically required, but sometimes people are rebellious.
-#
-# Basically this is a work in progress, YMMV.
+# Currently ignores segmentation masks, and errors if an annotation has a 
+# segmentation polygon but no bbox
+# 
+# Has only been tested on a handful of COCO Camera Traps data sets; if you
+# use it for more general COCO conversion, YMMV.
 #
 
 #%% Imports and constants
@@ -145,7 +137,7 @@ def coco_to_yolo(input_image_folder,output_folder,input_file,
                         
             for ann in image_id_to_annotations[image_id]:
                 
-                    
+                # If this annotation has no bounding boxes...
                 if 'bbox' not in ann or ann['bbox'] is None or len(ann['bbox']) == 0:
                     
                     if source_format == 'coco':
@@ -160,9 +152,9 @@ def coco_to_yolo(input_image_folder,output_folder,input_file,
                     
                     else:
                         
-                        # We allow this in COCO camera traps; this is typically a negative
+                        # We allow empty bbox lists in COCO camera traps; this is typically a negative
                         # example in a dataset that has bounding boxes, and 0 is typically the empty 
-                        # category
+                        # category.
                         if ann['category_id'] != 0:
                             if not printing_empty_annotation_warning:
                                 printing_empty_annotation_warning = True
@@ -176,7 +168,6 @@ def coco_to_yolo(input_image_folder,output_folder,input_file,
                 yolo_category_id = coco_id_to_yolo_id[ann['category_id']]
                 
                 # COCO: [x_min, y_min, width, height] in absolute coordinates
-                # COCO camera traps: [x_min, y_min, width, height] in normalized coordinates
                 # YOLO: [class, x_center, y_center, width, height] in normalized coordinates
                 
                 # Convert from COCO coordinates to YOLO coordinates
@@ -199,16 +190,6 @@ def coco_to_yolo(input_image_folder,output_folder,input_file,
                     box_w_relative = box_w_absolute / img_w
                     box_h_relative = box_h_absolute / img_h
                     
-                elif source_format == 'coco_camera_traps':
-                    
-                    x_min_relative = coco_bbox[0]
-                    y_min_relative = coco_bbox[1]
-                    box_w_relative = coco_bbox[2]
-                    box_h_relative = coco_bbox[3]
-                    
-                    x_center_relative = x_min_relative + (box_w_relative/2.0)
-                    y_center_relative = y_min_relative + (box_h_relative/2.0)
-                
                 else:
                     
                     raise ValueError('Unrecognized source format {}'.format(source_format))
@@ -345,15 +326,6 @@ if False:
     
     pass
 
-    #%% COCO data
-    
-    input_image_folder = os.path.expanduser('~/tmp/test/images')
-    output_folder = os.path.expanduser('~/tmp/test/yolo_train')
-    input_file = os.path.expanduser('~/tmp/test/annotations_train.json')
-
-    coco_to_yolo(input_image_folder,output_folder,input_file)    
-    
-    
     #%% CCT data
     
     input_image_folder = os.path.expanduser('~/data/noaa-fish/JPEGImages')
