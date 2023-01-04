@@ -940,8 +940,6 @@ def find_repeat_detections(inputFilename, outputFilename=None, options=None):
         if not options.bParallelizeComparisons:
 
             options.pbar = None
-            # iDir = 4; dirName = dirsToSearch[iDir]
-            # for iDir, dirName in enumerate(tqdm(dirsToSearch)):
             for iDir, dirName in tqdm(enumerate(dirsToSearch)):
                 dirNameAndRow = dirNameAndRows[iDir]
                 assert dirNameAndRow[0] == dirName
@@ -957,17 +955,24 @@ def find_repeat_detections(inputFilename, outputFilename=None, options=None):
             
             if options.parallelizationUsesThreads:
                 pool = ThreadPool(options.nWorkers)
-                poolstring = 'threads'
+                poolstring = 'threads'                
             else:
                 pool = Pool(options.nWorkers)
                 poolstring = 'processes'
                             
             print('Starting pool with {} {}'.format(options.nWorkers,poolstring))
             
-            options.pbar = tqdm(total=len(dirsToSearch))
-            
-            allCandidateDetections = list(pool.imap(
-                partial(find_matches_in_directory,options=options), dirNameAndRows))
+            # We get slightly nicer progress bar behavior using threads, by passing a pbar 
+            # object and letting it get updated.  We can't serialize this object across 
+            # processes.
+            if options.parallelizationUsesThreads:
+                options.pbar = tqdm(total=len(dirsToSearch))                
+                allCandidateDetections = list(pool.imap(
+                    partial(find_matches_in_directory,options=options), dirNameAndRows))
+            else:
+                options.pbar = None                
+                allCandidateDetections = list(tqdm(pool.imap(
+                    partial(find_matches_in_directory,options=options), dirNameAndRows)))
 
         print('\nFinished looking for similar detections')
 
