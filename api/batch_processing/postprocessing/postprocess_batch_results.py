@@ -35,6 +35,7 @@ import warnings
 from typing import Any, Dict, Iterable, Optional, Tuple
 from enum import IntEnum
 from multiprocessing.pool import ThreadPool
+from multiprocessing.pool import Pool
 
 # This line was added circa 2018 and it made sense at the time; removing it in 2022
 # because matplotlib *mostly* does the right thing now, and overwriting the current
@@ -156,6 +157,7 @@ class PostProcessingOptions:
 
     # Control rendering parallelization
     parallelize_rendering_n_cores: Optional[int] = 100
+    parallelize_rendering_with_threads = True
     parallelize_rendering = False
     
 # ...PostProcessingOptions
@@ -460,7 +462,100 @@ def prepare_html_subpages(images_html, output_dir, options=None):
 
 # ...prepare_html_subpages()
 
+# Get unique categories above the threshold for this image
+def get_positive_categories(detections,options):
+    positive_categories = set()
+    for d in detections:
+        if d['conf'] >= options.confidence_threshold:
+            positive_categories.add(d['category'])
+    return sorted(positive_categories)
 
+# Render an image (with no ground truth information)
+def render_image_no_gt(file_info,detection_categories_to_results_name,
+                       detection_categories,classification_categories,
+                       options):
+
+    image_relative_path = file_info[0]
+    max_conf = file_info[1]
+    detections = file_info[2]
+
+    detection_status = DetectionStatus.DS_UNASSIGNED
+    if max_conf >= options.confidence_threshold:
+        detection_status = DetectionStatus.DS_POSITIVE
+    else:
+        if options.include_almost_detections:
+            if max_conf >= options.almost_detection_confidence_threshold:
+                detection_status = DetectionStatus.DS_ALMOST
+            else:
+                detection_status = DetectionStatus.DS_NEGATIVE
+        else:
+            detection_status = DetectionStatus.DS_NEGATIVE
+
+    if detection_status == DetectionStatus.DS_POSITIVE:
+        if options.separate_detections_by_category:
+            positive_categories = tuple(get_positive_categories(detections,options))
+            res = detection_categories_to_results_name[positive_categories]
+        else:
+            res = 'detections'
+
+    elif detection_status == DetectionStatus.DS_NEGATIVE:
+        res = 'non_detections'
+    else:
+        assert detection_status == DetectionStatus.DS_ALMOST
+        res = 'almost_detections'
+
+    display_name = '<b>Result type</b>: {}, <b>Image</b>: {}, <b>Max conf</b>: {:0.3f}'.format(
+        res, image_relative_path, max_conf)
+
+    rendering_options = copy.copy(options)
+    if detection_status == DetectionStatus.DS_ALMOST:
+        rendering_options.confidence_threshold = \
+            rendering_options.almost_detection_confidence_threshold
+    rendered_image_html_info = render_bounding_boxes(
+        options.image_base_dir,
+        image_relative_path,
+        display_name,
+        detections,
+        res,
+        detection_categories,
+        classification_categories,
+        rendering_options)
+
+    image_result = None
+
+    if len(rendered_image_html_info) > 0:
+
+        image_result = [[res, rendered_image_html_info]]
+
+        for det in detections:
+
+            if ('classifications' in det):
+
+                # This is a list of [class,confidence] pairs, sorted by confidence
+                classifications = det['classifications']
+                top1_class_id = classifications[0][0]
+                top1_class_name = classification_categories[top1_class_id]
+                top1_class_score = classifications[0][1]
+
+                # If we either don't have a confidence threshold, or we've met our
+                # confidence threshold
+                if (options.classification_confidence_threshold < 0) or \
+                    (top1_class_score >= options.classification_confidence_threshold):
+                    image_result.append(['class_{}'.format(top1_class_name),
+                                         rendered_image_html_info])
+                else:
+                    image_result.append(['class_unreliable',
+                                         rendered_image_html_info])
+
+            # ...if this detection has classification info
+
+        # ...for each detection
+
+    return image_result
+
+# ...def render_image_no_gt()
+    
+    
 #%% Main function
 
 def process_batch_results(options: PostProcessingOptions
@@ -779,7 +874,8 @@ def process_batch_results(options: PostProcessingOptions
             # Build confusion matrix as array from classifier_cm
             all_class_ids = sorted(classname_to_idx.values())
             classifier_cm_array = np.array(
-                [[classifier_cm[r_idx][c_idx] for c_idx in all_class_ids] for r_idx in all_class_ids], dtype=float)
+                [[classifier_cm[r_idx][c_idx] for c_idx in all_class_ids] for \
+                 r_idx in all_class_ids], dtype=float)
             classifier_cm_array /= (classifier_cm_array.sum(axis=1, keepdims=True) + 1e-7)
 
             # Print some statistics
@@ -799,7 +895,8 @@ def process_batch_results(options: PostProcessingOptions
 
             # Prepend class name on each line and add to the top
             cm_str_lines = [' ' * 16 + ' '.join(classname_headers)]
-            cm_str_lines += ['{:>15}'.format(cn[:15]) + ' ' + cm_line for cn, cm_line in zip(classname_list, cm_str.splitlines())]
+            cm_str_lines += ['{:>15}'.format(cn[:15]) + ' ' + cm_line for cn, cm_line in \
+                             zip(classname_list, cm_str.splitlines())]
 
             # Print formatted confusion matrix
             print('Confusion matrix: ')
@@ -853,8 +950,9 @@ def process_batch_results(options: PostProcessingOptions
         # Accumulate html image structs (in the format expected by write_html_image_lists)
         # for each category, e.g. 'tp', 'fp', ..., 'class_bird', ...
         images_html = collections.defaultdict(list)
+        
         # Add default entries by accessing them for the first time
-        [images_html[res] for res in ['tp', 'tpc', 'tpi', 'fp', 'tn', 'fn']]  # Siyu: what does this do? This line should have no effect
+        [images_html[res] for res in ['tp', 'tpc', 'tpi', 'fp', 'tn', 'fn']]
         for res in images_html.keys():
             os.makedirs(os.path.join(output_dir, res), exist_ok=True)
 
@@ -945,14 +1043,24 @@ def process_batch_results(options: PostProcessingOptions
 
         start_time = time.time()
         if options.parallelize_rendering:
-            if options.parallelize_rendering_n_cores is None:
-                pool = ThreadPool()
+            if options.parallelize_rendering_n_cores is None:                
+                if options.parallelize_rendering_with_threads:
+                    pool = ThreadPool()
+                else:
+                    pool = Pool()
             else:
-                print('Rendering images with {} workers'.format(options.parallelize_rendering_n_cores))
-                pool = ThreadPool(options.parallelize_rendering_n_cores)
-            rendering_results = list(tqdm(pool.imap(render_image_with_gt, files_to_render), total=len(files_to_render)))
+                if options.parallelize_rendering_with_threads:
+                    pool = ThreadPool(options.parallelize_rendering_n_cores)
+                    worker_string = 'threads'
+                else:
+                    pool = Pool(options.parallelize_rendering_n_cores)
+                    worker_string = 'processes'
+                print('Rendering images with {} {}'.format(options.parallelize_rendering_n_cores,
+                                                           worker_string))
+                
+            rendering_results = list(tqdm(pool.imap(
+                render_image_with_gt, files_to_render), total=len(files_to_render)))
         else:
-            # file_info = files_to_render[0]
             for file_info in tqdm(files_to_render):
                 rendering_results.append(render_image_with_gt(file_info))
         elapsed = time.time() - start_time
@@ -1141,107 +1249,43 @@ def process_batch_results(options: PostProcessingOptions
                                     row['max_detection_conf'],
                                     row['detections']])
 
-        # Get unique categories above the threshold for this image
-        def get_positive_categories(detections):
-            positive_categories = set()
-            for d in detections:
-                if d['conf'] >= options.confidence_threshold:
-                    positive_categories.add(d['category'])
-            return sorted(positive_categories)
-
-        # Local function for parallelization
-        def render_image_no_gt(file_info):
-
-            image_relative_path = file_info[0]
-            max_conf = file_info[1]
-            detections = file_info[2]
-
-            detection_status = DetectionStatus.DS_UNASSIGNED
-            if max_conf >= options.confidence_threshold:
-                detection_status = DetectionStatus.DS_POSITIVE
-            else:
-                if options.include_almost_detections:
-                    if max_conf >= options.almost_detection_confidence_threshold:
-                        detection_status = DetectionStatus.DS_ALMOST
-                    else:
-                        detection_status = DetectionStatus.DS_NEGATIVE
-                else:
-                    detection_status = DetectionStatus.DS_NEGATIVE
-
-            if detection_status == DetectionStatus.DS_POSITIVE:
-                if options.separate_detections_by_category:
-                    positive_categories = tuple(get_positive_categories(detections))
-                    res = detection_categories_to_results_name[positive_categories]
-                else:
-                    res = 'detections'
-
-            elif detection_status == DetectionStatus.DS_NEGATIVE:
-                res = 'non_detections'
-            else:
-                assert detection_status == DetectionStatus.DS_ALMOST
-                res = 'almost_detections'
-
-            display_name = '<b>Result type</b>: {}, <b>Image</b>: {}, <b>Max conf</b>: {:0.3f}'.format(
-                res, image_relative_path, max_conf)
-
-            rendering_options = copy.copy(options)
-            if detection_status == DetectionStatus.DS_ALMOST:
-                rendering_options.confidence_threshold = rendering_options.almost_detection_confidence_threshold
-            rendered_image_html_info = render_bounding_boxes(
-                options.image_base_dir,
-                image_relative_path,
-                display_name,
-                detections,
-                res,
-                detection_categories,
-                classification_categories,
-                rendering_options)
-
-            image_result = None
-
-            if len(rendered_image_html_info) > 0:
-
-                image_result = [[res, rendered_image_html_info]]
-
-                for det in detections:
-
-                    if ('classifications' in det):
-
-                        # This is a list of [class,confidence] pairs, sorted by confidence
-                        classifications = det['classifications']
-                        top1_class_id = classifications[0][0]
-                        top1_class_name = classification_categories[top1_class_id]
-                        top1_class_score = classifications[0][1]
-
-                        # If we either don't have a confidence threshold, or we've met our
-                        # confidence threshold
-                        if (options.classification_confidence_threshold < 0) or \
-                            (top1_class_score >= options.classification_confidence_threshold):
-                            image_result.append(['class_{}'.format(top1_class_name),
-                                                 rendered_image_html_info])
-                        else:
-                            image_result.append(['class_unreliable',
-                                                 rendered_image_html_info])
-
-                    # ...if this detection has classification info
-
-                # ...for each detection
-
-            return image_result
-
-        # ...def render_image_no_gt(file_info):
-
         start_time = time.time()
         if options.parallelize_rendering:
-            if options.parallelize_rendering_n_cores is None:
-                pool = ThreadPool()
+            
+            if options.parallelize_rendering_n_cores is None:                
+                if options.parallelize_rendering_with_threads:
+                    pool = ThreadPool()
+                else:
+                    pool = Pool()
             else:
-                print('Rendering images with {} workers'.format(options.parallelize_rendering_n_cores))
-                pool = ThreadPool(options.parallelize_rendering_n_cores)
-            rendering_results = list(tqdm(pool.imap(render_image_no_gt, files_to_render), total=len(files_to_render)))
+                if options.parallelize_rendering_with_threads:
+                    pool = ThreadPool(options.parallelize_rendering_n_cores)
+                    worker_string = 'threads'
+                else:
+                    pool = Pool(options.parallelize_rendering_n_cores)
+                    worker_string = 'processes'
+                print('Rendering images with {} {}'.format(options.parallelize_rendering_n_cores,
+                                                           worker_string))
+                
+            # render_image_no_gt(file_info,detection_categories_to_results_name,
+            # detection_categories,classification_categories)
+
+            from functools import partial
+            rendering_results = list(tqdm(pool.imap(
+                partial(render_image_no_gt, 
+                        detection_categories_to_results_name=detection_categories_to_results_name,
+                        detection_categories=detection_categories,
+                        classification_categories=classification_categories,
+                        options=options),
+                        files_to_render), total=len(files_to_render)))
         else:
             for file_info in tqdm(files_to_render):
-                rendering_results.append(render_image_no_gt(file_info))
+                rendering_results.append(render_image_no_gt(file_info,
+                                                            detection_categories_to_results_name,
+                                                            detection_categories,
+                                                            classification_categories,
+                                                            options=options))
+                
         elapsed = time.time() - start_time
 
         # Map all the rendering results in the list rendering_results into the
