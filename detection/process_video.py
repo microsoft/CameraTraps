@@ -41,7 +41,7 @@ class ProcessVideoOptions:
     recursive = False 
 
     rendering_confidence_threshold = 0.8
-    json_confidence_threshold = 0.0
+    json_confidence_threshold = 0.005
     frame_sample = None
     
     n_cores = 1
