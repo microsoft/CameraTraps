@@ -69,7 +69,7 @@ class RepeatDetectionOptions:
 
     # How many occurrences of a single location (as defined by the IOU threshold)
     # are required before we declare it suspicious?
-    occurrenceThreshold = 15
+    occurrenceThreshold = 20
 
     # Ignore "suspicious" detections larger than some size; these are often animals
     # taking up the whole image.  This is expressed as a fraction of the image size.
