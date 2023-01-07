@@ -487,7 +487,7 @@ options = repeat_detections_core.RepeatDetectionOptions()
 options.confidenceMin = 0.15
 options.confidenceMax = 1.01
 options.iouThreshold = 0.85
-options.occurrenceThreshold = 10
+options.occurrenceThreshold = 20
 options.maxSuspiciousDetectionSize = 0.2
 # options.minSuspiciousDetectionSize = 0.05
 
