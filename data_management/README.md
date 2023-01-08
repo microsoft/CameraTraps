@@ -53,7 +53,7 @@ category
   # Required
   
   # Category ID 0 reserved for the class "empty"; all other categories vary by data
-  # set.  Positive integers only.
+  # set.  Non-negative integers only.
   "id" : int,
   "name" : str  
 }
