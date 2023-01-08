@@ -276,8 +276,10 @@ def process_images(db_path, output_dir, image_base_dir, options=None):
             
         if 'frame_num' in img and 'seq_num_frames' in img:
             frameString = ' frame: {} of {}, '.format(img['frame_num'],img['seq_num_frames'])
+        elif 'frame_num' in img:
+            frameString = ' frame: {}, '.format(img['frame_num'])
         else:
-            frameString = ' frame: (unknown) '
+            frameString = ' '
         
         filename_text = img_relative_path
         if options.include_filename_links:
