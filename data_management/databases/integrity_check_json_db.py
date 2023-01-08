@@ -200,7 +200,8 @@ def integrity_check_json_db(jsonFile, options=None):
             
         if 'location' in image:
             # We previously supported ints here; this should be strings now
-            # assert isinstance(image['location'], str) or isinstance(image['location'], int), 'Illegal image location type'
+            # assert isinstance(image['location'], str) or isinstance(image['location'], int), \
+            #  'Illegal image location type'
             assert isinstance(image['location'], str)
             imageLocationSet.add(image['location'])
     
