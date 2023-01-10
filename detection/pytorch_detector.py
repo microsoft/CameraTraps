@@ -13,8 +13,14 @@ import ct_utils
 
 try:
     # import pre- and post-processing functions from the YOLOv5 repo https://github.com/ultralytics/yolov5
-    from utils.general import non_max_suppression, scale_coords, xyxy2xywh
+    from utils.general import non_max_suppression, xyxy2xywh
     from utils.augmentations import letterbox
+    
+    # scale_coords() became scale_boxes() in later YOLOv5 versions
+    try:
+        from utils.general import scale_coords
+    except ImportError:        
+        from utils.general import scale_boxes as scale_coords
 except ModuleNotFoundError:
     raise ModuleNotFoundError('Could not import YOLOv5 functions.')
 

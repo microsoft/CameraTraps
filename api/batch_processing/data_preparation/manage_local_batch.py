@@ -37,8 +37,6 @@ json_threshold = None
 # Turn warnings into errors if more than this many images are missing
 max_tolerable_failed_images = 100
 
-n_rendering_threads = 50
-
 use_image_queue = False
 
 # Only relevant when we're using a single GPU
@@ -401,15 +399,17 @@ render_animals_only = False
 
 options = PostProcessingOptions()
 options.image_base_dir = input_path
-options.parallelize_rendering = True
 options.include_almost_detections = True
 options.num_images_to_sample = 7500
-options.parallelize_rendering_n_cores = n_rendering_threads
 options.confidence_threshold = 0.2
 options.almost_detection_confidence_threshold = options.confidence_threshold - 0.05
 options.ground_truth_json_file = None
 options.separate_detections_by_category = True
 # options.sample_seed = 0
+
+options.parallelize_rendering = True
+options.parallelize_rendering_n_cores = 50
+options.parallelize_rendering_with_threads = False
 
 if render_animals_only:
     # Omit some pages from the output, useful when animals are rare
@@ -487,7 +487,7 @@ options = repeat_detections_core.RepeatDetectionOptions()
 options.confidenceMin = 0.15
 options.confidenceMax = 1.01
 options.iouThreshold = 0.85
-options.occurrenceThreshold = 10
+options.occurrenceThreshold = 20
 options.maxSuspiciousDetectionSize = 0.2
 # options.minSuspiciousDetectionSize = 0.05
 
@@ -560,7 +560,6 @@ render_animals_only = False
 
 options = PostProcessingOptions()
 options.image_base_dir = input_path
-options.parallelize_rendering = True
 options.include_almost_detections = True
 options.num_images_to_sample = 7500
 options.confidence_threshold = 0.2
@@ -568,6 +567,10 @@ options.almost_detection_confidence_threshold = options.confidence_threshold - 0
 options.ground_truth_json_file = None
 options.separate_detections_by_category = True
 # options.sample_seed = 0
+
+options.parallelize_rendering = True
+options.parallelize_rendering_n_cores = 50
+options.parallelize_rendering_with_threads = False
 
 if render_animals_only:
     # Omit some pages from the output, useful when animals are rare
@@ -1163,7 +1166,6 @@ for classification_detection_file in classification_detection_files:
     
     options = PostProcessingOptions()
     options.image_base_dir = input_path
-    options.parallelize_rendering = True
     options.include_almost_detections = True
     options.num_images_to_sample = 10000
     options.confidence_threshold = 0.2
@@ -1171,6 +1173,10 @@ for classification_detection_file in classification_detection_files:
     options.almost_detection_confidence_threshold = options.confidence_threshold - 0.05
     options.ground_truth_json_file = None
     options.separate_detections_by_category = True
+    
+    options.parallelize_rendering = True
+    options.parallelize_rendering_n_cores = 50
+    options.parallelize_rendering_with_threads = False
     
     folder_token = classification_detection_file.split(os.path.sep)[-1].replace('classifier.json','')
     
