@@ -19,6 +19,7 @@ dependencies:
 - requests
 
 # Dependencies not in the MD environment
+- azure-storage-blob
 - joblib
 - scikit-image>=0.13.1
 - scikit-learn>=0.19.1

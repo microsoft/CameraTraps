@@ -309,13 +309,15 @@ def frame_results_to_video_results(input_file,output_file,options:FrameToVideoOp
         # category_id = list(detection_categories.keys())[0]
         for category_id in detection_categories:
             
-            category_detections = [det for det in all_detections_this_video if det['category'] == category_id]
+            category_detections = [det for det in all_detections_this_video if \
+                                   det['category'] == category_id]
             
             # Find the nth-highest-confidence video to choose a confidence value
-            if len(category_detections) > options.nth_highest_confidence:
+            if len(category_detections) >= options.nth_highest_confidence:
                 
-                category_detections_by_confidence = sorted(category_detections, key = lambda i: i['conf'],reverse=True)
-                canonical_detection = category_detections_by_confidence[options.nth_highest_confidence]
+                category_detections_by_confidence = sorted(category_detections, 
+                                                           key = lambda i: i['conf'],reverse=True)
+                canonical_detection = category_detections_by_confidence[options.nth_highest_confidence-1]
                 canonical_detections.append(canonical_detection)
                                       
         # Prepare the output representation for this video
@@ -427,12 +429,14 @@ if False:
         assert os.path.isdir(rendered_detector_output_folder)
         
         frame_files_relative = os.listdir(rendered_detector_output_folder)
-        frame_files_absolute = [os.path.join(rendered_detector_output_folder,s) for s in frame_files_relative]
+        frame_files_absolute = [os.path.join(rendered_detector_output_folder,s) \
+                                for s in frame_files_relative]
         
         output_video_filename = os.path.join(rendered_videos_folder_base,folder_relative)
         os.makedirs(os.path.dirname(output_video_filename),exist_ok=True)
         
-        original_video_filename = output_video_filename.replace(rendered_videos_folder_base,input_folder)
+        original_video_filename = output_video_filename.replace(
+            rendered_videos_folder_base,input_folder)
         assert os.path.isfile(original_video_filename)
         Fs = get_video_fs(original_video_filename)
                 
