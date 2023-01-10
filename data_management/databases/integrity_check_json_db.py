@@ -133,6 +133,7 @@ def integrity_check_json_db(jsonFile, options=None):
     imageIdToImage = {}
     annIdToAnn = {}
     catIdToCat = {}
+    catNameToCat = {}
     imageLocationSet = set()
     
     print('Checking categories...')
@@ -147,11 +148,15 @@ def integrity_check_json_db(jsonFile, options=None):
         assert isinstance(cat['name'],str), 'Illegal category name type'
         
         catId = cat['id']
+        catName = cat['name']
         
         # Confirm ID uniqueness
-        assert catId not in catIdToCat
+        assert catId not in catIdToCat, 'Category ID {} is used more than once'.format(catId)
         catIdToCat[catId] = cat
         cat['_count'] = 0
+        
+        assert catName not in catNameToCat, 'Category name {} is used more than once'.format(catName)
+        catNameToCat[catName] = cat        
         
     # ...for each category
         
@@ -200,7 +205,8 @@ def integrity_check_json_db(jsonFile, options=None):
             
         if 'location' in image:
             # We previously supported ints here; this should be strings now
-            # assert isinstance(image['location'], str) or isinstance(image['location'], int), 'Illegal image location type'
+            # assert isinstance(image['location'], str) or isinstance(image['location'], int), \
+            #  'Illegal image location type'
             assert isinstance(image['location'], str)
             imageLocationSet.add(image['location'])
     
