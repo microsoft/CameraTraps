@@ -20,7 +20,7 @@ from visualization import visualize_detector_output
 from ct_utils import args_to_object
 from detection.video_utils import video_to_frames
 from detection.video_utils import frames_to_video
-from detection.video_utils import frame_results_to_video_results
+from detection.video_utils import frame_results_to_video_results,FrameToVideoOptions
 from detection.video_utils import video_folder_to_frames
 from uuid import uuid1
 
@@ -41,7 +41,7 @@ class ProcessVideoOptions:
     recursive = False 
 
     rendering_confidence_threshold = 0.8
-    json_confidence_threshold = 0.0
+    json_confidence_threshold = 0.005
     frame_sample = None
     
     n_cores = 1
@@ -208,6 +208,14 @@ def process_video_folder(options):
 
 if False:
 
+    #%% Just test frame <--> video .json conversion
+
+    options = FrameToVideoOptions()
+    input_file = '/home/user/tmp/tmp.frames.json'
+    output_file = '/home/user/tmp/tmp.json'
+    frame_results_to_video_results(input_file,output_file,options)
+    
+    
     #%% Process a folder of videos
     
     model_file = r'g:\temp\models\md_v4.1.0.pb'
@@ -317,7 +325,8 @@ if False:
             im['detections'] = valid_detections
             im['max_detection_conf'] = max_detection_conf
             
-        print('Kept {} of {} detections (min conf {})'.format(n_valid_detections,n_detections,min_valid_confidence))
+        print('Kept {} of {} detections (min conf {})'.format(
+            n_valid_detections,n_detections,min_valid_confidence))
         
         with open(results_file,'w') as f:
             json.dump(d,f,indent=2)
