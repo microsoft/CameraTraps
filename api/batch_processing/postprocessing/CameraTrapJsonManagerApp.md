@@ -33,7 +33,7 @@ If you open your camera trap results file in that Timelapse project, it will loo
 
 ## Download
 
-Download the application <a href="https://lila.science/public/CameraTrapApiOutputManager.1.2.0.2.zip">here</a>.
+Download the application <a href="https://lila.science/public/CameraTrapApiOutputManager/CameraTrapApiOutputManager.1.2.0.4.zip">here</a>.
 
 
 ## User guide

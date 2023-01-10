@@ -62,10 +62,9 @@ namespace CameraTrapJsonManagerApp
             this.Text += " (version " + System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString() + ")";
 
 #if DEBUG            
-            // textboxInputFile.Text = @"C:\temp\980_detections_uw_gardner_mar2020_20200325233026.json";
-            textboxInputFile.Text = @"C:\temp\json_test.json";
-            textboxOutputFolderFile.Text = @"c:\temp\out";
-            textboxConfidenceThreshold.Text = "0.5";
+            textboxInputFile.Text = @"g:\temp\test.json";
+            textboxOutputFolderFile.Text = @"g:\temp\out";
+            textboxConfidenceThreshold.Text = "";
             textBoxSplitParameter.Text = "1";
             comboBoxSplitFolderMode.SelectedItem = "NFromTop";
             checkBoxMakeFolderRelative.Checked = true;
