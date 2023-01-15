@@ -28,7 +28,8 @@ overwrite = True
 n_threads = 5
 every_n_frames = 10
 
-frame_filenames_by_video,fs_by_video = video_utils.video_folder_to_frames(input_folder=input_folder,
+frame_filenames_by_video,fs_by_video,video_filenames = \
+    video_utils.video_folder_to_frames(input_folder=input_folder,
                                                               output_folder_base=output_folder_base,
                                                               recursive=recursive,
                                                               overwrite=overwrite,

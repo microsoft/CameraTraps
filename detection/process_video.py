@@ -152,13 +152,22 @@ def process_video_folder(options):
     os.makedirs(frame_output_folder, exist_ok=True)
 
     print('Extracting frames')
-    frame_filenames, Fs = video_folder_to_frames(input_folder=options.input_video_file,
+    frame_filenames, Fs, video_filenames = \
+        video_folder_to_frames(input_folder=options.input_video_file,
                                output_folder_base=frame_output_folder, 
                                recursive=options.recursive, overwrite=True,
                                n_threads=options.n_cores,every_n_frames=options.frame_sample,
                                verbose=options.verbose)
     
     image_file_names = list(itertools.chain.from_iterable(frame_filenames))
+    
+    if len(image_file_names) == 0:
+        if len(video_filenames) == 0:
+            print('No videos found in folder {}'.format(options.input_video_file))
+        else:
+            print('No frames extracted from folder {}, this may be due to an '\
+                  'unsupported video codec'.format(options.input_video_file))
+        return
 
     if options.debug_max_frames is not None and options.debug_max_frames > 0:
         image_file_names = image_file_names[0:options.debug_max_frames]
