@@ -99,17 +99,7 @@ namespace CameraTrapJsonManagerApp
                     if (options.MakeFolderRelative)
                         foldersToImages = MakeFoldersRelative(foldersToImages);
 
-                    var ext = System.IO.Path.GetExtension(outputFilename);
-                    string directory = outputFilename;
-                    if (ext != String.Empty)
-                    {
-                        directory = outputFilename.Replace("\\", "/");
-                        if (directory.Contains("/"))
-                            directory = outputFilename.Substring(0, outputFilename.LastIndexOf("/"));
-                        else
-                            directory = outputFilename;
-                    }
-                    Directory.CreateDirectory(directory);
+                    Directory.CreateDirectory(outputFilename);
 
                     var allImages = data.images;
 
@@ -262,18 +252,19 @@ namespace CameraTrapJsonManagerApp
                 if (progressPercentagesForDisplay.Contains(percentage))
                     SetLabelProgressMsg(progressMsg, count, totalCount, ProgressBarStyle.Blocks);
 
-                dynamic p;
-                dynamic pOrig = item.max_detection_conf;
                 List<Detection> detections = new List<Detection>();
 
                 // detections = [d for d in im['detections'] if d['conf'] >= options.confidence_threshold]
 
-                // Failed images have no detections array
+                // Failed images have no detections array, always include them in the output
                 if (item.detections == null)
                 {
                     imagesOut.Add(item);
                     continue;
                 }
+
+                dynamic p;
+                dynamic pOrig = item.max_detection_conf;
 
                 // Find all detections above threshold for this image
                 foreach (var d in item.detections)
@@ -627,10 +618,14 @@ namespace CameraTrapJsonManagerApp
                 {
                     Formatting = Formatting.Indented,
                     Indentation = 1,
-                    IndentChar = ' '
+                    IndentChar = ' ',
                 })
                 {
-                    (new JsonSerializer()).Serialize(jtw, data);
+                    JsonSerializer _serializer = new JsonSerializer
+                    {
+                        NullValueHandling = NullValueHandling.Ignore
+                    };
+                    _serializer.Serialize(jtw, data);
                 }
             }
             catch (Exception ex)
