@@ -493,7 +493,10 @@ def render_image_no_gt(file_info,detection_categories_to_results_name,
 
     if detection_status == DetectionStatus.DS_POSITIVE:
         if options.separate_detections_by_category:
-            positive_categories = tuple(get_positive_categories(detections,options))
+            positive_categories = tuple(get_positive_categories(detections,options))            
+            if positive_categories not in detection_categories_to_results_name:
+                raise ValueError('Error: {} not in category mapping (file {})'.format(
+                    str(positive_categories),image_relative_path))
             res = detection_categories_to_results_name[positive_categories]
         else:
             res = 'detections'
@@ -879,7 +882,8 @@ def process_batch_results(options: PostProcessingOptions
             classifier_cm_array /= (classifier_cm_array.sum(axis=1, keepdims=True) + 1e-7)
 
             # Print some statistics
-            print('Finished computation of {} classification results'.format(len(classifier_accuracies)))
+            print('Finished computation of {} classification results'.format(
+                len(classifier_accuracies)))
             print('Mean accuracy: {}'.format(np.mean(classifier_accuracies)))
 
             # Prepare confusion matrix output
@@ -899,8 +903,10 @@ def process_batch_results(options: PostProcessingOptions
                              zip(classname_list, cm_str.splitlines())]
 
             # Print formatted confusion matrix
-            print('Confusion matrix: ')
-            print(*cm_str_lines, sep='\n')
+            if False:
+                # Actually don't, this gets really messy in all but the widest consoles
+                print('Confusion matrix: ')
+                print(*cm_str_lines, sep='\n')
 
             # Plot confusion matrix
 
