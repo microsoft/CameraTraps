@@ -208,6 +208,9 @@ def video_folder_to_frames(input_folder:str, output_folder_base:str,
     # Recursively enumerate video files
     input_files_full_paths = find_videos(input_folder,recursive=recursive)
     print('Found {} videos in folder {}'.format(len(input_files_full_paths),input_folder))
+    if len(input_files_full_paths) == 0:
+        return [],[],[]
+    
     input_files_relative_paths = [os.path.relpath(s,input_folder) for s in input_files_full_paths]
     input_files_relative_paths = [s.replace('\\','/') for s in input_files_relative_paths]
     
@@ -251,7 +254,7 @@ def video_folder_to_frames(input_folder:str, output_folder_base:str,
         frame_filenames_by_video = [x[0] for x in results]
         fs_by_video = [x[1] for x in results]
         
-    return frame_filenames_by_video,fs_by_video
+    return frame_filenames_by_video,fs_by_video,input_files_full_paths
   
 
 class FrameToVideoOptions:
@@ -366,7 +369,8 @@ if False:
     
     #%% Split videos into frames
         
-    frame_filenames_by_video,fs_by_video = video_folder_to_frames(input_folder,frame_folder_base,recursive=True)
+    frame_filenames_by_video,fs_by_video,video_filenames = \
+        video_folder_to_frames(input_folder,frame_folder_base,recursive=True)
     
     
     #%% List image files, break into folders
