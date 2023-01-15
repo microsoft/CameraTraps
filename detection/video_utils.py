@@ -100,8 +100,8 @@ def get_video_fs(input_video_file):
     return Fs
 
 
-def video_to_frames(input_video_file, output_folder, overwrite=True, every_n_frames=None, 
-                    verbose=False):
+def video_to_frames(input_video_file, output_folder, overwrite=True, 
+                    every_n_frames=None, verbose=False):
     """
     Render every frame of [input_video_file] to a .jpg in [output_folder]
     
@@ -198,14 +198,16 @@ def video_to_frames(input_video_file, output_folder, overwrite=True, every_n_fra
 
 def video_folder_to_frames(input_folder:str, output_folder_base:str, 
                            recursive:bool=True, overwrite:bool=True,
-                           n_threads:int=1, every_n_frames:int=None):
+                           n_threads:int=1, every_n_frames:int=None,
+                           verbose=False):
     """
     For every video file in input_folder, create a folder within output_folder_base, and 
     render every frame of the video to .jpg in that folder.
     """
     
     # Recursively enumerate video files
-    input_files_full_paths = find_videos(input_folder,recursive=True)
+    input_files_full_paths = find_videos(input_folder,recursive=recursive)
+    print('Found {} videos in folder {}'.format(len(input_files_full_paths),input_folder))
     input_files_relative_paths = [os.path.relpath(s,input_folder) for s in input_files_full_paths]
     input_files_relative_paths = [s.replace('\\','/') for s in input_files_relative_paths]
     
@@ -226,7 +228,8 @@ def video_folder_to_frames(input_folder:str, output_folder_base:str,
         # Render frames
         # input_video_file = input_fn_absolute; output_folder = output_folder_video
         frame_filenames,fs = video_to_frames(input_fn_absolute,output_folder_video,
-                                             overwrite=overwrite,every_n_frames=every_n_frames)
+                                             overwrite=overwrite,every_n_frames=every_n_frames,
+                                             verbose=verbose)
         
         return frame_filenames,fs
     
