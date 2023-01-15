@@ -328,6 +328,12 @@ def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=No
     
     if n_cores is None:
         n_cores = 1
+    
+    if confidence_threshold is None:
+        confidence_threshold=DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD
+        
+    if checkpoint_frequency is None:
+        checkpoint_frequency = -1
         
     # Handle the case where image_file_names is not yet actually a list
     if isinstance(image_file_names,str):
@@ -663,7 +669,15 @@ def main():
     # Find the images to score; images can be a directory, may need to recurse
     if os.path.isdir(args.image_file):
         image_file_names = ImagePathUtils.find_images(args.image_file, args.recursive)
-        print('{} image files found in the input directory'.format(len(image_file_names)))
+        if len(image_file_names) > 0:
+            print('{} image files found in the input directory'.format(len(image_file_names)))
+        else:
+            if (args.recursive):
+                print('No image files found in directory {}, exiting'.format(args.image_file))
+            else:
+                print('No image files found in directory {}, did you mean to specify --recursive?'.format(
+                    args.image_file))
+            return
         
     # A json list of image paths
     elif os.path.isfile(args.image_file) and args.image_file.endswith('.json'):
