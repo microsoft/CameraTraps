@@ -308,7 +308,7 @@ def process_image(im_file, detector, confidence_threshold, image=None,
 
 def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=None,
                                 confidence_threshold=DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD,
-                                checkpoint_frequency=-1, results=None, n_cores=0,
+                                checkpoint_frequency=-1, results=None, n_cores=1,
                                 use_image_queue=False, quiet=False, image_size=None):
     """
     Args
@@ -325,6 +325,9 @@ def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=No
     Returns
     - results: list of dict, each dict represents detections on one image
     """
+    
+    if n_cores is None:
+        n_cores = 1
         
     # Handle the case where image_file_names is not yet actually a list
     if isinstance(image_file_names,str):

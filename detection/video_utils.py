@@ -181,7 +181,8 @@ def video_to_frames(input_video_file, output_folder, overwrite=True, every_n_fra
                 else:
                     is_success, im_buf_arr = cv2.imencode('.jpg', image)
                     im_buf_arr.tofile(frame_filename)
-                assert os.path.isfile(frame_filename), 'Output frame {} unavailable'.format(frame_filename)
+                assert os.path.isfile(frame_filename), \
+                    'Output frame {} unavailable'.format(frame_filename)
             except KeyboardInterrupt:
                 vidcap.release()
                 raise
