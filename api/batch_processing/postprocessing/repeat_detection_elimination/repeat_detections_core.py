@@ -738,13 +738,15 @@ def update_detection_table(RepeatDetectionResults, options, outputFilename=None)
             if (maxP is None) or (p > maxP):
                 maxP = p
         
+        # We should only be making detections *less* likely in this process
+        assert maxP <= maxPOriginal
+        detectionResults.at[iRow, 'max_detection_conf'] = maxP
+
+        # If there was a meaningful change, count it
         if abs(maxP - maxPOriginal) > 1e-3:
 
-            # We should only be making detections *less* likely
             assert maxP < maxPOriginal
-            # row['max_confidence'] = str(maxP)
-            detectionResults.at[iRow, 'max_detection_conf'] = maxP
-
+            
             nProbChanges += 1
 
             if (maxP < 0) and (maxPOriginal >= 0):
@@ -754,7 +756,8 @@ def update_detection_table(RepeatDetectionResults, options, outputFilename=None)
                 nProbChangesAcrossThreshold += 1
 
             # Negative probabilities should be the only reason maxP changed, so
-            # we should have found at least one negative value
+            # we should have found at least one negative value if we reached
+            # this point.
             assert nNegative > 0
 
         # ...if there was a meaningful change to the max probability for this row

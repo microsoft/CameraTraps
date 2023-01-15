@@ -37,13 +37,16 @@ output_base = r'c:\temp\wi_output'
 os.makedirs(output_base,exist_ok = True)
 
     
-    
 #%% Constants
 
-projects_file_name = 'projects.csv'
-deployments_file_name = 'deployments.csv'
-images_file_name = 'images.csv'
-cameras_file_name = 'cameras.csv'
+
+projects_file_name = 'Template Wildlife Insights Batch Upload - Projectv1.0.csv'
+deployments_file_name = 'Template Wildlife Insights Batch Upload - Deploymentv1.0.csv'
+images_file_name = 'Template Wildlife Insights Batch Upload - Imagev1.0.csv'
+cameras_file_name = 'Template Wildlife Insights Batch Upload - Camerav1.0.csv'
+
+assert all([os.path.isfile(os.path.join(templates_dir,fn)) for fn in \
+            [projects_file_name,deployments_file_name,images_file_name,cameras_file_name]])
 
 
 #%% Project information
@@ -231,8 +234,7 @@ for im in input_data['images']:
     assert len(taxon_info.keys()) == 7
     
     for s in taxon_info.keys():
-        row[s] = taxon_info[s]
-    
+        row[s] = taxon_info[s]    
     
     # We don't have counts, but we can differentiate between zero and 1
     if category_name == 'empty':
