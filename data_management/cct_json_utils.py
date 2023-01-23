@@ -6,13 +6,15 @@ https://github.com/Microsoft/CameraTraps/blob/master/data_management/README.md#c
 
 #%% Constants and imports
 
-from collections import defaultdict, OrderedDict
 import json
 import os
+
+from tqdm import tqdm
+from collections import defaultdict, OrderedDict
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Union
 
-
 JSONObject = Mapping[str, Any]
+
 
 #%% Classes
 
@@ -221,3 +223,94 @@ class IndexedJsonDb:
         return class_names
 
 # ...class IndexedJsonDb
+
+
+#%% Functions
+
+class SequenceOptions:
+    
+    episode_interval_seconds = 60.0
+
+    
+def create_sequences(image_info,options=None):
+    """
+    Synthesize episodes/sequences/bursts for the images in [image_info].  [image_info]
+    should be a list of dicts in CCT format, i.e. with fields 'file_name','datetime','location'.
+    
+    'filename' should be a string.
+    
+    'datetime' should be a Python datetime object
+    
+    'location' should be a string.
+    
+    Modifies [image_info], populating the 'seq_id', 'seq_num_frames', and 'frame_num' fields
+    for each image.
+    """
+    
+    if options is None:
+        options = SequenceOptions()
+        
+    # Find all unique locations
+    locations = set()
+    for im in image_info:
+        locations.add(im['location'])
+        
+    print('Found {} locations'.format(len(locations)))    
+    locations = list(locations)
+    locations.sort()
+    
+    all_sequences = set()
+    
+    # i_location = 0; location = locations[i_location]
+    for i_location,location in tqdm(enumerate(locations),total=len(locations)):
+        
+        images_this_location = [im for im in image_info if im['location'] == location]    
+        sorted_images_this_location = sorted(images_this_location, key = lambda im: im['datetime'])
+        
+        sequence_id_to_images_this_location = defaultdict(list)
+
+        current_sequence_id = None
+        next_frame_number = 0
+        next_sequence_number = 0
+        previous_datetime = None
+            
+        # previous_datetime = sorted_images_this_location[0]['datetime']
+        # im = sorted_images_this_location[1]
+        for im in sorted_images_this_location:
+            
+            if previous_datetime is None:
+                delta = None
+            else:
+                delta = (im['datetime'] - previous_datetime).total_seconds()
+            
+            # Start a new sequence if necessary
+            if delta is None or delta > options.episode_interval_seconds:
+                next_frame_number = 0
+                current_sequence_id = 'location_{}_sequence_index_{}'.format(
+                    location,str(next_sequence_number).zfill(5))
+                next_sequence_number = next_sequence_number + 1
+                assert current_sequence_id not in all_sequences
+                all_sequences.add(current_sequence_id)                
+                
+            im['seq_id'] = current_sequence_id
+            im['seq_num_frames'] = None
+            im['frame_num'] = next_frame_number
+            sequence_id_to_images_this_location[current_sequence_id].append(im)
+            next_frame_number = next_frame_number + 1
+            previous_datetime = im['datetime']
+        
+        # ...for each image in this location
+    
+        # Fill in seq_num_frames
+        for seq_id in sequence_id_to_images_this_location.keys():
+            assert seq_id in sequence_id_to_images_this_location
+            images_this_sequence = sequence_id_to_images_this_location[seq_id]
+            assert len(images_this_sequence) > 0
+            for im in images_this_sequence:
+                im['seq_num_frames'] = len(images_this_sequence)
+                
+    # ...for each location
+    
+    print('Created {} sequences from {} images'.format(len(all_sequences),len(image_info)))
+    
+# ...create_sequences()
