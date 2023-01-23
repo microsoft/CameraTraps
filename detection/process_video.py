@@ -39,6 +39,7 @@ class ProcessVideoOptions:
     keep_output_frames = False
     reuse_results_if_available = False
     recursive = False 
+    verbose = False
 
     rendering_confidence_threshold = 0.8
     json_confidence_threshold = 0.005
@@ -150,12 +151,23 @@ def process_video_folder(options):
             tempdir, os.path.basename(options.input_video_file) + '_frames_' + str(uuid1()))
     os.makedirs(frame_output_folder, exist_ok=True)
 
-    frame_filenames, Fs = video_folder_to_frames(input_folder=options.input_video_file,
+    print('Extracting frames')
+    frame_filenames, Fs, video_filenames = \
+        video_folder_to_frames(input_folder=options.input_video_file,
                                output_folder_base=frame_output_folder, 
                                recursive=options.recursive, overwrite=True,
-                               n_threads=options.n_cores,every_n_frames=options.frame_sample)
+                               n_threads=options.n_cores,every_n_frames=options.frame_sample,
+                               verbose=options.verbose)
     
     image_file_names = list(itertools.chain.from_iterable(frame_filenames))
+    
+    if len(image_file_names) == 0:
+        if len(video_filenames) == 0:
+            print('No videos found in folder {}'.format(options.input_video_file))
+        else:
+            print('No frames extracted from folder {}, this may be due to an '\
+                  'unsupported video codec'.format(options.input_video_file))
+        return
 
     if options.debug_max_frames is not None and options.debug_max_frames > 0:
         image_file_names = image_file_names[0:options.debug_max_frames]
@@ -173,26 +185,30 @@ def process_video_folder(options):
         else:
             video_json = options.output_json_file
             frames_json = video_json + '_frames'
-            
+
     if options.reuse_results_if_available and \
         os.path.isfile(frames_json):
             print('Loading results from {}'.format(frames_json))
             results = None
     else:
+        print('Running MegaDetector')
         results = run_detector_batch.load_and_run_detector_batch(
             options.model_file, image_file_names,
             confidence_threshold=options.json_confidence_threshold,
-            n_cores=options.n_cores)
+            n_cores=options.n_cores,
+            quiet=(not options.verbose))
     
         run_detector_batch.write_results_to_file(
             results, frames_json,
-            relative_path_base=frame_output_folder)
+            relative_path_base=frame_output_folder,
+            detector_file=options.model_file)
     
     
     ## (Optionally) delete the frames on which we ran MegaDetector
     
     if not options.keep_output_frames:
         try:
+            print('Deleting frame cache')
             shutil.rmtree(frame_output_folder)
         except Exception as e:
             print('Warning: error deleting frame folder {}:\n{}'.format(
@@ -202,9 +218,10 @@ def process_video_folder(options):
 
     ## Convert frame-level results to video-level results
 
+    print('Converting frame-level results to video-level results')
     frame_results_to_video_results(frames_json,video_json)
-         
-        
+
+
 #%% Interactive driver
 
 
@@ -213,8 +230,8 @@ if False:
     #%% Just test frame <--> video .json conversion
 
     options = FrameToVideoOptions()
-    input_file = '/home/user/tmp/tmp.frames.json'
-    output_file = '/home/user/tmp/tmp.json'
+    input_file = os.path.expanduser('~/tmp/tmp.frames.json')
+    output_file = os.path.expanduser('~/tmp/tmp.json')
     frame_results_to_video_results(input_file,output_file,options)
     
     
@@ -232,15 +249,18 @@ if False:
     options.input_video_file = input_dir
     options.frame_folder = frame_folder
     
-    options.reuse_results_if_available = True    
+    options.verbose = False
+    options.render_output_video = True
+    options.keep_output_frames = False
+    options.recursive = True
+    
+    options.reuse_results_if_available = False
+    
     options.output_video_file = None
     options.output_json_file = None
-    options.render_output_video = False
     options.n_cores = None
     options.rendering_confidence_threshold = None
-    options.json_confidence_threshold = None
-    options.keep_output_frames = True
-    options.recursive = False
+    options.json_confidence_threshold = 0
     options.debug_max_frames = None
     options.frame_sample = None
     
