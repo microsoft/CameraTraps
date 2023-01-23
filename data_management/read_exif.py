@@ -1,86 +1,62 @@
 #
 # read_exif.py
 #
-# Given a folder of images, read relevant EXIF fields from all images, and write them to 
-# a .json or .csv file.  Depends on having exiftool available, since every pure-Python
-# approach we've tried fails on at least some fields.
+# Given a folder of images, read relevant metadata (EXIF/IPTC/XMP) fields from all images, 
+# and write them to  a .json or .csv file.  
+#
+# This module can use either PIL (which can only reliably read EXIF data) or exiftool (which
+# can read everything).  The latter approach expects that exiftool is available on the system
+# path.  No attempt is made to be consistent in format across the two approaches.
 #
 
 #%% Imports and constants
 
 import os
 import subprocess
-import multiprocessing
-import time
 import json
 
 from multiprocessing.pool import ThreadPool as ThreadPool
 from multiprocessing.pool import Pool as Pool
 
 from tqdm import tqdm
+from PIL import Image, ExifTags
 
 # From ai4eutils
 from path_utils import find_images
 
-verbose = False
-n_print = 500
+from ct_utils import args_to_object
+
 debug_max_images = None
 
-# Number of concurrent workers
-n_workers = 1
 
-# Should we use threads (vs. processes) for parallelization?
-#
-# Not relevant if n_workers is 1.
-use_threads = True
+#%% Options
 
-tag_types_to_ignore = set(['File','ExifTool'])
-
-exiftool_command_name = 'exiftool'
-
-
-#%% Multiprocessing init
-
-def pinit(c):
+class ReadExifOptions:
     
-    global cnt
-    cnt = c
+    verbose = False
     
-class Counter(object):
+    # Number of concurrent workers
+    n_workers = 1
     
-    def __init__(self, total):
-        # 'i' means integer
-        self.val = multiprocessing.Value('i', 0)
-        self.total = multiprocessing.Value('i', total)
-        self.last_print = multiprocessing.Value('i', 0)
-
-    def increment(self, n=1):
-        b_print = False
-        with self.val.get_lock():
-            self.val.value += n
-            if ((self.val.value - self.last_print.value) >= n_print):
-                self.last_print.value = self.val.value
-                b_print = True           
-        if b_print:
-            total_string = ''
-            if self.total.value > 0:
-                 total_string = ' of {}'.format(self.total.value)
-            print('{}: iteration {}{}'.format(time.strftime("%Y-%m-%d %H:%M:%S"), 
-                                                                 self.val.value,total_string),flush=True)
-    @property
-    def value(self):
-        return self.val.value
-    def last_print_value(self):
-        return self.last_print.value
+    # Should we use threads (vs. processes) for parallelization?
+    #
+    # Not relevant if n_workers is 1.
+    use_threads = True
     
-pinit(Counter(-1))
+    tag_types_to_ignore = set(['File','ExifTool'])
+    
+    exiftool_command_name = 'exiftool'
+    
+    # Should we use exiftool or pil?
+    processing_library = 'exiftool' # 'exiftool','pil'
 
 
 #%% Functions
 
 def enumerate_files(input_folder):
-    
-    # image_files will contain the *relative* paths to all image files in the input folder
+    """
+    Enumerates all image files in input_folder, returning relative paths
+    """
     
     image_files = find_images(input_folder,recursive=True)
     image_files = [os.path.relpath(s,input_folder) for s in image_files]
@@ -89,99 +65,152 @@ def enumerate_files(input_folder):
     return image_files
 
 
-def read_exif_tags_for_image(file_path):
+def read_exif_tags_for_image(file_path,options=None):
     """
     Get relevant fields from EXIF data for an image
     
-    Returns a list of lists, where each element is (type/tag/value)    
+    Returns a dict with fields 'status' (str) and 'tags'
+    
+    The exact format of 'tags' depends on options.processing_library
+    
+    For exiftool, 'tags' is a list of lists, where each element is (type/tag/value)
+    
+    For pil, 'tags' is a dict (str:str)
     """
+    
+    if options is None:
+        options = ReadExifOptions()
     
     result = {'status':'unknown','tags':[]}
     
-    # -G means "Print group name for each tag", e.g. print:
-    #
-    # [File]          Bits Per Sample                 : 8
-    #
-    # ...instead of:
-    #
-    # Bits Per Sample                 : 8
-    proc = subprocess.Popen([exiftool_command_name, '-G', file_path],
-                            stdout=subprocess.PIPE, encoding='utf8')
-    
-    exif_lines = proc.stdout.readlines()    
-    exif_lines = [s.strip() for s in exif_lines]
-    if ( (exif_lines is None) or (len(exif_lines) == 0) or not \
-        any([s.lower().startswith('[exif]') for s in exif_lines])):
-        result['status'] = 'failure'
+    if options.processing_library == 'pil':
+        
+        try:
+            img = Image.open(file_path)
+            # exif_tags = img.info['exif'] if ('exif' in img.info) else None
+            exif_info = img.getexif()
+            if exif_info is None:
+                exif_tags = None
+            else:
+                exif_tags = {}
+                for k, v in exif_info.items():
+                    assert isinstance(k,str) or isinstance(k,int), \
+                        'Invalid EXIF key {}'.format(str(k))
+                    if k in ExifTags.TAGS:
+                        exif_tags[ExifTags.TAGS[k]] = str(v)
+                    else:
+                        print('Warning: unrecognized EXIF tag: {}'.format(k))
+                        exif_tags[k] = str(v)
+
+        except Exception as e:
+            print('Read failure for image {}: {}'.format(
+                file_path,str(e)))
+            result['status'] = 'read_failure'
+            result['error'] = str(e)
+        
+        if result['status'] == 'unknown':
+            if exif_tags is None:            
+                result['status'] = 'empty_read'
+            else:
+                result['status'] = 'success'
+                result['tags'] = exif_tags
+                
+        return result
+        
+    elif options.processing_library == 'exiftool':
+        
+        # -G means "Print group name for each tag", e.g. print:
+        #
+        # [File]          Bits Per Sample                 : 8
+        #
+        # ...instead of:
+        #
+        # Bits Per Sample                 : 8
+        proc = subprocess.Popen([options.exiftool_command_name, '-G', file_path],
+                                stdout=subprocess.PIPE, encoding='utf8')
+        
+        exif_lines = proc.stdout.readlines()    
+        exif_lines = [s.strip() for s in exif_lines]
+        if ( (exif_lines is None) or (len(exif_lines) == 0) or not \
+            any([s.lower().startswith('[exif]') for s in exif_lines])):
+            result['status'] = 'failure'
+            return result
+        
+        # A list of three-element lists (type/tag/value)
+        exif_tags = []
+        
+        # line_raw = exif_lines[0]
+        for line_raw in exif_lines:
+            
+            # A typical line:
+            #
+            # [ExifTool]      ExifTool Version Number         : 12.13
+            
+            line = line_raw.strip()
+            
+            # Split on the first occurrence of ":"
+            tokens = line.split(':',1)
+            assert(len(tokens) == 2), 'EXIF tokenization failure ({} tokens, expected 2)'.format(
+                len(tokens))
+            
+            field_value = tokens[1].strip()        
+            
+            field_name_type = tokens[0].strip()        
+            field_name_type_tokens = field_name_type.split(None,1)
+            assert len(field_name_type_tokens) == 2, 'EXIF tokenization failure'
+            
+            field_type = field_name_type_tokens[0].strip()
+            assert field_type.startswith('[') and field_type.endswith(']'), \
+                'Invalid EXIF field {}'.format(field_type)
+            field_type = field_type[1:-1]
+            
+            if field_type in options.tag_types_to_ignore:
+                if options.verbose:
+                    print('Ignoring tag with type {}'.format(field_type))
+                continue        
+            
+            field_tag = field_name_type_tokens[1].strip()
+            
+            tag = [field_type,field_tag,field_value]
+            
+            exif_tags.append(tag)
+            
+        # ...for each output line
+            
+        result['status'] = 'success'
+        result['tags'] = exif_tags
         return result
     
-    # A list of three-element lists (type/tag/value)
-    exif_tags = []
+    else:
+        
+        raise ValueError('Unknown processing library {}'.format(
+            options.processing_library))
+
+    # ...which processing library are we using?
     
-    # line_raw = exif_lines[0]
-    for line_raw in exif_lines:
-        
-        # A typical line:
-        #
-        # [ExifTool]      ExifTool Version Number         : 12.13
-        
-        line = line_raw.strip()
-        
-        # Split on the first occurrence of ":"
-        tokens = line.split(':',1)
-        assert(len(tokens) == 2)
-        
-        field_value = tokens[1].strip()        
-        
-        field_name_type = tokens[0].strip()        
-        field_name_type_tokens = field_name_type.split(None,1)
-        assert len(field_name_type_tokens) == 2
-        
-        field_type = field_name_type_tokens[0].strip()
-        assert field_type.startswith('[') and field_type.endswith(']')
-        field_type = field_type[1:-1]
-        
-        if field_type in tag_types_to_ignore:
-            if verbose:
-                print('Ignoring tag with type {}'.format(field_type))
-            continue        
-        
-        field_tag = field_name_type_tokens[1].strip()
-        
-        tag = [field_type,field_tag,field_value]
-        
-        exif_tags.append(tag)
-        
-    # ...for each output line
-        
-    result['status'] = 'success'
-    result['tags'] = exif_tags
-    return result
-
-# ...process_exif()
+# ...read_exif_tags_for_image()
 
 
-def populate_exif_data(im, input_folder, overwrite=True):
+def populate_exif_data(im, image_base, options=None):
     """
     Populate EXIF data into the image object [im].
+    
+    im['file_name'] is relative to image_base.
     
     Returns a modified version of [im].
     """
     
-    if cnt is not None:
-        cnt.increment(n=1)
-        
+    if options is None:
+        options = ReadExifOptions()
+
     fn = im['file_name']
-    if verbose:
+    if options.verbose:
         print('Processing {}'.format(fn))
     
-    if ('exif_tags' in im) and (overwrite==False):
-        return None
-    
     try:
-        file_path = os.path.join(input_folder,fn)
-        assert os.path.isfile(file_path)
-        result = read_exif_tags_for_image(file_path)
+        file_path = os.path.join(image_base,fn)
+        assert os.path.isfile(file_path), 'Could not find file {}'.format(file_path)
+        result = read_exif_tags_for_image(file_path,options)
         if result['status'] == 'success':
             exif_tags = result['tags']            
             im['exif_tags'] = exif_tags
@@ -193,14 +222,23 @@ def populate_exif_data(im, input_folder, overwrite=True):
         return s    
     return im
 
+# ...populate_exif_data()
 
-def create_image_objects(input_folder):
+
+def create_image_objects(image_files):
     """
-    Create empty image objects for every image in [input_folder].
+    Create empty image objects for every image in [image_files], which can be a 
+    list of relative paths (which will get stored without processing, so the base 
+    path doesn't matter here), or a folder name.
+    
+    Returns a list of dicts with field 'file_name' (a relative path).
     """
     
-    image_files = enumerate_files(input_folder)
-
+    # Enumerate *relative* paths
+    if isinstance(image_files,str):
+        assert os.path.isdir(image_files), 'Invalid image folder {}'.format(image_files)
+        image_files = enumerate_files(image_files)
+        
     images = []
     for fn in image_files:
         im = {}
@@ -214,29 +252,36 @@ def create_image_objects(input_folder):
     return images
 
 
-def populate_exif_for_images(input_folder,images):
+def populate_exif_for_images(image_base,images,options=None):
     """
     Main worker loop: read EXIF data for each image object in [images] and 
     populate the image objects.
+    
+    'images' should be a list of dicts with the field 'file_name' containing
+    a relative path (relative to 'image_base').    
     """
     
-    if n_workers == 1:
+    if options is None:
+        options = ReadExifOptions()
+
+    if options.n_workers == 1:
       
         results = []
         for im in tqdm(images):
-            results.append(populate_exif_data(im,input_folder))
+            results.append(populate_exif_data(im,image_base,options))
         
     else:
         
         from functools import partial
-        if use_threads:
-            print('Starting parallel thread pool with {} workers'.format(n_workers))
-            pool = ThreadPool(n_workers)
+        if options.use_threads:
+            print('Starting parallel thread pool with {} workers'.format(options.n_workers))
+            pool = ThreadPool(options.n_workers)
         else:
-            print('Starting parallel process pool with {} workers'.format(n_workers))
-            pool = Pool(n_workers)
+            print('Starting parallel process pool with {} workers'.format(options.n_workers))
+            pool = Pool(options.n_workers)
     
-        results = list(pool.map(partial(populate_exif_data,input_folder=input_folder),images))
+        results = list(tqdm(pool.imap(partial(populate_exif_data,image_base=image_base,
+                                        options=options),images),total=len(images)))
 
     return results
 
@@ -244,13 +289,18 @@ def populate_exif_for_images(input_folder,images):
 def write_exif_results(results,output_file):
     """
     Write EXIF information to [output_file].
+    
+    'results' is a list of dicts with fields 'exif_tags' and 'file_name'.
+
+    Writes to .csv or .json depending on the extension of 'output_file'.         
     """
+    
     if output_file.endswith('.json'):
+        
         with open(output_file,'w') as f:
             json.dump(results,f,indent=1)
-    else:
-        
-        assert output_file.endswith('.csv')
+            
+    elif output_file.endswith('.csv'):
         
         # Find all EXIF tags that exist in any image
         all_keys = set()
@@ -303,9 +353,18 @@ def write_exif_results(results,output_file):
             
         # ...with open()
     
+    else:
+        
+        raise ValueError('Could not determine output type from file {}'.format(
+            output_file))
+        
+    # ...if we're writing to .json/.csv
+    
     print('Wrote results to {}'.format(output_file))
 
-def is_tool(name):
+
+def is_executable(name):
+    
     """Check whether `name` is on PATH and marked as executable."""
     
     # https://stackoverflow.com/questions/11210104/check-if-a-program-exists-from-a-python-script
@@ -314,27 +373,57 @@ def is_tool(name):
     return which(name) is not None
 
 
-def read_exif_from_folder(input_folder,output_file):
+def read_exif_from_folder(input_folder,output_file=None,options=None,filenames=None):
+    """
+    Read EXIF for all images in input_folder.
     
-    assert os.path.isdir(input_folder)
+    If filenames is not None, it should be a list of relative filenames; only those files will 
+    be processed.
     
-    assert output_file.lower().endswith('.json') or output_file.lower().endswith('.csv'), \
-        'I only know how to write results to .json or .csv'
-        
-    try:
-        with open(output_file, 'a') as f:
-            if not f.writable():
-                raise IOError('File not writable')
-    except Exception:
-        print('Could not write to file {}'.format(output_file))
-        raise
+    input_folder can be None or '', in which case filenames should be a list of absolute paths.
+    """
     
-    assert is_tool(exiftool_command_name), 'exiftool not available'
+    if options is None:
+        options = ReadExifOptions()
+    
+    if input_folder is None:
+        input_folder = ''
+    if len(input_folder) > 0:
+        assert os.path.isdir(input_folder), \
+            '{} is not a valid folder'.format(input_folder)
 
-    images = create_image_objects(input_folder)
-    results = populate_exif_for_images(input_folder,images)
-    write_exif_results(results,output_file)
+    assert (len(input_folder) > 0) or (filenames is not None), \
+        'Must specify either a folder or a list of files'
+        
+    if output_file is not None:    
+        
+        assert output_file.lower().endswith('.json') or output_file.lower().endswith('.csv'), \
+            'I only know how to write results to .json or .csv'
+            
+        try:
+            with open(output_file, 'a') as f:
+                if not f.writable():
+                    raise IOError('File not writable')
+        except Exception:
+            print('Could not write to file {}'.format(output_file))
+            raise
+        
+    if options.processing_library == 'exif':
+        assert is_executable(options.exiftool_command_name), 'exiftool not available'
+
+    if filenames is None:
+        images = create_image_objects(input_folder)
+    else:
+        assert isinstance(filenames,list)
+        images = create_image_objects(filenames)
+        
+    results = populate_exif_for_images(input_folder,images,options)
     
+    if output_file is not None:
+        write_exif_results(results,output_file)
+        
+    return results
+
     
 #%% Interactive driver
 
@@ -343,11 +432,19 @@ if False:
     #%%
     
     input_folder = os.path.expanduser('~/data/KRU-test')
-    # input_folder = os.path.expanduser('~/data/KRU')
-    # output_file = os.path.expanduser('~/data/test-exif.json')
-    output_file = os.path.expanduser('~/data/test-exif.csv')
+    output_file = os.path.expanduser('~/data/test-exif.json')
+    # output_file = os.path.expanduser('~/data/test-exif.csv')
+    options = ReadExifOptions()
+    options.verbose = False
+    options.n_workers = 10
+    options.use_threads = False
+    options.processing_library = 'exiftool'
+    # options.processing_library = 'pil'
+
+    # file_path = os.path.join(input_folder,'KRU_S1_11_R1_IMAG0148.JPG')
     
-    read_exif_from_folder(input_folder,output_file)
+    output_file = None
+    results = read_exif_from_folder(input_folder,output_file,options)
 
     #%%
     
@@ -358,10 +455,11 @@ if False:
 #%% Command-line driver
 
 import argparse
+import sys
 
 def main():
 
-    global use_threads,n_workers
+    options = ReadExifOptions()
     
     parser = argparse.ArgumentParser(description=('Read EXIF information from all images in' + \
                                                   ' a folder, and write the results to .csv or .json'))
@@ -372,12 +470,18 @@ def main():
                         help='Number of concurrent workers to use (defaults to 1)')
     parser.add_argument('--use_threads', action='store_true',
                         help='Use threads (instead of processes) for multitasking')
+    parser.add_argument('--processing_library', type=str, default=options.processing_library,
+                        help='Processing library (exif or pil)')
     
-    args = parser.parse_args()
-    use_threads = args.use_threads
-    n_workers = args.n_workers
+    if len(sys.argv[1:]) == 0:
+        parser.print_help()
+        parser.exit()
+
+    args = parser.parse_args()    
+    args_to_object(args, options)
+    options.processing_library = options.processing_library.lower()
     
-    read_exif_from_folder(args.input_folder,args.output_file)
+    read_exif_from_folder(args.input_folder,args.output_file,options)
     
 if __name__ == '__main__':
     main()

@@ -1,7 +1,9 @@
 """
 ct_utils.py
 
-Script with shared utility functions, such as truncating floats
+Utility functions that don't depend on other things in this repo.  Also see
+cct_json_utils.
+
 """
 import argparse
 import inspect
@@ -82,6 +84,13 @@ def pretty_print_object(obj, b_print=True):
         print(s)
     return s
 
+
+def is_list_sorted(L,reverse=False):
+    if reverse:
+        return all(L[i] >= L[i + 1] for i in range(len(L)-1))
+    else:
+        return all(L[i] <= L[i + 1] for i in range(len(L)-1))
+        
 
 def write_json(path, content, indent=1):
     with open(path, 'w') as f:
