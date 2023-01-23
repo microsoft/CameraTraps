@@ -7,6 +7,7 @@ on images.
 
 import torch
 import numpy as np
+import traceback
 
 from detection.run_detector import CONF_DIGITS, COORD_DIGITS, FAILURE_INFER
 import ct_utils
@@ -80,6 +81,7 @@ class PTDetector:
         max_conf = 0.0
 
         try:
+            
             img_original = np.asarray(img_original)
 
             # padded resize
@@ -128,12 +130,17 @@ class PTDetector:
             # format detections/bounding boxes
             gn = torch.tensor(img_original.shape)[[1, 0, 1, 0]]  # normalization gain whwh
 
+            # This is a loop over detection batches, which will always be length 1 in our case,
+            # since we're not doing batch inference.
             for det in pred:
+                
                 if len(det):
+                    
                     # Rescale boxes from img_size to im0 size
                     det[:, :4] = scale_coords(img.shape[2:], det[:, :4], img_original.shape).round()
 
                     for *xyxy, conf, cls in reversed(det):
+                        
                         # normalized center-x, center-y, width and height
                         xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()
 
@@ -152,10 +159,20 @@ class PTDetector:
                             'bbox': ct_utils.truncate_float_array(api_box, precision=COORD_DIGITS)
                         })
                         max_conf = max(max_conf, conf)
+                        
+                    # ...for each detection in this batch
+                        
+                # ...if this is a non-empty batch
+                
+            # ...for each detection batch
 
+        # ...try
+        
         except Exception as e:
+            
             result['failure'] = FAILURE_INFER
-            print('PTDetector: image {} failed during inference: {}'.format(image_id, str(e)))
+            print('PTDetector: image {} failed during inference: {}\n'.format(image_id, str(e)))
+            traceback.print_exc(e)
 
         result['max_detection_conf'] = max_conf
         result['detections'] = detections
