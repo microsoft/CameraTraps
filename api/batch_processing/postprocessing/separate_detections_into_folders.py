@@ -407,7 +407,8 @@ def separate_detections_into_folders(options):
     if (os.path.isdir(options.base_output_folder)) and \
         (len(os.listdir(options.base_output_folder) ) > 0):
         if options.allow_existing_directory:
-            print('Warning: target folder exists and is not empty... did you mean to delete an old version?')
+            print('Warning: target folder exists and is not empty... did ' + \
+                  'you mean to delete an old version?')
         else:
             raise ValueError('Target folder exists and is not empty')
     os.makedirs(options.base_output_folder,exist_ok=True)    
@@ -563,7 +564,8 @@ if False:
     
     options = SeparateDetectionsIntoFoldersOptions()
     
-    options.results_file = os.path.expanduser('~/data/snapshot-safari-2022-08-16-KRU-v5a.0.0_detections.json')
+    options.results_file = os.path.expanduser(
+        '~/data/snapshot-safari-2022-08-16-KRU-v5a.0.0_detections.json')
     options.base_input_folder = os.path.expanduser('~/data/KRU/KRU_public')
     options.base_output_folder = os.path.expanduser('~/data/KRU-separated')
     options.n_threads = 100
@@ -615,7 +617,9 @@ def main():
     parser.add_argument('base_output_folder', type=str, help='Output image folder')
 
     parser.add_argument('--threshold', type=float, default=None,
-                        help='Default confidence threshold for all categories (defaults to selection based on model version, other options may override this for specific categories)')    
+                        help='Default confidence threshold for all categories (defaults to ' + \
+                            'selection based on model version, other options may override this ' + \
+                            'for specific categories)')    
     parser.add_argument('--animal_threshold', type=float, default=None,
                         help='Confidence threshold for the animal category')
     parser.add_argument('--human_threshold', type=float, default=None,
@@ -630,17 +634,21 @@ def main():
     parser.add_argument('--allow_existing_directory', action='store_true', 
                         help='Proceed even if the target directory exists and is not empty')
     parser.add_argument('--no_overwrite', action='store_true', 
-                        help='Skip images that already exist in the target folder, must also specify --allow_existing_directory')    
+                        help='Skip images that already exist in the target folder, must also ' + \
+                             'specify --allow_existing_directory')    
     parser.add_argument('--skip_empty_images', action='store_true',
                         help='Don\'t copy empty images to the output folder')
     parser.add_argument('--render_boxes', action='store_true',
-                        help='Render bounding boxes on output images; may result in some metadata not being transferred')
+                        help='Render bounding boxes on output images; may result in some ' + \
+                             'metadata not being transferred')
     parser.add_argument('--line_thickness', type=int, default=default_line_thickness,
-                        help='Line thickness (in pixels) for rendering, only meaningful if using render_boxes (defaults to {})'.format(
+                        help='Line thickness (in pixels) for rendering, only meaningful if ' + \
+                             'using render_boxes (defaults to {})'.format(
                             default_line_thickness))
     parser.add_argument('--box_expansion', type=int, default=default_line_thickness,
-                        help='Box expansion (in pixels) for rendering, only meaningful if using render_boxes (defaults to {})'.format(
-                            default_box_expansion))
+                        help='Box expansion (in pixels) for rendering, only meaningful if ' + \
+                              'using render_boxes (defaults to {})'.format(
+                              default_box_expansion))
         
     if len(sys.argv[1:])==0:
         parser.print_help()
@@ -668,7 +676,9 @@ def main():
         if args.animal_threshold is not None \
             and args.human_threshold is not None \
             and args.vehicle_threshold is not None:
-                raise ValueError('Default threshold specified, but all category thresholds also specified... not exactly wrong, but it\'s likely that you meant something else.')        
+                raise ValueError('Default threshold specified, but all category thresholds ' + \
+                                 'also specified... not exactly wrong, but it\'s likely that you ' + \
+                                 'meant something else.')        
                     
     options.category_name_to_threshold['animal'] = args.animal_threshold
     options.category_name_to_threshold['person'] = args.human_threshold
