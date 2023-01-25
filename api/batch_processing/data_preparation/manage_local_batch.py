@@ -960,18 +960,25 @@ os.chmod(output_file, st.st_mode | stat.S_IEXEC)
 # This cell also removes everything but the non-dominant classification for each detection.
 #
 
+# How many detections do we need above the classification threshold to determine a dominant category
+# for an image?
 min_detections_above_threshold = 4
+
+# Even if we have a dominant class, if a non-dominant class has at least this many classifications
+# in an image, leave them alone.
 max_detections_secondary_class = 3
 
+# If the dominant class has at least this many classifications, overwrite "other" classifications
 min_detections_to_overwrite_other = 2
 other_category_names = ['other']
 
+# What confidence threshold should we use for assessing the dominant category in an image?
 classification_confidence_threshold = 0.6
 
 # Which classifications should we even bother over-writing?
-classification_overwrite_threshold = 0.3 # classification_confidence_threshold
+classification_overwrite_threshold = 0.3
 
-# Detection confidence threshold for things we count
+# Detection confidence threshold for things we count when determining a dominant class
 detection_confidence_threshold = 0.2
 
 # Which detections should we even bother over-writing?
@@ -1338,6 +1345,14 @@ min_dominant_class_classifications_above_threshold_for_class_smoothing = 5
 # classifications to the dominant class.
 max_secondary_class_classifications_above_threshold_for_class_smoothing = 5
 
+# If the ratio between a dominant class and a secondary class count is greater than this, 
+# regardless of the secondary class count, switch those classificaitons (i.e., ignore
+# max_secondary_class_classifications_above_threshold_for_class_smoothing).
+#
+# This may be different for different dominant classes, e.g. if we see lots of cows, they really
+# tend to be cows.  Less so for canids, so we set a higher "override ratio" for canids.
+min_dominant_class_ratio_for_secondary_override_table = {category_name_to_id['cow']:2,None:3}
+
 # If there are at least this many classifications for the dominant class in a sequence,
 # regardless of what that class is, convert all 'other' classifications (regardless of 
 # confidence) to that class.
@@ -1350,13 +1365,13 @@ min_dominant_class_classifications_above_threshold_for_unclassified_smoothing = 
 
 # Only count classifications above this confidence level when determining the dominant
 # class, and when deciding whether to switch other classifications.
-classification_confidence_threshold = 0.65
+classification_confidence_threshold = 0.6
 
 # Confidence values to use when we change a detection's classification (the
 # original confidence value is irrelevant at that point)
-flipped_other_confidence_value = 0.65
-flipped_class_confidence_value = 0.65
-flipped_unclassified_confidence_value = 0.65
+flipped_other_confidence_value = 0.6
+flipped_class_confidence_value = 0.6
+flipped_unclassified_confidence_value = 0.6
 
 min_detection_confidence_for_unclassified_flipping = 0.15
 
@@ -1472,6 +1487,12 @@ def count_above_threshold_classifications(classifications_this_sequence):
 
 # ...def count_above_threshold_classifications()
     
+def sort_images_by_time(images):
+    """
+    Returns a copy of [images], sorted by the 'datetime' field (ascending).
+    """
+    return sorted(images, key = lambda im: im['datetime'])        
+    
 
 def get_first_key_from_sorted_dictionary(di):
     if len(di) == 0:
@@ -1491,6 +1512,9 @@ n_other_flips = 0
 n_classification_flips = 0
 n_unclassified_flips = 0
 
+# Break if this token is contained in a filename (set to None for normal operation)
+debug_fn = None
+
 # i_sequence = 0; seq_id = all_sequences[i_sequence]
 for i_sequence,seq_id in tqdm(enumerate(all_sequences),total=len(all_sequences)):
     
@@ -1499,6 +1523,11 @@ for i_sequence,seq_id in tqdm(enumerate(all_sequences),total=len(all_sequences))
     # Count top-1 classifications in this sequence (regardless of confidence)
     classifications_this_sequence = top_classifications_for_sequence(images_this_sequence)
     
+    # Handy debugging code for looking at the numbers for a particular sequence
+    for im in images_this_sequence:
+        if debug_fn is not None and debug_fn in im['file_name']:
+            raise ValueError('')
+             
     if len(classifications_this_sequence) == 0:
         continue
     
@@ -1543,8 +1572,23 @@ for i_sequence,seq_id in tqdm(enumerate(all_sequences),total=len(all_sequences))
         category_ids_not_to_flip = set()
         
         for category_id in sorted_category_to_count.keys():
-            count = sorted_category_to_count[category_id]            
-            if count > max_secondary_class_classifications_above_threshold_for_class_smoothing:
+            secondary_class_count = sorted_category_to_count[category_id]
+            dominant_to_secondary_ratio = max_count / secondary_class_count
+            
+            # Don't smooth over this class if there are a bunch of them, and the ratio
+            # if primary to secondary class count isn't too large
+            
+            # Default ratio
+            ratio_for_override = min_dominant_class_ratio_for_secondary_override_table[None]
+            
+            # Does this dominant class have a custom ratio?
+            if dominant_category_id in min_dominant_class_ratio_for_secondary_override_table:
+                ratio_for_override = \
+                    min_dominant_class_ratio_for_secondary_override_table[dominant_category_id]
+                    
+            if (dominant_to_secondary_ratio < ratio_for_override) and \
+                (secondary_class_count > \
+                 max_secondary_class_classifications_above_threshold_for_class_smoothing):
                 category_ids_not_to_flip.add(category_id)
                 
         for c in classifications_this_sequence:
@@ -1600,7 +1644,7 @@ options.image_base_dir = input_path
 options.include_almost_detections = True
 options.num_images_to_sample = 10000
 options.confidence_threshold = 0.2
-options.classification_confidence_threshold = 0.75
+options.classification_confidence_threshold = 0.7
 options.almost_detection_confidence_threshold = options.confidence_threshold - 0.05
 options.ground_truth_json_file = None
 options.separate_detections_by_category = True
