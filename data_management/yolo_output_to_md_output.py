@@ -5,7 +5,7 @@
 # driver not done yet, this has only been run interactively.
 #
 # Does not currently support recursive results, since detect.py doesn't save filenames
-# in a way that allows easy inference of folder names..  Requires access to the input
+# in a way that allows easy inference of folder names.  Requires access to the input
 # images, because the YOLO format uses the *absence* of a results file to indicate that
 # no detections are present.
 #

@@ -1351,7 +1351,7 @@ max_secondary_class_classifications_above_threshold_for_class_smoothing = 5
 #
 # This may be different for different dominant classes, e.g. if we see lots of cows, they really
 # tend to be cows.  Less so for canids, so we set a higher "override ratio" for canids.
-min_dominant_class_ratio_for_secondary_override_table = {category_name_to_id['cow']:2,None:3}
+min_dominant_class_ratio_for_secondary_override_table = {classification_category_name_to_id['cow']:2,None:3}
 
 # If there are at least this many classifications for the dominant class in a sequence,
 # regardless of what that class is, convert all 'other' classifications (regardless of 
@@ -1679,11 +1679,16 @@ from zipfile import ZipFile
 
 output_path = combined_api_output_folder
 
-def zip_json_file(fn):
+def zip_json_file(fn, overwrite=False):
     
     assert fn.endswith('.json')
     basename = os.path.basename(fn)
     zip_file_name = os.path.join(output_path,basename + '.zip')
+    
+    if (not overwrite) and (os.path.isfile(zip_file_name)):
+        print('Skipping existing file {}'.format(zip_file_name))
+        return
+    
     print('Zipping {} to {}'.format(fn,zip_file_name))
     
     with ZipFile(zip_file_name,'w',zipfile.ZIP_DEFLATED) as zipf:
