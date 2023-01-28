@@ -167,11 +167,17 @@ if False:
     
     pass
 
-    #%% Convert a YOLO folder to COCO
+    #%% Convert YOLO folders to COCO
     
     preview_folder = '/home/user/data/noaa-fish/val-coco-conversion-preview'
     input_folder = '/home/user/data/noaa-fish/val'
     output_file = '/home/user/data/noaa-fish/val.json'
+    class_name_file = '/home/user/data/noaa-fish/AllImagesWithAnnotations/classes.txt'
+
+    d = yolo_to_coco(input_folder,class_name_file,output_file)
+        
+    input_folder = '/home/user/data/noaa-fish/train'
+    output_file = '/home/user/data/noaa-fish/train.json'
     class_name_file = '/home/user/data/noaa-fish/AllImagesWithAnnotations/classes.txt'
 
     d = yolo_to_coco(input_folder,class_name_file,output_file)
