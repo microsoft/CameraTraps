@@ -37,13 +37,6 @@ from enum import IntEnum
 from multiprocessing.pool import ThreadPool
 from multiprocessing.pool import Pool
 
-# This line was added circa 2018 and it made sense at the time; removing it in 2022
-# because matplotlib *mostly* does the right thing now, and overwriting the current
-# matplotlib environment is questionable behavior.  Possible breaking change for 
-# some users.
-#
-# import matplotlib; matplotlib.use('agg')
-
 import matplotlib.pyplot as plt
 import numpy as np
 import humanfriendly
@@ -73,7 +66,7 @@ DEFAULT_UNKNOWN_CLASSES = ['unknown', 'unlabeled', 'ambiguous']
 
 
 def has_overlap(set1: Iterable, set2: Iterable) -> bool:
-    """Check whether 2 sets overlap."""
+    """Check whether two sets overlap."""
     return not set(set1).isdisjoint(set(set2))
 
 
@@ -337,7 +330,9 @@ def render_bounding_boxes(
 
     The target image is, for example:
 
-        [options.output_dir] / ['detections' or 'non_detections'] / [filename with slashes turned into tildes]
+        [options.output_dir] / 
+        ['detections' or 'non_detections'] / 
+        [filename with slashes turned into tildes]
 
     Returns the html info struct for this image in the form that's used for
     write_html_image_list.
@@ -413,7 +408,8 @@ def render_bounding_boxes(
     info = {
         'filename': file_name,
         'title': display_name,
-        'textStyle': 'font-family:verdana,arial,calibri;font-size:80%;text-align:left;margin-top:20;margin-bottom:5'
+        'textStyle':\
+         'font-family:verdana,arial,calibri;font-size:80%;text-align:left;margin-top:20;margin-bottom:5'
     }
     
     # Optionally add links back to the original images
@@ -583,7 +579,8 @@ def process_batch_results(options: PostProcessingOptions
     if (options.ground_truth_json_file is not None) and (len(options.ground_truth_json_file) > 0):
 
         if options.separate_detections_by_category:
-            print("Warning: I don't know how to separate categories yet when doing a P/R analysis, disabling category separation")
+            print("Warning: I don't know how to separate categories yet when doing " + \
+                  "a P/R analysis, disabling category separation")
             options.separate_detections_by_category = False
 
         ground_truth_indexed_db = IndexedJsonDb(
