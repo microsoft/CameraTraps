@@ -264,10 +264,9 @@ def render_detection_bounding_boxes(detections, image,
     """
     Renders bounding boxes, label, and confidence on an image if confidence is above the threshold.
 
-    This works with the output of the batch processing API.
+    Boxes are in the format that's output from the batch processing API.
 
-    Supports classification, if the detection contains classification results according to the
-    API output version 1.0.
+    Renders classification labels if present.
 
     Args:
 
@@ -319,17 +318,25 @@ def render_detection_bounding_boxes(detections, image,
             label_map; no casting is carried out.  If this is None, no classification labels are shown.
 
         confidence_threshold: optional, threshold above which the bounding box is rendered.
+        
         thickness: line thickness in pixels. Default value is 4.
+        
         expansion: number of pixels to expand bounding boxes on each side.  Default is 0.
+        
         classification_confidence_threshold: confidence above which classification result is retained.
+        
         max_classifications: maximum number of classification results retained for one image.
 
     image is modified in place.
     """
 
     display_boxes = []
-    display_strs = []  # list of lists, one list of strings for each bounding box (to accommodate multiple labels)
-    classes = []  # for color selection
+    
+    # list of lists, one list of strings for each bounding box (to accommodate multiple labels)
+    display_strs = []  
+    
+    # for color selection
+    classes = []  
 
     for detection in detections:
 
@@ -402,8 +409,8 @@ def draw_bounding_boxes_on_image(image,
       image: a PIL.Image object.
       boxes: a 2 dimensional numpy array of [N, 4]: (ymin, xmin, ymax, xmax).
              The coordinates are in normalized format between [0, 1].
-      classes: a list of ints or strings (that can be cast to ints) corresponding to the class labels of the boxes.
-             This is only used for selecting the color to render the bounding box in.
+      classes: a list of ints or strings (that can be cast to ints) corresponding to the
+               class labels of the boxes. This is only used for color selection.
       thickness: line thickness in pixels. Default value is 4.
       expansion: number of pixels to expand bounding boxes on each side.  Default is 0.
       display_strs: list of list of strings.
@@ -648,7 +655,7 @@ def render_db_bounding_boxes(boxes, classes, image, original_size=None,
 
     for box, clss in zip(boxes, classes):
 
-        x_min_abs, y_min_abs, width_abs, height_abs = box
+        x_min_abs, y_min_abs, width_abs, height_abs = box[0:4]
 
         ymin = y_min_abs / img_height
         ymax = ymin + height_abs / img_height
@@ -660,7 +667,9 @@ def render_db_bounding_boxes(boxes, classes, image, original_size=None,
 
         if label_map:
             clss = label_map[int(clss)]
-        display_strs.append([str(clss)])  # need to be a string here because PIL needs to iterate through chars
+            
+        # need to be a string here because PIL needs to iterate through chars
+        display_strs.append([str(clss)])  
 
     display_boxes = np.array(display_boxes)
     draw_bounding_boxes_on_image(image, display_boxes, classes, display_strs=display_strs,
