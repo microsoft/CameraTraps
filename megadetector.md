@@ -464,6 +464,7 @@ It's not quite as simple as "these platforms all run MegaDetector on your images
 * [MegaDetectorLite](https://github.com/timmh/MegaDetectorLite) is a set of scripts to convert MDv5 into ONNX and TensorRT formats for embedded deployments.
 * [Docker environment](https://github.com/zaandahl/megadetector) for running MDv5
 * [pip-installable wrapper](https://github.com/bencevans/camtrapml) for MegaDetector (and other camera-trap-related models)
+* [Kaggle notebook](https://www.kaggle.com/code/evmans/train-megadetector-tutorial) for fine-tuning MegaDetector to add additional classes
 
 #### Maintained within this repo
 
