@@ -142,7 +142,7 @@ def consumer_func(q,return_queue,model_file,confidence_threshold,image_size=None
         if verbose or ((n_images_processed % 10) == 0):
             elapsed = time.time() - start_time
             images_per_second = n_images_processed / elapsed
-            print('De-queued image {} ({}/s) ({})'.format(n_images_processed,
+            print('De-queued image {} ({:.2f}/s) ({})'.format(n_images_processed,
                                                           images_per_second,
                                                           im_file));
             sys.stdout.flush()
@@ -752,7 +752,7 @@ def main():
 
     elapsed = time.time() - start_time
     images_per_second = len(results) / elapsed
-    print('Finished inference for {} images in {} ({} images per second)'.format(
+    print('Finished inference for {} images in {} ({:.2f} images per second)'.format(
         len(results),humanfriendly.format_timespan(elapsed),images_per_second))
 
     relative_path_base = None
