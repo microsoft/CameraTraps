@@ -751,8 +751,9 @@ def main():
                                           image_size=args.image_size)
 
     elapsed = time.time() - start_time
-    print('Finished inference for {} images in {}'.format(
-        len(results),humanfriendly.format_timespan(elapsed)))
+    images_per_second = len(results) / elapsed
+    print('Finished inference for {} images in {} ({} images per second)'.format(
+        len(results),humanfriendly.format_timespan(elapsed),images_per_second))
 
     relative_path_base = None
     if args.output_relative_filenames:
