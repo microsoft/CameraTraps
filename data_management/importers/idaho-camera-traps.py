@@ -83,8 +83,9 @@ opstate_mappings = {'snow on lense':'snow on lens','poop/slobber':'lens obscured
 survey_species_presence_columns = ['elkpresent','deerpresent','prongpresent']
 
 presence_to_count_columns = {
-    'otherpresent':['MooseAntlerless','MooseCalf','MooseOther','MooseBull','MooseUnkn','BlackBearAdult','BlackBearCub','LionAdult',
-                    'LionKitten','WolfAdult','WolfPup','CattleCow','CattleCalf','other'],
+    'otherpresent':['MooseAntlerless','MooseCalf','MooseOther','MooseBull','MooseUnkn',
+                    'BlackBearAdult','BlackBearCub','LionAdult','LionKitten','WolfAdult',
+                    'WolfPup','CattleCow','CattleCalf','other'],
     'elkpresent':['ElkSpike','ElkAntlerless','ElkCalf','ElkRaghorn','ElkMatBull','ElkUnkn','ElkPedNub'],
     'deerpresent':['MDbuck','MDantlerless','MDfawn','WTDbuck','WTDantlerless','WTDfawn','WTDunkn','MDunkn'],
     'prongpresent':['PronghornBuck','PronghornFawn','PHunkn']
@@ -345,7 +346,8 @@ def csv_to_sequences(csv_file):
         
         # Be conservative; assume humans are present in all maintenance images
         opstates = set(sequence_df['opstate'])
-        assert all([ ( (isinstance(s,float)) or (len(s.strip())== 0) or (s.strip() in valid_opstates)) for s in opstates]),\
+        assert all([ ( (isinstance(s,float)) or (len(s.strip())== 0) or \
+                      (s.strip() in valid_opstates)) for s in opstates]),\
             'Invalid optstate in: {}'.format(' | '.join(opstates))
         
         for presence_column in presence_columns:
@@ -356,7 +358,8 @@ def csv_to_sequences(csv_file):
             single_presence_value = (len(set(presence_values)) == 1)
             # assert single_presence_value
             if not single_presence_value:
-                # print('Warning: presence value for {} is inconsistent for {}'.format(presence_column,sequence_id))
+                # print('Warning: presence value for {} is inconsistent for {}'.format(
+                #   presence_column,sequence_id))
                 inconsistent_sequences.append(sequence_id)                
             
             if any(presence_values):
@@ -386,7 +389,8 @@ def csv_to_sequences(csv_file):
                 values = list(set(list(sequence_df[count_column])))
                 
                 # Occasionally a count gets entered (correctly) without the presence column being marked
-                # assert len(values) == 1 and values[0] == 0, 'Non-zero counts with no presence columns marked for sequence {}'.format(sequence_id)
+                # assert len(values) == 1 and values[0] == 0, 'Non-zero counts with no presence
+                # columns marked for sequence {}'.format(sequence_id)
                 if (not(len(values) == 1 and values[0] == 0)):
                     print('Warning: presence and counts are inconsistent for {}'.format(sequence_id))
                     
@@ -460,7 +464,8 @@ def csv_to_sequences(csv_file):
         for i_row,row in sequence_df.iterrows():
             im = {}
             # Only one folder used a single .csv file for two subfolders
-            if ('RelativePath' in row) and (isinstance(row['RelativePath'],str)) and (len(row['RelativePath'].strip()) > 0):
+            if ('RelativePath' in row) and (isinstance(row['RelativePath'],str)) \
+                and (len(row['RelativePath'].strip()) > 0):
                 assert 'IDFG-028' in location_name
                 im['file_name'] = os.path.join(row['RelativePath'],row['File'])
             else:
@@ -550,7 +555,8 @@ if __name__ == "__main__":
             sequence_id = sequence['sequence_id']
             if sequence_id in sequence_ids:
                 print('Warning: duplicate sequence for {}, creating new sequence'.format(sequence_id))
-                sequence['sequence_id'] = sequence['sequence_id'] + '_' + str(i_sequences) + '_' + str(i_sequence)
+                sequence['sequence_id'] = sequence['sequence_id'] + '_' + str(i_sequences) + \
+                    '_' + str(i_sequence)
                 sequence_id = sequence['sequence_id']
                 assert sequence_id not in sequence_ids
                 
@@ -677,7 +683,8 @@ if __name__ == "__main__":
                 # label; the "unknown" here doesn't mean "another unknown species", it means
                 # there is some other unknown property about the main species.
                 if 'unknown' in species_present and len(species_present) > 1:
-                    assert all([((s in category_mappings) or (s in valid_opstates) or (s in opstate_mappings.values()))\
+                    assert all([((s in category_mappings) or (s in valid_opstates) or \
+                                 (s in opstate_mappings.values()))\
                                 for s in species_present if s != 'unknown'])
                     species_present = [s for s in species_present if s != 'unknown']
                                         
@@ -691,7 +698,8 @@ if __name__ == "__main__":
                         continue
                     
                     if category_name_string not in category_mappings:
-                        assert category_name_string in valid_opstates or category_name_string in opstate_mappings.values()                            
+                        assert category_name_string in valid_opstates or \
+                            category_name_string in opstate_mappings.values()                            
                     else:
                         category_name_string = category_mappings[category_name_string]
                     assert ',' not in category_name_string
@@ -904,7 +912,8 @@ if __name__ == "__main__":
             
         # ...for each image
         
-        print('MD found {} potential human images (of {})'.format(len(md_human_images),len(md_results['images'])))    
+        print('MD found {} potential human images (of {})'.format(
+            len(md_human_images),len(md_results['images'])))    
     
         # Map images to annotations in ICT
         
@@ -1035,7 +1044,8 @@ if __name__ == "__main__":
             else:
                 # Otherwise assign a string-formatted int as the ID
                 n_sequences_this_location = location_id_string_to_n_sequences[location_id]
-                sequence_id = 'loc_{}_seq_{}'.format(location_id.zfill(4),str(n_sequences_this_location).zfill(6))
+                sequence_id = 'loc_{}_seq_{}'.format(
+                    location_id.zfill(4),str(n_sequences_this_location).zfill(6))
                 sequence_id_mappings[im['seq_id']] = sequence_id
                 
                 n_sequences_this_location += 1
@@ -1046,7 +1056,8 @@ if __name__ == "__main__":
             # Assign an image ID
             
             n_images_this_location = location_id_string_to_n_images[location_id]                
-            image_id_mappings[im['id']] = 'loc_{}_im_{}'.format(location_id.zfill(4),str(n_images_this_location).zfill(6))
+            image_id_mappings[im['id']] = 'loc_{}_im_{}'.format(
+                location_id.zfill(4),str(n_images_this_location).zfill(6))
             
             n_images_this_location += 1
             location_id_string_to_n_images[location_id] = n_images_this_location
@@ -1070,8 +1081,8 @@ if __name__ == "__main__":
             
         print('Saved ID mappings to {}'.format(id_mapping_file))
        
-        # Back this file up, lest we should accidentally re-run this script with force_generate_mappings = True
-        # and overwrite the mappings we used.
+        # Back this file up, lest we should accidentally re-run this script
+        # with force_generate_mappings = True and overwrite the mappings we used.
         datestr = str(datetime.datetime.now()).replace(':','-')
         backup_file = id_mapping_file.replace('.json','_' + datestr + '.json')
         shutil.copyfile(id_mapping_file,backup_file)
@@ -1371,7 +1382,8 @@ if __name__ == "__main__":
            
                 assert filename_relative.startswith('public')
                 filename_absolute = os.path.join(output_image_base,filename_relative)
-                zipObj.write(filename_absolute.replace('\\','/'), filename_relative, compress_type=zipfile.ZIP_STORED)
+                zipObj.write(filename_absolute.replace('\\','/'), 
+                             filename_relative, compress_type=zipfile.ZIP_STORED)
                 
             # ...for each filename
             
@@ -1389,4 +1401,5 @@ if __name__ == "__main__":
         pool = ThreadPool(n_zip_threads)
         indices = list(range(0,len(file_lists)))
         pool.map(create_zipfile,indices)
-    
+
+# ....if __name__ == "__main__"
