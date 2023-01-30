@@ -61,6 +61,11 @@ debug_max_images_per_dataset = None
 
 metadata_table = read_lila_metadata(metadata_dir)
 
+# To select an individual data set for debugging
+if False:
+    k = 'Idaho Camera Traps'
+    metadata_table = {k:metadata_table[k]}
+
 
 #%% Download and extract metadata for the datasets we're interested in
 
@@ -265,22 +270,31 @@ with open(output_file,'w') as f:
                 
                 taxonomy_labels = ds_label_to_taxonomy[ds_label]
                 
+                """
+                header =        
+                    ['dataset_name','url','image_id','sequence_id','location_id',
+                     'frame_num','original_label','scientific_name','common_name',
+                     'datetime','annotation_level']
+                """
+                
                 row = []
                 row.append(ds_name)
                 row.append(url)
                 row.append(image_id)
-                row.append(location_id)
                 row.append(sequence_id)
+                row.append(location_id)
                 row.append(frame_num)
                 row.append(taxonomy_labels['query'])
                 row.append(clearnan(taxonomy_labels['scientific_name']))
                 row.append(clearnan(taxonomy_labels['common_name']))
                 row.append(dt_string)
                 row.append(annotation_level)
-                                
+                
                 for s in taxonomy_levels_to_include:
                     row.append(clearnan(taxonomy_labels[s]))
-                    
+                
+                assert len(row) == len(header)
+                
                 csv_writer.writerow(row)
                         
             # ...for each category that was applied at least once to this image
@@ -310,6 +324,37 @@ with open(output_file,'w') as f:
 
 df = pd.read_csv(output_file)
 print('Read {} lines from {}'.format(len(df),output_file))
+
+
+#%% Do some post-hoc integrity checking
+
+tqdm.pandas()
+
+def isint(v):
+    return isinstance(v,int) or isinstance(v,np.int64)
+
+valid_annotation_levels = set(['sequence','image','unknown'])
+
+def check_row(row):
+    assert row['dataset_name'] in metadata_table.keys()
+    assert row['url'].startswith('https://')
+    assert ' : ' in row['image_id']
+    assert 'seq' not in row['location_id'].lower()
+    if isinstance(row['frame_num'],float):
+        assert np.isnan(row['frame_num'])
+    else:
+        # -1 isn't *really* valid, but we use it sometimes for sequences of unknown length
+        assert isint(row['frame_num']) and row['frame_num'] >= -1
+    assert row['annotation_level'] in valid_annotation_levels
+
+if False:
+    
+    df.progress_apply(check_row, axis=1)
+
+else:
+    # i_row = 0; row = df.iloc[i_row]
+    for i_row,row in tqdm(df.iterrows(),total=len(df)):
+        check_row(row)
 
 
 #%% Preview constants
