@@ -40,6 +40,7 @@ Here are a few of the organizations that have used MegaDetector... we're only li
 * [Arizona Department of Environmental Quality](http://azdeq.gov/)
 * [Blackbird Environmental](https://blackbirdenv.com/)
 * [Camelot](https://camelotproject.org/)
+* [Canadian Parks and Wilderness Society (CPAWS) Northern Alberta Chapter](https://cpawsnab.org/)
 * [Conservation X Labs](https://conservationxlabs.com/)
 * [Czech University of Life Sciences Prague](https://www.czu.cz/en)
 * [EcoLogic Consultants Ltd.](https://www.consult-ecologic.com/)
@@ -61,7 +62,6 @@ Here are a few of the organizations that have used MegaDetector... we're only li
 * [Banff National Park Resource Conservation](https://www.pc.gc.ca/en/pn-np/ab/banff/nature/conservation), Parks Canada
 * [Blumstein Lab](https://blumsteinlab.eeb.ucla.edu/), UCLA
 * [Borderlands Research Institute](https://bri.sulross.edu/), Sul Ross State University
-* [Canadian Parks and Wilderness Society (CPAWS) Northern Alberta Chapter](https://cpawsnab.org/)
 * [Capitol Reef National Park](https://www.nps.gov/care/index.htm) / Utah Valley University
 * [Center for Biodiversity and Conservation](https://www.amnh.org/research/center-for-biodiversity-conservation), American Museum of Natural History
 * [Centre for Ecosystem Science](https://www.unsw.edu.au/research/), UNSW Sydney
