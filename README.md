@@ -40,6 +40,7 @@ Here are a few of the organizations that have used MegaDetector... we're only li
 * [Arizona Department of Environmental Quality](http://azdeq.gov/)
 * [Blackbird Environmental](https://blackbirdenv.com/)
 * [Camelot](https://camelotproject.org/)
+* [Canadian Parks and Wilderness Society (CPAWS) Northern Alberta Chapter](https://cpawsnab.org/)
 * [Conservation X Labs](https://conservationxlabs.com/)
 * [Czech University of Life Sciences Prague](https://www.czu.cz/en)
 * [EcoLogic Consultants Ltd.](https://www.consult-ecologic.com/)
