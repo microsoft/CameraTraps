@@ -57,9 +57,12 @@ slcc = '\\'
 # OS-specific script comment character
 scc = '#' 
 
+script_extension = '.sh'
+
 if os.name == 'nt':
     slcc = '^'
     scc = 'REM'
+    script_extension = '.bat'
 
 
 #%% Constants I set per script
@@ -188,7 +191,10 @@ for i_task,task in enumerate(task_info):
     else:
         gpu_number = default_gpu_number
         
-    cuda_string = f'CUDA_VISIBLE_DEVICES={gpu_number}'
+    if os.name == 'nt':
+        cuda_string = f'set CUDA_VISIBLE_DEVICES={gpu_number} & '
+    else:
+        cuda_string = f'CUDA_VISIBLE_DEVICES={gpu_number} '
     
     checkpoint_frequency_string = ''
     checkpoint_path_string = ''
@@ -218,8 +224,8 @@ for i_task,task in enumerate(task_info):
         
     cmd = f'{cuda_string} python run_detector_batch.py "{model_file}" "{chunk_file}" "{output_fn}" {checkpoint_frequency_string} {checkpoint_path_string} {use_image_queue_string} {ncores_string} {quiet_string} {image_size_string}'
     
-    cmd_file = os.path.join(filename_base,'run_chunk_{}_gpu_{}.sh'.format(str(i_task).zfill(2),
-                            str(gpu_number).zfill(2)))
+    cmd_file = os.path.join(filename_base,'run_chunk_{}_gpu_{}{}'.format(str(i_task).zfill(2),
+                            str(gpu_number).zfill(2),script_extension))
     
     with open(cmd_file,'w') as f:
         f.write(cmd + '\n')
@@ -234,8 +240,8 @@ for i_task,task in enumerate(task_info):
     
     resume_string = ' --resume_from_checkpoint "{}"'.format(checkpoint_filename)
     resume_cmd = cmd + resume_string
-    resume_cmd_file = os.path.join(filename_base,'resume_chunk_{}_gpu_{}.sh'.format(str(i_task).zfill(2),
-                            str(gpu_number).zfill(2)))
+    resume_cmd_file = os.path.join(filename_base,'resume_chunk_{}_gpu_{}{}'.format(str(i_task).zfill(2),
+                            str(gpu_number).zfill(2),script_extension))
     
     with open(resume_cmd_file,'w') as f:
         f.write(resume_cmd + '\n')
@@ -610,7 +616,7 @@ crop_path = os.path.join(os.path.expanduser('~/crops'),job_name + '_crops')
 output_base = combined_api_output_folder
 device_id = 0
 
-output_file = os.path.join(filename_base,'run_{}_'.format(classifier_name_short) + job_name +  '.sh')
+output_file = os.path.join(filename_base,'run_{}_'.format(classifier_name_short) + job_name + script_extension)
 
 classifier_base = os.path.expanduser('~/models/camera_traps/megaclassifier/v0.1/')
 assert os.path.isdir(classifier_base)
@@ -804,7 +810,7 @@ crop_path = os.path.join(os.path.expanduser('~/crops'),job_name + '_crops')
 output_base = combined_api_output_folder
 device_id = 1
 
-output_file = os.path.join(filename_base,'run_{}_'.format(classifier_name_short) + job_name +  '.sh')
+output_file = os.path.join(filename_base,'run_{}_'.format(classifier_name_short) + job_name +  script_extension)
 
 classifier_base = os.path.expanduser('~/models/camera_traps/idfg_classifier/idfg_classifier_20200905_042558')
 assert os.path.isdir(classifier_base)
