@@ -1309,7 +1309,7 @@ with open(sequence_level_smoothing_input_file,'r') as f:
 filename_to_results = {}
 
 for im in tqdm(d['images']):
-    filename_to_results[im['file']] = im
+    filename_to_results[im['file'].replace('\\','/')] = im
 
 
 #%% Back up classification results during debugging
