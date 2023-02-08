@@ -498,8 +498,8 @@ options.occurrenceThreshold = 20
 options.maxSuspiciousDetectionSize = 0.2
 # options.minSuspiciousDetectionSize = 0.05
 
-# options.parallelizationUsesThreads = True
-# options.nWorkers = 10
+options.parallelizationUsesThreads = False
+options.nWorkers = 20
 
 # This will cause a very light gray box to get drawn around all the detections
 # we're *not* considering as suspicious.
@@ -1345,7 +1345,7 @@ assert all([s in class_names for s in category_names_to_smooth_to])
 
 # Only switch classifications to the dominant class if we see the dominant class at least
 # this many times
-min_dominant_class_classifications_above_threshold_for_class_smoothing = 5
+min_dominant_class_classifications_above_threshold_for_class_smoothing = 5 # 2
 
 # If we see more than this many of a class that are above threshold, don't switch those
 # classifications to the dominant class.
@@ -1362,12 +1362,12 @@ min_dominant_class_ratio_for_secondary_override_table = {classification_category
 # If there are at least this many classifications for the dominant class in a sequence,
 # regardless of what that class is, convert all 'other' classifications (regardless of 
 # confidence) to that class.
-min_dominant_class_classifications_above_threshold_for_other_smoothing = 3
+min_dominant_class_classifications_above_threshold_for_other_smoothing = 3 # 2
 
 # If there are at least this many classifications for the dominant class in a sequence,
 # regardless of what that class is, classify all previously-unclassified detections
 # as that class.
-min_dominant_class_classifications_above_threshold_for_unclassified_smoothing = 3
+min_dominant_class_classifications_above_threshold_for_unclassified_smoothing = 3 # 2
 
 # Only count classifications above this confidence level when determining the dominant
 # class, and when deciding whether to switch other classifications.
