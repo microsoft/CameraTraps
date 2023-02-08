@@ -573,7 +573,8 @@ def render_iMerit_boxes(boxes, classes, image,
     Renders bounding boxes and their category labels on a PIL image.
 
     Args:
-        boxes: bounding box annotations from iMerit, format is [x_rel, y_rel, w_rel, h_rel] (rel = relative coords)
+        boxes: bounding box annotations from iMerit, format is:
+            [x_rel, y_rel, w_rel, h_rel] (rel = relative coords)
         classes: the class IDs of the predicted class of each box/object
         image: PIL.Image object to annotate on
         label_map: optional dict mapping classes to a string for display
@@ -583,7 +584,10 @@ def render_iMerit_boxes(boxes, classes, image,
     """
 
     display_boxes = []
-    display_strs = []  # list of list, one list of strings for each bounding box (to accommodate multiple labels)
+    
+    # list of lists, one list of strings for each bounding box (to accommodate multiple labels)
+    display_strs = []  
+    
     for box, clss in zip(boxes, classes):
         if len(box) == 0:
             assert clss == 5
@@ -680,7 +684,17 @@ def draw_bounding_boxes_on_file(input_file, output_file, detections, confidence_
                                 detector_label_map=DEFAULT_DETECTOR_LABEL_MAP):
     """
     Render detection bounding boxes on an image loaded from file, writing the results to a
-    new images file.  "detections" is in the API results format.
+    new images file.  "detections" is in the API results format:
+        
+    [{"category": "2","conf": 0.996,"bbox": [0.0,0.2762,0.1234,0.2458]}]
+    
+    ...where the bbox is:
+        
+    [x_min, y_min, width_of_box, height_of_box]
+    
+    Normalized, with the origin at the upper-left.
+    
+    detector_label_map is a dict mapping category IDs to strings.
     """
     
     image = open_image(input_file)
