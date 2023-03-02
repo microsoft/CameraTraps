@@ -285,15 +285,7 @@ def load_and_run_detector(model_file, image_file_names, output_dir,
     
     detector = load_detector(model_file)
     
-    start_time = time.time()
-    if model_file.endswith('.pb'):
-        from detection.tf_detector import TFDetector
-        detector = TFDetector(model_file)
-    elif model_file.endswith('.pt'):
-        from detection.pytorch_detector import PTDetector
-        detector = PTDetector(model_file)
-    elapsed = time.time() - start_time
-    print('Loaded model in {}'.format(humanfriendly.format_timespan(elapsed)))
+   
 
     detection_results = []
     time_load = []
