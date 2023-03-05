@@ -344,9 +344,14 @@ If you have a GPU, and it's being utilized correctly, near the beginning of the 
 
 `GPU available: True`
 
-If you see "False" instead, your GPU environment may not be set up correctly; <a href="mailto:cameratraps@lila.science">email us</a> if you need help, or <a href="https://github.com/microsoft/CameraTraps/issues">create an issue on GitHub</a>.
+If you have an Nvidia GPU, and it's being utilized correctly, near the beginning of the output, you should see:
 
-<b>This is really just a test script, you will mostly only use this to make sure your environment is set up correctly</b>.  run_detector_batch.py (see below) is where the interesting stuff happens.
+`GPU available: True`
+
+If you have an Nvidia GPU and you see "GPU available: False", your GPU environment may not be set up correctly.  95% of the time, this is fixed by <a href="https://www.nvidia.com/en-us/geforce/drivers/">updating your Nvidia driver"</a> and rebooting.  If you have an Nvidia GPU, and you've installed the latest driver, and you've rebooted, and you're still seeing "GPU available: False", <a href="mailto:cameratraps@lila.science">email us</a>.
+
+
+<b>This is really just a test script, you will mostly only use this to make sure your environment is set up correctly</b>.  run_detector_batch.py (see <a href="#run_detector_batchpy">below</a>) is where the interesting stuff happens.
 
 You can see all the options for this script by running:
 
@@ -377,7 +382,8 @@ To use run_detector_batch.py on Windows, when you open a new Anaconda prompt, do
 ```batch
 cd c:\git\CameraTraps
 conda activate cameratraps-detector
-set PYTHONPATH=%PYTHONPATH%;c:\git\cameratraps;c:\git\ai4eutils;c:\git\yolov5```
+set PYTHONPATH=%PYTHONPATH%;c:\git\cameratraps;c:\git\ai4eutils;c:\git\yolov5
+```
 
 Then you can run the script like this:
 
@@ -395,9 +401,9 @@ You can see all the options for this script by running:
 python detection\run_detector_batch.py
 ```
 
-##### Saving and restoring checkpoints
+#### Saving and restoring run_detector_batch.py checkpoints
 
-<b>If you are running very large batches, we strongly recommend adding the `--checkpoint_frequency` option to save checkpoints every N images</b> (you don't want to lose all the work your GPU has done if your computer crashes!).  10000 is a good value for checkpoint frequency; that will save the results every 10000 images.  This is what we've used in the example above.  When you include this option, you'll see a line in the output that looks like this:
+If you are running very large batches, we strongly recommend adding the `--checkpoint_frequency` option to save checkpoints every N images (you don't want to lose all the work your PC has done if your computer crashes!).  10000 is a good value for checkpoint frequency; that will save the results every 10000 images.  This is what we've used in the example above.  When you include this option, you'll see a line in the output that looks like this:
 
 `The checkpoint file will be written to c:\megadetector\checkpoint_20230305232323.json`
 
@@ -414,7 +420,7 @@ You will see something like this at the beginning of the output:
 If your computer happens to crash *while* a checkpoint is getting written... don't worry, you're still safe, but it's a bit outside the scope of this tutorial, so just <a href="mailto:cameratraps@lila.science">email us</a> in that case.
 
 
-##### If your GPU isn't recognized...
+#### If your GPU isn't recognized by run_detector_batch.py
 
 If you have an Nvidia GPU, and it's being utilized correctly, near the beginning of the output, you should see:
 
@@ -422,7 +428,7 @@ If you have an Nvidia GPU, and it's being utilized correctly, near the beginning
 
 If you have an Nvidia GPU and you see "GPU available: False", your GPU environment may not be set up correctly.  95% of the time, this is fixed by <a href="https://www.nvidia.com/en-us/geforce/drivers/">updating your Nvidia driver"</a> and rebooting.  If you have an Nvidia GPU, and you've installed the latest driver, and you've rebooted, and you're still seeing "GPU available: False", <a href="mailto:cameratraps@lila.science">email us</a>.
 
-##### Slightly modified run_detector_batch.py instructions for Linux/Mac
+#### Slightly modified run_detector_batch.py instructions for Linux/Mac
 
 To use this script on Linux/Mac, when you open a new Anaconda prompt, don't forget to do this:
  
