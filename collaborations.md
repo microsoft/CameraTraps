@@ -52,33 +52,38 @@ These questions help us assess how we can best help a new collaborator, and whic
 
 1. Can you provide a short overview of your project?  What ecosystem are you working in, and what are the key species of interest?
 
-2. About how many images do you have that you've already annotated, from roughly the same environments as the photos you need to process in the future?
+2. About how many images do you have waiting for processing right now?
 
-3. If you have some images you've already annotated:
+3. About how many images do you expect to process in the next, e.g., 1 year?
 
-  - Did you keep all the empty images, or only the images with animals?
-  - Are they from exactly the same camera locations that you need to process in the future (as in, cameras literally bolted in place), or from similar locations?
-
-4. About how many images do you have waiting for processing right now?
-
-5. About how many images do you expect to process in the next, e.g., 1 year?
-
-6. What tools do you use to process and annotate images?  For example, do you:
+4. What tools do you use to process and annotate images?  For example, do you:
 
   - Move images to folders named by species
   - Keep an Excel spreadsheet open and fill it with filenames and species IDs
   - Use a tool like Timelapse or Reconyx MapView that's specifically for camera traps
   - Use a tool like Adobe Bridge or digiKam that's for general-purpose image management
 	
-7. About what percentage of your images are empty?
+5. About what percentage of your images are empty?
 
-8. About what percentage of your images typically contain vehicles or people, and what do you want to do with those images?  I.e., do you consider those "noise" (the same as empty images), or do you need those labeled as well?
+6. About what percentage of your images typically contain vehicles or people?
 
-9. What is your level of fluency in Python?  
+7. If you are only interested in specific species (i.e., if there are a number of species you consider noise and would prefer not to even review), about what percentage of your images that contain animals contain your target species?
 
-10. Do you have a GPU available (or access to cloud-based GPUs)?  "I don't know what a GPU is" is a perfectly good answer.
+8. Do you have a GPU available (or access to cloud-based GPUs)?  "I don't know what a GPU is" is a perfectly good answer.
 
-11. How did you hear about MegaDetector?
+9. How did you hear about MegaDetector?
+
+The remaining questions are only relevant to questions about training a custom model, so if you prefer to focus on off-the-shelf solutions, you can stop here...
+
+10. What is your level of fluency in Python?  
+
+11. About how many images do you have that you've already annotated, from roughly the same environments as the photos you need to process in the future?
+
+12. If you have some images you've already annotated:
+
+  - Did you keep all the empty images, or only the images with animals?
+  - Are they from exactly the same camera locations that you need to process in the future (as in, cameras literally bolted in place), or from similar locations?
+
 
 ## Learn more
 
