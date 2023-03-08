@@ -71,15 +71,17 @@ These questions help us assess how we can best help a new collaborator, and whic
 
 8. Do you have a GPU available (or access to cloud-based GPUs)?  "I don't know what a GPU is" is a perfectly good answer.
 
-9. How did you hear about MegaDetector?
+9. At the place where you plan to do most of your work, how is your upload bandwidth?  If you're able to visit speedtest.net to measure your upload speed, that's helpful.  (Running MegaDetector doesn't require connectivity, we just like to ask because it may impact some of the tools we recommend you use instead of or alongside MegaDetector.)
+
+10. How did you hear about MegaDetector?
 
 The remaining questions are only relevant to questions about training a custom model, so if you prefer to focus on off-the-shelf solutions, you can stop here...
 
-10. What is your level of fluency in Python?  
+11. What is your level of fluency in Python?  
 
-11. About how many images do you have that you've already annotated, from roughly the same environments as the photos you need to process in the future?
+12. About how many images do you have that you've already annotated, from roughly the same environments as the photos you need to process in the future?
 
-12. If you have some images you've already annotated:
+13. If you have some images you've already annotated:
 
   - Did you keep all the empty images, or only the images with animals?
   - Are they from exactly the same camera locations that you need to process in the future (as in, cameras literally bolted in place), or from similar locations?
