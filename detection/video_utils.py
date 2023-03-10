@@ -308,7 +308,8 @@ def frame_results_to_video_results(input_file,output_file,options:FrameToVideoOp
         
         # frame = frames[0]
         for frame in frames:
-            all_detections_this_video.extend(frame['detections'])
+            if frame['detections'] is not None:
+                all_detections_this_video.extend(frame['detections'])
             
         # At most one detection for each category for the whole video
         canonical_detections = []
