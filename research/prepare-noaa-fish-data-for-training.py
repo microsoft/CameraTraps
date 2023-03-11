@@ -265,8 +265,6 @@ conda install pytorch torchvision torchaudio pytorch-cuda=11.7 -c pytorch -c nvi
 cd ~/git/yolov5-current
 conda activate yolov5
 python train.py --img 1280 --batch -1 --epochs 200 --weights yolov5x6.pt --device 0,1 --project noaa-fish --name noaa-fish-yolov5x6-01-1280-200 --data "/home/user/data/noaa-fish/dataset.yaml"
-
-
 """
 
 #
