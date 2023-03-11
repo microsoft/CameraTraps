@@ -645,6 +645,9 @@ def render_db_bounding_boxes(boxes, classes, image, original_size=None,
     Render bounding boxes (with class labels) on [image].  This is a wrapper for
     draw_bounding_boxes_on_image, allowing the caller to operate on a resized image
     by providing the original size of the image; bboxes will be scaled accordingly.
+    
+    This function assumes that bounding boxes are in the COCO camera traps format,
+    with absolute coordinates.
     """
 
     display_boxes = []
@@ -684,7 +687,9 @@ def draw_bounding_boxes_on_file(input_file, output_file, detections, confidence_
                                 detector_label_map=DEFAULT_DETECTOR_LABEL_MAP):
     """
     Render detection bounding boxes on an image loaded from file, writing the results to a
-    new images file.  "detections" is in the API results format:
+    new image file.
+    
+    "detections" is in the API results format:
         
     [{"category": "2","conf": 0.996,"bbox": [0.0,0.2762,0.1234,0.2458]}]
     
@@ -704,3 +709,26 @@ def draw_bounding_boxes_on_file(input_file, output_file, detections, confidence_
             confidence_threshold=confidence_threshold)
 
     image.save(output_file)
+
+
+def draw_db_boxes_on_file(input_file, output_file, boxes, classes=None, 
+                          label_map=None, thickness=4, expansion=0):
+    """
+    Render COCO bounding boxes (in absolute coordinates) on an image loaded from file, writing the
+    results to a new image file.
+
+    classes is a list of integer category IDs.
+    
+    detector_label_map is a dict mapping category IDs to strings.
+    """
+    image = open_image(input_file)
+
+    if classes is None:
+        classes = [0] * len(boxes)
+        
+    render_db_bounding_boxes(boxes, classes, image, original_size=None,
+                                 label_map=label_map, thickness=thickness, expansion=expansion)
+
+    image.save(output_file)
+    
+    
