@@ -265,7 +265,13 @@ def create_sequences(image_info,options=None):
     for i_location,location in tqdm(enumerate(locations),total=len(locations)):
         
         images_this_location = [im for im in image_info if im['location'] == location]    
-        sorted_images_this_location = sorted(images_this_location, key = lambda im: im['datetime'])
+        
+        # Sorting datetimes fails when there are None's in the list.  So instead of sorting datetimes 
+        # directly, sort tuples with a boolean for none-ness, then the datetime itself.
+        #
+        # https://stackoverflow.com/questions/18411560/sort-list-while-pushing-none-values-to-the-end
+        sorted_images_this_location = sorted(images_this_location, 
+                                             key = lambda im: (im['datetime'] is None,im['datetime']))
         
         sequence_id_to_images_this_location = defaultdict(list)
 
@@ -278,13 +284,17 @@ def create_sequences(image_info,options=None):
         # im = sorted_images_this_location[1]
         for im in sorted_images_this_location:
             
+            invalid_datetime = False
+            
             if previous_datetime is None:
                 delta = None
+            elif im['datetime'] is None:
+                invalid_datetime = True
             else:
                 delta = (im['datetime'] - previous_datetime).total_seconds()
             
-            # Start a new sequence if necessary
-            if delta is None or delta > options.episode_interval_seconds:
+            # Start a new sequence if necessary, including the case where this datetime is invalid
+            if delta is None or delta > options.episode_interval_seconds or invalid_datetime:
                 next_frame_number = 0
                 current_sequence_id = 'location_{}_sequence_index_{}'.format(
                     location,str(next_sequence_number).zfill(5))
@@ -297,6 +307,9 @@ def create_sequences(image_info,options=None):
             im['frame_num'] = next_frame_number
             sequence_id_to_images_this_location[current_sequence_id].append(im)
             next_frame_number = next_frame_number + 1
+            
+            # If this was an invalid datetime, this will record the previous datetime
+            # as None, which will force the next image to start a new sequence.
             previous_datetime = im['datetime']
         
         # ...for each image in this location

@@ -1312,17 +1312,6 @@ for im in tqdm(d['images']):
     filename_to_results[im['file'].replace('\\','/')] = im
 
 
-#%% Back up classification results during debugging
-
-# Save
-#
-# from copy import deepcopy; d_bak = deepcopy(d)
-
-# Restore
-#
-# from copy import deepcopy; d = deepcopy(d_bak)
-
-
 #%% Smooth classification results over sequences (prep)
 
 from ct_utils import is_list_sorted
