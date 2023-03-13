@@ -99,7 +99,7 @@ def read_exif_tags_for_image(file_path,options=None):
                     if k in ExifTags.TAGS:
                         exif_tags[ExifTags.TAGS[k]] = str(v)
                     else:
-                        print('Warning: unrecognized EXIF tag: {}'.format(k))
+                        # print('Warning: unrecognized EXIF tag: {}'.format(k))
                         exif_tags[k] = str(v)
 
         except Exception as e:
