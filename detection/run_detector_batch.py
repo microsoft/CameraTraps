@@ -66,12 +66,12 @@ force_cpu = False
 if force_cpu:
     os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
-from detection.run_detector import ImagePathUtils, is_gpu_available,\
+import detection.run_detector as run_detector
+from detection.run_detector import ImagePathUtils,\
+    is_gpu_available,\
     load_detector,\
     get_detector_version_from_filename,\
-    get_detector_metadata_from_version_string,\
-    FAILURE_INFER, FAILURE_IMAGE_OPEN,\
-    DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD, DEFAULT_DETECTOR_LABEL_MAP
+    get_detector_metadata_from_version_string
 
 import visualization.visualization_utils as viz_utils
 
@@ -285,7 +285,7 @@ def process_image(im_file, detector, confidence_threshold, image=None,
                 print('Image {} cannot be loaded. Exception: {}'.format(im_file, e))
             result = {
                 'file': im_file,
-                'failure': FAILURE_IMAGE_OPEN
+                'failure': run_detector.FAILURE_IMAGE_OPEN
             }
             return result
 
@@ -297,7 +297,7 @@ def process_image(im_file, detector, confidence_threshold, image=None,
             print('Image {} cannot be processed. Exception: {}'.format(im_file, e))
         result = {
             'file': im_file,
-            'failure': FAILURE_INFER
+            'failure': run_detector.FAILURE_INFER
         }
         return result
 
@@ -307,7 +307,7 @@ def process_image(im_file, detector, confidence_threshold, image=None,
 #%% Main function
 
 def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=None,
-                                confidence_threshold=DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD,
+                                confidence_threshold=run_detector.DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD,
                                 checkpoint_frequency=-1, results=None, n_cores=1,
                                 use_image_queue=False, quiet=False, image_size=None):
     """
@@ -330,7 +330,7 @@ def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=No
         n_cores = 1
     
     if confidence_threshold is None:
-        confidence_threshold=DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD
+        confidence_threshold=run_detector.DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD
         
     if checkpoint_frequency is None:
         checkpoint_frequency = -1
@@ -413,7 +413,8 @@ def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=No
             # Write a checkpoint if necessary
             if checkpoint_frequency != -1 and count % checkpoint_frequency == 0:
                 
-                print('Writing a new checkpoint after having processed {} images since last restart'.format(count))
+                print('Writing a new checkpoint after having processed {} images since '
+                      'last restart'.format(count))
                 
                 assert checkpoint_path is not None                
                 
@@ -507,7 +508,7 @@ def write_results_to_file(results, output_file, relative_path_base=None,
                   
     final_output = {
         'images': results,
-        'detection_categories': DEFAULT_DETECTOR_LABEL_MAP,
+        'detection_categories': run_detector.DEFAULT_DETECTOR_LABEL_MAP,
         'info': info
     }
     with open(output_file, 'w') as f:
@@ -596,10 +597,10 @@ def main():
     parser.add_argument(
         '--threshold',
         type=float,
-        default=DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD,
+        default=run_detector.DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD,
         help="Confidence threshold between 0 and 1.0, don't include boxes below this " + \
             "confidence in the output file. Default is {}".format(
-                DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD))
+                run_detector.DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD))
     parser.add_argument(
         '--checkpoint_frequency',
         type=int,
@@ -610,7 +611,7 @@ def main():
         '--checkpoint_path',
         type=str,
         default=None,
-        help='File name to which checkpoints will be written if checkpoint_frequency is > 0')
+        help='File name to which checkpoints will be written if checkpoint_frequency is > 0')    
     parser.add_argument(
         '--resume_from_checkpoint',
         type=str,
@@ -627,7 +628,14 @@ def main():
         default=0,
         help='Number of cores to use; only applies to CPU-based inference, ' + \
              'does not support checkpointing when ncores > 1')
-
+    parser.add_argument(
+        '--class_mapping_filename',
+        type=str,
+        default=None,
+        help='Use a non-default class mapping, supplied in a .json file with a dictionary mapping' + \
+            'int-strings to strings.  This will also disable the addition of "1" to all category ' + \
+            'IDs, so your class mapping should start at zero.')
+    
     if len(sys.argv[1:]) == 0:
         parser.print_help()
         parser.exit()
@@ -649,12 +657,23 @@ def main():
         print('Warning: output_file {} already exists and will be overwritten'.format(
             args.output_file))
 
+    # This is an experimental hack to allow the use of non-MD YOLOv5 models through
+    # the same infrastructure; it disables the code that enforces MDv5-like class lists.
+    if args.class_mapping_filename is not None:
+        run_detector.USE_MODEL_NATIVE_CLASSES = True
+        with open(args.class_mapping_filename,'r') as f:
+            class_mapping = json.load(f)
+        print('Loaded custom class mapping:')
+        print(class_mapping)
+        run_detector.DEFAULT_DETECTOR_LABEL_MAP = class_mapping
+        
     # Load the checkpoint if available
     #
     # Relative file names are only output at the end; all file paths in the checkpoint are
     # still full paths.
     if args.resume_from_checkpoint is not None:
-        assert os.path.exists(args.resume_from_checkpoint), 'File at resume_from_checkpoint specified does not exist'
+        assert os.path.exists(args.resume_from_checkpoint), \
+            'File at resume_from_checkpoint specified does not exist'
         with open(args.resume_from_checkpoint) as f:
             print('Loading previous results from checkpoint file {}'.format(
                 args.resume_from_checkpoint))
@@ -675,7 +694,8 @@ def main():
             if (args.recursive):
                 print('No image files found in directory {}, exiting'.format(args.image_file))
             else:
-                print('No image files found in directory {}, did you mean to specify --recursive?'.format(
+                print('No image files found in directory {}, did you mean to specify '
+                      '--recursive?'.format(
                     args.image_file))
             return
         
@@ -696,7 +716,8 @@ def main():
                          '(or does not have recognizable extensions).')
 
     assert len(image_file_names) > 0, 'Specified image_file does not point to valid image files'
-    assert os.path.exists(image_file_names[0]), 'The first image to be scored does not exist at {}'.format(image_file_names[0])
+    assert os.path.exists(image_file_names[0]), \
+        'The first image to be scored does not exist at {}'.format(image_file_names[0])
 
     output_dir = os.path.dirname(args.output_file)
 
@@ -711,7 +732,9 @@ def main():
         if args.checkpoint_path is not None:
             checkpoint_path = args.checkpoint_path
         else:
-            checkpoint_path = os.path.join(output_dir, 'checkpoint_{}.json'.format(datetime.utcnow().strftime("%Y%m%d%H%M%S")))
+            checkpoint_path = os.path.join(output_dir,
+                                           'checkpoint_{}.json'.format(
+                                               datetime.utcnow().strftime("%Y%m%d%H%M%S")))
         
         # Don't overwrite existing checkpoint files, this is a sure-fire way to eventually
         # erase someone's checkpoint.

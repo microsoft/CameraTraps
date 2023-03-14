@@ -13,7 +13,7 @@ from detection.run_detector import CONF_DIGITS, COORD_DIGITS, FAILURE_INFER
 import ct_utils
 
 try:
-    # import pre- and post-processing functions from the YOLOv5 repo https://github.com/ultralytics/yolov5
+    # import pre- and post-processing functions from the YOLOv5 repo
     from utils.general import non_max_suppression, xyxy2xywh
     from utils.augmentations import letterbox
     
@@ -35,7 +35,9 @@ class PTDetector:
     IMAGE_SIZE = 1280  # image size used in training
     STRIDE = 64
 
-    def __init__(self, model_path: str, force_cpu: bool = False):
+    def __init__(self, model_path: str, 
+                 force_cpu: bool = False,
+                 use_model_native_classes: bool = False):
         self.device = 'cpu'
         if not force_cpu:
             if torch.cuda.is_available():
@@ -50,7 +52,9 @@ class PTDetector:
             print('Sending model to GPU')
             self.model.to(self.device)
             
-        self.printed_image_size_warning = False
+        self.printed_image_size_warning = False        
+        self.use_model_native_classes = use_model_native_classes
+        
 
     @staticmethod
     def _load_model(model_pt_path, device):
@@ -58,7 +62,8 @@ class PTDetector:
         model = checkpoint['model'].float().fuse().eval()  # FP32 model
         return model
 
-    def generate_detections_one_image(self, img_original, image_id, detection_threshold, image_size=None):
+    def generate_detections_one_image(self, img_original, image_id, 
+                                      detection_threshold, image_size=None):
         """Apply the detector to an image.
 
         Args:
@@ -70,7 +75,8 @@ class PTDetector:
         A dict with the following fields, see the 'images' key in https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing#batch-processing-api-output-format
             - 'file' (always present)
             - 'max_detection_conf'
-            - 'detections', which is a list of detection objects containing keys 'category', 'conf' and 'bbox'
+            - 'detections', which is a list of detection objects containing keys 'category', 
+              'conf' and 'bbox'
             - 'failure'
         """
 
@@ -121,8 +127,9 @@ class PTDetector:
 
             # NMS
             if self.device == 'mps':
-                # Current v1.13.0.dev20220824 torchvision::nms is not current implemented for the MPS device
-                # Send pred back to cpu to fix
+                # As of v1.13.0.dev20220824, nms is not implemented for MPS.
+                #
+                # Send predication back to the CPU to fix.
                 pred = non_max_suppression(prediction=pred.cpu(), conf_thres=detection_threshold)
             else: 
                 pred = non_max_suppression(prediction=pred, conf_thres=detection_threshold)
@@ -148,10 +155,14 @@ class PTDetector:
 
                         conf = ct_utils.truncate_float(conf.tolist(), precision=CONF_DIGITS)
 
-                        # MegaDetector output format's categories start at 1, but this model's start at 0
-                        cls = int(cls.tolist()) + 1
-                        if cls not in (1, 2, 3):
-                            raise KeyError(f'{cls} is not a valid class.')
+                        if not self.use_model_native_classes:
+                            # MegaDetector output format's categories start at 1, but the MD 
+                            # model's categories start at 0.
+                            cls = int(cls.tolist()) + 1
+                            if cls not in (1, 2, 3):
+                                raise KeyError(f'{cls} is not a valid class.')
+                        else:
+                            cls = int(cls.tolist())
 
                         detections.append({
                             'category': str(cls),
