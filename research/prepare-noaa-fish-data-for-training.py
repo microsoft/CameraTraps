@@ -241,8 +241,8 @@ with open(yolo_dataset_file,'w') as f:
 conda create --name yolov5
 conda activate yolov5
 conda install pip
-cd yolov5
-git clone https://github.com/ultralytics/yolov5  # clone
+cd ~/git
+git clone https://github.com/ultralytics/yolov5 yolov5-current # clone
 pip install -r requirements.txt  # install
 
 # Because of random CUDA errors:
@@ -254,7 +254,7 @@ conda install pytorch torchvision torchaudio pytorch-cuda=11.7 -c pytorch -c nvi
 #
 # Note to self:
 #
-# https://docs.ultralytics.com/tutorials/training-tips-best-results/
+# https://github.com/ultralytics/yolov5/wiki/Tips-for-Best-Training-Results
 #
 # Pre-trained model sizes:
 #
