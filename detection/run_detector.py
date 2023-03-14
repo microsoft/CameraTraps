@@ -288,8 +288,6 @@ def load_and_run_detector(model_file, image_file_names, output_dir,
     print('GPU available: {}'.format(is_gpu_available(model_file)))
     
     detector = load_detector(model_file)
-    
-   
 
     detection_results = []
     time_load = []
