@@ -80,6 +80,9 @@ DEFAULT_DETECTOR_LABEL_MAP = {
     '3': 'vehicle'  # available in megadetector v4+
 }
 
+# Should we allow classes that don't look anything like the MegaDetector classes?
+USE_MODEL_NATIVE_CLASSES = False
+
 # Each version of the detector is associated with some "typical" values
 # that are included in output files, so that downstream applications can 
 # use them as defaults.
@@ -256,11 +259,12 @@ def load_detector(model_file, force_cpu=False):
     if model_file.endswith('.pb'):
         from detection.tf_detector import TFDetector
         if force_cpu:
-            raise ValueError('force_cpu option is not currently supported for TF detectors, use CUDA_VISIBLE_DEVICES=-1')
+            raise ValueError('force_cpu option is not currently supported for TF detectors, ' + \
+                             'use CUDA_VISIBLE_DEVICES=-1')
         detector = TFDetector(model_file)
     elif model_file.endswith('.pt'):
         from detection.pytorch_detector import PTDetector
-        detector = PTDetector(model_file, force_cpu)
+        detector = PTDetector(model_file, force_cpu, USE_MODEL_NATIVE_CLASSES)        
     else:
         raise ValueError('Unrecognized model format: {}'.format(model_file))
     elapsed = time.time() - start_time
