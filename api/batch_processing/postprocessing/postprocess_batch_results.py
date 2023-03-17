@@ -1534,9 +1534,13 @@ def main():
         '--random_output_sort', action='store_true',
         help='Sort output randomly (defaults to sorting by filename)')
     parser.add_argument(
-            '--n_cores', type=int, default=1,
-            help='Number of threads to use for rendering (default: 1)')
-
+        '--n_cores', type=int, default=1,
+        help='Number of threads to use for rendering (default: 1)')
+    parser.add_argument(
+        '--parallelize_rendering_with_processes', 
+        action='store_true',
+        help='Should we use processes (instead of threads) for parallelization?')
+    
     if len(sys.argv[1:]) == 0:
         parser.print_help()
         parser.exit()
@@ -1545,6 +1549,8 @@ def main():
     args.sort_html_by_filename = (not args.random_output_sort)
     if args.n_cores != 1:
         assert (args.n_cores > 1), 'Illegal number of cores: {}'.format(args.n_cores)
+        if args.parallelize_rendering_with_processes:
+            args.parallelize_rendering_with_threads = False
         args.parallelize_rendering = True
         args.parallelize_rendering_n_cores = args.n_cores        
 
