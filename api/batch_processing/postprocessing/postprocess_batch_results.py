@@ -163,6 +163,8 @@ class PostProcessingOptions:
     parallelize_rendering_with_threads = True
     parallelize_rendering = False
     
+    sort_classification_results_by_count = False    
+    
 # ...PostProcessingOptions
 
 
@@ -1444,6 +1446,13 @@ def process_batch_results(options: PostProcessingOptions
             if 'class_unreliable' in images_html.keys():
                 class_names.append('unreliable')
 
+            if options.sort_classification_results_by_count:
+                class_name_to_count = {}                
+                for cname in class_names:
+                    ccount = len(images_html['class_{}'.format(cname)])
+                    class_name_to_count[cname] = ccount
+                class_names = sorted(class_names,key=lambda x: class_name_to_count[x],reverse=True)                
+                    
             for cname in class_names:
                 ccount = len(images_html['class_{}'.format(cname)])
                 if ccount > 0:
