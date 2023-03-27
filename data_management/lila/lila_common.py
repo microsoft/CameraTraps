@@ -29,12 +29,12 @@ from path_utils import unzip_file
 
 
 #%% Common functions
-
+    
 def read_wildlife_insights_taxonomy_mapping(metadata_dir):
     """
     Reads the WI taxonomy mapping file, downloading the .json data (and writing to .csv) if necessary.
     
-    Returns a Pandas dataframe
+    Returns a Pandas dataframe.
     """
     
     wi_taxonomy_csv_path = os.path.join(metadata_dir,wildlife_insights_taxonomy_local_csv_filename)
