@@ -341,7 +341,10 @@ def render_detection_bounding_boxes(detections, image,
     for detection in detections:
 
         score = detection['conf']
-        if score >= confidence_threshold:
+        
+        # Always render objects with a confidence of "None", this is typically used
+        # for ground truth data.        
+        if score is None or score >= confidence_threshold:
             
             x1, y1, w_box, h_box = detection['bbox']
             display_boxes.append([y1, x1, y1 + h_box, x1 + w_box])
@@ -351,7 +354,10 @@ def render_detection_bounding_boxes(detections, image,
             # if label_map:
             if label_map is not None:
                 label = label_map[clss] if clss in label_map else clss
-                displayed_label = ['{}: {}%'.format(label, round(100 * score))]
+                if score is not None:
+                    displayed_label = ['{}: {}%'.format(label, round(100 * score))]
+                else:
+                    displayed_label = ['{}'.format(label)]
             else:
                 displayed_label = ''
 
@@ -366,15 +372,19 @@ def render_detection_bounding_boxes(detections, image,
                     
                 for classification in classifications:
                     
-                    p = classification[1]
-                    if p < classification_confidence_threshold:
+                    classification_conf = classification[1]
+                    if classification_conf is not None and \
+                        classification_conf < classification_confidence_threshold:
                         continue
                     class_key = classification[0]
                     if (classification_label_map is not None) and (class_key in classification_label_map):
                         class_name = classification_label_map[class_key]
                     else:
                         class_name = class_key
-                    displayed_label += ['{}: {:5.1%}'.format(class_name.lower(), classification[1])]
+                    if classification_conf is not None:
+                        displayed_label += ['{}: {:5.1%}'.format(class_name.lower(), classification_conf)]
+                    else:
+                        displayed_label += ['{}'.format(class_name.lower())]
                     
                 # ...for each classification
 
