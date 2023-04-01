@@ -59,10 +59,18 @@ scc = '#'
 
 script_extension = '.sh'
 
+# Prefer threads on Windows, processes on Linux
+parallelization_defaults_to_threads = False
+
+# This is for things like image rendering, not for MegaDetector
+default_workers_for_parallel_tasks = 30
+
 if os.name == 'nt':
     slcc = '^'
     scc = 'REM'
     script_extension = '.bat'
+    parallelization_defaults_to_threads = True
+    default_workers_for_parallel_tasks = 10
 
 
 #%% Constants I set per script
@@ -70,7 +78,7 @@ if os.name == 'nt':
 input_path = '/datadrive/organization/data'
 
 organization_name_short = 'organization'
-job_date = None # '2022-12-02'
+job_date = None # '2023-04-00'
 assert job_date is not None and organization_name_short != 'organization'
 
 # Optional descriptor
@@ -415,8 +423,8 @@ options.separate_detections_by_category = True
 # options.sample_seed = 0
 
 options.parallelize_rendering = True
-options.parallelize_rendering_n_cores = 50
-options.parallelize_rendering_with_threads = False
+options.parallelize_rendering_n_cores = default_workers_for_parallel_tasks
+options.parallelize_rendering_with_threads = parallelization_defaults_to_threads
 
 if render_animals_only:
     # Omit some pages from the output, useful when animals are rare
@@ -498,8 +506,8 @@ options.occurrenceThreshold = 20
 options.maxSuspiciousDetectionSize = 0.2
 # options.minSuspiciousDetectionSize = 0.05
 
-options.parallelizationUsesThreads = False
-options.nWorkers = 20
+options.parallelizationUsesThreads = parallelization_defaults_to_threads
+options.nWorkers = default_workers_for_parallel_tasks
 
 # This will cause a very light gray box to get drawn around all the detections
 # we're *not* considering as suspicious.
@@ -576,8 +584,8 @@ options.separate_detections_by_category = True
 # options.sample_seed = 0
 
 options.parallelize_rendering = True
-options.parallelize_rendering_n_cores = 50
-options.parallelize_rendering_with_threads = False
+options.parallelize_rendering_n_cores = default_workers_for_parallel_tasks
+options.parallelize_rendering_with_threads = parallelization_defaults_to_threads
 
 if render_animals_only:
     # Omit some pages from the output, useful when animals are rare
@@ -633,10 +641,10 @@ assert os.path.isfile(target_mapping_path)
 classifier_output_suffix = '_megaclassifier_output.csv.gz'
 final_output_suffix = '_megaclassifier.json'
 
-n_threads_str = '50'
+n_threads_str = str(default_workers_for_parallel_tasks)
 image_size_str = '300'
 batch_size_str = '64'
-num_workers_str = '8'
+num_workers_str = str(default_workers_for_parallel_tasks)
 classification_threshold_str = '0.05'
 
 logdir = filename_base
@@ -665,8 +673,8 @@ for fn in input_files:
     crop_cmd += crop_comment
     
     crop_cmd += "python crop_detections.py " + slcc + "\n" + \
-    	 ' ' + input_file_path + ' ' + slcc + '\n' + \
-         ' ' + crop_path + ' ' + slcc + '\n' + \
+    	 ' "' + input_file_path + '" ' + slcc + '\n' + \
+         ' "' + crop_path + '" ' + slcc + '\n' + \
          ' ' + '--images-dir "' + image_base + '"' + ' ' + slcc + '\n' + \
          ' ' + '--threshold "' + threshold_str + '"' + ' ' + slcc + '\n' + \
          ' ' + '--square-crops ' + ' ' + slcc + '\n' + \
@@ -693,9 +701,9 @@ for fn in input_files:
     classify_cmd += classify_comment
     
     classify_cmd += "python run_classifier.py " + slcc + "\n" + \
-    	 ' ' + checkpoint_path + ' ' + slcc + '\n' + \
-         ' ' + crop_path + ' ' + slcc + '\n' + \
-         ' ' + classifier_output_path + ' ' + slcc + '\n' + \
+    	 ' "' + checkpoint_path + '" ' + slcc + '\n' + \
+         ' "' + crop_path + '" ' + slcc + '\n' + \
+         ' "' + classifier_output_path + '" ' + slcc + '\n' + \
          ' ' + '--detections-json "' + input_file_path + '"' + ' ' + slcc + '\n' + \
          ' ' + '--classifier-categories "' + classifier_categories_path + '"' + ' ' + slcc + '\n' + \
          ' ' + '--image-size "' + image_size_str + '"' + ' ' + slcc + '\n' + \
@@ -732,7 +740,7 @@ for fn in input_files:
     remap_cmd += remap_comment
     
     remap_cmd += "python aggregate_classifier_probs.py " + slcc + "\n" + \
-        ' ' + classifier_output_path + ' ' + slcc + '\n' + \
+        ' "' + classifier_output_path + '" ' + slcc + '\n' + \
         ' ' + '--target-mapping "' + target_mapping_path + '"' + ' ' + slcc + '\n' + \
         ' ' + '--output-csv "' + classifier_output_path_remapped + '"' + ' ' + slcc + '\n' + \
         ' ' + '--output-label-index "' + output_label_index + '"' \
@@ -772,8 +780,8 @@ for fn in input_files:
     merge_cmd += merge_comment
     
     merge_cmd += "python merge_classification_detection_output.py " + slcc + "\n" + \
-    	 ' ' + classifier_output_path_remapped + ' ' + slcc + '\n' + \
-         ' ' + output_label_index + ' ' + slcc + '\n' + \
+    	 ' "' + classifier_output_path_remapped + '" ' + slcc + '\n' + \
+         ' "' + output_label_index + '" ' + slcc + '\n' + \
          ' ' + '--output-json "' + final_output_path + '"' + ' ' + slcc + '\n' + \
          ' ' + '--detection-json "' + input_file_path + '"' + ' ' + slcc + '\n' + \
          ' ' + '--classifier-name "' + classifier_name + '"' + ' ' + slcc + '\n' + \
@@ -825,10 +833,10 @@ classifier_output_suffix = '_{}_output.csv.gz'.format(classifier_name_short)
 final_output_suffix = '_{}.json'.format(classifier_name_short)
 
 threshold_str = '0.65'
-n_threads_str = '50'
+n_threads_str = str(default_workers_for_parallel_tasks)
 image_size_str = '300'
 batch_size_str = '64'
-num_workers_str = '8'
+num_workers_str = str(default_workers_for_parallel_tasks)
 logdir = filename_base
 
 classification_threshold_str = '0.05'
@@ -857,8 +865,8 @@ for fn in input_files:
     crop_cmd += crop_comment
     
     crop_cmd += "python crop_detections.py " + slcc + "\n" + \
-    	 ' ' + input_file_path + ' ' + slcc + '\n' + \
-         ' ' + crop_path + ' ' + slcc + '\n' + \
+    	 ' "' + input_file_path + '" ' + slcc + '\n' + \
+         ' "' + crop_path + '" ' + slcc + '\n' + \
          ' ' + '--images-dir "' + image_base + '"' + ' ' + slcc + '\n' + \
          ' ' + '--threshold "' + threshold_str + '"' + ' ' + slcc + '\n' + \
          ' ' + '--square-crops ' + ' ' + slcc + '\n' + \
@@ -885,9 +893,9 @@ for fn in input_files:
     classify_cmd += classify_comment
     
     classify_cmd += "python run_classifier.py " + slcc + "\n" + \
-    	 ' ' + checkpoint_path + ' ' + slcc + '\n' + \
-         ' ' + crop_path + ' ' + slcc + '\n' + \
-         ' ' + classifier_output_path + ' ' + slcc + '\n' + \
+    	 ' "' + checkpoint_path + '" ' + slcc + '\n' + \
+         ' "' + crop_path + '" ' + slcc + '\n' + \
+         ' "' + classifier_output_path + '" ' + slcc + '\n' + \
          ' ' + '--detections-json "' + input_file_path + '"' + ' ' + slcc + '\n' + \
          ' ' + '--classifier-categories "' + classifier_categories_path + '"' + ' ' + slcc + '\n' + \
          ' ' + '--image-size "' + image_size_str + '"' + ' ' + slcc + '\n' + \
@@ -925,8 +933,8 @@ for fn in input_files:
     merge_cmd += merge_comment
     
     merge_cmd += "python merge_classification_detection_output.py " + slcc + "\n" + \
-    	 ' ' + classifier_output_path + ' ' + slcc + '\n' + \
-         ' ' + classifier_categories_path + ' ' + slcc + '\n' + \
+    	 ' "' + classifier_output_path + '" ' + slcc + '\n' + \
+         ' "' + classifier_categories_path + '" ' + slcc + '\n' + \
          ' ' + '--output-json "' + final_output_path_ic + '"' + ' ' + slcc + '\n' + \
          ' ' + '--detection-json "' + input_file_path + '"' + ' ' + slcc + '\n' + \
          ' ' + '--classifier-name "' + classifier_name + '"' + ' ' + slcc + '\n' + \
@@ -1201,8 +1209,8 @@ for classification_detection_file in classification_detection_files:
     options.separate_detections_by_category = True
     
     options.parallelize_rendering = True
-    options.parallelize_rendering_n_cores = 50
-    options.parallelize_rendering_with_threads = False
+    options.parallelize_rendering_n_cores = default_workers_for_parallel_tasks
+    options.parallelize_rendering_with_threads = parallelization_defaults_to_threads
     
     folder_token = classification_detection_file.split(os.path.sep)[-1].replace('classifier.json','')
     
@@ -1223,8 +1231,8 @@ from data_management import read_exif
 exif_options = read_exif.ReadExifOptions()
 
 exif_options.verbose = False
-exif_options.n_workers = 50
-exif_options.use_threads = False
+exif_options.n_workers = default_workers_for_parallel_tasks
+exif_options.use_threads = parallelization_defaults_to_threads
 exif_options.processing_library = 'pil'
 
 exif_results_file = os.path.join(filename_base,'exif_data.json')
@@ -1650,8 +1658,8 @@ options.ground_truth_json_file = None
 options.separate_detections_by_category = True
 
 options.parallelize_rendering = True
-options.parallelize_rendering_n_cores = 50
-options.parallelize_rendering_with_threads = False
+options.parallelize_rendering_n_cores = default_workers_for_parallel_tasks
+options.parallelize_rendering_with_threads = parallelization_defaults_to_threads
 
 folder_token = sequence_smoothed_classification_file.split(os.path.sep)[-1].replace(
     '_within_image_smoothing_seqsmoothing','')
@@ -1909,7 +1917,7 @@ options = SeparateDetectionsIntoFoldersOptions(default_threshold)
 options.results_file = filtered_output_filename
 options.base_input_folder = input_path
 options.base_output_folder = os.path.join(base_output_folder,folder_name)
-options.n_threads = 100
+options.n_threads = default_workers_for_parallel_tasks
 options.allow_existing_directory = False
 
 separate_detections_into_folders(options)
