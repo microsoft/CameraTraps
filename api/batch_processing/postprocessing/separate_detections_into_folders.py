@@ -382,11 +382,19 @@ def process_detections(im,options):
         # Read EXIF metadata
         exif = pil_image.info['exif'] if ('exif' in pil_image.info) else None
         
-        # Write output with EXIF metadata and quality='keep'
+        # Write output with EXIF metadata if available, and quality='keep' if this is a JPEG
+        # image.  Unfortunately, neither parameter likes "None", so we get a slightly
+        # icky cascade of if's here.
         if exif is not None:
-            pil_image.save(target_path, exif=exif, quality='keep')
+            if pil_image.format == "JPEG":
+                pil_image.save(target_path, exif=exif, quality='keep')
+            else:
+                pil_image.save(target_path, exif=exif)
         else:
-            pil_image.save(target_path, quality='keep')
+            if pil_image.format == "JPEG":            
+                pil_image.save(target_path, quality='keep')
+            else:
+                pil_image.save(target_path)
         
         # Also see:
         #

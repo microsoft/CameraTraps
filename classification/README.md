@@ -181,40 +181,7 @@ This section explains how to run MegaClassifier on new images. To run MegaClassi
 
 ## 1. Run MegaDetector
 
-Run MegaDetector on the new images to get an output JSON file in the format of the Batch API. MegaDetector can be run either locally or via the Batch API.
-
-<details>
-    <summary>Basic instructions for running MegaDetector locally</summary>
-
-Note: these instructions have not been updated to refer to [MegaDetector v5](https://github.com/microsoft/CameraTraps/releases/tag/v5.0).  You probably want to use MDv5, so if it's not clear how to adapt these instructions to MDv5, [email us](mailto:cameratraps@lila.science).  General instructions for running MegaDetector (any version) are [here](https://github.com/microsoft/CameraTraps/blob/main/megadetector.md#using-the-model).
-
-But, the short version...
-
-We assume that the images are in a local folder `/path/to/images`. Use [AzCopy](http://aka.ms/azcopy) if necessary to download the images from Azure Blob Storage.
-
-From the CameraTraps repo folder, run the following.
-
-```bash
-# Download the MegaDetector model file
-wget -O md_v4.1.0.pb https://lilablobssc.blob.core.windows.net/models/camera_traps/megadetector/md_v4.1.0/md_v4.1.0.pb
-
-# install TensorFlow v1 and other dependences
-conda env update -f environment-detector.yml --prune
-conda activate cameratraps-detector
-
-# run MegaDetector
-python detection/run_detector_batch.py md_v4.1.0.pb /path/to/images detections.json --recursive --output_relative_filenames
-```
-
-For more details, consult the [MegaDetector README](https://github.com/microsoft/CameraTraps/blob/master/megadetector.md).
-</details>
-
-
-<details>
-    <summary>Instructions for running MegaDetector via Batch API</summary>
-
-See [`api/batch_processing/data_preparation/manage_api_submission.py`](https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing/data_preparation/manage_api_submission.py).
-</details>
+First, you need to run MegaDetector on your new images to get an output JSON file, typically using [run_detector_batch.py](https://github.com/microsoft/CameraTraps/blob/main/detection/run_detector_batch.py), though it's also fine to use a third-party tool like [EcoAssist](https://github.com/PetervanLunteren/EcoAssist).  Instructions for running MegaDetector (any version) are [here](https://github.com/microsoft/CameraTraps/blob/main/megadetector.md#using-the-model).
 
 
 ## 2. Crop images
