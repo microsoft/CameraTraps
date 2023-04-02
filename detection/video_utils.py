@@ -332,10 +332,13 @@ def frame_results_to_video_results(input_file,output_file,options:FrameToVideoOp
         im_out = {}
         im_out['file'] = video_name
         im_out['detections'] = canonical_detections
-        im_out['max_detection_conf'] = 0
-        if len(canonical_detections) > 0:
-            confidences = [d['conf'] for d in canonical_detections]
-            im_out['max_detection_conf'] = max(confidences)
+        
+        # 'max_detection_conf' is no longer included in output files by default
+        if False:
+            im_out['max_detection_conf'] = 0
+            if len(canonical_detections) > 0:
+                confidences = [d['conf'] for d in canonical_detections]
+                im_out['max_detection_conf'] = max(confidences)
         
         output_images.append(im_out)
         

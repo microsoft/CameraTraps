@@ -351,7 +351,10 @@ if False:
             # ...for each detection
             
             im['detections'] = valid_detections
-            im['max_detection_conf'] = max_detection_conf
+            
+            # This is no longer included in output files by default
+            if 'max_detection_conf' in im:
+                im['max_detection_conf'] = max_detection_conf
             
         print('Kept {} of {} detections (min conf {})'.format(
             n_valid_detections,n_detections,min_valid_confidence))

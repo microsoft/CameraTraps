@@ -57,6 +57,8 @@ from data_management.cct_json_utils import (CameraTrapJsonUtils, IndexedJsonDb)
 from api.batch_processing.postprocessing.load_api_results import load_api_results
 from ct_utils import args_to_object
 
+from detection.run_detector import get_typical_confidence_threshold_from_results
+
 warnings.filterwarnings('ignore', '(Possibly )?corrupt EXIF data', UserWarning)
 
 
@@ -111,7 +113,8 @@ class PostProcessingOptions:
     # detections_animal, detections_person, detections_vehicle
     rendering_bypass_sets = []
 
-    confidence_threshold = 0.8
+    # By default, choose a confidence threshold based on the detector version
+    confidence_threshold = None
     classification_confidence_threshold = 0.5
 
     # Used for summary statistics only
@@ -156,7 +159,7 @@ class PostProcessingOptions:
     #
     # Currently only supported when ground truth is unavailable
     include_almost_detections = False
-    almost_detection_confidence_threshold = 0.75
+    almost_detection_confidence_threshold = None
 
     # Control rendering parallelization
     parallelize_rendering_n_cores: Optional[int] = 100
@@ -715,6 +718,7 @@ def process_batch_results(options: PostProcessingOptions
 
     ##%% Load detection (and possibly classification) results
 
+    # If the caller hasn't supplied results, load them
     if options.api_detection_results is None:
         detections_df, other_fields = load_api_results(
             options.api_output_file, normalize_paths=True,
@@ -728,6 +732,19 @@ def process_batch_results(options: PostProcessingOptions
         detections_df = options.api_detection_results
         other_fields = options.api_other_fields
 
+    # Determine confidence thresholds if necessary
+    
+    if options.confidence_threshold is None:
+        options.confidence_threshold = \
+            get_typical_confidence_threshold_from_results(other_fields)
+        print('Choosing default confidence threshold of {} based on MD version'.format(
+            options.confidence_threshold))    
+            
+    if options.almost_detection_confidence_threshold is None:
+        options.almost_detection_confidence_threshold = options.confidence_threshold - 0.05
+        if options.almost_detection_confidence_threshold < 0:
+            options.almost_detection_confidence_threshold = 0
+            
     # Remove failed rows
     n_failures = 0
     if 'failure' in detections_df.columns:

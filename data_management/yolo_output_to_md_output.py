@@ -90,7 +90,6 @@ def yolo_output_to_md_output(input_results_folder,input_image_folder,output_file
                 
         images_entries.append({
             'file': image_fn,
-            'max_detection_conf': max_conf,
             'detections': detections
         })
     
@@ -107,7 +106,7 @@ def yolo_output_to_md_output(input_results_folder,input_image_folder,output_file
         'info': {
             'detector': detector_string,
             'detector_metadata': {},
-            'format_version': '1.2'
+            'format_version': '1.3'
         },
         'detection_categories': {
             '1': 'animal',
