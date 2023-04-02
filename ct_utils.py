@@ -214,3 +214,23 @@ def get_iou(bb1, bb2):
     assert iou >= 0.0, 'Illegal IOU < 0'
     assert iou <= 1.0, 'Illegal IOU > 1'
     return iou
+
+
+def _get_max_conf_from_detections(detections):
+    max_conf = 0.0
+    if detections is not None and len(detections) > 0:
+        confidences = [det['conf'] for det in detections]
+        max_conf = max(confidences)
+    return max_conf
+    
+def get_max_conf(im):
+    """
+    Given an image dict in the format used by the batch API, compute the maximum detection
+    confidence for any class.  Returns 0.0 (not None) if there was a failure and 'detections'
+    isn't present.
+    """
+    
+    max_conf = 0.0
+    if 'detections' in im and im['detections'] is not None and len(im['detections']) > 0:
+        max_conf = _get_max_conf_from_detections(im['detections'])
+    return max_conf

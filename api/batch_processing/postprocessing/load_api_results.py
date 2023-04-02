@@ -20,6 +20,8 @@ from typing import Dict, Mapping, Optional, Tuple
 
 import pandas as pd
 
+import ct_utils
+
 headers = ['image_path', 'max_confidence', 'detections']
 
 
@@ -81,8 +83,8 @@ def load_api_results(api_output_path: str, normalize_paths: bool = True,
 
     Returns:
         detection_results: pd.DataFrame, contains at least the columns:
-                ['file', 'max_detection_conf', 'detections','failure']            
-        other_fields: a dict containing fields in the dict
+                ['file', 'detections','failure']            
+        other_fields: a dict containing fields in the results other than 'images'
     """
     print('Loading API results from {}'.format(api_output_path))
 
@@ -114,8 +116,16 @@ def load_api_results(api_output_path: str, normalize_paths: bool = True,
 
     print('Converting results to dataframe')
     
+    # If this is a newer file that doesn't include maximum detection confidence values,
+    # add them, because our unofficial internal dataframe format includes this.
+    for im in detection_results['images']:
+        if 'max_detection_conf' not in im:
+            im['max_detection_conf'] = ct_utils.get_max_conf(im)
+    
     # Pack the json output into a Pandas DataFrame
     detection_results = pd.DataFrame(detection_results['images'])
+    
+        
 
     print('Finished loading API results for {} images from {}'.format(
             len(detection_results),api_output_path))
@@ -183,7 +193,8 @@ def load_api_results_csv(filename, normalize_paths=True, filename_replacements={
             fn = fn.replace(string_to_replace,replacement_string)
             detection_results.at[iRow,'image_path'] = fn
 
-    print('Finished loading and de-serializing API results for {} images from {}'.format(len(detection_results),filename))
+    print('Finished loading and de-serializing API results for {} images from {}'.format(
+        len(detection_results),filename))
 
     return detection_results
 

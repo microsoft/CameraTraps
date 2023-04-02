@@ -460,7 +460,7 @@ def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=No
 
 
 def write_results_to_file(results, output_file, relative_path_base=None, 
-                          detector_file=None, info=None):
+                          detector_file=None, info=None, include_max_conf=False):
     """
     Writes list of detection results to JSON output file. Format matches:
 
@@ -485,7 +485,7 @@ def write_results_to_file(results, output_file, relative_path_base=None,
         
         info = { 
             'detection_completion_time': datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'),
-            'format_version': '1.2' 
+            'format_version': '1.3' 
         }
         
         if detector_file is not None:
@@ -505,12 +505,20 @@ def write_results_to_file(results, output_file, relative_path_base=None,
             
             print('Warning (write_results_to_file): info struct and detector file ' + \
                   'supplied, ignoring detector file')
-                  
+
+    # The 'max_detection_conf' field used to be included by default, and it caused all kinds
+    # of headaches, so it's no longer included unless the user explicitly requests it.
+    if not include_max_conf:
+        for im in results:
+            if 'max_detection_conf' in im:
+                del im['max_detection_conf']
+            
     final_output = {
         'images': results,
         'detection_categories': run_detector.DEFAULT_DETECTOR_LABEL_MAP,
         'info': info
     }
+    
     with open(output_file, 'w') as f:
         json.dump(final_output, f, indent=1)
     print('Output file saved at {}'.format(output_file))
@@ -534,12 +542,9 @@ if False:
     quiet = False
     image_dir = r'G:\temp\demo_images\ssmini'
     image_size = None
-    image_file_names = image_file_names = ImagePathUtils.find_images(image_dir, recursive=False)
-    # image_file_names = image_file_names[0:2]
+    image_file_names = ImagePathUtils.find_images(image_dir, recursive=False)    
     
     start_time = time.time()
-    
-    # python run_detector_batch.py "g:\temp\models\md_v4.1.0.pb" "g:\temp\demo_images\ssmini" "g:\temp\ssmini.json" --recursive --output_relative_filenames --use_image_queue
     
     results = load_and_run_detector_batch(model_file=model_file,
                                           image_file_names=image_file_names,
@@ -580,6 +585,10 @@ def main():
         '--output_relative_filenames',
         action='store_true',
         help='Output relative file names, only meaningful if image_file points to a directory')
+    parser.add_argument(
+        '--include_max_conf',
+        action='store_true',
+        help='Include the "max_detection_conf" field in the output')
     parser.add_argument(
         '--quiet',
         action='store_true',
@@ -782,7 +791,7 @@ def main():
     if args.output_relative_filenames:
         relative_path_base = args.image_file
     write_results_to_file(results, args.output_file, relative_path_base=relative_path_base,
-                          detector_file=args.detector_file)
+                          detector_file=args.detector_file,include_max_conf=args.include_max_conf)
 
     if checkpoint_path and os.path.isfile(checkpoint_path):
         os.remove(checkpoint_path)
