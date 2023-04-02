@@ -82,11 +82,10 @@ import itertools
 
 from multiprocessing.pool import ThreadPool
 from functools import partial
-from detection.run_detector import get_detector_metadata_from_version_string        
-from detection.run_detector import get_detector_version_from_filename
 from tqdm import tqdm
 
 from ct_utils import args_to_object
+from detection.run_detector import get_typical_confidence_threshold_from_results
 
 import visualization.visualization_utils as viz_utils
 
@@ -434,22 +433,9 @@ def separate_detections_into_folders(options):
     
     default_threshold = options.threshold
     
-    if default_threshold is None:
+    if default_threshold is None:        
+        default_threshold = get_typical_confidence_threshold_from_results(results)        
         
-        if 'detector_metadata' in results['info'] and \
-            'typical_detection_threshold' in results['info']['detector_metadata']:
-            default_threshold = results['info']['detector_metadata']['typical_detection_threshold']
-        elif ('detector' not in results['info']) or (results['info']['detector'] is None):
-            print('Warning: detector version not available in results file, using MDv5 defaults')
-            detector_metadata = get_detector_metadata_from_version_string('v5a.0.0')
-            default_threshold = detector_metadata['typical_detection_threshold']
-        else:
-            print('Warning: detector metadata not available in results file, inferring from MD version')
-            detector_filename = results['info']['detector']
-            detector_version = get_detector_version_from_filename(detector_filename)
-            detector_metadata = get_detector_metadata_from_version_string(detector_version)
-            default_threshold = detector_metadata['typical_detection_threshold']
-    
     detection_categories = results['detection_categories']    
     options.detection_categories = detection_categories
     options.category_id_to_category_name = detection_categories
