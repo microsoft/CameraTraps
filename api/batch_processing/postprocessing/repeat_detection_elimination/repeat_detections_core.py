@@ -827,7 +827,8 @@ def find_repeat_detections(inputFilename, outputFilename=None, options=None):
         os.makedirs(options.outputBase,exist_ok=True)
 
 
-    # Load file
+    # Load file to a pandas dataframe.  Also populates 'max_detection_conf', even if it's
+    # not present in the .json file.
 
     detectionResults, otherFields = load_api_results(inputFilename, normalize_paths=True,
                                          filename_replacements=options.filenameReplacements)

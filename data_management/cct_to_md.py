@@ -108,7 +108,9 @@ def cct_to_md(input_filename,output_filename=None):
         # ...for each annotation
         
         im_out['detections'] = detections
-        im_out['max_detection_conf'] = max_detection_conf
+        
+        # This field is no longer included in MD output files by default
+        # im_out['max_detection_conf'] = max_detection_conf
     
         images_out.append(im_out)
         
