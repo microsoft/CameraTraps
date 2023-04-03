@@ -724,7 +724,7 @@ def process_batch_results(options: PostProcessingOptions
             options.api_output_file, normalize_paths=True,
             filename_replacements=options.api_output_filename_replacements)
         ppresults.api_detection_results = detections_df
-        ppresults.api_other_fields = other_fields
+        ppresults.api_other_fields = other_fields        
 
     else:
         print('Bypassing detection results loading...')

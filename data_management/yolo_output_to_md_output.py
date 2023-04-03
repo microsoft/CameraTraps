@@ -1,10 +1,16 @@
 #
 # yolo_output_to_md_output.py
 #
-# Converts the output of YOLOv5's detect.py to the MD API output format.  Command-line
-# driver not done yet, this has only been run interactively.
+# Converts the output of YOLOv5's detect.py or val.py to the MD API output format.
 #
-# Does not currently support recursive results, since detect.py doesn't save filenames
+# Command-line driver not done yet, this has only been run interactively.
+#
+
+### Converting .txt files ###
+
+#
+# detect.py writes a .txt file per image, in YOLO training format.  Converting from this
+# format does not currently support recursive results, since detect.py doesn't save filenames
 # in a way that allows easy inference of folder names.  Requires access to the input
 # images, because the YOLO format uses the *absence* of a results file to indicate that
 # no detections are present.
@@ -15,6 +21,21 @@
 #
 # That's [class, x_center, y_center, width_of_box, height_of_box, confidence]
 #
+# val.py can write in this format as well, using the --save-txt argument.
+#
+# In both cases, a confidence value is only written to each line if you include the --save-conf
+# argument.  Confidence values are required by this conversion script.
+#
+
+### Converting .json files ###
+
+#
+# val.py can also write a .json file in COCO-ish format.  It's "COCO-ish" because it's
+# just the "images" portion of a COCO .json file.
+#
+# Converting from this format also requires access to the original images, since the format
+# written by YOLOv5 uses absolute coordinates, but MD results are in relative coordinates.
+#
 
 #%% Imports and constants
 
@@ -22,16 +43,137 @@ import json
 import os
 import csv
 
+from collections import defaultdict
+from tqdm import tqdm
+
 import path_utils
 import ct_utils
+
+from visualization import visualization_utils as visutils
 
 
 #%% Support functions
 
-def yolo_output_to_md_output(input_results_folder,input_image_folder,output_file,detector_tag=None):
+def yolo_json_output_to_md_output(yolo_json_file, image_folder,
+                                  output_file, yolo_category_id_to_name,                              
+                                  detector_name='unknown',
+                                  image_id_to_relative_path=None):
+    
+    assert os.path.isfile(yolo_json_file), \
+        'Could not find YOLO .json file {}'.format(yolo_json_file)
+    assert os.path.isdir(image_folder), \
+        'Could not find image folder {}'.format(image_folder)
+        
+    print('Converting {} to MD format'.format(yolo_json_file))
+    
+    if image_id_to_relative_path is None:
+        
+        image_files = path_utils.find_images(image_folder,recursive=True)
+        image_files = [os.path.relpath(fn,image_folder) for fn in image_files]
+        
+        # YOLOv5 identifies images in .json output by ID, which is the filename without
+        # extension.  If a mapping is not provided, these need to be unique.
+        image_id_to_relative_path = {}
+        
+        for fn in image_files:
+            image_id = os.path.splitext(os.path.basename(fn))[0]
+            if image_id in image_id_to_relative_path:
+                print('Error image ID {} refers to:\n{}\n{}'.format(
+                    image_id,image_id_to_relative_path[image_id],fn))
+                raise ValueError('Duplicate image ID {}'.format(image_id))
+            image_id_to_relative_path[image_id] = fn
+
+    image_files_relative = sorted(list(image_id_to_relative_path.values()))
+    
+    image_file_relative_to_image_id = {}
+    for image_id in image_id_to_relative_path:
+        relative_path = image_id_to_relative_path[image_id]
+        assert relative_path not in image_file_relative_to_image_id
+        image_file_relative_to_image_id[relative_path] = image_id
+        
+    with open(yolo_json_file,'r') as f:
+        detections = json.load(f)
+    assert isinstance(detections,list)
+    
+    image_id_to_detections = defaultdict(list)
+    
+    # det = detections[0]
+    for det in detections:
+        image_id = det['image_id']
+        image_id_to_detections[image_id].append(det)
+    
+    output_images = []
+    
+    # image_file_relative = image_files_relative[10]
+    for image_file_relative in tqdm(image_files_relative):
+        
+        im = {}
+        im['file'] = image_file_relative
+        im['detections'] = []
+        image_id = int(image_file_relative_to_image_id[image_file_relative])
+        if image_id not in image_id_to_detections:
+            detections = []
+        else:
+            detections = image_id_to_detections[image_id]
+        
+        image_full_path = os.path.join(image_folder,image_file_relative)
+        pil_im = visutils.open_image(image_full_path)
+        
+        image_w = pil_im.size[0]
+        image_h = pil_im.size[1]
+        
+        # det = detections[0]
+        for det in detections:
+            
+            output_det = {}
+            
+            # Add one to YOLO output to get to MD convention
+            output_det['category'] = str(int(det['category_id'])+1)
+            output_det['conf'] = det['score']
+            input_bbox = det['bbox']
+            
+            # YOLO's COCO .json is not *that* COCO-like, but it is COCO-like in
+            # that the boxes are already [xmin/ymin/w/h]
+            box_xmin_absolute = input_bbox[0]
+            box_ymin_absolute = input_bbox[1]
+            box_width_absolute = input_bbox[2]
+            box_height_absolute = input_bbox[3]
+            
+            box_xmin_relative = box_xmin_absolute / image_w
+            box_ymin_relative = box_ymin_absolute / image_h
+            box_width_relative = box_width_absolute / image_w
+            box_height_relative = box_height_absolute / image_h
+            
+            output_bbox = [box_xmin_relative,box_ymin_relative,
+                           box_width_relative,box_height_relative]
+                
+            output_det['bbox'] = output_bbox
+            im['detections'].append(output_det)
+            
+        # ...for each detection            
+        
+        output_images.append(im)
+        
+    # ...for each image file
+    
+    d = {}
+    d['images'] = output_images
+    d['info'] = {'format_version':1.3,'detector':detector_name}
+    d['detection_categories'] = {}
+    
+    # The MD format uses string categories, we may have gotten ints
+    for cat_id in yolo_category_id_to_name:
+        d['detection_categories'][str(int(cat_id)+1)] = yolo_category_id_to_name[cat_id]
+    
+    with open(output_file,'w') as f:
+        json.dump(d,f,indent=1)
+            
+    
+def yolo_txt_output_to_md_output(input_results_folder, image_folder,
+                                 output_file, detector_tag=None):
     
     assert os.path.isdir(input_results_folder)
-    assert os.path.isdir(input_image_folder)
+    assert os.path.isdir(image_folder)
     
     ## Enumerate results files and image files
     
@@ -39,7 +181,7 @@ def yolo_output_to_md_output(input_results_folder,input_image_folder,output_file
     yolo_results_files = [f for f in yolo_results_files if f.lower().endswith('.txt')]
     # print('Found {} results files'.format(len(yolo_results_files)))
     
-    image_files = path_utils.find_images(input_image_folder,recursive=False)
+    image_files = path_utils.find_images(image_folder,recursive=False)
     image_files_relative = [os.path.basename(f) for f in image_files]
     # print('Found {} images'.format(len(image_files)))
             
@@ -131,9 +273,9 @@ if False:
     #%%    
     
     input_results_folder = os.path.expanduser('~/tmp/model-version-experiments/pt-test-kru/exp/labels')
-    input_image_folder = os.path.expanduser('~/data/KRU-test')
+    image_folder = os.path.expanduser('~/data/KRU-test')
     output_file = os.path.expanduser('~/data/mdv5a-yolo-pt-kru.json')    
-    yolo_output_to_md_output(input_results_folder,input_image_folder,output_file)
+    yolo_txt_output_to_md_output(input_results_folder,image_folder,output_file)
     
     
 #%% Command-line driver
