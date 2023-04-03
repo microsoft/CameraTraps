@@ -184,9 +184,10 @@ def merge_detections(source_files,target_file,output_file,options=None):
                 detections = fn_to_image[image_filename]['detections']                
                 detections.extend(detections_to_transfer)
 
-                # Update the max_detection_conf field
-                fn_to_image[image_filename]['max_detection_conf'] = \
-                    max([d['conf'] for d in detections])
+                # Update the max_detection_conf field (if present)
+                if 'max_detection_conf' in fn_to_image[image_filename]:
+                    fn_to_image[image_filename]['max_detection_conf'] = \
+                        max([d['conf'] for d in detections])
                 
         # ...for each image
         
