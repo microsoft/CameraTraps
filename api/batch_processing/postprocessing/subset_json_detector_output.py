@@ -62,6 +62,7 @@ import re
 from tqdm import tqdm
 
 from ct_utils import args_to_object
+from ct_utils import get_max_conf
 
 
 #%% Helper classes
@@ -168,7 +169,7 @@ def subset_json_detector_output_by_confidence(data, options):
         if ('detections' not in im) or (im['detections'] is None):
             continue
         
-        p_orig = im['max_detection_conf']
+        p_orig = get_max_conf(im)
 
         # Find all detections above threshold for this image
         detections = [d for d in im['detections'] if d['conf'] >= options.confidence_threshold]
@@ -193,7 +194,9 @@ def subset_json_detector_output_by_confidence(data, options):
             # We should only be *lowering* max confidence values (i.e., making them negative)
             assert (p_orig <= 0) or (p < p_orig), 'Confidence changed from {} to {}'.format(p_orig, p)
             n_max_changes += 1
-        im['max_detection_conf'] = p
+        
+        if 'max_detection_conf' in im:
+            im['max_detection_conf'] = p
         images_out.append(im)
         
     # ...for each image        

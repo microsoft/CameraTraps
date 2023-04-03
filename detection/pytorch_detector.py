@@ -74,7 +74,7 @@ class PTDetector:
         Returns:
         A dict with the following fields, see the 'images' key in https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing#batch-processing-api-output-format
             - 'file' (always present)
-            - 'max_detection_conf'
+            - 'max_detection_conf' (removed from MegaDetector output by default, but generated here)
             - 'detections', which is a list of detection objects containing keys 'category', 
               'conf' and 'bbox'
             - 'failure'

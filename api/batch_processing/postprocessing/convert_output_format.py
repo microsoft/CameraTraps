@@ -20,6 +20,8 @@ from tqdm import tqdm
 from api.batch_processing.postprocessing.load_api_results import load_api_results_csv
 from data_management.annotations import annotation_constants
 
+import ct_utils
+
 CONF_DIGITS = 3
 
 
@@ -53,7 +55,8 @@ def convert_json_to_csv(input_path,output_path=None,min_confidence=None,
         classification_category_id_to_column_number = {}
         classification_category_column_names = []
         for i_category,category_id in enumerate(classification_category_ids):
-            category_name = classification_category_id_to_name[category_id].replace(' ','_').replace(',','')
+            category_name = classification_category_id_to_name[category_id].\
+                replace(' ','_').replace(',','')
             classification_category_column_names.append('max_classification_conf_' + category_name)
             classification_category_id_to_column_number[category_id] = i_category
 
@@ -72,7 +75,7 @@ def convert_json_to_csv(input_path,output_path=None,min_confidence=None,
             print('Skipping failed image {} ({})'.format(im['file'],im['failure']))
             continue
 
-        max_conf = im['max_detection_conf']
+        max_conf = ct_utils.get_max_conf(im)
         detections = []
         max_detection_category_probabilities = [None] * n_non_empty_detection_categories
         max_classification_category_probabilities = [0] * n_classification_categories
@@ -100,7 +103,8 @@ def convert_json_to_csv(input_path,output_path=None,min_confidence=None,
             # Category 0 is empty, for which we don't have a column, so the max
             # confidence for category N goes in column N-1
             detection_category_id = int(d['category'])
-            assert detection_category_id > 0 and detection_category_id <= n_non_empty_detection_categories
+            assert detection_category_id > 0 and detection_category_id <= \
+                n_non_empty_detection_categories
             detection_category_column = detection_category_id - 1
             detection_category_max = max_detection_category_probabilities[detection_category_column]
             if detection_category_max is None or d['conf'] > detection_category_max:
@@ -160,6 +164,7 @@ def convert_csv_to_json(input_path,output_path=None):
     df = load_api_results_csv(input_path)
 
     info = {
+        "format_version":"1.2",
         "detector": "unknown",
         "detection_completion_time" : "unknown",
         "classifier": "unknown",
@@ -222,7 +227,8 @@ if False:
     input_path = r'c:\temp\test.json'
     min_confidence = None
     output_path = input_path + '.csv'
-    convert_json_to_csv(input_path,output_path,min_confidence=min_confidence,omit_bounding_boxes=False)
+    convert_json_to_csv(input_path,output_path,min_confidence=min_confidence,
+                        omit_bounding_boxes=False)
             
     #%%
     
@@ -233,7 +239,8 @@ if False:
     min_confidence = None    
     for input_path in input_paths:
         output_path = input_path + '.csv'
-        convert_json_to_csv(input_path,output_path,min_confidence=min_confidence,omit_bounding_boxes=True)    
+        convert_json_to_csv(input_path,output_path,min_confidence=min_confidence,
+                            omit_bounding_boxes=True)    
     
     #%% Concatenate .csv files from a folder
 
