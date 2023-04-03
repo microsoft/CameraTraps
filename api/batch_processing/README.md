@@ -205,7 +205,7 @@ Example output with both detection and classification results:
 ```json
 {
     "info": {
-        "format_version": "1.2",
+        "format_version": "1.3",
         "detector": "md_v4.1.0.pb",
         "detection_completion_time": "2019-05-22 02:12:19",
         "classifier": "ecosystem1_v2",
@@ -235,7 +235,6 @@ Example output with both detection and classification results:
         {
             "file": "path/from/base/dir/image_with_animal.jpg",
             "meta": "optional free-text metadata",
-            "max_detection_conf": 0.926,
             "detections": [
                 {
                     "category": "1",
@@ -257,7 +256,6 @@ Example output with both detection and classification results:
         {
             "file": "/path/from/base/dir/empty_image.jpg",
             "meta": "",
-            "max_detection_conf": 0,
             "detections": []
         },
         {
