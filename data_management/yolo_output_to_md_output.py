@@ -57,7 +57,8 @@ from visualization import visualization_utils as visutils
 def yolo_json_output_to_md_output(yolo_json_file, image_folder,
                                   output_file, yolo_category_id_to_name,                              
                                   detector_name='unknown',
-                                  image_id_to_relative_path=None):
+                                  image_id_to_relative_path=None,
+                                  offset_yolo_class_ids=True):
     
     assert os.path.isfile(yolo_json_file), \
         'Could not find YOLO .json file {}'.format(yolo_json_file)
@@ -97,11 +98,24 @@ def yolo_json_output_to_md_output(yolo_json_file, image_folder,
     
     image_id_to_detections = defaultdict(list)
     
+    int_formatted_image_ids = False
+    
     # det = detections[0]
     for det in detections:
+        
+        # This could be a string, but if the YOLOv5 inference script sees that the strings
+        # are really ints, it converts to ints.
         image_id = det['image_id']
         image_id_to_detections[image_id].append(det)
+        if isinstance(image_id,int):
+            int_formatted_image_ids = True
     
+    # If there are any ints present, everything should be ints
+    if int_formatted_image_ids:
+        for det in detections:
+            assert isinstance(det['image_id'],int), \
+                'Found mixed int and string image IDs'
+                
     output_images = []
     
     # image_file_relative = image_files_relative[10]
@@ -110,7 +124,9 @@ def yolo_json_output_to_md_output(yolo_json_file, image_folder,
         im = {}
         im['file'] = image_file_relative
         im['detections'] = []
-        image_id = int(image_file_relative_to_image_id[image_file_relative])
+        image_id = image_file_relative_to_image_id[image_file_relative]
+        if int_formatted_image_ids:
+            image_id = int(image_id)
         if image_id not in image_id_to_detections:
             detections = []
         else:
@@ -127,8 +143,10 @@ def yolo_json_output_to_md_output(yolo_json_file, image_folder,
             
             output_det = {}
             
-            # Add one to YOLO output to get to MD convention
-            output_det['category'] = str(int(det['category_id'])+1)
+            yolo_cat_id = int(det['category_id'])
+            if offset_yolo_class_ids:
+                yolo_cat_id += 1
+            output_det['category'] = str(int(yolo_cat_id))
             output_det['conf'] = det['score']
             input_bbox = det['bbox']
             
@@ -161,9 +179,11 @@ def yolo_json_output_to_md_output(yolo_json_file, image_folder,
     d['info'] = {'format_version':1.3,'detector':detector_name}
     d['detection_categories'] = {}
     
-    # The MD format uses string categories, we may have gotten ints
     for cat_id in yolo_category_id_to_name:
-        d['detection_categories'][str(int(cat_id)+1)] = yolo_category_id_to_name[cat_id]
+        yolo_cat_id = int(cat_id)
+        if offset_yolo_class_ids:
+            yolo_cat_id += 1
+        d['detection_categories'][str(yolo_cat_id)] = yolo_category_id_to_name[cat_id]
     
     with open(output_file,'w') as f:
         json.dump(d,f,indent=1)

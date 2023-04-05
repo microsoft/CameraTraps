@@ -5,6 +5,7 @@ Utility functions that don't depend on other things in this repo.  Also see
 cct_json_utils.
 
 """
+import subprocess
 import argparse
 import inspect
 import json
@@ -13,7 +14,6 @@ import os
 
 import jsonpickle
 import numpy as np
-
 
 def truncate_float_array(xs, precision=3):
     """
@@ -234,3 +234,94 @@ def get_max_conf(im):
     if 'detections' in im and im['detections'] is not None and len(im['detections']) > 0:
         max_conf = _get_max_conf_from_detections(im['detections'])
     return max_conf
+
+
+#%% Functions for running commands as subprocesses
+
+def execute_command(cmd):
+  """
+  Run [cmd] (a single string) in a shell, yielding each line of output to the caller.  
+  
+  Based on:
+        
+  stackoverflow/questions/4417546/constantly-print-subprocess-output-while-process-is-running
+  """
+ 
+  popen = subprocess.Popen(cmd, stdout=subprocess.PIPE, 
+                           stderr=subprocess.STDOUT, shell=True, universal_newlines=True)
+  for stdout_line in iter(popen.stdout.readline, ""):
+     yield stdout_line
+  popen.stdout.close()
+  return_code = popen.wait()
+  if return_code:
+    raise subprocess.CalledProcessError(return_code, cmd)
+
+
+def execute_command_and_print(cmd,print_output=True):
+  """
+  Run [cmd] (a single string) in a shell, capturing and printing output.  Returns
+  a dictionary with fields "status" and "output".
+  """
+ 
+  to_return = {'status':'unknown','output':''}
+  output=[]
+  try:
+    for s in execute_command(cmd):
+      output.append(s)
+      if print_output:
+        print(s,end='',flush=True)
+    to_return['status'] = 0
+  except subprocess.CalledProcessError as cpe:
+    print('Caught error: {}'.format(cpe.output))
+    to_return['status'] = cpe.returncode
+  to_return['output'] = output
+   
+  return to_return
+
+
+#%%
+
+if False:
+   
+    #%% Test driver for execute_and_print
+
+    execute_command_and_print('echo hello && sleep 1 && echo goodbye')  
+     
+    
+    #%% Parallel test driver for execute_command_and_print
+   
+    from functools import partial
+    from multiprocessing.pool import ThreadPool as ThreadPool
+    from multiprocessing.pool import Pool as Pool
+   
+    n_workers = 8
+    
+    # Should we use threads (vs. processes) for parallelization?
+    use_threads = True
+   
+    # Only relevant if n_workers == 1, i.e. if we're not parallelizing
+    quit_on_error = True
+   
+    test_data = ['a','b','c','d']
+   
+    def process_sample(s):
+        execute_command_and_print('echo ' + s,True)
+       
+    if n_workers == 1:  
+     
+      results = []
+      for i_sample,sample in enumerate(test_data):    
+        results.append(process_sample(sample))
+     
+    else:
+     
+      n_threads = min(n_workers,len(test_data))
+     
+      if use_threads:
+        print('Starting parallel thread pool with {} workers'.format(n_threads))
+        pool = ThreadPool(n_threads)
+      else:
+        print('Starting parallel process pool with {} workers'.format(n_threads))
+        pool = Pool(n_threads)
+   
+      results = list(pool.map(partial(process_sample),test_data))
