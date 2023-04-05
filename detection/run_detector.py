@@ -114,7 +114,7 @@ DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD = 0.005
 
 DEFAULT_BOX_THICKNESS = 4
 DEFAULT_BOX_EXPANSION = 0
-
+    
 
 #%% Classes
 
@@ -223,6 +223,28 @@ def get_detector_version_from_filename(detector_filename):
     else:
         return known_model_versions[matches[0]]
     
+
+def get_typical_confidence_threshold_from_results(results):
+    """
+    Given the .json data loaded from a MD results file, determine a typical confidence
+    threshold based on the detector version.
+    """
+    if 'detector_metadata' in results['info'] and \
+        'typical_detection_threshold' in results['info']['detector_metadata']:
+        default_threshold = results['info']['detector_metadata']['typical_detection_threshold']
+    elif ('detector' not in results['info']) or (results['info']['detector'] is None):
+        print('Warning: detector version not available in results file, using MDv5 defaults')
+        detector_metadata = get_detector_metadata_from_version_string('v5a.0.0')
+        default_threshold = detector_metadata['typical_detection_threshold']
+    else:
+        print('Warning: detector metadata not available in results file, inferring from MD version')
+        detector_filename = results['info']['detector']
+        detector_version = get_detector_version_from_filename(detector_filename)
+        detector_metadata = get_detector_metadata_from_version_string(detector_version)
+        default_threshold = detector_metadata['typical_detection_threshold']
+
+    return default_threshold    
+
     
 def is_gpu_available(model_file):
     """Decide whether a GPU is available, importing PyTorch or TF depending on the extension
