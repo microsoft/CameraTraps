@@ -39,7 +39,8 @@ DEFAULT_DETECTOR_LABEL_MAP = {
 n_retries = 10
 retry_sleep_time = 0.01
 error_names_for_retry = ['ConnectionError']
-                
+
+DEFAULT_BOX_THICKNESS = 4                
 
 #%% Functions
 
@@ -256,7 +257,7 @@ def crop_image(detections, image, confidence_threshold=0.8, expansion=0):
 def render_detection_bounding_boxes(detections, image,
                                     label_map={}, 
                                     classification_label_map={}, 
-                                    confidence_threshold=0.8, thickness=4, expansion=0,
+                                    confidence_threshold=0.8, thickness=DEFAULT_BOX_THICKNESS, expansion=0,
                                     classification_confidence_threshold=0.3,
                                     max_classifications=3,
                                     colormap=COLORS,
@@ -407,7 +408,7 @@ def render_detection_bounding_boxes(detections, image,
 def draw_bounding_boxes_on_image(image,
                                  boxes,
                                  classes,
-                                 thickness=4,
+                                 thickness=DEFAULT_BOX_THICKNESS,
                                  expansion=0,
                                  display_strs=None,
                                  colormap=COLORS,
@@ -454,7 +455,7 @@ def draw_bounding_box_on_image(image,
                                ymax,
                                xmax,
                                clss=None,
-                               thickness=4,
+                               thickness=DEFAULT_BOX_THICKNESS,
                                expansion=0,
                                display_str_list=(),
                                use_normalized_coordinates=True,
@@ -507,7 +508,7 @@ def draw_bounding_box_on_image(image,
         right += expansion
         top -= expansion
         bottom += expansion
-
+        
         # Deliberately trimming to the width of the image only in the case where
         # box expansion is turned on.  There's not an obvious correct behavior here,
         # but the thinking is that if the caller provided an out-of-range bounding
@@ -523,7 +524,7 @@ def draw_bounding_box_on_image(image,
 
         left = min(left,im_width-1); right = min(right,im_width-1)
         top = min(top,im_height-1); bottom = min(bottom,im_height-1)
-
+        
     # ...if we need to expand boxes
     
     draw.line([(left, top), (left, bottom), (right, bottom),
@@ -650,7 +651,7 @@ def render_megadb_bounding_boxes(boxes_info, image):
 
 
 def render_db_bounding_boxes(boxes, classes, image, original_size=None,
-                             label_map=None, thickness=4, expansion=0):
+                             label_map=None, thickness=DEFAULT_BOX_THICKNESS, expansion=0):
     """
     Render bounding boxes (with class labels) on [image].  This is a wrapper for
     draw_bounding_boxes_on_image, allowing the caller to operate on a resized image
@@ -694,7 +695,8 @@ def render_db_bounding_boxes(boxes, classes, image, original_size=None,
 
 
 def draw_bounding_boxes_on_file(input_file, output_file, detections, confidence_threshold=0.0,
-                                detector_label_map=DEFAULT_DETECTOR_LABEL_MAP):
+                                detector_label_map=DEFAULT_DETECTOR_LABEL_MAP,
+                                thickness=DEFAULT_BOX_THICKNESS, expansion=0):
     """
     Render detection bounding boxes on an image loaded from file, writing the results to a
     new image file.
@@ -716,13 +718,14 @@ def draw_bounding_boxes_on_file(input_file, output_file, detections, confidence_
 
     render_detection_bounding_boxes(
             detections, image, label_map=detector_label_map,
-            confidence_threshold=confidence_threshold)
+            confidence_threshold=confidence_threshold,
+            thickness=thickness,expansion=expansion)
 
     image.save(output_file)
 
 
 def draw_db_boxes_on_file(input_file, output_file, boxes, classes=None, 
-                          label_map=None, thickness=4, expansion=0):
+                          label_map=None, thickness=DEFAULT_BOX_THICKNESS, expansion=0):
     """
     Render COCO bounding boxes (in absolute coordinates) on an image loaded from file, writing the
     results to a new image file.
