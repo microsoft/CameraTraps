@@ -408,7 +408,7 @@ with open(combined_api_output_file,'w') as f:
 print('Wrote results to {}'.format(combined_api_output_file))
 
 
-#%% Post-processing (no ground truth)
+#%% Post-processing (pre-RDE)
 
 render_animals_only = False
 
@@ -1989,7 +1989,7 @@ os.chmod(cmd_file, st.st_mode | stat.S_IEXEC)
 import os
 import nbformat as nbf
 
-input_py_file = os.path.expanduser('~/git/CameraTraps/api/batch_processing/data_preparation/manage_local_batch.py')
+input_py_file = os.path.expanduser('~/git/cameratraps/api/batch_processing/data_preparation/manage_local_batch.py')
 assert os.path.isfile(input_py_file)
 output_ipynb_file = input_py_file.replace('.py','.ipynb')
 
