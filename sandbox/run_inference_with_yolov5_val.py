@@ -103,10 +103,11 @@ with open(dataset_file,'w') as f:
 
 #%% Prepare YOLOv5 command
 
+image_size_string = str(round(image_size))
 cmd = 'python val.py --data "{}"'.format(dataset_file)
 cmd += ' --weights "{}"'.format(model_filename)
 cmd += ' --batch-size {} --imgsz {} --conf-thres {} --task test'.format(
-    batch_size,image_size,conf_thres)
+    batch_size,image_size_string,conf_thres)
 cmd += ' --device "{}" --save-json'.format(device_string)
 cmd += ' --project "{}" --name "{}" --exist-ok'.format(output_folder,'yolo_results')
 

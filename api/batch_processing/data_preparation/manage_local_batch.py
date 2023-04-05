@@ -408,7 +408,7 @@ with open(combined_api_output_file,'w') as f:
 print('Wrote results to {}'.format(combined_api_output_file))
 
 
-#%% Post-processing (no ground truth)
+#%% Post-processing (pre-RDE)
 
 render_animals_only = False
 
