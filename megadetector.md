@@ -497,7 +497,7 @@ It's not quite as simple as "these platforms all run MegaDetector on your images
 * [Camelot](https://camelotproject.org/)
 * [WildePod](https://wildepod.org/)
 * [wpsWatch](https://wildlifeprotectionsolutions.org/wpswatch/)
-* [Animl](https://github.com/tnc-ca-geo/animl-frontend)
+* [Animl](https://animl.camera/) ([code](https://github.com/tnc-ca-geo/animl-frontend))
 * [Cam-WON](https://wildlifeobserver.net/)
 * [Zooniverse ML Subject Assistant](https://subject-assistant.zooniverse.org/#/intro)
 
