@@ -42,6 +42,7 @@ error_names_for_retry = ['ConnectionError']
 
 DEFAULT_BOX_THICKNESS = 4                
 
+
 #%% Functions
 
 def open_image(input_file: Union[str, BytesIO]) -> Image:

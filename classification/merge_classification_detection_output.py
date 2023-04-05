@@ -307,7 +307,6 @@ def process_queried_images(
             elif img_path not in images:
                 images[img_path] = {
                     'file': img_path,
-                    'max_detection_conf': 1.0,
                     'detections': [
                         {
                             'category': cat_to_catid[bbox_dict['category']],
