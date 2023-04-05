@@ -694,7 +694,8 @@ def render_db_bounding_boxes(boxes, classes, image, original_size=None,
 
 
 def draw_bounding_boxes_on_file(input_file, output_file, detections, confidence_threshold=0.0,
-                                detector_label_map=DEFAULT_DETECTOR_LABEL_MAP):
+                                detector_label_map=DEFAULT_DETECTOR_LABEL_MAP,
+                                thickness=4, expansion=0):
     """
     Render detection bounding boxes on an image loaded from file, writing the results to a
     new image file.
@@ -716,7 +717,9 @@ def draw_bounding_boxes_on_file(input_file, output_file, detections, confidence_
 
     render_detection_bounding_boxes(
             detections, image, label_map=detector_label_map,
-            confidence_threshold=confidence_threshold)
+            confidence_threshold=confidence_threshold,
+            thickness=thickness,
+            expansion=expansion)
 
     image.save(output_file)
 
