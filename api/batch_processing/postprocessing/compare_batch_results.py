@@ -28,7 +28,7 @@ import path_utils
 #%% Constants and support classes
 
 # We will confirm that this matches what we load from each file
-detection_categories = {'1': 'animal', '2': 'person', '3': 'vehicle'}
+default_detection_categories = {'1': 'animal', '2': 'person', '3': 'vehicle'}
     
 class PairwiseBatchComparisonOptions:
     
@@ -119,8 +119,10 @@ def _compare_batch_results(options,output_index,pairwise_options):
     with open(pairwise_options.results_filename_b,'r') as f:
         results_b = json.load(f)
         
-    assert results_a['detection_categories'] == detection_categories
-    assert results_b['detection_categories'] == detection_categories
+    # assert results_a['detection_categories'] == default_detection_categories
+    # assert results_b['detection_categories'] == default_detection_categories
+    assert results_a['detection_categories'] == results_b['detection_categories']
+    detection_categories = results_a['detection_categories']
     
     if pairwise_options.results_description_a is None:
         if 'detector' not in results_a['info']:
