@@ -11,7 +11,7 @@
 # a/b/c/RECONYX0001.JPG
 # d/e/f/RECONYX0001.JPG
 #
-# ...so this script jumps through a bunch of hoops to put a bunch of symlinks in a flat
+# ...so this script jumps through a bunch of hoops to put a symlinks in a flat
 # folder, run YOLOv5 on that folder, and map the results back to the real files.
 #
 # Currently requires the user to supply the path where a working YOLOv5 install lives,
@@ -22,7 +22,8 @@
 # * Multiple GPU support
 # * Checkpointing
 # * Windows support (I have no idea what all the symlink operations will do on Windows)
-# * Support alternative class names at the command line
+# * Support alternative class names at the command line (currently defaults to MD classes,
+#   though other class names can be supplied programmatically)
 #
 
 #%% Imports
@@ -194,8 +195,8 @@ def run_inference_with_yolo_val(options):
     image_id_to_relative_path = {}
     for image_id in image_id_to_file:
         fn = image_id_to_file[image_id]
-        assert input_folder in fn
-        relative_path = os.path.relpath(fn,input_folder)
+        assert options.input_folder in fn
+        relative_path = os.path.relpath(fn,options.input_folder)
         image_id_to_relative_path[image_id] = relative_path
         
     yolo_output_to_md_output.yolo_json_output_to_md_output(
