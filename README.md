@@ -51,7 +51,6 @@ Here are a few of the organizations that have used MegaDetector... we're only li
 * [Point No Point Treaty Council](https://pnptc.org/)
 * [Ramat Hanadiv Nature Park](https://www.ramat-hanadiv.org.il/en/)
 * [SPEA (Portuguese Society for the Study of Birds)](https://spea.pt/en/)
-* [San Diego Zoo Wildlife Alliance](https://science.sandiegozoo.org/)
 * [Synthetaic](https://www.synthetaic.com/)
 * [Taronga Conservation Society](https://taronga.org.au/)
 * [The Nature Conservancy in Wyoming](https://www.nature.org/en-us/about-us/where-we-work/united-states/wyoming/)
@@ -76,7 +75,7 @@ Here are a few of the organizations that have used MegaDetector... we're only li
 * [Lab of Dr. Bilal Habib](https://bhlab.in/about), the Wildlife Institute of India
 * [Mammal Spatial Ecology and Conservation Lab](https://labs.wsu.edu/dthornton/), Washington State University
 * [McLoughlin Lab in Population Ecology](http://mcloughlinlab.ca/lab/), University of Saskatchewan
-* [National Wildlife Refuge System, Southwest Region](https://www.fws.gov/about/region/southwest), US Fish and Wildlife
+* [National Wildlife Refuge System, Southwest Region](https://www.fws.gov/about/region/southwest), U.S. Fish & Wildlife Service
 * [Northern Great Plains Program](https://nationalzoo.si.edu/news/restoring-americas-prairie), Smithsonian
 * [Quantitative Ecology Lab](https://depts.washington.edu/sefsqel/), University of Washington
 * [Santa Monica Mountains Recreation Area](https://www.nps.gov/samo/index.htm), National Park Service
@@ -85,10 +84,10 @@ Here are a few of the organizations that have used MegaDetector... we're only li
 * [Snapshot USA](https://emammal.si.edu/snapshot-usa), Smithsonian
 * [Wildlife Coexistence Lab](https://wildlife.forestry.ubc.ca/), University of British Columbia
 * [Wildlife Research](https://www.dfw.state.or.us/wildlife/research/index.asp), Oregon Department of Fish and Wildlife
+* [Wildlife Division](https://www.michigan.gov/dnr/about/contact/wildlife), Michigan Department of Natural Resources
 
 * Department of Ecology, TU Berlin
 * Ghost Cat Analytics
-* Wildlife Division, Michigan Department of Natural Resources
 * Protected Areas Unit, Canadian Wildlife Service
 
 * [School of Natural Sciences](https://www.utas.edu.au/natural-sciences), University of Tasmania ([story](https://www.utas.edu.au/about/news-and-stories/articles/2022/1204-innovative-camera-network-keeps-close-eye-on-tassie-wildlife))
@@ -97,10 +96,13 @@ Here are a few of the organizations that have used MegaDetector... we're only li
 * [Alberta Biodiversity Monitoring Institute (ABMI)](https://www.abmi.ca/home.html) ([WildTrax platform](https://www.wildtrax.ca/)) ([blog post](https://wildcams.ca/blog/the-abmi-visits-the-zoo/))
 * [Shan Shui Conservation Center](http://en.shanshui.org/) ([blog post](https://mp.weixin.qq.com/s/iOIQF3ckj0-rEG4yJgerYw?fbclid=IwAR0alwiWbe3udIcFvqqwm7y5qgr9hZpjr871FZIa-ErGUukZ7yJ3ZhgCevs)) ([translated blog post](https://mp-weixin-qq-com.translate.goog/s/iOIQF3ckj0-rEG4yJgerYw?fbclid=IwAR0alwiWbe3udIcFvqqwm7y5qgr9hZpjr871FZIa-ErGUukZ7yJ3ZhgCevs&_x_tr_sl=auto&_x_tr_tl=en&_x_tr_hl=en&_x_tr_pto=wapp))
 * [Irvine Ranch Conservancy](http://www.irconservancy.org/) ([story](https://www.ocregister.com/2022/03/30/ai-software-is-helping-researchers-focus-on-learning-about-ocs-wild-animals/))
-* [Wildlife Protection Solutions](https://wildlifeprotectionsolutions.org/) ([story](https://customers.microsoft.com/en-us/story/1384184517929343083-wildlife-protection-solutions-nonprofit-ai-for-earth))
+* [Wildlife Protection Solutions](https://wildlifeprotectionsolutions.org/) ([story](https://customers.microsoft.com/en-us/story/1384184517929343083-wildlife-protection-solutions-nonprofit-ai-for-earth), [story](https://www.enterpriseai.news/2023/02/20/ai-helps-wildlife-protection-solutions-safeguard-endangered-species/))
+* [Kenai National Wildlife Refuge](https://www.fws.gov/refuge/kenai) ([story](https://www.peninsulaclarion.com/sports/refuge-notebook-new-technology-increases-efficiency-of-refuge-cameras/))
 
 * [Road Ecology Center](https://roadecology.ucdavis.edu/), University of California, Davis ([Wildlife Observer Network platform](https://wildlifeobserver.net/))
 * [The Nature Conservancy in California](https://www.nature.org/en-us/about-us/where-we-work/united-states/california/) ([Animl platform](https://github.com/tnc-ca-geo/animl-frontend))
+* [San Diego Zoo Wildlife Alliance](https://science.sandiegozoo.org/)  ([Animl R package](https://github.com/conservationtechlab/animl))
+
 
 
 
