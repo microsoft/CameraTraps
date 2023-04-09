@@ -17,6 +17,9 @@ import urllib
 from tqdm import tqdm
 from visualization import visualization_utils
 
+from multiprocessing.pool import ThreadPool
+from multiprocessing.pool import Pool
+
 # Assumes ai4eutils is on the python path (https://github.com/Microsoft/ai4eutils)
 from write_html_image_list import write_html_image_list
 import path_utils
@@ -25,7 +28,7 @@ import path_utils
 #%% Constants and support classes
 
 # We will confirm that this matches what we load from each file
-detection_categories = {'1': 'animal', '2': 'person', '3': 'vehicle'}
+default_detection_categories = {'1': 'animal', '2': 'person', '3': 'vehicle'}
     
 class PairwiseBatchComparisonOptions:
     
@@ -41,6 +44,7 @@ class PairwiseBatchComparisonOptions:
     rendering_confidence_threshold_a = 0.1
     rendering_confidence_threshold_b = 0.1
 
+
 class BatchComparisonOptions:
     
     output_folder = None
@@ -50,8 +54,11 @@ class BatchComparisonOptions:
     colormap_a = ['Red']
     colormap_b = ['RoyalBlue']
 
-    target_width = 800    
-    n_rendering_threads = 50        
+    # Process-based parallelization isn't supported yet
+    parallelize_rendering_with_threads = True
+    
+    target_width = 800
+    n_rendering_workers = 20
     random_seed = 0
     
     error_on_non_matching_lists = True
@@ -112,8 +119,10 @@ def _compare_batch_results(options,output_index,pairwise_options):
     with open(pairwise_options.results_filename_b,'r') as f:
         results_b = json.load(f)
         
-    assert results_a['detection_categories'] == detection_categories
-    assert results_b['detection_categories'] == detection_categories
+    # assert results_a['detection_categories'] == default_detection_categories
+    # assert results_b['detection_categories'] == default_detection_categories
+    assert results_a['detection_categories'] == results_b['detection_categories']
+    detection_categories = results_a['detection_categories']
     
     if pairwise_options.results_description_a is None:
         if 'detector' not in results_a['info']:
@@ -259,11 +268,18 @@ def _compare_batch_results(options,output_index,pairwise_options):
     
     ##%% Sample and plot differences
     
-    from multiprocessing.pool import ThreadPool
-    
-    if options.n_rendering_threads > 1:
-       print('Rendering images with {} workers'.format(options.n_rendering_threads))
-       pool = ThreadPool(options.n_rendering_threads)    
+    if not options.parallelize_rendering_with_threads:
+        raise ValueError('Parallelization with processes not currently supported for this script')
+        
+    if options.n_rendering_workers > 1:
+       worker_type = 'processes'
+       if options.parallelize_rendering_with_threads:
+           worker_type = 'threads'
+       print('Rendering images with {} {}'.format(options.n_rendering_workers,worker_type))
+       if options.parallelize_rendering_with_threads:
+           pool = ThreadPool(options.n_rendering_workers)    
+       else:
+           pool = Pool(options.n_rendering_workers)    
     
     
     categories_to_image_pairs = {
@@ -304,28 +320,19 @@ def _compare_batch_results(options,output_index,pairwise_options):
             detections_a = image_pair[0]['detections']
             detections_b = image_pair[1]['detections']
             
-            """
-            def render_detection_bounding_boxes(detections, image,
-                                                label_map={},
-                                                classification_label_map={},
-                                                confidence_threshold=0.8, thickness=4, expansion=0,
-                                                classification_confidence_threshold=0.3,
-                                                max_classifications=3,
-                                                colormap=COLORS):
-            """
             if options.target_width is not None:
                 im = visualization_utils.resize_image(im, options.target_width)
                 
             visualization_utils.render_detection_bounding_boxes(detections_a,im,
-                                                                confidence_threshold=pairwise_options.rendering_confidence_threshold_a,
-                                                                thickness=4,expansion=0,
-                                                                colormap=options.colormap_a,
-                                                                textalign=visualization_utils.TEXTALIGN_LEFT)
+                confidence_threshold=pairwise_options.rendering_confidence_threshold_a,
+                thickness=4,expansion=0,
+                colormap=options.colormap_a,
+                textalign=visualization_utils.TEXTALIGN_LEFT)
             visualization_utils.render_detection_bounding_boxes(detections_b,im,
-                                                                confidence_threshold=pairwise_options.rendering_confidence_threshold_b,
-                                                                thickness=2,expansion=0,
-                                                                colormap=options.colormap_b,
-                                                                textalign=visualization_utils.TEXTALIGN_RIGHT)
+                confidence_threshold=pairwise_options.rendering_confidence_threshold_b,
+                thickness=2,expansion=0,
+                colormap=options.colormap_b,
+                textalign=visualization_utils.TEXTALIGN_RIGHT)
         
             output_image_fn = path_utils.flatten_path(fn)
             output_image_path = os.path.join(category_folder,output_image_fn)
@@ -335,12 +342,13 @@ def _compare_batch_results(options,output_index,pairwise_options):
         # ...def render_image_pair()
         
         # fn = image_filenames[0]
-        if options.n_rendering_threads <= 1:
+        if options.n_rendering_workers <= 1:
             output_image_paths = []
             for fn in tqdm(image_filenames):        
                 output_image_paths.append(render_image_pair(fn))
         else:
-            output_image_paths = list(tqdm(pool.imap(render_image_pair, image_filenames), total=len(image_filenames)))
+            output_image_paths = list(tqdm(pool.imap(
+                render_image_pair, image_filenames), total=len(image_filenames)))
         
         return output_image_paths
     
@@ -397,14 +405,16 @@ def _compare_batch_results(options,output_index,pairwise_options):
             info = {
                 'filename': fn,
                 'title': title,
-                'textStyle': 'font-family:verdana,arial,calibri;font-size:80%;text-align:left;margin-top:20;margin-bottom:5',
+                'textStyle': 'font-family:verdana,arial,calibri;font-size:' + \
+                    '80%;text-align:left;margin-top:20;margin-bottom:5',
                 'linkTarget': urllib.parse.quote(input_image_absolute_paths[i_fn])
             }
             image_info.append(info)
     
         category_page_header_string = '<h1>{}</h1>'.format(categories_to_page_titles[category])
         category_page_header_string += '<p style="font-weight:bold;">\n'
-        category_page_header_string += 'Model A: {}<br/>\n'.format(pairwise_options.results_description_a)
+        category_page_header_string += 'Model A: {}<br/>\n'.format(
+            pairwise_options.results_description_a)
         category_page_header_string += 'Model B: {}'.format(pairwise_options.results_description_b)
         category_page_header_string += '</p>\n'
         
@@ -414,9 +424,11 @@ def _compare_batch_results(options,output_index,pairwise_options):
         category_page_header_string += 'Detection thresholds for B ({}):\n{}<br/>'.format(
             pairwise_options.results_description_b,str(pairwise_options.detection_thresholds_b))
         category_page_header_string += 'Rendering threshold for A ({}):\n{}<br/>'.format(
-            pairwise_options.results_description_a,str(pairwise_options.rendering_confidence_threshold_a))
+            pairwise_options.results_description_a,
+            str(pairwise_options.rendering_confidence_threshold_a))
         category_page_header_string += 'Rendering threshold for B ({}):\n{}<br/>'.format(
-            pairwise_options.results_description_b,str(pairwise_options.rendering_confidence_threshold_b))
+            pairwise_options.results_description_b,
+            str(pairwise_options.rendering_confidence_threshold_b))
         category_page_header_string += '</p>\n'        
         
         write_html_image_list(
@@ -437,17 +449,22 @@ def _compare_batch_results(options,output_index,pairwise_options):
         pairwise_options.results_description_a,pairwise_options.results_description_b)
     html_output_string += '<div class="contentdiv">\n'
     html_output_string += 'Detection thresholds for {}:\n{}<br/>'.format(
-        pairwise_options.results_description_a,str(pairwise_options.detection_thresholds_a))
+        pairwise_options.results_description_a,
+        str(pairwise_options.detection_thresholds_a))
     html_output_string += 'Detection thresholds for {}:\n{}<br/>'.format(
-        pairwise_options.results_description_b,str(pairwise_options.detection_thresholds_b))
+        pairwise_options.results_description_b,
+        str(pairwise_options.detection_thresholds_b))
     html_output_string += 'Rendering threshold for {}:\n{}<br/>'.format(
-        pairwise_options.results_description_a,str(pairwise_options.rendering_confidence_threshold_a))
+        pairwise_options.results_description_a,
+        str(pairwise_options.rendering_confidence_threshold_a))
     html_output_string += 'Rendering threshold for {}:\n{}<br/>'.format(
-        pairwise_options.results_description_b,str(pairwise_options.rendering_confidence_threshold_b))
+        pairwise_options.results_description_b,
+        str(pairwise_options.rendering_confidence_threshold_b))
     
     html_output_string += '<br/>'
     
-    html_output_string += 'Rendering a maximum of {} images per category<br/>'.format(options.max_images_per_category)
+    html_output_string += 'Rendering a maximum of {} images per category<br/>'.format(
+        options.max_images_per_category)
     
     html_output_string += '<br/>'
     
@@ -535,4 +552,3 @@ if False:
 #%% Command-line driver
 
 ## TODO
-    
