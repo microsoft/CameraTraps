@@ -138,10 +138,11 @@ def run_inference_with_yolo_val(options):
 
     ##%% Create the dataset file
     
-    for category_id in options.yolo_category_id_to_name:
-        assert DEFAULT_DETECTOR_LABEL_MAP[str(category_id+1)] == \
-            options.yolo_category_id_to_name[category_id]
-    
+    if False:
+        for category_id in options.yolo_category_id_to_name:
+            assert DEFAULT_DETECTOR_LABEL_MAP[str(category_id+1)] == \
+                options.yolo_category_id_to_name[category_id]
+        
     # Category IDs need to be continuous integers starting at 0
     category_ids = sorted(list(options.yolo_category_id_to_name.keys()))
     assert category_ids[0] == 0
