@@ -956,7 +956,7 @@ st = os.stat(output_file)
 os.chmod(output_file, st.st_mode | stat.S_IEXEC)
 
 
-#%% Run the classifier(s) via the .sh script(s) write just wrote
+#%% Run the classifier(s) via the .sh script(s) or batch file(s) we just wrote
 
 # ...
 
