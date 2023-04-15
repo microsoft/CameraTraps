@@ -68,6 +68,9 @@ def frames_to_video(images, Fs, output_file_name, codec_spec='h264'):
     a video and write to [output_file_name].
     """
     
+    if codec_spec is None:
+        codec_spec = 'h264'
+        
     if len(images) == 0:
         return
 
