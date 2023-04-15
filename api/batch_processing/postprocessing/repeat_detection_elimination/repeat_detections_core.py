@@ -143,11 +143,15 @@ class RepeatDetectionOptions:
     includeFolders = None
     excludeFolders = None
 
-    # Optionally show *other* detections in a light gray
+    # Optionally show *other* detections (i.e., detections other than the
+    # one the user is evaluating) in a light gray
     bRenderOtherDetections = False
     otherDetectionsThreshold = 0.2    
     otherDetectionsLineWidth = 1
     
+    # If bRenderOtherDetections is True, what color should we use to render the
+    # (hopefully pretty subtle) non-target detections?
+    # 
     # In theory I'd like these "other detection" rectangles to be partially 
     # transparent, but this is not straightforward, and the alpha is ignored
     # here.  But maybe if I leave it here and wish hard enough, someday it 
@@ -160,7 +164,13 @@ class RepeatDetectionOptions:
     # in the list, for faster review.
     #
     # Can be None, 'xsort', or 'clustersort'
+    #
+    # * None sorts detections chronologically by first occurrence
+    # * 'xsort' sorts detections from left to right
+    # * 'clustersort' clusters detections and sorts by cluster
     smartSort = 'xsort'
+    
+    # Only relevant if smartSort == 'clustersort'
     smartSortDistanceThreshold = 0.1
     
     
@@ -957,20 +967,26 @@ def find_repeat_detections(inputFilename, outputFilename=None, options=None):
             from multiprocessing.pool import Pool
             from functools import partial
             
+            n_workers = options.nWorkers
+            if n_workers > len(dirNameAndRows):
+                print('Pool of {} requested, but only {} folders available, reducing pool to {}'.\
+                      format(n_workers,len(dirNameAndRows),len(dirNameAndRows)))
+                n_workers = len(dirNameAndRows)
+                                    
             if options.parallelizationUsesThreads:
-                pool = ThreadPool(options.nWorkers)
+                pool = ThreadPool(n_workers)
                 poolstring = 'threads'                
             else:
-                pool = Pool(options.nWorkers)
+                pool = Pool(n_workers)
                 poolstring = 'processes'
-                            
-            print('Starting pool with {} {}'.format(options.nWorkers,poolstring))
+
+            print('Starting pool with {} {}'.format(n_workers,poolstring))
             
             # We get slightly nicer progress bar behavior using threads, by passing a pbar 
             # object and letting it get updated.  We can't serialize this object across 
             # processes.
             if options.parallelizationUsesThreads:
-                options.pbar = tqdm(total=len(dirsToSearch))                
+                options.pbar = tqdm(total=len(dirNameAndRows))
                 allCandidateDetections = list(pool.imap(
                     partial(find_matches_in_directory,options=options), dirNameAndRows))
             else:
