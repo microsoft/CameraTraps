@@ -17,6 +17,7 @@ import time
 import humanfriendly
 
 from tqdm import tqdm
+from collections import defaultdict
 
 # from ai4eutils
 import ai4e_azure_utils 
@@ -65,6 +66,22 @@ parallelization_defaults_to_threads = False
 # This is for things like image rendering, not for MegaDetector
 default_workers_for_parallel_tasks = 30
 
+# Should we use YOLOv5's val.py instead of run_detector_batch.py?
+use_yolo_inference_scripts = False
+
+# Directory in which to run val.py.  Only relevant if use_yolo_inference_scripts is True.
+yolo_working_dir = os.path.expanduser('~/git/yolov5')
+
+# Should we remove intermediate files used for running YOLOv5's val.py?
+#
+# Only relevant if use_yolo_inference_scripts is True.
+remove_yolo_intermediate_results = False
+remove_yolo_symlink_folder = False
+
+# Should we apply YOLOv5's augmentation?  Only allowed when use_yolo_inference_scripts
+# is True.
+augment = True
+
 if os.name == 'nt':
     slcc = '^'
     scc = 'REM'
@@ -78,7 +95,7 @@ if os.name == 'nt':
 input_path = '/datadrive/organization/data'
 
 organization_name_short = 'organization'
-job_date = None # '2023-04-00'
+job_date = None # '2023-04-18'
 assert job_date is not None and organization_name_short != 'organization'
 
 # Optional descriptor
@@ -112,7 +129,14 @@ base_output_folder_name = os.path.join(postprocessing_base,organization_name_sho
 os.makedirs(base_output_folder_name,exist_ok=True)
 
 
-#%% Derived variables, path setup
+#%% Derived variables, constant validation, path setup
+
+if augment:
+    assert use_yolo_inference_scripts,\
+        'Augmentation is only supported when running with the YOLO inference scripts'
+if use_yolo_inference_scripts:
+    assert os.name != 'nt',\
+        'Running inference with the YOLO inference scripts is not yet supported on Windows'
 
 filename_base = os.path.join(base_output_folder_name, base_task_name)
 combined_api_output_folder = os.path.join(filename_base, 'combined_api_outputs')
@@ -186,6 +210,11 @@ for i_chunk,chunk_list in enumerate(folder_chunks):
     
 #%% Generate commands
 
+# A list of the scripts tied to each GPU, as absolute paths.  We'll write this out at
+# the end so each GPU's list of commands can be run at once.  Generally only used when 
+# running lots of small batches via YOLOv5's val.py, which doesn't support checkpointing.
+gpu_to_scripts = defaultdict(list)
+
 # i_task = 0; task = task_info[i_task]
 for i_task,task in enumerate(task_info):
     
@@ -199,39 +228,88 @@ for i_task,task in enumerate(task_info):
     else:
         gpu_number = default_gpu_number
         
-    if os.name == 'nt':
-        cuda_string = f'set CUDA_VISIBLE_DEVICES={gpu_number} & '
-    else:
-        cuda_string = f'CUDA_VISIBLE_DEVICES={gpu_number} '
-    
-    checkpoint_frequency_string = ''
-    checkpoint_path_string = ''
-    checkpoint_filename = chunk_file.replace('.json','_checkpoint.json')
-    
-    if checkpoint_frequency is not None and checkpoint_frequency > 0:
-        checkpoint_frequency_string = f'--checkpoint_frequency {checkpoint_frequency}'
-        checkpoint_path_string = '--checkpoint_path "{}"'.format(checkpoint_filename)
-            
-    use_image_queue_string = ''
-    if (use_image_queue):
-        use_image_queue_string = '--use_image_queue'
-
-    ncores_string = ''
-    if (ncores > 1):
-        ncores_string = '--ncores {}'.format(ncores)
-        
-    quiet_string = ''
-    if quiet_mode:
-        quiet_string = '--quiet'
-
     image_size_string = ''
     if image_size is not None:
         image_size_string = '--image_size {}'.format(image_size)
         
     # Generate the script to run MD
-        
-    cmd = f'{cuda_string} python run_detector_batch.py "{model_file}" "{chunk_file}" "{output_fn}" {checkpoint_frequency_string} {checkpoint_path_string} {use_image_queue_string} {ncores_string} {quiet_string} {image_size_string}'
     
+    if use_yolo_inference_scripts:
+
+        augment_string = ''
+        if augment:
+            augment_string = '--augment_enabled 1'
+        
+        symlink_folder = os.path.join(filename_base,'symlinks','symlinks_{}'.format(
+            str(i_task).zfill(3)))
+        yolo_results_folder = os.path.join(filename_base,'yolo_results','yolo_results_{}'.format(
+            str(i_task).zfill(3)))
+                
+        symlink_folder_string = '--symlink_folder "{}"'.format(symlink_folder)
+        yolo_results_folder_string = '--yolo_results_folder "{}"'.format(yolo_results_folder)
+        
+        remove_symlink_folder_string = ''
+        if not remove_yolo_symlink_folder:
+            remove_symlink_folder_string = '--no_remove_symlink_folder'
+        
+        remove_yolo_results_string = ''
+        if not remove_yolo_intermediate_results:
+            remove_yolo_results_string = '--no_remove_yolo_results_folder'
+        
+        confidence_threshold_string = ''
+        if json_threshold is not None:
+            confidence_threshold_string = '--conf_thres {}'.format(json_threshold)
+        else:
+            confidence_threshold_string = '--conf_thres {}'.format(DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD)
+            
+        cmd = ''
+        
+        device_string = '--device {}'.format(gpu_number)
+        
+        # Check whether this output file exists
+        
+        cmd += 'if test -e "{}"; then\n'.format(output_fn)
+        cmd +=  '  echo "Results file {} exists, cannot continue"\n'.format(output_fn)
+        cmd +=  '  exit -1\n'
+        cmd += 'fi\n\n'
+        
+        cmd += f'python run_inference_with_yolov5_val.py "{model_file}" "{chunk_file}" "{output_fn}" "{yolo_working_dir}" {image_size_string} {augment_string} {symlink_folder_string} {yolo_results_folder_string} {remove_yolo_results_string} {remove_symlink_folder_string} {confidence_threshold_string} {device_string}'
+        
+        cmd += '\n'
+        
+    else:
+        
+        if os.name == 'nt':
+            cuda_string = f'set CUDA_VISIBLE_DEVICES={gpu_number} & '
+        else:
+            cuda_string = f'CUDA_VISIBLE_DEVICES={gpu_number} '
+                
+        checkpoint_frequency_string = ''
+        checkpoint_path_string = ''
+        checkpoint_filename = chunk_file.replace('.json','_checkpoint.json')
+        
+        if checkpoint_frequency is not None and checkpoint_frequency > 0:
+            checkpoint_frequency_string = f'--checkpoint_frequency {checkpoint_frequency}'
+            checkpoint_path_string = '--checkpoint_path "{}"'.format(checkpoint_filename)
+                
+        use_image_queue_string = ''
+        if (use_image_queue):
+            use_image_queue_string = '--use_image_queue'
+
+        ncores_string = ''
+        if (ncores > 1):
+            ncores_string = '--ncores {}'.format(ncores)
+            
+        quiet_string = ''
+        if quiet_mode:
+            quiet_string = '--quiet'
+        
+        confidence_threshold_string = ''
+        if json_threshold is not None:
+            confidence_threshold_string = '--threshold {}'.format(json_threshold)
+                
+        cmd = f'{cuda_string} python run_detector_batch.py "{model_file}" "{chunk_file}" "{output_fn}" {checkpoint_frequency_string} {checkpoint_path_string} {use_image_queue_string} {ncores_string} {quiet_string} {image_size_string} {confidence_threshold_string}'
+                
     cmd_file = os.path.join(filename_base,'run_chunk_{}_gpu_{}{}'.format(str(i_task).zfill(2),
                             str(gpu_number).zfill(2),script_extension))
     
@@ -240,25 +318,49 @@ for i_task,task in enumerate(task_info):
     
     st = os.stat(cmd_file)
     os.chmod(cmd_file, st.st_mode | stat.S_IEXEC)
-    
+        
     task['command'] = cmd
     task['command_file'] = cmd_file
 
-    # Generate the script to resume from the checkpoint
+    # Generate the script to resume from the checkpoint (only supported with MD inference code)
     
-    resume_string = ' --resume_from_checkpoint "{}"'.format(checkpoint_filename)
-    resume_cmd = cmd + resume_string
-    resume_cmd_file = os.path.join(filename_base,'resume_chunk_{}_gpu_{}{}'.format(str(i_task).zfill(2),
-                            str(gpu_number).zfill(2),script_extension))
+    gpu_to_scripts[gpu_number].append(cmd_file)
     
-    with open(resume_cmd_file,'w') as f:
-        f.write(resume_cmd + '\n')
+    if not use_yolo_inference_scripts:
+        
+        resume_string = ' --resume_from_checkpoint "{}"'.format(checkpoint_filename)
+        resume_cmd = cmd + resume_string
     
-    st = os.stat(resume_cmd_file)
-    os.chmod(resume_cmd_file, st.st_mode | stat.S_IEXEC)
+        resume_cmd_file = os.path.join(filename_base,
+                                       'resume_chunk_{}_gpu_{}{}'.format(str(i_task).zfill(2),
+                                       str(gpu_number).zfill(2),script_extension))
+        
+        with open(resume_cmd_file,'w') as f:
+            f.write(resume_cmd + '\n')
+        
+        st = os.stat(resume_cmd_file)
+        os.chmod(resume_cmd_file, st.st_mode | stat.S_IEXEC)
+        
+        task['resume_command'] = resume_cmd
+        task['resume_command_file'] = resume_cmd_file
+
+# ...for each task
+
+# Write out a script for each GPU that runs all of the commands associated with
+# that GPU.  Typically only used when running lots of little scripts in lieu
+# of checkpointing.
+for gpu_number in gpu_to_scripts:
     
-    task['resume_command'] = resume_cmd
-    task['resume_command_file'] = resume_cmd_file
+    gpu_script_file = os.path.join(filename_base,'run_all_for_gpu_{}{}'.format(
+        str(gpu_number).zfill(2),script_extension))
+    with open(gpu_script_file,'w') as f:
+        for script_name in gpu_to_scripts[gpu_number]:
+            f.write(script_name + '\n')
+        f.write('echo "Finished all commands for GPU {}"'.format(gpu_number))
+    st = os.stat(gpu_script_file)
+    os.chmod(gpu_script_file, st.st_mode | stat.S_IEXEC)
+
+# ...for each GPU
 
 
 #%% Run the tasks
