@@ -19,9 +19,16 @@
 #
 # TODO:
 #
+# * Figure out what happens when images are corrupted... right now this is the #1
+#   reason not to use this script, it may be the case that corrupted images look the
+#   same as empty images.
+#
 # * Multiple GPU support
+#
 # * Checkpointing
+#
 # * Windows support (I have no idea what all the symlink operations will do on Windows)
+#
 # * Support alternative class names at the command line (currently defaults to MD classes,
 #   though other class names can be supplied programmatically)
 #
@@ -75,8 +82,8 @@ def run_inference_with_yolo_val(options):
 
     ##%% Path handling
     
-    assert os.path.isdir(options.input_folder), \
-        'Could not find input folder {}'.format(options.input_folder)
+    assert os.path.isdir(options.input_folder) or os.path.isfile(options.input_folder), \
+        'Could not find input {}'.format(options.input_folder)
     assert os.path.isdir(options.yolo_working_folder), \
         'Could not find working folder {}'.format(options.yolo_working_folder)
     assert os.path.isfile(options.model_filename), \
@@ -115,7 +122,15 @@ def run_inference_with_yolo_val(options):
 
     ##%% Enumerate images
     
-    image_files_absolute = path_utils.find_images(options.input_folder,recursive=True)
+    if os.path.isdir(options.input_folder):
+        image_files_absolute = path_utils.find_images(options.input_folder,recursive=True)
+    else:
+        assert os.path.isfile(options.input_folder)
+        with open(options.input_folder,'r') as f:            
+            image_files_absolute = json.load(f)
+            assert isinstance(image_files_absolute,list)
+            for fn in image_files_absolute:
+                assert os.path.isfile(fn), 'Could not find image file {}'.format(fn)
     
     
     ##%% Create symlinks to give a unique ID to each image
@@ -196,13 +211,25 @@ def run_inference_with_yolo_val(options):
     image_id_to_relative_path = {}
     for image_id in image_id_to_file:
         fn = image_id_to_file[image_id]
-        assert options.input_folder in fn
-        relative_path = os.path.relpath(fn,options.input_folder)
+        if os.path.isdir(options.input_folder):
+            assert options.input_folder in fn
+            relative_path = os.path.relpath(fn,options.input_folder)
+        else:
+            assert os.path.isfile(options.input_folder)
+            # We'll use the absolute path as a relative path, and pass '/'
+            # as the base path in this case.
+            relative_path = fn
         image_id_to_relative_path[image_id] = relative_path
+        
+    if os.path.isdir(options.input_folder):
+        image_base = options.input_folder
+    else:
+        assert os.path.isfile(options.input_folder)
+        image_base = '/'
         
     yolo_output_to_md_output.yolo_json_output_to_md_output(
         yolo_json_file=yolo_json_file,
-        image_folder=options.input_folder,
+        image_folder=image_base,
         output_file=options.output_file,
         yolo_category_id_to_name=options.yolo_category_id_to_name,
         detector_name=os.path.basename(options.model_filename),
@@ -247,7 +274,7 @@ def main():
         help='model file name')
     parser.add_argument(
         'input_folder',type=str,
-        help='folder on which to recursively run the model')
+        help='folder on which to recursively run the model, or a .json list of filenames')
     parser.add_argument(
         'output_file',type=str,
         help='.json file where output will be written')
@@ -316,7 +343,7 @@ if __name__ == '__main__':
 
 if False:
     
-    #%% Test driver
+    #%% Test driver (folder)
     
     project_name = ''
     input_folder = os.path.expanduser(f'~/data/{project_name}')
@@ -349,6 +376,37 @@ if False:
     options.remove_yolo_results_file = True
     
 
+    #%% Test driver (file)
+    
+    input_folder = '/home/user/postprocessing/test/test-2023-04-18-v5a.0.0/chunk001.json'
+    output_file = '/home/user/postprocessing/test/test-2023-04-18-v5a.0.0/chunk001_results.json'
+    
+    model_filename = os.path.expanduser('~/models/camera_traps/megadetector/md_v5.0.0/md_v5a.0.0.pt')
+    yolo_working_folder = os.path.expanduser('~/git/yolov5')
+    model_name = os.path.splitext(os.path.basename(model_filename))[0]
+        
+    options = YoloInferenceOptions()
+    
+    options.yolo_working_folder = yolo_working_folder
+    
+    options.output_file = output_file
+    
+    options.image_size = 1280 * 1.3
+    options.conf_thres = '0.001'
+    options.batch_size = 1
+    options.device_string = '0'
+    options.augment = True
+
+    options.input_folder = input_folder
+    options.model_filename = model_filename
+    
+    options.yolo_results_folder = '/home/user/postprocessing/test/test-2023-04-18-v5a.0.0/yolo_results/yolo_results_001'
+    options.symlink_folder = '/home/user/postprocessing/test/test-2023-04-18-v5a.0.0/symlinks/symlinks_001'
+    
+    options.remove_temporary_symlink_folder = False
+    options.remove_yolo_results_file = False
+    
+    
     #%% Preview results
     
     postprocessing_output_folder = os.path.join(output_folder,'yolo-aug-preview')
