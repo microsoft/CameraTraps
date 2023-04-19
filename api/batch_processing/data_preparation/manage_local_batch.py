@@ -80,7 +80,7 @@ remove_yolo_symlink_folder = False
 
 # Should we apply YOLOv5's augmentation?  Only allowed when use_yolo_inference_scripts
 # is True.
-augment = True
+augment = False
 
 if os.name == 'nt':
     slcc = '^'
