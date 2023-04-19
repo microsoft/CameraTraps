@@ -1361,7 +1361,12 @@ def parse_date_from_exif_datetime(s):
     # doesn't handle it correctly.
     
     # return dateutil.parser.parse(s)    
-    return time.strptime(s, '%Y:%m:%d %H:%M:%S')
+    dt = None
+    try:
+        dt = time.strptime(s, '%Y:%m:%d %H:%M:%S')
+    except Exception:
+        print('Warning: could not parse datetime {}'.format(str(s)))
+    return dt
 
 now = datetime.datetime.now()
 
@@ -1377,17 +1382,20 @@ for exif_result in tqdm(exif_results):
     im['file_name'] = exif_result['file_name']
     im['id'] = im['file_name']
     exif_dt = exif_result['exif_tags']['DateTime']
-    im['datetime'] = datetime.datetime.fromtimestamp(
-        time.mktime(parse_date_from_exif_datetime(exif_dt)))
+    exif_dt = parse_date_from_exif_datetime(exif_dt)
+    if exif_dt is None:
+        im['datetime'] = None
+    else:
+        im['datetime'] = datetime.datetime.fromtimestamp(time.mktime(exif_dt))
     
-    # We collected this image this century, but not today, make sure the parsed datetime
-    # jives with that.
-    #
-    # The latter check is to make sure we don't repeat a particular pathological approach
-    # to datetime parsing, where dateutil parses time correctly, but swaps in the current
-    # date when it's not sure where the date is.
-    assert im['datetime'].year >= 2000    
-    assert (now - im['datetime']).total_seconds() > 1*24*60*60
+        # We collected this image this century, but not today, make sure the parsed datetime
+        # jives with that.
+        #
+        # The latter check is to make sure we don't repeat a particular pathological approach
+        # to datetime parsing, where dateutil parses time correctly, but swaps in the current
+        # date when it's not sure where the date is.
+        assert im['datetime'].year >= 2000    
+        assert (now - im['datetime']).total_seconds() > 1*24*60*60
 
     image_info.append(im)
     
