@@ -388,8 +388,8 @@ def load_and_run_detector(model_file, image_file_names, output_dir,
             start_time = time.time()
 
             result = detector.generate_detections_one_image(image, im_file,
-                                                            detection_threshold=DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD,
-                                                            image_size=image_size)
+                       detection_threshold=DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD,
+                       image_size=image_size)
             detection_results.append(result)
 
             elapsed = time.time() - start_time
@@ -412,9 +412,9 @@ def load_and_run_detector(model_file, image_file_names, output_dir,
 
                 # Image is modified in place
                 viz_utils.render_detection_bounding_boxes(result['detections'], image,
-                                                          label_map=DEFAULT_DETECTOR_LABEL_MAP,
-                                                          confidence_threshold=render_confidence_threshold,
-                                                          thickness=box_thickness, expansion=box_expansion)
+                            label_map=DEFAULT_DETECTOR_LABEL_MAP,
+                            confidence_threshold=render_confidence_threshold,
+                            thickness=box_thickness, expansion=box_expansion)
                 output_full_path = input_file_to_detection_file(im_file)
                 image.save(output_full_path)
 
