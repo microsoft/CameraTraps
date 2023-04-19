@@ -1381,8 +1381,11 @@ for exif_result in tqdm(exif_results):
     im['location'] = os.path.dirname(exif_result['file_name'])
     im['file_name'] = exif_result['file_name']
     im['id'] = im['file_name']
-    exif_dt = exif_result['exif_tags']['DateTime']
-    exif_dt = parse_date_from_exif_datetime(exif_dt)
+    if 'exif_tags' not in exif_result:
+        exif_dt = None
+    else:
+        exif_dt = exif_result['exif_tags']['DateTime']
+        exif_dt = parse_date_from_exif_datetime(exif_dt)
     if exif_dt is None:
         im['datetime'] = None
     else:
