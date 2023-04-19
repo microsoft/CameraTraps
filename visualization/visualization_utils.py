@@ -176,9 +176,10 @@ def show_images_in_a_row(images):
 
 
 # The following three functions are modified versions of those at:
+#
 # https://github.com/tensorflow/models/blob/master/research/object_detection/utils/visualization_utils.py
 
-COLORS = [
+DEFAULT_COLORS = [
     'AliceBlue', 'Red', 'RoyalBlue', 'Gold', 'Chartreuse', 'Aqua', 'Azure',
     'Beige', 'Bisque', 'BlanchedAlmond', 'BlueViolet', 'BurlyWood', 'CadetBlue',
     'AntiqueWhite', 'Chocolate', 'Coral', 'CornflowerBlue', 'Cornsilk', 'Crimson',
@@ -261,7 +262,7 @@ def render_detection_bounding_boxes(detections, image,
                                     confidence_threshold=0.8, thickness=DEFAULT_BOX_THICKNESS, expansion=0,
                                     classification_confidence_threshold=0.3,
                                     max_classifications=3,
-                                    colormap=COLORS,
+                                    colormap=DEFAULT_COLORS,
                                     textalign=TEXTALIGN_LEFT):
     """
     Renders bounding boxes, label, and confidence on an image if confidence is above the threshold.
@@ -412,7 +413,7 @@ def draw_bounding_boxes_on_image(image,
                                  thickness=DEFAULT_BOX_THICKNESS,
                                  expansion=0,
                                  display_strs=None,
-                                 colormap=COLORS,
+                                 colormap=DEFAULT_COLORS,
                                  textalign=TEXTALIGN_LEFT):
     """
     Draws bounding boxes on an image.
@@ -461,7 +462,7 @@ def draw_bounding_box_on_image(image,
                                display_str_list=(),
                                use_normalized_coordinates=True,
                                label_font_size=16,
-                               colormap=COLORS,
+                               colormap=DEFAULT_COLORS,
                                textalign=TEXTALIGN_LEFT):
     """
     Adds a bounding box to an image.
@@ -697,7 +698,8 @@ def render_db_bounding_boxes(boxes, classes, image, original_size=None,
 
 def draw_bounding_boxes_on_file(input_file, output_file, detections, confidence_threshold=0.0,
                                 detector_label_map=DEFAULT_DETECTOR_LABEL_MAP,
-                                thickness=DEFAULT_BOX_THICKNESS, expansion=0):
+                                thickness=DEFAULT_BOX_THICKNESS, expansion=0,
+                                colormap=DEFAULT_COLORS):
     """
     Render detection bounding boxes on an image loaded from file, writing the results to a
     new image file.
@@ -720,7 +722,7 @@ def draw_bounding_boxes_on_file(input_file, output_file, detections, confidence_
     render_detection_bounding_boxes(
             detections, image, label_map=detector_label_map,
             confidence_threshold=confidence_threshold,
-            thickness=thickness,expansion=expansion)
+            thickness=thickness,expansion=expansion,colormap=colormap)
 
     image.save(output_file)
 
