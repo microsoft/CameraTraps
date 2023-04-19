@@ -84,10 +84,11 @@ def visualize_detector_output(detector_output_path: str,
         'Detector output file should be a json with an "images" field.')
     images = detector_output['images']
 
-    detector_label_map = DEFAULT_DETECTOR_LABEL_MAP
     if 'detection_categories' in detector_output:
-        print('detection_categories provided')
+        print('Using custom label mapping')
         detector_label_map = detector_output['detection_categories']
+    else:
+        detector_label_map = DEFAULT_DETECTOR_LABEL_MAP        
 
     num_images = len(images)
     print(f'Detector output file contains {num_images} entries.')
