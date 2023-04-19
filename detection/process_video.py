@@ -352,7 +352,39 @@ if False:
     if False:        
         process_video(options)
     
+    
+    #%% Render a folder of videos, one file at a time
 
+    model_file = os.path.expanduser('~/models/camera_traps/megadetector/md_v5.0.0/md_v5a.0.0.pt')
+    input_dir = r'g:\temp\test\input-video'
+    frame_folder = r'g:\temp\test\extracted-frames'
+    rendering_folder = r'g:\temp\test\rendered-frames'
+    
+    print('Processing folder {}'.format(input_dir))
+    
+    options = ProcessVideoOptions()    
+    options.model_file = model_file
+    options.frame_folder = frame_folder
+    options.frame_rendering_folder = rendering_folder
+    options.render_output_video = True
+    options.rendering_confidence_threshold = 0.05
+    
+    from detection import video_utils
+    video_files = video_utils.find_videos(input_dir)
+    video_files = [fn for fn in video_files if 'detections' not in fn]
+
+    commands = []    
+    for video_fn in video_files:
+        options.input_video_file = video_fn    
+        cmd = options_to_command(options)
+        commands.append(cmd)
+        
+    s = '\n\n'.join(commands)
+    print(s)
+    # import clipboard; clipboard.copy(s)
+    
+            
+    
 #%% Command-line driver
 
 def main():
@@ -409,7 +441,8 @@ def main():
     parser.add_argument('--n_cores', type=int,
                         default=1, help='number of cores to use for frame separation and detection. '\
                             'If using a GPU, this option will be respected for frame separation but '\
-                            'ignored for detection')
+                            'ignored for detection.  Only relevant to frame separation when processing '\
+                            'a folder.')
 
     parser.add_argument('--frame_sample', type=int,
                         default=None, help='procss every Nth frame (defaults to every frame)')
