@@ -51,6 +51,8 @@ import ct_utils
 
 from visualization import visualization_utils as visutils
 
+from detection.run_detector import CONF_DIGITS, COORD_DIGITS
+
 
 #%% Support functions
 
@@ -58,7 +60,8 @@ def yolo_json_output_to_md_output(yolo_json_file, image_folder,
                                   output_file, yolo_category_id_to_name,                              
                                   detector_name='unknown',
                                   image_id_to_relative_path=None,
-                                  offset_yolo_class_ids=True):
+                                  offset_yolo_class_ids=True,
+                                  truncate_to_standard_md_precision=True):
     
     assert os.path.isfile(yolo_json_file), \
         'Could not find YOLO .json file {}'.format(yolo_json_file)
@@ -147,7 +150,10 @@ def yolo_json_output_to_md_output(yolo_json_file, image_folder,
             if offset_yolo_class_ids:
                 yolo_cat_id += 1
             output_det['category'] = str(int(yolo_cat_id))
-            output_det['conf'] = det['score']
+            conf = det['score']
+            if truncate_to_standard_md_precision:
+                conf = ct_utils.truncate_float(conf,CONF_DIGITS)
+            output_det['conf'] = conf
             input_bbox = det['bbox']
             
             # YOLO's COCO .json is not *that* COCO-like, but it is COCO-like in
@@ -164,6 +170,9 @@ def yolo_json_output_to_md_output(yolo_json_file, image_folder,
             
             output_bbox = [box_xmin_relative,box_ymin_relative,
                            box_width_relative,box_height_relative]
+            
+            if truncate_to_standard_md_precision:
+                output_bbox = ct_utils.truncate_float_array(output_bbox,COORD_DIGITS)
                 
             output_det['bbox'] = output_bbox
             im['detections'].append(output_det)
