@@ -51,23 +51,23 @@ from visualization import visualize_db
 #%% Constants
 
 # project_name = 'XXX'; season_name = 'S1'; project_friendly_name = 'Snapshot Unknown'
-project_name = 'SER'; season_name = 'S1-11'; project_friendly_name = 'Snapshot Serengeti'
+# project_name = 'SER'; season_name = 'S1-11'; project_friendly_name = 'Snapshot Serengeti'
 # project_name = 'KRU'; season_name = 'S1'; project_friendly_name = 'Snapshot Kruger'
 # project_name = 'CDB'; season_name = 'S1'; project_friendly_name = 'Snapshot Camdeboo'
 # project_name = 'MTZ'; season_name = 'S1'; project_friendly_name = 'Snapshot Mountain Zebra'
 # project_name = 'ENO'; season_name = 'S1'; project_friendly_name = 'Snapshot Enonkishu'
 # project_name = 'KAR'; season_name = 'S1'; project_friendly_name = 'Snapshot Karoo'
 # project_name = 'KGA'; season_name = 'S1'; project_friendly_name = 'Snapshot Kgalagadi'
+project_name = 'SER'; season_name = 'S1'; project_friendly_name = 'APN'
 
 json_version = '2.1'
 
-snapshot_safari_input_base = r'd:\temp\snapshot-safari-in'
-snapshot_safari_output_base = r'd:\temp\snapshot-safari-out'
+snapshot_safari_input_base = 'f:\\'
+snapshot_safari_output_base = r'g:\temp\snapshot-safari-out'
 
 category_mappings = {'blank':'empty'}
 
 process_images_n_threads = 20
-max_files_per_archive = 500000
 
 
 #%% Folder/file creation
