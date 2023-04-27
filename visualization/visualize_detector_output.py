@@ -35,11 +35,14 @@ def visualize_detector_output(detector_output_path: str,
                               out_dir: str,
                               images_dir: str,
                               is_azure: bool = False,
-                              confidence_threshold: float = 0.8,
+                              confidence_threshold: float = 0.15,
                               sample: int = -1,
                               output_image_width: int = 700,
                               random_seed: Optional[int] = None,
-                              render_detections_only: bool = False) -> List[str]:
+                              render_detections_only: bool = False,
+                              classification_confidence_threshold = 0.1,
+                              html_output_file=None,
+                              html_output_options=None) -> List[str]:
     
     """Draw bounding boxes on images given the output of the detector.
 
@@ -59,16 +62,13 @@ def visualize_detector_output(detector_output_path: str,
     Returns: list of str, paths to annotated images
     """
     
-    assert confidence_threshold > 0 and confidence_threshold < 1, (
+    assert confidence_threshold >= 0 and confidence_threshold <= 1, (
         f'Confidence threshold {confidence_threshold} is invalid, must be in (0, 1).')
 
     assert os.path.exists(detector_output_path), (
         f'Detector output file does not exist at {detector_output_path}.')
 
     if is_azure:
-        # we don't import sas_blob_utils at the top of this file in order to
-        # accommodate the MegaDetector Colab notebook which does not have
-        # the azure-storage-blob package installed
         import sas_blob_utils
     else:
         assert os.path.isdir(images_dir)
@@ -116,7 +116,12 @@ def visualize_detector_output(detector_output_path: str,
     annotated_img_paths = []
     failed_images = []
     missing_images = []
-
+    
+    classification_label_map = None
+    
+    if 'classification_categories' in detector_output:
+        classification_label_map = detector_output['classification_categories']
+        
     for entry in tqdm(images):
         
         image_id = entry['file']
@@ -153,7 +158,9 @@ def visualize_detector_output(detector_output_path: str,
 
         vis_utils.render_detection_bounding_boxes(
             entry['detections'], image, label_map=detector_label_map,
-            confidence_threshold=confidence_threshold)
+            classification_label_map = classification_label_map,
+            confidence_threshold=confidence_threshold,
+            classification_confidence_threshold=classification_confidence_threshold)
 
         for char in ['/', '\\', ':']:
             image_id = image_id.replace(char, '~')
@@ -173,6 +180,11 @@ def visualize_detector_output(detector_output_path: str,
     print(f'Rendered detection results on {num_saved} images, '
           f'saved to {out_dir}')
 
+    if html_output_file is not None:
+        import write_html_image_list
+        write_html_image_list.write_html_image_list(html_output_file,annotated_img_paths,
+                                                    options=html_output_options)
+        
     return annotated_img_paths
 
 
@@ -193,7 +205,7 @@ def main() -> None:
         help='Path to directory where the annotated images will be saved. '
              'The directory will be created if it does not exist.')
     parser.add_argument(
-        '-c', '--confidence', type=float, default=0.8,
+        '-c', '--confidence', type=float, default=0.15,
         help='Value between 0 and 1, indicating the confidence threshold '
              'above which to visualize bounding boxes')
     parser.add_argument(

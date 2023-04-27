@@ -206,7 +206,7 @@ DEFAULT_COLORS = [
 ]
 
 
-def crop_image(detections, image, confidence_threshold=0.8, expansion=0):
+def crop_image(detections, image, confidence_threshold=0.15, expansion=0):
     """
     Crops detections above *confidence_threshold* from the PIL image *image*,
     returning a list of PIL images.
@@ -258,8 +258,8 @@ def crop_image(detections, image, confidence_threshold=0.8, expansion=0):
 
 def render_detection_bounding_boxes(detections, image,
                                     label_map={}, 
-                                    classification_label_map={}, 
-                                    confidence_threshold=0.8, thickness=DEFAULT_BOX_THICKNESS, expansion=0,
+                                    classification_label_map=None, 
+                                    confidence_threshold=0.15, thickness=DEFAULT_BOX_THICKNESS, expansion=0,
                                     classification_confidence_threshold=0.3,
                                     max_classifications=3,
                                     colormap=DEFAULT_COLORS,
