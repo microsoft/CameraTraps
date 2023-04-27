@@ -44,7 +44,7 @@ if False:
     options.outputBase = os.path.join(baseDir, 'repeat_detections')
     options.filenameReplacements = {}  # E.g., {'20190430cameratraps\\':''}
 
-    options.confidenceMin = 0.85
+    options.confidenceMin = 0.15
     options.confidenceMax = 1.01
     options.iouThreshold = 0.85
     options.occurrenceThreshold = 8
