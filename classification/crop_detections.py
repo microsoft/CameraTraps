@@ -6,7 +6,7 @@ This script takes as input a detections JSON file, usually the output of
 detection/run_tf_detector_batch.py or the output of the Batch API in the
 "Batch processing API output format".
 
-See https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing.
+See https://github.com/ecologize/CameraTraps/tree/master/api/batch_processing.
 
 The script can crop images that are either available locally or that need to be
 downloaded from an Azure Blob Storage container.

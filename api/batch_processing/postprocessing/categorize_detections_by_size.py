@@ -72,7 +72,7 @@ def categorize_detections_by_size(input_file,output_file,options=None):
                (d['category'] not in options.categories_to_separate):
                 continue
                
-            # https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing#detector-outputs
+            # https://github.com/ecologize/CameraTraps/tree/master/api/batch_processing#detector-outputs
             w = d['bbox'][2]
             h = d['bbox'][3]
             detection_size = w*h

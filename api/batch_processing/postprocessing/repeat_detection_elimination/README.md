@@ -33,7 +33,7 @@ After installing git and Anaconda, open an Anaconda Prompt, and run:
 
 ```mkdir c:\git
 cd c:\git
-git clone https://github.com/Microsoft/cameratraps
+git clone https://github.com/ecologize/CameraTraps
 git clone https://github.com/Microsoft/ai4eutils
 pip install jsonpickle humanfriendly
 cd c:\git\cameratraps
@@ -48,7 +48,7 @@ set PYTHONPATH=c:\git\cameratraps;c:\git\ai4eutils
 python find_repeat_detections.py
 ```
 
-4. You have run our our <a href="https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing">batch processing API</a> on our images, and have the .json file it produced for your images.
+4. You have run our our <a href="https://github.com/ecologize/CameraTraps/tree/master/api/batch_processing">batch processing API</a> on our images, and have the .json file it produced for your images.
 5. Your images are organized such that the lowest-level folder is a camera.  For example, if you have images in `c:\my_images\2019\B1`, everything in `B1` comes from the same caemra.  This matters because we won&rsquo;t even compare images in this folder to images in `c:\my_images\2019\A1`.  If your images are arranged differently, but there&rsquo;s still some easy way to identify which images are from the same camera, <a href="mailto:cameratraps@lila.science">contact us</a>.
 
 
@@ -154,7 +154,7 @@ This script is also slow: for historical reasons, it *re-finds* all the suspicio
 
 # What next?
 
-After running this process, you still have a .json file in the same format that our API produces, just with (hopefully) many fewer false positives that are above your confidence threshold.  At this point, you can proceed with whatever workflow you would normally use to work with our API output, e.g. our <a href="https://github.com/microsoft/CameraTraps/blob/master/api/batch_processing/integration/timelapse.md">integration with Timelapse</a>.
+After running this process, you still have a .json file in the same format that our API produces, just with (hopefully) many fewer false positives that are above your confidence threshold.  At this point, you can proceed with whatever workflow you would normally use to work with our API output, e.g. our <a href="https://github.com/ecologize/CameraTraps/blob/master/api/batch_processing/integration/timelapse.md">integration with Timelapse</a>.
 
 
 # Advanced options

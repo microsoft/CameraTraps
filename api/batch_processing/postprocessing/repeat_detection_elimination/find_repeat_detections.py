@@ -4,7 +4,7 @@
 #
 # If you want to use this script, we recommend that you read the user's guide:
 #
-# https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing/postprocessing/repeat_detection_elimination.ms
+# https://github.com/ecologize/CameraTraps/tree/master/api/batch_processing/postprocessing/repeat_detection_elimination.ms
 #
 # Really, don't try to run this script without reading the user's guide, you'll think 
 # it's more magical than it is. 
