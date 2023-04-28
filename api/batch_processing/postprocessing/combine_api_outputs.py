@@ -7,7 +7,7 @@ writing the results to another .json file.
 
 File format:
 
-https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing#batch-processing-api-output-format
+https://github.com/ecologize/CameraTraps/tree/master/api/batch_processing#batch-processing-api-output-format
 
 Command-line use:
 

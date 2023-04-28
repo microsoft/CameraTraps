@@ -4,7 +4,7 @@
 #
 # If you want to use this script, we recommend that you read the user's guide:
 #
-# https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing/postprocessing/repeat_detection_elimination.ms
+# https://github.com/ecologize/CameraTraps/tree/master/api/batch_processing/postprocessing/repeat_detection_elimination.ms
 #
 # Really, don't try to run this script without reading the user's guide, you'll think 
 # it's more magical than it is. 
@@ -44,7 +44,7 @@ if False:
     options.outputBase = os.path.join(baseDir, 'repeat_detections')
     options.filenameReplacements = {}  # E.g., {'20190430cameratraps\\':''}
 
-    options.confidenceMin = 0.85
+    options.confidenceMin = 0.15
     options.confidenceMax = 1.01
     options.iouThreshold = 0.85
     options.occurrenceThreshold = 8

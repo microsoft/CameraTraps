@@ -66,7 +66,7 @@ def request_detections():
     caller_id = post_body.get('caller', None)
     if caller_id is None or caller_id not in app_config.get_allowlist():
         msg = ('Parameter caller is not supplied or is not on our allowlist. '
-               'Please email cameratraps@microsoft.com to request access.')
+               'Please email cameratraps@lila.science to request access.')
         return make_error(401, msg)
 
     use_url = post_body.get('use_url', False)
