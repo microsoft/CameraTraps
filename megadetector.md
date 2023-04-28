@@ -217,7 +217,7 @@ git clone https://github.com/Microsoft/ai4eutils
 cd c:\git\cameratraps
 conda env create --file environment-detector.yml
 conda activate cameratraps-detector
-set PYTHONPATH=%PYTHONPATH%;c:\git\cameratraps;c:\git\ai4eutils;c:\git\yolov5
+set PYTHONPATH=%PYTHONPATH%;c:\git\CameraTraps;c:\git\ai4eutils;c:\git\yolov5
 ```
 
 If you want to use MDv4, there's one extra setup step (this will not break your MDv5 setup, you can run both in the same environment):
@@ -233,7 +233,7 @@ Your environment is set up now!  In the future, when you open an Anaconda prompt
 ```batch
 cd c:\git\cameratraps
 conda activate cameratraps-detector
-set PYTHONPATH=%PYTHONPATH%;c:\git\cameratraps;c:\git\ai4eutils;c:\git\yolov5
+set PYTHONPATH=%PYTHONPATH%;c:\git\CameraTraps;c:\git\ai4eutils;c:\git\yolov5
 ```
 
 Pro tip: if you have administrative access to your machine, rather than using the "set PYTHONPATH" steps, you can also create a permanent PYTHONPATH environment variable.  Here's a [good page](https://www.computerhope.com/issues/ch000549.htm) about editing environment variables in Windows.  But if you just want to "stick to the script" and do it exactly the way we recommend above, that's fine.
@@ -252,7 +252,7 @@ git clone https://github.com/Microsoft/ai4eutils
 cd ~/git/cameratraps
 conda env create --file environment-detector.yml
 conda activate cameratraps-detector
-export PYTHONPATH="$PYTHONPATH:$HOME/git/cameratraps:$HOME/git/ai4eutils:$HOME/git/yolov5"
+export PYTHONPATH="$PYTHONPATH:$HOME/git/CameraTraps:$HOME/git/ai4eutils:$HOME/git/yolov5"
 ```
 
 If you want to use MDv4, there's one extra setup step (this will not break your MDv5 setup, you can run both in the same environment):
@@ -268,7 +268,7 @@ Your environment is set up now!  In the future, whenever you start a new shell, 
 ```batch
 cd ~/git/cameratraps
 conda activate cameratraps-detector
-export PYTHONPATH="$PYTHONPATH:$HOME/git/cameratraps:$HOME/git/ai4eutils:$HOME/git/yolov5"
+export PYTHONPATH="$PYTHONPATH:$HOME/git/CameraTraps:$HOME/git/ai4eutils:$HOME/git/yolov5"
 ```
 
 Pro tip: rather than updating your PYTHONPATH every time you start a new shell, you can add the "export" line to your .bashrc file.
@@ -289,7 +289,7 @@ git clone https://github.com/Microsoft/ai4eutils
 cd ~/git/cameratraps
 conda env create --file environment-detector-mac.yml
 conda activate cameratraps-detector
-export PYTHONPATH="$PYTHONPATH:$HOME/git/cameratraps:$HOME/git/ai4eutils:$HOME/git/yolov5"
+export PYTHONPATH="$PYTHONPATH:$HOME/git/CameraTraps:$HOME/git/ai4eutils:$HOME/git/yolov5"
 ```
 
 If you want to use MDv4, there's one extra setup step (this will not break your MDv5 setup, you can run both in the same environment):
@@ -305,7 +305,7 @@ Your environment is set up now!  In the future, whenever you start a new shell, 
 ```batch
 cd ~/git/cameratraps
 conda activate cameratraps-detector
-export PYTHONPATH="$PYTHONPATH:$HOME/git/cameratraps:$HOME/git/ai4eutils:$HOME/git/yolov5"
+export PYTHONPATH="$PYTHONPATH:$HOME/git/CameraTraps:$HOME/git/ai4eutils:$HOME/git/yolov5"
 ```
 
 Pro tip: rather than updating your PYTHONPATH every time you start a new shell, you can add the "export" line to your .bashrc file.
@@ -328,7 +328,7 @@ To use run_detector.py on Windows, when you open a new Anaconda prompt, don't fo
 ```batch
 cd c:\git\CameraTraps
 conda activate cameratraps-detector
-set PYTHONPATH=%PYTHONPATH%;c:\git\cameratraps;c:\git\ai4eutils;c:\git\yolov5
+set PYTHONPATH=%PYTHONPATH%;c:\git\CameraTraps;c:\git\ai4eutils;c:\git\yolov5
 ```
 
 Then you can run the script like this:
@@ -385,7 +385,7 @@ To use run_detector_batch.py on Windows, when you open a new Anaconda prompt, do
 ```batch
 cd c:\git\CameraTraps
 conda activate cameratraps-detector
-set PYTHONPATH=%PYTHONPATH%;c:\git\cameratraps;c:\git\ai4eutils;c:\git\yolov5
+set PYTHONPATH=%PYTHONPATH%;c:\git\CameraTraps;c:\git\ai4eutils;c:\git\yolov5
 ```
 
 Then you can run the script like this:
@@ -438,7 +438,7 @@ To use this script on Linux/Mac, when you open a new Anaconda prompt, don't forg
 ```batch
 cd ~/git/cameratraps
 conda activate cameratraps-detector
-export PYTHONPATH="$PYTHONPATH:$HOME/git/cameratraps:$HOME/git/ai4eutils:$HOME/git/yolov5"
+export PYTHONPATH="$PYTHONPATH:$HOME/git/CameraTraps:$HOME/git/ai4eutils:$HOME/git/yolov5"
 ```
 
 Then you can run the script like this:
@@ -547,7 +547,7 @@ git clone https://github.com/Microsoft/ai4eutils
 cd c:\git\cameratraps
 conda env create --file environment.yml
 conda activate cameratraps-detector
-set PYTHONPATH=%PYTHONPATH%;c:\git\cameratraps;c:\git\ai4eutils
+set PYTHONPATH=%PYTHONPATH%;c:\git\CameraTraps;c:\git\ai4eutils
 ```
 
 ...or the following (on MacOS):
@@ -560,7 +560,7 @@ git clone https://github.com/Microsoft/ai4eutils
 cd ~/git/cameratraps
 conda env create --file environment-detector-mac.yml
 conda activate cameratraps-detector
-export PYTHONPATH="$PYTHONPATH:$HOME/git/cameratraps:$HOME/git/ai4eutils"
+export PYTHONPATH="$PYTHONPATH:$HOME/git/CameraTraps:$HOME/git/ai4eutils"
 ```
 
 4. Whenever you want to start this environment again, run the following (on Windows):
@@ -568,7 +568,7 @@ export PYTHONPATH="$PYTHONPATH:$HOME/git/cameratraps:$HOME/git/ai4eutils"
 ```batch
 cd c:\git\cameratraps
 conda activate cameratraps-detector
-set PYTHONPATH=%PYTHONPATH%;c:\git\cameratraps;c:\git\ai4eutils
+set PYTHONPATH=%PYTHONPATH%;c:\git\CameraTraps;c:\git\ai4eutils
 ```
 
 ...or the following (on MacOS):
@@ -576,7 +576,7 @@ set PYTHONPATH=%PYTHONPATH%;c:\git\cameratraps;c:\git\ai4eutils
 ```batch
 cd ~/git/cameratraps
 conda activate cameratraps-detector
-export PYTHONPATH="$PYTHONPATH:$HOME/git/cameratraps:$HOME/git/ai4eutils"
+export PYTHONPATH="$PYTHONPATH:$HOME/git/CameraTraps:$HOME/git/ai4eutils"
 ```
 
 Also, the environment file we use here ([environment.yml](environment.yml)) doesn't get quite the same level of TLC that our MegaDetector environment does, so if anyone tries to run scripts that don't directly involve MegaDetector using this environment, and packages are missing, [let us know](mailto:cameratraps@lila.science).
