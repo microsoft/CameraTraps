@@ -108,7 +108,7 @@ class TFDetector:
             detection_threshold: confidence above which to include the detection proposal
 
         Returns:
-        A dict with the following fields, see the 'images' key in https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing#batch-processing-api-output-format
+        A dict with the following fields, see the 'images' key in https://github.com/ecologize/CameraTraps/tree/master/api/batch_processing#batch-processing-api-output-format
             - 'file' (always present)
             - 'max_detection_conf'
             - 'detections', which is a list of detection objects containing keys 'category', 'conf' and 'bbox'

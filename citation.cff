@@ -16,7 +16,7 @@ identifiers:
   - type: url
     value: 'https://arxiv.org/abs/1907.06772'
     description: 'arXiv preprint, 1907.06772, 2019'
-repository-code: 'http://github.com/microsoft/cameratraps'
+repository-code: 'http://github.com/ecologize/CameraTraps'
 keywords:
   - Camera traps
   - Conservation

@@ -33,7 +33,7 @@ This README describes how to train and run an animal "species" classifier. "Spec
 
 This guide is written for internal use at Microsoft AI for Earth. Certain services, such as MegaDB and various private repos are only accessible internally within Microsoft. However, this guide may still be of interest to more technical users of the AI for Earth Camera Trap services.
 
-The classifiers trained with this pipeline are intended to be used in conjunction with <a href="https://github.com/microsoft/CameraTraps/blob/master/megadetector.md">MegaDetector</a>, i.e., we use MegaDetector to find animals and crop them out, and we train/run our classifiers on those crops.
+The classifiers trained with this pipeline are intended to be used in conjunction with <a href="https://github.com/ecologize/CameraTraps/blob/master/megadetector.md">MegaDetector</a>, i.e., we use MegaDetector to find animals and crop them out, and we train/run our classifiers on those crops.
 
 
 # Setup
@@ -161,7 +161,7 @@ mypy -p classification.train_classifier
 
 # MegaClassifier
 
-MegaClassifier is an image classifier. MegaClassifier v0.1 is based on an EfficientNet architecture, [implemented in PyTorch](https://github.com/lukemelas/EfficientNet-PyTorch). It supports 169 categories*, where each category is either a single biological taxon or a group of related taxa. See the [`megaclassifier_label_spec.ipynb`](https://github.com/microsoft/CameraTraps/blob/master/classification/megaclassifier_label_spec.ipynb) notebook for more details on the categories. The taxonomy used is based on the 2020_09 revision of the taxonomy CSV.
+MegaClassifier is an image classifier. MegaClassifier v0.1 is based on an EfficientNet architecture, [implemented in PyTorch](https://github.com/lukemelas/EfficientNet-PyTorch). It supports 169 categories*, where each category is either a single biological taxon or a group of related taxa. See the [`megaclassifier_label_spec.ipynb`](https://github.com/ecologize/CameraTraps/blob/master/classification/megaclassifier_label_spec.ipynb) notebook for more details on the categories. The taxonomy used is based on the 2020_09 revision of the taxonomy CSV.
 
 The training dataset, splits, and parameters used for v0.1 can be found in `classifier-training/megaclassifier/v0.1_training`. There are two variants of MegaClassifier v0.1. Their average top-1 accuracy (recall) and average top-3 accuracy on the test set across all 169 categories are shown in this table:
 
@@ -181,7 +181,7 @@ This section explains how to run MegaClassifier on new images. To run MegaClassi
 
 ## 1. Run MegaDetector
 
-First, you need to run MegaDetector on your new images to get an output JSON file, typically using [run_detector_batch.py](https://github.com/microsoft/CameraTraps/blob/main/detection/run_detector_batch.py), though it's also fine to use a third-party tool like [EcoAssist](https://github.com/PetervanLunteren/EcoAssist).  Instructions for running MegaDetector (any version) are [here](https://github.com/microsoft/CameraTraps/blob/main/megadetector.md#using-the-model).
+First, you need to run MegaDetector on your new images to get an output JSON file, typically using [run_detector_batch.py](https://github.com/ecologize/CameraTraps/blob/main/detection/run_detector_batch.py), though it's also fine to use a third-party tool like [EcoAssist](https://github.com/PetervanLunteren/EcoAssist).  Instructions for running MegaDetector (any version) are [here](https://github.com/ecologize/CameraTraps/blob/main/megadetector.md#using-the-model).
 
 
 ## 2. Crop images
@@ -342,7 +342,7 @@ This option is only recommended if you meet all of the following criteria:
 - all of your image files are from a single dataset in a single Azure container
 - none of the images already have cached MegaDetector results
 
-Download all of the images to `/path/to/images/name_of_dataset`. Then, follow the instructions from the [MegaDetector README](https://github.com/microsoft/CameraTraps/blob/master/megadetector.md) to run MegaDetector. Finally, cache the detection results. The commands should be roughly as follows, assuming your terminal is in the `CameraTraps/` folder:
+Download all of the images to `/path/to/images/name_of_dataset`. Then, follow the instructions from the [MegaDetector README](https://github.com/ecologize/CameraTraps/blob/master/megadetector.md) to run MegaDetector. Finally, cache the detection results. The commands should be roughly as follows, assuming your terminal is in the `CameraTraps/` folder:
 
 ```bash
 # Download the MegaDetector model file
@@ -402,7 +402,7 @@ python detect_and_crop.py \
     --run-detector --resume-file $BASE_LOGDIR/resume.json
 ```
 
-When a task finishes running, manually create a JSON file for each task according to the [Batch Detection API response format](https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing#api-outputs). Save the JSON file to `$BASE_LOGDIR/batchapi_response/dataset.json`. Then, use `cache_batchapi_outputs.py` to cache these results:
+When a task finishes running, manually create a JSON file for each task according to the [Batch Detection API response format](https://github.com/ecologize/CameraTraps/tree/master/api/batch_processing#api-outputs). Save the JSON file to `$BASE_LOGDIR/batchapi_response/dataset.json`. Then, use `cache_batchapi_outputs.py` to cache these results:
 
 ```bash
 python cache_batchapi_outputs.py \
