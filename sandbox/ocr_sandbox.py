@@ -21,7 +21,7 @@
 # The metadata extraction (EXIF, IPTC) here is just sample code that seemed to 
 # belong in this file.
 #
-# Contact: Dan Morris (dan@microsoft.com)
+# Contact: Dan Morris (cameratraps@lila.science)
 #
    
 #%% Constants and imports

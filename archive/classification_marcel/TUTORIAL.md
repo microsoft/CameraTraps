@@ -6,11 +6,11 @@ This tutorial walks through all steps required to train an animal species classi
 ### Hardware and software
 We assume that you have a Linux-based (virtual) machine running. It is also highly recommended to use a GPU for accelerating the animal detection and classifier training. The following steps will assume, that you have already set up the NVIDIA drivers and CUDA.
 
-First, clone this repository ([CameraTraps](https://github.com/Microsoft/CameraTraps)) to a local directory by running
+First, clone this repository ([CameraTraps](https://github.com/ecologize/CameraTraps)) to a local directory by running
 
 ```bash
 CAMERATRAPS_DIR=/data/CameraTraps
-git clone https://github.com/Microsoft/CameraTraps.git $CAMERATRAPS_DIR
+git clone https://github.com/ecologize/CameraTraps.git $CAMERATRAPS_DIR
 ```
 
 Our code was tested with Python 3.6 and uses the libraries [TensorFlow](https://www.tensorflow.org/), [pycocotools](https://github.com/cocodataset/cocoapi/tree/master/PythonAPI), and the [TensorFlow object detection library](https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/installation.md). You can install the necessary libraries by running
@@ -105,7 +105,7 @@ python make_classification_dataset.py \
 
 In addition to detection and cropping of detected animals, the script will also divide the data into training and testing splits based on the locations. If you would like to use a different field name for splitting the data, use the `--location_key` flag.
 
-The script will run for days or weeks depending on the dataset size. More details on the flags are discussed in the [classification README](https://github.com/Microsoft/CameraTraps/tree/master/classification#animal-detection-and-cropping). You can go to the folder `$COCO_STYLE_OUTPUT` and analyze the generated images. The script generates one subfolder for each category.
+The script will run for days or weeks depending on the dataset size. More details on the flags are discussed in the [classification README](https://github.com/ecologize/CameraTraps/tree/master/classification#animal-detection-and-cropping). You can go to the folder `$COCO_STYLE_OUTPUT` and analyze the generated images. The script generates one subfolder for each category.
 
 ## Dataset statistics
 The number of generated images depends on the number of detected animals in the dataset as well as the how many of the images have only labeled with one species. We need the exact number of images for the classifier training. It can be computed using the script `cropped_camera_trap_dataset_statistics.py` in the same folder.
@@ -235,7 +235,7 @@ DATASET_NAME=serengeti
 CHECKPOINT_PATH=/data/pretrained/inception_v4.ckpt
 ```
 
-You might also want to adjust the number of training steps by changing the value of `--max_number_of_steps` at [line 51](https://github.com/Microsoft/CameraTraps/blob/classification/classification/train_serengeti_inception_v4.sh#L51). A good starting value is 30 epochs, which translates to
+You might also want to adjust the number of training steps by changing the value of `--max_number_of_steps` at [line 51](https://github.com/ecologize/CameraTraps/blob/classification/classification/train_serengeti_inception_v4.sh#L51). A good starting value is 30 epochs, which translates to
 
     NUM_EPOCHS * NUM_TRAINING_IMAGES / BATCH_SIZE
 

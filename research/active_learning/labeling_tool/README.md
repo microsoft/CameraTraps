@@ -3,7 +3,7 @@
 
 This web interface allows users to annotate cropped images for training a species classification model with active learning. Built with [`bottle`](https://bottlepy.org/docs/dev/).
 
-![WebUI](https://github.com/microsoft/CameraTraps/blob/amrita/research/active_learning/labeling_tool/labeling_tool.png)
+![WebUI](https://github.com/ecologize/CameraTraps/blob/amrita/research/active_learning/labeling_tool/labeling_tool.png)
 
 ## Setup
 1. Create an `images` folder containing full-size camera trap images, which may be in 
