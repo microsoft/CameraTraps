@@ -224,7 +224,7 @@ class Task:
 
         Sets self.api_request to the request JSON. For complete list of API
         input parameters, see:
-        https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing#api-inputs
+        https://github.com/ecologize/CameraTraps/tree/master/api/batch_processing#api-inputs
 
         Args:
             caller: str

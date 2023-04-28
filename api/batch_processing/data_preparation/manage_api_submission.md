@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes the process for running partner data through our <a href="https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing/">MegaDetector Batch Processing API</a>.  It assumes that the target data is in a single blob container to which we have a read-write SAS token.
+This document describes the process for running partner data through our <a href="https://github.com/ecologize/CameraTraps/tree/master/api/batch_processing/">MegaDetector Batch Processing API</a>.  It assumes that the target data is in a single blob container to which we have a read-write SAS token.
 
 The requirement for write permissions is only used to write intermediate files and API output, so it would be a very small set of code changes to handle the case where we have read-only access to the source container, but for now, we're assuming r/w access.
 
@@ -39,10 +39,10 @@ This document is written 98% for internal use, so you will see some instructions
 * If you're working on Windows, probably install <a href="https://www.bitvise.com/">Bitvise</a> for SCP'ing the results to our Web server VM
 
 * Clone the following repos, and be on master/latest on both:
-  * <a href="https://github.com/microsoft/CameraTraps">github.com/microsoft/CameraTraps</a>
+  * <a href="https://github.com/ecologize/CameraTraps">github.com/ecologize/CameraTraps</a>
   * <a href="https://github.com/microsoft/ai4eutils">github.com/microsoft/ai4eutils</a>
 
-* Put the roots of both of the above repos on your PYTHONPATH; see <a href="https://github.com/microsoft/CameraTraps/#other-notes">instructions on the CameraTraps repo</a> re: setting your PYTHONPATH.
+* Put the roots of both of the above repos on your PYTHONPATH; see <a href="https://github.com/ecologize/CameraTraps/#other-notes">instructions on the CameraTraps repo</a> re: setting your PYTHONPATH.
 
 * If you're into using conda environments, cd to the root of the CameraTraps repo and run:
 
@@ -53,7 +53,7 @@ This document is written 98% for internal use, so you will see some instructions
 
 ### Forking the template script
 
-* Make a copy of <a href="https://github.com/microsoft/CameraTraps/blob/master/api/batch_processing/data_preparation/manage_api_submission.py">manage_api_submission.py</a>, <i>outside</i> of the CameraTraps repo.  You may or may not end up with credentials in this file, so your working copy should <i>not be on GitHub</i>.  Name this file as `organization-YYYYMMDD.py`.
+* Make a copy of <a href="https://github.com/ecologize/CameraTraps/blob/master/api/batch_processing/data_preparation/manage_api_submission.py">manage_api_submission.py</a>, <i>outside</i> of the CameraTraps repo.  You may or may not end up with credentials in this file, so your working copy should <i>not be on GitHub</i>.  Name this file as `organization-YYYYMMDD.py`.
 
 * Fill in all the constants in the "constants I set per task" cell.  Specifically:
 
@@ -82,7 +82,7 @@ At this point, the json-formatted API string for all tasks (typically just one, 
 
 ### Submitting the task(s)
 
-The next cell is called "run the tasks", and though it doesn't actually work, I don't recommend programmatic submission anyway.  You are about to spin up sixteen expensive and power-hungry GPUs, and IMO it's better to do this manually so you can triple-quadruple check that you really want to start a task.  I do this through Postman; see <a href="https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing#other-notes-and-example">here</a> for an example.    If you are running multiple tasks, you should run them separately in Postman.
+The next cell is called "run the tasks", and though it doesn't actually work, I don't recommend programmatic submission anyway.  You are about to spin up sixteen expensive and power-hungry GPUs, and IMO it's better to do this manually so you can triple-quadruple check that you really want to start a task.  I do this through Postman; see <a href="https://github.com/ecologize/CameraTraps/tree/master/api/batch_processing#other-notes-and-example">here</a> for an example.    If you are running multiple tasks, you should run them separately in Postman.
 
 You will get back a task ID for each task, enter these in the "manually define task groups" cell in the format indicated in the template code.  A "task group" is a logical task; the reason we use a <i>list</i> of task IDs for each task group is that (1) we split tasks over 1M images into multiple tasks, and (2) sometimes shards fail and we resubmit some images later as part of the same task, so we will extend those lists as necessary.
 
@@ -120,7 +120,7 @@ The latter isn't just about the results; it's about the priority of the task, th
 
 ### Repeat detection elimination (not typically necessary)
 
-Before reading this, I recommend skimming the <a href="https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing/postprocessing/repeat_detection_elimination">public documentation on the repeat detection elimination (RDE) process</a>, to get a sense of what it's about.
+Before reading this, I recommend skimming the <a href="https://github.com/ecologize/CameraTraps/tree/master/api/batch_processing/postprocessing/repeat_detection_elimination">public documentation on the repeat detection elimination (RDE) process</a>, to get a sense of what it's about.
 
 OK, you're back... I run RDE in the following steps:
 

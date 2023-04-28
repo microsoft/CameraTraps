@@ -16,7 +16,7 @@ The most notable prerequisite is nvidia-docker; install according to:
 ### Clone this repo
 
 ```bash
-git clone "https://github.com/microsoft/CameraTraps/"
+git clone "https://github.com/ecologize/CameraTraps/"
 cd CameraTraps
 ```
 
@@ -26,8 +26,8 @@ cd CameraTraps
 Download the MegaDetector model file(s) to `api/synchronous/api_core/animal_detection_api/model`.  We will download both MDv5a and MDv5b here, though currently the API is hard-coded to use MDv5a.
 
 ```bash
-wget "https://github.com/microsoft/CameraTraps/releases/download/v5.0/md_v5a.0.0.pt" -O api/synchronous/api_core/animal_detection_api/model/md_v5a.0.0.pt
-wget "https://github.com/microsoft/CameraTraps/releases/download/v5.0/md_v5b.0.0.pt" -O api/synchronous/api_core/animal_detection_api/model/md_v5b.0.0.pt
+wget "https://github.com/ecologize/CameraTraps/releases/download/v5.0/md_v5a.0.0.pt" -O api/synchronous/api_core/animal_detection_api/model/md_v5a.0.0.pt
+wget "https://github.com/ecologize/CameraTraps/releases/download/v5.0/md_v5b.0.0.pt" -O api/synchronous/api_core/animal_detection_api/model/md_v5b.0.0.pt
 ```
 
 ### Enable API key authentication (optional)

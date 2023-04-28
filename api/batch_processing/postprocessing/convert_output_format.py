@@ -158,7 +158,7 @@ def convert_csv_to_json(input_path,output_path=None):
         
     # Format spec:
     #
-    # https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing
+    # https://github.com/ecologize/CameraTraps/tree/master/api/batch_processing
     
     print('Loading csv results...')
     df = load_api_results_csv(input_path)
