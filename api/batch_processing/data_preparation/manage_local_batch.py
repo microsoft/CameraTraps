@@ -1065,6 +1065,8 @@ os.chmod(output_file, st.st_mode | stat.S_IEXEC)
 
 #%% Within-image classification smoothing
 
+from collections import defaultdict
+
 #
 # Only count detections with a classification confidence threshold above
 # *classification_confidence_threshold*, which in practice means we're only
@@ -1121,9 +1123,7 @@ for final_output_path in classification_detection_files:
     
     with open(classifier_output_path,'r') as f:
         d = json.load(f)
-    
-    from collections import defaultdict
-    
+        
     category_name_to_id = {d['classification_categories'][k]:k for k in d['classification_categories']}
     other_category_ids = []
     for s in other_category_names:
