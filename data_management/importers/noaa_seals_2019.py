@@ -7,7 +7,7 @@ from tqdm import tqdm
 # from github.com/microsoft/ai4eutils
 import url_utils
 
-# from github.com/microsoft/cameratraps
+# from github.com/ecologize/CameraTraps
 from visualization import visualization_utils
 
 # A list of files in the lilablobssc container for this data set

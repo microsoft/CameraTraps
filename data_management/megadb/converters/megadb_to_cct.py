@@ -5,8 +5,8 @@ an individual json database in the COCO Camera Trap (CCT) format.
 ! First use the `megadb_coords_to_abs.py` script to get a version of the list of sequence items with absolute
 coordinates for bbox labels.
 
-`sequences` table format: https://github.com/microsoft/CameraTraps/tree/master/data_management/megadb
-COCO Camera Trap: https://github.com/microsoft/CameraTraps/tree/master/data_management#coco-camera-traps-format
+`sequences` table format: https://github.com/ecologize/CameraTraps/tree/master/data_management/megadb
+COCO Camera Trap: https://github.com/ecologize/CameraTraps/tree/master/data_management#coco-camera-traps-format
 
 If an image is included in a bbox JSON but does not have an annotation entry, it is confirmed empty. 
 """
