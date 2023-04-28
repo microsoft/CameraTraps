@@ -37,7 +37,7 @@ frame_filenames_by_video,fs_by_video,video_filenames = \
                                                               every_n_frames=every_n_frames)
 
 
-#%% List image files, break into folders
+#%% List frame files, break into folders
 
 from collections import defaultdict
 
