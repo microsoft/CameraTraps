@@ -211,6 +211,8 @@ def process_images(db_path, output_dir, image_base_dir, options=None):
     for iImage,img in tqdm(df_img.iterrows(),total=len(df_img)):
         
         img_id = img['id']
+        assert img_id is not None
+        
         img_relative_path = img['file_name']
         
         if image_base_dir.startswith('http'):
@@ -264,7 +266,8 @@ def process_images(db_path, output_dir, image_base_dir, options=None):
         
         imageClasses = ', '.join(imageCategories)
                 
-        file_name = '{}_gt.jpg'.format(img_id.lower().split('.jpg')[0])
+        img_id_string = str(img_id).lower()        
+        file_name = '{}_gt.jpg'.format(img_id_string.split('.jpg')[0])
         file_name = file_name.replace('/', '~').replace('\\','~').replace(':','~')
         
         rendering_info.append({'bboxes':bboxes, 'boxClasses':boxClasses, 'img_path':img_path,

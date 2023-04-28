@@ -95,8 +95,8 @@ def test_load(num_requests, params, max_images=1):
 
 if __name__ == "__main__":
     params = {
-    'min_confidence': 0.15,
-    'min_rendering_confidence': 0.8,
+    'min_confidence': 0.05,
+    'min_rendering_confidence': 0.2,
     'render': True
     }
     

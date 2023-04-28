@@ -1,6 +1,6 @@
 # Overview
 
-This folder contains scripts and configuration files for training and evaluating [MegaDetector](https://github.com/microsoft/CameraTraps/blob/main/megadetector.md).  If you are looking to <b>use</b> MegaDetector, you probably don't want to start with this page; instead, start with the [MegaDetector page](https://github.com/microsoft/CameraTraps/blob/main/megadetector.md).  If you are looking to fine-tune MegaDetector on new data, you also don't want to start with this page; instead, start with the [YOLOv5 training guide](https://github.com/ultralytics/yolov5/wiki/Train-Custom-Data).
+This folder contains scripts and configuration files for training and evaluating [MegaDetector](https://github.com/ecologize/CameraTraps/blob/main/megadetector.md).  If you are looking to <b>use</b> MegaDetector, you probably don't want to start with this page; instead, start with the [MegaDetector page](https://github.com/ecologize/CameraTraps/blob/main/megadetector.md).  If you are looking to fine-tune MegaDetector on new data, you also don't want to start with this page; instead, start with the [YOLOv5 training guide](https://github.com/ultralytics/yolov5/wiki/Train-Custom-Data).
 
 # Format notes
 
@@ -16,7 +16,7 @@ Bounding boxes predicted by MegaDetector are in normalized coordinates, as `[ymi
 
 - `run_detector.py`: the simplest demonstration of how to invoke a detector.
 
-- `run_detector_batch.py`: runs the detector on a collection images; output format is documented [here](https://github.com/microsoft/CameraTraps/tree/main/api/batch_processing/#batch-processing-api-output-format).
+- `run_detector_batch.py`: runs the detector on a collection images; output format is documented [here](https://github.com/ecologize/CameraTraps/tree/main/api/batch_processing/#batch-processing-api-output-format).
 
 # Training MegaDetector
 
