@@ -11,7 +11,7 @@ on lots of images, you should check out:
 
 1) run_detector_batch.py (for local execution)
 
-2) https://github.com/ecologize/CameraTraps/tree/master/api/batch_processing
+2) https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing
    (for running large jobs on Azure ML)
 
 To run this script, we recommend you set up a conda virtual environment

@@ -2,7 +2,7 @@ r"""
 Module to run an animal detection model on lots of images, writing the results
 to a file in the same format produced by our batch API:
 
-https://github.com/ecologize/CameraTraps/tree/master/api/batch_processing
+https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing
 
 This enables the results to be used in our post-processing pipeline; see
 api/batch_processing/postprocessing/postprocess_batch_results.py .
@@ -238,7 +238,7 @@ def process_images(im_files, detector, confidence_threshold, use_image_queue=Fal
 
     Returns
     - results: list of dict, each dict represents detections on one image
-        see the 'images' key in https://github.com/ecologize/CameraTraps/tree/master/api/batch_processing#batch-processing-api-output-format
+        see the 'images' key in https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing#batch-processing-api-output-format
     """
     
     if isinstance(detector, str):
@@ -271,7 +271,7 @@ def process_image(im_file, detector, confidence_threshold, image=None,
 
     Returns:
     - result: dict representing detections on one image
-        see the 'images' key in https://github.com/ecologize/CameraTraps/tree/master/api/batch_processing#batch-processing-api-output-format
+        see the 'images' key in https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing#batch-processing-api-output-format
     """
     
     if not quiet:
@@ -464,7 +464,7 @@ def write_results_to_file(results, output_file, relative_path_base=None,
     """
     Writes list of detection results to JSON output file. Format matches:
 
-    https://github.com/ecologize/CameraTraps/tree/master/api/batch_processing#batch-processing-api-output-format
+    https://github.com/microsoft/CameraTraps/tree/master/api/batch_processing#batch-processing-api-output-format
 
     Args
     - results: list of dict, each dict represents detections on one image

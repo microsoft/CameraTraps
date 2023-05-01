@@ -1,7 +1,7 @@
 """
 Utilities for working with COCO Camera Traps .json databases
 
-https://github.com/ecologize/CameraTraps/blob/master/data_management/README.md#coco-cameratraps-format
+https://github.com/Microsoft/CameraTraps/blob/master/data_management/README.md#coco-cameratraps-format
 """
 
 #%% Constants and imports

@@ -482,7 +482,7 @@ namespace CameraTrapJsonManagerApp
 
         private void ButtonHelp_Click(object sender, EventArgs e)
         {
-            System.Diagnostics.Process.Start("https://github.com/ecologize/CameraTraps/blob/master/api/batch_processing/postprocessing/CameraTrapJsonManagerApp.md");
+            System.Diagnostics.Process.Start("https://github.com/microsoft/CameraTraps/blob/master/api/batch_processing/postprocessing/CameraTrapJsonManagerApp.md");
         }
 
         private void buttonBrowseFolder_Click(object sender, EventArgs e)

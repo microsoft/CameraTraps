@@ -41,7 +41,7 @@ Detections JSON format:
 
 
 Batch Detection API Output Format:
-github.com/ecologize/CameraTraps/tree/master/api/batch_processing#api-outputs
+github.com/microsoft/CameraTraps/tree/master/api/batch_processing#api-outputs
 """
 from __future__ import annotations
 
