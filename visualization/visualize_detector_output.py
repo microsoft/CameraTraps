@@ -244,7 +244,7 @@ def main() -> None:
     visualize_detector_output(
         detector_output_path=args.detector_output_path,
         out_dir=args.out_dir,
-        confidence=args.confidence,
+        confidence_threshold=args.confidence,
         images_dir=args.images_dir,
         is_azure=args.is_azure,
         sample=args.sample,
