@@ -321,7 +321,7 @@ def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=No
     - checkpoint_frequency: int, write results to JSON checkpoint file every N images
     - results: list of dict, existing results loaded from checkpoint
     - n_cores: int, # of CPU cores to use
-    - class_mapping_filename: str, Uuse a non-default class mapping supplied in a .json file
+    - class_mapping_filename: str, use a non-default class mapping supplied in a .json file
 
     Returns
     - results: list of dict, each dict represents detections on one image
