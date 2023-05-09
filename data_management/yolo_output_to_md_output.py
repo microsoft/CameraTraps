@@ -82,7 +82,7 @@ def yolo_json_output_to_md_output(yolo_json_file, image_folder,
         for fn in image_files:
             image_id = os.path.splitext(os.path.basename(fn))[0]
             if image_id in image_id_to_relative_path:
-                print('Error image ID {} refers to:\n{}\n{}'.format(
+                print('Error: image ID {} refers to:\n{}\n{}'.format(
                     image_id,image_id_to_relative_path[image_id],fn))
                 raise ValueError('Duplicate image ID {}'.format(image_id))
             image_id_to_relative_path[image_id] = fn
@@ -126,7 +126,6 @@ def yolo_json_output_to_md_output(yolo_json_file, image_folder,
         
         im = {}
         im['file'] = image_file_relative
-        im['detections'] = []
         image_id = image_file_relative_to_image_id[image_file_relative]
         if int_formatted_image_ids:
             image_id = int(image_id)
@@ -136,7 +135,16 @@ def yolo_json_output_to_md_output(yolo_json_file, image_folder,
             detections = image_id_to_detections[image_id]
         
         image_full_path = os.path.join(image_folder,image_file_relative)
-        pil_im = visutils.open_image(image_full_path)
+        try:
+            pil_im = visutils.open_image(image_full_path)
+        except Exception as e:
+            s = str(e).replace('\n',' ')
+            print('Warning: error opening image {}: {}'.format(image_full_path,s))
+            im['failure'] = 'Conversion error: {}'.format(s)
+            output_images.append(im)
+            continue
+        
+        im['detections'] = []
         
         image_w = pil_im.size[0]
         image_h = pil_im.size[1]
@@ -306,7 +314,7 @@ if False:
     output_file = os.path.expanduser('~/data/mdv5a-yolo-pt-kru.json')    
     yolo_txt_output_to_md_output(input_results_folder,image_folder,output_file)
     
-    
+
 #%% Command-line driver
 
 # TODO

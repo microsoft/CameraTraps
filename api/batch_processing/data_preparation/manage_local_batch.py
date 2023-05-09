@@ -92,10 +92,10 @@ if os.name == 'nt':
 
 #%% Constants I set per script
 
-input_path = '/datadrive/organization/data'
+input_path = '/drive/organization'
 
-organization_name_short = 'organization'
-job_date = None # '2023-04-18'
+organization_name_short = 'organizations'
+job_date = None # '2023-05-08'
 assert job_date is not None and organization_name_short != 'organization'
 
 # Optional descriptor
@@ -310,7 +310,7 @@ for i_task,task in enumerate(task_info):
                 
         cmd = f'{cuda_string} python run_detector_batch.py "{model_file}" "{chunk_file}" "{output_fn}" {checkpoint_frequency_string} {checkpoint_path_string} {use_image_queue_string} {ncores_string} {quiet_string} {image_size_string} {confidence_threshold_string}'
                 
-    cmd_file = os.path.join(filename_base,'run_chunk_{}_gpu_{}{}'.format(str(i_task).zfill(2),
+    cmd_file = os.path.join(filename_base,'run_chunk_{}_gpu_{}{}'.format(str(i_task).zfill(3),
                             str(gpu_number).zfill(2),script_extension))
     
     with open(cmd_file,'w') as f:
@@ -332,7 +332,7 @@ for i_task,task in enumerate(task_info):
         resume_cmd = cmd + resume_string
     
         resume_cmd_file = os.path.join(filename_base,
-                                       'resume_chunk_{}_gpu_{}{}'.format(str(i_task).zfill(2),
+                                       'resume_chunk_{}_gpu_{}{}'.format(str(i_task).zfill(3),
                                        str(gpu_number).zfill(2),script_extension))
         
         with open(resume_cmd_file,'w') as f:
@@ -1355,6 +1355,8 @@ else:
 import datetime    
 import time
 
+min_valid_timestamp_year = 2015
+
 def parse_date_from_exif_datetime(s):
         
     # This is a standard format for EXIF datetime, and dateutil.parser 
@@ -1391,14 +1393,13 @@ for exif_result in tqdm(exif_results):
     else:
         im['datetime'] = datetime.datetime.fromtimestamp(time.mktime(exif_dt))
     
-        # We collected this image this century, but not today, make sure the parsed datetime
-        # jives with that.
-        #
-        # The latter check is to make sure we don't repeat a particular pathological approach
-        # to datetime parsing, where dateutil parses time correctly, but swaps in the current
-        # date when it's not sure where the date is.
-        assert im['datetime'].year >= 2000    
-        assert (now - im['datetime']).total_seconds() > 1*24*60*60
+        if im['datetime'].year < min_valid_timestamp_year:
+            print('Warning: datetime for {} is {}, treating as an error'.format(
+                im['file_name'],im['datetime']))
+            im['datetime'] = None
+        else:
+            assert (now - im['datetime']).total_seconds() > 1*24*60*60
+
 
     image_info.append(im)
     
@@ -2083,7 +2084,7 @@ for i_task in task_set:
     
 # ...for each task
 
-task_strings = [str(k).zfill(2) for k in task_set]
+task_strings = [str(k).zfill(3) for k in task_set]
 task_set_string = '_'.join(task_strings)
 cmd_file = os.path.join(filename_base,'run_chunk_{}_gpu_{}.sh'.format(task_set_string,
                         str(gpu_number).zfill(2)))
