@@ -309,7 +309,7 @@ def process_image(im_file, detector, confidence_threshold, image=None,
 def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=None,
                                 confidence_threshold=run_detector.DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD,
                                 checkpoint_frequency=-1, results=None, n_cores=1,
-                                use_image_queue=False, quiet=False, image_size=None):
+                                use_image_queue=False, quiet=False, image_size=None, class_mapping_filename=None):
     """
     Args
     - model_file: str, path to .pb model file
@@ -321,6 +321,7 @@ def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=No
     - checkpoint_frequency: int, write results to JSON checkpoint file every N images
     - results: list of dict, existing results loaded from checkpoint
     - n_cores: int, # of CPU cores to use
+    - class_mapping_filename: str, use a non-default class mapping supplied in a .json file
 
     Returns
     - results: list of dict, each dict represents detections on one image
@@ -334,6 +335,16 @@ def load_and_run_detector_batch(model_file, image_file_names, checkpoint_path=No
         
     if checkpoint_frequency is None:
         checkpoint_frequency = -1
+
+    # This is an experimental hack to allow the use of non-MD YOLOv5 models through
+    # the same infrastructure; it disables the code that enforces MDv5-like class lists.
+    if class_mapping_filename is not None:
+        run_detector.USE_MODEL_NATIVE_CLASSES = True
+        with open(class_mapping_filename,'r') as f:
+            class_mapping = json.load(f)
+        print('Loaded custom class mapping:')
+        print(class_mapping)
+        run_detector.DEFAULT_DETECTOR_LABEL_MAP = class_mapping
         
     # Handle the case where image_file_names is not yet actually a list
     if isinstance(image_file_names,str):
@@ -780,7 +791,8 @@ def main():
                                           n_cores=args.ncores,
                                           use_image_queue=args.use_image_queue,
                                           quiet=args.quiet,
-                                          image_size=args.image_size)
+                                          image_size=args.image_size,
+                                          class_mapping_filename=args.class_mapping_filename)
 
     elapsed = time.time() - start_time
     images_per_second = len(results) / elapsed

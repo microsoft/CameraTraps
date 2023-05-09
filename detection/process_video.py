@@ -109,7 +109,8 @@ def process_video(options):
             options.model_file, image_file_names,
             confidence_threshold=options.json_confidence_threshold,
             n_cores=options.n_cores,
-            quiet=(not options.verbose))
+            quiet=(not options.verbose),
+            class_mapping_filename=options.class_mapping_filename)
     
         run_detector_batch.write_results_to_file(
             results, options.output_json_file,
@@ -233,7 +234,8 @@ def process_video_folder(options):
             options.model_file, image_file_names,
             confidence_threshold=options.json_confidence_threshold,
             n_cores=options.n_cores,
-            quiet=(not options.verbose))
+            quiet=(not options.verbose),
+            class_mapping_filename=options.class_mapping_filename)
     
         run_detector_batch.write_results_to_file(
             results, frames_json,
@@ -297,6 +299,8 @@ def options_to_command(options):
         cmd += ' --frame_sample ' + str(options.frame_sample)
     if options.debug_max_frames is not None:
         cmd += ' --debug_max_frames ' + str(options.debug_max_frames)
+    if options.class_mapping_filename is not None:
+        cmd += ' --class_mapping_filename ' + str(options.class_mapping_filename)
 
     return cmd
 
@@ -450,6 +454,13 @@ def main():
     parser.add_argument('--debug_max_frames', type=int,
                         default=-1, help='trim to N frames for debugging (impacts model execution, '\
                             'not frame rendering)')
+    
+    parser.add_argument('--class_mapping_filename',
+                        type=str,
+                        default=None, help='Use a non-default class mapping, supplied in a .json file '\
+                            'with a dictionary mapping int-strings to strings.  This will also disable '\
+                            'the addition of "1" to all category IDs, so your class mapping should start '\
+                            'at zero.')
 
     args = parser.parse_args()
     options = ProcessVideoOptions()
