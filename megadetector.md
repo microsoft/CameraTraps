@@ -482,10 +482,17 @@ But we recognize that Python tools can be a bit daunting, so we're excited that 
 * [MegaDetector-GUI](https://github.com/petargyurov/megadetector-gui) is a GUI-based tool for running MegaDetector in Windows environments (MDv4 only as far as we know)
 
 
+### Local tools that run MD, although the point isn't to get MD results
+
+* [DeepFaune](https://www.deepfaune.cnrs.fr/en/)
+
+ 
 ### Interactive demos/APIs
+
 
 * [Hendry Lydecker](https://github.com/hlydecker) set up a [Hugging Face app](https://huggingface.co/spaces/hlydecker/MegaDetector_v5) for running MDv5
 * [Ben Evans](https://bencevans.io/) set up a [Web-based MegaDetector demo](https://replicate.com/bencevans/megadetector) at [replicate.com](https://replicate.com)
+
 
 ### Cloud-based platforms that leverage MegaDetector
 
@@ -497,17 +504,18 @@ It's not quite as simple as "these platforms all run MegaDetector on your images
 * [Camelot](https://camelotproject.org/)
 * [WildePod](https://wildepod.org/)
 * [wpsWatch](https://wildlifeprotectionsolutions.org/wpswatch/)
-* [Animl](https://animl.camera/) ([code](https://github.com/tnc-ca-geo/animl-frontend)) (different from [this other tool called Animl](https://github.com/conservationtechlab/animl))
+* [Animl](https://animl.camera/) ([code](https://github.com/tnc-ca-geo/animl-frontend)) (different from [the R package also called Animl](https://github.com/conservationtechlab/animl))
 * [Cam-WON](https://wildlifeobserver.net/)
 * [Zooniverse ML Subject Assistant](https://subject-assistant.zooniverse.org/#/intro)
 
+
 ### Other ways of running MegaDetector that don't fit easily into one of those categories
 
-#### Third-party, YMMV
+#### Third-party
 
 * [FastAPI/Streamlit package for serving MD and visualizing results](https://github.com/abhayolo/megadetector-fastapi)
 * [SpSeg](https://github.com/bhlab/SpSeg/) (pipeline for running MD along with a custom classifier)
-* [Animl](https://github.com/conservationtechlab/animl) (R package for running MDv4) ([on rdrr](https://rdrr.io/github/conservationtechlab/animl/f/README.md)) (not to be confused with [this other tool that uses MD](https://animl.camera/), also called Animl)
+* [Animl](https://github.com/conservationtechlab/animl) (R package that runs MD, among many other things) ([on rdrr](https://rdrr.io/github/conservationtechlab/animl/f/README.md)) (not to be confused with [the real-time platform that uses MD](https://animl.camera/), also called Animl)
 * [MegaDetectorLite](https://github.com/timmh/MegaDetectorLite) is a set of scripts to convert MDv5 into ONNX and TensorRT formats for embedded deployments.
 * [Docker environment](https://github.com/zaandahl/megadetector) for running MDv5
 * [pip-installable wrapper](https://github.com/bencevans/camtrapml) for MegaDetector (and other camera-trap-related models)
