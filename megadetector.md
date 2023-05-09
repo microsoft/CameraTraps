@@ -482,16 +482,16 @@ But we recognize that Python tools can be a bit daunting, so we're excited that 
 * [MegaDetector-GUI](https://github.com/petargyurov/megadetector-gui) is a GUI-based tool for running MegaDetector in Windows environments (MDv4 only as far as we know)
 
 
-### Local tools that run MD, although the point isn't to get MD results
-
-* [DeepFaune](https://www.deepfaune.cnrs.fr/en/)
-
  
 ### Interactive demos/APIs
 
-
 * [Hendry Lydecker](https://github.com/hlydecker) set up a [Hugging Face app](https://huggingface.co/spaces/hlydecker/MegaDetector_v5) for running MDv5
 * [Ben Evans](https://bencevans.io/) set up a [Web-based MegaDetector demo](https://replicate.com/bencevans/megadetector) at [replicate.com](https://replicate.com)
+
+
+### Thick-client tools that leverage MegaDetector 
+
+* [DeepFaune](https://www.deepfaune.cnrs.fr/en/)
 
 
 ### Cloud-based platforms that leverage MegaDetector
