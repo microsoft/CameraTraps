@@ -7,7 +7,7 @@ This repo contains the tools for training, running, and evaluating detectors and
 - A [batch processing API](https://github.com/ecologize/CameraTraps/tree/main/api/batch_processing) that runs MegaDetector on large image collections, to accelerate population surveys
 - A [real-time API](https://github.com/ecologize/CameraTraps/tree/main/api/synchronous) that runs MegaDetector (and some species classifiers) synchronously, primarily to support anti-poaching scenarios (e.g. see this [blog post](https://customers.microsoft.com/en-us/story/1384184517929343083-wildlife-protection-solutions-nonprofit-ai-for-earth) describing how this API supports [Wildlife Protection Solutions](https://wildlifeprotectionsolutions.org/))
 
-This repo is maintained by folks at [Ecologize](http://ecologize.org/) who like looking at pictures of animals.  We want to support conservation, of course, but we also really like looking at pictures of animals.
+This project was initially developed by the [Microsoft AI for Earth program](https://www.microsoft.com/en-us/ai/ai-for-earth), and this fork is maintained by folks at [Ecologize](http://ecologize.org/) who like looking at pictures of animals.  We want to support conservation, of course, but we also really like looking at pictures of animals.
 
 
 # What's MegaDetector all about?
@@ -133,6 +133,8 @@ All that said, here's another "teaser image" of what you get at the end of train
 
 <img src="images/warthog_classifications.jpg" width="700">
 
+Image credit University of Minnesota, from the Snapshot Safari program.
+
 
 ## data_management
 
@@ -185,4 +187,6 @@ Image credit USDA, from the [NACTI](http://lila.science/datasets/nacti) data set
 
 ## License
 
-This repository is licensed with the [MIT license](https://github.com/Microsoft/dotnet/blob/main/LICENSE).
+This repository is licensed with the [MIT license](https://opensource.org/license/mit/).
+
+Code written on or before April 28, 2023 is [copyright Microsoft](https://github.com/Microsoft/dotnet/blob/main/LICENSE).
