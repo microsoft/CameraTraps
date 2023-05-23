@@ -114,6 +114,7 @@ DEFAULT_OUTPUT_CONFIDENCE_THRESHOLD = 0.005
 
 DEFAULT_BOX_THICKNESS = 4
 DEFAULT_BOX_EXPANSION = 0
+DEFAULT_BOX_EXPANSION_RELATIVE = 0.0
     
 
 #%% Classes
@@ -299,7 +300,8 @@ def load_detector(model_file, force_cpu=False):
 def load_and_run_detector(model_file, image_file_names, output_dir,
                           render_confidence_threshold=DEFAULT_RENDERING_CONFIDENCE_THRESHOLD,
                           crop_images=False, add_boxes=True, box_thickness=DEFAULT_BOX_THICKNESS, 
-                          box_expansion=DEFAULT_BOX_EXPANSION, image_size=None
+                          box_expansion=DEFAULT_BOX_EXPANSION,
+                          box_expansion_relative=DEFAULT_BOX_EXPANSION_RELATIVE, image_size=None
                           ):
     """Load and run detector on target images, and visualize the results."""
     
@@ -404,7 +406,8 @@ def load_and_run_detector(model_file, image_file_names, output_dir,
 
                 images_cropped = viz_utils.crop_image(result['detections'], image,
                                    confidence_threshold=render_confidence_threshold,
-                                   expansion=box_expansion)
+                                   expansion=box_expansion,
+                                   expansion_relative=box_expansion_relative)
 
                 for i_crop, cropped_image in enumerate(images_cropped):
                     output_full_path = input_file_to_detection_file(im_file, i_crop)
@@ -416,7 +419,8 @@ def load_and_run_detector(model_file, image_file_names, output_dir,
                 viz_utils.render_detection_bounding_boxes(result['detections'], image,
                             label_map=DEFAULT_DETECTOR_LABEL_MAP,
                             confidence_threshold=render_confidence_threshold,
-                            thickness=box_thickness, expansion=box_expansion)
+                            thickness=box_thickness, expansion=box_expansion,
+                            expansion_relative=box_expansion_relative)
                 output_full_path = input_file_to_detection_file(im_file)
                 image.save(output_full_path)
 
@@ -516,6 +520,13 @@ def main():
         help=('Number of pixels to expand boxes by (defaults to {})'.format(
               DEFAULT_BOX_EXPANSION)))
         
+    parser.add_argument(
+        '--box_expansion_relative',
+        type=float,
+        default=DEFAULT_BOX_EXPANSION_RELATIVE,
+        help=('Ratio of the number of pixels to the longer side of the boxes to expand them by (defaults to {})'.format(
+              DEFAULT_BOX_EXPANSION_RELATIVE)))
+        
     if len(sys.argv[1:]) == 0:
         parser.print_help()
         parser.exit()
@@ -550,6 +561,7 @@ def main():
                           render_confidence_threshold=args.threshold,
                           box_thickness=args.box_thickness,
                           box_expansion=args.box_expansion,                          
+                          box_expansion_relative=args.box_expansion_relative,
                           add_boxes=args.both or not args.crop,
                           crop_images=args.both or args.crop,
                           image_size=args.image_size)
