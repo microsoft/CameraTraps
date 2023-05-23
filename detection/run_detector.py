@@ -456,7 +456,9 @@ def main():
     group = parser.add_mutually_exclusive_group(required=True)    
     group.add_argument(
         '--image_file',
-        help='Single file to process, mutually exclusive with --image_dir')
+        nargs='*',
+        help='Image files to process (separated by whitespaces), mutually exclusive with --image_dir')
+
     group.add_argument(
         '--image_dir',
         help='Directory to search for images, with optional recursion by adding --recursive')
@@ -516,7 +518,7 @@ def main():
     assert 0.0 < args.threshold <= 1.0, 'Confidence threshold needs to be between 0 and 1'
 
     if args.image_file:
-        image_file_names = [args.image_file]
+        image_file_names = args.image_file
     else:
         image_file_names = ImagePathUtils.find_images(args.image_dir, args.recursive)
 
@@ -528,8 +530,8 @@ def main():
         if args.image_dir:
             args.output_dir = args.image_dir
         else:
-            # but for a single image, args.image_dir is also None
-            args.output_dir = os.path.dirname(args.image_file)
+            # but for a single images, args.image_dir is also None
+            args.output_dir = os.path.dirname(args.image_file[0])
 
     load_and_run_detector(model_file=args.detector_file,
                           image_file_names=image_file_names,
