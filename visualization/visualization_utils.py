@@ -206,7 +206,7 @@ DEFAULT_COLORS = [
 ]
 
 
-def crop_image(detections, image, confidence_threshold=0.15, expansion=0):
+def crop_image(detections, image, confidence_threshold=0.15, expansion=0, expansion_relative=0.0):
     """
     Crops detections above *confidence_threshold* from the PIL image *image*,
     returning a list of PIL images.
@@ -215,6 +215,9 @@ def crop_image(detections, image, confidence_threshold=0.15, expansion=0):
     see bbox format description below.  Normalized, [x,y,w,h], upper-left-origin.
 
     *expansion* specifies a number of pixels to include on each side of the box.
+    
+    *expansion_relative* specifies a ratio of the number of pixels to the longer
+    side of the box that are included on each side of the box.
     """
 
     ret_images = []
@@ -233,11 +236,14 @@ def crop_image(detections, image, confidence_threshold=0.15, expansion=0):
             (left, right, top, bottom) = (xmin * im_width, xmax * im_width,
                                           ymin * im_height, ymax * im_height)
 
-            if expansion > 0:
-                left -= expansion
-                right += expansion
-                top -= expansion
-                bottom += expansion
+            longer_side = max(right - left, bottom - top)
+            expansion_total = expansion + expansion_relative * longer_side
+
+            if expansion_total > 0:
+                left -= expansion_total
+                right += expansion_total
+                top -= expansion_total
+                bottom += expansion_total
 
             # PIL's crop() does surprising things if you provide values outside of
             # the image, clip inputs
@@ -259,7 +265,7 @@ def crop_image(detections, image, confidence_threshold=0.15, expansion=0):
 def render_detection_bounding_boxes(detections, image,
                                     label_map={}, 
                                     classification_label_map=None, 
-                                    confidence_threshold=0.15, thickness=DEFAULT_BOX_THICKNESS, expansion=0,
+                                    confidence_threshold=0.15, thickness=DEFAULT_BOX_THICKNESS, expansion=0, expansion_relative=0.0,
                                     classification_confidence_threshold=0.3,
                                     max_classifications=3,
                                     colormap=DEFAULT_COLORS,
@@ -325,6 +331,9 @@ def render_detection_bounding_boxes(detections, image,
         thickness: line thickness in pixels. Default value is 4.
         
         expansion: number of pixels to expand bounding boxes on each side.  Default is 0.
+        
+        expansion_relative: ratio of the number of pixels to the longer side of the box
+        that are included on each side.  Default is 0.0.
         
         classification_confidence_threshold: confidence above which classification result is retained.
         
@@ -404,7 +413,7 @@ def render_detection_bounding_boxes(detections, image,
 
     draw_bounding_boxes_on_image(image, display_boxes, classes,
                                  display_strs=display_strs, thickness=thickness, 
-                                 expansion=expansion, colormap=colormap, textalign=textalign)
+                                 expansion=expansion, expansion_relative=expansion_relative, colormap=colormap, textalign=textalign)
 
 
 def draw_bounding_boxes_on_image(image,
@@ -412,6 +421,7 @@ def draw_bounding_boxes_on_image(image,
                                  classes,
                                  thickness=DEFAULT_BOX_THICKNESS,
                                  expansion=0,
+                                 expansion_relative=0,
                                  display_strs=None,
                                  colormap=DEFAULT_COLORS,
                                  textalign=TEXTALIGN_LEFT):
@@ -426,6 +436,8 @@ def draw_bounding_boxes_on_image(image,
                class labels of the boxes. This is only used for color selection.
       thickness: line thickness in pixels. Default value is 4.
       expansion: number of pixels to expand bounding boxes on each side.  Default is 0.
+      expansion_relative: ratio of the number of pixels to the longer side of the box
+               that are included on each side. Default is 0.0.
       display_strs: list of list of strings.
                              a list of strings for each bounding box.
                              The reason to pass a list of strings for a
@@ -445,7 +457,7 @@ def draw_bounding_boxes_on_image(image,
             draw_bounding_box_on_image(image,
                                        boxes[i, 0], boxes[i, 1], boxes[i, 2], boxes[i, 3],
                                        classes[i],
-                                       thickness=thickness, expansion=expansion,
+                                       thickness=thickness, expansion=expansion, expansion_relative=expansion_relative,
                                        display_str_list=display_str_list,
                                        colormap=colormap,
                                        textalign=textalign)
@@ -459,6 +471,7 @@ def draw_bounding_box_on_image(image,
                                clss=None,
                                thickness=DEFAULT_BOX_THICKNESS,
                                expansion=0,
+                               expansion_relative=0.0,
                                display_str_list=(),
                                use_normalized_coordinates=True,
                                label_font_size=16,
@@ -484,6 +497,8 @@ def draw_bounding_box_on_image(image,
     clss: str, the class of the object in this bounding box - will be cast to an int.
     thickness: line thickness. Default value is 4.
     expansion: number of pixels to expand bounding boxes on each side.  Default is 0.
+    expansion_relative: ratio of the number of pixels to the longer side of the box
+        that are included on each side. Default is 0.0.
     display_str_list: list of strings to display in box
         (each to be shown on its own line).
         use_normalized_coordinates: If True (default), treat coordinates
@@ -504,12 +519,15 @@ def draw_bounding_box_on_image(image,
     else:
         (left, right, top, bottom) = (xmin, xmax, ymin, ymax)
 
-    if expansion > 0:
+    longer_side = max(right - left, bottom - top)
+    expansion_total = expansion_relative * longer_side
+
+    if expansion_total > 0:
         
-        left -= expansion
-        right += expansion
-        top -= expansion
-        bottom += expansion
+        left -= expansion_total
+        right += expansion_total
+        top -= expansion_total
+        bottom += expansion_total
         
         # Deliberately trimming to the width of the image only in the case where
         # box expansion is turned on.  There's not an obvious correct behavior here,
@@ -653,7 +671,7 @@ def render_megadb_bounding_boxes(boxes_info, image):
 
 
 def render_db_bounding_boxes(boxes, classes, image, original_size=None,
-                             label_map=None, thickness=DEFAULT_BOX_THICKNESS, expansion=0):
+                             label_map=None, thickness=DEFAULT_BOX_THICKNESS, expansion=0, expansion_relative=0.0):
     """
     Render bounding boxes (with class labels) on [image].  This is a wrapper for
     draw_bounding_boxes_on_image, allowing the caller to operate on a resized image
@@ -693,12 +711,12 @@ def render_db_bounding_boxes(boxes, classes, image, original_size=None,
 
     display_boxes = np.array(display_boxes)
     draw_bounding_boxes_on_image(image, display_boxes, classes, display_strs=display_strs,
-                                 thickness=thickness, expansion=expansion)
+                                 thickness=thickness, expansion=expansion, expansion_relative=0.0)
 
 
 def draw_bounding_boxes_on_file(input_file, output_file, detections, confidence_threshold=0.0,
                                 detector_label_map=DEFAULT_DETECTOR_LABEL_MAP,
-                                thickness=DEFAULT_BOX_THICKNESS, expansion=0,
+                                thickness=DEFAULT_BOX_THICKNESS, expansion=0, expansion_relative=0.0,
                                 colormap=DEFAULT_COLORS):
     """
     Render detection bounding boxes on an image loaded from file, writing the results to a
@@ -722,13 +740,13 @@ def draw_bounding_boxes_on_file(input_file, output_file, detections, confidence_
     render_detection_bounding_boxes(
             detections, image, label_map=detector_label_map,
             confidence_threshold=confidence_threshold,
-            thickness=thickness,expansion=expansion,colormap=colormap)
+            thickness=thickness,expansion=expansion,expansion_relative=expansion_relative,colormap=colormap)
 
     image.save(output_file)
 
 
 def draw_db_boxes_on_file(input_file, output_file, boxes, classes=None, 
-                          label_map=None, thickness=DEFAULT_BOX_THICKNESS, expansion=0):
+                          label_map=None, thickness=DEFAULT_BOX_THICKNESS, expansion=0, expansion_relative=0.0):
     """
     Render COCO bounding boxes (in absolute coordinates) on an image loaded from file, writing the
     results to a new image file.
@@ -743,7 +761,7 @@ def draw_db_boxes_on_file(input_file, output_file, boxes, classes=None,
         classes = [0] * len(boxes)
         
     render_db_bounding_boxes(boxes, classes, image, original_size=None,
-                                 label_map=label_map, thickness=thickness, expansion=expansion)
+                                 label_map=label_map, thickness=thickness, expansion=expansion, expansion_relative=expansion_relative)
 
     image.save(output_file)
     
