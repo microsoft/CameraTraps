@@ -402,7 +402,9 @@ def load_and_run_detector(model_file, image_file_names, output_dir,
         try:
             if crop_images:
 
-                images_cropped = viz_utils.crop_image(result['detections'], image)
+                images_cropped = viz_utils.crop_image(result['detections'], image,
+                                   confidence_threshold=render_confidence_threshold,
+                                   expansion=box_expansion)
 
                 for i_crop, cropped_image in enumerate(images_cropped):
                     output_full_path = input_file_to_detection_file(im_file, i_crop)
