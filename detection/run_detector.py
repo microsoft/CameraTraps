@@ -524,14 +524,16 @@ def main():
 
     print('Running detector on {} images...'.format(len(image_file_names)))
 
+    # Set output directory to
     if args.output_dir:
+        # supplied output directory
         os.makedirs(args.output_dir, exist_ok=True)
+    elif args.image_dir:
+        # input directory
+        args.output_dir = args.image_dir
     else:
-        if args.image_dir:
-            args.output_dir = args.image_dir
-        else:
-            # but for a single images, args.image_dir is also None
-            args.output_dir = os.path.dirname(args.image_file[0])
+        # directory of first input image
+        args.output_dir = os.path.dirname(args.image_file[0])
 
     load_and_run_detector(model_file=args.detector_file,
                           image_file_names=image_file_names,
