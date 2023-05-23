@@ -298,7 +298,7 @@ def load_detector(model_file, force_cpu=False):
 
 def load_and_run_detector(model_file, image_file_names, output_dir,
                           render_confidence_threshold=DEFAULT_RENDERING_CONFIDENCE_THRESHOLD,
-                          crop_images=False, box_thickness=DEFAULT_BOX_THICKNESS, 
+                          crop_images=False, add_boxes=True, box_thickness=DEFAULT_BOX_THICKNESS, 
                           box_expansion=DEFAULT_BOX_EXPANSION, image_size=None
                           ):
     """Load and run detector on target images, and visualize the results."""
@@ -408,7 +408,7 @@ def load_and_run_detector(model_file, image_file_names, output_dir,
                     output_full_path = input_file_to_detection_file(im_file, i_crop)
                     cropped_image.save(output_full_path)
 
-            else:
+            if add_boxes:
 
                 # Image is modified in place
                 viz_utils.render_detection_bounding_boxes(result['detections'], image,
@@ -494,6 +494,13 @@ def main():
               'rather than adding bounding boxes to the original image'))
     
     parser.add_argument(
+        '--both',
+        default=False,
+        action="store_true",
+        help=('If set, produces separate output images for each crop, '
+              'in addition to adding bounding boxes to the original image'))
+    
+    parser.add_argument(
         '--box_thickness',
         type=int,
         default=DEFAULT_BOX_THICKNESS,
@@ -541,7 +548,8 @@ def main():
                           render_confidence_threshold=args.threshold,
                           box_thickness=args.box_thickness,
                           box_expansion=args.box_expansion,                          
-                          crop_images=args.crop,
+                          add_boxes=args.both or not args.crop,
+                          crop_images=args.both or args.crop,
                           image_size=args.image_size)
 
 
