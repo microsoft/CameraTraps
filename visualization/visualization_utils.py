@@ -9,11 +9,13 @@ Core rendering functions shared across visualization scripts
 from io import BytesIO
 from typing import Union
 import time
+import os
 
 import matplotlib.pyplot as plt
 import numpy as np
 import requests
 from PIL import Image, ImageFile, ImageFont, ImageDraw
+from jpegtran import JPEGImage
 
 from data_management.annotations import annotation_constants
 from data_management.annotations.annotation_constants import (
@@ -206,10 +208,10 @@ DEFAULT_COLORS = [
 ]
 
 
-def crop_image(detections, image, confidence_threshold=0.15, expansion=0, expansion_relative=0.0):
+def crop_image(detections, image, confidence_threshold=0.15, expansion=0, expansion_relative=0.0, im_file=None):
     """
     Crops detections above *confidence_threshold* from the PIL image *image*,
-    returning a list of PIL images.
+    returning a list of PIL or jpegtran-cffi images in case of lossless crops.
 
     *detections* should be a list of dictionaries with keys 'conf' and 'bbox';
     see bbox format description below.  Normalized, [x,y,w,h], upper-left-origin.
@@ -219,6 +221,11 @@ def crop_image(detections, image, confidence_threshold=0.15, expansion=0, expans
     *expansion_relative* specifies a ratio of the number of pixels to the longer
     side of the box that are included on each side of the box.
     """
+
+    jpegimage = JPEGImage(im_file).exif_autotransform() if im_file and 'jp' in os.path.splitext(im_file)[1] else None
+
+    if jpegimage:
+        print("\nCropping", im_file, "lossless")
 
     ret_images = []
 
@@ -245,6 +252,23 @@ def crop_image(detections, image, confidence_threshold=0.15, expansion=0, expans
                 top -= expansion_total
                 bottom += expansion_total
 
+            if jpegimage:
+                # Round towards the larger box
+                left = int(np.floor(left))
+                right = int(np.ceil(right))
+                top = int(np.floor(top))
+                bottom = int(np.ceil(bottom))
+
+                # Left top corner has to be a multiple of 16
+                mod_left = left % 16
+                mod_top = top % 16
+
+                # Add modulo to all sides for uniform expansion
+                left -= mod_left
+                right += mod_left
+                top -= mod_top
+                bottom += mod_top
+
             # PIL's crop() does surprising things if you provide values outside of
             # the image, clip inputs
             left = max(left,0); right = max(right,0)
@@ -253,7 +277,13 @@ def crop_image(detections, image, confidence_threshold=0.15, expansion=0, expans
             left = min(left,im_width-1); right = min(right,im_width-1)
             top = min(top,im_height-1); bottom = min(bottom,im_height-1)
 
-            ret_images.append(image.crop((left, top, right, bottom)))
+            if jpegimage:
+                width = right - left
+                height = bottom - top
+                ret_images.append(jpegimage.crop(left, top, width, height))
+
+            else:
+                ret_images.append(image.crop((left, top, right, bottom)))
 
         # ...if this detection is above threshold
 
