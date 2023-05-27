@@ -34,3 +34,10 @@ dependencies:
 
 # the `nb_conda_kernels` and `ipykernel` packages are installed so that we
 # can use Jupyter Notebooks with this environment as a kernel
+
+  # Cropping jpeg lossless
+  - cffi
+  - conda-forge::libjpeg-turbo
+  - pip
+  - pip:
+    -jpegtran-cffi
