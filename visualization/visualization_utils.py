@@ -112,7 +112,7 @@ def open_image(input_file: Union[str, BytesIO]) -> Image:
     except Exception:
         pass
 
-    return image, image.getexif()
+    return image
 
 
 def load_image(input_file: Union[str, BytesIO]) -> Image:
@@ -128,9 +128,9 @@ def load_image(input_file: Union[str, BytesIO]) -> Image:
 
     Returns: PIL.Image.Image, in RGB mode
     """
-    image, exif = open_image(input_file)
+    image = open_image(input_file)
     image.load()
-    return image, exif
+    return image
 
 
 def resize_image(image, target_width, target_height=-1):
@@ -770,14 +770,14 @@ def draw_bounding_boxes_on_file(input_file, output_file, detections, confidence_
     detector_label_map is a dict mapping category IDs to strings.
     """
     
-    image, exif = open_image(input_file)
+    image = open_image(input_file)
 
     render_detection_bounding_boxes(
             detections, image, label_map=detector_label_map,
             confidence_threshold=confidence_threshold,
             thickness=thickness,expansion=expansion,expansion_relative=expansion_relative,colormap=colormap)
 
-    image.save(output_file, exif=exif)
+    image.save(output_file, exif=image.getexif())
 
 
 def draw_db_boxes_on_file(input_file, output_file, boxes, classes=None, 
@@ -790,7 +790,7 @@ def draw_db_boxes_on_file(input_file, output_file, boxes, classes=None,
     
     detector_label_map is a dict mapping category IDs to strings.
     """
-    image, exif = open_image(input_file)
+    image = open_image(input_file)
 
     if classes is None:
         classes = [0] * len(boxes)
@@ -798,6 +798,6 @@ def draw_db_boxes_on_file(input_file, output_file, boxes, classes=None,
     render_db_bounding_boxes(boxes, classes, image, original_size=None,
                                  label_map=label_map, thickness=thickness, expansion=expansion, expansion_relative=expansion_relative)
 
-    image.save(output_file, exif=exif)
+    image.save(output_file, exif=image.getexif())
     
     
