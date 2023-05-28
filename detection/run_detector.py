@@ -375,7 +375,7 @@ def load_and_run_detector(model_file, image_file_names, output_dir,
         try:
             start_time = time.time()
 
-            image = viz_utils.load_image(im_file)
+            image, exif = viz_utils.load_image(im_file)
 
             elapsed = time.time() - start_time
             time_load.append(elapsed)
@@ -417,7 +417,10 @@ def load_and_run_detector(model_file, image_file_names, output_dir,
 
                 for i_crop, cropped_image in enumerate(images_cropped):
                     output_full_path = input_file_to_detection_file(im_file, i_crop)
-                    cropped_image.save(output_full_path)
+                    try:
+                        cropped_image.save(output_full_path, exif=exif)
+                    except:
+                        cropped_image.save(output_full_path)
 
             if add_boxes:
 
@@ -428,7 +431,7 @@ def load_and_run_detector(model_file, image_file_names, output_dir,
                             thickness=box_thickness, expansion=box_expansion,
                             expansion_relative=box_expansion_relative)
                 output_full_path = input_file_to_detection_file(im_file)
-                image.save(output_full_path)
+                image.save(output_full_path, exif=exif)
 
         except Exception as e:
             print('Visualizing results on the image {} failed. Exception: {}'.format(im_file, e))
