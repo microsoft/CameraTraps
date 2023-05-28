@@ -222,10 +222,15 @@ def crop_image(detections, image, confidence_threshold=0.15, expansion=0, expans
     side of the box that are included on each side of the box.
     """
 
-    jpegimage = JPEGImage(im_file).exif_autotransform() if im_file and 'jp' in os.path.splitext(im_file)[1] else None
+    jpegimage = JPEGImage(im_file) if im_file and 'jp' in os.path.splitext(im_file)[1] else None
 
     if jpegimage:
-        print("\nCropping", im_file, "lossless")
+        print("\nCropping", im_file, "lossless", end=" ")
+        try:
+            jpegimage = jpegimage.exif_autotransform()
+            print("autotransformed")
+        except:
+            print("")
 
     ret_images = []
 
