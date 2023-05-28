@@ -302,7 +302,7 @@ def load_and_run_detector(model_file, image_file_names, output_dir,
                           crop_images=False, add_boxes=True, box_thickness=DEFAULT_BOX_THICKNESS, 
                           box_expansion=DEFAULT_BOX_EXPANSION,
                           box_expansion_relative=DEFAULT_BOX_EXPANSION_RELATIVE, image_size=None,
-                          image_format=''
+                          image_format='', lossless=True
                           ):
     """Load and run detector on target images, and visualize the results."""
     
@@ -408,7 +408,7 @@ def load_and_run_detector(model_file, image_file_names, output_dir,
             if crop_images:
 
                 # Only pass im_file for lossless jpeg crop
-                im_file_arg = im_file if not image_format or 'jp' in image_format else ''
+                im_file_arg = im_file if lossless and (not image_format or 'jp' in image_format) else ''
 
                 images_cropped = viz_utils.crop_image(result['detections'], image,
                                    confidence_threshold=render_confidence_threshold,
@@ -496,6 +496,12 @@ def main():
         help=('Force image resizing to a (square) integer size (not recommended to change this)'))
     
     parser.add_argument(
+        '--lossless',
+        type=int,
+        default=False,
+        help='Crop jpeg lossless (boxes are expanded by 15 pixels at most)')
+
+    parser.add_argument(
         '--threshold',
         type=float,
         default=DEFAULT_RENDERING_CONFIDENCE_THRESHOLD,
@@ -576,7 +582,8 @@ def main():
                           add_boxes=args.both or not args.crop,
                           crop_images=args.both or args.crop,
                           image_size=args.image_size,
-                          image_format=args.image_format)
+                          image_format=args.image_format,
+                          lossless=args.lossless)
 
 
 if __name__ == '__main__':
