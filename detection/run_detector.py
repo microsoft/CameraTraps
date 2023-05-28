@@ -301,7 +301,8 @@ def load_and_run_detector(model_file, image_file_names, output_dir,
                           render_confidence_threshold=DEFAULT_RENDERING_CONFIDENCE_THRESHOLD,
                           crop_images=False, add_boxes=True, box_thickness=DEFAULT_BOX_THICKNESS, 
                           box_expansion=DEFAULT_BOX_EXPANSION,
-                          box_expansion_relative=DEFAULT_BOX_EXPANSION_RELATIVE, image_size=None
+                          box_expansion_relative=DEFAULT_BOX_EXPANSION_RELATIVE, image_size=None,
+                          image_format=''
                           ):
     """Load and run detector on target images, and visualize the results."""
     
@@ -355,7 +356,9 @@ def load_and_run_detector(model_file, image_file_names, output_dir,
         name, ext = os.path.splitext(fn)
         if crop_index >= 0:
             name += '_crop{:0>2d}'.format(crop_index)
-        fn = '{}{}{}'.format(name, ImagePathUtils.DETECTION_FILENAME_INSERT, '.jpg')
+        if image_format:
+            ext = '.{}'.format(image_format)
+        fn = '{}{}{}'.format(name, ImagePathUtils.DETECTION_FILENAME_INSERT, ext)
         if fn in output_filename_collision_counts:
             n_collisions = output_filename_collision_counts[fn]
             fn = '{:0>4d}'.format(n_collisions) + '_' + fn
@@ -404,10 +407,13 @@ def load_and_run_detector(model_file, image_file_names, output_dir,
         try:
             if crop_images:
 
+                # Only pass im_file for lossless jpeg crop
+                im_file_arg = im_file if not image_format or 'jp' in image_format else ''
+
                 images_cropped = viz_utils.crop_image(result['detections'], image,
                                    confidence_threshold=render_confidence_threshold,
                                    expansion=box_expansion,
-                                   expansion_relative=box_expansion_relative, im_file=im_file)
+                                   expansion_relative=box_expansion_relative, im_file=im_file_arg)
 
                 for i_crop, cropped_image in enumerate(images_cropped):
                     output_full_path = input_file_to_detection_file(im_file, i_crop)
@@ -478,6 +484,11 @@ def main():
         '--output_dir',
         help='Directory for output images (defaults to same as input)')
     
+    parser.add_argument(
+        '--image_format',
+        default='',
+        help='Format of output images (defaults to same as input)')
+
     parser.add_argument(
         '--image_size',
         type=int,
@@ -564,7 +575,8 @@ def main():
                           box_expansion_relative=args.box_expansion_relative,
                           add_boxes=args.both or not args.crop,
                           crop_images=args.both or args.crop,
-                          image_size=args.image_size)
+                          image_size=args.image_size,
+                          image_format=args.image_format)
 
 
 if __name__ == '__main__':
