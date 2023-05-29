@@ -14,7 +14,7 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import requests
-from PIL import Image, ImageFile, ImageFont, ImageDraw
+from PIL import Image, ImageFile, ImageFont, ImageDraw, ImageOps
 from jpegtran import JPEGImage
 
 from data_management.annotations import annotation_constants
@@ -22,12 +22,6 @@ from data_management.annotations.annotation_constants import (
     detector_bbox_category_id_to_name)  # here id is int
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
-
-IMAGE_ROTATIONS = {
-    3: 180,
-    6: 270,
-    8: 90
-}
 
 TEXTALIGN_LEFT = 0
 TEXTALIGN_RIGHT = 1
@@ -99,18 +93,8 @@ def open_image(input_file: Union[str, BytesIO]) -> Image:
         # PIL.Image.convert() returns a converted copy of this image
         image = image.convert(mode='RGB')
 
-    # Alter orientation as needed according to EXIF tag 0x112 (274) for Orientation
-    #
-    # https://gist.github.com/dangtrinhnt/a577ece4cbe5364aad28
-    # https://www.media.mit.edu/pia/Research/deepview/exif.html
-    #
-    try:
-        exif = image._getexif()
-        orientation: int = exif.get(274, None)  # 274 is the key for the Orientation field
-        if orientation is not None and orientation in IMAGE_ROTATIONS:
-            image = image.rotate(IMAGE_ROTATIONS[orientation], expand=True)  # returns a rotated copy
-    except Exception:
-        pass
+    # Transpose image according to its EXIF orientation tag and remove this tag
+    image = ImageOps.exif_transpose(image)
 
     return image
 
