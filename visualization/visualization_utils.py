@@ -204,6 +204,8 @@ def crop_image(detections, image, confidence_threshold=0.15, expansion=0, expans
     
     *expansion_relative* specifies a ratio of the number of pixels to the longer
     side of the box that are included on each side of the box.
+    
+    *im_file* Image file for lossless jpeg crop
     """
 
     jpegimage = JPEGImage(im_file) if im_file and 'jp' in os.path.splitext(im_file)[1] else None
