@@ -96,6 +96,8 @@ def open_image(input_file: Union[str, BytesIO]) -> Image:
     # Transpose image according to its EXIF orientation tag and remove this tag
     image = ImageOps.exif_transpose(image)
 
+    image.filename = input_file
+
     return image
 
 
@@ -192,7 +194,7 @@ DEFAULT_COLORS = [
 ]
 
 
-def crop_image(detections, image, confidence_threshold=0.15, expansion=0, expansion_relative=0.0, im_file=None):
+def crop_image(detections, image, confidence_threshold=0.15, expansion=0, expansion_relative=0.0):
     """
     Crops detections above *confidence_threshold* from the PIL image *image*,
     returning a list of PIL or jpegtran-cffi images in case of lossless crops.
@@ -204,9 +206,9 @@ def crop_image(detections, image, confidence_threshold=0.15, expansion=0, expans
     
     *expansion_relative* specifies a ratio of the number of pixels to the longer
     side of the box that are included on each side of the box.
-    
-    *im_file* Image file for lossless jpeg crop
     """
+
+    im_file = getattr(image, 'filename', None)
 
     jpegimage = JPEGImage(im_file) if im_file and 'jp' in os.path.splitext(im_file)[1] else None
 
