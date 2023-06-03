@@ -407,13 +407,10 @@ def load_and_run_detector(model_file, image_file_names, output_dir,
         try:
             if crop_images:
 
-                # Only pass im_file for lossless jpeg crop
-                im_file_arg = im_file if lossless and (not image_format or 'jp' in image_format) else ''
-
                 images_cropped = viz_utils.crop_image(result['detections'], image,
                                    confidence_threshold=render_confidence_threshold,
                                    expansion=box_expansion,
-                                   expansion_relative=box_expansion_relative)
+                                   expansion_relative=box_expansion_relative, lossless=lossless)
 
                 for i_crop, cropped_image in enumerate(images_cropped):
                     output_full_path = input_file_to_detection_file(im_file, i_crop)

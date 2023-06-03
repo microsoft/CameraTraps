@@ -194,7 +194,7 @@ DEFAULT_COLORS = [
 ]
 
 
-def crop_image(detections, image, confidence_threshold=0.15, expansion=0, expansion_relative=0.0):
+def crop_image(detections, image, confidence_threshold=0.15, expansion=0, expansion_relative=0.0, lossless=True):
     """
     Crops detections above *confidence_threshold* from the PIL image *image*,
     returning a list of PIL or jpegtran-cffi images in case of lossless crops.
@@ -206,19 +206,25 @@ def crop_image(detections, image, confidence_threshold=0.15, expansion=0, expans
     
     *expansion_relative* specifies a ratio of the number of pixels to the longer
     side of the box that are included on each side of the box.
+    
+    *lossless* allows to crop jpeg lossless (boxes are expanded by 15 pixels at most)
     """
 
-    im_file = getattr(image, 'filename', None)
+    jpegimage = None
 
-    jpegimage = JPEGImage(im_file) if im_file and 'jp' in os.path.splitext(im_file)[1] else None
+    if lossless:
+        filename = getattr(image, 'filename', None)
 
-    if jpegimage:
-        print("\nCropping", im_file, "lossless", end=" ")
-        try:
-            jpegimage = jpegimage.exif_autotransform()
-            print("autotransformed")
-        except:
-            print("")
+        if filename and 'jp' in os.path.splitext(filename)[1]:
+            jpegimage = JPEGImage(filename)
+            print("\nCropping", filename, "lossless", end=" ")
+
+            try:
+                jpegimage = jpegimage.exif_autotransform()
+                print("autotransformed")
+
+            except:
+                print("")
 
     ret_images = []
 
