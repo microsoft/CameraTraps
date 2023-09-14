@@ -1,3 +1,11 @@
+# Announcement 
+MegaDetector is getting reworked! Learn more about the development of the reworked Python package in this monthly roadmap! You can also visit the [planning document](roadmap/PyTorchWildlife_plan.pdf) for more information.
+# Roadmap
+[October 2023 roadmap](roadmap/10_TorchWildlifeRoadmap_October.png)
+[November 2023 roadmap](roadmap/11_TorchWildlifeRoadmap_November.png)
+[December 2023 roadmap](roadmap/12_TorchWildlifeRoadmap_December.png)
+[January 2024 roadmap](roadmap/01_TorchWildlifeRoadmap_January.png)
+[February 2024 roadmap](roadmap/02_TorchWildlifeRoadmap_February.png)
 # Overview
 
 This repo contains the tools for training, running, and evaluating detectors and classifiers for images collected from motion-triggered wildlife cameras.  The core functionality provided is:
