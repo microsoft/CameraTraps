@@ -220,6 +220,23 @@ python run_classifier.py \
     --image-size 300 --batch-size 64 --num-workers 8
 ```
 
+If you want to use MegaClassifier to extract features from images, you may try the following:
+
+```python
+import efficientnet
+import torch
+
+model = efficientnet.EfficientNet.from_name('efficientnet-b3', num_classes=169)
+ckpt = torch.load('v0.1_efficientnet-b3.pt')
+model.load_state_dict(ckpt['model'])
+
+x = torch.rand((1, 3, 224, 224))  # random image, batch size 1
+conv_features = model.extract_features(x)
+print(conv_features.shape)  # torch.Size([1, 1536, 7, 7])
+features = model._avg_pooling(conv_features).flatten(start_dim=1)
+print(features.shape)  # torch.Size([1, 1536])
+```
+
 ## 4. (Optional) Map MegaClassifier categories to desired categories
 
 MegaClassifier outputs 100+ categories, but we usually don't care about all of them. Instead, we can group the classifier labels into desired "target" categories. This process involves 3 sub-steps:
