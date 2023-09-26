@@ -1,3 +1,7 @@
+# Announcement
+
+Microsoft is working on expanding the CameraTraps repo. Our commitment remains firm in providing support and ensuring the continued maintenance of MegaDetector, serving the community and extending its benefits even further. 
+
 # Overview
 
 This repo contains the tools for training, running, and evaluating detectors and classifiers for images collected from motion-triggered wildlife cameras.  The core functionality provided is:
