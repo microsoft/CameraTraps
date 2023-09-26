@@ -1,16 +1,6 @@
-# Announcement 
-MegaDetector is getting reworked! Learn more about the development of the reworked Python package in this monthly roadmap! You can also visit the [planning document](roadmap/PyTorchWildlife_plan.pdf) for more information.
-# Roadmap
+# Announcement
 
-<img src="roadmap/10_TorchWildlifeRoadmap_October.png" width="800">
-
-[November 2023 roadmap](roadmap/11_TorchWildlifeRoadmap_November.png)
-
-[December 2023 roadmap](roadmap/12_TorchWildlifeRoadmap_December.png)
-
-[January 2024 roadmap](roadmap/01_TorchWildlifeRoadmap_January.png)
-
-[February 2024 roadmap](roadmap/02_TorchWildlifeRoadmap_February.png)
+Microsoft is working on expanding the CameraTraps repo. Our commitment remains firm in providing support and ensuring the continued maintenance of MegaDetector, serving the community and extending its benefits even further. 
 
 # Overview
 
