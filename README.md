@@ -22,13 +22,13 @@ We've been inspired by the potential and capabilities of Megadetector, and we de
 
 - **Expandable Repository**: As we move forward, our platform will welcome new models and pre-trained weights. We're excited to host contributions from global researchers through a dedicated submission platform.
 
-- **Datasets from LILA**: PyTorch Wildlife is also proud to incorporate the vast datasets hosted on LILA, making it a treasure trove for conservation research.
+- **Datasets from LILA**: PyTorch Wildlife will also incorporate the vast datasets hosted on LILA, making it a treasure trove for conservation research.
 
 
 
 - **Versatile Utilities**: Our set of utilities spans from visualization tools to task-specific utilities, many inherited from the trusted Megadetector.
 
-- **User Interface Flexibility**: While we provide a foundational user interface, our platform is designed to inspire. We encourage researchers to craft and share their unique interfaces, and we'll proudly list both existing and new UIs for the community's benefit.
+- **User Interface Flexibility**: While we provide a foundational user interface, our platform is designed to inspire. We encourage researchers to craft and share their unique interfaces, and we'll list both existing and new UIs from other collaborators for the community's benefit.
 
 Let's shape the future of wildlife research, together!
 
