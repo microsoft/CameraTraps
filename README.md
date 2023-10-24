@@ -6,7 +6,7 @@ We've been inspired by the potential and capabilities of Megadetector, and we de
 
 # PyTorch Wildlife: A Collaborative Deep Learning Framework for Conservation
 
-<img src="images/PyTorch_Wildlife_figure.png" width="700">
+<img src="images/PyTorch_Wildlife_core_figure.png" width="700">
 
 ## Core Features
 
