@@ -1,8 +1,0 @@
-*.png
-*.zip
-experiment_triplet_confidence/
-finetunedtriplet_resnet50_5000/
-triplet_resnet50_1499/
-missouricameratraps_online_triplet_confidence/
-wpzurbanwoodlandcarnivores_offline_triplet_confidence/
-wpzurbanwoodlandcarnivores_online_triplet_confidence/
