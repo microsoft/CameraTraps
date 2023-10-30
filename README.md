@@ -1,14 +1,17 @@
 # Announcement
 
-At the core of our mission is the desire to create a harmonious space where conservation scientists from all over the globe can unite, share, and grow. We are expanding the CameraTraps repo to introduce PyTorch Wildlife, a Collaborative Deep Learning Framework for Conservation, where researchers can come together to share and use datasets and deep learning architectures for wildlife conservation. You can access the first version of PyTorchWildlife [Here!](https://github.com/microsoft/CameraTraps/tree/PytorchWildlife_Dev)
+At the core of our mission is the desire to create a harmonious space where conservation scientists from all over the globe can unite, share, and grow. We are expanding the CameraTraps repo to introduce PyTorch Wildlife, a Collaborative Deep Learning Framework for Conservation, where researchers can come together to share and use datasets and deep learning architectures for wildlife conservation.
 
 We've been inspired by the potential and capabilities of Megadetector, and we deeply value its contributions to the community. **As we forge ahead with PyTorch Wildlife, please know that we remain committed to supporting and maintaining Megadetector, ensuring its continued relevance and utility**.
 
 # PyTorch Wildlife: A Collaborative Deep Learning Framework for Conservation
 
-<img src="images/PyTorch_Wildlife_core_figure.png" width="700">
+## Version 0.0.0 is out! 
+You can access our current version of PyTorch Wildlife [here!](https://github.com/microsoft/CameraTraps/tree/PytorchWildlife_Dev).
 
 ## Core Features
+
+<img src="images/PyTorch_Wildlife_core_figure.png" width="700">
 
 - **Unified Framework**: PyTorch Wildlife integrates four pivotal elements:
   - Machine Learning Models
