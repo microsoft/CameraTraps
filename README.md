@@ -1,8 +1,50 @@
 # Announcement
 
-Microsoft is working on expanding the CameraTraps repo. Our commitment remains firm in providing support and ensuring the continued maintenance of MegaDetector, serving the community and extending its benefits even further. 
+At the core of our mission is the desire to create a harmonious space where conservation scientists from all over the globe can unite, share, and grow. We are expanding the CameraTraps repo to introduce PyTorch Wildlife, a Collaborative Deep Learning Framework for Conservation, where researchers can come together to share and use datasets and deep learning architectures for wildlife conservation.
 
-# Overview
+We've been inspired by the potential and capabilities of Megadetector, and we deeply value its contributions to the community. **As we forge ahead with PyTorch Wildlife, please know that we remain committed to supporting and maintaining Megadetector, ensuring its continued relevance and utility**.
+
+# PyTorch Wildlife: A Collaborative Deep Learning Framework for Conservation
+
+## Version 0.0.0 is out! 
+You can access our current version of PyTorch Wildlife [here!](https://github.com/microsoft/CameraTraps/tree/PytorchWildlife_Dev).
+
+## Core Features
+
+<img src="images/PyTorch_Wildlife_core_figure.png" width="700">
+
+- **Unified Framework**: PyTorch Wildlife integrates four pivotal elements:
+  - Machine Learning Models
+  - Pre-trained Weights
+  - Datasets
+  - Utilities
+ 
+- **Our work**: In the provided graph, boxes outlined in red represent elements that will be added and remained fixed, while those in blue will be part of our development.
+
+- **Inaugural Model**: We're kickstarting with YOLO as our first available model, complemented by pre-trained weights from Megadetector.
+
+- **Expandable Repository**: As we move forward, our platform will welcome new models and pre-trained weights. We're excited to host contributions from global researchers through a dedicated submission platform.
+
+- **Datasets from LILA**: PyTorch Wildlife will also incorporate the vast datasets hosted on LILA, making it a treasure trove for conservation research.
+
+
+
+- **Versatile Utilities**: Our set of utilities spans from visualization tools to task-specific utilities, many inherited from the trusted Megadetector.
+
+- **User Interface Flexibility**: While we provide a foundational user interface, our platform is designed to inspire. We encourage researchers to craft and share their unique interfaces, and we'll list both existing and new UIs from other collaborators for the community's benefit.
+
+Let's shape the future of wildlife research, together!
+
+Below you can find a list of the core elements of PyTorchWildlife.
+
+<img src="images/TorchWildlife_core.png" width="700">
+
+# Development roadmap
+Here you can find the milestone roadmap for PyTorch Wildlife on October!
+
+<img src="images/10_TorchWildlifeRoadmap_October.png" width="700">
+
+# MegaDetector Overview
 
 This repo contains the tools for training, running, and evaluating detectors and classifiers for images collected from motion-triggered wildlife cameras.  The core functionality provided is:
 
