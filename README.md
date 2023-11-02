@@ -37,7 +37,7 @@ Let's shape the future of wildlife research, together!
 
 Below you can find a list of the core elements of PyTorchWildlife.
 
-<img src="images/TorchWildlife_core.png" width="700">
+<img src="images/PyTorchWildlife_core.png" width="700">
 
 # Development roadmap
 Here you can find the milestone roadmap for PyTorch Wildlife on October!
