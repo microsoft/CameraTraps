@@ -36,13 +36,17 @@ You can access our current version of PyTorch Wildlife [here!](https://github.co
 Let's shape the future of wildlife research, together!
 
 Below you can find a list of the core elements of PyTorchWildlife.
-
-<img src="images/TorchWildlife_core.png" width="700">
+<img src="images/Finished_tasks_announcement.png" width="700">
+<img src="images/PTWildlife_core.png" width="700">
 
 # Development roadmap
 Here you can find the milestone roadmap for PyTorch Wildlife on October!
-
-<img src="images/10_TorchWildlifeRoadmap_October.png" width="700">
+<img src="images/Finished_tasks_announcement.png" width="700">
+<img src="images/10_PyTorchWildlifeRoadmap_October.png" width="700">
+<img src="images/11_PyTorchWildlifeRoadmap_November.png" width="700">
+<img src="images/12_PyTorchWildlifeRoadmap_December.png" width="700">
+<img src="images/01_PyTorchWildlifeRoadmap_January.png" width="700">
+<img src="images/02_PyTorchWildlifeRoadmap_February.png" width="700">
 
 # MegaDetector Overview
 
