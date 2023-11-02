@@ -43,6 +43,10 @@ Below you can find a list of the core elements of PyTorchWildlife.
 Here you can find the milestone roadmap for PyTorch Wildlife on October!
 
 <img src="images/10_TorchWildlifeRoadmap_October.png" width="700">
+<img src="images/11_TorchWildlifeRoadmap_November.png" width="700">
+<img src="images/12_TorchWildlifeRoadmap_December.png" width="700">
+<img src="images/01_TorchWildlifeRoadmap_January.png" width="700">
+<img src="images/02_TorchWildlifeRoadmap_February.png" width="700">
 
 # MegaDetector Overview
 
