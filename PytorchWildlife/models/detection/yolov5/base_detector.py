@@ -90,7 +90,7 @@ class YOLOV5Base:
         ]
         return results
 
-    def single_image_detection(self, img, img_size, img_path, conf_thres=0.2, id_strip=None):
+    def single_image_detection(self, img, img_size=None, img_path=None, conf_thres=0.2, id_strip=None):
         """
         Perform detection on a single image.
         
@@ -109,6 +109,8 @@ class YOLOV5Base:
         Returns:
             dict: Detection results.
         """
+        if img_size is None:
+            img_size = img.permute((1, 2, 0)).shape # We need hwc instead of chw for coord scaling
         preds = self.model(img.unsqueeze(0).to(self.device))[0]
         preds = torch.cat(non_max_suppression(prediction=preds, conf_thres=conf_thres), axis=0)
         preds[:, :4] = scale_coords([self.IMAGE_SIZE] * 2, preds[:, :4], img_size).round()
