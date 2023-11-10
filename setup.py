@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='PytorchWildlife',
-    version='0.0.0',  # Current version
+    version='0.0.1.1.2', 
     packages=find_packages(),
     url='https://github.com/microsoft/CameraTraps/tree/PytorchWildlife_Dev',  
     license='MIT',
@@ -20,7 +20,7 @@ setup(
         'Pillow==10.1.0', 
         'supervision==0.16.0',
         'gradio',
-        'ultralytics-yolov5', 
+        'ultralytics-yolov5'
     ],
     classifiers=[
         'Development Status :: 3 - Alpha',  
@@ -33,5 +33,5 @@ setup(
         'Programming Language :: Python :: 3.9',
     ],
     keywords='pytorch, wildlife, megadetector, conservation, animal, detection, classification',
-    python_requires='>=3.6',
+    python_requires='>=3.8',
 )
