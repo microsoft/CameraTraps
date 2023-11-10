@@ -139,7 +139,7 @@ def video_detection(video, det_conf_thres, clf_conf_thres, target_fps):
                                                  det_conf_thres=det_conf_thres,
                                                  clf_conf_thres=clf_conf_thres)
         return annotated_frame 
-
+    
     target_path = "../temp/video_detection.mp4"
     pw_utils.process_video(source_path=video, target_path=target_path,
                            callback=callback, target_fps=target_fps)

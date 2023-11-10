@@ -18,7 +18,7 @@ def process_video(
     target_path: str,
     callback: Callable[[np.ndarray, int], np.ndarray],
     target_fps: int = 1,
-    codec: str = "avc1"
+    codec: str = "mp4v"
 ) -> None:
     """
     Process a video frame-by-frame, applying a callback function to each frame and saving the results 
@@ -35,6 +35,7 @@ def process_video(
             Codec used to encode the processed video. Default is "avc1".
     """
     source_video_info = VideoInfo.from_video_path(video_path=source_path)
+    
     if source_video_info.fps > target_fps:
         stride = int(source_video_info.fps / target_fps)
         source_video_info.fps = target_fps
