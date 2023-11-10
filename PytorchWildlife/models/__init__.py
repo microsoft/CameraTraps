@@ -1,2 +1,2 @@
-from classification import *
-from detection import *
+from .classification import *
+from .detection import *
