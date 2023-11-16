@@ -1,0 +1,53 @@
+name: cameratraps-classifier
+
+channels:
+- pytorch
+- defaults
+- conda-forge
+
+dependencies:
+- python>=3.7, <=3.7.6
+
+# from pytorch channel
+- pytorch==1.9.0
+- torchvision==0.10.0
+# - cpuonly  # for CPU only
+- cudatoolkit=11.3  # for GPU
+
+# from defaults channel
+- Pillow
+- humanfriendly
+- ipywidgets
+- jsonpickle  # used by run_detector_batch.py
+- jupyterlab
+- matplotlib
+- mypy
+- nb_conda_kernels
+- networkx  # used for taxonomy graph
+- numpy
+- openpyxl  # used by taxonomy_mapping/species_by_dataset.py
+- pandas
+- progressbar2  # used by ai4eutils (which is called by taxonomy-mapping code)
+- pylint
+- python-graphviz  # used for taxonomy visualization
+- scikit-learn
+- seaborn
+- tqdm
+- xlrd  # for pandas Excel support, needed by taxonomy_mapping/process_species_by_dataset
+- pip
+
+# from conda-forge
+# faster Pillow replacement for torchvision; Linux-only, see README for information
+# - accimage      
+
+# Some packages or versions are only available from PyPI
+# These may require GCC to be installed
+- pip:
+  - azure-storage-blob>  # require v12.5.0 for BlobClient.exists()
+
+  # SIMD acceleration for Pillow.  Linux-only, see README for information.
+  # - pillow-simd
+
+  # conda (defaults channel) tends to lag PyPI for TensorFlow-related packages
+  - tensorboard
+
