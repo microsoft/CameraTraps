@@ -1,0 +1,11 @@
+# dataset that includes COCO and iNat 2017 in the training set; includes COCO images that do not contain
+# the relevant categories as negative examples.
+
+path: /camtraps/combined_images  # dataset root dir
+train: images/train  # train images (relative to 'path') - includes COCO and iNat, categories mapped to Megadetector categories
+val: images/val  # val images (relative to 'path')
+test: images/test # test images (optional)
+
+# Classes
+nc: 3  # number of classes
+names: ['animal', 'person', 'vehicle']
