@@ -1,0 +1,557 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>labeling-tool</title>
+    <meta charset="utf-8">
+    <meta name="author" content="Amrita Gupta">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <link type="text/css" href="css/bootstrap.css" rel="stylesheet">
+    <script src="js/jquery-3.3.1.min.js"></script>
+    <script src="js/bootstrap.bundle.min.js"></script>
+    
+
+    <!-- <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script> -->
+    <script src="https://code.jquery.com/ui/1.12.0/jquery-ui.min.js" integrity="sha256-eGE6blurk5sHj+rmkfsGYeKyZx3M4bG+ZlFyA7Kns7E=" crossorigin="anonymous"></script>   
+    <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/js/toastr.min.js"></script>
+    <link href="//cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/css/toastr.min.css" rel="stylesheet"> 
+    <!-- <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script> -->
+    <!--Added by Amar-->
+    <!-- <link href="//code.jquery.com/ui/1.12.0/themes/smoothness/jquery-ui.css" rel="stylesheet"> -->
+    
+    <style type="text/css">
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(250px, 20vw));
+            grid-template-rows: repeat(4, 15vh);
+            grid-gap: 10px;
+            grid-row-gap: 50px;
+            padding: 10px 10px 10px 10px;
+        }
+        /* .gallery {
+            display: flex;
+            flex-wrap: wrap;
+            padding: 0 4px;
+        } */
+        .selectable img{
+            height: 100%;
+            object-fit: contain;
+            display: block;
+            margin: 0 auto;
+        }
+        .selectable .ui-selected{
+            border: 4px solid rgb(74, 209, 11) !important;
+        }
+        .selectable .classified{
+            border: 3px solid darkslategray;
+            /* -webkit-filter: blur(1px); Safari 6.0 - 9.0 */
+            /* filter: blur(1px); */
+        }
+        
+    </style>
+</head>
+
+<body>
+    <!-- Page Content -->
+    <div id="page-content-wrapper">
+        <!-- Navigation bar -->
+        <nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom">    
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="navbar-header">
+                <a class="navbar-brand" style="font-size: 30px !important;">Species Classification Fine-Tuning Tool</a>
+            </div>
+        </nav>
+        </br>
+
+        <!-- Tool Area -->
+        <div class="container-fluid">
+            <div class="row center">
+                <!-- IMAGE DISPLAY -->
+                <div class="col-xl-10 col-lg-8">
+                    <div class="gallery selectable">
+                        <!-- Row 1 -->
+                        <div class="display-image">
+                            <img src="img/placeholder.JPG" alt="Image 1" id="img1"><!-- <figure class="gallery__item gallery__item--1 ui-widget-content"></figure>Consider encoding images in base64 for faster loading -->
+                            <div id="img1-text" style="color:red; font-weight: bold; text-align: center; display:grid"></div>
+                        </div>
+                        <div class="display-image">
+                            <img src="img/placeholder.JPG" alt="Image 2" id="img2"><!-- <figure class="gallery__item gallery__item--2 ui-widget-content"></figure>-->
+                            <div id="img2-text" style="color:red; font-weight: bold; text-align: center; display:grid"></div>
+                        </div>
+                        <div class="display-image">
+                            <img src="img/placeholder.JPG" alt="Image 3" id="img3"><!-- <figure class="gallery__item gallery__item--3 ui-widget-content"></figure> -->
+                            <div id="img3-text" style="color:red; font-weight: bold; text-align: center; display:grid"></div>
+                        </div>
+                        <div class="display-image">
+                            <img src="img/placeholder.JPG" alt="Image 4" id="img4"><!-- <figure class="gallery__item gallery__item--4 ui-widget-content"></figure> -->
+                            <div id="img4-text" style="color:red; font-weight: bold; text-align: center; display:grid"></div>
+                        </div>
+
+                        <!-- Row 2 -->
+                        <div class="display-image">
+                            <img src="img/placeholder.JPG" alt="Image 5" id="img5"><!-- <figure class="gallery__item gallery__item--5 ui-widget-content"></figure> -->
+                            <div id="img5-text" style="color:red; font-weight: bold; text-align: center; display:grid"></div>
+                        </div>
+                        <div class="display-image">
+                            <img src="img/placeholder.JPG" alt="Image 6" id="img6"><!-- <figure class="gallery__item gallery__item--6 ui-widget-content"></figure> -->
+                            <div id="img6-text" style="color:red; font-weight: bold; text-align: center; display:grid"></div>
+                        </div>
+                        <div class="display-image">
+                            <img src="img/placeholder.JPG" alt="Image 7" id="img7"><!-- <figure class="gallery__item gallery__item--7 ui-widget-content"></figure> -->  
+                            <div id="img7-text" style="color:red; font-weight: bold; text-align: center; display:grid"></div>  
+                        </div>
+                        <div class="display-image">
+                            <img src="img/placeholder.JPG" alt="Image 8" id="img8"><!-- <figure class="gallery__item gallery__item--8 ui-widget-content"></figure> -->   
+                            <div id="img8-text" style="color:red; font-weight: bold; text-align: center; display:grid"></div> 
+                        </div>
+
+                        <!-- Row 3 -->
+                        <div class="display-image">
+                            <img src="img/placeholder.JPG" alt="Image 9" id="img9"><!-- <figure class="gallery__item gallery__item--9 ui-widget-content"></figure> -->
+                            <div id="img9-text" style="color:red; font-weight: bold; text-align: center; display:grid"></div>  
+                        </div>
+                        <div class="display-image">
+                            <img src="img/placeholder.JPG" alt="Image 10" id="img10"><!-- <figure class="gallery__item gallery__item--10 ui-widget-content"></figure> -->
+                            <div id="img10-text" style="color:red; font-weight: bold; text-align: center; display:grid"></div>
+                        </div>
+                        <div class="display-image">
+                            <img src="img/placeholder.JPG" alt="Image 11" id="img11"><!-- <figure class="gallery__item gallery__item--11 ui-widget-content"></figure> -->
+                            <div id="img11-text" style="color:red; font-weight: bold; text-align: center; display:grid"></div>
+                        </div>
+                        <div class="display-image">
+                            <img src="img/placeholder.JPG" alt="Image 12" id="img12"><!-- <figure class="gallery__item gallery__item--12 ui-widget-content"></figure> -->
+                            <div id="img12-text" style="color:red; font-weight: bold; text-align: center; displatwo ajax requests same pagey:grid"></div>  
+                        </div>
+
+                        <!-- Row 4 -->
+                        <div class="display-image">
+                            <img src="img/placeholder.JPG" alt="Image 13" id="img13"><!-- <figure class="gallery__item gallery__item--13 ui-widget-content"></figure> -->
+                            <div id="img13-text" style="color:red; font-weight: bold; text-align: center; display:grid"></div>
+                        </div>
+                        <div class="display-image">
+                            <img src="img/placeholder.JPG" alt="Image 14" id="img14"><!-- <figure class="gallery__item gallery__item--14 ui-widget-content"></figure> -->
+                            <div id="img14-text" style="color:red; font-weight: bold; text-align: center; display:grid"></div>
+                        </div>
+                        <div class="display-image">
+                            <img src="img/placeholder.JPG" alt="Image 15" id="img15"><!-- <figure class="gallery__item gallery__item--15 ui-widget-content"></figure> -->
+                            <div id="img15-text" style="color:red; font-weight: bold; text-align: center; display:grid"></div>
+                        </div>
+                        <div class="display-image">
+                            <img src="img/placeholder.JPG" alt="Image 16" id="img16"><!--<figure class="gallery__item gallery__item--16 ui-widget-content"></figure> -->
+                            <div id="img16-text" style="color:red; font-weight: bold; text-align: center; display:grid"></div>
+                        </div>
+                        
+                    </div>
+                </div>
+                
+                <!-- WIDGETS -->
+                <div class="col-xl-2 col-lg-4">
+                    <div class="card">
+                        <div class="card-header">
+                            Label Images
+                        </div>
+                        <div class="card-body">
+                            <a class="btn btn-primary" style="border:none; color:white; background-color:#00A4EF; width:100%; margin-top:15px; margin-bottom:15px;" onclick="loadImages()">Load More Images</a>
+                            <hr>
+
+                            <p class="card-text" style="color:dimgray;">Ctrl-click to select/deselect multiple images to assign a label to. Right-click an image to confirm its predicted label.</p>
+                            <form>
+                                <select id="classification-dropdown" style="width:100%; margin-bottom:10px;">
+                                    <option disabled>Species...</option>
+                                    <option>Empty</option>
+                                </select>
+                           </form>
+                           <a class="btn btn-primary" style="border:none; color:white; background-color:#7FBA00; width:100%; margin-bottom:40px;" onclick="assignLabelToSelectedImages()">Assign Label</a>
+                           <!-- <a href="#" class="btn btn-primary" style="border:none; background-color:#737373; width:49%; margin-bottom:40px;">Undo Assign</a> -->
+                           
+                       <!-- <a href="#" class="btn btn-primary" style="border:none; background-color:peru; width:100%; margin-bottom:10px;" onclick="loadImages()">Show Me</a> -->
+                       <a class="btn btn-primary" style="border:none; color:white; background-color:#FFB900; width:100%; margin-bottom:10px;" onclick="trainClassifier()">Train Classifier</a>
+
+                        </div>
+                        <div class="card-header">
+                            Specify Images to View
+                        </div>
+                        <div class="card-body">
+                            <!-- <label for="detection-confidence-threshold" style="font-weight: bold;">Detection Confidence Threshold: </label> -->
+                            <p class="card-text" style="color:dimgray;">Modify the confidence threshold for detections in the displayed images.</p>
+                            <input type="range" id="detection-confidence-threshold" class="slider" min="0.50" max="0.99" value="0.85" step="0.01" style="width:80%;">
+                            <span class="slider_label"></span>
+
+                            <!-- <label for="grayscale-checkbox" style="font-weight:bold; margin-top:20px;">Grayscale: </label>
+                            <p class="card-text" style="color:dimgray; margin-top:30px;">Specify whether to display grayscale images.</p>
+                            <input type="checkbox" id="grayscale-checkbox"> Grayscale -->
+
+                            <p class="card-text" style="color:dimgray; margin-top:30px;">Specify whether to view images with a given predicted class.</p>
+                            <form>
+                                <select id="prediction-dropdown" name="dropdown" style="width:100%;">
+                                    <option disabled>Species...</option>
+                                    <option>All Species</option>
+                                </select>
+                            </form>
+
+                            <a class="btn btn-primary" style="border:none; color:white; background-color:#F25022; width:100%; margin-top:20px; margin-bottom:20px;" onclick="refreshImagesToDisplay()">Apply Selection Criteria</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!--Added by Amar-->
+            <div id="fullimagedialog" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);">
+                <!-- <p>This is the default dialog which is useful for displaying information. The dialog window can be moved, resized and closed with the 'x' icon.</p> -->
+                <img id="fullimage" src="img/placeholder.JPG" style="max-width: 70vw;"></img>  
+            </div>
+        </div>
+
+    </div>
+    <!-- /#page-content-wrapper -->
+
+
+    <!-- JavaScript -->
+    <script type="text/javascript">
+        // Global variables
+        var classifierTrained = false // whether a classifier has been trained already (class predictions are available)
+        var detectionThresholdValue = 0.85
+        // var displayGrayscale = false; // whether to show color or grayscale images
+        var selectedImages = []; // src (filename) of images that are currently selected
+        // var userLabeledImages = []; // src of images for which the user has assigned/confirmed a label
+        var currentlyAssigning = []; // src of images to which this label is currently being assigned
+        var displayedImagesInfo = {}; // info about displayed images, kevalue is src
+        var displayClass = ''
+        
+        // Print failure response for failed JQuery requests
+        var notifyFail = function(jqXHR, textStatus, errorThrown){
+            console.debug(jqXHR.responseText)
+            //var response = $.parseJSON(jqXHR.responseText);
+            //console.log("Error in processing request: "+response.error);
+        }
+
+        // Check whether a checkpointed classifier is being used
+        var checkIfClassifierAvailable = function(jqXHR, textStatus, errorThrown){
+            console.debug(jqXHR.responseText)
+            //var response = $.parseJSON(jqXHR.responseText);
+            //console.log("Error in processing request: "+response.error);
+        }
+
+        // Load dropdown options from .txt file
+        var getClassList = function(){
+            $.ajax({
+                type: "POST",
+                url: "http://lynxvm.southcentralus.cloudapp.azure.com:8080/getClassList",//"http://localhost:8000/refreshImagesToDisplay",
+                contentType: "application/json",
+                data: JSON.stringify({}),
+                success: function(data){
+                    // console.debug(data);
+                    // loadImages();
+                    var dropdownselector = document.getElementById('classification-dropdown');
+                    for (i=0; i<data['class_list'].length; i++){
+                        dropdownselector.add(new Option(data['class_list'][i]));
+                    }
+                    var dropdownselector = document.getElementById('prediction-dropdown');
+                    for (i=0; i<data['class_list'].length; i++){
+                        dropdownselector.add(new Option(data['class_list'][i]));
+                    }
+                },
+                error: notifyFail
+            })
+        };
+
+        // // Update grayscale checkbox value on change
+        // document.getElementById("grayscale-checkbox").onclick = function(){
+        //     displayGrayscale = this.checked;
+        // }
+
+        // Update detection confidence threshold on change
+        $(function(){
+            $('.slider').on('input change', function(){
+                $(this).next($('.slider_label')).html(this.value);
+                detectionThresholdValue = this.value;
+            });
+            $('.slider_label').each(function(){
+                var value = $(this).prev().attr('value');
+                $(this).html(value);
+            });
+        })
+
+        // Update prediction dropdown on change
+        document.getElementById("prediction-dropdown").onchange = function(){
+            if (!classifierTrained){
+                toastr.error('You cannot view predicted classes before a trained classifier is available. Please train a classifier first.', {timeOut: 3000});
+                $("#prediction-dropdown").val($("#prediction-dropdown option:eq(1)").val())
+            }
+        }
+
+        // View full size source image on double click
+        $(function(){
+            $(".display-image").on('dblclick', function(){
+                var imgobj = $(this).find('img')
+                var imgsrc = $(this).find('img').attr("src");
+                /*Added by Amar*/
+                $.ajax({
+                    type: "POST",
+                    url: "http://lynxvm.southcentralus.cloudapp.azure.com:8080/showFullsizeImage",
+                    contentType: "application/json",
+                    data: JSON.stringify({"img_src": imgsrc}),
+                    success: function(data){
+                        if (data['success_status'] == true){
+                            $("#fullimage").attr("src", data['fullsize_src']);
+                        }
+                        else{
+                            $("#fullimage").attr("src", "https://icon-library.net//images/image-error-icon/image-error-icon-16.jpg");
+                        }
+                        $("#fullimagedialog").dialog();
+                    },
+                    error: notifyFail
+                });
+            });
+            return false;
+        });
+
+        // Refresh dataset sampler to reflect specified filters
+        var refreshImagesToDisplay = function(){
+            var requestedLabelText = $("#prediction-dropdown option:selected").text(); //label in the classification dropdown
+            $.ajax({
+                type: "POST",
+                url: "http://lynxvm.southcentralus.cloudapp.azure.com:8080/refreshImagesToDisplay",//"http://localhost:8000/refreshImagesToDisplay",
+                contentType: "application/json",
+                // data: JSON.stringify({"detection_threshold": detectionThresholdValue, "display_grayscale": displayGrayscale, "display_class": requestedLabelText}),
+                data: JSON.stringify({"detection_threshold": detectionThresholdValue, "display_class": requestedLabelText}),
+                success: function(data){
+                    console.debug('Successfully refreshed image dataset--ajax side');
+                    loadImages();
+                },
+                error: notifyFail
+            });
+        };
+        
+        // Confirm predicted label on right click
+        $(function () {
+            $(".display-image").contextmenu(function(){
+                var imgobj = $(this).find('img')
+                console.debug(imgobj)
+                var imgsrc = $(this).find('img').attr("src");
+                var imgid = displayedImagesInfo[imgsrc]["id"];
+                var imgtxt = $(this).find('div').attr("id");
+                var predictedLabelText = document.getElementById(imgtxt).innerHTML;
+                if (predictedLabelText != "None"){
+                    $.ajax({
+                        type: "POST",
+                        url: "http://lynxvm.southcentralus.cloudapp.azure.com:8080/confirmPredictedLabel",//"http://localhost:8000/confirmPredictedLabel",
+                        contentType: "application/json",
+                        data: JSON.stringify({"image": imgid, "label": predictedLabelText}),
+                        success: function(data){
+                            imgobj[0].classList.add("classified")
+                            document.getElementById(imgtxt).style.color = "greenyellow"
+                        },
+                        error: notifyFail
+                    });
+                }
+                return false;
+            });
+        });
+
+        var loadImages = function(){
+            // refreshImagesToDisplay();
+            displayedImagesInfo = {}
+            $.ajax({
+                type: "POST",
+                url: "http://lynxvm.southcentralus.cloudapp.azure.com:8080/loadImages",//"http://localhost:8000/loadImages",
+                contentType: "application/json",
+                // data: JSON.stringify({"num_images": 25, "detection_threshold": detectionThresholdValue, "display_grayscale": displayGrayscale}),
+                data: JSON.stringify({"num_images": 16, "detection_threshold": detectionThresholdValue}),
+                success: function(data){
+                    if (data['success_status'] == true){
+                        var img = data['display_images']['image_file_names']                // to display images
+                        var imgid = data['display_images']['image_ids']                     // to store information about displayed images when labeling
+                        var detection_kind = data['display_images']['detection_kinds']      // if ModelDetection, then a detection category and confidence score should be available
+                        var detection_cat = data['display_images']['detection_categories']  // to display current detection category
+                        classifierTrained = data['classifier_trained']                      // to check if the app is initialized with a pretrained classifier
+                        
+                        // map image filenames to ids (also, image ids are currently same as detection id and image due to initialize_target_db.py)
+                        for (i=0; i<img.length; i++){
+                            displayedImagesInfo[img[i]] = {}
+                            displayedImagesInfo[img[i]]['id'] = imgid[i]
+                        }
+
+                        // display the images and the current predictions; TODO: should not color based on detection type 0 (ActiveDetection)--these are actually images flagged for labeling but may also have a machine predicted label
+                        for (i=1; i<17; i++){
+                            $("#img"+i).attr("src", img[i-1])
+                            document.getElementById("img"+i+"-text").innerHTML = detection_cat[i-1]
+                            if (detection_kind[i-1]==0){
+                                document.getElementById("img"+i+"-text").style.color = "red"
+                            } else if (detection_kind[i-1]==1){
+                                document.getElementById("img"+i+"-text").style.color = "peru"
+                            }
+
+                        }
+
+                        // Remove all "ui-selected" classes
+                        var selectedImageObjects = document.querySelectorAll(".ui-selected");
+                        [].forEach.call(selectedImageObjects, function(el){
+                            el.classList.remove("ui-selected");
+                        })
+
+                        // Remove all "classified" classes
+                        var prevUserLabeledImageObjects = document.querySelectorAll(".classified");
+                        [].forEach.call(prevUserLabeledImageObjects, function(el){
+                            el.classList.remove("classified");
+                        })
+                    } else{
+                        toastr.error('Not enough images with the specified selection criteria.', {timeOut: 3000});
+                    }
+                    
+
+                },
+                error: notifyFail
+            });
+        };
+
+        var selectImages = function(){
+            $(".selectable").selectable({
+                filter: "img",
+                // at the end of any select operation, re-create the list of selected images
+                stop: function(){
+                    selectedImages = [];
+                    $(".ui-selected", this).each(function(){
+                        // console.debug($(this).hasClass("classified"));
+                        selectedImages.push($(this).attr("src"));
+                    });
+                    // console.debug('SELECTED IMAGES:')
+                    // console.debug(selectedImages);
+                }
+            });
+            
+        };
+
+        var assignLabelToSelectedImages = function(){
+            var assignedLabelText = $("#classification-dropdown option:selected").text(); //label in the classification dropdown
+            currentlyAssigning = [];
+
+            // console.debug('ALREADY LABELED:')
+            // console.debug(userLabeledImages)
+            for (i=0; i<selectedImages.length;i++){
+                // if (!userLabeledImages.includes(selectedImages[i])){ //if selected item is not already labeled
+                //     userLabeledImages.push(selectedImages[i])
+                //     currentlyAssigning.push(selectedImages[i])
+                // }
+                // userLabeledImages.push(selectedImages[i])
+                currentlyAssigning.push(selectedImages[i])
+            }
+            // console.debug('CURRENTLY ASSIGNING:')
+            // console.debug(currentlyAssigning)
+
+            // mark currently selected images as classified unless they were already classified, and clear ui-selected property
+            var selectedImageObjects = document.querySelectorAll(".ui-selected");
+            [].forEach.call(selectedImageObjects, function(el){
+                // if (!el.classList.contains("classified")){
+                //     el.classList.add("classified");
+                //     document.getElementById(el.id+"-text").innerHTML = assignedLabelText
+                //     document.getElementById(el.id+"-text").style.color = "green"
+                // }
+                el.classList.add("classified");
+                document.getElementById(el.id+"-text").innerHTML = assignedLabelText
+                document.getElementById(el.id+"-text").style.color = "green"
+                el.classList.remove("ui-selected");
+            })
+
+            // make a POST request to update the database entry
+            var currentlyAssigningIDs = []
+            for (i=0; i<currentlyAssigning.length;i++){
+                currentlyAssigningIDs.push(displayedImagesInfo[currentlyAssigning[i]])
+            }
+            $.ajax({
+                type: "POST",
+                url: "http://lynxvm.southcentralus.cloudapp.azure.com:8080/assignLabel",//"http://localhost:8000/assignLabel",
+                contentType: "application/json",
+                data: JSON.stringify({"images": currentlyAssigningIDs, "label": assignedLabelText}),
+                success: function(data){
+                    console.debug(data)
+                },
+                error: notifyFail
+            });
+
+            // clear selectedImages list
+            selectedImages = [];
+        };
+
+        // var undoAssignLabelToSelectedImages = function(){
+        //     currentlyUndoing = [];
+        //     for (i=0; i<selectedImages.length;i++){
+        //         currentlyUndoing.push(selectedImages[i])
+        //     }
+            
+        //     // make a POST request to update the database entry
+        //     var currentlyUnassigningIDs = []
+        //     for (i=0; i<currentlyAssigning.length;i++){
+        //         currentlyUnassigningIDs.push(displayedImagesInfo[currentlyUndoing[i]])
+        //     }
+        //     $.ajax({
+        //         type: "POST",
+        //         url: "http://lynxvm.southcentralus.cloudapp.azure.com:8080/unassignLabel",
+        //         contentType: "application/json",
+        //         data: JSON.stringify({"images": currentlyUnassigningIDs}),
+        //         success: function(data){
+        //             console.debug(data)
+        //         },
+        //         error: notifyFail
+        //     });
+
+        //     // mark currently selected images as classified unless they were already classified, and clear ui-selected property
+        //     var selectedImageObjects = document.querySelectorAll(".ui-selected");
+        //     [].forEach.call(selectedImageObjects, function(el){
+        //         el.classList.remove("classified");
+        //         document.getElementById(el.id+"-text").innerHTML = assignedLabelText
+        //         document.getElementById(el.id+"-text").style.color = "green"
+        //         el.classList.remove("ui-selected");
+        //     })
+
+            
+
+        //     // clear selectedImages list
+        //     selectedImages = [];
+        // };
+
+        var trainClassifier = function(){
+            toastr.info('Training classifier and updating predictions. Please wait a few seconds.', {timeOut: 3000});
+            $.ajax({
+                type: "POST",
+                url: "http://lynxvm.southcentralus.cloudapp.azure.com:8080/trainClassifier",//"http://localhost:8000/trainClassifier",
+                contentType: "application/json",
+                data: JSON.stringify({"test": "testdata"}),
+                success: function(data){
+                    toastr.success('Finished training species classifier. You can now load more images with newly predicted labels.', {timeOut: 5000});
+                    classifierTrained = true;
+                },
+                error: notifyFail
+            });
+        };
+
+        var getSequentialImages = function(){
+            $.ajax({
+                type: "POST",
+                url: "http://lynxvm.southcentralus.cloudapp.azure.com:8080/getSequentialImages",//"http://localhost:8000/trainClassifier",
+                contentType: "application/json",
+                data: JSON.stringify({"img_src": '/datadrive/missouricameratraps/crops_detector/bcf21a21-5863-4e17-9dde-f10cf9d8dc0c.JPG'}),
+                success: function(data){
+                    console.debug(data['image_sequence'])
+                },
+                error: notifyFail
+            });
+        };
+
+        $(document).ready(function(){
+            getClassList();
+            refreshImagesToDisplay();
+            selectImages();
+            getSequentialImages();
+        });
+
+
+
+    </script>
+
+</body>
+
+</html>
