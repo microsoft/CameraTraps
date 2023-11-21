@@ -1,0 +1,982 @@
+{
+  "info": {
+    "detector": "megadetector_v5_camonly_mosaic_xlarge_dist_5a_last",
+    "format_version": "1.1"
+  },
+  "detection_categories": {
+    "1": "animal",
+    "2": "person",
+    "3": "vehicle"
+  },
+  "images": [
+    {
+      "file": "snapshot_camdeboo_CDB_S1_A05_A05_R2_CDB_S1_A05_R2_IMAG0084.JPG",
+      "max_detection_conf": 0.9402,
+      "detections": [
+        {
+          "category": "1",
+          "conf": 0.01235,
+          "bbox": [
+            0.5007,
+            0.4415,
+            0.08564,
+            0.0825
+          ]
+        },
+        {
+          "category": "1",
+          "conf": 0.01357,
+          "bbox": [
+            0.8186,
+            0.5515,
+            0.01157,
+            0.021
+          ]
+        },
+        {
+          "category": "1",
+          "conf": 0.2157,
+          "bbox": [
+            0.5405,
+            0.462,
+            0.04205,
+            0.0535
+          ]
+        },
+        {
+          "category": "1",
+          "conf": 0.829,
+          "bbox": [
+            0.7905,
+            0.5285,
+            0.03935,
+            0.0435
+          ]
+        },
+        {
+          "category": "1",
+          "conf": 0.9157,
+          "bbox": [
+            0.1898,
+            0.3429,
+            0.09683,
+            0.1135
+          ]
+        },
+        {
+          "category": "1",
+          "conf": 0.9402,
+          "bbox": [
+            0.3699,
+            0.3979,
+            0.1971,
+            0.211
+          ]
+        }
+      ]
+    },
+    {
+      "file": "nacti_part1_sub198_FL-16_09_03_2015_FL-16_0089498.jpg",
+      "max_detection_conf": 0.8174,
+      "detections": [
+        {
+          "category": "1",
+          "conf": 0.01176,
+          "bbox": [
+            0.5444,
+            0.3222,
+            0.2011,
+            0.1341
+          ]
+        },
+        {
+          "category": "1",
+          "conf": 0.8174,
+          "bbox": [
+            0.6752,
+            0.4088,
+            0.3032,
+            0.1907
+          ]
+        }
+      ]
+    },
+    {
+      "file": "wcs_camera_traps_animals_0090_1439.jpg",
+      "max_detection_conf": 0.9487,
+      "detections": [
+        {
+          "category": "1",
+          "conf": 0.01176,
+          "bbox": [
+            0.6411,
+            0.5898,
+            0.04843,
+            0.03611
+          ]
+        },
+        {
+          "category": "1",
+          "conf": 0.01985,
+          "bbox": [
+            0.189,
+            0.3064,
+            0.1036,
+            0.06851
+          ]
+        },
+        {
+          "category": "1",
+          "conf": 0.05049,
+          "bbox": [
+            0.1171,
+            0.2722,
+            0.2312,
+            0.4435
+          ]
+        },
+        {
+          "category": "1",
+          "conf": 0.05826,
+          "bbox": [
+            0.1109,
+            0.2509,
+            0.2348,
+            0.1398
+          ]
+        },
+        {
+          "category": "1",
+          "conf": 0.05919,
+          "bbox": [
+            0.2072,
+            0.3175,
+            0.04739,
+            0.05092
+          ]
+        },
+        {
+          "category": "1",
+          "conf": 0.06094,
+          "bbox": [
+            0.1541,
+            0.2805,
+            0.06875,
+            0.07129
+          ]
+        },
+        {
+          "category": "1",
+          "conf": 0.249,
+          "bbox": [
+            0.1088,
+            0.2148,
+            0.1036,
+            0.1333
+          ]
+        },
+        {
+          "category": "1",
+          "conf": 0.4803,
+          "bbox": [
+            0.2083,
+            0.2879,
+            0.1359,
+            0.1
+          ]
+        },
+        {
+          "category": "1",
+          "conf": 0.9487,
+          "bbox": [
+            -5e-07,
+            0.3259,
+            0.3942,
+            0.5907
+          ]
+        }
+      ]
+    },
+    {
+      "file": "missouri_camera_traps_Set1_1.02-Agouti_SEQ89823_SEQ89823_IMG_0002.JPG",
+      "max_detection_conf": 0.7942,
+      "detections": [
+        {
+          "category": "1",
+          "conf": 0.7942,
+          "bbox": [
+            0.7187,
+            0.4972,
+            0.04791,
+            0.1166
+          ]
+        }
+      ]
+    },
+    {
+      "file": "caltech_camera_traps_5a0e37cc-23d2-11e8-a6a3-ec086b02610b.jpg",
+      "max_detection_conf": 0.2113,
+      "detections": [
+        {
+          "category": "1",
+          "conf": 0.2113,
+          "bbox": [
+            0.4389,
+            0.7784,
+            0.1352,
+            0.1459
+          ]
+        }
+      ]
+    },
+    {
+      "file": "nacti_part3_sub308_CA-11_0001325.jpg",
+      "max_detection_conf": 0.0,
+      "detections": []
+    },
+    {
+      "file": "caltech_camera_traps_58a022a4-23d2-11e8-a6a3-ec086b02610b.jpg",
+      "max_detection_conf": 0.06482,
+      "detections": [
+        {
+          "category": "1",
+          "conf": 0.01937,
+          "bbox": [
+            -2e-07,
+            0.6271,
+            0.1171,
+            0.2028
+          ]
+        },
+        {
+          "category": "3",
+          "conf": 0.02032,
+          "bbox": [
+            -5.001e-07,
+            0.5983,
+            0.2373,
+            0.2242
+          ]
+        },
+        {
+          "category": "1",
+          "conf": 0.06482,
+          "bbox": [
+            -5.001e-07,
+            0.6157,
+            0.2373,
+            0.2249
+          ]
+        }
+      ]
+    },
+    {
+      "file": "snapshot_kruger_KRU_S1_25_25_R1_KRU_S1_25_R1_IMAG0012.JPG",
+      "max_detection_conf": 0.9561,
+      "detections": [
+        {
+          "category": "1",
+          "conf": 0.9561,
+          "bbox": [
+            -5.001e-07,
+            0.000504,
+            0.2944,
+            0.6562
+          ]
+        }
+      ]
+    },
+    {
+      "file": "snapshot_mountain_zebra_MTZ_S1_E05_E05_R3_MTZ_S1_E05_R3_IMAG1169.JPG",
+      "max_detection_conf": 0.0,
+      "detections": []
+    },
+    {
+      "file": "wellington_camera_traps_121016192402044a1132.JPG",
+      "max_detection_conf": 0.7965,
+      "detections": [
+        {
+          "category": "1",
+          "conf": 0.7965,
+          "bbox": [
+            0.1859,
+            0.2246,
+            0.2208,
+            0.2234
+          ]
+        }
+      ]
+    },
+    {
+      "file": "missouri_camera_traps_Set1_1.63-European_Hare_SEQ76872_SEQ76872_IMG_0007.JPG",
+      "max_detection_conf": 0.0,
+      "detections": []
+    },
+    {
+      "file": "snapshot_serengeti_S5_U10_U10_R4_S5_U10_R4_IMAG3595.JPG",
+      "max_detection_conf": 0.6251,
+      "detections": [
+        {
+          "category": "1",
+          "conf": 0.0102,
+          "bbox": [
+            0.06933,
+            0.6106,
+            0.03271,
+            0.02669
+          ]
+        },
+        {
+          "category": "1",
+          "conf": 0.01208,
+          "bbox": [
+            0.06298,
+            0.6061,
+            0.02929,
+            0.03841
+          ]
+        },
+        {
+          "category": "1",
+          "conf": 0.01346,
+          "bbox": [
+            0.2265,
+            0.6217,
+            0.0166,
+            0.02278
+          ]
+        },
+        {
+          "category": "1",
+          "conf": 0.01362,
+          "bbox": [
+            0.01611,
+            0.5872,
+            0.08398,
+            0.0651
+          ]
+        },
+        {
+          "category": "1",
+          "conf": 0.01499,
+          "bbox": [
+            0.5546,
+            0.6009,
+            0.03027,
+            0.0332
+          ]
+        },
+        {
+          "category": "1",
+          "conf": 0.01621,
+          "bbox": [
+            0.8266,
+            0.6022,
+            0.01611,
+            0.01562
+          ]
+        },
+        {
+          "category": "1",
+          "conf": 0.01703,
+          "bbox": [
+            0.8139,
+            0.6028,
+            0.04785,
+            0.02994
+          ]
+        },
+        {
+          "category": "1",
+          "conf": 0.0188,
+          "bbox": [
+            0.8129,
+            0.6009,
+            0.02832,
+            0.02473
+          ]
+        },
+        {
+          "category": "1",
+          "conf": 0.02055,
+          "bbox": [
+            0,
+            0.3776,
+            0.1093,
+            0.2408
+          ]
+        },
+        {
+          "category": "1",
+          "conf": 0.02453,
+          "bbox": [
+            0.04589,
+            0.6061,
+            0.0415,
+            0.02734
+          ]
+        },
+        {
+          "category": "1",
+          "conf": 0.02665,
+          "bbox": [
+            0.8471,
+            0.6067,
+            0.01367,
+            0.01041
+          ]
+        },
+        {
+          "category": "1",
+          "conf": 0.04161,
+          "bbox": [
+            0.09033,
+            0.6184,
+            0.01464,
+            0.01627
+          ]
+        },
+        {
+          "category": "1",
+          "conf": 0.1271,
+          "bbox": [
+            0.1489,
+            0.5996,
+            0.02294,
+            0.04882
+          ]
+        },
+        {
+          "category": "1",
+          "conf": 0.2163,
+          "bbox": [
+            0.1845,
+            0.6015,
+            0.03808,
+            0.04687
+          ]
+        },
+        {
+          "category": "1",
+          "conf": 0.2359,
+          "bbox": [
+            0.1987,
+            0.5983,
+            0.03955,
+            0.04687
+          ]
+        },
+        {
+          "category": "1",
+          "conf": 0.2682,
+          "bbox": [
+            0.2221,
+            0.5957,
+            0.02099,
+            0.04817
+          ]
+        },
+        {
+          "category": "1",
+          "conf": 0.3589,
+          "bbox": [
+            0.06738,
+            0.61,
+            0.02001,
+            0.02213
+          ]
+        },
+        {
+          "category": "1",
+          "conf": 0.5885,
+          "bbox": [
+            0,
+            0.4374,
+            0.1093,
+            0.3541
+          ]
+        },
+        {
+          "category": "1",
+          "conf": 0.6251,
+          "bbox": [
+            0.1494,
+            0.5996,
+            0.05664,
+            0.05533
+          ]
+        }
+      ]
+    },
+    {
+      "file": "snapshot_kgalagadi_KGA_S1_B06_B06_R1_KGA_S1_B06_R1_IMAG2032.JPG",
+      "max_detection_conf": 0.492,
+      "detections": [
+        {
+          "category": "1",
+          "conf": 0.01229,
+          "bbox": [
+            0.978,
+            0,
+            0.0216,
+            0.024
+          ]
+        },
+        {
+          "category": "1",
+          "conf": 0.492,
+          "bbox": [
+            0.9448,
+            0.8025,
+            0.05516,
+            0.1645
+          ]
+        }
+      ]
+    },
+    {
+      "file": "snapshot_enonkishu_ENO_S1_B05_B05_R2_ENO_S1_B05_R2_IMAG0624.JPG",
+      "max_detection_conf": 0.9471,
+      "detections": [
+        {
+          "category": "1",
+          "conf": 0.9471,
+          "bbox": [
+            0.5713,
+            0.4695,
+            0.2858,
+            0.276
+          ]
+        }
+      ]
+    },
+    {
+      "file": "snapshot_mountain_zebra_MTZ_S1_F04_F04_R1_MTZ_S1_F04_R1_IMAG1143.JPG",
+      "max_detection_conf": 0.0786,
+      "detections": [
+        {
+          "category": "1",
+          "conf": 0.01139,
+          "bbox": [
+            0.3293,
+            0.2222,
+            0.01256,
+            0.01225
+          ]
+        },
+        {
+          "category": "1",
+          "conf": 0.01486,
+          "bbox": [
+            0.5517,
+            0.4865,
+            0.03921,
+            0.0245
+          ]
+        },
+        {
+          "category": "1",
+          "conf": 0.04934,
+          "bbox": [
+            0.2745,
+            0.3464,
+            0.01102,
+            0.008986
+          ]
+        },
+        {
+          "category": "1",
+          "conf": 0.0786,
+          "bbox": [
+            0.552,
+            0.4881,
+            0.01838,
+            0.02205
+          ]
+        }
+      ]
+    },
+    {
+      "file": "idaho_camera_traps_loc_0044_loc_0044_im_005629.jpg",
+      "max_detection_conf": 0.9302,
+      "detections": [
+        {
+          "category": "1",
+          "conf": 0.01103,
+          "bbox": [
+            0.5576,
+            0.2278,
+            0.009277,
+            0.01171
+          ]
+        },
+        {
+          "category": "1",
+          "conf": 0.01232,
+          "bbox": [
+            0.8037,
+            0.194,
+            0.006347,
+            0.01171
+          ]
+        },
+        {
+          "category": "1",
+          "conf": 0.01759,
+          "bbox": [
+            0.5522,
+            0.2727,
+            0.009277,
+            0.01757
+          ]
+        },
+        {
+          "category": "1",
+          "conf": 0.02025,
+          "bbox": [
+            0.517,
+            0.2272,
+            0.009277,
+            0.009765
+          ]
+        },
+        {
+          "category": "1",
+          "conf": 0.02477,
+          "bbox": [
+            0.8168,
+            0.1927,
+            0.006347,
+            0.02018
+          ]
+        },
+        {
+          "category": "1",
+          "conf": 0.03309,
+          "bbox": [
+            0.5595,
+            0.274,
+            0.01318,
+            0.01692
+          ]
+        },
+        {
+          "category": "1",
+          "conf": 0.05287,
+          "bbox": [
+            0.5683,
+            0.2766,
+            0.009765,
+            0.01562
+          ]
+        },
+        {
+          "category": "1",
+          "conf": 0.6897,
+          "bbox": [
+            0.2324,
+            0.4941,
+            0.03955,
+            0.05208
+          ]
+        },
+        {
+          "category": "1",
+          "conf": 0.8717,
+          "bbox": [
+            0.187,
+            0.4973,
+            0.05615,
+            0.05078
+          ]
+        },
+        {
+          "category": "1",
+          "conf": 0.8901,
+          "bbox": [
+            0.9008,
+            0.5188,
+            0.04101,
+            0.02929
+          ]
+        },
+        {
+          "category": "1",
+          "conf": 0.9302,
+          "bbox": [
+            0.7636,
+            0.5468,
+            0.08935,
+            0.05924
+          ]
+        }
+      ]
+    },
+    {
+      "file": "snapshot_kgalagadi_KGA_S1_B09_B09_R1_KGA_S1_B09_R1_IMAG0634.JPG",
+      "max_detection_conf": 0.8732,
+      "detections": [
+        {
+          "category": "1",
+          "conf": 0.8732,
+          "bbox": [
+            0.6678,
+            0.4845,
+            0.1122,
+            0.1475
+          ]
+        }
+      ]
+    },
+    {
+      "file": "island_conservation_camera_traps_dominicanrepublic_camara04_cam0425abril2015_dominicanrepublic_cam0425abril2015_20130824_043601_sunp5152.jpg",
+      "max_detection_conf": 0.0,
+      "detections": []
+    },
+    {
+      "file": "idaho_camera_traps_loc_0062_loc_0062_im_004678.jpg",
+      "max_detection_conf": 0.0,
+      "detections": []
+    },
+    {
+      "file": "channel_islands_camera_traps_loc-h500ee07133550_010_643.jpg",
+      "max_detection_conf": 0.9257,
+      "detections": [
+        {
+          "category": "1",
+          "conf": 0.9257,
+          "bbox": [
+            0.5854,
+            0.5333,
+            0.1807,
+            0.2212
+          ]
+        }
+      ]
+    },
+    {
+      "file": "wellington_camera_traps_261215104310005bs372.JPG",
+      "max_detection_conf": 0.0115,
+      "detections": [
+        {
+          "category": "1",
+          "conf": 0.01004,
+          "bbox": [
+            0.2821,
+            0.3316,
+            0.07475,
+            0.0723
+          ]
+        },
+        {
+          "category": "1",
+          "conf": 0.0115,
+          "bbox": [
+            0.3082,
+            0.2647,
+            0.02236,
+            0.02736
+          ]
+        }
+      ]
+    },
+    {
+      "file": "channel_islands_camera_traps_loc-h500ee05127658_007_194.jpg",
+      "max_detection_conf": 0.0,
+      "detections": []
+    },
+    {
+      "file": "island_conservation_camera_traps_palau_cam10a_cam10a12122018_palau_cam10a12122018_20181108_174532_rcnx1035.jpg",
+      "max_detection_conf": 0.9251,
+      "detections": [
+        {
+          "category": "1",
+          "conf": 0.9251,
+          "bbox": [
+            0.3579,
+            0.4513,
+            0.09179,
+            0.1479
+          ]
+        }
+      ]
+    },
+    {
+      "file": "snapshot_kruger_KRU_S1_3_3_R1_KRU_S1_3_R1_IMAG0713.JPG",
+      "max_detection_conf": 0.01642,
+      "detections": [
+        {
+          "category": "1",
+          "conf": 0.01642,
+          "bbox": [
+            0.002328,
+            0.2762,
+            0.2969,
+            0.3316
+          ]
+        }
+      ]
+    },
+    {
+      "file": "snapshot_enonkishu_ENO_S1_D05_D05_R1_ENO_S1_D05_R1_IMAG1321.JPG",
+      "max_detection_conf": 0.01722,
+      "detections": [
+        {
+          "category": "1",
+          "conf": 0.01084,
+          "bbox": [
+            0.5675,
+            0.7125,
+            0.05902,
+            0.069
+          ]
+        },
+        {
+          "category": "1",
+          "conf": 0.01283,
+          "bbox": [
+            0.417,
+            0.605,
+            0.09953,
+            0.2005
+          ]
+        },
+        {
+          "category": "1",
+          "conf": 0.01677,
+          "bbox": [
+            0.5671,
+            0.7415,
+            0.05709,
+            0.0595
+          ]
+        },
+        {
+          "category": "1",
+          "conf": 0.01722,
+          "bbox": [
+            0.0003859,
+            0.593,
+            0.1165,
+            0.188
+          ]
+        }
+      ]
+    },
+    {
+      "file": "snapshot_karoo_KAR_S1_C04_C04_R1_KAR_S1_C04_R1_IMAG5873.JPG",
+      "max_detection_conf": 0.09864,
+      "detections": [
+        {
+          "category": "1",
+          "conf": 0.09864,
+          "bbox": [
+            0.9621,
+            0.5725,
+            0.0378,
+            0.068
+          ]
+        }
+      ]
+    },
+    {
+      "file": "snapshot_karoo_KAR_S1_E03_E03_R1_KAR_S1_E03_R1_IMAG0440.JPG",
+      "max_detection_conf": 0.9241,
+      "detections": [
+        {
+          "category": "1",
+          "conf": 0.9241,
+          "bbox": [
+            0.5814,
+            0.08599,
+            0.2129,
+            0.548
+          ]
+        }
+      ]
+    },
+    {
+      "file": "ena24_7904.jpg",
+      "max_detection_conf": 0.9267,
+      "detections": [
+        {
+          "category": "1",
+          "conf": 0.9267,
+          "bbox": [
+            0.4687,
+            0.4251,
+            0.09765,
+            0.1555
+          ]
+        }
+      ]
+    },
+    {
+      "file": "snapshot_serengeti_S10_D12_D12_R2_S10_D12_R2_IMAG4854.JPG",
+      "max_detection_conf": 0.0,
+      "detections": []
+    },
+    {
+      "file": "wcs_camera_traps_animals_0245_1477.jpg",
+      "max_detection_conf": 0.2353,
+      "detections": [
+        {
+          "category": "1",
+          "conf": 0.01385,
+          "bbox": [
+            0.5874,
+            0.7597,
+            0.03046,
+            0.03515
+          ]
+        },
+        {
+          "category": "1",
+          "conf": 0.01727,
+          "bbox": [
+            0.001562,
+            0.2822,
+            0.08281,
+            0.1347
+          ]
+        },
+        {
+          "category": "1",
+          "conf": 0.2353,
+          "bbox": [
+            0.001562,
+            0.2822,
+            0.04062,
+            0.1044
+          ]
+        }
+      ]
+    },
+    {
+      "file": "snapshot_camdeboo_CDB_S1_C07_C07_R2_CDB_S1_C07_R2_IMAG5656.JPG",
+      "max_detection_conf": 0.0452,
+      "detections": [
+        {
+          "category": "1",
+          "conf": 0.01555,
+          "bbox": [
+            0.1265,
+            0.58,
+            0.09683,
+            0.2575
+          ]
+        },
+        {
+          "category": "1",
+          "conf": 0.0452,
+          "bbox": [
+            0.9787,
+            0.4074,
+            0.02121,
+            0.0735
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+Predicting caracal/S1/P10/P10_R1/S1_P10_R1_PICT0120.JPG
+Most likely classes:
+	"caracal" with confidence 94.82%
+	"reedbuck" with confidence 2.07%
+	"dikDik" with confidence 1.62%
+	"wildcat" with confidence 1.21%
+	"batEaredFox" with confidence 0.15%
