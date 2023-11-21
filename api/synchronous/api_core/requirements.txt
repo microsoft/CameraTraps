@@ -1,4 +1,0 @@
-Flask==2.0.1
-Flask-RESTful==0.3.8
-gunicorn==20.0.4
-
