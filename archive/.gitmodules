@@ -1,0 +1,3 @@
+[submodule "demo/CameraTrapAssets"]
+	path = demo/CameraTrapAssets
+	url = https://ai4evisionexternal.visualstudio.com/gramener/_git/camera-trap-app-assets
