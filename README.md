@@ -173,3 +173,4 @@ Here are a few of the organizations that have used MegaDetector... we're only li
 ## License
 
 This repository is licensed with the [MIT license](https://github.com/Microsoft/dotnet/blob/main/LICENSE).
+
