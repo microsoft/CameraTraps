@@ -1,0 +1,55 @@
+name: cameratraps-classifier
+
+channels:
+- pytorch
+- defaults
+- conda-forge
+
+dependencies:
+- python>=3.7, <=3.7.6
+
+# from pytorch channel
+- pytorch
+- torchvision
+# - cpuonly  # for CPU only
+- cudatoolkit=10.2  # for GPU
+
+# from defaults channel
+- humanfriendly
+- ipywidgets    # for using tqdm inside Jupyter Lab
+- jsonpickle    # used by run_tf_detector_batch.py
+- jupyterlab
+- matplotlib
+- mypy
+- nb_conda_kernels
+- networkx      # used for taxonomy graph
+- numpy
+- openpyxl      # used by taxonomy_mapping/species_by_dataset.py
+- pandas
+- progressbar2  # used by ai4eutils (which is called by taxonomy-mapping code)
+- pylint
+- python-graphviz  # used for taxonomy visualization
+- scikit-learn
+- seaborn>=0.11
+- tqdm
+- xlrd          # for pandas Excel support, needed by taxonomy_mapping/process_species_by_dataset
+- pip
+
+# from conda-forge
+- accimage      # faster Pillow replacement for torchvision
+
+# Some packages or versions are only available from PyPI
+# These may require GCC to be installed
+- pip:
+  - azure-cosmos
+  - azure-storage-blob>=12.5  # require v12.5.0 for BlobClient.exists()
+
+  # Pillow-SIMD will "over-shadow" the normal Pillow package installed by conda.
+  # After installing, check that Pillow-SIMD is what gets imported:
+  #     import PIL
+  #     print(PIL.__version__)  # make sure this ends in '.postX'
+  - pillow-simd
+
+  # conda (defaults channel) tends to lag PyPI for TensorFlow-related packages
+  - tensorboard
+  - tensorflow>=2.3  # require v2.3.0 or greater for Keras EfficientNet
