@@ -6,7 +6,7 @@ We've been inspired by the potential and capabilities of Megadetector, and we de
 
 # PyTorch Wildlife: A Collaborative Deep Learning Framework for Conservation
 
-## Version 0.0.0 is out! 
+## Version 0.0.0.1.2 is out! 
 You can access our current version of PyTorch Wildlife [here!](https://github.com/microsoft/CameraTraps/tree/PytorchWildlife_Dev).
 
 ## Core Features
