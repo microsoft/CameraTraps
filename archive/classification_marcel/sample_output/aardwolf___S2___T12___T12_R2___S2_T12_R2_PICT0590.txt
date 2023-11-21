@@ -1,7 +1,0 @@
-Predicting aardwolf/S2/T12/T12_R2/S2_T12_R2_PICT0590.JPG
-Most likely classes:
-	"aardwolf" with confidence 71.48%
-	"hyenaStriped" with confidence 28.11%
-	"batEaredFox" with confidence 0.31%
-	"hyenaSpotted" with confidence 0.07%
-	"civet" with confidence 0.02%

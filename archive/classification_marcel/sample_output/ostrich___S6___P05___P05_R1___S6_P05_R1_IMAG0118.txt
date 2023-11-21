@@ -1,7 +1,0 @@
-Predicting ostrich/S6/P05/P05_R1/S6_P05_R1_IMAG0118.JPG
-Most likely classes:
-	"ostrich" with confidence 99.72%
-	"otherBird" with confidence 0.23%
-	"koriBustard" with confidence 0.04%
-	"giraffe" with confidence 0.01%
-	"wildebeest" with confidence 0.00%
