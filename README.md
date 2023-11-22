@@ -6,11 +6,22 @@ At the core of our mission is the desire to create a harmonious space where cons
  
 We've been inspired by the potential and capabilities of Megadetector, and we deeply value its contributions to the community. **As we forge ahead with PyTorch Wildlife, please know that we remain committed to supporting and maintaining Megadetector, ensuring its continued relevance and utility**.
  
+## Table of contents
+
+1. [Direct use of PyTorchWildlife models](##Direct-use-of-PytorchWidlife-models)
+2. [PytorchWildlife for Developers and Data Scientists](#for-developers-and-data-scientists)
+3. [Animal showcase](#animal-showcase)
+4. [Core features of PyTorchWildlife](#core-features-of-pytorch-wildlife)
+5. [Development Roadmap](#development-roadmap)
+6. [Who is using Megadetector?](#who-is-using-megadetector)
+7. [License](#license)
+8. [Documentation](https://cameratraps.readthedocs.io/en/latest/)
+
 ## Direct use of PyTorchWildlife models
  
-### Instant Wildlife Discoveries: Utilize Our Interface to use Camera Trap models, including *MegaDetectorv5*
+### Instant Wildlife Discoveries: Utilize Our Interface to use Camera Trap models, including *MegaDetector v5*
 <img src="images/gradio_UI.png">
-If you want to directly use the AI models available in `Pytorch-wildlife`, you can use our intuitive interface. This interface allows users to directly load the MegadetectorV5 model weights for animal detection. In addition, `Pytorch-wildlife` also accommodates currently two classification weights from the Amazon Rainforest dataset and the Opossum classification dataset. To start using `Pytorch-wildlife`, please follow the [installation instructions](INSTALLATION.md) on how to run the Gradio interface!
+If you want to directly use the AI models available in `Pytorch-wildlife`, you can use our intuitive interface. This interface allows users to directly load the Megadetector v5 model weights for animal detection. In addition, `Pytorch-wildlife` also accommodates currently two classification weights from the Amazon Rainforest dataset and the Opossum classification dataset. To start using `Pytorch-wildlife`, please follow the [installation instructions](INSTALLATION.md) on how to run the Gradio interface!
  
 ## For Developers and Data Scientists
  
@@ -19,7 +30,7 @@ If you want to directly use the AI models available in `Pytorch-wildlife`, you c
 For those who are technically inclined, PyTorch Wildlife is your platform to create, modify, and share powerful conservation applications. Immerse yourself in our comprehensive tools and contribute to the global effort by developing new solutions that utilize cutting-edge technologies like camera traps and bioacoustics datasets. Whether it's analyzing animal movements through camera trap images or understanding wildlife through bioacoustics, your innovations can make a significant impact.
  
 ## Welcome to Version 0.0.1.1.2
-The Pytorch-wildlife library allows users to directly load the MegadetectorV5 model weights for animal detection. We've fully refactored our codebase, prioritizing ease of use in model deployment and expansion. In addition to `MegadetectorV5`, `Pytorch-wildlife` also accommodates a range of classification weights, such as those derived from the Amazon Rainforest dataset and the Opossum classification dataset.
+The Pytorch-wildlife library allows users to directly load the Megadetector v5 model weights for animal detection. We've fully refactored our codebase, prioritizing ease of use in model deployment and expansion. In addition to `Megadetector v5`, `Pytorch-wildlife` also accommodates a range of classification weights, such as those derived from the Amazon Rainforest dataset and the Opossum classification dataset.
 Explore the codebase and  functionalities of `Pytorch-wildlife` through our interactive `Gradio` web app and detailed Jupyter notebooks, designed to showcase the practical applications of our enhancements at [PyTorchWildlife](INSTALLATION.md). You can find more information in our [documentation](https://cameratraps.readthedocs.io/en/latest/).
  
 Here is a brief example on how to perform detection and classification on a single image using `PyTorch-wildlife`:
@@ -36,20 +47,20 @@ classification_model = pw_classification.AI4GAmazonRainforest()
 classification_results = classification_model.single_image_classification(img)
 ```
  
-For those interested in accessing the previous MegaDetector repository, which utilizes the same MegaDetectorV5 model weights and was primarily developed by Dan Morris during his time at Microsoft, please visit the [archive](./archive) directory, or you can visit the [repository](https://github.com/agentmorris/MegaDetector/tree/main) that Dan Morris is actively maintaining.
+For those interested in accessing the previous MegaDetector repository, which utilizes the same MegaDetector v5 model weights and was primarily developed by Dan Morris during his time at Microsoft, please visit the [archive](./archive) directory, or you can visit the [repository](https://github.com/agentmorris/MegaDetector/tree/main) that Dan Morris is actively maintaining.
  
 Your engagement with our work is greatly appreciated, and we eagerly await any feedback you may have.
 
 # Animal showcase!
-### Image detection using MegadetectorV5
+### Image detection using Megadetector v5
 <img src="images/animal_det_1.JPG" width="700">
 
 Credits to Universidad de los Andes, Colombia.
-### Image classification with MegadetectorV5 and AI4GAmazonRainforest
+### Image classification with Megadetector v5 and AI4GAmazonRainforest
 <img src="images/animal_clas_1.png" width="700">
 
 Credits to Universidad de los Andes, Colombia.
-### Opossum ID with MegadetectorV5 and AI4GOpossum
+### Opossum ID with Megadetector v5 and AI4GOpossum
 <img src="images/opossum_det.png" width="700">
 
 Credits to the Agency for Regulation and Control of Biosecurity and Quarantine for Galápagos (ABG), Ecuador.
@@ -68,7 +79,7 @@ Credits to the Agency for Regulation and Control of Biosecurity and Quarantine f
  
 - **Our work**: In the provided graph, boxes outlined in red represent elements that will be added and remained fixed, while those in blue will be part of our development.
 
-- **Inaugural Model**: We're kickstarting with YOLO as our first available model, complemented by pre-trained weights from Megadetectorv5. This is the same MegaDetectorV5 model from the previous repository.
+- **Inaugural Model**: We're kickstarting with YOLO as our first available model, complemented by pre-trained weights from Megadetector v5. This is the same MegaDetector v5 model from the previous repository.
 
 - **Expandable Repository**: As we move forward, our platform will welcome new models and pre-trained weights for camera traps and bioacoustic analysis. We're excited to host contributions from global researchers through a dedicated submission platform.
 
