@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # PyTorch Wildlife: A Collaborative Deep Learning Framework for Conservation
  
 ## Announcement
@@ -9,7 +8,7 @@ We've been inspired by the potential and capabilities of Megadetector, and we de
  
 ## Table of contents
 
-1. [Direct use of PyTorchWildlife models](##Direct-use-of-PytorchWidlife-models)
+1. [Direct use of PyTorchWildlife models](#direct-use-of-pytorchwildlife-models)
 2. [PytorchWildlife for Developers and Data Scientists](#for-developers-and-data-scientists)
 3. [Animal showcase](#animal-showcase)
 4. [Core features of PyTorchWildlife](#core-features-of-pytorch-wildlife)
@@ -22,6 +21,7 @@ We've been inspired by the potential and capabilities of Megadetector, and we de
  
 ### Instant Wildlife Discoveries: Utilize Our Interface to use Camera Trap models, including *MegaDetector v5*
 <img src="images/gradio_UI.png">
+
 If you want to directly use the AI models available in `Pytorch-wildlife`, you can use our intuitive interface. This interface allows users to directly load the Megadetector v5 model weights for animal detection. In addition, `Pytorch-wildlife` also accommodates currently two classification weights from the Amazon Rainforest dataset and the Opossum classification dataset. To start using `Pytorch-wildlife`, please follow the [installation instructions](INSTALLATION.md) on how to run the Gradio interface!
  
 ## For Developers and Data Scientists
