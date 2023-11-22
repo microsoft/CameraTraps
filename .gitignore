@@ -1,61 +1,11 @@
-################################################################################
-# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
-################################################################################
-
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-*$py.class
-
-# C extensions
-*.so
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
-
-# Apple directory 
-*.DS_Store
-
-# IDEs
-*.idea/
-*.project
-.spyderproject
-.spyproject
-.vscode
-
-# Demo files
-demo/aadconfig.py
-demo/apiconfig.py
-demo/CameraTrapAssets
-demo/static/uploads
-demo/static/results
-.webassets-cache/
-
-# CameraTrapJsonFileProcessingApp
-api/batch_processing/postprocessing/CameraTrapJsonFileProcessingApp/.vs/
-api/batch_processing/postprocessing/CameraTrapJsonFileProcessingApp/bin/
-api/batch_processing/postprocessing/CameraTrapJsonFileProcessingApp/obj/
-api/batch_processing/postprocessing/CameraTrapJsonFileProcessingApp/packages/
-
-# TF and PyTorch model files
-*.pb
-*.pt
-
-# batch processing API config files
-api_config*.py
-
-# Other
-*.pth
-*.o
-debug.log
-*.swp
-
-# Things created when building the sync API
-yolov5
-api/synchronous/api_core/animal_detection_api/detection
-
+__pycache__
+*weights*
+*processed.*
+*output*
+*flagged*
+*temp*
+PytorchWildlife.egg-info/
+*dev*
+*test*
+*setup/*
+*dist/*
