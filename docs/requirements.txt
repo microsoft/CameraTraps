@@ -1,4 +1,0 @@
-ipywidgets
-nbsphinx
-sphinx
-PytorchWildlife

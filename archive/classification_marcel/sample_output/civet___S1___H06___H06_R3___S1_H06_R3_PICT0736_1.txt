@@ -1,0 +1,7 @@
+Predicting civet/S1/H06/H06_R3/S1_H06_R3_PICT0736_1.JPG
+Most likely classes:
+	"rodents" with confidence 28.20%
+	"batEaredFox" with confidence 23.55%
+	"jackal" with confidence 21.78%
+	"wildcat" with confidence 5.08%
+	"honeyBadger" with confidence 4.39%
