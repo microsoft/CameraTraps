@@ -1,0 +1,29 @@
+name: cameratraps
+
+channels:
+- conda-forge
+
+dependencies:
+
+# Dependencies in the MD environment
+- python=3.8
+- Pillow
+- tqdm
+- jsonpickle
+- humanfriendly
+- numpy
+- matplotlib
+- nb_conda_kernels
+- ipykernel
+- pandas
+- requests
+
+# Dependencies not in the MD environment
+- azure-storage-blob
+- joblib
+- scikit-image>=0.13.1
+- scikit-learn>=0.19.1
+- jsonschema
+- unidecode
+- pyqtree
+
