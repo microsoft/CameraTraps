@@ -137,7 +137,7 @@ Here are a few of the organizations that have used MegaDetector. We're only list
 
 The extensive collaborative efforts of Megadetector have genuinely inspired us, and we deeply value its significant contributions to the community. As we continue to advance with Pytorch-Wildlife, our commitment to delivering technical support to our existing partners on MegaDetector remains the same.
 
-If you have any questions regarding MegaDetector, want to become a collaborator, or would like to be added to this like, please <a href="mailto:zhongqimiao@microsoft.com">email us</a>!
+If you have any questions regarding MegaDetector, want to become a collaborator, or would like to be added to this list, please <a href="mailto:zhongqimiao@microsoft.com">email us</a>!
 
 * [Arizona Department of Environmental Quality](http://azdeq.gov/)
 * [Blackbird Environmental](https://blackbirdenv.com/)
