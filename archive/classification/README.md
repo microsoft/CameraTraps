@@ -1,36 +1,56 @@
 # Announcement
 
-At the core of our mission is the desire to create a harmonious space where conservation scientists from all over the globe can unite, share, and grow. We are expanding the CameraTraps repo to introduce PyTorch Wildlife, a Collaborative Deep Learning Framework for Conservation, where researchers can come together to share and use datasets and deep learning architectures for wildlife conservation.
+At the core of our mission is the desire to create a harmonious space where conservation scientists from all over the globe can unite, share, and grow. We are expanding the CameraTraps repo to introduce **Pytorch-Wildlife**, a Collaborative Deep Learning Framework for Conservation, where researchers can come together to share and use datasets and deep learning architectures for wildlife conservation.
+ 
+We've been inspired by the potential and capabilities of Megadetector, and we deeply value its contributions to the community. **As we forge ahead with Pytorch-Wildlife, under which Megadetector now resides, please know that we remain committed to supporting, maintaining, and developing Megadetector, ensuring its continued relevance, expansion, and utility.**
 
-We've been inspired by the potential and capabilities of Megadetector, and we deeply value its contributions to the community. **As we forge ahead with PyTorch Wildlife, please know that we remain committed to supporting and maintaining Megadetector, ensuring its continued relevance and utility**. You can access our current version of PyTorch Wildlife [here!](https://github.com/microsoft/CameraTraps/tree/PytorchWildlife_Dev).
+To use the newest version of MegaDetector with all the exisitng functionatlities, you can use our newly developed [user interface](#explore-pytorch-wildlife-and-megadetector-with-our-user-interface) or simply load the model with **Pytorch-Wildlife** and the weights will be automatically downloaded:
+
+```python
+from PytorchWildlife.models import detection as pw_detection
+detection_model = pw_detection.MegaDetectorV5()
+```
+
+If you'd like to learn more about **Pytorch-Wildlife**, please continue reading.
+
+For those interested in accessing the previous MegaDetector repository, which utilizes the same `MegaDetector v5` model weights and was primarily developed by Dan Morris during his time at Microsoft, please visit the [archive](./archive) directory, or you can visit this [forked repository](https://github.com/agentmorris/MegaDetector/tree/main) that Dan Morris is actively maintaining.
+ 
+**If you have any questions regarding MegaDetector and Pytorch-Wildlife, please <a href="mailto:zhongqimiao@microsoft.com">email us</a>!**
 
 # Table of Contents
-* [Overview](#overview)
-* [Setup](#setup)
-  * [Installation](#installation)
-  * [Directory Structure](#directory-structure)
-  * [Environment Variables](#environment-variables)
-* [Run a trained classifier on new images](#run-a-trained-classifier-on-new-images)
-  1. [Run MegaDetector](#1-run-megadetector)
-  2. [Crop images](#2-crop-images)
-  3. [Run classifier](#3-run-classifier)
-  4. [(Optional) Map MegaClassifier categories to desired categories](#4-optional-map-megaclassifier-categories-to-desired-categories)
-  5. [Merge classification results with detection JSON](#5-merge-classification-results-with-detection-json)
-* [Typical Training Pipeline](#typical-training-pipeline)
-  1. [Select classification labels for training](#1-select-classification-labels-for-training)
-  2. [Query MegaDB for labeled images](#2-query-megadb-for-labeled-images)
-  3. [For images without ground-truth bounding boxes, generate bounding boxes using MegaDetector](#3-for-images-without-ground-truth-bounding-boxes-generate-bounding-boxes-using-megadetector)
-  4. [Create classification dataset and split into train/val/test sets by location](#4-create-classification-dataset-and-split-image-crops-into-trainvaltest-sets-by-location)
-  5. [(Optional) Manually inspect dataset](#5-optional-manually-inspect-dataset)
-  6. [Train classifier](#6-train-classifier)
-  7. [Evaluate classifier](#7-evaluate-classifier)
-  8. [Analyze classification results](#8-analyze-classification-results)
-  9. [Export classification results as JSON](#9-export-classification-results-as-json)
-  10. [(Optional) Identify potentially mislabeled images](#10-optional-identify-potentially-mislabeled-images)
-* [Miscellaneous Scripts](#miscellaneous-scripts)
-* [Label Specification Syntax](#label-specification-syntax)
-  * [CSV](#csv)
-  * [JSON](#json)
+- [Announcement](#announcement)
+- [Table of Contents](#table-of-contents)
+- [Overview](#overview)
+- [Setup](#setup)
+  - [Installation](#installation)
+  - [Verifying that CUDA is available (and dealing with the case where it isn't)](#verifying-that-cuda-is-available-and-dealing-with-the-case-where-it-isnt)
+  - [Optional steps to make classification faster in Linux](#optional-steps-to-make-classification-faster-in-linux)
+  - [Directory Structure](#directory-structure)
+  - [Environment Variables](#environment-variables)
+  - [Mypy Type Checking](#mypy-type-checking)
+- [MegaClassifier](#megaclassifier)
+- [Run a trained classifier on new images](#run-a-trained-classifier-on-new-images)
+  - [1. Run MegaDetector](#1-run-megadetector)
+  - [2. Crop images](#2-crop-images)
+  - [3. Run classifier](#3-run-classifier)
+  - [4. (Optional) Map MegaClassifier categories to desired categories](#4-optional-map-megaclassifier-categories-to-desired-categories)
+  - [5. Merge classification results with detection JSON](#5-merge-classification-results-with-detection-json)
+- [Typical training pipeline](#typical-training-pipeline)
+  - [1. Select classification labels for training](#1-select-classification-labels-for-training)
+  - [2. Query MegaDB for labeled images](#2-query-megadb-for-labeled-images)
+  - [3. For images without ground-truth bounding boxes, generate bounding boxes using MegaDetector](#3-for-images-without-ground-truth-bounding-boxes-generate-bounding-boxes-using-megadetector)
+  - [4. Create classification dataset and split image crops into train/val/test sets by location](#4-create-classification-dataset-and-split-image-crops-into-trainvaltest-sets-by-location)
+  - [5. (Optional) Manually inspect dataset](#5-optional-manually-inspect-dataset)
+  - [6. Train classifier](#6-train-classifier)
+    - [Note about TensorFlow implementation](#note-about-tensorflow-implementation)
+  - [7. Evaluate classifier](#7-evaluate-classifier)
+  - [8. Analyze classification results](#8-analyze-classification-results)
+  - [9. Export classification results as JSON](#9-export-classification-results-as-json)
+  - [10. (Optional) Identify potentially mislabeled images](#10-optional-identify-potentially-mislabeled-images)
+- [Miscellaneous Scripts](#miscellaneous-scripts)
+- [Label Specification Syntax](#label-specification-syntax)
+  - [CSV](#csv)
+  - [JSON](#json)
 
 
 # Overview
