@@ -11,6 +11,7 @@ from PIL import Image
 import supervision as sv
 import gradio as gr
 from zipfile import ZipFile
+import torch
 from torch.utils.data import DataLoader
 
 #%% 
@@ -23,9 +24,11 @@ from PytorchWildlife import utils as pw_utils
 
 #%% 
 # Setting the device to use for computations ('cuda' indicates GPU)
-DEVICE = "cuda"
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 # Initializing a supervision box annotator for visualizing detections
 box_annotator = sv.BoxAnnotator(thickness=4, text_thickness=4, text_scale=2)
+# Create a temp folder
+os.makedirs("../temp/", exist_ok=True)
 
 # Initializing the detection and classification models
 detection_model = None
@@ -95,6 +98,7 @@ def batch_detection(zip_file, det_conf_thres):
         json_save_path (str): Path to the JSON file containing detection results.
     """
     extract_path = "../temp/zip_upload"
+    os.makedirs(extract_path, exist_ok=True)
     json_save_path = os.path.join(extract_path, "results.json")
     with ZipFile(zip_file.name) as zfile:
         zfile.extractall(extract_path)
