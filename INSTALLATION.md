@@ -26,10 +26,20 @@ conda activate pytorch-wildlife
 ```
 
 ## Installation
+
 ### Install through pip:
 ```bash
 pip install PytorchWildlife
 ```
+
+### Using Windows Subsystem for Linux (WSL)
+If you are using WSL, additional libraries of OpenCV need to be installed, please run the following command:
+```bash
+sudo apt-get update
+sudo apt-get install -y python3-opencv
+pip install opencv-python
+```
+
 ## Running the Demo
 Here is a brief example on how to perform detection and classification on a single image using `PyTorch-wildlife`:
 
@@ -52,7 +62,7 @@ classification_results = classification_model.single_image_classification(img)
 If you want to use our Gradio demo for a user-friendly interface. Please run the following code inside the current repo. You can also find Jupyter Notebooks with an image and video tutorial:
 
 ```bash
-git clone -b PytorchWildlife_Dev --single-branch https://github.com/microsoft/CameraTraps.git
+git clone https://github.com/microsoft/CameraTraps.git
 cd CameraTraps
 cd demo
 # For the image demo
