@@ -1,4 +1,4 @@
-#Pytorch-Wildlife: A Collaborative Deep Learning Framework for Conservation
+# Pytorch-Wildlife: A Collaborative Deep Learning Framework for Conservation
 
 ## Welcome to Version 1.0
 
@@ -19,11 +19,12 @@ The **Pytorch-Wildlife** library allows users to directly load the MegadetectorV
 1. Python 3.8 
 2. NVIDIA GPU (for CUDA support, although the demo can run on CPU)
 
-If you have conda/mamba installed, you can create a new environment with the following command:
+If you have conda/mamba installed, you can create a new environment with the following commands:
 ```bash
 conda create -n pytorch-wildlife python=3.8 -y
 conda activate pytorch-wildlife
 ```
+Use the Anaconda Prompt if you are using Anaconda for Windows.
 
 ## Installation
 
@@ -33,7 +34,7 @@ pip install PytorchWildlife
 ```
 
 ### Using Windows Subsystem for Linux (WSL)
-If you are using WSL, additional libraries of OpenCV need to be installed, please run the following command:
+If you are using WSL, additional libraries of OpenCV may need to be installed, please run the following command:
 ```bash
 sudo apt-get update
 sudo apt-get install -y python3-opencv
