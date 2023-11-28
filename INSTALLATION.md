@@ -5,14 +5,17 @@
 The **Pytorch-Wildlife** library allows users to directly load the MegadetectorV5 model weights for animal detection. We've fully refactored our codebase, prioritizing ease of use in model deployment and expansion. In addition to `MegadetectorV5`, **Pytorch-Wildlife** also accommodates a range of classification weights, such as those derived from the Amazon Rainforest dataset and the Opossum classification dataset. Explore the codebase and functionalities of **Pytorch-Wildlife** through our interactive `Gradio` web app and detailed Jupyter notebooks, designed to showcase the practical applications of our enhancements. You can find more information in our [documentation](https://cameratraps.readthedocs.io/en/latest/).
 
 ## Table of Contents
-- [Welcome to Version 1.0](#welcome-to-version-10)
-- [Table of Contents](#table-of-contents)
-- [Prerequisites](#prerequisites)
-- [Installation](#installation)
-  - [Install through pip:](#install-through-pip)
-- [Running the Demo](#running-the-demo)
-- [License](#license)
-- [Copyright](#copyright)
+- [Pytorch-Wildlife: A Collaborative Deep Learning Framework for Conservation](#pytorch-wildlife-a-collaborative-deep-learning-framework-for-conservation)
+  - [Welcome to Version 1.0](#welcome-to-version-10)
+  - [Table of Contents](#table-of-contents)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+    - [Install through pip:](#install-through-pip)
+    - [Using Windows Subsystem for Linux (WSL)](#using-windows-subsystem-for-linux-wsl)
+    - [Using MacOs](#using-macos)
+  - [Running the Demo](#running-the-demo)
+  - [License](#license)
+  - [Copyright](#copyright)
  
 ## Prerequisites
  
@@ -34,11 +37,17 @@ pip install PytorchWildlife
 ```
 
 ### Using Windows Subsystem for Linux (WSL)
-If you are using WSL, additional libraries of OpenCV may need to be installed, please run the following command:
+If you are using WSL or a clean install of Ubuntu, additional libraries of OpenCV may need to be installed, please run the following command:
 ```bash
 sudo apt-get update
 sudo apt-get install -y python3-opencv
 pip install opencv-python
+```
+
+### Using MacOs
+If you are using MacOs, please run the following command to install ffmpeg for video decoding:
+```bash
+brew install ffmpeg
 ```
 
 ## Running the Demo
@@ -76,7 +85,16 @@ python demo_gradio.py
 The `demo_gradio.py` will launch a Gradio interface where you can:
 - Perform Single Image Detection: Upload an image and set a confidence threshold to get detections.
 - Perform Batch Image Detection: Upload a zip file containing multiple images to get detections in a JSON format.
-- Perform Video Detection: Upload a video and get a processed video with detected animals. *The package installed via pip might encounter video loading issues with browsers for this task (i.e., processed videos don't show in the webapp), as the opencv installed through pip lacks a browser-supported codec. This issue will be resolved once we have a conda package available.*
+- Perform Video Detection: Upload a video and get a processed video with detected animals. 
+
+
+For video detection, *Pytorch-Wildlife* installed via pip might encounter video loading issues (i.e., processed videos don't show in the webapp), as the opencv installed through pip lacks a browser-supported codec.
+For browser video visualization, please install opencv through conda by running the following command:
+
+```bash
+pip uninstall opencv-python
+conda install -c conda-forge opencv
+```
 
 <img src="images/gradio_UI.png">
   
