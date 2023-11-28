@@ -9,10 +9,12 @@ The **Pytorch-Wildlife** library allows users to directly load the MegadetectorV
   - [Welcome to Version 1.0](#welcome-to-version-10)
   - [Table of Contents](#table-of-contents)
   - [Prerequisites](#prerequisites)
+    - [Create environment](#create-environment)
+    - [Windows Subsystem for Linux (WSL) or clean installed Ubuntu](#windows-subsystem-for-linux-wsl-or-clean-installed-ubuntu)
+    - [MacOS](#macos)
+    - [Install conda version of `opencv`](#install-conda-version-of-opencv)
   - [Installation](#installation)
     - [Install through pip:](#install-through-pip)
-    - [Using Windows Subsystem for Linux (WSL)](#using-windows-subsystem-for-linux-wsl)
-    - [Using MacOS](#using-macos)
   - [Running the Demo](#running-the-demo)
   - [License](#license)
   - [Copyright](#copyright)
@@ -20,34 +22,41 @@ The **Pytorch-Wildlife** library allows users to directly load the MegadetectorV
 ## Prerequisites
  
 1. Python 3.8 
-2. NVIDIA GPU (for CUDA support, although the demo can run on CPU)
+2. NVIDIA GPU for CUDA support (Optional, the code and demo also supports cpu calculation)
+3. `conda` or `mamba` for python environment management and specific version of `opencv`.
 
-If you have conda/mamba installed, you can create a new environment with the following commands:
+### Create environment
+If you have `conda` or `mamba` installed, you can create a new environment with the following commands (switch `conda` to `mamba` for `mamba` users):
 ```bash
 conda create -n pytorch-wildlife python=3.8 -y
 conda activate pytorch-wildlife
 ```
-Use the Anaconda Prompt if you are using Anaconda for Windows.
+NOTE: Please use the Anaconda Prompt if you are using Anaconda for Windows.
+
+### Windows Subsystem for Linux (WSL) or clean installed Ubuntu
+If you are using WSL or a clean install of Ubuntu, additional libraries of OpenCV may need to be installed, please run the following command:
+```bash
+sudo apt-get update
+sudo apt-get install -y python3-opencv
+```
+
+### MacOS
+If you are using MacOS, please run the following command to install ffmpeg for video decoding:
+```bash
+brew install ffmpeg
+```
+
+### Install conda version of `opencv`
+We need conda version of `opencv` for more video codec:
+```bash
+conda install -c conda-forge opencv
+```
 
 ## Installation
 
 ### Install through pip:
 ```bash
 pip install PytorchWildlife
-```
-
-### Using Windows Subsystem for Linux (WSL)
-If you are using WSL or a clean install of Ubuntu, additional libraries of OpenCV may need to be installed, please run the following command:
-```bash
-sudo apt-get update
-sudo apt-get install -y python3-opencv
-pip install opencv-python
-```
-
-### Using MacOS
-If you are using MacOS, please run the following command to install ffmpeg for video decoding:
-```bash
-brew install ffmpeg
 ```
 
 ## Running the Demo
@@ -86,15 +95,6 @@ The `demo_gradio.py` will launch a Gradio interface where you can:
 - Perform Single Image Detection: Upload an image and set a confidence threshold to get detections.
 - Perform Batch Image Detection: Upload a zip file containing multiple images to get detections in a JSON format.
 - Perform Video Detection: Upload a video and get a processed video with detected animals. 
-
-
-For video detection, *Pytorch-Wildlife* installed via pip might encounter video loading issues (i.e., processed videos don't show in the webapp), as the opencv installed through pip lacks a browser-supported codec.
-For browser video visualization, please install opencv through conda by running the following command:
-
-```bash
-pip uninstall opencv-python
-conda install -c conda-forge opencv
-```
 
 <img src="images/gradio_UI.png">
   
