@@ -12,7 +12,7 @@ The **Pytorch-Wildlife** library allows users to directly load the MegadetectorV
   - [Installation](#installation)
     - [Install through pip:](#install-through-pip)
     - [Using Windows Subsystem for Linux (WSL)](#using-windows-subsystem-for-linux-wsl)
-    - [Using MacOs](#using-macos)
+    - [Using MacOS](#using-macos)
   - [Running the Demo](#running-the-demo)
   - [License](#license)
   - [Copyright](#copyright)
@@ -44,8 +44,8 @@ sudo apt-get install -y python3-opencv
 pip install opencv-python
 ```
 
-### Using MacOs
-If you are using MacOs, please run the following command to install ffmpeg for video decoding:
+### Using MacOS
+If you are using MacOS, please run the following command to install ffmpeg for video decoding:
 ```bash
 brew install ffmpeg
 ```
