@@ -146,7 +146,7 @@ def video_detection(video, det_conf_thres, clf_conf_thres, target_fps, codec):
     
     target_path = "../temp/video_detection.mp4"
     pw_utils.process_video(source_path=video, target_path=target_path,
-                           callback=callback, target_fps=target_fps, codec=codec)
+                           callback=callback, target_fps=int(target_fps), codec=codec)
     return target_path
 
 #%% Building Gradio UI
