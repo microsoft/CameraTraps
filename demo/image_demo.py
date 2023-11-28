@@ -13,9 +13,6 @@ from PIL import Image
 import torch
 from torch.utils.data import DataLoader
 
-# Setting the active CUDA device. Change the number according to your GPU setup
-torch.cuda.set_device(4)
-
 #%% 
 # Importing the model, dataset, transformations and utility functions from PytorchWildlife
 from PytorchWildlife.models import detection as pw_detection
@@ -24,8 +21,8 @@ from PytorchWildlife.data import datasets as pw_data
 from PytorchWildlife import utils as pw_utils
 
 #%% 
-# Setting the device to use for computations. Change to "cpu" if no GPU is available
-DEVICE = "cuda"
+# Setting the device to use for computations ('cuda' indicates GPU)
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 #%% 
 # Initializing the MegaDetectorV5 model for image detection

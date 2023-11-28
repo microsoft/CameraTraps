@@ -11,6 +11,7 @@ from PIL import Image
 import supervision as sv
 import gradio as gr
 from zipfile import ZipFile
+import torch
 from torch.utils.data import DataLoader
 
 #%% 
@@ -23,9 +24,11 @@ from PytorchWildlife import utils as pw_utils
 
 #%% 
 # Setting the device to use for computations ('cuda' indicates GPU)
-DEVICE = "cuda"
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 # Initializing a supervision box annotator for visualizing detections
 box_annotator = sv.BoxAnnotator(thickness=4, text_thickness=4, text_scale=2)
+# Create a temp folder
+os.makedirs("../temp/", exist_ok=True)
 
 # Initializing the detection and classification models
 detection_model = None
@@ -95,6 +98,7 @@ def batch_detection(zip_file, det_conf_thres):
         json_save_path (str): Path to the JSON file containing detection results.
     """
     extract_path = "../temp/zip_upload"
+    os.makedirs(extract_path, exist_ok=True)
     json_save_path = os.path.join(extract_path, "results.json")
     with ZipFile(zip_file.name) as zfile:
         zfile.extractall(extract_path)
@@ -124,7 +128,7 @@ def batch_detection(zip_file, det_conf_thres):
     return json_save_path
 
 
-def video_detection(video, det_conf_thres, clf_conf_thres, target_fps):
+def video_detection(video, det_conf_thres, clf_conf_thres, target_fps, codec):
     """Perform detection on a video and return path to processed video.
     
     Args:
@@ -142,7 +146,7 @@ def video_detection(video, det_conf_thres, clf_conf_thres, target_fps):
     
     target_path = "../temp/video_detection.mp4"
     pw_utils.process_video(source_path=video, target_path=target_path,
-                           callback=callback, target_fps=target_fps)
+                           callback=callback, target_fps=target_fps, codec=codec)
     return target_path
 
 #%% Building Gradio UI
@@ -187,13 +191,19 @@ with gr.Blocks() as demo:
                 vid_conf_sl_det = gr.Slider(0, 1, label="Detection Confidence Threshold", value=0.2)
                 vid_conf_sl_clf = gr.Slider(0, 1, label="Classification Confidence Threshold", value=0.7)
                 vid_fr = gr.Dropdown([5, 10, 30], label="Output video framerate", value=30)
+                vid_enc = gr.Dropdown(
+                    ["mp4v", "avc1"],
+                    label="Video encoder",
+                    info="mp4v is default, av1c is faster (needs conda install opencv)",
+                    value="mp4v"
+                    )
             vid_out = gr.Video()
         vid_but = gr.Button("Detect Animals!")
 
     load_but.click(load_models, inputs=[det_drop, clf_drop], outputs=load_out)
     sgl_but.click(single_image_detection, inputs=[sgl_in, sgl_conf_sl_det, sgl_conf_sl_clf], outputs=sgl_out)
     bth_but.click(batch_detection, inputs=[bth_in, bth_conf_sl], outputs=bth_out)
-    vid_but.click(video_detection, inputs=[vid_in, vid_conf_sl_det, vid_conf_sl_clf, vid_fr], outputs=vid_out)
+    vid_but.click(video_detection, inputs=[vid_in, vid_conf_sl_det, vid_conf_sl_clf, vid_fr, vid_enc], outputs=vid_out)
 
 if __name__ == "__main__":
     demo.launch(share=True)
