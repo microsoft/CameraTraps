@@ -12,9 +12,6 @@ import supervision as sv
 # PyTorch imports for tensor operations
 import torch
 
-# Setting the active CUDA device. This ensures that the computations take place on the specified GPU.
-torch.cuda.set_device(4)
-
 #%% 
 # Importing the models, transformations, and utility functions from PytorchWildlife 
 from PytorchWildlife.models import detection as pw_detection
@@ -23,8 +20,8 @@ from PytorchWildlife.data import transforms as pw_trans
 from PytorchWildlife import utils as pw_utils
 
 #%% 
-# Setting constants for device and video paths TODO: add argparse
-DEVICE = "cuda"
+# Setting the device to use for computations ('cuda' indicates GPU)
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 SOURCE_VIDEO_PATH = "./demo_data/videos/opossum_example.MP4"
 TARGET_VIDEO_PATH = "./demo_data/videos/opossum_example_processed.MP4"
 
