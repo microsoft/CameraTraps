@@ -10,9 +10,8 @@ The **Pytorch-Wildlife** library allows users to directly load the MegadetectorV
   - [Table of Contents](#table-of-contents)
   - [Prerequisites](#prerequisites)
     - [Create environment](#create-environment)
-    - [Windows Subsystem for Linux (WSL) or clean installed Ubuntu](#windows-subsystem-for-linux-wsl-or-clean-installed-ubuntu)
+    - [Ubuntu](#ubuntu)
     - [MacOS](#macos)
-    - [Install conda version of `opencv`](#install-conda-version-of-opencv)
   - [Installation](#installation)
     - [Install through pip:](#install-through-pip)
   - [Running the Demo](#running-the-demo)
@@ -31,10 +30,10 @@ If you have `conda` or `mamba` installed, you can create a new environment with 
 conda create -n pytorch-wildlife python=3.8 -y
 conda activate pytorch-wildlife
 ```
-NOTE: Please use the Anaconda Prompt if you are using Anaconda for Windows.
+NOTE: For Windows users, please use the Anaconda Prompt if you are using Anaconda. Otherwise, please use PowerShell for the conda environment and the rest of the set up.
 
-### Windows Subsystem for Linux (WSL) or clean installed Ubuntu
-If you are using WSL or a clean install of Ubuntu, additional libraries of OpenCV may need to be installed, please run the following command:
+### Ubuntu
+If you are using a clean install of Ubuntu, additional libraries of OpenCV may need to be installed, please run the following command:
 ```bash
 sudo apt-get update
 sudo apt-get install -y python3-opencv
@@ -44,12 +43,6 @@ sudo apt-get install -y python3-opencv
 If you are using MacOS, please run the following command to install ffmpeg for video decoding:
 ```bash
 brew install ffmpeg
-```
-
-### Install conda version of `opencv`
-We need conda version of `opencv` for more video codec:
-```bash
-conda install -c conda-forge opencv
 ```
 
 ## Installation
@@ -96,7 +89,16 @@ The `demo_gradio.py` will launch a Gradio interface where you can:
 - Perform Batch Image Detection: Upload a zip file containing multiple images to get detections in a JSON format.
 - Perform Video Detection: Upload a video and get a processed video with detected animals. 
 
+Some browsers may not render processed videos due to unsupported codec. If that happens, please either use a newer version of browser or run the following for a `conda` version of `opencv` and chose `avc1` in the Video encoder drop down menu in the webapp (this might not work for MacOS):
+
+```bash
+pip uninstall opencv-python
+conda install -c conda-forge opencv
+```
+
 <img src="images/gradio_UI.png">
+
+**NOTE: Windows may encounter some errors with large file uploads making Batch Image Detection and Video Detection unable to process. It is a Gradio issue. Newer versions of Gradio in the future may fix this problem.**
   
 ## License
 This project is licensed under the MIT License. Refer to the LICENSE file for more details.
