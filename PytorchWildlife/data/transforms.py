@@ -71,7 +71,8 @@ def letterbox(im, new_shape=(640, 640), color=(114, 114, 114), auto=False, scale
    
     # Resize image
     if shape[::-1] != new_unpad:
-        resize_transform = T.Resize(new_unpad[::-1], interpolation=T.InterpolationMode.BILINEAR)
+        resize_transform = T.Resize(new_unpad[::-1], interpolation=T.InterpolationMode.BILINEAR,
+                                    antialias=False)
         im = resize_transform(im)
 
     # Pad image
@@ -118,8 +119,6 @@ class MegaDetector_v5_Transform:
 
         # Resize and pad the image using a customized letterbox function. 
         img = letterbox(np_img, new_shape=self.target_size, stride=self.stride, auto=False)
-
-
 
         return img
 
