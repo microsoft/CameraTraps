@@ -49,8 +49,7 @@ class DetectionImageFolder(Dataset):
         
         # Load and convert image to RGB
         img = Image.open(img_path).convert("RGB")
-        img = np.asarray(img)
-        img_size_ori = img.shape
+        img_size_ori = img.size
         
         # Apply transformation if specified
         if self.transform:
