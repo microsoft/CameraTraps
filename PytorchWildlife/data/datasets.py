@@ -14,7 +14,6 @@ __all__ = [
     "DetectionImageFolder",
     ]
 
-from torchvision import transforms
 
 class DetectionImageFolder(Dataset):
     """
