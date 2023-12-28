@@ -55,8 +55,6 @@ def load_models(det, clf):
     if clf != "None":
         classification_model = pw_classification.__dict__[clf](device=DEVICE, pretrained=True)
 
-    #trans_det = pw_trans.MegaDetector_v5_Transform(target_size=detection_model.IMAGE_SIZE,
-    #                                      stride=detection_model.STRIDE)
     trans_det = pw_trans.MegaDetector_v5_Transform(target_size=detection_model.IMAGE_SIZE,
                                           stride=detection_model.STRIDE)
     trans_clf = pw_trans.Classification_Inference_Transform(target_size=224)
@@ -75,14 +73,14 @@ def single_image_detection(input_img, det_conf_thres, clf_conf_thres, img_index=
     Returns:
         annotated_img (PIL.Image.Image): Annotated image with bounding box instances.
     """
-
     trans_img = trans_det(input_img)
-
+    input_img = np.array(input_img)
     results_det = detection_model.single_image_detection(trans_img,
                                                          input_img.shape,
                                                          img_path=img_index,
                                                          conf_thres=det_conf_thres)
 
+    
     if classification_model is not None:
         labels = []
         for xyxy, det_id in zip(results_det["detections"].xyxy, results_det["detections"].class_id):
@@ -186,7 +184,7 @@ with gr.Blocks() as demo:
     with gr.Tab("Single Image Process"):
         with gr.Row():
             with gr.Column():
-                sgl_in = gr.Image()
+                sgl_in = gr.Image(type="pil")
                 sgl_conf_sl_det = gr.Slider(0, 1, label="Detection Confidence Threshold", value=0.2)
                 sgl_conf_sl_clf = gr.Slider(0, 1, label="Classification Confidence Threshold", value=0.7)
             sgl_out = gr.Image() 
