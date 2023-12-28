@@ -118,7 +118,7 @@ def batch_detection(zip_file, det_conf_thres):
     tgt_folder_path = os.path.join(extract_path, zip_file.name.rsplit('/', 1)[1].rstrip(".zip"))
     det_dataset = pw_data.DetectionImageFolder(tgt_folder_path, transform=trans_det)
     det_loader = DataLoader(det_dataset, batch_size=32, shuffle=False, 
-                            pin_memory=True, num_workers=0, drop_last=False)
+                            pin_memory=True, num_workers=4, drop_last=False)
     det_results = detection_model.batch_image_detection(det_loader, conf_thres=det_conf_thres, id_strip=tgt_folder_path)
 
     if classification_model is not None:
@@ -128,7 +128,7 @@ def batch_detection(zip_file, det_conf_thres):
             path_head=tgt_folder_path
         )
         clf_loader = DataLoader(clf_dataset, batch_size=32, shuffle=False, 
-                                pin_memory=True, num_workers=0, drop_last=False)
+                                pin_memory=True, num_workers=4, drop_last=False)
         clf_results = classification_model.batch_image_classification(clf_loader, id_strip=tgt_folder_path)
         pw_utils.save_detection_classification_json(det_results=det_results,
                                                     clf_results=clf_results,
