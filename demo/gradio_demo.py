@@ -66,7 +66,7 @@ def single_image_detection(input_img, det_conf_thres, clf_conf_thres, img_index=
     """Performs detection on a single image and returns an annotated image.
 
     Args:
-        input_img (np.ndarray): Input image in numpy array format defaulted by Gradio.
+        input_img (PIL.Image): Input image in PIL.Image format defaulted by Gradio.
         det_conf_thre (float): Confidence threshold for detection.
         clf_conf_thre (float): Confidence threshold for classification.
         img_index: Image index identifier.
@@ -75,6 +75,7 @@ def single_image_detection(input_img, det_conf_thres, clf_conf_thres, img_index=
     """
     trans_img = trans_det(input_img)
     input_img = np.array(input_img)
+    
     results_det = detection_model.single_image_detection(trans_img,
                                                          input_img.shape,
                                                          img_path=img_index,

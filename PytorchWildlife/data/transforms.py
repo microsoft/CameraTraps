@@ -105,7 +105,7 @@ class MegaDetector_v5_Transform:
         Applies the transformation on the provided image.
 
         Args:
-            np_img (np.ndarray): Input image as a numpy array.
+            np_img (np.ndarray): Input image as a numpy array or PIL Image.
 
         Returns:
             torch.Tensor: Transformed image.
