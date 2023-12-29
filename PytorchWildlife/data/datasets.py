@@ -2,9 +2,11 @@
 # Licensed under the MIT License.
 
 import os
+from glob import glob
 from PIL import Image
 import numpy as np
 import supervision as sv
+import torch
 from torch.utils.data import Dataset
 
 # Making the DetectionImageFolder class available for import from this module
@@ -20,7 +22,7 @@ class DetectionImageFolder(Dataset):
     the image's path, and the original size of the image.
     """
 
-    def __init__(self, image_dir, transform=None):
+    def __init__(self, image_dir, transform=None, extension="JPG"):
         """
         Initializes the dataset.
 
@@ -30,7 +32,8 @@ class DetectionImageFolder(Dataset):
         """
         self.image_dir = image_dir
         # Listing and sorting all image files in the specified directory
-        self.images = sorted(os.listdir(self.image_dir))
+        self.images = sorted(glob(os.path.join(self.image_dir, "**/*." + extension),
+                                  recursive=True))
         self.transform = transform
 
     def __getitem__(self, idx):
@@ -44,19 +47,17 @@ class DetectionImageFolder(Dataset):
             tuple: Contains the image data, the image's path, and its original size.
         """
         # Get image filename and path
-        img = self.images[idx]
-        img_path = os.path.join(self.image_dir, img)
-        
+        img_path = self.images[idx]
+
         # Load and convert image to RGB
         img = Image.open(img_path).convert("RGB")
-        img = np.asarray(img)
-        img_size_ori = img.shape
+        img_size_ori = img.size[::-1]
         
         # Apply transformation if specified
         if self.transform:
             img = self.transform(img)
 
-        return img, img_path, np.array(img_size_ori)
+        return img, img_path, torch.tensor(img_size_ori)
     
     def __len__(self):
         """
