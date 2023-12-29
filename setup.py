@@ -2,9 +2,9 @@ from setuptools import setup, find_packages
 
 setup(
     name='PytorchWildlife',
-    version='1.0.0', 
+    version='1.0.1.1', 
     packages=find_packages(),
-    url='https://github.com/microsoft/CameraTraps/tree/PytorchWildlife_Dev',  
+    url='https://github.com/microsoft/CameraTraps/',  
     license='MIT',
     author='Andres Hernandez, Zhongqi Miao',
     author_email='v-andreshern@microsoft.com, zhongqimiao@microsoft.com',  
@@ -19,7 +19,7 @@ setup(
         'tqdm==4.66.1',
         'Pillow==10.1.0', 
         'supervision==0.16.0',
-        'gradio',
+        'gradio==4.8.0',
         'ultralytics-yolov5'
     ],
     classifiers=[
