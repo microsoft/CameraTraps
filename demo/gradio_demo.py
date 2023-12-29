@@ -13,6 +13,14 @@ import gradio as gr
 from zipfile import ZipFile
 import torch
 from torch.utils.data import DataLoader
+# %%
+from torchvision import transforms
+from PIL import Image
+
+import torch
+from PIL import Image
+import numpy as np
+
 
 #%% 
 # Importing the models, dataset, transformations, and utility functions from PytorchWildlife
@@ -41,7 +49,7 @@ trans_clf = None
 #%% Defining functions for different detection scenarios
 def load_models(det, clf):
 
-    global detection_model, classification_model, trans_det, trans_clf
+    global detection_model, classification_model, trans_det, trans_clf, trans_det_2
 
     detection_model = pw_detection.__dict__[det](device=DEVICE, pretrained=True)
     if clf != "None":
@@ -58,17 +66,22 @@ def single_image_detection(input_img, det_conf_thres, clf_conf_thres, img_index=
     """Performs detection on a single image and returns an annotated image.
 
     Args:
-        input_img (np.ndarray): Input image in numpy array format defaulted by Gradio.
+        input_img (PIL.Image): Input image in PIL.Image format defaulted by Gradio.
         det_conf_thre (float): Confidence threshold for detection.
         clf_conf_thre (float): Confidence threshold for classification.
         img_index: Image index identifier.
     Returns:
         annotated_img (PIL.Image.Image): Annotated image with bounding box instances.
     """
-    results_det = detection_model.single_image_detection(trans_det(input_img),
+    trans_img = trans_det(input_img)
+    input_img = np.array(input_img)
+    
+    results_det = detection_model.single_image_detection(trans_img,
                                                          input_img.shape,
                                                          img_path=img_index,
                                                          conf_thres=det_conf_thres)
+
+    
     if classification_model is not None:
         labels = []
         for xyxy, det_id in zip(results_det["detections"].xyxy, results_det["detections"].class_id):
@@ -105,7 +118,7 @@ def batch_detection(zip_file, det_conf_thres):
     tgt_folder_path = os.path.join(extract_path, zip_file.name.rsplit('/', 1)[1].rstrip(".zip"))
     det_dataset = pw_data.DetectionImageFolder(tgt_folder_path, transform=trans_det)
     det_loader = DataLoader(det_dataset, batch_size=32, shuffle=False, 
-                            pin_memory=True, num_workers=8, drop_last=False)
+                            pin_memory=True, num_workers=4, drop_last=False)
     det_results = detection_model.batch_image_detection(det_loader, conf_thres=det_conf_thres, id_strip=tgt_folder_path)
 
     if classification_model is not None:
@@ -115,7 +128,7 @@ def batch_detection(zip_file, det_conf_thres):
             path_head=tgt_folder_path
         )
         clf_loader = DataLoader(clf_dataset, batch_size=32, shuffle=False, 
-                                pin_memory=True, num_workers=8, drop_last=False)
+                                pin_memory=True, num_workers=4, drop_last=False)
         clf_results = classification_model.batch_image_classification(clf_loader, id_strip=tgt_folder_path)
         pw_utils.save_detection_classification_json(det_results=det_results,
                                                     clf_results=clf_results,
@@ -172,7 +185,7 @@ with gr.Blocks() as demo:
     with gr.Tab("Single Image Process"):
         with gr.Row():
             with gr.Column():
-                sgl_in = gr.Image()
+                sgl_in = gr.Image(type="pil")
                 sgl_conf_sl_det = gr.Slider(0, 1, label="Detection Confidence Threshold", value=0.2)
                 sgl_conf_sl_clf = gr.Slider(0, 1, label="Classification Confidence Threshold", value=0.7)
             sgl_out = gr.Image() 
