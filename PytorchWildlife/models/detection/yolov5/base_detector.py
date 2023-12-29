@@ -140,9 +140,9 @@ class YOLOV5Base:
             for batch in dataloader:
                 imgs, paths, sizes = batch
                 imgs = imgs.to(self.device)
-                total_preds.append(self.model(imgs)[0])
+                total_preds.append(self.model(imgs)[0].detach().cpu())
                 total_paths.append(paths)
-                total_img_sizes.append(sizes)
+                total_img_sizes.append(sizes.numpy())
                 pbar.update(1)
 
         total_preds = [

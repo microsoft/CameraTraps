@@ -21,8 +21,9 @@ The **Pytorch-Wildlife** library allows users to directly load the MegadetectorV
 ## Prerequisites
  
 1. Python 3.8 
-2. NVIDIA GPU for CUDA support (Optional, the code and demo also supports cpu calculation)
+2. NVIDIA GPU for CUDA support (Optional, the code and demo also supports cpu calculation).
 3. `conda` or `mamba` for python environment management and specific version of `opencv`.
+4. If you are using CUDA. [CudaToolkit 11.3](https://developer.nvidia.com/cuda-11.3.0-download-archive) is required.
 
 ### Create environment
 If you have `conda` or `mamba` installed, you can create a new environment with the following commands (switch `conda` to `mamba` for `mamba` users):
@@ -89,7 +90,9 @@ The `demo_gradio.py` will launch a Gradio interface where you can:
 - Perform Batch Image Detection: Upload a zip file containing multiple images to get detections in a JSON format.
 - Perform Video Detection: Upload a video and get a processed video with detected animals. 
 
-Some browsers may not render processed videos due to unsupported codec. If that happens, please either use a newer version of browser or run the following for a `conda` version of `opencv` and chose `avc1` in the Video encoder drop down menu in the webapp (this might not work for MacOS):
+As a showcase platform, the gradio demo offers a hands-on experience with all the available features. However, it's important to note that this interface is primarily for demonstration purposes. While it is fully equipped to run all the features effectively, it may not be optimized for scenarios involving excessive data loads. We advise users to be mindful of this limitation when experimenting with large datasets.
+
+Some browsers may not render processed videos due to unsupported codec. If that happens, please either use a newer version of browser or run the following for a `conda` version of `opencv` and choose `avc1` in the Video encoder drop down menu in the webapp (this might not work for MacOS):
 
 ```bash
 pip uninstall opencv-python
