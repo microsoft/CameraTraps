@@ -174,7 +174,7 @@ with gr.Blocks() as demo:
             value="MegaDetectorV5"
         )
         clf_drop = gr.Dropdown(
-            ["None", "AI4GOpossum", "AI4GAmazonRainforest"],
+            ["None", "AI4GOpossum", "AI4GAmazonRainforest", "AI4GSnapshotSerengeti"],
             label="Classification model",
             info="Will add more classification models!",
             value="None"
