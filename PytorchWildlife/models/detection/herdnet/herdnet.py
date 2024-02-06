@@ -30,6 +30,8 @@ class HerdNetV1(HerdNetBase):
     DOWN_RATIO = 2
     PATCHSIZE = (512, 512)
     OVERLAP = 160
+    IMAGE_SIZE = 1280  # image size used in training
+    STRIDE = 64
 
     def __init__(self, weights=None, device="cpu", pretrained=True):
         """

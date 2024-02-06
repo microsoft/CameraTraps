@@ -35,6 +35,7 @@ from PytorchWildlife import utils as pw_utils
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 # Initializing a supervision box annotator for visualizing detections
 box_annotator = sv.BoxAnnotator(thickness=4, text_thickness=4, text_scale=2)
+point_annotator = sv.DotAnnotator(radius=10, color= sv.Color(r=255, g=0, b=0))
 # Create a temp folder
 os.makedirs("../temp/", exist_ok=True)
 
@@ -75,6 +76,7 @@ def single_image_detection(input_img, det_conf_thres, clf_conf_thres, img_index=
     """
     trans_img = trans_det(input_img)
     input_img = np.array(input_img)
+    model_name = detection_model.__class__.__name__
     
     results_det = detection_model.single_image_detection(trans_img,
                                                          input_img.shape,
@@ -95,7 +97,12 @@ def single_image_detection(input_img, det_conf_thres, clf_conf_thres, img_index=
                 labels = results_det["labels"]
     else:
         labels = results_det["labels"]
-    annotated_img = box_annotator.annotate(scene=input_img, detections=results_det["detections"], labels=labels)
+        
+    if model_name=="HerdNetV1":
+         annotated_img = point_annotator.annotate(scene=input_img, detections=results_det["detections"])
+    else:
+        annotated_img = box_annotator.annotate(scene=input_img, detections=results_det["detections"], labels=labels)
+   
     return annotated_img
 
 
@@ -168,7 +175,7 @@ with gr.Blocks() as demo:
     gr.Markdown("# Pytorch-Wildlife Demo.")
     with gr.Row():
         det_drop = gr.Dropdown(
-            ["MegaDetectorV5"],
+            ["MegaDetectorV5","HerdNetV1"],
             label="Detection model",
             info="Will add more detection models!",
             value="MegaDetectorV5"

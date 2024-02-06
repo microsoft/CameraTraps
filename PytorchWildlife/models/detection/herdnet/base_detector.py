@@ -29,6 +29,8 @@ class HerdNetBase:
     TRANSFORM = None
     NUM_CLASSES = None
     DOWN_RATIO = None
+    IMAGE_SIZE = None
+    STRIDE = None
 
     def __init__(self, weights=None, device="cpu", url=None):
         """
@@ -117,7 +119,7 @@ class HerdNetBase:
         ]
         return results
 
-    def single_image_detection(self, img, img_path=None, conf_thres=0.2, id_strip=None):
+    def single_image_detection(self, img,  img_size=None, img_path=None, conf_thres=0.2, id_strip=None):
         """
         Perform detection on a single image.
 
