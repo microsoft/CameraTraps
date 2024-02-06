@@ -7,6 +7,7 @@ import os
 import numpy as np
 import json
 from PIL import Image
+import cv2
 import supervision as sv
 
 __all__ = [
@@ -18,39 +19,45 @@ __all__ = [
 
 
 # !!! Output paths need to be optimized !!!
-def save_detection_images(results, output_dir):
+def save_detection_images(results, output_dir, annotation_type='box'):
     """
     Save detected images with bounding boxes and labels annotated.
 
     Args:
-        results (list or dict):
-            Detection results containing image ID, detections, and labels.
-        output_dir (str):
-            Directory to save the annotated images.
+        results (list or dict): Detection results containing image ID, detections, and labels.
+        output_dir (str): Directory to save the annotated images.
     """
-    box_annotator = sv.BoxAnnotator(thickness=4, text_thickness=4, text_scale=2)
+    # Ensure the output directory exists
     os.makedirs(output_dir, exist_ok=True)
 
+    # Determine the annotator type based on annotation_type
+    if annotation_type == 'box':
+        annotator = sv.BoxAnnotator(thickness=4, text_thickness=4, text_scale=2)
+    elif annotation_type == 'point':
+        annotator = sv.DotAnnotator(radius=10, color= sv.Color(r=255, g=0, b=0))
+    else:
+        # Raise an error for unsupported annotation types
+        raise ValueError(f"Unsupported annotation type: {annotation_type}")
+
+    # Ensure results are always handled as a list
+    if not isinstance(results, list):
+        results = [results]
+
+    # Process the images
     with sv.ImageSink(target_dir_path=output_dir, overwrite=True) as sink:
-        if isinstance(results, list):
-            for entry in results:
-                annotated_img = box_annotator.annotate(
-                    scene=np.array(Image.open(entry["img_id"])),
-                    detections=entry["detections"],
-                    labels=entry["labels"],
-                )
-                sink.save_image(
-                    image=annotated_img, image_name=entry["img_id"].rsplit("/", 1)[1]
-                )
-        else:
-            annotated_img = box_annotator.annotate(
-                scene=np.array(Image.open(results["img_id"])),
-                detections=results["detections"],
-                labels=results["labels"],
-            )
-            sink.save_image(
-                image=annotated_img, image_name=results["img_id"].rsplit("/", 1)[1]
-            )
+        for entry in results:
+            scene = np.array(Image.open(entry["img_id"]))
+            scene_rgb = cv2.cvtColor(scene, cv2.COLOR_BGR2RGB)
+            # Use the appropriate annotator based on the type
+            if annotation_type == 'box':
+                annotated_img = annotator.annotate(scene=scene_rgb.copy(), detections=entry["detections"], labels=entry["labels"])
+            else:  # For 'point' and potentially other future types that don't require 'labels'
+                annotated_img = annotator.annotate(scene=scene_rgb.copy(), detections=entry["detections"])
+
+            # Save the annotated image
+            image_name = os.path.basename(entry["img_id"])  # Extract the image file name
+            sink.save_image(image=annotated_img, image_name=image_name)
+        
 
 
 # !!! Output paths need to be optimized !!!
