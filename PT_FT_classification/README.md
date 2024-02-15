@@ -100,6 +100,8 @@ Before training your model, you need to configure the training and data paramete
 
 ## Usage
 
+### Currently, our support is limited to the ResNet architecture. You are encouraged to explore other architectures, but it's important to maintain consistency with our code structure (particularly, an independent feature extractor and a classifier) for compatibility with the PyTorch-Wildlife framework.
+
 After configuring your `config.yaml` file, you can start training your model by running:
 
 ```bash
