@@ -1,0 +1,11 @@
+path,classification,label,Photo_Time,Location
+10050028_0.JPG,0,Anteater,2024-01-27 21:30:11,Amazon_Guaviare
+10050028_1.JPG,0,Anteater,2024-01-27 21:30:13,Amazon_Guaviare
+10050028_2.JPG,0,Anteater,2024-01-27 21:30:15,Amazon_Guaviare
+10050028_3.JPG,1,Non-Anteater,2024-01-27 22:10:11,Amazon_Caqueta
+10050028_4.JPG,1,Non-Anteater,2024-01-27 22:10:11,Amazon_Caqueta
+10050028_5.JPG,1,Non-Anteater,2024-01-27 22:10:11,Amazon_Caqueta
+10050028_6.JPG,1,Non-Anteater,2024-01-28 01:54:43,Amazon_Guainia
+10050028_7.JPG,1,Non-Anteater,2024-01-28 01:55:13,Amazon_Guainia
+10050028_8.JPG,0,Anteater,2024-01-28 21:30:11,Amazon_Guainia
+10050028_9.JPG,0,Anteater,2024-01-28 21:30:11,Amazon_Guainia
