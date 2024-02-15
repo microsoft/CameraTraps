@@ -19,7 +19,7 @@ cycler==0.12.1
 decorator==5.1.1
 exceptiongroup==1.2.0
 executing==2.0.1
-fastapi==0.109.0
+fastapi==0.109.1
 ffmpy==0.3.1
 filelock==3.13.1
 fire==0.5.0
