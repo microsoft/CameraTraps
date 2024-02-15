@@ -1,21 +1,24 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from .base_detector import HerdNetBase
+from ..base_detector import HerdNetDetector
 
 __all__ = [
     'HerdNetV1',
 ]
 
-class HerdNetV1(HerdNetBase):
+class HerdNetV1(HerdNetDetector):
     """
     HerdNet is a specialized class derived from the HerdNetBase class 
     that is specifically designed for detecting animals, persons, and vehicles.
     
     Attributes:
-        IMAGE_SIZE (int): The standard image size used during training.
-        STRIDE (int): Stride value used in the detector.
-        CLASS_NAMES (dict): Mapping of class IDs to their respective names.
+        CLASS_NAMES (dict): Maps class IDs to names for detected entities.
+        DOWN_RATIO (int): Downscaling factor to manage image resolution.
+        PATCHSIZE (tuple): Size of image patches for processing (width, height).
+        OVERLAP (int): Pixel overlap between adjacent patches for seamless detection.
+        IMAGE_SIZE (int): Standard image size (width/height) used during training.
+        STRIDE (int): Stride of sliding window for object scanning.
     """
     
     CLASS_NAMES = {
