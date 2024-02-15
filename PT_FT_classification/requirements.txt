@@ -67,7 +67,7 @@ pickleshare==0.7.5
 pillow==10.1.0
 pkgutil-resolve-name==1.3.10
 prompt-toolkit==3.0.43
-protobuf==3.20.1
+protobuf==3.20.2
 psutil==5.9.8
 ptyprocess==0.7.0
 pure-eval==0.2.2
