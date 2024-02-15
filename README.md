@@ -106,11 +106,9 @@ Below you can find our progress in these core tasks:
 ### Development roadmap
 Here you can find details of the milestone roadmap for **Pytorch-Wildlife**:
 <img src="images/Finished_tasks_announcement.png" width="700">
-<img src="images/10_PyTorchWildlifeRoadmap_October.png" width="700">
-<img src="images/11_PyTorchWildlifeRoadmap_November.png" width="700">
-<img src="images/12_PyTorchWildlifeRoadmap_December.png" width="700">
-<img src="images/01_PyTorchWildlifeRoadmap_January.png" width="700">
 <img src="images/02_PyTorchWildlifeRoadmap_February.png" width="700">
+
+### We are working on a new roadmap for 2024! To check the previous roadmap and finished tasks for 2023, please click [here](roadmaps.md).
 
 ## Examples!
 ### Image detection using `MegaDetector v5`
@@ -130,6 +128,21 @@ Credits to the Agency for Regulation and Control of Biosecurity and Quarantine f
 This project welcomes contributions and suggestions. If you would like to submit a pull request, we will publish a contribution guideline soon.
 
 This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/). For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or contact <a href="mailto:zhongqimiao@microsoft.com">zhongqimiao@microsoft.com</a> with any additional questions or comments.
+
+## Citing PyTorchWildlife
+
+If you find this code useful, please consider citing
+
+```
+@misc{[PyTorchWildlife],
+    title={[Pytorch-Wildlife: A Collaborative Deep Learning Framework for Conservation]},
+    author={[Miao, Z., Hernández, A., Vargas, L., Nasir, M. Gupta, Amrita, Dodhia, R., Ferres, J.]},
+    booktitle={GitHub},
+    year={2024}
+}
+```
+
+We are currently working on a technical report to make PyTorchWildlife a citable paper! We will update this readme once it is published.
 
 ## Existing Collaborators
 
