@@ -1,5 +1,9 @@
 # Pytorch-Wildlife: A Collaborative Deep Learning Framework for Conservation
- 
+
+## Recent updates (Version 1.0.2)
+- Added Snapshot Serengeti classification model into the model zoo.
+- Added Classification fine-tuning module.
+
 ## Announcement
  
 At the core of our mission is the desire to create a harmonious space where conservation scientists from all over the globe can unite, share, and grow. We are expanding the CameraTraps repo to introduce **Pytorch-Wildlife**, a Collaborative Deep Learning Framework for Conservation, where researchers can come together to share and use datasets and deep learning architectures for wildlife conservation.
