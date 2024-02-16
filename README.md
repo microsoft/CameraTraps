@@ -139,8 +139,8 @@ If you find this code useful, please consider citing
 
 ```
 @misc{[PyTorchWildlife],
-    title={[Pytorch-Wildlife: A Collaborative Deep Learning Framework for Conservation]},
-    author={[Miao, Z., Hernández, A., Vargas, L., Nasir, M. Gupta, Amrita, Dodhia, R., Ferres, J.]},
+    title={Pytorch-Wildlife: A Collaborative Deep Learning Framework for Conservation},
+    author={Miao, Z., Hernández, A., Vargas, L., Nasir, M. Gupta, Amrita, Dodhia, R., Ferres, J.},
     booktitle={GitHub},
     year={2024}
 }
