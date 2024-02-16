@@ -138,7 +138,7 @@ This project has adopted the [Microsoft Open Source Code of Conduct](https://ope
 If you find this code useful, please consider citing
 
 ```
-@misc{[PyTorchWildlife],
+@misc{PyTorchWildlife,
     title={Pytorch-Wildlife: A Collaborative Deep Learning Framework for Conservation},
     author={Miao, Z., Hernández, A., Vargas, L., Nasir, M. Gupta, Amrita, Dodhia, R., Ferres, J.},
     booktitle={GitHub},
