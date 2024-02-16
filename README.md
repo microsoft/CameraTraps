@@ -156,6 +156,7 @@ The extensive collaborative efforts of Megadetector have genuinely inspired us, 
 
 If you have any questions regarding MegaDetector, want to become a collaborator, or would like to be added to this list, please <a href="mailto:zhongqimiao@microsoft.com">email us</a>!
 
+* (Newly Added) [TerrOïko](https://www.terroiko.fr/) ([OCAPI platform](https://www.terroiko.fr/ocapi))
 * [Arizona Department of Environmental Quality](http://azdeq.gov/)
 * [Blackbird Environmental](https://blackbirdenv.com/)
 * [Camelot](https://camelotproject.org/)
