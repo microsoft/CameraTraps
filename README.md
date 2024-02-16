@@ -1,6 +1,6 @@
 # Pytorch-Wildlife: A Collaborative Deep Learning Framework for Conservation
 
-## Recent updates (Version 1.0.2)
+## Update highlights (Version 1.0.2)
 - Added Snapshot Serengeti classification model into the model zoo.
 - Added Classification fine-tuning module.
 
