@@ -166,7 +166,13 @@ class YOLOv5Detector(BaseDetector):
 
 
 class HerdNetDetector(BaseDetector):
-
+    """
+    References:
+        This class implements techniques described in the following research article:
+        "From crowd to herd counting: How to precisely detect and count African mammals 
+        using aerial imagery and deep learning". DOI: https://doi.org/10.1016/j.isprsjprs.2023.01.025
+    """
+       
     def process_checkpoint(self, checkpoint):
         """
         Loads HerdNet model weights either from a local file or a URL.

@@ -19,6 +19,12 @@ class HerdNetV1(HerdNetDetector):
         OVERLAP (int): Pixel overlap between adjacent patches for seamless detection.
         IMAGE_SIZE (int): Standard image size (width/height) used during training.
         STRIDE (int): Stride of sliding window for object scanning.
+        
+    References:
+        This class implements techniques described in the following research article:
+        "From crowd to herd counting: How to precisely detect and count African mammals 
+        using aerial imagery and deep learning". DOI: https://doi.org/10.1016/j.isprsjprs.2023.01.025
+
     """
     
     CLASS_NAMES = {
