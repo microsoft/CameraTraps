@@ -5,10 +5,10 @@
 - Added Classification fine-tuning module.
 
 ## Future feature highlights
-[] Direct Timelapse format outputs for both detection and classifcation.
-[] A detection modul fine-tuning module to fine-tune your own detection model for Pytorch-Wildlife.
-[] Direct LILA connection for more training/validation data.
-[] More pretrained detection and classification models to expand the current model zoo. 
+- [] Direct Timelapse format outputs for both detection and classifcation.
+- [] A detection modul fine-tuning module to fine-tune your own detection model for Pytorch-Wildlife.
+- [] Direct LILA connection for more training/validation data.
+- [] More pretrained detection and classification models to expand the current model zoo. 
 
 ## Announcement
  
