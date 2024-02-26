@@ -6,6 +6,7 @@
 #%% 
 # Importing basic libraries
 import os
+import shutil
 import time
 from PIL import Image
 import supervision as sv
@@ -13,12 +14,6 @@ import gradio as gr
 from zipfile import ZipFile
 import torch
 from torch.utils.data import DataLoader
-# %%
-from torchvision import transforms
-from PIL import Image
-
-import torch
-from PIL import Image
 import numpy as np
 
 
@@ -36,7 +31,7 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 # Initializing a supervision box annotator for visualizing detections
 box_annotator = sv.BoxAnnotator(thickness=4, text_thickness=4, text_scale=2)
 # Create a temp folder
-os.makedirs("../temp/", exist_ok=True)
+os.makedirs(os.path.join("..","temp"), exist_ok=True)
 
 # Initializing the detection and classification models
 detection_model = None
@@ -49,7 +44,7 @@ trans_clf = None
 #%% Defining functions for different detection scenarios
 def load_models(det, clf):
 
-    global detection_model, classification_model, trans_det, trans_clf, trans_det_2
+    global detection_model, classification_model, trans_det, trans_clf
 
     detection_model = pw_detection.__dict__[det](device=DEVICE, pretrained=True)
     if clf != "None":
@@ -110,12 +105,22 @@ def batch_detection(zip_file, det_conf_thres):
     Returns:
         json_save_path (str): Path to the JSON file containing detection results.
     """
-    extract_path = "../temp/zip_upload"
-    os.makedirs(extract_path, exist_ok=True)
+    # Clean the temp folder if it contains files
+    extract_path = os.path.join("..","temp","zip_upload")
+    if os.path.exists(extract_path):
+        shutil.rmtree(extract_path)
+    os.makedirs(extract_path)
+
     json_save_path = os.path.join(extract_path, "results.json")
     with ZipFile(zip_file.name) as zfile:
         zfile.extractall(extract_path)
-    tgt_folder_path = os.path.join(extract_path, zip_file.name.rsplit('/', 1)[1].rstrip(".zip"))
+        # Check the contents of the extracted folder
+        extracted_files = os.listdir(extract_path)
+        
+    if len(extracted_files) == 1 and os.path.isdir(os.path.join(extract_path, extracted_files[0])):
+        tgt_folder_path = os.path.join(extract_path, extracted_files[0])
+    else:
+        tgt_folder_path = extract_path
     det_dataset = pw_data.DetectionImageFolder(tgt_folder_path, transform=trans_det)
     det_loader = DataLoader(det_dataset, batch_size=32, shuffle=False, 
                             pin_memory=True, num_workers=4, drop_last=False)
@@ -157,7 +162,7 @@ def video_detection(video, det_conf_thres, clf_conf_thres, target_fps, codec):
                                                  clf_conf_thres=clf_conf_thres)
         return annotated_frame 
     
-    target_path = "../temp/video_detection.mp4"
+    target_path = os.path.join("..","temp","video_detection.mp4")
     pw_utils.process_video(source_path=video, target_path=target_path,
                            callback=callback, target_fps=int(target_fps), codec=codec)
     return target_path
