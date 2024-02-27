@@ -7,12 +7,6 @@ We need to build a Docker image with the necessary packages (mainly TensorFlow) 
 
 Navigate to the subdirectory `batch_service` (otherwise you need to specify the Docker context).
 
-Build the image from the Dockerfile in this folder:
-```commandline
-export IMAGE_NAME=cameratracrsppftkje.azurecr.io/tensorflow:1.14.0-gpu-py3
-export REGISTRY_NAME=cameratracrsppftkje
-sudo docker image build --rm --tag $IMAGE_NAME --file ./Dockerfile .
-```
 
 Test that TensorFlow can use the GPU in an interactive Python session:
 ```commandline
