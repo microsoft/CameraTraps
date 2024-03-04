@@ -40,7 +40,7 @@ def save_detection_images(results, output_dir):
                     labels=entry["labels"],
                 )
                 sink.save_image(
-                    image=annotated_img, image_name=entry["img_id"].rsplit("/", 1)[1]
+                    image=annotated_img, image_name=entry["img_id"].rsplit(os.sep, 1)[1]
                 )
         else:
             annotated_img = box_annotator.annotate(
@@ -49,7 +49,7 @@ def save_detection_images(results, output_dir):
                 labels=results["labels"],
             )
             sink.save_image(
-                image=annotated_img, image_name=results["img_id"].rsplit("/", 1)[1]
+                image=annotated_img, image_name=results["img_id"].rsplit(os.sep, 1)[1]
             )
 
 
@@ -75,7 +75,7 @@ def save_crop_images(results, output_dir):
                 sink.save_image(
                     image=cropped_img,
                     image_name="{}_{}_{}".format(
-                        int(cat), i, entry["img_id"].rsplit("/", 1)[1]
+                        int(cat), i, entry["img_id"].rsplit(os.sep, 1)[1]
                     ),
                 )
 
