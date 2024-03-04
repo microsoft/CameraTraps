@@ -19,7 +19,7 @@ setup(
         'tqdm==4.66.1',
         'Pillow==10.1.0', 
         'supervision==0.16.0',
-        'gradio==4.8.0',
+        'gradio==4.19.2',
         'ultralytics-yolov5',
         'chardet'
     ],
