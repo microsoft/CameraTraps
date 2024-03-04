@@ -11,7 +11,7 @@ import supervision as sv
 #%% 
 # PyTorch imports for tensor operations
 import torch
-
+import os
 #%% 
 # Importing the models, transformations, and utility functions from PytorchWildlife 
 from PytorchWildlife.models import detection as pw_detection
@@ -22,8 +22,8 @@ from PytorchWildlife import utils as pw_utils
 #%% 
 # Setting the device to use for computations ('cuda' indicates GPU)
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-SOURCE_VIDEO_PATH = "./demo_data/videos/opossum_example.MP4"
-TARGET_VIDEO_PATH = "./demo_data/videos/opossum_example_processed.MP4"
+SOURCE_VIDEO_PATH = os.path.join(".","demo_data","videos","opossum_example.MP4")
+TARGET_VIDEO_PATH = os.path.join(".","demo_data","videos","opossum_example_processed.MP4")
 
 #%% 
 # Initializing the model for image detection
