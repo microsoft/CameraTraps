@@ -10,8 +10,8 @@
 
 # need "-o tsv" for the Azure CLI queries to get rid of quote marks
 
-SUBSCRIPTION=74d91980-e5b4-4fd9-adb6-263b8f90ec5b
-KEY_VAULT_NAME=cameratraps
+SUBSCRIPTION=1 # This has been modified
+KEY_VAULT_NAME=c
 
 
 # A URL and a code to use for logging in on the browser will be displayed
@@ -42,8 +42,7 @@ export STORAGE_ACCOUNT_KEY
 
 
 # Azure Container Registry - Azure Batch gets the Docker image from here
-export REGISTRY_SERVER=***REMOVED***.azurecr.io
-
+export REGISTRY_SERVER=a
 REGISTRY_PASSWORD=$(az keyvault secret show --name registry-password --subscription $SUBSCRIPTION --vault-name $KEY_VAULT_NAME --query value -o tsv)
 echo REGISTRY_PASSWORD read from KeyVault
 export REGISTRY_PASSWORD
