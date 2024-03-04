@@ -7,7 +7,7 @@
 # Importing necessary basic libraries and modules
 import numpy as np
 from PIL import Image
-
+import os
 #%% 
 # PyTorch imports 
 import torch
@@ -30,7 +30,7 @@ detection_model = pw_detection.MegaDetectorV5(device=DEVICE, pretrained=True)
 
 #%% Single image detection
 # Specifying the path to the target image TODO: Allow argparsing
-tgt_img_path = "./demo_data/imgs/10050028_0.JPG"
+tgt_img_path = os.path.join(".","demo_data","imgs","10050028_0.JPG")
 
 # Opening and converting the image to RGB format
 img = np.array(Image.open(tgt_img_path).convert("RGB"))
@@ -43,13 +43,13 @@ transform = pw_trans.MegaDetector_v5_Transform(target_size=detection_model.IMAGE
 results = detection_model.single_image_detection(transform(img), img.shape, tgt_img_path)
 
 # Saving the detection results 
-pw_utils.save_detection_images(results, "./demo_output")
+pw_utils.save_detection_images(results, os.path.join(".","demo_output"))
 
 #%% Batch detection
 """ Batch-detection demo """
 
 # Specifying the folder path containing multiple images for batch detection
-tgt_folder_path = "./demo_data/imgs"
+tgt_folder_path = os.path.join(".","demo_data","imgs")
 
 # Creating a dataset of images with the specified transform
 dataset = pw_data.DetectionImageFolder(
@@ -60,7 +60,7 @@ dataset = pw_data.DetectionImageFolder(
 
 # Creating a DataLoader for batching and parallel processing of the images
 loader = DataLoader(dataset, batch_size=32, shuffle=False, 
-                    pin_memory=True, num_workers=8, drop_last=False)
+                    pin_memory=True, num_workers=0, drop_last=False)
 
 # Performing batch detection on the images
 results = detection_model.batch_image_detection(loader)
@@ -75,5 +75,5 @@ pw_utils.save_crop_images(results, "crop_output")
 
 #%% Output to JSON results
 # Saving the detection results in JSON format
-pw_utils.save_detection_json(results, "./batch_output.json",
+pw_utils.save_detection_json(results, os.path.join(".","batch_output.json"),
                              categories=detection_model.CLASS_NAMES)
