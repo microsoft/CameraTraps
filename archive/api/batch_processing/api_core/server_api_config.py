@@ -91,7 +91,7 @@ STORAGE_CONTAINER_API = 'batch-api'
 # Azure Container Registry for Docker image used by our Batch node pools
 REGISTRY_SERVER = os.environ['REGISTRY_SERVER']
 REGISTRY_PASSWORD = os.environ['REGISTRY_PASSWORD']
-CONTAINER_IMAGE_NAME = '***REMOVED***.azurecr.io/tensorflow:1.14.0-gpu-py3'
+CONTAINER_IMAGE_NAME = ''
 
 # Azure App Configuration instance to get configurations specific to
 # this instance of the API
