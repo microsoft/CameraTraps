@@ -159,15 +159,17 @@ We have adopted the [Microsoft Open Source Code of Conduct](https://opensource.m
 ## License
 This repository is licensed with the [MIT license](https://github.com/Microsoft/dotnet/blob/main/LICENSE).
 
->[!IMPORTANT]
->If you have any questions regarding Pytorch-Wildlife and MegaDetector, or would like to be added to this list, please [email us](zhongqimiao@microsoft.com)!
-
 
 ## 👥 Existing Collaborators
 
 The extensive collaborative efforts of Megadetector have genuinely inspired us, and we deeply value its significant contributions to the community. As we continue to advance with Pytorch-Wildlife, our commitment to delivering technical support to our existing partners on MegaDetector remains the same.
 
-Here are a few of the organizations that have used MegaDetector. We're only listing organizations who have given us permission to refer to them here or have posted publicly about their use of MegaDetector:
+Here are a few of the organizations that have used MegaDetector. We're only listing organizations who have given us permission to refer to them here or have posted publicly about their use of MegaDetector.
+
+>[!IMPORTANT]
+>If you would like to be added to this list or have any questions regarding MegaDetector and Pytorch-Wildlife, please [email us](zhongqimiao@microsoft.com)!
+
+* (Newly Added) [TerrOïko](https://www.terroiko.fr/) ([OCAPI platform](https://www.terroiko.fr/ocapi))
 
 [Arizona Department of Environmental Quality](http://azdeq.gov/)
 
