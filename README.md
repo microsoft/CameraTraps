@@ -107,7 +107,8 @@ Let's shape the future of wildlife research, together! 🙌
 
 ### 📈 Progress on core tasks
 
-#### ▪️ Packaging 
+<details>
+<summary> <font size="3"> ▪️ Packaging </font> </summary>
 
 - [ ] Animal detection fine-tuning<br>
 - [x] MegaDetectorV5 integration<br>
@@ -117,37 +118,47 @@ Let's shape the future of wildlife research, together! 🙌
 - [x] Amazon Rainforest classification<br>
 - [x] Amazon Opossum classification<br>
 - [ ] User submitted weights<br>
+</details><br>
 
-#### ▪️ Utility Toolkit
+<details>
+<summary><font size="3">▪️ Utility Toolkit</font></summary>
 
 - [x] Visualization tools<br>
 - [x] MegaDetector utils<br>
 - [ ] User submitted utils<br>
+</details><br>
 
-#### ▪️ Datasets
+<details>
+<summary><font size="3">▪️ Datasets</font></summary>
 
 - [ ] Animal Datasets<br>
 - [ ] LILA datasets<br>
+</details><br>
 
-#### ▪️ Accesibilty
+<details>
+<summary><font size="3">▪️ Accesibilty</font></summary>
 
 - [x] Basic user interface for demonstration<br>
 - [ ] UI Dev tools<br>
 - [ ] List of available UIs<br>
+</details><br>
 
 
 ## 🖼️ Examples
 
 ### Image detection using `MegaDetector v5`
-![animal_det_1](https://github.com/melinamelia/Pytorch-Wildlife/assets/159795416/d9171431-df08-4df6-ab95-1cb831b286db)<br>
+<!-- ![animal_det_1](https://github.com/melinamelia/Pytorch-Wildlife/assets/159795416/d9171431-df08-4df6-ab95-1cb831b286db)<br> -->
+<img src="https://github.com/melinamelia/Pytorch-Wildlife/assets/159795416/d9171431-df08-4df6-ab95-1cb831b286db" alt="animal_det_1" width="400"/><br>
 *Credits to Universidad de los Andes, Colombia.*
 
 ### Image classification with `MegaDetector v5` and `AI4GAmazonRainforest`
-![animal_clas_1](https://github.com/melinamelia/Pytorch-Wildlife/assets/159795416/34473144-87b9-4589-9d76-3c9e5e6bdd16)<br>
+<!-- ![animal_clas_1](https://github.com/melinamelia/Pytorch-Wildlife/assets/159795416/34473144-87b9-4589-9d76-3c9e5e6bdd16)<br> -->
+<img src="https://github.com/melinamelia/Pytorch-Wildlife/assets/159795416/34473144-87b9-4589-9d76-3c9e5e6bdd16" alt="animal_clas_1" width="500"/><br>
 *Credits to Universidad de los Andes, Colombia.*
 
 ### Opossum ID with `MegaDetector v5` and `AI4GOpossum`
-![opossum_det](https://github.com/melinamelia/Pytorch-Wildlife/assets/159795416/dbe82610-437a-4d6e-8060-4cd90d54fb0a)<br>
+<!-- ![opossum_det](https://github.com/melinamelia/Pytorch-Wildlife/assets/159795416/dbe82610-437a-4d6e-8060-4cd90d54fb0a)<br> -->
+<img src="https://github.com/melinamelia/Pytorch-Wildlife/assets/159795416/dbe82610-437a-4d6e-8060-4cd90d54fb0a" alt="opossum_det" width="500"/><br>
 *Credits to the Agency for Regulation and Control of Biosecurity and Quarantine for Galápagos (ABG), Ecuador.*
 
 
@@ -164,10 +175,10 @@ This repository is licensed with the [MIT license](https://github.com/Microsoft/
 
 The extensive collaborative efforts of Megadetector have genuinely inspired us, and we deeply value its significant contributions to the community. As we continue to advance with Pytorch-Wildlife, our commitment to delivering technical support to our existing partners on MegaDetector remains the same.
 
-Here are a few of the organizations that have used MegaDetector. We're only listing organizations who have given us permission to refer to them here or have posted publicly about their use of MegaDetector.
+Here we list a few of the organizations that have used MegaDetector. We're only listing organizations who have given us permission to refer to them here or have posted publicly about their use of MegaDetector.
 
->[!IMPORTANT]
->If you would like to be added to this list or have any questions regarding MegaDetector and Pytorch-Wildlife, please [email us](zhongqimiao@microsoft.com)!
+<details>
+<summary><font size="3">👉 Full list of organizations</font></summary>
 
 (Newly Added) [TerrOïko](https://www.terroiko.fr/) ([OCAPI platform](https://www.terroiko.fr/ocapi))
 
@@ -294,3 +305,10 @@ Protected Areas Unit, Canadian Wildlife Service
 [The Nature Conservancy in California](https://www.nature.org/en-us/about-us/where-we-work/united-states/california/) [(Animl platform)](https://github.com/tnc-ca-geo/animl-frontend)
 
 [San Diego Zoo Wildlife Alliance](https://science.sandiegozoo.org/) [(Animl R package)](https://github.com/conservationtechlab/animl)
+
+</details><br>
+
+
+>[!IMPORTANT]
+>If you would like to be added to this list or have any questions regarding MegaDetector and Pytorch-Wildlife, please [email us](zhongqimiao@microsoft.com)!
+
