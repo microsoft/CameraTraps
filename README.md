@@ -169,7 +169,7 @@ Here are a few of the organizations that have used MegaDetector. We're only list
 >[!IMPORTANT]
 >If you would like to be added to this list or have any questions regarding MegaDetector and Pytorch-Wildlife, please [email us](zhongqimiao@microsoft.com)!
 
-* (Newly Added) [TerrOïko](https://www.terroiko.fr/) ([OCAPI platform](https://www.terroiko.fr/ocapi))
+(Newly Added) [TerrOïko](https://www.terroiko.fr/) ([OCAPI platform](https://www.terroiko.fr/ocapi))
 
 [Arizona Department of Environmental Quality](http://azdeq.gov/)
 
