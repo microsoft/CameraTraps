@@ -6,11 +6,11 @@
 # Pytorch-Wildlife
   A Collaborative Deep Learning Framework for Conservation
 
-## Update highlights (Version 1.0.2)
+## ✅ Update highlights (Version 1.0.2)
 - [x] Added Snapshot Serengeti classification model into the model zoo.
 - [x] Added Classification fine-tuning module.
 
-## Future feature highlights
+## 🔥 Future feature highlights
 - [ ] MegaDetectorV6 with multiple model sizes for both optimized performance and low-budget devices like camera systems.
 - [ ] Direct Timelapse format outputs for both detection and classifcation.
 - [ ] A detection model fine-tuning module to fine-tune your own detection model for Pytorch-Wildlife.
