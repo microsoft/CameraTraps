@@ -78,7 +78,7 @@ classification_results = classification_model.single_image_classification(img)
 ```
 pip install PytorchWildlife
 ```
-Please see refer to our [installation guide](https://github.com/microsoft/CameraTraps/blob/main/INSTALLATION.md) for more installation information.
+Please refer to our [installation guide](https://github.com/microsoft/CameraTraps/blob/main/INSTALLATION.md) for more installation information.
 
 ## 🕵️ Explore Pytorch-Wildlife and MegaDetector with our Demo User Interface
 
