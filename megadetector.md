@@ -54,7 +54,7 @@ For those interested in accessing the previous MegaDetector repository, which ut
 
 **PyTorch-Wildlife** is a platform to create, modify, and share powerful AI conservation models. These models can be used for a variety of applications, including camera trap images, overhead images, underwater images, or bioacoustics. Your engagement with our work is greatly appreciated, and we eagerly await any feedback you may have.
 
-### Install Pytorch-Wildlife
+Pytorch-Wildlife is pip installable:
 ```
 pip install PytorchWildlife
 ```
