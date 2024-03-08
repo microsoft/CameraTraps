@@ -1,7 +1,4 @@
-![test4](https://github.com/melinamelia/Pytorch-Wildlife/assets/159795416/2e735ff9-7d70-4659-965c-db12405ce941)
-
-
-
+![image](images/Pytorch_Banner_transparentbk.png)
 
 # Pytorch-Wildlife
   A Collaborative Deep Learning Framework for Conservation
@@ -10,9 +7,9 @@
 - [x] Added Snapshot Serengeti classification model into the model zoo.
 - [x] Added Classification fine-tuning module.
 
-## 🔥 Future feature highlights
+## 🔥 Future highlights
 - [ ] MegaDetectorV6 with multiple model sizes for both optimized performance and low-budget devices like camera systems.
-- [ ] Direct Timelapse format outputs for both detection and classifcation.
+- [ ] Direct Timelapse format outputs for both detection and classification.
 - [ ] A detection model fine-tuning module to fine-tune your own detection model for Pytorch-Wildlife.
 - [ ] Direct LILA connection for more training/validation data.
 - [ ] More pretrained detection and classification models to expand the current model zoo.
@@ -26,7 +23,7 @@ We've been inspired by the potential and capabilities of Megadetector, and we de
 As we forge ahead with Pytorch-Wildlife, under which Megadetector now resides, please know that we remain committed to supporting, maintaining, and developing Megadetector, ensuring its continued relevance, expansion, and utility.
 
 
-To use the newest version of MegaDetector with all the exisitng functionatlities, you can use our newly developed [user interface](https://github.com/microsoft/CameraTraps?tab=readme-ov-file#explore-pytorch-wildlife-and-megadetector-with-our-user-interface) or simply load the model with **Pytorch-Wildlife** and the weights will be automatically downloaded:
+To use the newest version of MegaDetector with all the existing functionalities, you can use our newly developed [user interface](https://github.com/microsoft/CameraTraps?tab=readme-ov-file#explore-pytorch-wildlife-and-megadetector-with-our-user-interface) or simply load the model with **Pytorch-Wildlife** and the weights will be automatically downloaded:
 ```python
 from PytorchWildlife.models import detection as pw_detection
 detection_model = pw_detection.MegaDetectorV5()
@@ -60,7 +57,7 @@ classification_results = classification_model.single_image_classification(img)
 ```
 ## 🕵️ Explore Pytorch-Wildlife and MegaDetector with our Demo User Interface
 
-If you want to directly try **Pytorch-Wildlife** with the AI models available, including `MegaDetector v5`, you can use our **Gradio** interface. This interface allows users to directly load the `MegaDetector v5` model weights for animal detection. In addition, **Pytorch-Wildlife** also has two classification models in our initial version. One is trained from an Amazon Rainforest camera trap dataset and the other from a Galapagos opossum classification dataset (more details of these datasets will be published soon). To start, please follow the [installation instructions](https://github.com/microsoft/CameraTraps/blob/main/INSTALLATION.md) on how to run the Gradio interface! We also provide multiple [**Jupyter** notebooks](https://github.com/microsoft/CameraTraps/tree/main/demo) for demonstation.
+If you want to directly try **Pytorch-Wildlife** with the AI models available, including `MegaDetector v5`, you can use our **Gradio** interface. This interface allows users to directly load the `MegaDetector v5` model weights for animal detection. In addition, **Pytorch-Wildlife** also has two classification models in our initial version. One is trained from an Amazon Rainforest camera trap dataset and the other from a Galapagos opossum classification dataset (more details of these datasets will be published soon). To start, please follow the [installation instructions](https://github.com/microsoft/CameraTraps/blob/main/INSTALLATION.md) on how to run the Gradio interface! We also provide multiple [**Jupyter** notebooks](https://github.com/microsoft/CameraTraps/tree/main/demo) for demonstration.
 
 ![image](https://github.com/melinamelia/Pytorch-Wildlife/assets/159795416/81419fb5-9a7e-41f4-9581-856838d5ea55)
 
@@ -136,7 +133,7 @@ Let's shape the future of wildlife research, together! 🙌
 </details><br>
 
 <details>
-<summary><font size="3">▪️ Accesibilty</font></summary>
+<summary><font size="3">▪️ Accessibility</font></summary>
 
 - [x] Basic user interface for demonstration<br>
 - [ ] UI Dev tools<br>
