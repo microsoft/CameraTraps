@@ -1,4 +1,4 @@
-![image](images/Pytorch_Banner_transparentbk.png)
+![image](assets/Pytorch_Banner_transparentbk.png)
 
 # Pytorch-Wildlife
   A Collaborative Deep Learning Framework for Conservation
