@@ -1,7 +1,7 @@
 ![image](assets/Pytorch_Banner_transparentbk.png)
 
 <div align="center"> 
-<font size="5"> A Collaborative Deep Learning Framework for Conservation </font>
+<font size="6"> A Collaborative Deep Learning Framework for Conservation </font>
 <br>
 <hr>
 <a href="https://pypi.org/project/PytorchWildlife"><img src="https://badge.fury.io/py/PytorchWildlife.svg" /></a> 
