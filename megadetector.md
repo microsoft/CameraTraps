@@ -84,12 +84,12 @@ Please refer to our [installation guide](https://github.com/microsoft/CameraTrap
 
 If you want to directly try **Pytorch-Wildlife** with the AI models available, including `MegaDetector v5`, you can use our [**Gradio** interface](https://github.com/microsoft/CameraTraps/tree/main/demo). This interface allows users to directly load the `MegaDetector v5` model weights for animal detection. In addition, **Pytorch-Wildlife** also has two classification models in our initial version. One is trained from an Amazon Rainforest camera trap dataset and the other from a Galapagos opossum classification dataset (more details of these datasets will be published soon). To start, please follow the [installation instructions](https://github.com/microsoft/CameraTraps/blob/main/INSTALLATION.md) on how to run the Gradio interface! We also provide multiple [**Jupyter** notebooks](https://github.com/microsoft/CameraTraps/tree/main/demo) for demonstration.
 
-![image](https://github.com/melinamelia/Pytorch-Wildlife/assets/159795416/81419fb5-9a7e-41f4-9581-856838d5ea55)
+![image](assets/gradio_UI.png)
 
 
 ## 🛠️ Core Features
    What are the core components of Pytorch-Wildlife?
-![Pytorch-core-diagram](https://github.com/melinamelia/Pytorch-Wildlife/assets/159795416/3353f4e2-9fbb-46d5-b5e6-2ad1a17b4f33)
+![Pytorch-core-diagram](assets/Pytorch_Wildlife_core_figure.jpg)
 
 
 ### 🌐 Unified Framework:
@@ -169,18 +169,15 @@ Let's shape the future of wildlife research, together! 🙌
 ## 🖼️ Examples
 
 ### Image detection using `MegaDetector v5`
-<!-- ![animal_det_1](https://github.com/melinamelia/Pytorch-Wildlife/assets/159795416/d9171431-df08-4df6-ab95-1cb831b286db)<br> -->
-<img src="https://github.com/melinamelia/Pytorch-Wildlife/assets/159795416/d9171431-df08-4df6-ab95-1cb831b286db" alt="animal_det_1" width="400"/><br>
+<img src="assets/animal_det_1.JPG" alt="animal_det_1" width="400"/><br>
 *Credits to Universidad de los Andes, Colombia.*
 
 ### Image classification with `MegaDetector v5` and `AI4GAmazonRainforest`
-<!-- ![animal_clas_1](https://github.com/melinamelia/Pytorch-Wildlife/assets/159795416/34473144-87b9-4589-9d76-3c9e5e6bdd16)<br> -->
-<img src="https://github.com/melinamelia/Pytorch-Wildlife/assets/159795416/34473144-87b9-4589-9d76-3c9e5e6bdd16" alt="animal_clas_1" width="500"/><br>
+<img src="assets/animal_clas_1.png" alt="animal_clas_1" width="500"/><br>
 *Credits to Universidad de los Andes, Colombia.*
 
 ### Opossum ID with `MegaDetector v5` and `AI4GOpossum`
-<!-- ![opossum_det](https://github.com/melinamelia/Pytorch-Wildlife/assets/159795416/dbe82610-437a-4d6e-8060-4cd90d54fb0a)<br> -->
-<img src="https://github.com/melinamelia/Pytorch-Wildlife/assets/159795416/dbe82610-437a-4d6e-8060-4cd90d54fb0a" alt="opossum_det" width="500"/><br>
+<img src="assets/opossum_det.png" alt="opossum_det" width="500"/><br>
 *Credits to the Agency for Regulation and Control of Biosecurity and Quarantine for Galápagos (ABG), Ecuador.*
 
 

@@ -99,7 +99,7 @@ pip uninstall opencv-python
 conda install -c conda-forge opencv
 ```
 
-<img src="images/gradio_UI.png">
+<img src="assets/gradio_UI.png">
 
 **NOTE: Windows may encounter some errors with large file uploads making Batch Image Detection and Video Detection unable to process. It is a Gradio issue. Newer versions of Gradio in the future may fix this problem.**
   
