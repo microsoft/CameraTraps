@@ -12,6 +12,7 @@ The **Pytorch-Wildlife** library allows users to directly load the MegadetectorV
     - [Create environment](#create-environment)
     - [Ubuntu](#ubuntu)
     - [MacOS](#macos)
+    - [Windows](#windows)
   - [Installation](#installation)
     - [Install through pip:](#install-through-pip)
   - [Running the Demo](#running-the-demo)
@@ -45,6 +46,9 @@ If you are using MacOS, please run the following command to install ffmpeg for v
 ```bash
 brew install ffmpeg
 ```
+
+### Windows
+Windows installation is a bit more complicated due to operating system differences. Please refer to our [Windows installation guide](assets/PytorchWildlife_Windows_installation_tutorial.pdf) for details.
 
 ## Installation
 
