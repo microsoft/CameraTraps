@@ -50,7 +50,7 @@ For those interested in accessing the previous MegaDetector repository, which ut
 >[!TIP]
 >If you have any questions regarding MegaDetector and Pytorch-Wildlife, please [email us](zhongqimiao@microsoft.com) or join us in our discord channel: [![](https://img.shields.io/badge/any_text-Join_us!-blue?logo=discord&label=PytorchWildife)](https://discord.gg/GYZJA26aSj)
 
-## 👋 Welcome to Version 1.0
+## 👋 Welcome to Pytorch-Wildlife Version 1.0
 
 **PyTorch-Wildlife** is a platform to create, modify, and share powerful AI conservation models. These models can be used for a variety of applications, including camera trap images, overhead images, underwater images, or bioacoustics. Your engagement with our work is greatly appreciated, and we eagerly await any feedback you may have.
 
