@@ -58,7 +58,7 @@ numpy==1.24.4
 oauthlib==3.2.2
 opencv-python==4.9.0.80
 opencv-python-headless==4.9.0.80
-orjson==3.9.12
+orjson==3.9.15
 packaging==23.2
 pandas==2.0.3
 parso==0.8.3
