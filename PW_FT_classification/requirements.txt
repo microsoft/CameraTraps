@@ -79,7 +79,7 @@ pydub==0.25.1
 pygments==2.17.2
 pyparsing==3.1.1
 python-dateutil==2.8.2
-python-multipart==0.0.6
+python-multipart==0.0.7
 pytorch-lightning==1.9.0
 pytorchwildlife
 pytz==2023.4
