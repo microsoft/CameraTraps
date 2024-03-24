@@ -6,6 +6,7 @@
 import os
 import numpy as np
 import json
+import cv2
 from PIL import Image
 import supervision as sv
 
@@ -35,21 +36,21 @@ def save_detection_images(results, output_dir):
         if isinstance(results, list):
             for entry in results:
                 annotated_img = box_annotator.annotate(
-                    scene=np.array(Image.open(entry["img_id"])),
+                    scene=np.array(Image.open(entry["img_id"]).convert("RGB")),
                     detections=entry["detections"],
                     labels=entry["labels"],
                 )
                 sink.save_image(
-                    image=annotated_img, image_name=entry["img_id"].rsplit(os.sep, 1)[1]
+                    image=cv2.cvtColor(annotated_img, cv2.COLOR_RGB2BGR), image_name=entry["img_id"].rsplit(os.sep, 1)[1]
                 )
         else:
             annotated_img = box_annotator.annotate(
-                scene=np.array(Image.open(results["img_id"])),
+                scene=np.array(Image.open(results["img_id"]).convert("RGB")),
                 detections=results["detections"],
                 labels=results["labels"],
             )
             sink.save_image(
-                image=annotated_img, image_name=results["img_id"].rsplit(os.sep, 1)[1]
+                image=cv2.cvtColor(annotated_img, cv2.COLOR_RGB2BGR), image_name=results["img_id"].rsplit(os.sep, 1)[1]
             )
 
 
@@ -70,10 +71,10 @@ def save_crop_images(results, output_dir):
         for entry in results:
             for i, (xyxy, _, _, cat, _) in enumerate(entry["detections"]):
                 cropped_img = sv.crop_image(
-                    image=np.array(Image.open(entry["img_id"])), xyxy=xyxy
+                    image=np.array(Image.open(entry["img_id"]).convert("RGB")), xyxy=xyxy
                 )
                 sink.save_image(
-                    image=cropped_img,
+                    image=cv2.cvtColor(cropped_img, cv2.COLOR_RGB2BGR),
                     image_name="{}_{}_{}".format(
                         int(cat), i, entry["img_id"].rsplit(os.sep, 1)[1]
                     ),

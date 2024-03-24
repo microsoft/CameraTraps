@@ -5,6 +5,7 @@
 
 import numpy as np
 from tqdm import tqdm
+import cv2
 from typing import Callable
 from supervision import VideoInfo, VideoSink, get_video_frames_generator
 
@@ -48,5 +49,5 @@ def process_video(
                 get_video_frames_generator(source_path=source_path, stride=stride)
             ):
                 result_frame = callback(frame, index)
-                sink.write_frame(frame=result_frame)
+                sink.write_frame(frame=cv2.cvtColor(result_frame, cv2.COLOR_RGB2BGR))
                 pbar.update(1)
