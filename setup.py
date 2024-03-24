@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='PytorchWildlife',
-    version='1.0.2.2', 
+    version='1.0.2.3', 
     packages=find_packages(),
     url='https://github.com/microsoft/CameraTraps/',  
     license='MIT',
@@ -33,6 +33,6 @@ setup(
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
     ],
-    keywords='pytorch, wildlife, megadetector, conservation, animal, detection, classification',
+    keywords='pytorch_wildlife, pytorch, wildlife, megadetector, conservation, animal, detection, classification',
     python_requires='>=3.8',
 )
