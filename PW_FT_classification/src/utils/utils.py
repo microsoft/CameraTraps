@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+import cv2
 import supervision as sv
 from PIL import Image 
 import numpy as np
@@ -34,12 +35,12 @@ def save_crop_images(results, output_dir, original_csv_path):
             if os.path.basename(entry["img_id"]) in original_df['path'].values:
                 for i, (xyxy, _, _, cat, _) in enumerate(entry["detections"]):
                     cropped_img = sv.crop_image(
-                        image=np.array(Image.open(entry["img_id"])), xyxy=xyxy
+                        image=np.array(Image.open(entry["img_id"]).convert("RGB")), xyxy=xyxy
                     )
                     new_img_name = "{}_{}_{}".format(
                             int(cat), i, entry["img_id"].rsplit("/", 1)[1])
                     sink.save_image(
-                        image=cropped_img,
+                        image=cv2.cvtColor(cropped_img, cv2.COLOR_RGB2BGR),
                         image_name=new_img_name
                         ),
                     
