@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='PytorchWildlife',
-    version='1.0.2.3', 
+    version='1.0.2.4', 
     packages=find_packages(),
     url='https://github.com/microsoft/CameraTraps/',  
     license='MIT',
