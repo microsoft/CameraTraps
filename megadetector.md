@@ -1,4 +1,4 @@
-![image](assets/Pytorch_Banner_transparentbk.png)
+![image](https://microsoft.github.io/CameraTraps/assets/Pytorch_Banner_transparentbk.png)
 
 <div align="center"> 
 <font size="6"> A Collaborative Deep Learning Framework for Conservation </font>
@@ -86,12 +86,12 @@ Please refer to our [installation guide](https://github.com/microsoft/CameraTrap
 
 If you want to directly try **Pytorch-Wildlife** with the AI models available, including `MegaDetector v5`, you can use our [**Gradio** interface](https://github.com/microsoft/CameraTraps/tree/main/demo). This interface allows users to directly load the `MegaDetector v5` model weights for animal detection. In addition, **Pytorch-Wildlife** also has two classification models in our initial version. One is trained from an Amazon Rainforest camera trap dataset and the other from a Galapagos opossum classification dataset (more details of these datasets will be published soon). To start, please follow the [installation instructions](https://github.com/microsoft/CameraTraps/blob/main/INSTALLATION.md) on how to run the Gradio interface! We also provide multiple [**Jupyter** notebooks](https://github.com/microsoft/CameraTraps/tree/main/demo) for demonstration.
 
-![image](assets/gradio_UI.png)
+![image](https://microsoft.github.io/CameraTraps/assets/gradio_UI.png)
 
 
 ## 🛠️ Core Features
    What are the core components of Pytorch-Wildlife?
-![Pytorch-core-diagram](assets/Pytorch_Wildlife_core_figure.jpg)
+![Pytorch-core-diagram](https://microsoft.github.io/CameraTraps/assets/Pytorch_Wildlife_core_figure.jpg)
 
 
 ### 🌐 Unified Framework:
@@ -171,15 +171,15 @@ Let's shape the future of wildlife research, together! 🙌
 ## 🖼️ Examples
 
 ### Image detection using `MegaDetector v5`
-<img src="assets/animal_det_1.JPG" alt="animal_det_1" width="400"/><br>
+<img src="https://microsoft.github.io/CameraTraps/assets/animal_det_1.JPG" alt="animal_det_1" width="400"/><br>
 *Credits to Universidad de los Andes, Colombia.*
 
 ### Image classification with `MegaDetector v5` and `AI4GAmazonRainforest`
-<img src="assets/animal_clas_1.png" alt="animal_clas_1" width="500"/><br>
+<img src="https://microsoft.github.io/CameraTraps/assets/animal_clas_1.png" alt="animal_clas_1" width="500"/><br>
 *Credits to Universidad de los Andes, Colombia.*
 
 ### Opossum ID with `MegaDetector v5` and `AI4GOpossum`
-<img src="assets/opossum_det.png" alt="opossum_det" width="500"/><br>
+<img src="https://microsoft.github.io/CameraTraps/assets/opossum_det.png" alt="opossum_det" width="500"/><br>
 *Credits to the Agency for Regulation and Control of Biosecurity and Quarantine for Galápagos (ABG), Ecuador.*
 
 
