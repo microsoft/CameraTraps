@@ -29,14 +29,18 @@ def save_detection_images(results, output_dir):
         output_dir (str):
             Directory to save the annotated images.
     """
-    box_annotator = sv.BoxAnnotator(thickness=4, text_thickness=4, text_scale=2)
+    box_annotator = sv.BoundingBoxAnnotator(thickness=4)
+    lab_annotator = sv.LabelAnnotator(text_color=sv.Color.BLACK, text_thickness=4, text_scale=2)
     os.makedirs(output_dir, exist_ok=True)
 
     with sv.ImageSink(target_dir_path=output_dir, overwrite=True) as sink:
         if isinstance(results, list):
             for entry in results:
-                annotated_img = box_annotator.annotate(
-                    scene=np.array(Image.open(entry["img_id"]).convert("RGB")),
+                annotated_img = lab_annotator.annotate(
+                    scene=box_annotator.annotate(
+                        scene=np.array(Image.open(entry["img_id"]).convert("RGB")),
+                        detections=entry["detections"],
+                    ),
                     detections=entry["detections"],
                     labels=entry["labels"],
                 )
@@ -44,8 +48,11 @@ def save_detection_images(results, output_dir):
                     image=cv2.cvtColor(annotated_img, cv2.COLOR_RGB2BGR), image_name=entry["img_id"].rsplit(os.sep, 1)[1]
                 )
         else:
-            annotated_img = box_annotator.annotate(
-                scene=np.array(Image.open(results["img_id"]).convert("RGB")),
+            annotated_img = lab_annotator.annotate(
+                scene=box_annotator.annotate(
+                    scene=np.array(Image.open(results["img_id"]).convert("RGB")),
+                    detections=results["detections"],
+                ),
                 detections=results["detections"],
                 labels=results["labels"],
             )
@@ -69,7 +76,7 @@ def save_crop_images(results, output_dir):
     os.makedirs(output_dir, exist_ok=True)
     with sv.ImageSink(target_dir_path=output_dir, overwrite=True) as sink:
         for entry in results:
-            for i, (xyxy, _, _, cat, _) in enumerate(entry["detections"]):
+            for i, (xyxy, cat) in enumerate(zip(entry["detections"].xyxy, entry["detections"].class_id)):
                 cropped_img = sv.crop_image(
                     image=np.array(Image.open(entry["img_id"]).convert("RGB")), xyxy=xyxy
                 )

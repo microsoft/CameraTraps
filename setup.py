@@ -18,7 +18,7 @@ setup(
         'torchaudio==0.10.1',
         'tqdm==4.66.1',
         'Pillow==10.1.0', 
-        'supervision==0.16.0',
+        'supervision==0.19.0',
         'gradio==4.8.0',
         'ultralytics-yolov5',
         'chardet'

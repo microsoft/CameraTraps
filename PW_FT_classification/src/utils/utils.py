@@ -33,7 +33,7 @@ def save_crop_images(results, output_dir, original_csv_path):
         for entry in results:
             # Process the data if the name of the file is in the dataframe
             if os.path.basename(entry["img_id"]) in original_df['path'].values:
-                for i, (xyxy, _, _, cat, _) in enumerate(entry["detections"]):
+                for i, (xyxy, cat) in enumerate(zip(entry["detections"].xyxy, entry["detections"].class_id)):
                     cropped_img = sv.crop_image(
                         image=np.array(Image.open(entry["img_id"]).convert("RGB")), xyxy=xyxy
                     )

@@ -86,7 +86,7 @@ class YOLOV5Base:
         )
         results["labels"] = [
             f"{self.CLASS_NAMES[class_id]} {confidence:0.2f}"
-            for _, _, confidence, class_id, _ in results["detections"]
+            for confidence, class_id in zip(results["detections"].confidence, results["detections"].class_id)
         ]
         return results
 
