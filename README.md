@@ -7,7 +7,7 @@
 <a href="https://pypi.org/project/PytorchWildlife"><img src="https://badge.fury.io/py/PytorchWildlife.svg" /></a> 
 <a href="https://pypi.org/project/PytorchWildlife"><img src="https://static.pepy.tech/badge/pytorchwildlife" /></a> 
 <a href="https://pypi.org/project/PytorchWildlife"><img src="https://img.shields.io/pypi/pyversions/PytorchWildlife" /></a> 
-<a href="https://huggingface.co/spaces/AndresHdzC/pytorch-wildlife"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Demo-blue" /></a>
+<a href="https://huggingface.co/spaces/ai4g-biodiversity/pytorch-wildlife"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Demo-blue" /></a>
 <a href="https://colab.research.google.com/drive/1rjqHrTMzEHkMualr4vB55dQWCsCKMNXi?usp=sharing"><img src="https://img.shields.io/badge/Colab-Demo-blue?logo=GoogleColab" /></a>
 <!-- <a href="https://colab.research.google.com/drive/16-OjFVQ6nopuP-gfqofYBBY00oIgbcr1?usp=sharing"><img src="https://img.shields.io/badge/Colab-Video detection-blue?logo=GoogleColab" /></a> -->
 <a href="https://cameratraps.readthedocs.io/en/latest/"><img src="https://img.shields.io/badge/read-docs-yellow?logo=ReadtheDocs" /></a>
@@ -29,7 +29,7 @@
 - [ ] Direct LILA connection for more training/validation data.
 - [ ] More pretrained detection and classification models to expand the current model zoo.
 
-To check the previous roadmap and finished tasks, please click [here](roadmaps.md).
+To check the full version of the roadmap with completed tasks and long term goals, please click [here!](roadmaps.md).
 
 ## 🐾 Introduction
 
