@@ -4,7 +4,7 @@
 <font size="6"> A Collaborative Deep Learning Framework for Conservation </font>
 <br>
 <hr>
-<a href="https://pypi.org/project/PytorchWildlife"><img src="https://badge.fury.io/py/PytorchWildlife.svg" /></a> 
+<a href="https://pypi.org/project/PytorchWildlife"><img src="https://img.shields.io/pypi/v/PytorchWildlife?color=limegreen" /></a> 
 <a href="https://pypi.org/project/PytorchWildlife"><img src="https://static.pepy.tech/badge/pytorchwildlife" /></a> 
 <a href="https://pypi.org/project/PytorchWildlife"><img src="https://img.shields.io/pypi/pyversions/PytorchWildlife" /></a> 
 <a href="https://huggingface.co/spaces/AndresHdzC/pytorch-wildlife"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Demo-blue" /></a>
