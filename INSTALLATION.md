@@ -15,7 +15,9 @@ The **Pytorch-Wildlife** library allows users to directly load the MegadetectorV
     - [Windows](#windows)
   - [Installation](#installation)
     - [Install through pip:](#install-through-pip)
+  - [Using Docker](#using-docker)
   - [Running the Demo](#running-the-demo)
+  - [Using Jupyter](#using-jupyter)
   - [License](#license)
   - [Copyright](#copyright)
  
@@ -56,6 +58,18 @@ Windows installation is a bit more complicated due to operating system differenc
 ```bash
 pip install PytorchWildlife
 ```
+## Using Docker
+
+1. Install Docker on your OS. Here are the guidelines for [Windows](https://docs.docker.com/desktop/install/windows-install/), [Ubuntu](https://docs.docker.com/engine/install/ubuntu/) and [Mac](https://docs.docker.com/desktop/install/mac-install/).
+2. Pull the docker image from our [DockerHub](https://hub.docker.com/repository/docker/andreshdz/pytorchwildlife/general).
+```bash
+docker pull andreshdz/pytorchwildlife:1.0.2.3
+```
+3. Run the gradio demo after pulling the image
+```bash
+docker run -p 80:80 andreshdz/pytorchwildlife:1.0.2.3 python demo/gradio_demo.py
+```
+4. If you want to run any code using the docker image,  please use `docker run andreshdz/pytorchwildlife:1.0.2.3` followed by the command that you want to execute.
 
 ## Running the Demo
 Here is a brief example on how to perform detection and classification on a single image using `PyTorch-wildlife`:
@@ -106,7 +120,15 @@ conda install -c conda-forge opencv
 <img src="assets/gradio_UI.png">
 
 **NOTE: Windows may encounter some errors with large file uploads making Batch Image Detection and Video Detection unable to process. It is a Gradio issue. Newer versions of Gradio in the future may fix this problem.**
-  
+
+
+## Using Jupyter
+[Juptyer](https://jupyter.org/) helps to progressively understand what each code block does. We have provided a set of demo files that can be read using Jupyter. If you have the Anaconda Navigator installed, you should have the option to run Jupyter. To make sure that the PytorchWildlife environment is recognized by Jupyter, please run the following code while your `pytorch-wildlife` environment is active:
+```bash
+conda install ipykernel
+python -m ipykernel install --user --name pytorch-wildlife --display-name "Python (PytorchWildlife)"
+```
+Once you execute the commands, you should be able to choose the `Python (PytorchWildlife)` kernel to start running the code!
 ## License
 This project is licensed under the MIT License. Refer to the LICENSE file for more details.
 ## Copyright

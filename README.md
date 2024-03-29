@@ -21,6 +21,7 @@
 - [x] Added Google Colab demos.
 - [x] Added Snapshot Serengeti classification model into the model zoo.
 - [x] Added Classification fine-tuning module.
+- [x] Added a Docker Image for ease of installation.
 
 ## 🔥 Future highlights
 - [ ] MegaDetectorV6 with multiple model sizes for both optimized performance and low-budget devices like camera systems.
