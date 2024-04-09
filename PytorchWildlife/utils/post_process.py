@@ -81,7 +81,7 @@ def save_crop_images(results, output_dir):
                 )
 
 
-def save_detection_json(results, output_dir, categories=None):
+def save_detection_json(results, output_dir, categories=None, exclude_category_ids=[]):
     """
     Save detection results to a JSON file.
 
@@ -92,19 +92,32 @@ def save_detection_json(results, output_dir, categories=None):
             Path to save the output JSON file.
         categories (list, optional):
             List of categories for detected objects. Defaults to None.
+        exclude_category_ids (list, optional):
+            List of category IDs to exclude from the output. Defaults to []. Category IDs can be found in the definition of each models.
     """
     json_results = {"annotations": [], "categories": categories}
     with open(output_dir, "w") as f:
         for r in results:
-            json_results["annotations"].append(
-                {
-                    "img_id": r["img_id"],
-                    "bbox": r["detections"].xyxy.astype(int).tolist(),
-                    "category": r["detections"].class_id.tolist(),
-                    "confidence": r["detections"].confidence.tolist(),
-                }
-            )
-        json.dump(json_results, f)
+
+            # Category filtering
+            img_id = r["img_id"]
+            category = r["detections"].class_id
+
+            bbox = r["detections"].xyxy.astype(int)[~np.isin(category, exclude_category_ids)]
+            confidence =  r["detections"].confidence[~np.isin(category, exclude_category_ids)]
+            category = category[~np.isin(category, exclude_category_ids)]
+
+            if not all([x in exclude_category_ids for x in category]):
+                json_results["annotations"].append(
+                    {
+                        "img_id": img_id,
+                        "bbox": bbox.tolist(),
+                        "category": category.tolist(),
+                        "confidence": confidence.tolist(),
+                    }
+                )
+
+        json.dump(json_results, f, indent=4)
 
 
 def save_detection_classification_json(
