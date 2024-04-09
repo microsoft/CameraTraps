@@ -104,7 +104,7 @@ def save_detection_json(results, output_dir, categories=None):
                     "confidence": r["detections"].confidence.tolist(),
                 }
             )
-        json.dump(json_results, f)
+        json.dump(json_results, f, indent=4)
 
 
 def save_detection_classification_json(
