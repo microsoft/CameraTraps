@@ -94,12 +94,13 @@ def single_image_detection(input_img, det_conf_thres, clf_conf_thres, img_index=
     return annotated_img
 
 
-def batch_detection(zip_file, det_conf_thres):
+def batch_detection(zip_file, timelapse, det_conf_thres):
     """Perform detection on a batch of images from a zip file and return path to results JSON.
     
     Args:
         zip_file (File): Zip file containing images.
         det_conf_thre (float): Confidence threshold for detection.
+        timelapse (boolean): Flag to output JSON for timelapse.
         clf_conf_thre (float): Confidence threshold for classification.
 
     Returns:
@@ -135,13 +136,23 @@ def batch_detection(zip_file, det_conf_thres):
         clf_loader = DataLoader(clf_dataset, batch_size=32, shuffle=False, 
                                 pin_memory=True, num_workers=4, drop_last=False)
         clf_results = classification_model.batch_image_classification(clf_loader, id_strip=tgt_folder_path)
-        pw_utils.save_detection_classification_json(det_results=det_results,
-                                                    clf_results=clf_results,
-                                                    det_categories=detection_model.CLASS_NAMES,
-                                                    clf_categories=classification_model.CLASS_NAMES,
-                                                    output_path=json_save_path)
+        if timelapse:
+            pw_utils.save_detection_classification_timelapse_json(det_results=det_results,
+                                                        clf_results=clf_results,
+                                                        det_categories=detection_model.CLASS_NAMES,
+                                                        clf_categories=classification_model.CLASS_NAMES,
+                                                        output_path=json_save_path)
+        else:
+            pw_utils.save_detection_classification_json(det_results=det_results,
+                                                        clf_results=clf_results,
+                                                        det_categories=detection_model.CLASS_NAMES,
+                                                        clf_categories=classification_model.CLASS_NAMES,
+                                                        output_path=json_save_path)
     else:
-        pw_utils.save_detection_json(det_results, json_save_path, categories=detection_model.CLASS_NAMES)
+        if timelapse:
+            pw_utils.save_detection_timelapse_json(det_results, json_save_path, categories=detection_model.CLASS_NAMES)
+        else:
+            pw_utils.save_detection_json(det_results, json_save_path, categories=detection_model.CLASS_NAMES)
 
     return json_save_path
 
@@ -199,6 +210,7 @@ with gr.Blocks() as demo:
         with gr.Row():
             with gr.Column():
                 bth_in = gr.File(label="Upload zip file.")
+                chck_timelapse = gr.Checkbox(label="Timelapse Output", info="Output JSON for timelapse.")
                 bth_conf_sl = gr.Slider(0, 1, label="Detection Confidence Threshold", value=0.2)
             bth_out = gr.File(label="Detection Results JSON.", height=200)
         bth_but = gr.Button("Detect Animals!")
@@ -220,7 +232,7 @@ with gr.Blocks() as demo:
 
     load_but.click(load_models, inputs=[det_drop, clf_drop], outputs=load_out)
     sgl_but.click(single_image_detection, inputs=[sgl_in, sgl_conf_sl_det, sgl_conf_sl_clf], outputs=sgl_out)
-    bth_but.click(batch_detection, inputs=[bth_in, bth_conf_sl], outputs=bth_out)
+    bth_but.click(batch_detection, inputs=[bth_in, chck_timelapse, bth_conf_sl], outputs=bth_out)
     vid_but.click(video_detection, inputs=[vid_in, vid_conf_sl_det, vid_conf_sl_clf, vid_fr, vid_enc], outputs=vid_out)
 
 if __name__ == "__main__":

@@ -154,7 +154,16 @@ class YOLOV5Base:
 
         # If there are size differences in the input images, use a for loop instead of matrix processing for scaling
         for pred, size, path in zip(total_preds, total_img_sizes, total_paths):
+            original_coords = pred[:, :4].copy()
+            normalized_coords = []
             pred[:, :4] = scale_coords([self.IMAGE_SIZE] * 2, pred[:, :4], size).round()
-            results.append(self.results_generation(pred, path, id_strip))
+            res = self.results_generation(pred, path, id_strip)
+            # Normalize the coordinates for timelapse compatibility
+            for coord in pred[:, :4]:
+                x1, y1, x2, y2 = coord
+                x1, y1, x2, y2 = x1 / size[1], y1 / size[0], x2 / size[1], y2 / size[0]
+                normalized_coords.append([x1, y1, x2, y2])
+            res["normalized_coords"] = normalized_coords
+            results.append(res)
 
         return results

@@ -15,6 +15,8 @@ __all__ = [
     "save_crop_images",
     "save_detection_json",
     "save_detection_classification_json",
+    "save_detection_timelapse_json",
+    "save_detection_classification_timelapse_json",
 ]
 
 
@@ -119,6 +121,48 @@ def save_detection_json(results, output_dir, categories=None, exclude_category_i
 
         json.dump(json_results, f, indent=4)
 
+def save_detection_timelapse_json(det_results, output_dir, categories=None):
+    """
+    Save detection results to a JSON file.
+
+    Args:
+        results (list):
+            Detection results containing image ID, bounding boxes, category, and confidence.
+        output_dir (str):
+            Path to save the output JSON file.
+        categories (list, optional):
+            List of categories for detected objects. Defaults to None.
+    """
+    json_results = {
+        "info": {"detector": "megadetector_v5"},
+        "detection_categories": categories,
+        "images": []
+    }
+
+    for det_r in det_results:
+        image_annotations = {
+            "file": det_r["img_id"],
+            "max_detection_conf": max(det_r["detections"].confidence.tolist()),
+            "detections": []
+        }
+
+        for i in range(len(det_r["detections"])):
+            det = det_r["detections"][i]
+            normalized_bbox = [float(y) for y in det_r["normalized_coords"][i]]
+            detection = {
+                "category": str(det.class_id[0]),
+                "conf": float(det.confidence[0]),
+                "bbox": [normalized_bbox[0], normalized_bbox[1], normalized_bbox[2]-normalized_bbox[0], normalized_bbox[3]-normalized_bbox[1]],
+                "classifications": []
+            }
+
+            image_annotations["detections"].append(detection)
+
+        json_results["images"].append(image_annotations)
+
+    with open(output_dir, "w") as f:
+        json.dump(json_results, f, indent=4)
+
 
 def save_detection_classification_json(
     det_results, clf_results, output_path, det_categories=None, clf_categories=None
@@ -176,4 +220,60 @@ def save_detection_classification_json(
                     "clf_confidence": [float(x) for x in clf_confidence],
                 }
             )
-        json.dump(json_results, f)
+        json.dump(json_results, f, indent=4)
+
+
+def save_detection_classification_timelapse_json(
+    det_results, clf_results, output_path, det_categories=None, clf_categories=None
+):
+    """
+    Save detection and classification results to a JSON file in the specified format.
+
+    Args:
+        det_results (list):
+            Detection results containing image ID, bounding boxes, detection category, and confidence.
+        clf_results (list):
+            Classification results containing image ID, classification category, and confidence.
+        output_path (str):
+            Path to save the output JSON file.
+        det_categories (dict, optional):
+            Dictionary of categories for detected objects. Defaults to None.
+        clf_categories (dict, optional):
+            Dictionary of categories for classified objects. Defaults to None.
+
+    """
+    json_results = {
+        "info": {"detector": "megadetector_v5"},
+        "detection_categories": det_categories,
+        "classification_categories": clf_categories,
+        "images": []
+    }
+
+    for det_r in det_results:
+        image_annotations = {
+            "file": det_r["img_id"],
+            "max_detection_conf": max(det_r["detections"].confidence.tolist()),
+            "detections": []
+        }
+
+        for i in range(len(det_r["detections"])):
+            det = det_r["detections"][i]
+            normalized_bbox = [float(y) for y in det_r["normalized_coords"][i]]
+            detection = {
+                "category": str(det.class_id[0]),
+                "conf": float(det.confidence[0]),
+                "bbox": [normalized_bbox[0], normalized_bbox[1], normalized_bbox[2]-normalized_bbox[0], normalized_bbox[3]-normalized_bbox[1]],
+                "classifications": []
+            }
+
+            # Find classifications for this detection
+            for clf_r in clf_results:
+                if clf_r["img_id"] == det_r["img_id"]:
+                    detection["classifications"].append([str(clf_r["class_id"]), float(clf_r["confidence"])])
+
+            image_annotations["detections"].append(detection)
+
+        json_results["images"].append(image_annotations)
+
+    with open(output_path, "w") as f:
+        json.dump(json_results, f, indent=4)

@@ -78,4 +78,8 @@ pw_utils.save_crop_images(results, "crop_output")
 # Saving the detection results in JSON format
 pw_utils.save_detection_json(results, os.path.join(".","batch_output.json"),
                              categories=detection_model.CLASS_NAMES,
-                             exclude_category_ids=[]) # Category IDs can be found in the definition of each model.
+                             exclude_category_ids=[])
+
+# Saving the detection results in timelapse JSON format
+pw_utils.save_detection_timelapse_json(results, os.path.join(".","batch_output_timelapse.json"),
+                             categories=detection_model.CLASS_NAMES)
