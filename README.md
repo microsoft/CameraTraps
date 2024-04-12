@@ -18,7 +18,7 @@
 
 
 ## ✅ Update highlights (Version 1.0.2.9)
-- [x] Added Timelapse compatibility! Check the [Gradio interface](INSTALLATION.md) or [notebooks](https://github.com/microsoft/CameraTraps/tree/main/demo).
+- [x] 🥳 Added Timelapse compatibility! Check the [Gradio interface](INSTALLATION.md) or [notebooks](https://github.com/microsoft/CameraTraps/tree/main/demo).
 - [x] Added Google Colab demos.
 - [x] Added Snapshot Serengeti classification model into the model zoo.
 - [x] Added Classification fine-tuning module.
@@ -26,7 +26,6 @@
 
 ## 🔥 Future highlights
 - [ ] MegaDetectorV6 with multiple model sizes for both optimized performance and low-budget devices like camera systems.
-- [ ] Direct Timelapse format outputs for both detection and classification.
 - [ ] A detection model fine-tuning module to fine-tune your own detection model for Pytorch-Wildlife.
 - [ ] Direct LILA connection for more training/validation data.
 - [ ] More pretrained detection and classification models to expand the current model zoo.
