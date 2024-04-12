@@ -220,7 +220,7 @@ def save_detection_classification_json(
                     "clf_confidence": [float(x) for x in clf_confidence],
                 }
             )
-        json.dump(json_results, f)
+        json.dump(json_results, f, indent=4)
 
 
 def save_detection_classification_timelapse_json(
