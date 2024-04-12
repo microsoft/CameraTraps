@@ -164,10 +164,6 @@ def save_detection_timelapse_json(det_results, output_dir, categories=None):
         json.dump(json_results, f, indent=4)
 
 
-
-
-
-
 def save_detection_classification_json(
     det_results, clf_results, output_path, det_categories=None, clf_categories=None
 ):
