@@ -83,7 +83,7 @@ def save_crop_images(results, output_dir):
                 )
 
 
-def save_detection_json(results, output_dir, categories=None, exclude_category_ids=[]):
+def save_detection_json(det_results, output_dir, categories=None, exclude_category_ids=[], exclude_file_path=None):
     """
     Save detection results to a JSON file.
 
@@ -96,32 +96,39 @@ def save_detection_json(results, output_dir, categories=None, exclude_category_i
             List of categories for detected objects. Defaults to None.
         exclude_category_ids (list, optional):
             List of category IDs to exclude from the output. Defaults to []. Category IDs can be found in the definition of each models.
+        exclude_file_path (str, optional):
+            We can exclude the some path sections from the image ID. Defaults to None.
     """
     json_results = {"annotations": [], "categories": categories}
+
+    for det_r in det_results:
+
+        # Category filtering
+        img_id = det_r["img_id"]
+        category = det_r["detections"].class_id
+
+        bbox = det_r["detections"].xyxy.astype(int)[~np.isin(category, exclude_category_ids)]
+        confidence =  det_r["detections"].confidence[~np.isin(category, exclude_category_ids)]
+        category = category[~np.isin(category, exclude_category_ids)]
+
+        # if not all([x in exclude_category_ids for x in category]):
+        json_results["annotations"].append(
+            {
+                "img_id": img_id.replace(exclude_file_path + os.sep, '') if exclude_file_path else img_id,
+                "bbox": bbox.tolist(),
+                "category": category.tolist(),
+                "confidence": confidence.tolist(),
+            }
+        )
+
     with open(output_dir, "w") as f:
-        for r in results:
-
-            # Category filtering
-            img_id = r["img_id"]
-            category = r["detections"].class_id
-
-            bbox = r["detections"].xyxy.astype(int)[~np.isin(category, exclude_category_ids)]
-            confidence =  r["detections"].confidence[~np.isin(category, exclude_category_ids)]
-            category = category[~np.isin(category, exclude_category_ids)]
-
-            if not all([x in exclude_category_ids for x in category]):
-                json_results["annotations"].append(
-                    {
-                        "img_id": img_id,
-                        "bbox": bbox.tolist(),
-                        "category": category.tolist(),
-                        "confidence": confidence.tolist(),
-                    }
-                )
-
         json.dump(json_results, f, indent=4)
 
-def save_detection_timelapse_json(det_results, output_dir, categories=None):
+
+def save_detection_timelapse_json(
+    det_results, output_dir, categories=None,
+    exclude_category_ids=[], exclude_file_path=None, detector={"detector": "megadetector_v5"}
+    ):
     """
     Save detection results to a JSON file.
 
@@ -132,26 +139,42 @@ def save_detection_timelapse_json(det_results, output_dir, categories=None):
             Path to save the output JSON file.
         categories (list, optional):
             List of categories for detected objects. Defaults to None.
+        exclude_category_ids (list, optional):
+            List of category IDs to exclude from the output. Defaults to []. Category IDs can be found in the definition of each models.
+        exclude_file_path (str, optional):
+            Some time, Timelapse has path issues. We can exclude the some path sections from the image ID. Defaults to None.
+        detector (dict, optional):
+            Default Timelapse info. Defaults to {"detector": "megadetector_v5}.
     """
+
     json_results = {
-        "info": {"detector": "megadetector_v5"},
+        "info": info,
         "detection_categories": categories,
         "images": []
     }
 
     for det_r in det_results:
+
+        img_id = det_r["img_id"]
+        category_id_list = det_r["detections"].class_id
+
+        bbox_list = det_r["detections"].xyxy.astype(int)[~np.isin(category_id_list, exclude_category_ids)]
+        confidence_list =  det_r["detections"].confidence[~np.isin(category_id_list, exclude_category_ids)]
+        normalized_bbox_list = np.array(det_r["normalized_coords"])[~np.isin(category_id_list, exclude_category_ids)]
+        category_id_list = category_id_list[~np.isin(category_id_list, exclude_category_ids)]
+
+        # if not all([x in exclude_category_ids for x in category_id_list]):
         image_annotations = {
-            "file": det_r["img_id"],
-            "max_detection_conf": max(det_r["detections"].confidence.tolist()),
+            "file": img_id.replace(exclude_file_path + os.sep, '') if exclude_file_path else img_id,
+            "max_detection_conf": float(max(confidence_list)) if len(confidence_list) > 0 else '',
             "detections": []
         }
 
-        for i in range(len(det_r["detections"])):
-            det = det_r["detections"][i]
-            normalized_bbox = [float(y) for y in det_r["normalized_coords"][i]]
+        for i in range(len(bbox_list)):
+            normalized_bbox = [float(y) for y in normalized_bbox_list[i]]
             detection = {
-                "category": str(det.class_id[0]),
-                "conf": float(det.confidence[0]),
+                "category": str(category_id_list[i]),
+                "conf": float(confidence_list[i]),
                 "bbox": [normalized_bbox[0], normalized_bbox[1], normalized_bbox[2]-normalized_bbox[0], normalized_bbox[3]-normalized_bbox[1]],
                 "classifications": []
             }
@@ -165,7 +188,7 @@ def save_detection_timelapse_json(det_results, output_dir, categories=None):
 
 
 def save_detection_classification_json(
-    det_results, clf_results, output_path, det_categories=None, clf_categories=None
+    det_results, clf_results, output_path, det_categories=None, clf_categories=None, exclude_file_path=None
 ):
     """
     Save classification results to a JSON file.
@@ -181,6 +204,8 @@ def save_detection_classification_json(
             List of categories for detected objects. Defaults to None.
         clf_categories (list, optional):
             List of categories for classified objects. Defaults to None.
+        exclude_file_path (str, optional):
+            We can exclude the some path sections from the image ID. Defaults to None.
     """
 
     json_results = {
@@ -205,7 +230,7 @@ def save_detection_classification_json(
 
             json_results["annotations"].append(
                 {
-                    "img_id": str(det_r["img_id"]),
+                    "img_id": str(det_r["img_id"]).replace(exclude_file_path + os.sep, '') if exclude_file_path else str(det_r["img_id"]),
                     "bbox": [
                         [int(x) for x in sublist]
                         for sublist in det_r["detections"].xyxy.astype(int).tolist()
@@ -224,7 +249,8 @@ def save_detection_classification_json(
 
 
 def save_detection_classification_timelapse_json(
-    det_results, clf_results, output_path, det_categories=None, clf_categories=None
+    det_results, clf_results, output_path, det_categories=None, clf_categories=None,
+    exclude_file_path=None, info={"detector": "megadetector_v5"}
 ):
     """
     Save detection and classification results to a JSON file in the specified format.
@@ -240,10 +266,11 @@ def save_detection_classification_timelapse_json(
             Dictionary of categories for detected objects. Defaults to None.
         clf_categories (dict, optional):
             Dictionary of categories for classified objects. Defaults to None.
-
+        exclude_file_path (str, optional):
+            We can exclude the some path sections from the image ID. Defaults to None.
     """
     json_results = {
-        "info": {"detector": "megadetector_v5"},
+        "info": info,
         "detection_categories": det_categories,
         "classification_categories": clf_categories,
         "images": []
@@ -251,8 +278,8 @@ def save_detection_classification_timelapse_json(
 
     for det_r in det_results:
         image_annotations = {
-            "file": det_r["img_id"],
-            "max_detection_conf": max(det_r["detections"].confidence.tolist()),
+            "file": str(det_r["img_id"]).replace(exclude_file_path + os.sep, '') if exclude_file_path else str(det_r["img_id"]),
+            "max_detection_conf": float(max(det_r["detections"].confidence)) if len(det_r["detections"].confidence) > 0 else '',
             "detections": []
         }
 
