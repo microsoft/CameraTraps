@@ -17,7 +17,8 @@
 </div>
 
 
-## ✅ Update highlights (Version 1.0.2)
+## ✅ Update highlights (Version 1.0.2.9)
+- [x] Added Timelapse compatibility! Check the [Gradio interface](INSTALLATION.md) or [notebooks](https://github.com/microsoft/CameraTraps/tree/main/demo).
 - [x] Added Google Colab demos.
 - [x] Added Snapshot Serengeti classification model into the model zoo.
 - [x] Added Classification fine-tuning module.
