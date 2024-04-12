@@ -127,7 +127,7 @@ def save_detection_json(det_results, output_dir, categories=None, exclude_catego
 
 def save_detection_timelapse_json(
     det_results, output_dir, categories=None,
-    exclude_category_ids=[], exclude_file_path=None, detector={"detector": "megadetector_v5"}
+    exclude_category_ids=[], exclude_file_path=None, info={"detector": "megadetector_v5"}
     ):
     """
     Save detection results to a JSON file.
