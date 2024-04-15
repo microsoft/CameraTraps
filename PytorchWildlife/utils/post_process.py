@@ -21,7 +21,7 @@ __all__ = [
 
 
 # !!! Output paths need to be optimized !!!
-def save_detection_images(results, output_dir):
+def save_detection_images(results, output_dir, overwrite=False):
     """
     Save detected images with bounding boxes and labels annotated.
 
@@ -30,11 +30,13 @@ def save_detection_images(results, output_dir):
             Detection results containing image ID, detections, and labels.
         output_dir (str):
             Directory to save the annotated images.
+        overwrite (bool):
+            Whether overwriting existing image folders. Default to False.
     """
     box_annotator = sv.BoxAnnotator(thickness=4, text_thickness=4, text_scale=2)
     os.makedirs(output_dir, exist_ok=True)
 
-    with sv.ImageSink(target_dir_path=output_dir, overwrite=True) as sink:
+    with sv.ImageSink(target_dir_path=output_dir, overwrite=overwrite) as sink:
         if isinstance(results, list):
             for entry in results:
                 annotated_img = box_annotator.annotate(
@@ -57,7 +59,7 @@ def save_detection_images(results, output_dir):
 
 
 # !!! Output paths need to be optimized !!!
-def save_crop_images(results, output_dir):
+def save_crop_images(results, output_dir, overwrite=False):
     """
     Save cropped images based on the detection bounding boxes.
 
@@ -66,10 +68,12 @@ def save_crop_images(results, output_dir):
             Detection results containing image ID and detections.
         output_dir (str):
             Directory to save the cropped images.
+        overwrite (bool):
+            Whether overwriting existing image folders. Default to False.
     """
     assert isinstance(results, list)
     os.makedirs(output_dir, exist_ok=True)
-    with sv.ImageSink(target_dir_path=output_dir, overwrite=True) as sink:
+    with sv.ImageSink(target_dir_path=output_dir, overwrite=overwrite) as sink:
         for entry in results:
             for i, (xyxy, _, _, cat, _) in enumerate(entry["detections"]):
                 cropped_img = sv.crop_image(

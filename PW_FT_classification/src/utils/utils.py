@@ -5,7 +5,7 @@ import supervision as sv
 from PIL import Image 
 import numpy as np
 
-def save_crop_images(results, output_dir, original_csv_path):
+def save_crop_images(results, output_dir, original_csv_path, overwrite=False):
     """
     Save cropped images based on the detection bounding boxes.
 
@@ -16,6 +16,8 @@ def save_crop_images(results, output_dir, original_csv_path):
             Directory to save the cropped images.
         original_csv_path (str):
             Path to the original CSV file.
+        overwrite (bool):
+            Whether overwriting existing image folders. Default to False.
     Return:
         new_csv_path (str):
             Path to the new CSV file.
@@ -29,7 +31,7 @@ def save_crop_images(results, output_dir, original_csv_path):
     new_records = []
     
     os.makedirs(output_dir, exist_ok=True)
-    with sv.ImageSink(target_dir_path=output_dir, overwrite=False) as sink:
+    with sv.ImageSink(target_dir_path=output_dir, overwrite=overwrite) as sink:
         for entry in results:
             # Process the data if the name of the file is in the dataframe
             if os.path.basename(entry["img_id"]) in original_df['path'].values:
