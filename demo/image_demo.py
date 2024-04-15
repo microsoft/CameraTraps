@@ -43,7 +43,7 @@ transform = pw_trans.MegaDetector_v5_Transform(target_size=detection_model.IMAGE
 results = detection_model.single_image_detection(transform(img), img.shape, tgt_img_path)
 
 # Saving the detection results 
-pw_utils.save_detection_images(results, os.path.join(".","demo_output"))
+pw_utils.save_detection_images(results, os.path.join(".","demo_output"), overwrite=False)
 
 #%% Batch detection
 """ Batch-detection demo """
@@ -68,11 +68,11 @@ results = detection_model.batch_image_detection(loader)
 
 #%% Output to annotated images
 # Saving the batch detection results as annotated images
-pw_utils.save_detection_images(results, "batch_output")
+pw_utils.save_detection_images(results, "batch_output", overwrite=False)
 
 #%% Output to cropped images
 # Saving the detected objects as cropped images
-pw_utils.save_crop_images(results, "crop_output")
+pw_utils.save_crop_images(results, "crop_output", overwrite=False)
 
 #%% Output to JSON results
 # Saving the detection results in JSON format
