@@ -18,7 +18,7 @@
 
 
 ## ✅ Update highlights (Version 1.0.2.13)
-- [x] Added a file separation function. You can now automatically separate your files between animals and non-animals into different folders using our [Python demo file](demo/image_separation_demo.py) and [Jupyter demo](demo/image_separation_demo.ipynb)!
+- [x] Added a file separation function. You can now automatically separate your files between animals and non-animals into different folders using our `detection_folder_separation` function. Please see the [Python demo file](demo/image_separation_demo.py) and [Jupyter demo](demo/image_separation_demo.ipynb)!
 - [x] 🥳 Added Timelapse compatibility! Check the [Gradio interface](INSTALLATION.md) or [notebooks](https://github.com/microsoft/CameraTraps/blob/main/demo/image_detection_demo.ipynb).
 - [x] Added Google Colab demos.
 - [x] Added Snapshot Serengeti classification model into the model zoo.
