@@ -18,7 +18,7 @@ __all__ = [
     "save_detection_classification_json",
     "save_detection_timelapse_json",
     "save_detection_classification_timelapse_json",
-    "process_detections"
+    "detection_folder_separation"
 ]
 
 
@@ -312,7 +312,7 @@ def save_detection_classification_timelapse_json(
         json.dump(json_results, f, indent=4)
 
 
-def process_detections(json_file, destination_path, confidence_threshold):
+def detection_folder_separation(json_file, destination_path, confidence_threshold):
     """
     Processes detection data from a JSON file to sort images into 'Animal' or 'No_animal' directories
     based on detection categories and confidence levels.

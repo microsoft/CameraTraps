@@ -68,4 +68,4 @@ pw_utils.save_detection_json(results, json_file,
                              exclude_file_path=None)
 
 # Separate the positive and negative detections through file copying:
-pw_utils.process_detections(json_file, args.output_path, args.threshold)
+pw_utils.detection_folder_separation(json_file, args.output_path, args.threshold)
