@@ -28,8 +28,7 @@ frozenlist==1.4.1
 fsspec==2023.12.2
 google-auth==2.27.0
 google-auth-oauthlib==1.0.0
-gradio==4.8.0
-gradio-client==0.7.1
+gradio
 grpcio==1.60.0
 h11==0.14.0
 httpcore==1.0.2

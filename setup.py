@@ -4,7 +4,7 @@ with open('README.md', encoding="utf8") as file:
         long_description = file.read()
 setup(
     name='PytorchWildlife',
-    version='1.0.2.12', 
+    version='1.0.2.13', 
     packages=find_packages(),
     url='https://github.com/microsoft/CameraTraps/',  
     license='MIT',
@@ -21,7 +21,7 @@ setup(
         'tqdm==4.66.1',
         'Pillow==10.1.0', 
         'supervision==0.16.0',
-        'gradio==4.8.0',
+        'gradio',
         'ultralytics-yolov5',
         'chardet'
     ],
