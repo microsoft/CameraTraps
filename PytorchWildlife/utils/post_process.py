@@ -9,6 +9,7 @@ import json
 import cv2
 from PIL import Image
 import supervision as sv
+import shutil
 
 __all__ = [
     "save_detection_images",
@@ -17,6 +18,7 @@ __all__ = [
     "save_detection_classification_json",
     "save_detection_timelapse_json",
     "save_detection_classification_timelapse_json",
+    "process_detections"
 ]
 
 
@@ -308,3 +310,72 @@ def save_detection_classification_timelapse_json(
 
     with open(output_path, "w") as f:
         json.dump(json_results, f, indent=4)
+
+
+def process_detections(json_file, destination_path, confidence_threshold):
+    """
+    Processes detection data from a JSON file to sort images into 'Animal' or 'No_animal' directories
+    based on detection categories and confidence levels.
+
+    This function reads a JSON formatted file containing annotations of image detections.
+    Each image is checked for detections with category '0' and a confidence level above the specified
+    threshold. If such detections are found, the image is categorized under 'Animal'. Images without
+    any category '0' detections above the threshold, including those with no detections at all, are 
+    categorized under 'No_animal'.
+
+    Parameters:
+    - json_file (str): Path to the JSON file containing detection data.
+    - destination_path (str): Base path where 'Animal' and 'No_animal' folders will be created
+                              and into which images will be sorted and copied.
+    - source_images_directory (str): Path to the directory containing the source images to be processed.
+    - confidence_threshold (float): The confidence threshold to consider a detection as valid.
+
+    Effects:
+    - Reads from the specified `json_file`.
+    - Copies files from `source_images_directory` to either `destination_path/Animal` or
+      `destination_path/No_animal` based on the detection data and confidence level.
+
+    Note:
+    - The function assumes that the JSON file structure includes keys 'annotations', each containing
+      'img_id', 'bbox', 'category', and 'confidence'. It does not handle missing keys or unexpected
+      JSON structures and may raise an exception in such cases.
+    - Directories `Animal` and `No_animal` are created if they do not already exist.
+    - Images are copied, not moved; original images remain in the source directory.
+    """
+    # Load JSON data from the file
+    with open(json_file, 'r') as file:
+        data = json.load(file)
+    
+    # Ensure the destination directories exist
+    os.makedirs(destination_path, exist_ok=True)
+    animal_path = os.path.join(destination_path, "Animal")
+    no_animal_path = os.path.join(destination_path, "No_animal")
+    os.makedirs(animal_path, exist_ok=True)
+    os.makedirs(no_animal_path, exist_ok=True)
+    
+    # Process each image detection
+    for item in data['annotations']:
+        img_id = item['img_id']
+        categories = item['category']
+        confidences = item['confidence']
+        
+        # Check if there is any category '0' with confidence above the threshold
+        file_targeted_for_animal = False
+        for category, confidence in zip(categories, confidences):
+            if category == 0 and confidence > confidence_threshold:
+                file_targeted_for_animal = True
+                break
+        
+        if file_targeted_for_animal:
+            target_folder = animal_path
+        else:
+            target_folder = no_animal_path
+        
+        # Construct the source and destination file paths
+        src_file_path = os.path.join(img_id)
+        dest_file_path = os.path.join(target_folder, os.path.basename(img_id))
+        
+        # Copy the file to the appropriate directory
+        shutil.copy(src_file_path, dest_file_path)
+
+
