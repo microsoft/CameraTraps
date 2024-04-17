@@ -19,7 +19,7 @@ setup(
         'torchvision==0.11.2',
         'torchaudio==0.10.1',
         'tqdm==4.66.1',
-        'Pillow==10.1.0', 
+        'Pillow==10.3.0', 
         'supervision==0.16.0',
         'gradio',
         'ultralytics-yolov5',
