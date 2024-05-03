@@ -18,7 +18,7 @@ setup(
         'torch==1.10.1',
         'torchvision==0.11.2',
         'torchaudio==0.10.1',
-        'tqdm==4.66.1',
+        'tqdm==4.66.3',
         'Pillow==10.1.0', 
         'supervision==0.16.0',
         'gradio',
