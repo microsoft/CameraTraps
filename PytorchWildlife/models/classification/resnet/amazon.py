@@ -93,6 +93,8 @@ class AI4GAmazonRainforest(PlainResNetInference):
         probs = torch.softmax(logits, dim=1)
         preds = probs.argmax(dim=1)
         confs = probs.max(dim=1)[0]
+        confidences = probs[0].tolist()
+        result = [[self.CLASS_NAMES[i], confidence] for i, confidence in enumerate(confidences)]
 
         results = []
         for pred, img_id, conf in zip(preds, img_ids, confs):
@@ -100,6 +102,7 @@ class AI4GAmazonRainforest(PlainResNetInference):
             r["prediction"] = self.CLASS_NAMES[pred.item()]
             r["class_id"] = pred.item()
             r["confidence"] = conf.item()
+            r["all_confidences"] = result
             results.append(r)
         
         return results
