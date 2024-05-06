@@ -120,6 +120,6 @@ urllib3==2.2.0
 uvicorn==0.27.0.post1
 wcwidth==0.2.13
 websockets==11.0.3
-werkzeug==3.0.1
+werkzeug==3.0.3
 yarl==1.9.4
 zipp==3.17.0
