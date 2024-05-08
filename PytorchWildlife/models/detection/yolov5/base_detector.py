@@ -132,38 +132,26 @@ class YOLOV5Base:
             list: List of detection results for all images.
         """
         results = []
-        total_preds = []
-        total_paths = []
-        total_img_sizes = []
-
-        with tqdm(total=len(dataloader)) as pbar: 
-            for batch in dataloader:
-                imgs, paths, sizes = batch
+        with tqdm(total=len(dataloader)) as pbar:
+            for batch_index, (imgs, paths, sizes) in enumerate(dataloader):
                 imgs = imgs.to(self.device)
-                total_preds.append(self.model(imgs)[0].detach().cpu())
-                total_paths.append(paths)
-                total_img_sizes.append(sizes.numpy())
+                predictions = self.model(imgs)[0].detach().cpu()
+                predictions = non_max_suppression(predictions, conf_thres=conf_thres)
+
+                batch_results = []
+                for i, pred in enumerate(predictions):
+                    if pred.size(0) == 0:  
+                        continue
+                    pred = pred.numpy()
+                    size = sizes[i].numpy()
+                    path = paths[i]
+                    original_coords = pred[:, :4].copy()
+                    pred[:, :4] = scale_coords([self.IMAGE_SIZE] * 2, pred[:, :4], size).round()
+                    # Normalize the coordinates for timelapse compatibility
+                    normalized_coords = [[x1 / size[1], y1 / size[0], x2 / size[1], y2 / size[0]] for x1, y1, x2, y2 in pred[:, :4]]
+                    res = self.results_generation(pred, path, id_strip)
+                    res["normalized_coords"] = normalized_coords
+                    batch_results.append(res)
                 pbar.update(1)
-
-        total_preds = [
-            non_max_suppression(prediction=pred.unsqueeze(0), conf_thres=conf_thres)[0].numpy()
-            for pred in torch.cat(total_preds, dim=0).cpu()
-        ]
-        total_paths = np.concatenate(total_paths, axis=0)
-        total_img_sizes = np.concatenate(total_img_sizes, axis=0)
-
-        # If there are size differences in the input images, use a for loop instead of matrix processing for scaling
-        for pred, size, path in zip(total_preds, total_img_sizes, total_paths):
-            original_coords = pred[:, :4].copy()
-            normalized_coords = []
-            pred[:, :4] = scale_coords([self.IMAGE_SIZE] * 2, pred[:, :4], size).round()
-            res = self.results_generation(pred, path, id_strip)
-            # Normalize the coordinates for timelapse compatibility
-            for coord in pred[:, :4]:
-                x1, y1, x2, y2 = coord
-                x1, y1, x2, y2 = x1 / size[1], y1 / size[0], x2 / size[1], y2 / size[0]
-                normalized_coords.append([x1, y1, x2, y2])
-            res["normalized_coords"] = normalized_coords
-            results.append(res)
-
-        return results
+                results.extend(batch_results)
+            return results
