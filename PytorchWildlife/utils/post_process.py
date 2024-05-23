@@ -10,6 +10,7 @@ import cv2
 from PIL import Image
 import supervision as sv
 import shutil
+from pathlib import Path
 
 __all__ = [
     "save_detection_images",
@@ -23,7 +24,7 @@ __all__ = [
 
 
 # !!! Output paths need to be optimized !!!
-def save_detection_images(results, output_dir, overwrite=False):
+def save_detection_images(results, output_dir, input_dir = None, overwrite=False):
     """
     Save detected images with bounding boxes and labels annotated.
 
@@ -38,30 +39,38 @@ def save_detection_images(results, output_dir, overwrite=False):
     box_annotator = sv.BoxAnnotator(thickness=4, text_thickness=4, text_scale=2)
     os.makedirs(output_dir, exist_ok=True)
 
-    with sv.ImageSink(target_dir_path=output_dir, overwrite=overwrite) as sink:
-        if isinstance(results, list):
-            for entry in results:
-                annotated_img = box_annotator.annotate(
-                    scene=np.array(Image.open(entry["img_id"]).convert("RGB")),
-                    detections=entry["detections"],
-                    labels=entry["labels"],
-                )
+    if isinstance(results, list):
+        for entry in results:
+            annotated_img = box_annotator.annotate(
+                scene=np.array(Image.open(entry["img_id"]).convert("RGB")),
+                detections=entry["detections"],
+                labels=entry["labels"],
+            )
+
+            img_id_parts=Path(entry["img_id"]).parts
+            last_input_dir=Path(input_dir).parts[-1]
+            relative_dir=Path(*img_id_parts[img_id_parts.index(last_input_dir)+1:-1])
+            full_output_dir = os.path.join(output_dir, relative_dir)
+            os.makedirs(full_output_dir, exist_ok=True)
+            with sv.ImageSink(target_dir_path=full_output_dir, overwrite=overwrite) as sink: 
                 sink.save_image(
                     image=cv2.cvtColor(annotated_img, cv2.COLOR_RGB2BGR), image_name=entry["img_id"].rsplit(os.sep, 1)[1]
                 )
-        else:
-            annotated_img = box_annotator.annotate(
-                scene=np.array(Image.open(results["img_id"]).convert("RGB")),
-                detections=results["detections"],
-                labels=results["labels"],
-            )
+    else:
+        annotated_img = box_annotator.annotate(
+            scene=np.array(Image.open(results["img_id"]).convert("RGB")),
+            detections=results["detections"],
+            labels=results["labels"],
+        )
+
+        with sv.ImageSink(target_dir_path=output_dir, overwrite=overwrite) as sink: 
             sink.save_image(
                 image=cv2.cvtColor(annotated_img, cv2.COLOR_RGB2BGR), image_name=results["img_id"].rsplit(os.sep, 1)[1]
             )
 
 
 # !!! Output paths need to be optimized !!!
-def save_crop_images(results, output_dir, overwrite=False):
+def save_crop_images(results, output_dir, input_dir = None, overwrite=False):
     """
     Save cropped images based on the detection bounding boxes.
 
@@ -75,12 +84,19 @@ def save_crop_images(results, output_dir, overwrite=False):
     """
     assert isinstance(results, list)
     os.makedirs(output_dir, exist_ok=True)
-    with sv.ImageSink(target_dir_path=output_dir, overwrite=overwrite) as sink:
-        for entry in results:
-            for i, (xyxy, _, _, cat, _) in enumerate(entry["detections"]):
-                cropped_img = sv.crop_image(
-                    image=np.array(Image.open(entry["img_id"]).convert("RGB")), xyxy=xyxy
-                )
+    
+    for entry in results:
+        for i, (xyxy, _, _, cat, _) in enumerate(entry["detections"]):
+            cropped_img = sv.crop_image(
+                image=np.array(Image.open(entry["img_id"]).convert("RGB")), xyxy=xyxy
+            )
+
+            img_id_parts=Path(entry["img_id"]).parts
+            last_input_dir=Path(input_dir).parts[-1]
+            relative_dir=Path(*img_id_parts[img_id_parts.index(last_input_dir)+1:-1])
+            full_output_dir = os.path.join(output_dir, relative_dir)
+            os.makedirs(full_output_dir, exist_ok=True)
+            with sv.ImageSink(target_dir_path=full_output_dir, overwrite=overwrite) as sink:
                 sink.save_image(
                     image=cv2.cvtColor(cropped_img, cv2.COLOR_RGB2BGR),
                     image_name="{}_{}_{}".format(
