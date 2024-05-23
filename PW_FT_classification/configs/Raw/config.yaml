@@ -1,0 +1,40 @@
+# training
+conf_id: Res50Plain_SplitLoc_AllImgs_20240516
+algorithm: Plain
+log_dir: Crop
+num_epochs: 60
+log_interval: 10
+parallel: 0
+
+# data
+dataset_root: C:/TempDataForSpeed/TrainVal_20221012_Trial
+dataset_name: Custom_Crop
+# annotation directory (if you have train/val/test splits)
+annotation_dir: C:/TempDataForSpeed/TrainVal_20221012_Trial
+# data splitting (if you don't have train/val/test splits)
+split_path: C:/TempDataForSpeed/TrainVal_20221012_Trial/annotations_trial.csv
+test_size: 0.15
+val_size: 0.15
+split_data: True
+split_type: location # options are: random, location, sequence
+# data loading
+batch_size: 256
+num_workers: 0 #40
+# model
+model_name: PlainResNetClassifier
+num_layers: 50
+weights_init: ImageNet
+
+# optim
+## feature
+lr_feature: 0.01
+momentum_feature: 0.9
+weight_decay_feature: 0.0005
+## classifier
+lr_classifier: 0.01
+momentum_classifier: 0.9
+weight_decay_classifier: 0.0005
+## lr_scheduler
+step_size: 20
+gamma: 0.1
+

@@ -20,7 +20,7 @@ from src.utils import data_splitting
 # %%
 #@app.command()
 def main(
-        config:str='./configs/Raw/Crop_res50_plain_082723.yaml',
+        config:str='./configs/Raw/config.yaml',
         project:str='Custom-classification',
         gpus:str='0', 
         logger_type:str='csv',
