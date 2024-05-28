@@ -7,17 +7,34 @@
 <a href="https://pypi.org/project/PytorchWildlife"><img src="https://img.shields.io/pypi/v/PytorchWildlife?color=limegreen" /></a> 
 <a href="https://pypi.org/project/PytorchWildlife"><img src="https://static.pepy.tech/badge/pytorchwildlife" /></a> 
 <a href="https://pypi.org/project/PytorchWildlife"><img src="https://img.shields.io/pypi/pyversions/PytorchWildlife" /></a> 
-<a href="https://huggingface.co/spaces/AndresHdzC/pytorch-wildlife"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Demo-blue" /></a>
+<a href="https://huggingface.co/spaces/ai4g-biodiversity/pytorch-wildlife"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Demo-blue" /></a>
 <a href="https://colab.research.google.com/drive/1rjqHrTMzEHkMualr4vB55dQWCsCKMNXi?usp=sharing"><img src="https://img.shields.io/badge/Colab-Demo-blue?logo=GoogleColab" /></a>
-<a href="https://cameratraps.readthedocs.io/en/latest/"><img src="https://img.shields.io/badge/read-docs-yellow?logo=mdbook" /></a>
+<!-- <a href="https://colab.research.google.com/drive/16-OjFVQ6nopuP-gfqofYBBY00oIgbcr1?usp=sharing"><img src="https://img.shields.io/badge/Colab-Video detection-blue?logo=GoogleColab" /></a> -->
+<a href="https://cameratraps.readthedocs.io/en/latest/"><img src="https://img.shields.io/badge/read-docs-yellow?logo=ReadtheDocs" /></a>
 <a href="https://github.com/microsoft/CameraTraps/blob/main/LICENSE"><img src="https://img.shields.io/pypi/l/PytorchWildlife" /></a>
 <a href="https://discord.gg/TeEVxzaYtm"><img src="https://img.shields.io/badge/any_text-Join_us!-blue?logo=discord&label=Discord" /></a>
 <br><br>
 </div>
 
 
+## 📣 Announcement
+### 🥳 MegaDetectorV6 beta testing!
+Greetings! For the past few weeks, we have been working on the next generation of MegaDetector, focusing on computational efficiency and performance. We have trained multiple new models using the latest YOLO-v9 architecture and want to start a public beta testing with these new models to ensure they work as expected on real-world datasets. In the beta testing, we will let people test the compact version of MegaDetectorV6 (MDv6-c). This MDv6-c model has only one-sixth of the parameters of the current MegaDetectorV5 and exhibits 12% higher recall on animal detection in our validation datasets. In other words, MDv6-c has significantly fewer false negatives when detecting animals, making it a more robust model than MegaDetectorV5. 
 
-## ✅ Update highlights (Version 1.0.2.11)
+|Models|Parameters|Precision|Recall|
+|---|---|---|---|
+|MegaDetectorV5|121M|0.96|0.73|
+|MegaDetectroV6-c|22M|0.92|0.85|
+
+We are also working on an extra-large version of MegaDetectorV6 for optimal performance and a transformer-based model using the RT-Detr architecture to prepare ourselves for the future of transformers. These models will be available in the official release of MegaDetectorV6.
+
+>If you want to join the beta testing, please come to our discord channel and DM the admins there: [![](https://img.shields.io/badge/any_text-Join_us!-blue?logo=discord&label=PytorchWildife)](https://discord.gg/TeEVxzaYtm)
+
+### 🎉 Pytorch-Wildlife ready for citation
+In addition, we have recently published a [summary paper on Pytorch-Wildlife](https://arxiv.org/abs/2405.12930). The paper has been accepted as an oral presentation at the [CV4Animals workshop](https://www.cv4animals.com/) at this year's CVPR. Please feel free to [cite us!](#📖-cite-us)
+
+## ✅ Update highlights (Version 1.0.2.13)
+- [x] Added a file separation function. You can now automatically separate your files between animals and non-animals into different folders using our `detection_folder_separation` function. Please see the [Python demo file](demo/image_separation_demo.py) and [Jupyter demo](demo/image_separation_demo.ipynb)!
 - [x] 🥳 Added Timelapse compatibility! Check the [Gradio interface](INSTALLATION.md) or [notebooks](https://github.com/microsoft/CameraTraps/blob/main/demo/image_detection_demo.ipynb).
 - [x] Added Google Colab demos.
 - [x] Added Snapshot Serengeti classification model into the model zoo.
@@ -30,7 +47,7 @@
 - [ ] Direct LILA connection for more training/validation data.
 - [ ] More pretrained detection and classification models to expand the current model zoo.
 
-To check the previous roadmap and finished tasks, please click [here](roadmaps.md).
+To check the full version of the roadmap with completed tasks and long term goals, please click [here!](roadmaps.md).
 
 ## 🐾 Introduction
 
@@ -183,6 +200,17 @@ Let's shape the future of wildlife research, together! 🙌
 <img src="https://microsoft.github.io/CameraTraps/assets/opossum_det.png" alt="opossum_det" width="500"/><br>
 *Credits to the Agency for Regulation and Control of Biosecurity and Quarantine for Galápagos (ABG), Ecuador.*
 
+## 📖 Cite us
+```
+@misc{hernandez2024pytorchwildlife,
+      title={Pytorch-Wildlife: A Collaborative Deep Learning Framework for Conservation}, 
+      author={Andres Hernandez and Zhongqi Miao and Luisa Vargas and Rahul Dodhia and Juan Lavista},
+      year={2024},
+      eprint={2405.12930},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV}
+}
+```
 
 ## 🤝 Contributing
 This project is open to your ideas and contributions. If you want to submit a pull request, we'll have some guidelines available soon.
