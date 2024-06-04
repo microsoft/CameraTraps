@@ -37,7 +37,7 @@ def batch_detection_cropping(folder_path, output_path, annotation_file):
     results = detection_model.batch_image_detection(loader)
 
     # Saving the detected objects as cropped images
-    crop_annotation_path = utils.save_crop_images(results, output_path, annotation_file)
+    crop_annotation_path = utils.save_crop_images(results, output_path, annotation_file, folder_path)
     return crop_annotation_path
 
 
