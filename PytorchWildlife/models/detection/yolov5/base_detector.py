@@ -10,7 +10,7 @@ from tqdm import tqdm
 import supervision as sv
 import torch
 from torch.hub import load_state_dict_from_url
-from yolov5.utils.general import non_max_suppression, scale_coords
+from yolov5.utils.general import non_max_suppression, scale_boxes
 
 class YOLOV5Base:
     """
@@ -86,7 +86,7 @@ class YOLOV5Base:
         )
         results["labels"] = [
             f"{self.CLASS_NAMES[class_id]} {confidence:0.2f}"
-            for _, _, confidence, class_id, _ in results["detections"]
+            for _, _, confidence, class_id, _, _ in results["detections"]
         ]
         return results
 
@@ -113,7 +113,7 @@ class YOLOV5Base:
             img_size = img.permute((1, 2, 0)).shape # We need hwc instead of chw for coord scaling
         preds = self.model(img.unsqueeze(0).to(self.device))[0]
         preds = torch.cat(non_max_suppression(prediction=preds, conf_thres=conf_thres), axis=0)
-        preds[:, :4] = scale_coords([self.IMAGE_SIZE] * 2, preds[:, :4], img_size).round()
+        preds[:, :4] = scale_boxes([self.IMAGE_SIZE] * 2, preds[:, :4], img_size).round()
         return self.results_generation(preds.cpu().numpy(), img_path, id_strip)
 
     def batch_image_detection(self, dataloader, conf_thres=0.2, id_strip=None):
@@ -146,7 +146,7 @@ class YOLOV5Base:
                     size = sizes[i].numpy()
                     path = paths[i]
                     original_coords = pred[:, :4].copy()
-                    pred[:, :4] = scale_coords([self.IMAGE_SIZE] * 2, pred[:, :4], size).round()
+                    pred[:, :4] = scale_boxes([self.IMAGE_SIZE] * 2, pred[:, :4], size).round()
                     # Normalize the coordinates for timelapse compatibility
                     normalized_coords = [[x1 / size[1], y1 / size[0], x2 / size[1], y2 / size[0]] for x1, y1, x2, y2 in pred[:, :4]]
                     res = self.results_generation(pred, path, id_strip)
