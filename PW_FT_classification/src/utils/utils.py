@@ -60,7 +60,7 @@ def save_crop_images(results, output_dir, original_csv_path, input_dir, overwrit
                 classification_name = original_df[original_df['path'].str.endswith(image_name.split(os.sep)[-1])]['label'].values[0]
                 # Add record to the new CSV data
                 new_records.append({
-                'path': os.path.join(full_output_dir, new_img_name),
+                'path': os.path.join(relative_dir, new_img_name),
                 'classification': classification_id,
                 'label': classification_name
                 })

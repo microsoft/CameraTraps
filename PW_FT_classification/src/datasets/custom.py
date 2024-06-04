@@ -167,9 +167,9 @@ class Custom_Base(pl.LightningDataModule):
         self.conf = conf
 
         # Load datasets for different modes (training, validation, testing, prediction)
-        self.dset_tr = self.ds(rootdir=self.conf.dataset_root, dset='train', transform=data_transforms['train'])
-        self.dset_val = self.ds(rootdir=self.conf.dataset_root, dset='val', transform=data_transforms['val'])
-        self.dset_te = self.ds(rootdir=self.conf.dataset_root, dset='test', transform=data_transforms['val'])
+        self.dset_tr = self.ds(rootdir=self.conf.output_dir, dset='train', transform=data_transforms['train'])
+        self.dset_val = self.ds(rootdir=self.conf.output_dir, dset='val', transform=data_transforms['val'])
+        self.dset_te = self.ds(rootdir=self.conf.output_dir, dset='test', transform=data_transforms['val'])
         if self.conf.predict:
             self.dset_pr = self.ds(rootdir=self.conf.predict_root, dset='predict', transform=data_transforms['val'])
 
