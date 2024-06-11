@@ -26,7 +26,8 @@ The **Pytorch-Wildlife** library allows users to directly load the MegadetectorV
 1. Python 3.8 
 2. NVIDIA GPU for CUDA support (Optional, the code and demo also supports cpu calculation).
 3. `conda` or `mamba` for python environment management and specific version of `opencv`.
-4. If you are using CUDA. [CudaToolkit 11.3](https://developer.nvidia.com/cuda-11.3.0-download-archive) is required.
+4. If you are using CUDA. [CudaToolkit 12.1](https://developer.nvidia.com/cuda-12-1-0-download-archive) is required.
+4.1 If you are using CUDA and you have PytorchWildlife 1.0.2.14 or lower, [CudaToolkit 11.3](https://developer.nvidia.com/cuda-11.3.0-download-archive) is required.
 
 ### Create environment
 If you have `conda` or `mamba` installed, you can create a new environment with the following commands (switch `conda` to `mamba` for `mamba` users):
@@ -51,6 +52,14 @@ brew install ffmpeg
 
 ### Windows
 Windows installation is a bit more complicated due to operating system differences. Please refer to our [Windows installation guide](assets/PytorchWildlife_Windows_installation_tutorial.pdf) for details.
+
+### CUDA for Windows
+If you want to use your CUDA-compatible GPU and you are using Windows. Please run the following commands (CUDA 12.1 is required):
+
+```bash
+pip uninstall torch torchvision torchaudio
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+```
 
 ## Installation
 
