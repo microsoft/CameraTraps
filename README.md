@@ -18,6 +18,9 @@
 
 
 ## 📣 Announcement
+### Compatibility with CUDA 12.1
+The new version of PytorchWildlife uses the latest version of Pytorch (currently 2.3.1), which is compatible with CUDA 12! 
+
 ### 🥳 MegaDetectorV6 beta testing!
 Greetings! For the past few weeks, we have been working on the next generation of MegaDetector, focusing on computational efficiency and performance. We have trained multiple new models using the latest YOLO-v9 architecture and want to start a public beta testing with these new models to ensure they work as expected on real-world datasets. In the beta testing, we will let people test the compact version of MegaDetectorV6 (MDv6-c). This MDv6-c model has only one-sixth of the parameters of the current MegaDetectorV5 and exhibits 12% higher recall on animal detection in our validation datasets. In other words, MDv6-c has significantly fewer false negatives when detecting animals, making it a more robust model than MegaDetectorV5. 
 
