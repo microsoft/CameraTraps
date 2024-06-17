@@ -116,7 +116,7 @@ typer==0.9.0
 typing-extensions==4.9.0
 tzdata==2023.4
 ultralytics-yolov5==0.1.1
-urllib3==2.2.0
+urllib3==2.2.2
 uvicorn==0.27.0.post1
 wcwidth==0.2.13
 websockets==11.0.3
