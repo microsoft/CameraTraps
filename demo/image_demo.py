@@ -5,19 +5,13 @@
 
 #%% 
 # Importing necessary basic libraries and modules
-import numpy as np
-from PIL import Image
 import os
-#%% 
 # PyTorch imports 
 import torch
-from torch.utils.data import DataLoader
 
 #%% 
 # Importing the model, dataset, transformations and utility functions from PytorchWildlife
 from PytorchWildlife.models import detection as pw_detection
-from PytorchWildlife.data import transforms as pw_trans
-from PytorchWildlife.data import datasets as pw_data 
 from PytorchWildlife import utils as pw_utils
 
 #%% 
@@ -26,21 +20,15 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 #%% 
 # Initializing the MegaDetectorV5 model for image detection
-detection_model = pw_detection.MegaDetectorV5(device=DEVICE, pretrained=True)
+# detection_model = pw_detection.MegaDetectorV5(device=DEVICE, pretrained=True)
+detection_model = pw_detection.MegaDetectorV6(device=DEVICE, weights='../MDV6b-yolov9c.pt', pretrained=False) # For beta testing, you need to specify the path to the weights file.
 
 #%% Single image detection
 # Specifying the path to the target image TODO: Allow argparsing
 tgt_img_path = os.path.join(".","demo_data","imgs","10050028_0.JPG")
 
-# Opening and converting the image to RGB format
-img = np.array(Image.open(tgt_img_path).convert("RGB"))
-
-# Initializing the Yolo-specific transform for the image
-transform = pw_trans.MegaDetector_v5_Transform(target_size=detection_model.IMAGE_SIZE,
-                                               stride=detection_model.STRIDE)
-
 # Performing the detection on the single image
-results = detection_model.single_image_detection(transform(img), img.shape, tgt_img_path)
+results = detection_model.single_image_detection(tgt_img_path)
 
 # Saving the detection results 
 pw_utils.save_detection_images(results, os.path.join(".","demo_output"), overwrite=False)
@@ -51,20 +39,8 @@ pw_utils.save_detection_images(results, os.path.join(".","demo_output"), overwri
 # Specifying the folder path containing multiple images for batch detection
 tgt_folder_path = os.path.join(".","demo_data","imgs")
 
-# Creating a dataset of images with the specified transform
-dataset = pw_data.DetectionImageFolder(
-    tgt_folder_path,
-    transform=pw_trans.MegaDetector_v5_Transform(target_size=detection_model.IMAGE_SIZE,
-                                                 stride=detection_model.STRIDE),
-    extension='JPG' # Can be other extensions based on your own data, such as png. And this argument is case sensitive.
-)
-
-# Creating a DataLoader for batching and parallel processing of the images
-loader = DataLoader(dataset, batch_size=32, shuffle=False, 
-                    pin_memory=True, num_workers=0, drop_last=False)
-
 # Performing batch detection on the images
-results = detection_model.batch_image_detection(loader)
+results = detection_model.batch_image_detection(tgt_folder_path, batch_size=16, extension="JPG")
 
 #%% Output to annotated images
 # Saving the batch detection results as annotated images

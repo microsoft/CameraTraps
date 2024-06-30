@@ -37,22 +37,14 @@ os.makedirs(os.path.join("..","temp"), exist_ok=True)
 detection_model = None
 classification_model = None
     
-# Defining transformations for detection and classification
-trans_det = None
-trans_clf = None
-
 #%% Defining functions for different detection scenarios
 def load_models(det, clf):
 
-    global detection_model, classification_model, trans_det, trans_clf
+    global detection_model, classification_model
 
     detection_model = pw_detection.__dict__[det](device=DEVICE, pretrained=True)
     if clf != "None":
         classification_model = pw_classification.__dict__[clf](device=DEVICE, pretrained=True)
-
-    trans_det = pw_trans.MegaDetector_v5_Transform(target_size=detection_model.IMAGE_SIZE,
-                                          stride=detection_model.STRIDE)
-    trans_clf = pw_trans.Classification_Inference_Transform(target_size=224)
 
     return "Loaded Detector: {}. Loaded Classifier: {}".format(det, clf)
 
@@ -68,11 +60,10 @@ def single_image_detection(input_img, det_conf_thres, clf_conf_thres, img_index=
     Returns:
         annotated_img (PIL.Image.Image): Annotated image with bounding box instances.
     """
-    trans_img = trans_det(input_img)
+    # trans_img = trans_det(input_img)
     input_img = np.array(input_img)
     
-    results_det = detection_model.single_image_detection(trans_img,
-                                                         input_img.shape,
+    results_det = detection_model.single_image_detection(input_img,
                                                          img_path=img_index,
                                                          conf_thres=det_conf_thres)
 
@@ -83,7 +74,7 @@ def single_image_detection(input_img, det_conf_thres, clf_conf_thres, img_index=
             # Only run classifier when detection class is animal
             if det_id == 0:
                 cropped_image = sv.crop_image(image=input_img, xyxy=xyxy)
-                results_clf = classification_model.single_image_classification(trans_clf(Image.fromarray(cropped_image)))
+                results_clf = classification_model.single_image_classification(cropped_image)
                 labels.append("{} {:.2f}".format(results_clf["prediction"] if results_clf["confidence"] > clf_conf_thres else "Unknown",
                                                  results_clf["confidence"]))
             else:
@@ -122,10 +113,7 @@ def batch_detection(zip_file, timelapse, det_conf_thres):
         tgt_folder_path = os.path.join(extract_path, extracted_files[0])
     else:
         tgt_folder_path = extract_path
-    det_dataset = pw_data.DetectionImageFolder(tgt_folder_path, transform=trans_det)
-    det_loader = DataLoader(det_dataset, batch_size=32, shuffle=False, 
-                            pin_memory=True, num_workers=4, drop_last=False)
-    det_results = detection_model.batch_image_detection(det_loader, conf_thres=det_conf_thres, id_strip=tgt_folder_path)
+    det_results = detection_model.batch_image_detection(tgt_folder_path, batch_size=16, conf_thres=det_conf_thres, id_strip=tgt_folder_path)
 
     if classification_model is not None:
         clf_dataset = pw_data.DetectionCrops(

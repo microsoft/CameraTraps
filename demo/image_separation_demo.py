@@ -36,27 +36,11 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 # Initializing the MegaDetectorV5 model for image detection
 detection_model = pw_detection.MegaDetectorV5(device=DEVICE, pretrained=True)
 
-# Initializing the Yolo-specific transform for the image
-transform = pw_trans.MegaDetector_v5_Transform(target_size=detection_model.IMAGE_SIZE,
-                                               stride=detection_model.STRIDE)
-
 #%% Batch detection
 """ Batch-detection demo """
 
-# Creating a dataset of images with the specified transform
-dataset = pw_data.DetectionImageFolder(
-    args.image_folder,
-    transform=pw_trans.MegaDetector_v5_Transform(target_size=detection_model.IMAGE_SIZE,
-                                                 stride=detection_model.STRIDE),
-    extension=args.file_extension
-)
-
-# Creating a DataLoader for batching and parallel processing of the images
-loader = DataLoader(dataset, batch_size=32, shuffle=False, 
-                    pin_memory=True, num_workers=0, drop_last=False)
-
 # Performing batch detection on the images
-results = detection_model.batch_image_detection(loader)
+results = detection_model.batch_image_detection(args.image_folder, batch_size=16, extension=args.file_extension)
 
 #%% Output to JSON results
 # Saving the detection results in JSON format
