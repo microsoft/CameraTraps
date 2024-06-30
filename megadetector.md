@@ -62,11 +62,11 @@ The **Pytorch-Wildlife** library allows users to directly load the `MegaDetector
 
 👇 Here is a brief example on how to perform detection and classification on a single image using `PyTorch-wildlife`
 ```python
-import torch
+import numpy as np
 from PytorchWildlife.models import detection as pw_detection
 from PytorchWildlife.models import classification as pw_classification
 
-img = torch.randn((3, 1280, 1280))
+img = np.random.randn(3, 1280, 1280)
 
 # Detection
 detection_model = pw_detection.MegaDetectorV5() # Model weights are automatically downloaded.
