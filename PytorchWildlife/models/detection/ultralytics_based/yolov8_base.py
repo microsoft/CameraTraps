@@ -53,6 +53,7 @@ class YOLOV8Base(BaseDetector):
         self.predictor = yolo.detect.DetectionPredictor()
         # self.predictor.args.device = device # Will uncomment later
         self.predictor.args.imgsz = self.IMAGE_SIZE
+        self.predictor.args.save = False # Will see if we want to use ultralytics native inference saving functions.
 
         if weights:
             self.predictor.setup_model(weights)
