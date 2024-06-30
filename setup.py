@@ -23,6 +23,7 @@ setup(
         'supervision==0.16.0',
         'gradio',
         'ultralytics-yolov5',
+        'ultralytics',
         'chardet'
     ],
     classifiers=[
