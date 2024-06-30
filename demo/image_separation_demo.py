@@ -7,17 +7,10 @@
 # Importing necessary basic libraries and modules
 import argparse
 import os
-import json
-import shutil
-import numpy as np
-from PIL import Image
 import torch
-from torch.utils.data import DataLoader
 
 # PyTorch imports 
 from PytorchWildlife.models import detection as pw_detection
-from PytorchWildlife.data import transforms as pw_trans
-from PytorchWildlife.data import datasets as pw_data 
 from PytorchWildlife import utils as pw_utils
 
 #%% Argument parsing
