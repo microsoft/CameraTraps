@@ -112,6 +112,7 @@ class YOLOV8Base(BaseDetector):
         """
         self.predictor.args.batch = 1
         self.predictor.args.conf = conf_thres
+        self.predictor.args.verbose = False
         det_results = list(self.predictor.stream_inference([img_path]))
         return self.results_generation(det_results[0], img_path, id_strip)
 
