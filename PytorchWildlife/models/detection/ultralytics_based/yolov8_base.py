@@ -95,7 +95,7 @@ class YOLOV8Base(BaseDetector):
         return results
         
 
-    def single_image_detection(self, img_path=None, conf_thres=0.2, id_strip=None):
+    def single_image_detection(self, img_path=None, img_id=None, conf_thres=0.2, id_strip=None):
         """
         Perform detection on a single image.
         
@@ -114,7 +114,14 @@ class YOLOV8Base(BaseDetector):
         self.predictor.args.conf = conf_thres
         self.predictor.args.verbose = False
         det_results = list(self.predictor.stream_inference([img_path]))
-        return self.results_generation(det_results[0], img_path, id_strip)
+
+        if img_id is None:
+            if type(img_path) == str: #image path
+                img_id = img_path
+            else: #numpy array
+                raise NameError("Please input an img_id.")
+
+        return self.results_generation(det_results[0], img_id, id_strip)
 
     def batch_image_detection(self, data_path, batch_size=16, conf_thres=0.2, id_strip=None, extension="JPG"):
         """
