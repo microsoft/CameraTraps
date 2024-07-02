@@ -89,7 +89,7 @@ class YOLOV8Base(BaseDetector):
         )
         results["labels"] = [
             f"{self.CLASS_NAMES[class_id]} {confidence:0.2f}"
-            for _, _, confidence, class_id, _ in results["detections"]
+            for _, _, confidence, class_id, _, _ in results["detections"]
         ]
         
         return results
