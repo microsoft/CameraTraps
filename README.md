@@ -7,7 +7,7 @@
 <a href="https://pypi.org/project/PytorchWildlife"><img src="https://img.shields.io/pypi/v/PytorchWildlife?color=limegreen" /></a> 
 <a href="https://pypi.org/project/PytorchWildlife"><img src="https://static.pepy.tech/badge/pytorchwildlife" /></a> 
 <a href="https://pypi.org/project/PytorchWildlife"><img src="https://img.shields.io/pypi/pyversions/PytorchWildlife" /></a> 
-<a href="https://huggingface.co/spaces/ai4g-biodiversity/pytorch-wildlife"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Demo-blue" /></a>
+<a href="https://huggingface.co/spaces/ai-for-good-lab/pytorch-wildlife"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Demo-blue" /></a>
 <a href="https://colab.research.google.com/drive/1rjqHrTMzEHkMualr4vB55dQWCsCKMNXi?usp=sharing"><img src="https://img.shields.io/badge/Colab-Demo-blue?logo=GoogleColab" /></a>
 <!-- <a href="https://colab.research.google.com/drive/16-OjFVQ6nopuP-gfqofYBBY00oIgbcr1?usp=sharing"><img src="https://img.shields.io/badge/Colab-Video detection-blue?logo=GoogleColab" /></a> -->
 <a href="https://cameratraps.readthedocs.io/en/latest/"><img src="https://img.shields.io/badge/read-docs-yellow?logo=ReadtheDocs" /></a>
@@ -18,11 +18,9 @@
 
 
 ## 📣 Announcement
-### Compatibility with CUDA 12.1
-The new version of PytorchWildlife uses the latest version of Pytorch (currently 2.3.1), which is compatible with CUDA 12! 
 
-### 🥳 MegaDetectorV6 beta testing!
-Greetings! For the past few weeks, we have been working on the next generation of MegaDetector, focusing on computational efficiency and performance. We have trained multiple new models using the latest YOLO-v9 architecture and want to start a public beta testing with these new models to ensure they work as expected on real-world datasets. In the beta testing, we will let people test the compact version of MegaDetectorV6 (MDv6-c). This MDv6-c model has only one-sixth of the parameters of the current MegaDetectorV5 and exhibits 12% higher recall on animal detection in our validation datasets. In other words, MDv6-c has significantly fewer false negatives when detecting animals, making it a more robust model than MegaDetectorV5. 
+### 🏎️💨💨 SMALLER, BETTER, and FASTER! MegaDetectorV6 public beta testing started! 
+The public beta testing for MegaDetectorV6 has officially started! We have been working on the next generation of MegaDetector for a while, focusing on computational efficiency and performance. We have trained multiple new models using the latest YOLO-v9 architecture, and in the public beta testing, we want to ensure these models work as expected on real-world datasets. In the beta testing, we will allow people to test the compact version of MegaDetectorV6 (MDv6-c). This MDv6-c model has only ***one-sixth (SMALLER)*** of the parameters of the current MegaDetectorV5 and exhibits ***12% higher recall (BETTER)*** on animal detection in our validation datasets. In other words, MDv6-c has significantly fewer false negatives when detecting animals, making it a more robust model than MegaDetectorV5. Furthermore, one of our testers reported that the speed of MDv6-c is at least ***5 times faster (FASTER)*** than MegaDetectorV5 on their datasets.
 
 |Models|Parameters|Precision|Recall|
 |---|---|---|---|
@@ -36,16 +34,24 @@ We are also working on an extra-large version of MegaDetectorV6 for optimal perf
 ### 🎉 Pytorch-Wildlife ready for citation
 In addition, we have recently published a [summary paper on Pytorch-Wildlife](https://arxiv.org/abs/2405.12930). The paper has been accepted as an oral presentation at the [CV4Animals workshop](https://www.cv4animals.com/) at this year's CVPR. Please feel free to [cite us!](#📖-cite-us)
 
-## ✅ Update highlights (Version 1.0.2.13)
+### 🛠️ Compatibility with CUDA 12.x
+The new version of PytorchWildlife uses the latest version of Pytorch (currently 2.3.1), which is compatible with CUDA 12.x.
+
+## ✅ Feature highlights (Version 1.0.2.15)
 - [x] Added a file separation function. You can now automatically separate your files between animals and non-animals into different folders using our `detection_folder_separation` function. Please see the [Python demo file](demo/image_separation_demo.py) and [Jupyter demo](demo/image_separation_demo.ipynb)!
 - [x] 🥳 Added Timelapse compatibility! Check the [Gradio interface](INSTALLATION.md) or [notebooks](https://github.com/microsoft/CameraTraps/blob/main/demo/image_detection_demo.ipynb).
-- [x] Added Google Colab demos.
-- [x] Added Snapshot Serengeti classification model into the model zoo.
-- [x] Added Classification fine-tuning module.
-- [x] Added a Docker Image for ease of installation.
+<details>
+<summary><font size="3">👉 Click for more</font></summary>
+<input type="checkbox" disabled=true checked> CUDA 12.x compatibility. <br>
+<input type="checkbox" disabled=true checked> Added Google Colab demos. <br>
+<input type="checkbox" disabled=true checked> Added Snapshot Serengeti classification model into the model zoo. <br>
+<input type="checkbox" disabled=true checked> Added Classification fine-tuning module. <br>
+<input type="checkbox" disabled=true checked> Added a Docker Image for ease of installation. <br>
+</details>
 
 ## 🔥 Future highlights
-- [ ] MegaDetectorV6 with multiple model sizes for both optimized performance and low-budget devices like camera systems.
+- [ ] MegaDetectorV6 with multiple model sizes for both optimized performance and low-budget devices like camera systems (***Public beta testing has started!!***).
+- [ ] Supervision 0.19+ and Python 3.10+ compatibility. 
 - [ ] A detection model fine-tuning module to fine-tune your own detection model for Pytorch-Wildlife.
 - [ ] Direct LILA connection for more training/validation data.
 - [ ] More pretrained detection and classification models to expand the current model zoo.
