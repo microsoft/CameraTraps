@@ -122,4 +122,4 @@ wcwidth==0.2.13
 websockets==11.0.3
 werkzeug==3.0.1
 yarl==1.9.4
-zipp==3.17.0
+zipp==3.19.1
