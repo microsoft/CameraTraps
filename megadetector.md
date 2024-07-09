@@ -32,7 +32,7 @@ We are also working on an extra-large version of MegaDetectorV6 for optimal perf
 >If you want to join the beta testing, please come to our discord channel and DM the admins there: [![](https://img.shields.io/badge/any_text-Join_us!-blue?logo=discord&label=PytorchWildife)](https://discord.gg/TeEVxzaYtm)
 
 ### 🎉 Pytorch-Wildlife ready for citation
-In addition, we have recently published a [summary paper on Pytorch-Wildlife](https://arxiv.org/abs/2405.12930). The paper has been accepted as an oral presentation at the [CV4Animals workshop](https://www.cv4animals.com/) at this year's CVPR. Please feel free to [cite us!](#📖-cite-us)
+In addition, we have recently published a [summary paper on Pytorch-Wildlife](https://arxiv.org/abs/2405.12930). The paper has been accepted as an oral presentation at the [CV4Animals workshop](https://www.cv4animals.com/) at this year's CVPR. Please feel free to [cite us!](#cite-us)
 
 ### 🛠️ Compatibility with CUDA 12.x
 The new version of PytorchWildlife uses the latest version of Pytorch (currently 2.3.1), which is compatible with CUDA 12.x.
@@ -42,11 +42,11 @@ The new version of PytorchWildlife uses the latest version of Pytorch (currently
 - [x] 🥳 Added Timelapse compatibility! Check the [Gradio interface](INSTALLATION.md) or [notebooks](https://github.com/microsoft/CameraTraps/blob/main/demo/image_detection_demo.ipynb).
 <details>
 <summary><font size="3">👉 Click for more</font></summary>
-<input type="checkbox" disabled=true checked> CUDA 12.x compatibility. <br>
-<input type="checkbox" disabled=true checked> Added Google Colab demos. <br>
-<input type="checkbox" disabled=true checked> Added Snapshot Serengeti classification model into the model zoo. <br>
-<input type="checkbox" disabled=true checked> Added Classification fine-tuning module. <br>
-<input type="checkbox" disabled=true checked> Added a Docker Image for ease of installation. <br>
+  <li> CUDA 12.x compatibility. <br>
+  <li> Added Google Colab demos. <br>
+  <li> Added Snapshot Serengeti classification model into the model zoo. <br>
+  <li> Added Classification fine-tuning module. <br>
+  <li> Added a Docker Image for ease of installation. <br>
 </details>
 
 ## 🔥 Future highlights
@@ -68,7 +68,7 @@ Pytorch-Wildlife is pip installable:
 pip install PytorchWildlife
 ```
 
-To use the newest version of MegaDetector with all the existing functionalities, you can use our [Hugging Face interface](https://huggingface.co/spaces/AndresHdzC/pytorch-wildlife) or simply load the model with **Pytorch-Wildlife**. The weights will be automatically downloaded:
+To use the newest version of MegaDetector with all the existing functionalities, you can use our [Hugging Face interface](https://huggingface.co/spaces/ai-for-good-lab/pytorch-wildlife) or simply load the model with **Pytorch-Wildlife**. The weights will be automatically downloaded:
 ```python
 from PytorchWildlife.models import detection as pw_detection
 detection_model = pw_detection.MegaDetectorV5()
@@ -209,7 +209,7 @@ Let's shape the future of wildlife research, together! 🙌
 <img src="https://microsoft.github.io/CameraTraps/assets/opossum_det.png" alt="opossum_det" width="500"/><br>
 *Credits to the Agency for Regulation and Control of Biosecurity and Quarantine for Galápagos (ABG), Ecuador.*
 
-## 📖 Cite us
+## Cite us
 ```
 @misc{hernandez2024pytorchwildlife,
       title={Pytorch-Wildlife: A Collaborative Deep Learning Framework for Conservation}, 
