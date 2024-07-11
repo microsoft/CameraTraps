@@ -62,7 +62,7 @@ class Custom_Base_DS(Dataset):
         self.labels = []
         self.seq_ids = []
 
-    def load_data(self):
+    def load_data(self, dset):
         """
         Load data from the specified directory. Differentiates between prediction and training/validation mode.
         """
@@ -74,7 +74,7 @@ class Custom_Base_DS(Dataset):
             self.data = list(self.ann['path'])
             self.label_ids = list(self.ann['classification'])
             self.labels = list(self.ann['label'])
-        print('Number of images loaded: ', len(self.data))
+        print('Number of images loaded for {} dataset: {}'.format(dset, len(self.data)))
 
     def class_counts_cal(self):
         """
@@ -144,7 +144,7 @@ class Custom_Crop_DS(Custom_Base_DS):
         if not self.predict:
             self.ann = pd.read_csv(os.path.join(self.rootdir, 'cropped_resized', '{}_annotations_cropped.csv'
                                                 .format('test' if dset == 'test' else dset)))
-        self.load_data()
+        self.load_data(dset)
 
 class Custom_Base(pl.LightningDataModule):
     """
