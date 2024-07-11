@@ -19,8 +19,13 @@
 
 ## 📣 Announcement
 
+### 🤜🤛 Collaboration with EcoAssist!
+We are thrilled to announce our collaboration with [EcoAssist](https://addaxdatascience.com/ecoassist/#spp-models)---a powerful user interface software that enables users to directly load models from the PyTorch-Wildlife model zoo for image analysis on local computers. With EcoAssist, you can now utilize MegaDetectorV5 and the classification models---AI4GAmazonRainforest and AI4GOpossum---for automatic animal detection and identification, alongside a comprehensive suite of pre- and post-processing tools. This partnership aims to enhance the overall user experience with PyTorch-Wildlife models for a general audience. We will work closely to bring more features together for more efficient and effective wildlife analysis in the future.
+
 ### 🏎️💨💨 SMALLER, BETTER, and FASTER! MegaDetectorV6 public beta testing started! 
-The public beta testing for MegaDetectorV6 has officially started! We have been working on the next generation of MegaDetector for a while, focusing on computational efficiency and performance. We have trained multiple new models using the latest YOLO-v9 architecture, and in the public beta testing, we want to ensure these models work as expected on real-world datasets. In the beta testing, we will allow people to test the compact version of MegaDetectorV6 (MDv6-c). This MDv6-c model has only ***one-sixth (SMALLER)*** of the parameters of the current MegaDetectorV5 and exhibits ***12% higher recall (BETTER)*** on animal detection in our validation datasets. In other words, MDv6-c has significantly fewer false negatives when detecting animals, making it a more robust model than MegaDetectorV5. Furthermore, one of our testers reported that the speed of MDv6-c is at least ***5 times faster (FASTER)*** than MegaDetectorV5 on their datasets.
+The public beta testing for MegaDetectorV6 has officially started! In the next generation of MegaDetector, we are focusing on computational efficiency and performance. We have trained multiple new models using the latest YOLO-v9 architecture, and in the public beta testing, we will allow people to test the compact version of MegaDetectorV6 (MDv6-c). We want to make sure these models work as expected on real-world datasets. 
+
+This MDv6-c model has only ***one-sixth (SMALLER)*** of the parameters of the current MegaDetectorV5 and exhibits ***12% higher recall (BETTER)*** on animal detection in our validation datasets. In other words, MDv6-c has significantly fewer false negatives when detecting animals, making it a more robust animal detection model than MegaDetectorV5. Furthermore, one of our testers reported that the speed of MDv6-c is at least ***5 times FASTER*** than MegaDetectorV5 on their datasets.
 
 |Models|Parameters|Precision|Recall|
 |---|---|---|---|
