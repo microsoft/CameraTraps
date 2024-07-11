@@ -11,3 +11,4 @@ PytorchWildlife.egg-info/
 *dist/*
 *VSCodeCounter*
 *build/*
+*log*
