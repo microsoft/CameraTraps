@@ -1,1 +1,1 @@
-from batch_detection_cropping import *
+from .src import *

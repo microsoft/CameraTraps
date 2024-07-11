@@ -12,7 +12,7 @@ from PytorchWildlife.models import detection as pw_detection
 from PytorchWildlife.data import transforms as pw_trans
 from PytorchWildlife.data import datasets as pw_data 
 # Importing the utility function for saving cropped images
-from src.utils import utils
+from ...src.utils import utils
 
 def batch_detection_cropping(folder_path, output_path, annotation_file):
     # Setting the device to use for computations ('cuda' indicates GPU)

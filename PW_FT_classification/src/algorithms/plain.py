@@ -9,7 +9,7 @@ import torch.optim as optim
 import pytorch_lightning as pl
 
 from .utils import acc
-from src import models
+from ...src import models
 
 
 __all__ = [
