@@ -77,7 +77,7 @@ def save_crop_images(results, output_dir, overwrite=False):
     os.makedirs(output_dir, exist_ok=True)
     with sv.ImageSink(target_dir_path=output_dir, overwrite=overwrite) as sink:
         for entry in results:
-            for i, (xyxy, _, _, cat, _) in enumerate(entry["detections"]):
+            for i, (xyxy, _, _, cat, _, _) in enumerate(entry["detections"]):
                 cropped_img = sv.crop_image(
                     image=np.array(Image.open(entry["img_id"]).convert("RGB")), xyxy=xyxy
                 )
