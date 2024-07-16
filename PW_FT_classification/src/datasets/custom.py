@@ -64,7 +64,8 @@ class Custom_Base_DS(Dataset):
 
     def load_data(self, dset):
         """
-        Load data from the specified directory. Differentiates between prediction and training/validation mode.
+        Load data from the specified directory. Differentiates between prediction and training/
+        validation mode.
         """
         if self.predict:
             # Load data for prediction
@@ -103,7 +104,8 @@ class Custom_Base_DS(Dataset):
             index (int): Index of the item to be retrieved.
 
         Returns:
-            tuple: Depending on the mode, returns different tuples containing the image and additional information.
+            tuple: Depending on the mode, returns different tuples containing the image and 
+            additional information.
         """
         file_id = self.data[index]
         file_dir = os.path.join(self.img_root, file_id) if not self.predict else file_id
@@ -142,8 +144,11 @@ class Custom_Crop_DS(Custom_Base_DS):
         super().__init__(rootdir=rootdir, transform=transform, predict=self.predict)
         self.img_root = rootdir if self.predict else os.path.join(self.rootdir, 'cropped_resized')
         if not self.predict:
-            self.ann = pd.read_csv(os.path.join(self.rootdir, 'cropped_resized', '{}_annotations_cropped.csv'
-                                                .format('test' if dset == 'test' else dset)))
+            path_crop_csv = os.path.join(
+                self.rootdir, 'cropped_resized', 
+                '{}_annotations_cropped.csv'.format('test' if dset == 'test' else dset)
+            )
+            self.ann = pd.read_csv(path_crop_csv)
         self.load_data(dset)
 
 class Custom_Base(pl.LightningDataModule):
@@ -167,11 +172,19 @@ class Custom_Base(pl.LightningDataModule):
         self.conf = conf
 
         # Load datasets for different modes (training, validation, testing, prediction)
-        self.dset_tr = self.ds(rootdir=self.conf.dataset_root, dset='train', transform=data_transforms['train'])
-        self.dset_val = self.ds(rootdir=self.conf.dataset_root, dset='val', transform=data_transforms['val'])
-        self.dset_te = self.ds(rootdir=self.conf.dataset_root, dset='test', transform=data_transforms['val'])
+        self.dset_tr = self.ds(
+            rootdir=self.conf.dataset_root, dset='train', transform=data_transforms['train']
+        )
+        self.dset_val = self.ds(
+            rootdir=self.conf.dataset_root, dset='val', transform=data_transforms['val']
+        )
+        self.dset_te = self.ds(
+            rootdir=self.conf.dataset_root, dset='test', transform=data_transforms['val']
+        )
         if self.conf.predict:
-            self.dset_pr = self.ds(rootdir=self.conf.predict_root, dset='predict', transform=data_transforms['val'])
+            self.dset_pr = self.ds(
+                rootdir=self.conf.predict_root, dset='predict', transform=data_transforms['val']
+            )
 
         # Calculate class counts and label mappings
         self.unique_label_ids, self.train_class_counts = self.dset_tr.class_counts_cal()
@@ -184,7 +197,10 @@ class Custom_Base(pl.LightningDataModule):
         Returns:
             DataLoader: DataLoader for the training dataset.
         """
-        return DataLoader(self.dset_tr, batch_size=self.conf.batch_size, shuffle=True, pin_memory=True, num_workers=self.conf.num_workers, drop_last=False)
+        return DataLoader(
+            self.dset_tr, batch_size=self.conf.batch_size, shuffle=True, drop_last=False, 
+            pin_memory=True, num_workers=self.conf.num_workers, persistent_workers = True
+        )
 
     def val_dataloader(self):
         """
@@ -193,7 +209,10 @@ class Custom_Base(pl.LightningDataModule):
         Returns:
             DataLoader: DataLoader for the validation dataset.
         """
-        return DataLoader(self.dset_val, batch_size=self.conf.batch_size, shuffle=False, pin_memory=True, num_workers=self.conf.num_workers, drop_last=False)
+        return DataLoader(
+            self.dset_val, batch_size=self.conf.batch_size, shuffle=False, drop_last=False, 
+            pin_memory=True, num_workers=self.conf.num_workers, persistent_workers = True
+        )
 
     def test_dataloader(self):
         """
@@ -202,7 +221,10 @@ class Custom_Base(pl.LightningDataModule):
         Returns:
             DataLoader: DataLoader for the testing dataset.
         """
-        return DataLoader(self.dset_te, batch_size=256, shuffle=False, pin_memory=True, num_workers=self.conf.num_workers, drop_last=False)
+        return DataLoader(
+            self.dset_te, batch_size=256, shuffle=False, drop_last=False, 
+            pin_memory=True, num_workers=self.conf.num_workers, persistent_workers = False
+        )
 
     def predict_dataloader(self):
         """
@@ -211,7 +233,10 @@ class Custom_Base(pl.LightningDataModule):
         Returns:
             DataLoader: DataLoader for the prediction dataset.
         """
-        return DataLoader(self.dset_pr, batch_size=64, shuffle=False, pin_memory=True, num_workers=self.conf.num_workers, drop_last=False)
+        return DataLoader(
+            self.dset_pr, batch_size=64, shuffle=False, drop_last=False, 
+            pin_memory=True, num_workers=self.conf.num_workers, persistent_workers = False
+        )
 
 class Custom_Crop(Custom_Base):
     """
