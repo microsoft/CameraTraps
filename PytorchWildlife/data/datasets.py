@@ -3,6 +3,9 @@
 
 import os
 from glob import glob
+from pathlib import Path
+from typing import List
+
 from PIL import Image
 import numpy as np
 import supervision as sv
@@ -22,18 +25,21 @@ class DetectionImageFolder(Dataset):
     the image's path, and the original size of the image.
     """
 
-    def __init__(self, image_dir, transform=None, extension="JPG"):
+    def __init__(self, image_dir, transform=None, extensions=("jpg",)):
         """
         Initializes the dataset.
 
         Parameters:
             image_dir (str): Path to the directory containing the images.
             transform (callable, optional): Optional transform to be applied on the image.
+            extensions (tuple, optional): Tuple of extensions to be used for filtering the images.
         """
         self.image_dir = image_dir
+
         # Listing and sorting all image files in the specified directory
-        self.images = sorted(glob(os.path.join(self.image_dir, "**/*." + extension),
-                                  recursive=True))
+        self.images = self.find_images(Path(image_dir), extensions)
+        print(self.images)
+
         self.transform = transform
 
     def __getitem__(self, idx):
@@ -67,6 +73,26 @@ class DetectionImageFolder(Dataset):
             int: Total number of images.
         """
         return len(self.images)
+
+    def find_images(self, path_to_images: Path, extensions: List[str]):
+        """
+        Finds all images in the given path.
+
+        Args:
+            path_to_images (Path): Path to the images.
+            extensions (List[str]): List of extensions to search for.
+        Returns:
+            List[Path]: Sorted list of paths to the images.
+        """
+        all_files = list(path_to_images.rglob("*.*"))
+
+        # all extensions to lowercase (needs for case-insensitive search)
+        extensions = [ext.lower() for ext in extensions]
+
+        # remain images with extensions
+        image_paths = [str(path) for path in all_files if path.suffix.lower().replace(".", "") in extensions]
+
+        return sorted(image_paths)
 
 
 class DetectionCrops(Dataset):
