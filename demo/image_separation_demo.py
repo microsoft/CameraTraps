@@ -24,7 +24,8 @@ from PytorchWildlife import utils as pw_utils
 parser = argparse.ArgumentParser(description="Batch image detection and separation")
 parser.add_argument('--image_folder', type=str, default=os.path.join("demo_data","imgs"), help='Folder path containing images for detection')
 parser.add_argument('--output_path', type=str, default='folder_separation', help='Path where the outputs will be saved')
-parser.add_argument('--file_extension', type=str, default='JPG', help='File extension for images (case sensitive)')
+parser.add_argument('--file_extensions', type=str, nargs='+', default=['JPG'],
+                    help='File extensions for images. To set more, than one separate by spaces (e.g. `jpg png etc`)')
 parser.add_argument('--threshold', type=float, default='0.2', help='Confidence threshold to consider a detection as positive')
 args = parser.parse_args()
 
@@ -48,7 +49,7 @@ dataset = pw_data.DetectionImageFolder(
     args.image_folder,
     transform=pw_trans.MegaDetector_v5_Transform(target_size=detection_model.IMAGE_SIZE,
                                                  stride=detection_model.STRIDE),
-    extension=args.file_extension
+    extensions=args.file_extensions
 )
 
 # Creating a DataLoader for batching and parallel processing of the images
