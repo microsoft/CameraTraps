@@ -38,7 +38,6 @@ class DetectionImageFolder(Dataset):
 
         # Listing and sorting all image files in the specified directory
         self.images = self.find_images(Path(image_dir), extensions)
-        print(self.images)
 
         self.transform = transform
 
@@ -84,7 +83,7 @@ class DetectionImageFolder(Dataset):
         Returns:
             List[Path]: Sorted list of paths to the images.
         """
-        all_files = list(path_to_images.rglob("*.*"))
+        all_files = path_to_images.rglob("*.*")
 
         # all extensions to lowercase (needs for case-insensitive search)
         extensions = [ext.lower() for ext in extensions]
