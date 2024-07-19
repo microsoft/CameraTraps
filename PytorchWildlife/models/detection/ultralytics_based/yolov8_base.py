@@ -137,7 +137,7 @@ class YOLOV8Base(BaseDetector):
         self.predictor.args.batch = batch_size
         self.predictor.args.conf = conf_thres
         img_list = glob(os.path.join(data_path, '**/*.{}'.format(extension)), recursive=True)
-        det_results = list(self.predictor.stream_inference(img_list))
+        det_results = self.predictor.stream_inference(img_list)
         results = []
         for idx, preds in enumerate(det_results):
             results.append(self.results_generation(preds, img_list[idx], id_strip))
