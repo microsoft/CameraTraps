@@ -92,11 +92,11 @@ def main(
     train_annotations = os.path.join(conf.dataset_root, 'train_annotations.csv')
     test_annotations = os.path.join(conf.dataset_root, 'test_annotations.csv')
     val_annotations = os.path.join(conf.dataset_root, 'val_annotations.csv')
-    # Split training data
+    # Crop training data
     batch_detection_cropping.batch_detection_cropping(conf.dataset_root, os.path.join(conf.dataset_root, "cropped_resized"), train_annotations)
-    # Split validation
+    # Crop validation data
     batch_detection_cropping.batch_detection_cropping(conf.dataset_root, os.path.join(conf.dataset_root, "cropped_resized"), val_annotations)
-    # Split test (most likely we don't need this)
+    # Crop test data (most likely we don't need this)
     batch_detection_cropping.batch_detection_cropping(conf.dataset_root, os.path.join(conf.dataset_root, "cropped_resized"), test_annotations)
 
     # Dataset and algorithm loading based on the configuration
