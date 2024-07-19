@@ -50,9 +50,6 @@ def create_splits(csv_path, output_folder, test_size=0.2, val_size=0.1):
     # Return the dataframes
     return train_set, val_set, test_set
 
-import pandas as pd
-from sklearn.model_selection import train_test_split
-
 def split_by_location(csv_path, output_folder, val_size=0.15, test_size=0.15, random_state=None):
     """
     Splits the dataset into train, validation, and test sets based on location, ensuring that:
@@ -94,10 +91,6 @@ def split_by_location(csv_path, output_folder, val_size=0.15, test_size=0.15, ra
     # Return the split datasets
     return train_data, val_data, test_data
 
-
-
-import pandas as pd
-from sklearn.model_selection import train_test_split
 
 def split_by_seq(csv_path, output_folder, val_size=0.15, test_size=0.15, random_state=None):
     """
