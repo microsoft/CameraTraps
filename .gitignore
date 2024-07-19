@@ -11,3 +11,8 @@ PytorchWildlife.egg-info/
 *dist/*
 *VSCodeCounter*
 *build/*
+*bee*
+*Bee*
+*debug*
+*annotations.csv
+*cropped_resized*
