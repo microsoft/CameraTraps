@@ -176,7 +176,7 @@ class Plain(pl.LightningModule):
                           total_label_ids[total_label_ids != -1],
                           print_class_acc=False)
 
-        output_path = self.hparams.evaluate.replace('.ckpt', 'eval.npz') 
+        output_path = os.path.join(self.hparams.save_dir, 'eval.npz') 
         np.savez(output_path, preds=total_preds, label_ids=total_label_ids, feats=total_feats,
                  logits=total_logits, labels=total_labels, file_ids=total_file_ids)  
         print('Test output saved to {}.'.format(output_path))
