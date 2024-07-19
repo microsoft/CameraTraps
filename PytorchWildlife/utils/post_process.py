@@ -24,37 +24,43 @@ __all__ = [
 
 
 # !!! Output paths need to be optimized !!!
-def save_detection_images(results, output_dir, input_dir = None, overwrite=False):
+def save_detection_images(results, path_to_save, dataset_path=None, overwrite=False):
     """
     Save detected images with bounding boxes and labels annotated.
 
     Args:
         results (list or dict):
             Detection results containing image ID, detections, and labels.
-        output_dir (str):
-            Directory to save the annotated images.
+        path_to_save (str):
+            Path, where results will be saved.
+        dataset_path (str):
+            absolute path to dataset. Need for resolving and preserving original data structure.
         overwrite (bool):
             Whether overwriting existing image folders. Default to False.
     """
+    path_to_save = Path(path_to_save)
+
     box_annotator = sv.BoxAnnotator(thickness=4, text_thickness=4, text_scale=2)
-    os.makedirs(output_dir, exist_ok=True)
+    if not path_to_save.exists():
+        path_to_save.mkdir(parents=True, exist_ok=True)
 
     if isinstance(results, list):
         for entry in results:
+            entry_path = Path(entry["img_id"])
             annotated_img = box_annotator.annotate(
-                scene=np.array(Image.open(entry["img_id"]).convert("RGB")),
+                scene=np.array(Image.open(entry_path).convert("RGB")),
                 detections=entry["detections"],
                 labels=entry["labels"],
             )
 
-            img_id_parts=Path(entry["img_id"]).parts
-            last_input_dir=Path(input_dir).parts[-1]
-            relative_dir=Path(*img_id_parts[img_id_parts.index(last_input_dir)+1:-1])
-            full_output_dir = os.path.join(output_dir, relative_dir)
-            os.makedirs(full_output_dir, exist_ok=True)
-            with sv.ImageSink(target_dir_path=full_output_dir, overwrite=overwrite) as sink: 
+            entry_save_path = get_save_path(dataset_path, entry, entry_path, path_to_save)
+
+            if not entry_save_path.parent.exists():
+                entry_save_path.parent.mkdir(parents=True, exist_ok=True)
+
+            with sv.ImageSink(target_dir_path=str(entry_save_path.parent), overwrite=overwrite) as sink:
                 sink.save_image(
-                    image=cv2.cvtColor(annotated_img, cv2.COLOR_RGB2BGR), image_name=entry["img_id"].rsplit(os.sep, 1)[1]
+                    image=cv2.cvtColor(annotated_img, cv2.COLOR_RGB2BGR), image_name=entry_path.name
                 )
     else:
         annotated_img = box_annotator.annotate(
@@ -63,47 +69,66 @@ def save_detection_images(results, output_dir, input_dir = None, overwrite=False
             labels=results["labels"],
         )
 
-        with sv.ImageSink(target_dir_path=output_dir, overwrite=overwrite) as sink: 
+        with sv.ImageSink(target_dir_path=str(path_to_save), overwrite=overwrite) as sink:
             sink.save_image(
                 image=cv2.cvtColor(annotated_img, cv2.COLOR_RGB2BGR), image_name=results["img_id"].rsplit(os.sep, 1)[1]
             )
 
 
 # !!! Output paths need to be optimized !!!
-def save_crop_images(results, output_dir, input_dir = None, overwrite=False):
+def save_crop_images(results, path_to_save, dataset_path=None, overwrite=False):
     """
     Save cropped images based on the detection bounding boxes.
 
     Args:
         results (list):
             Detection results containing image ID and detections.
-        output_dir (str):
-            Directory to save the cropped images.
+        path_to_save (str):
+            Path, where results will be saved.
+        dataset_path (str):
+            absolute path to dataset. Need for resolving and preserving original data structure.
         overwrite (bool):
             Whether overwriting existing image folders. Default to False.
     """
     assert isinstance(results, list)
-    os.makedirs(output_dir, exist_ok=True)
-    
+
+    path_to_save = Path(path_to_save)
+    if not path_to_save.exists():
+        path_to_save.mkdir(parents=True, exist_ok=True)
+
     for entry in results:
+        entry_path = Path(entry["img_id"])
         for i, (xyxy, _, _, cat, _) in enumerate(entry["detections"]):
             cropped_img = sv.crop_image(
-                image=np.array(Image.open(entry["img_id"]).convert("RGB")), xyxy=xyxy
+                image=np.array(Image.open(entry_path).convert("RGB")), xyxy=xyxy
             )
 
-            img_id_parts=Path(entry["img_id"]).parts
-            last_input_dir=Path(input_dir).parts[-1]
-            relative_dir=Path(*img_id_parts[img_id_parts.index(last_input_dir)+1:-1])
-            full_output_dir = os.path.join(output_dir, relative_dir)
-            os.makedirs(full_output_dir, exist_ok=True)
-            with sv.ImageSink(target_dir_path=full_output_dir, overwrite=overwrite) as sink:
+            entry_save_path = get_save_path(dataset_path, entry, entry_path, path_to_save)
+
+            if not entry_save_path.parent.exists():
+                entry_save_path.parent.mkdir(parents=True, exist_ok=True)
+
+            with sv.ImageSink(target_dir_path=entry_save_path.parent, overwrite=overwrite) as sink:
                 sink.save_image(
                     image=cv2.cvtColor(cropped_img, cv2.COLOR_RGB2BGR),
                     image_name="{}_{}_{}".format(
-                        int(cat), i, entry["img_id"].rsplit(os.sep, 1)[1]
+                        int(cat), i, entry_path.name
                     ),
                 )
 
+
+def get_save_path(
+    dataset_path,
+    entry,
+    entry_path,
+    path_to_save
+    ):
+    if Path(entry['img_id']).is_absolute() and dataset_path is None:
+        raise ValueError("Provide dataset_path to save images in proper folder structure.")
+    if dataset_path is not None:
+        entry_path = entry_path.relative_to(dataset_path)
+    entry_save_path = path_to_save / entry_path
+    return entry_save_path
 
 def save_detection_json(det_results, output_dir, categories=None, exclude_category_ids=[], exclude_file_path=None):
     """
