@@ -88,8 +88,9 @@ Before training your model, you need to configure the training and data paramete
   - `num_workers`: Number of subprocesses to use for data loading.
 
 - **Model Parameters:**
+  - `num_classes`: The number of classes. 
   - `model_name`: The name of the model architecture to use. The current version only supports PlainResNetClassifier.
-  - `num_layers`: Number of layers in the model. Currently only supports 18 and 50.
+  - `num_layers`: Number of layers in the resnet model. Currently only supports 18 and 50.
   - `weights_init`: Initial weights setting for the model. Currently only supports "ImageNet".
 
 - **Optimization Parameters:**

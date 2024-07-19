@@ -122,6 +122,7 @@ class Custom_Base_DS(Dataset):
 
         return sample, label_id, label, file_dir
 
+
 class Custom_Crop_DS(Custom_Base_DS):
     """
     Dataset class for handling custom cropped datasets.
@@ -145,6 +146,7 @@ class Custom_Crop_DS(Custom_Base_DS):
             self.ann = pd.read_csv(os.path.join(self.rootdir, 'cropped_resized', '{}_annotations_cropped.csv'
                                                 .format('test' if dset == 'test' else dset)))
         self.load_data()
+
 
 class Custom_Base(pl.LightningDataModule):
     """
@@ -212,6 +214,7 @@ class Custom_Base(pl.LightningDataModule):
             DataLoader: DataLoader for the prediction dataset.
         """
         return DataLoader(self.dset_pr, batch_size=64, shuffle=False, pin_memory=True, num_workers=self.conf.num_workers, drop_last=False)
+
 
 class Custom_Crop(Custom_Base):
     """
