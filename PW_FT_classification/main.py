@@ -16,9 +16,10 @@ from src import datasets
 # %%
 from src.utils import batch_detection_cropping
 from src.utils import data_splitting
-#app = typer.Typer()
+
+app = typer.Typer(pretty_exceptions_short=True, pretty_exceptions_show_locals=False)
 # %%
-#@app.command()
+@app.command()
 def main(
         config:str='./configs/Raw/Crop_res50_plain_082723.yaml',
         project:str='Custom-classification',
@@ -34,7 +35,7 @@ def main(
         predict_root:str=""
     ):
     """
-    Main function for training or evaluating a ResNet-50 model using PyTorch Lightning.
+    Main function for training or evaluating a ResNet model (50 or 18) using PyTorch Lightning.
     It loads configurations, initializes the model, logger, and other components based on provided arguments.
 
     Args:
@@ -56,7 +57,7 @@ def main(
     gpus = gpus if torch.cuda.is_available() else None
     gpus = [int(i) for i in gpus.split(',')]
 
-    # Environment variable setup for numpy multi-threading
+    # Environment variable setup for numpy multi-threading. It is important to avoid cpu and ram issues.
     os.environ["OMP_NUM_THREADS"] = str(np_threads)
     os.environ["OPENBLAS_NUM_THREADS"] = str(np_threads)
     os.environ["MKL_NUM_THREADS"] = str(np_threads)
@@ -73,7 +74,6 @@ def main(
     # Set a global seed for reproducibility
     pl.seed_everything(seed)
 
-    
     # If the annotation directory does not have a data split, split the data first
     if conf.split_data:
         # Replace annotation dir from config with the directory containing the split files
@@ -93,18 +93,17 @@ def main(
     test_annotations = os.path.join(conf.dataset_root, 'test_annotations.csv')
     val_annotations = os.path.join(conf.dataset_root, 'val_annotations.csv')
     # Split training data
-
     batch_detection_cropping.batch_detection_cropping(conf.dataset_root, os.path.join(conf.dataset_root, "cropped_resized"), train_annotations)
-    # Split validation and test data
+    # Split validation
     batch_detection_cropping.batch_detection_cropping(conf.dataset_root, os.path.join(conf.dataset_root, "cropped_resized"), val_annotations)
+    # Split test (most likely we don't need this)
     batch_detection_cropping.batch_detection_cropping(conf.dataset_root, os.path.join(conf.dataset_root, "cropped_resized"), test_annotations)
-
 
     # Dataset and algorithm loading based on the configuration
     dataset = datasets.__dict__[conf.dataset_name](conf=conf)
     learner = algorithms.__dict__[conf.algorithm](conf=conf,
-                            train_class_counts=dataset.train_class_counts, 
-                            id_to_labels=dataset.id_to_labels)
+                                                  train_class_counts=dataset.train_class_counts, 
+                                                  id_to_labels=dataset.id_to_labels)
 
     # Logger setup based on the specified logger type
     log_folder = 'log_dev' if dev else 'log'
@@ -155,7 +154,7 @@ def main(
         devices=gpus,
         logger=None if evaluate is not None else logger,
         callbacks=[lr_monitor, checkpoint_callback],
-        strategy='ddp',
+        strategy='auto',
         num_sanity_val_steps=0,
         profiler=None
     )
@@ -171,8 +170,6 @@ def main(
         trainer.fit(learner, datamodule=dataset)
 # %%
 if __name__ == '__main__':
-    main()
-
-
+    app()
 
 # %%
