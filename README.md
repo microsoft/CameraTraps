@@ -36,6 +36,20 @@ We are also working on an extra-large version of MegaDetectorV6 for optimal perf
 ### 🎉 Pytorch-Wildlife ready for citation
 In addition, we have recently published a [summary paper on Pytorch-Wildlife](https://arxiv.org/abs/2405.12930). The paper has been accepted as an oral presentation at the [CV4Animals workshop](https://www.cv4animals.com/) at this year's CVPR. Please feel free to [cite us!](#📖-cite-us)
 
+## Contributing to PytorchWildlife
+
+Thank you for your interest in contributing to PytorchWildlife! Your contributions can make a significant impact by enhancing the usability, accessibility, and performance of these tools, helping them reach a broader audience. Whether you're an experienced developer, a beginner eager to learn, or someone passionate about wildlife conservation, your input is invaluable. We've outlined a few areas where we could use your help—whether it's improving documentation, streamlining the installation process, or refining the user experience, there's plenty of room for collaboration. Let's work together to make PytorchWildlife an even more powerful and user-friendly resource for the global conservation community!
+
+---
+
+## TODO List for Improving Installation and Usability
+
+### Documentation and Instructions
+- [ ] **Improve Accessibility of Installation Instructions:**
+
+  - [ ] Update the documentation on [Camera Traps Documentation](https://cameratraps.readthedocs.io).
+
+
 ## ✅ Update highlights (Version 1.0.2.13)
 - [x] Added a file separation function. You can now automatically separate your files between animals and non-animals into different folders using our `detection_folder_separation` function. Please see the [Python demo file](demo/image_separation_demo.py) and [Jupyter demo](demo/image_separation_demo.ipynb)!
 - [x] 🥳 Added Timelapse compatibility! Check the [Gradio interface](INSTALLATION.md) or [notebooks](https://github.com/microsoft/CameraTraps/blob/main/demo/image_detection_demo.ipynb).
