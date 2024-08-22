@@ -56,7 +56,7 @@ dataset = pw_data.DetectionImageFolder(
     tgt_folder_path,
     transform=pw_trans.MegaDetector_v5_Transform(target_size=detection_model.IMAGE_SIZE,
                                                  stride=detection_model.STRIDE),
-    extension='JPG' # Can be other extensions based on your own data, such as png. And this argument is case sensitive.
+    extensions=('JPG',),  # set file extensions to be found and processed
 )
 
 # Creating a DataLoader for batching and parallel processing of the images
