@@ -140,5 +140,10 @@ class YOLOV8Base(BaseDetector):
         det_results = self.predictor.stream_inference(img_list)
         results = []
         for idx, preds in enumerate(det_results):
-            results.append(self.results_generation(preds, img_list[idx], id_strip))
+            res = self.results_generation(preds, img_list[idx], id_strip)
+            size = preds.orig_shape
+            # Normalize the coordinates for timelapse compatibility
+            normalized_coords = [[x1 / size[1], y1 / size[0], x2 / size[1], y2 / size[0]] for x1, y1, x2, y2 in res["detections"].xyxy]
+            res["normalized_coords"] = normalized_coords
+            results.append(res)
         return results
