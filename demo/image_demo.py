@@ -26,7 +26,7 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 #%% 
 # Initializing the MegaDetectorV5 model for image detection
-detection_model = pw_detection.MegaDetectorV5(device=DEVICE, pretrained=True, verison="a")
+detection_model = pw_detection.MegaDetectorV5(device=DEVICE, pretrained=True, version="a")
 
 #%% Single image detection
 # Specifying the path to the target image TODO: Allow argparsing
