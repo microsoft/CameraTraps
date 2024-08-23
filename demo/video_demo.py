@@ -41,7 +41,8 @@ trans_clf = pw_trans.Classification_Inference_Transform(target_size=224)
 
 #%% 
 # Initializing a box annotator for visualizing detections
-box_annotator = sv.BoxAnnotator(thickness=4, text_thickness=4, text_scale=2)
+box_annotator = sv.BoundingBoxAnnotator(thickness=4)
+lab_annotator = sv.LabelAnnotator(text_color=sv.Color.BLACK, text_thickness=4, text_scale=2)
 
 def callback(frame: np.ndarray, index: int) -> np.ndarray:
     """
@@ -64,7 +65,14 @@ def callback(frame: np.ndarray, index: int) -> np.ndarray:
         results_clf = classification_model.single_image_classification(trans_clf(Image.fromarray(cropped_image)))
         labels.append("{} {:.2f}".format(results_clf["prediction"], results_clf["confidence"]))
 
-    annotated_frame = box_annotator.annotate(scene=frame, detections=results_det["detections"], labels=labels)
+    annotated_frame = lab_annotator.annotate(
+        scene=box_annotator.annotate(
+            scene=frame,
+            detections=results_det["detections"],
+        ),
+        detections=results_det["detections"],
+        labels=labels,
+    )
     
     return annotated_frame 
 
