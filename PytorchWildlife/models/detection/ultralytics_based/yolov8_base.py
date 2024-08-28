@@ -10,8 +10,12 @@ from glob import glob
 import supervision as sv
 
 from ultralytics.models import yolo
+from torch.utils.data import DataLoader
+from tqdm import tqdm
 
 from ..base_detector import BaseDetector
+from ....data import transforms as pw_trans
+from ....data import datasets as pw_data
 
 
 class YOLOV8Base(BaseDetector):
@@ -21,7 +25,7 @@ class YOLOV8Base(BaseDetector):
     This base detector class is also compatible with all the new ultralytics models including YOLOV9, 
     RTDetr, and more.
     """
-    def __init__(self, weights=None, device="cpu", url=None):
+    def __init__(self, weights=None, device="cpu", url=None, transform=None):
         """
         Initialize the YOLOV8 detector.
         
@@ -33,6 +37,7 @@ class YOLOV8Base(BaseDetector):
             url (str, optional): 
                 URL to fetch the model weights. Defaults to None.
         """
+        self.transform = transform
         super(YOLOV8Base, self).__init__(weights=weights, device=device, url=url)
 
     def _load_model(self, weights=None, device="cpu", url=None):
@@ -61,6 +66,10 @@ class YOLOV8Base(BaseDetector):
             raise Exception("URL weights loading not ready for beta testing.")
         else:
             raise Exception("Need weights for inference.")
+        
+        if not self.transform:
+            self.transform = pw_trans.MegaDetector_v5_Transform(target_size=self.IMAGE_SIZE,
+                                                                stride=self.STRIDE)
 
     def results_generation(self, preds, img_id, id_strip=None):
         """
@@ -137,14 +146,30 @@ class YOLOV8Base(BaseDetector):
         """
         self.predictor.args.batch = batch_size
         self.predictor.args.conf = conf_thres
-        img_list = glob(os.path.join(data_path, '**/*.{}'.format(extension)), recursive=True)
-        det_results = self.predictor.stream_inference(img_list)
+
+        dataset = pw_data.DetectionImageFolder(
+            data_path,
+            transform=self.transform,
+            extension=extension
+        )
+
+        # Creating a DataLoader for batching and parallel processing of the images
+        loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, 
+                            pin_memory=True, num_workers=0, drop_last=False
+                            )
+        
         results = []
-        for idx, preds in enumerate(det_results):
-            res = self.results_generation(preds, img_list[idx], id_strip)
-            size = preds.orig_shape
-            # Normalize the coordinates for timelapse compatibility
-            normalized_coords = [[x1 / size[1], y1 / size[0], x2 / size[1], y2 / size[0]] for x1, y1, x2, y2 in res["detections"].xyxy]
-            res["normalized_coords"] = normalized_coords
-            results.append(res)
+        with tqdm(total=len(loader)) as pbar:
+            for batch_index, (imgs, paths, sizes) in enumerate(loader):
+                det_results = self.predictor.stream_inference(paths)
+                batch_results = []
+                for idx, preds in enumerate(det_results):
+                    res = self.results_generation(preds, paths[idx], id_strip)
+                    size = preds.orig_shape
+                    # Normalize the coordinates for timelapse compatibility
+                    normalized_coords = [[x1 / size[1], y1 / size[0], x2 / size[1], y2 / size[0]] for x1, y1, x2, y2 in res["detections"].xyxy]
+                    res["normalized_coords"] = normalized_coords
+                    results.append(res)
+                pbar.update(1)
+                results.extend(batch_results)
         return results
