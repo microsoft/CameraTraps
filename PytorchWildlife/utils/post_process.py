@@ -81,6 +81,9 @@ def save_crop_images(results, output_dir, input_dir = None, overwrite=False):
         overwrite (bool):
             Whether overwriting existing image folders. Default to False.
     """
+    if isinstance(results, dict):
+        results = [results]
+
     assert isinstance(results, list)
     os.makedirs(output_dir, exist_ok=True)
     with sv.ImageSink(target_dir_path=output_dir, overwrite=True) as sink:
@@ -95,7 +98,6 @@ def save_crop_images(results, output_dir, input_dir = None, overwrite=False):
                         int(cat), i, entry["img_id"].rsplit(os.sep, 1)[1]
                     ),
                 )
-
 
 def save_detection_json(det_results, output_dir, categories=None, exclude_category_ids=[], exclude_file_path=None):
     """
