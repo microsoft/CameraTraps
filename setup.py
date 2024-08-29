@@ -15,7 +15,7 @@ setup(
     long_description_content_type='text/markdown',
     install_requires=[
         'numpy',
-        'torch==1.10.1',
+        'torch==2.2.0',
         'torchvision==0.11.2',
         'torchaudio==0.10.1',
         'tqdm==4.66.1',
