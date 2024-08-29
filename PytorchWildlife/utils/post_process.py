@@ -36,34 +36,33 @@ def save_detection_images(results, output_dir, input_dir = None, overwrite=False
         overwrite (bool):
             Whether overwriting existing image folders. Default to False.
     """
-    box_annotator = sv.BoxAnnotator(thickness=4, text_thickness=4, text_scale=2)
+    box_annotator = sv.BoundingBoxAnnotator(thickness=4)
+    lab_annotator = sv.LabelAnnotator(text_color=sv.Color.BLACK, text_thickness=4, text_scale=2)
     os.makedirs(output_dir, exist_ok=True)
 
-    if isinstance(results, list):
-        for entry in results:
-            annotated_img = box_annotator.annotate(
-                scene=np.array(Image.open(entry["img_id"]).convert("RGB")),
-                detections=entry["detections"],
-                labels=entry["labels"],
-            )
-
-            img_id_parts=Path(entry["img_id"]).parts
-            last_input_dir=Path(input_dir).parts[-1]
-            relative_dir=Path(*img_id_parts[img_id_parts.index(last_input_dir)+1:-1])
-            full_output_dir = os.path.join(output_dir, relative_dir)
-            os.makedirs(full_output_dir, exist_ok=True)
-            with sv.ImageSink(target_dir_path=full_output_dir, overwrite=overwrite) as sink: 
+    with sv.ImageSink(target_dir_path=output_dir, overwrite=True) as sink:
+        if isinstance(results, list):
+            for entry in results:
+                annotated_img = lab_annotator.annotate(
+                    scene=box_annotator.annotate(
+                        scene=np.array(Image.open(entry["img_id"]).convert("RGB")),
+                        detections=entry["detections"],
+                    ),
+                    detections=entry["detections"],
+                    labels=entry["labels"],
+                )
                 sink.save_image(
                     image=cv2.cvtColor(annotated_img, cv2.COLOR_RGB2BGR), image_name=entry["img_id"].rsplit(os.sep, 1)[1]
                 )
-    else:
-        annotated_img = box_annotator.annotate(
-            scene=np.array(Image.open(results["img_id"]).convert("RGB")),
-            detections=results["detections"],
-            labels=results["labels"],
-        )
-
-        with sv.ImageSink(target_dir_path=output_dir, overwrite=overwrite) as sink: 
+        else:
+            annotated_img = lab_annotator.annotate(
+                scene=box_annotator.annotate(
+                    scene=np.array(Image.open(results["img_id"]).convert("RGB")),
+                    detections=results["detections"],
+                ),
+                detections=results["detections"],
+                labels=results["labels"],
+            )
             sink.save_image(
                 image=cv2.cvtColor(annotated_img, cv2.COLOR_RGB2BGR), image_name=results["img_id"].rsplit(os.sep, 1)[1]
             )
@@ -82,28 +81,23 @@ def save_crop_images(results, output_dir, input_dir = None, overwrite=False):
         overwrite (bool):
             Whether overwriting existing image folders. Default to False.
     """
+    if isinstance(results, dict):
+        results = [results]
+
     assert isinstance(results, list)
     os.makedirs(output_dir, exist_ok=True)
-    
-    for entry in results:
-        for i, (xyxy, _, _, cat, _) in enumerate(entry["detections"]):
-            cropped_img = sv.crop_image(
-                image=np.array(Image.open(entry["img_id"]).convert("RGB")), xyxy=xyxy
-            )
-
-            img_id_parts=Path(entry["img_id"]).parts
-            last_input_dir=Path(input_dir).parts[-1]
-            relative_dir=Path(*img_id_parts[img_id_parts.index(last_input_dir)+1:-1])
-            full_output_dir = os.path.join(output_dir, relative_dir)
-            os.makedirs(full_output_dir, exist_ok=True)
-            with sv.ImageSink(target_dir_path=full_output_dir, overwrite=overwrite) as sink:
+    with sv.ImageSink(target_dir_path=output_dir, overwrite=True) as sink:
+        for entry in results:
+            for i, (xyxy, cat) in enumerate(zip(entry["detections"].xyxy, entry["detections"].class_id)):
+                cropped_img = sv.crop_image(
+                    image=np.array(Image.open(entry["img_id"]).convert("RGB")), xyxy=xyxy
+                )
                 sink.save_image(
                     image=cv2.cvtColor(cropped_img, cv2.COLOR_RGB2BGR),
                     image_name="{}_{}_{}".format(
                         int(cat), i, entry["img_id"].rsplit(os.sep, 1)[1]
                     ),
                 )
-
 
 def save_detection_json(det_results, output_dir, categories=None, exclude_category_ids=[], exclude_file_path=None):
     """
