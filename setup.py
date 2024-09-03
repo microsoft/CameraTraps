@@ -4,7 +4,7 @@ with open('README.md', encoding="utf8") as file:
         long_description = file.read()
 setup(
     name='PytorchWildlife',
-    version='1.0.2.15', 
+    version='1.0.2.17', 
     packages=find_packages(),
     url='https://github.com/microsoft/CameraTraps/',  
     license='MIT',
@@ -15,13 +15,13 @@ setup(
     long_description_content_type='text/markdown',
     install_requires=[
         'numpy',
-        'torch',
-        'torchvision',
-        'torchaudio',
-        'tqdm',
-        'Pillow', 
-        'supervision==0.16.0',
-        'gradio',
+        'torch==1.10.1',
+        'torchvision==0.11.2',
+        'torchaudio==0.10.1',
+        'tqdm==4.66.1',
+        'Pillow==10.1.0', 
+        'supervision==0.19.0',
+        'gradio==4.8.0',
         'ultralytics-yolov5',
         'chardet'
     ],

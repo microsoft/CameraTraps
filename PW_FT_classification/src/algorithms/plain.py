@@ -41,7 +41,7 @@ class Plain(pl.LightningModule):
         self.save_hyperparameters(ignore=['conf', 'train_class_counts'])
         self.train_class_counts = train_class_counts
         self.id_to_labels = id_to_labels
-        self.net = models.__dict__[self.hparams.model_name](num_cls=1, 
+        self.net = models.__dict__[self.hparams.model_name](num_cls=self.hparams.num_classes, 
                                                             num_layers=self.hparams.num_layers)
 
     def configure_optimizers(self):
@@ -93,9 +93,8 @@ class Plain(pl.LightningModule):
         # Forward pass
         feats = self.net.feature(data)
         logits = self.net.classifier(feats)
-        logits = logits.squeeze(1)
         # Calculate loss
-        loss = self.net.criterion_cls(logits, label_ids.float())
+        loss = self.net.criterion_cls(logits, label_ids)
         self.log("train_loss", loss)
         
         return loss
@@ -117,8 +116,8 @@ class Plain(pl.LightningModule):
         data, label_ids = batch[0], batch[1]
         # Forward pass
         feats = self.net.feature(data)
-        logits = self.net.classifier(feats).squeeze(1)
-        preds = logits>0.5
+        logits = self.net.classifier(feats)
+        preds = logits.argmax(dim=1)
         
         self.val_st_outs.append((preds.detach().cpu().numpy(),
                                  label_ids.detach().cpu().numpy()))
@@ -148,8 +147,8 @@ class Plain(pl.LightningModule):
         data, label_ids, labels, file_ids = batch
         # Forward pass
         feats = self.net.feature(data)
-        logits = torch.sigmoid(self.net.classifier(feats))
-        preds = logits>0.5
+        logits = self.net.classifier(feats)
+        preds = logits.argmax(dim=1)
         
         self.te_st_outs.append((preds.detach().cpu().numpy(),
                                label_ids.detach().cpu().numpy(),
@@ -198,8 +197,8 @@ class Plain(pl.LightningModule):
         data, file_ids = batch
         # Forward pass
         feats = self.net.feature(data)
-        logits = torch.sigmoid(self.net.classifier(feats))
-        preds = logits>0.5
+        logits = self.net.classifier(feats)
+        preds = logits.argmax(dim=1)
         
         self.pr_st_outs.append((preds.detach().cpu().numpy(),
                                feats.detach().cpu().numpy(),

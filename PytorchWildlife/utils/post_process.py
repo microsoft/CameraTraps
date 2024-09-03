@@ -10,6 +10,7 @@ import cv2
 from PIL import Image
 import supervision as sv
 import shutil
+from pathlib import Path
 
 __all__ = [
     "save_detection_images",
@@ -23,7 +24,7 @@ __all__ = [
 
 
 # !!! Output paths need to be optimized !!!
-def save_detection_images(results, output_dir, overwrite=False):
+def save_detection_images(results, output_dir, input_dir = None, overwrite=False):
     """
     Save detected images with bounding boxes and labels annotated.
 
@@ -35,14 +36,18 @@ def save_detection_images(results, output_dir, overwrite=False):
         overwrite (bool):
             Whether overwriting existing image folders. Default to False.
     """
-    box_annotator = sv.BoxAnnotator(thickness=4, text_thickness=4, text_scale=2)
+    box_annotator = sv.BoundingBoxAnnotator(thickness=4)
+    lab_annotator = sv.LabelAnnotator(text_color=sv.Color.BLACK, text_thickness=4, text_scale=2)
     os.makedirs(output_dir, exist_ok=True)
 
-    with sv.ImageSink(target_dir_path=output_dir, overwrite=overwrite) as sink:
+    with sv.ImageSink(target_dir_path=output_dir, overwrite=True) as sink:
         if isinstance(results, list):
             for entry in results:
-                annotated_img = box_annotator.annotate(
-                    scene=np.array(Image.open(entry["img_id"]).convert("RGB")),
+                annotated_img = lab_annotator.annotate(
+                    scene=box_annotator.annotate(
+                        scene=np.array(Image.open(entry["img_id"]).convert("RGB")),
+                        detections=entry["detections"],
+                    ),
                     detections=entry["detections"],
                     labels=entry["labels"],
                 )
@@ -50,8 +55,11 @@ def save_detection_images(results, output_dir, overwrite=False):
                     image=cv2.cvtColor(annotated_img, cv2.COLOR_RGB2BGR), image_name=entry["img_id"].rsplit(os.sep, 1)[1]
                 )
         else:
-            annotated_img = box_annotator.annotate(
-                scene=np.array(Image.open(results["img_id"]).convert("RGB")),
+            annotated_img = lab_annotator.annotate(
+                scene=box_annotator.annotate(
+                    scene=np.array(Image.open(results["img_id"]).convert("RGB")),
+                    detections=results["detections"],
+                ),
                 detections=results["detections"],
                 labels=results["labels"],
             )
@@ -61,7 +69,7 @@ def save_detection_images(results, output_dir, overwrite=False):
 
 
 # !!! Output paths need to be optimized !!!
-def save_crop_images(results, output_dir, overwrite=False):
+def save_crop_images(results, output_dir, input_dir = None, overwrite=False):
     """
     Save cropped images based on the detection bounding boxes.
 
@@ -73,11 +81,14 @@ def save_crop_images(results, output_dir, overwrite=False):
         overwrite (bool):
             Whether overwriting existing image folders. Default to False.
     """
+    if isinstance(results, dict):
+        results = [results]
+
     assert isinstance(results, list)
     os.makedirs(output_dir, exist_ok=True)
-    with sv.ImageSink(target_dir_path=output_dir, overwrite=overwrite) as sink:
+    with sv.ImageSink(target_dir_path=output_dir, overwrite=True) as sink:
         for entry in results:
-            for i, (xyxy, _, _, cat, _) in enumerate(entry["detections"]):
+            for i, (xyxy, cat) in enumerate(zip(entry["detections"].xyxy, entry["detections"].class_id)):
                 cropped_img = sv.crop_image(
                     image=np.array(Image.open(entry["img_id"]).convert("RGB")), xyxy=xyxy
                 )
@@ -87,7 +98,6 @@ def save_crop_images(results, output_dir, overwrite=False):
                         int(cat), i, entry["img_id"].rsplit(os.sep, 1)[1]
                     ),
                 )
-
 
 def save_detection_json(det_results, output_dir, categories=None, exclude_category_ids=[], exclude_file_path=None):
     """

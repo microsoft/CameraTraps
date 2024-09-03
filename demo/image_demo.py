@@ -26,7 +26,7 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 #%% 
 # Initializing the MegaDetectorV5 model for image detection
-detection_model = pw_detection.MegaDetectorV5(device=DEVICE, pretrained=True)
+detection_model = pw_detection.MegaDetectorV5(device=DEVICE, pretrained=True, version="a")
 
 #%% Single image detection
 # Specifying the path to the target image TODO: Allow argparsing
@@ -44,6 +44,9 @@ results = detection_model.single_image_detection(transform(img), img.shape, tgt_
 
 # Saving the detection results 
 pw_utils.save_detection_images(results, os.path.join(".","demo_output"), overwrite=False)
+
+# Saving the detected objects as cropped images
+pw_utils.save_crop_images(results, os.path.join(".","crop_output"), overwrite=False)
 
 #%% Batch detection
 """ Batch-detection demo """
