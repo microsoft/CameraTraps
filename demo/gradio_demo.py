@@ -15,7 +15,7 @@ from zipfile import ZipFile
 import torch
 from torch.utils.data import DataLoader
 import numpy as np
-
+import ast
 
 #%% 
 # Importing the models, dataset, transformations, and utility functions from PytorchWildlife
@@ -54,6 +54,7 @@ def load_models(det, clf, wpath=None, wclass=None):
         # Create an exception for custom weights
         if clf == "CustomWeights":
             if (wpath is not None) and (wclass is not None): 
+                wclass = ast.literal_eval(wclass)
                 classification_model = pw_classification.__dict__[clf](weights=wpath, class_names=wclass, device=DEVICE)
         else:
             classification_model = pw_classification.__dict__[clf](device=DEVICE, pretrained=True)
@@ -183,7 +184,7 @@ def batch_path_detection(tgt_folder_path, det_conf_thres):
     json_save_path = os.path.join(tgt_folder_path, "results.json")
     det_dataset = pw_data.DetectionImageFolder(tgt_folder_path, transform=trans_det)
     det_loader = DataLoader(det_dataset, batch_size=32, shuffle=False, 
-                            pin_memory=True, num_workers=4, drop_last=False)
+                            pin_memory=True, num_workers=2, drop_last=False)
     det_results = detection_model.batch_image_detection(det_loader, conf_thres=det_conf_thres, id_strip=tgt_folder_path)
     pw_utils.save_detection_json(det_results, json_save_path, categories=detection_model.CLASS_NAMES)
 
