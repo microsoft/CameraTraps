@@ -322,7 +322,7 @@ def save_detection_classification_timelapse_json(
         json.dump(json_results, f, indent=4)
 
 
-def detection_folder_separation(json_file, destination_path, confidence_threshold):
+def detection_folder_separation(json_file, img_path, destination_path, confidence_threshold):
     """
     Processes detection data from a JSON file to sort images into 'Animal' or 'No_animal' directories
     based on detection categories and confidence levels.
@@ -352,6 +352,7 @@ def detection_folder_separation(json_file, destination_path, confidence_threshol
     - Directories `Animal` and `No_animal` are created if they do not already exist.
     - Images are copied, not moved; original images remain in the source directory.
     """
+
     # Load JSON data from the file
     with open(json_file, 'r') as file:
         data = json.load(file)
@@ -364,7 +365,9 @@ def detection_folder_separation(json_file, destination_path, confidence_threshol
     os.makedirs(no_animal_path, exist_ok=True)
     
     # Process each image detection
+    i = 0
     for item in data['annotations']:
+        i+=1
         img_id = item['img_id']
         categories = item['category']
         confidences = item['confidence']
@@ -382,10 +385,10 @@ def detection_folder_separation(json_file, destination_path, confidence_threshol
             target_folder = no_animal_path
         
         # Construct the source and destination file paths
-        src_file_path = os.path.join(img_id)
+        src_file_path = os.path.join(img_path, img_id)
         dest_file_path = os.path.join(target_folder, os.path.basename(img_id))
         
         # Copy the file to the appropriate directory
         shutil.copy(src_file_path, dest_file_path)
 
-
+    return "{} files were successfully separated".format(i)
