@@ -1,1 +1,1 @@
-from .yolov5 import *
+from .ultralytics_based import *

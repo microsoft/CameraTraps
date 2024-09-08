@@ -1,10 +1,10 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from .base_detector import YOLOV5Base
+from .yolov5_base import YOLOV5Base
 
 __all__ = [
-    'MegaDetectorV5',
+    'MegaDetectorV5'
 ]
 
 class MegaDetectorV5(YOLOV5Base):
@@ -46,6 +46,9 @@ class MegaDetectorV5(YOLOV5Base):
             url = None
 
         super(MegaDetectorV5, self).__init__(weights=weights, device=device, url=url)
+        
+        
+        
 
 
 # %%
