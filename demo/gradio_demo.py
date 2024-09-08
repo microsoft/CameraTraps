@@ -29,7 +29,7 @@ from PytorchWildlife import utils as pw_utils
 # Setting the device to use for computations ('cuda' indicates GPU)
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 # Initializing a supervision box annotator for visualizing detections
-box_annotator = sv.BoundingBoxAnnotator(thickness=4)
+box_annotator = sv.BoxAnnotator(thickness=4)
 lab_annotator = sv.LabelAnnotator(text_color=sv.Color.BLACK, text_thickness=4, text_scale=2)
 # Create a temp folder
 os.makedirs(os.path.join("..","temp"), exist_ok=True)
