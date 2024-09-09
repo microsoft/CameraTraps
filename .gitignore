@@ -17,5 +17,3 @@ PytorchWildlife.egg-info/
 *annotations.csv
 *cropped_resized*
 *log*
-PytorchWildlife/models/detection/ultralytics_based/megadetectorv6.py
-PytorchWildlife/models/detection/ultralytics_based/yolov8_base.py
