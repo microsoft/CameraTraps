@@ -3,7 +3,7 @@ torchvision
 torchaudio
 tqdm
 Pillow
-supervision==0.16.0
+supervision==0.23.0
 gradio
 ultralytics-yolov5
 chardet

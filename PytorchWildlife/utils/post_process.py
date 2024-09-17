@@ -36,7 +36,7 @@ def save_detection_images(results, output_dir, input_dir = None, overwrite=False
         overwrite (bool):
             Whether overwriting existing image folders. Default to False.
     """
-    box_annotator = sv.BoundingBoxAnnotator(thickness=4)
+    box_annotator = sv.BoxAnnotator(thickness=4)
     lab_annotator = sv.LabelAnnotator(text_color=sv.Color.BLACK, text_thickness=4, text_scale=2)
     os.makedirs(output_dir, exist_ok=True)
 
@@ -81,6 +81,9 @@ def save_crop_images(results, output_dir, input_dir = None, overwrite=False):
         overwrite (bool):
             Whether overwriting existing image folders. Default to False.
     """
+    if isinstance(results, dict):
+        results = [results]
+
     assert isinstance(results, list)
     os.makedirs(output_dir, exist_ok=True)
     with sv.ImageSink(target_dir_path=output_dir, overwrite=True) as sink:
@@ -95,7 +98,6 @@ def save_crop_images(results, output_dir, input_dir = None, overwrite=False):
                         int(cat), i, entry["img_id"].rsplit(os.sep, 1)[1]
                     ),
                 )
-
 
 def save_detection_json(det_results, output_dir, categories=None, exclude_category_ids=[], exclude_file_path=None):
     """
@@ -320,7 +322,7 @@ def save_detection_classification_timelapse_json(
         json.dump(json_results, f, indent=4)
 
 
-def detection_folder_separation(json_file, destination_path, confidence_threshold):
+def detection_folder_separation(json_file, img_path, destination_path, confidence_threshold):
     """
     Processes detection data from a JSON file to sort images into 'Animal' or 'No_animal' directories
     based on detection categories and confidence levels.
@@ -350,6 +352,7 @@ def detection_folder_separation(json_file, destination_path, confidence_threshol
     - Directories `Animal` and `No_animal` are created if they do not already exist.
     - Images are copied, not moved; original images remain in the source directory.
     """
+
     # Load JSON data from the file
     with open(json_file, 'r') as file:
         data = json.load(file)
@@ -362,7 +365,9 @@ def detection_folder_separation(json_file, destination_path, confidence_threshol
     os.makedirs(no_animal_path, exist_ok=True)
     
     # Process each image detection
+    i = 0
     for item in data['annotations']:
+        i+=1
         img_id = item['img_id']
         categories = item['category']
         confidences = item['confidence']
@@ -380,10 +385,10 @@ def detection_folder_separation(json_file, destination_path, confidence_threshol
             target_folder = no_animal_path
         
         # Construct the source and destination file paths
-        src_file_path = os.path.join(img_id)
+        src_file_path = os.path.join(img_path, img_id)
         dest_file_path = os.path.join(target_folder, os.path.basename(img_id))
         
         # Copy the file to the appropriate directory
         shutil.copy(src_file_path, dest_file_path)
 
-
+    return "{} files were successfully separated".format(i)
