@@ -36,7 +36,7 @@ def save_detection_images(results, output_dir, input_dir = None, overwrite=False
         overwrite (bool):
             Whether overwriting existing image folders. Default to False.
     """
-    box_annotator = sv.BoundingBoxAnnotator(thickness=4)
+    box_annotator = sv.BoxAnnotator(thickness=4)
     lab_annotator = sv.LabelAnnotator(text_color=sv.Color.BLACK, text_thickness=4, text_scale=2)
     os.makedirs(output_dir, exist_ok=True)
 
