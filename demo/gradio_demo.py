@@ -15,7 +15,7 @@ from zipfile import ZipFile
 import torch
 from torch.utils.data import DataLoader
 import numpy as np
-
+import ast
 
 #%% 
 # Importing the models, dataset, transformations, and utility functions from PytorchWildlife
@@ -29,7 +29,7 @@ from PytorchWildlife import utils as pw_utils
 # Setting the device to use for computations ('cuda' indicates GPU)
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 # Initializing a supervision box annotator for visualizing detections
-box_annotator = sv.BoundingBoxAnnotator(thickness=4)
+box_annotator = sv.BoxAnnotator(thickness=4)
 lab_annotator = sv.LabelAnnotator(text_color=sv.Color.BLACK, text_thickness=4, text_scale=2)
 # Create a temp folder
 os.makedirs(os.path.join("..","temp"), exist_ok=True)
@@ -39,13 +39,21 @@ detection_model = None
 classification_model = None
     
 #%% Defining functions for different detection scenarios
-def load_models(det, clf):
+def load_models(det, clf, wpath=None, wclass=None):
 
     global detection_model, classification_model
 
+
     detection_model = pw_detection.__dict__[det](device=DEVICE, pretrained=True)
+    
     if clf != "None":
-        classification_model = pw_classification.__dict__[clf](device=DEVICE, pretrained=True)
+        # Create an exception for custom weights
+        if clf == "CustomWeights":
+            if (wpath is not None) and (wclass is not None): 
+                wclass = ast.literal_eval(wclass)
+                classification_model = pw_classification.__dict__[clf](weights=wpath, class_names=wclass, device=DEVICE)
+        else:
+            classification_model = pw_classification.__dict__[clf](device=DEVICE, pretrained=True)
 
     return "Loaded Detector: {}. Loaded Classifier: {}".format(det, clf)
 
@@ -152,6 +160,24 @@ def batch_detection(zip_file, timelapse, det_conf_thres):
 
     return json_save_path
 
+def batch_path_detection(tgt_folder_path, det_conf_thres):
+    """Perform detection on a batch of images from a zip file and return path to results JSON.
+    
+    Args:
+        tgt_folder_path (str): path to the folder containing the images.
+        det_conf_thre (float): Confidence threshold for detection.
+    Returns:
+        json_save_path (str): Path to the JSON file containing detection results.
+    """
+    json_save_path = os.path.join(tgt_folder_path, "results.json")
+    det_dataset = pw_data.DetectionImageFolder(tgt_folder_path, transform=trans_det)
+    det_loader = DataLoader(det_dataset, batch_size=32, shuffle=False, 
+                            pin_memory=True, num_workers=2, drop_last=False)
+    det_results = detection_model.batch_image_detection(det_loader, conf_thres=det_conf_thres, id_strip=tgt_folder_path)
+    pw_utils.save_detection_json(det_results, json_save_path, categories=detection_model.CLASS_NAMES)
+
+    return json_save_path
+
 
 def video_detection(video, det_conf_thres, clf_conf_thres, target_fps, codec):
     """Perform detection on a video and return path to processed video.
@@ -186,14 +212,29 @@ with gr.Blocks() as demo:
             value="MegaDetectorV5"
         )
         clf_drop = gr.Dropdown(
-            ["None", "AI4GOpossum", "AI4GAmazonRainforest", "AI4GSnapshotSerengeti"],
+            ["None", "AI4GOpossum", "AI4GAmazonRainforest", "AI4GSnapshotSerengeti", "CustomWeights"],
             label="Classification model",
             info="Will add more classification models!",
             value="None"
         )
     with gr.Column():
+        custom_weights_path = gr.Textbox(label="Custom Weights Path", visible=False, interactive=True, placeholder="./weights/my_weight.pt")
+        custom_weights_class = gr.Textbox(label="Custom Weights Class", visible=False, interactive=True, placeholder="{1:'ocelot', 2:'cow', 3:'bear'}")
         load_but = gr.Button("Load Models!")
         load_out = gr.Text("NO MODEL LOADED!!", label="Loaded models:")
+    
+    def toggle_textboxes(model):
+        if model == "CustomWeights":
+            return gr.update(visible=True), gr.update(visible=True)
+        else:
+            return gr.update(visible=False), gr.update(visible=False)
+    
+    clf_drop.change(
+        toggle_textboxes,
+        clf_drop,
+        [custom_weights_path, custom_weights_class]
+    )
+
     with gr.Tab("Single Image Process"):
         with gr.Row():
             with gr.Column():
@@ -202,6 +243,19 @@ with gr.Blocks() as demo:
                 sgl_conf_sl_clf = gr.Slider(0, 1, label="Classification Confidence Threshold", value=0.7)
             sgl_out = gr.Image() 
         sgl_but = gr.Button("Detect Animals!")
+    with gr.Tab("Folder Separation"):
+        with gr.Row():
+            with gr.Column():
+                inp_path = gr.Textbox(label="Input path", placeholder="./data/")
+                out_path = gr.Textbox(label="Output path", placeholder="./output/")
+                bth_conf_fs = gr.Slider(0, 1, label="Detection Confidence Threshold", value=0.2)
+                process_btn = gr.Button("Process Files")
+                bth_out2 = gr.File(label="Detection Results JSON.", height=200)
+                with gr.Column():
+                    process_files_button = gr.Button("Separate files")
+                    process_result = gr.Text("Click on 'Separate files' once you see the JSON file", label="Separated files:")
+                    process_btn.click(batch_path_detection, inputs=[inp_path, bth_conf_fs], outputs=bth_out2)
+                    process_files_button.click(pw_utils.detection_folder_separation, inputs=[bth_out2, inp_path, out_path, bth_conf_fs], outputs=process_result)
     with gr.Tab("Batch Image Process"):
         with gr.Row():
             with gr.Column():
@@ -226,7 +280,7 @@ with gr.Blocks() as demo:
             vid_out = gr.Video()
         vid_but = gr.Button("Detect Animals!")
 
-    load_but.click(load_models, inputs=[det_drop, clf_drop], outputs=load_out)
+    load_but.click(load_models, inputs=[det_drop, clf_drop, custom_weights_path, custom_weights_class], outputs=load_out)
     sgl_but.click(single_image_detection, inputs=[sgl_in, sgl_conf_sl_det, sgl_conf_sl_clf], outputs=sgl_out)
     bth_but.click(batch_detection, inputs=[bth_in, chck_timelapse, bth_conf_sl], outputs=bth_out)
     vid_but.click(video_detection, inputs=[vid_in, vid_conf_sl_det, vid_conf_sl_clf, vid_fr, vid_enc], outputs=vid_out)

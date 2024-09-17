@@ -33,6 +33,9 @@ results = detection_model.single_image_detection(tgt_img_path)
 # Saving the detection results 
 pw_utils.save_detection_images(results, os.path.join(".","demo_output"), overwrite=False)
 
+# Saving the detected objects as cropped images
+pw_utils.save_crop_images(results, os.path.join(".","crop_output"), overwrite=False)
+
 #%% Batch detection
 """ Batch-detection demo """
 
