@@ -33,7 +33,7 @@ classification_model = pw_classification.AI4GOpossum(device=DEVICE, pretrained=T
 
 #%% 
 # Initializing a box annotator for visualizing detections
-box_annotator = sv.BoundingBoxAnnotator(thickness=4)
+box_annotator = sv.BoxAnnotator(thickness=4)
 lab_annotator = sv.LabelAnnotator(text_color=sv.Color.BLACK, text_thickness=4, text_scale=2)
 
 def callback(frame: np.ndarray, index: int) -> np.ndarray:
