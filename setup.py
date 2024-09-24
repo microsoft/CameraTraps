@@ -24,7 +24,10 @@ setup(
         'gradio==4.8.0',
         'ultralytics-yolov5',
         'ultralytics',
-        'chardet'
+        'chardet',
+        'wget',
+        'ultralytics',
+        'setuptools==59.5.0'
     ],
     classifiers=[
         'Development Status :: 3 - Alpha',  
@@ -35,6 +38,7 @@ setup(
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10+',
     ],
     keywords='pytorch_wildlife, pytorch, wildlife, megadetector, conservation, animal, detection, classification',
     python_requires='>=3.8',

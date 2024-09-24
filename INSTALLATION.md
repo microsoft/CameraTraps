@@ -84,11 +84,11 @@ docker run -p 80:80 andreshdz/pytorchwildlife:1.0.2.3 python demo/gradio_demo.py
 Here is a brief example on how to perform detection and classification on a single image using `PyTorch-wildlife`:
 
 ```python
-import torch
+import numpy as np
 from PytorchWildlife.models import detection as pw_detection
 from PytorchWildlife.models import classification as pw_classification
 
-img = torch.randn((3, 1280, 1280))
+img = np.random.randn(3, 1280, 1280)
 
 # Detection
 detection_model = pw_detection.MegaDetectorV5() # Model weights are automatically downloaded.
@@ -110,9 +110,9 @@ python image_demo.py
 # For the video demo
 python video_demo.py
 # For the gradio app
-python demo_gradio.py
+python gradio_demo.py
 ```
-The `demo_gradio.py` will launch a Gradio interface where you can:
+The `gradio_demo.py` will launch a Gradio interface where you can:
 - Perform Single Image Detection: Upload an image and set a confidence threshold to get detections.
 - Perform Batch Image Detection: Upload a zip file containing multiple images to get detections in a JSON format.
 - Perform Video Detection: Upload a video and get a processed video with detected animals. 

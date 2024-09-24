@@ -39,8 +39,6 @@ We are also working on an extra-large version of MegaDetectorV6 for optimal perf
 ### 🎉 Pytorch-Wildlife ready for citation
 In addition, we have recently published a [summary paper on Pytorch-Wildlife](https://arxiv.org/abs/2405.12930). The paper has been accepted as an oral presentation at the [CV4Animals workshop](https://www.cv4animals.com/) at this year's CVPR. Please feel free to [cite us!](#cite-us)
 
-### 🛠️ Compatibility with CUDA 12.x
-The new version of PytorchWildlife uses the latest version of Pytorch (currently 2.3.1), which is compatible with CUDA 12.x.
 
 ## ✅ Feature highlights (Version 1.0.2.15)
 - [x] Added a file separation function. You can now automatically separate your files between animals and non-animals into different folders using our `detection_folder_separation` function. Please see the [Python demo file](demo/image_separation_demo.py) and [Jupyter demo](demo/image_separation_demo.ipynb)!
@@ -375,4 +373,6 @@ Protected Areas Unit, Canadian Wildlife Service
 
 >[!IMPORTANT]
 >If you would like to be added to this list or have any questions regarding MegaDetector and Pytorch-Wildlife, please [email us](zhongqimiao@microsoft.com) or join us in our Discord channel: [![](https://img.shields.io/badge/any_text-Join_us!-blue?logo=discord&label=PytorchWildife)](https://discord.gg/TeEVxzaYtm)
+
+
 
