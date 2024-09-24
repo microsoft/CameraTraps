@@ -25,7 +25,7 @@ TARGET_VIDEO_PATH = os.path.join(".","demo_data","videos","opossum_example_proce
 
 #%% 
 # Initializing the model for image detection
-detection_model = pw_detection.MegaDetectorV5(device=DEVICE, pretrained=True)
+detection_model = pw_detection.MegaDetectorV6(device=DEVICE, weights='../MDV6b-yolov9c.pt', pretrained=False)
 
 #%% 
 # Initializing the model for image classification

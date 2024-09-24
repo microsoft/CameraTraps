@@ -8,6 +8,8 @@
 import os
 from glob import glob
 import supervision as sv
+import numpy as np
+from PIL import Image
 
 from ultralytics.models import yolo
 from torch.utils.data import DataLoader
@@ -105,12 +107,14 @@ class YOLOV8Base(BaseDetector):
         return results
         
 
-    def single_image_detection(self, img_path=None, conf_thres=0.2, id_strip=None):
+    def single_image_detection(self, img, img_path=None, conf_thres=0.2, id_strip=None):
         """
         Perform detection on a single image.
         
         Args:
-            img_path (str): 
+            img (str or ndarray): 
+                Image path or ndarray of images.
+            img_path (str, optional): 
                 Image path or identifier.
             conf_thres (float, optional): 
                 Confidence threshold for predictions. Defaults to 0.2.
@@ -120,9 +124,17 @@ class YOLOV8Base(BaseDetector):
         Returns:
             dict: Detection results.
         """
+
+        if type(img) == str:
+            if img_path is None:
+                img_path = img
+            img = np.array(Image.open(img_path).convert("RGB"))
+        img_size = img.shape
+
         self.predictor.args.batch = 1
         self.predictor.args.conf = conf_thres
-        det_results = list(self.predictor.stream_inference([img_path]))
+        det_results = list(self.predictor.stream_inference([img]))
+        
         return self.results_generation(det_results[0], img_path, id_strip)
 
     def batch_image_detection(self, data_path, batch_size=16, conf_thres=0.2, id_strip=None, extension="JPG"):

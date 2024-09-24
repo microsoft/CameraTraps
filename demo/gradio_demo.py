@@ -43,8 +43,11 @@ def load_models(det, clf, wpath=None, wclass=None):
 
     global detection_model, classification_model
 
-
-    detection_model = pw_detection.__dict__[det](device=DEVICE, pretrained=True)
+    if det != "None":
+        if det == "MegaDetectorV6":
+            detection_model = pw_detection.__dict__[det](device=DEVICE, weights='../MDV6b-yolov9c.pt', pretrained=True)
+        else:
+            detection_model = pw_detection.__dict__[det](device=DEVICE, pretrained=True)
     
     if clf != "None":
         # Create an exception for custom weights
@@ -69,7 +72,7 @@ def single_image_detection(input_img, det_conf_thres, clf_conf_thres, img_index=
     Returns:
         annotated_img (PIL.Image.Image): Annotated image with bounding box instances.
     """
-    # trans_img = trans_det(input_img)
+
     input_img = np.array(input_img)
     
     results_det = detection_model.single_image_detection(input_img,
@@ -169,11 +172,9 @@ def batch_path_detection(tgt_folder_path, det_conf_thres):
     Returns:
         json_save_path (str): Path to the JSON file containing detection results.
     """
+
     json_save_path = os.path.join(tgt_folder_path, "results.json")
-    det_dataset = pw_data.DetectionImageFolder(tgt_folder_path, transform=trans_det)
-    det_loader = DataLoader(det_dataset, batch_size=32, shuffle=False, 
-                            pin_memory=True, num_workers=2, drop_last=False)
-    det_results = detection_model.batch_image_detection(det_loader, conf_thres=det_conf_thres, id_strip=tgt_folder_path)
+    det_results = detection_model.batch_image_detection(tgt_folder_path, conf_thres=det_conf_thres, id_strip=tgt_folder_path)
     pw_utils.save_detection_json(det_results, json_save_path, categories=detection_model.CLASS_NAMES)
 
     return json_save_path
@@ -206,10 +207,10 @@ with gr.Blocks() as demo:
     gr.Markdown("# Pytorch-Wildlife Demo.")
     with gr.Row():
         det_drop = gr.Dropdown(
-            ["MegaDetectorV5"],
+            ["None", "MegaDetectorV5", "MegaDetectorV6"],
             label="Detection model",
             info="Will add more detection models!",
-            value="MegaDetectorV5"
+            value="None"
         )
         clf_drop = gr.Dropdown(
             ["None", "AI4GOpossum", "AI4GAmazonRainforest", "AI4GSnapshotSerengeti", "CustomWeights"],
