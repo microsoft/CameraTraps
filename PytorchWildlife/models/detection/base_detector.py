@@ -32,9 +32,8 @@ class BaseDetector(nn.Module):
                 URL to fetch the model weights. Defaults to None.
         """
         super(BaseDetector, self).__init__()
-        #self.model = None TODO: Do we need to set this to None ?
         self.device = device
-        #self._load_model(weights, self.device, url)
+
 
     def _load_model(self, weights=None, device="cpu", url=None):
         """

@@ -41,6 +41,7 @@ class YOLOV8Base(BaseDetector):
         """
         self.transform = transform
         super(YOLOV8Base, self).__init__(weights=weights, device=device, url=url)
+        self._load_model(weights, self.device, url)
 
     def _load_model(self, weights=None, device="cpu", url=None):
         """
