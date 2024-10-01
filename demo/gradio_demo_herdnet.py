@@ -48,7 +48,7 @@ def load_models(det, clf, wpath=None, wclass=None):
 
     global detection_model, classification_model
     if det == "HerdNet":
-        weights_path = "/home/v-ichaconsil/ssdprivate/PytorchWildlife/CameraTraps/PytorchWildlife/models/detection/herdnet/weights/20220413_HerdNet_General_dataset_2022.pth" # TODO: What if someone else wants to run this?
+        weights_path = "../20220413_HerdNet_General_dataset_2022.pth"
         model = animaloc_models.HerdNet(num_classes=7, pretrained=False) # Architecture of the model
         model = animaloc_models.LossWrapper(model, []) # Model wrapper
         detection_model = pw_detection.__dict__[det](weights=weights_path, device=DEVICE, model=model)
