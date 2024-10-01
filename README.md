@@ -19,6 +19,14 @@
 
 ## 📣 Announcement
 
+### Version 1.1.0 is out 📣!
+- [X] MegaDetectorV6 is out for public use. This model is optimized for performance and low-budget devices like camera systems, learn how to use MegaDetectorv6-C in our [image demo](demo/image_detection_demo_v6.ipynb) and [video demo](demo/video_detection_demo_v6.ipynb).
+- [X] We have added a new overhead herd detection model called [HerdNet](https://www.sciencedirect.com/science/article/pii/S092427162300031X?via%3Dihub) from Delplanque et al. Please see our [HerdNet demo](demo/image_detection_demo_herdnet.ipynb) on how to use it!
+- [X] You can now load the custom weights from the [finetuning module](PW_FT_classification) directly to PytorchWildlife! Please see the [demo](demo/custom_weight_loading_v6.ipynb) on how to do it. You can also test it in our Gradio demo!
+- [X] You can now automatically separate your positive and negative detections into folders using MegaDetectorv5 or MegaDetectorv6! Please see our [demo](demo/image_separation_demo_v6.ipynb) on how to do it. You can also test it in our Gradio demo!
+- [X] PyTorchWildlife is now compatible with Supervision 0.23+ and Python 3.10+!
+- [X] Issues [#523](https://github.com/microsoft/CameraTraps/issues/523), [#524](https://github.com/microsoft/CameraTraps/issues/524) and [#526](https://github.com/microsoft/CameraTraps/issues/526) have been solved!
+      
 ### 🤜🤛 Collaboration with EcoAssist!
 We are thrilled to announce our collaboration with [EcoAssist](https://addaxdatascience.com/ecoassist/#spp-models)---a powerful user interface software that enables users to directly load models from the PyTorch-Wildlife model zoo for image analysis on local computers. With EcoAssist, you can now utilize MegaDetectorV5 and the classification models---AI4GAmazonRainforest and AI4GOpossum---for automatic animal detection and identification, alongside a comprehensive suite of pre- and post-processing tools. This partnership aims to enhance the overall user experience with PyTorch-Wildlife models for a general audience. We will work closely to bring more features together for more efficient and effective wildlife analysis in the future.
 
