@@ -6,6 +6,7 @@
 #%% 
 # Importing necessary basic libraries and modules
 import os
+os.environ['WANDB_MODE'] = 'disabled'  
 # PyTorch imports 
 import torch
 
