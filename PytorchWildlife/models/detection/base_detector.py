@@ -5,8 +5,9 @@
 """ Base detector class. """
 
 # Importing basic libraries
+from torch import nn
 
-class BaseDetector:
+class BaseDetector(nn.Module):
     """
     Base detector class. This class provides utility methods for
     loading the model, generating results, and performing single and batch image detections.
@@ -30,9 +31,9 @@ class BaseDetector:
             url (str, optional): 
                 URL to fetch the model weights. Defaults to None.
         """
-        self.model = None
+        super(BaseDetector, self).__init__()
         self.device = device
-        self._load_model(weights, self.device, url)
+
 
     def _load_model(self, weights=None, device="cpu", url=None):
         """
@@ -72,8 +73,8 @@ class BaseDetector:
         Perform detection on a single image.
         
         Args:
-            img (torch.Tensor): 
-                Input image tensor.
+            img (str or ndarray): 
+                Image path or ndarray of images.
             img_size (tuple): 
                 Original image size.
             img_path (str): 

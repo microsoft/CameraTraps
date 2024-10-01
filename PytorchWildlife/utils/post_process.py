@@ -14,8 +14,10 @@ from pathlib import Path
 
 __all__ = [
     "save_detection_images",
+    "save_detection_images_dots",
     "save_crop_images",
     "save_detection_json",
+    "save_detection_json_as_dots",
     "save_detection_classification_json",
     "save_detection_timelapse_json",
     "save_detection_classification_timelapse_json",
@@ -40,7 +42,7 @@ def save_detection_images(results, output_dir, input_dir = None, overwrite=False
     lab_annotator = sv.LabelAnnotator(text_color=sv.Color.BLACK, text_thickness=4, text_scale=2)
     os.makedirs(output_dir, exist_ok=True)
 
-    with sv.ImageSink(target_dir_path=output_dir, overwrite=True) as sink:
+    with sv.ImageSink(target_dir_path=output_dir, overwrite=True) as sink: 
         if isinstance(results, list):
             for entry in results:
                 annotated_img = lab_annotator.annotate(
@@ -57,6 +59,49 @@ def save_detection_images(results, output_dir, input_dir = None, overwrite=False
         else:
             annotated_img = lab_annotator.annotate(
                 scene=box_annotator.annotate(
+                    scene=np.array(Image.open(results["img_id"]).convert("RGB")),
+                    detections=results["detections"],
+                ),
+                detections=results["detections"],
+                labels=results["labels"],
+            )
+            sink.save_image(
+                image=cv2.cvtColor(annotated_img, cv2.COLOR_RGB2BGR), image_name=results["img_id"].rsplit(os.sep, 1)[1]
+            )
+
+def save_detection_images_dots(results, output_dir, input_dir = None, overwrite=False):
+    """
+    Save detected images with bounding boxes and labels annotated.
+
+    Args:
+        results (list or dict):
+            Detection results containing image ID, detections, and labels.
+        output_dir (str):
+            Directory to save the annotated images.
+        overwrite (bool):
+            Whether overwriting existing image folders. Default to False.
+    """
+    dot_annotator = sv.DotAnnotator(radius=6)  
+    lab_annotator = sv.LabelAnnotator(text_position=sv.Position.BOTTOM_RIGHT)   
+    os.makedirs(output_dir, exist_ok=True)
+    
+    with sv.ImageSink(target_dir_path=output_dir, overwrite=True) as sink: # TODO:Overwrite parameter is not used as in the original function
+        if isinstance(results, list):
+            for entry in results:
+                annotated_img = lab_annotator.annotate(
+                    scene=dot_annotator.annotate(
+                        scene=np.array(Image.open(entry["img_id"]).convert("RGB")),
+                        detections=entry["detections"],
+                    ),
+                    detections=entry["detections"],
+                    labels=entry["labels"],
+                )
+                sink.save_image(
+                    image=cv2.cvtColor(annotated_img, cv2.COLOR_RGB2BGR), image_name=entry["img_id"].rsplit(os.sep, 1)[1]
+                )
+        else:
+            annotated_img = lab_annotator.annotate(
+                scene=dot_annotator.annotate(
                     scene=np.array(Image.open(results["img_id"]).convert("RGB")),
                     detections=results["detections"],
                 ),
@@ -140,6 +185,48 @@ def save_detection_json(det_results, output_dir, categories=None, exclude_catego
     with open(output_dir, "w") as f:
         json.dump(json_results, f, indent=4)
 
+def save_detection_json_as_dots(det_results, output_dir, categories=None, exclude_category_ids=[], exclude_file_path=None):
+    """
+    Save detection results to a JSON file in dots format.
+
+    Args:
+        results (list):
+            Detection results containing image ID, bounding boxes, category, and confidence.
+        output_dir (str):
+            Path to save the output JSON file.
+        categories (list, optional):
+            List of categories for detected objects. Defaults to None.
+        exclude_category_ids (list, optional):
+            List of category IDs to exclude from the output. Defaults to []. Category IDs can be found in the definition of each models.
+        exclude_file_path (str, optional):
+            We can exclude the some path sections from the image ID. Defaults to None.
+    """
+    json_results = {"annotations": [], "categories": categories}
+
+    for det_r in det_results:
+
+        # Category filtering
+        img_id = det_r["img_id"]
+        category = det_r["detections"].class_id
+
+        bbox = det_r["detections"].xyxy.astype(int)[~np.isin(category, exclude_category_ids)]
+        dot = np.array([[np.mean(row[::2]), np.mean(row[1::2])] for row in bbox])
+        confidence =  det_r["detections"].confidence[~np.isin(category, exclude_category_ids)]
+        category = category[~np.isin(category, exclude_category_ids)]
+
+        # if not all([x in exclude_category_ids for x in category]):
+        json_results["annotations"].append(
+            {
+                "img_id": img_id.replace(exclude_file_path + os.sep, '') if exclude_file_path else img_id,
+                "dot": dot.tolist(),
+                "category": category.tolist(),
+                "confidence": confidence.tolist(),
+            }
+        )
+
+    with open(output_dir, "w") as f:
+        json.dump(json_results, f, indent=4)
+
 
 def save_detection_timelapse_json(
     det_results, output_dir, categories=None,
@@ -185,7 +272,6 @@ def save_detection_timelapse_json(
             "max_detection_conf": float(max(confidence_list)) if len(confidence_list) > 0 else '',
             "detections": []
         }
-
         for i in range(len(bbox_list)):
             normalized_bbox = [float(y) for y in normalized_bbox_list[i]]
             detection = {
