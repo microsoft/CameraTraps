@@ -24,7 +24,10 @@ setup(
         'gradio==4.8.0',
         'ultralytics-yolov5',
         'ultralytics',
-        'chardet'
+        'chardet',
+        'albumentations',
+        'wandb',
+        'scikit-learn',
     ],
     classifiers=[
         'Development Status :: 3 - Alpha',  
