@@ -34,7 +34,8 @@ from PytorchWildlife.data import datasets as pw_data
 # Setting the device to use for computations ('cuda' indicates GPU)
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 # Initializing a supervision box annotator for visualizing detections
-box_annotator = sv.DotAnnotator(radius=6)
+dot_annotator = sv.DotAnnotator(radius=6)
+box_annotator = sv.BoxAnnotator(thickness=4)
 lab_annotator = sv.LabelAnnotator(text_position=sv.Position.BOTTOM_RIGHT)
 # Create a temp folder
 os.makedirs(os.path.join("..","temp"), exist_ok=True) # ASK: Why do we need this?
@@ -85,11 +86,12 @@ def single_image_detection(input_img, det_conf_thres, clf_conf_thres, img_index=
     if detection_model.__class__.__name__ == "HerdNet":
         results_det = detection_model.single_image_detection(input_img,
                                                              img_path=img_index)
+        annotator = dot_annotator
     else:
         results_det = detection_model.single_image_detection(input_img,
                                                          img_path=img_index,
                                                          conf_thres=det_conf_thres)
-
+        annotator = box_annotator
     
     if classification_model is not None:
         labels = []
@@ -105,7 +107,7 @@ def single_image_detection(input_img, det_conf_thres, clf_conf_thres, img_index=
     else:
         labels = results_det["labels"]
     annotated_img = lab_annotator.annotate(
-        scene=box_annotator.annotate(
+        scene=annotator.annotate(
             scene=input_img,
             detections=results_det["detections"],
         ),
