@@ -17,6 +17,7 @@ __all__ = [
     "save_detection_images_dots",
     "save_crop_images",
     "save_detection_json",
+    "save_detection_json_as_dots",
     "save_detection_classification_json",
     "save_detection_timelapse_json",
     "save_detection_classification_timelapse_json",
@@ -176,6 +177,48 @@ def save_detection_json(det_results, output_dir, categories=None, exclude_catego
             {
                 "img_id": img_id.replace(exclude_file_path + os.sep, '') if exclude_file_path else img_id,
                 "bbox": bbox.tolist(),
+                "category": category.tolist(),
+                "confidence": confidence.tolist(),
+            }
+        )
+
+    with open(output_dir, "w") as f:
+        json.dump(json_results, f, indent=4)
+
+def save_detection_json_as_dots(det_results, output_dir, categories=None, exclude_category_ids=[], exclude_file_path=None):
+    """
+    Save detection results to a JSON file in dots format.
+
+    Args:
+        results (list):
+            Detection results containing image ID, bounding boxes, category, and confidence.
+        output_dir (str):
+            Path to save the output JSON file.
+        categories (list, optional):
+            List of categories for detected objects. Defaults to None.
+        exclude_category_ids (list, optional):
+            List of category IDs to exclude from the output. Defaults to []. Category IDs can be found in the definition of each models.
+        exclude_file_path (str, optional):
+            We can exclude the some path sections from the image ID. Defaults to None.
+    """
+    json_results = {"annotations": [], "categories": categories}
+
+    for det_r in det_results:
+
+        # Category filtering
+        img_id = det_r["img_id"]
+        category = det_r["detections"].class_id
+
+        bbox = det_r["detections"].xyxy.astype(int)[~np.isin(category, exclude_category_ids)]
+        dot = np.array([[np.mean(row[::2]), np.mean(row[1::2])] for row in bbox])
+        confidence =  det_r["detections"].confidence[~np.isin(category, exclude_category_ids)]
+        category = category[~np.isin(category, exclude_category_ids)]
+
+        # if not all([x in exclude_category_ids for x in category]):
+        json_results["annotations"].append(
+            {
+                "img_id": img_id.replace(exclude_file_path + os.sep, '') if exclude_file_path else img_id,
+                "dot": dot.tolist(),
                 "category": category.tolist(),
                 "confidence": confidence.tolist(),
             }
