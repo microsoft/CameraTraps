@@ -36,7 +36,7 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 # Initializing a supervision box annotator for visualizing detections
 dot_annotator = sv.DotAnnotator(radius=6)
 box_annotator = sv.BoxAnnotator(thickness=4)
-lab_annotator = sv.LabelAnnotator(text_position=sv.Position.BOTTOM_RIGHT)
+lab_annotator = sv.LabelAnnotator(text_color=sv.Color.BLACK, text_thickness=4, text_scale=2)
 # Create a temp folder
 os.makedirs(os.path.join("..","temp"), exist_ok=True) # ASK: Why do we need this?
 
@@ -48,13 +48,16 @@ classification_model = None
 def load_models(det, clf, wpath=None, wclass=None):
 
     global detection_model, classification_model
-    if det == "HerdNet":
-        weights_path = "../20220413_HerdNet_General_dataset_2022.pth"
-        model = animaloc_models.HerdNet(num_classes=7, pretrained=False) # Architecture of the model
-        model = animaloc_models.LossWrapper(model, []) # Model wrapper
-        detection_model = pw_detection.__dict__[det](weights=weights_path, device=DEVICE, model=model)
-    else:
-        detection_model = pw_detection.__dict__[det](device=DEVICE, pretrained=True)
+    if det != "None":
+        if det == "HerdNet":
+            weights_path = "../20220413_HerdNet_General_dataset_2022.pth"
+            model = animaloc_models.HerdNet(num_classes=7, pretrained=False) # Architecture of the model
+            model = animaloc_models.LossWrapper(model, []) # Model wrapper
+            detection_model = pw_detection.__dict__[det](weights=weights_path, device=DEVICE, model=model)
+        elif det == "MegaDetectorV6":
+            detection_model = pw_detection.__dict__[det](device=DEVICE, weights='../MDV6b-yolov9c.pt', pretrained=True)
+        else:
+            detection_model = pw_detection.__dict__[det](device=DEVICE, pretrained=True)
 
     if clf != "None":
         # Create an exception for custom weights
@@ -79,7 +82,7 @@ def single_image_detection(input_img, det_conf_thres, clf_conf_thres, img_index=
     Returns:
         annotated_img (PIL.Image.Image): Annotated image with bounding box instances.
     """
-    # trans_img = trans_det(input_img)
+
     input_img = np.array(input_img)
     
     # If the detection model is HerdNet, do not pass conf_thres
@@ -146,7 +149,7 @@ def batch_detection(zip_file, timelapse, det_conf_thres):
         tgt_folder_path = extract_path
     # If the detection model is HerdNet, do not pass conf_thres and also set batch_size to 1
     if detection_model.__class__.__name__ == "HerdNet":
-        det_results = detection_model.batch_image_detection(tgt_folder_path, batch_size=1, id_strip=tgt_folder_path) # TODO: Do we want default JPG extension?
+        det_results = detection_model.batch_image_detection(tgt_folder_path, batch_size=1, id_strip=tgt_folder_path) 
     else:
         det_results = detection_model.batch_image_detection(tgt_folder_path, batch_size=16, conf_thres=det_conf_thres, id_strip=tgt_folder_path)
 
@@ -190,7 +193,7 @@ def batch_path_detection(tgt_folder_path, det_conf_thres):
     Returns:
         json_save_path (str): Path to the JSON file containing detection results.
     """
-    breakpoint()
+
     json_save_path = os.path.join(tgt_folder_path, "results.json")
     det_dataset = pw_data.DetectionImageFolder(tgt_folder_path, transform=trans_det) # FIXME: trans_det is not defined
     det_loader = DataLoader(det_dataset, batch_size=32, shuffle=False, 
@@ -231,10 +234,10 @@ with gr.Blocks() as demo:
     gr.Markdown("# Pytorch-Wildlife Demo.")
     with gr.Row():
         det_drop = gr.Dropdown(
-            ["MegaDetectorV5", "HerdNet"],
+            ["None", "MegaDetectorV5", "MegaDetectorV6", "HerdNet"],
             label="Detection model",
             info="Will add more detection models!",
-            value="MegaDetectorV5" # Default detection model
+            value="None" # Default 
         )
         clf_drop = gr.Dropdown(
             ["None", "AI4GOpossum", "AI4GAmazonRainforest", "AI4GSnapshotSerengeti", "CustomWeights"],
