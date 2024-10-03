@@ -1,18 +1,16 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-""" Gradio Demo for Herdnet image detection"""
+""" Gradio Demo for image detection"""
 
 # Importing necessary basic libraries and modules
 import os
-os.environ['WANDB_MODE'] = 'disabled'  
 
 # PyTorch imports 
 import torch
 
 # Importing the model, dataset, transformations and utility functions from PytorchWildlife
 from PytorchWildlife.models import detection as pw_detection
-from PytorchWildlife.models.detection.herdnet.animaloc import models as animaloc_models
 from PytorchWildlife import utils as pw_utils
  
 # Importing basic libraries
@@ -51,9 +49,7 @@ def load_models(det, clf, wpath=None, wclass=None):
     if det != "None":
         if det == "HerdNet":
             weights_path = "../20220413_HerdNet_General_dataset_2022.pth"
-            model = animaloc_models.HerdNet(num_classes=7, pretrained=False) # Architecture of the model
-            model = animaloc_models.LossWrapper(model, []) # Model wrapper
-            detection_model = pw_detection.__dict__[det](weights=weights_path, device=DEVICE, model=model)
+            detection_model = pw_detection.__dict__[det](weights=weights_path, device=DEVICE)
         elif det == "MegaDetectorV6":
             detection_model = pw_detection.__dict__[det](device=DEVICE, weights='../MDV6b-yolov9c.pt', pretrained=True)
         else:
