@@ -13,9 +13,5 @@ __author__ = "Alexandre Delplanque"
 __license__ = "MIT License"
 __version__ = "0.2.1"
 
-
-from .utils import *
-from .evaluators import *
 from .stitchers import *
-from .metrics import *
 from .lmds import *
