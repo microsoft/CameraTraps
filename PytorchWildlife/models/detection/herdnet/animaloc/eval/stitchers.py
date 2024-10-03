@@ -23,17 +23,8 @@ import numpy as np
 from typing import List, Tuple
 from torch.utils.data import TensorDataset, DataLoader, SequentialSampler
 
-from .utils import HannWindow2D
-
 from ..data import ImageToPatches
 
-from ..utils.registry import Registry
-
-STITCHERS = Registry('stitchers', module_key='animaloc.eval.stitchers')
-
-__all__ = ['STITCHERS', *STITCHERS.registry_names]
-
-@STITCHERS.register()
 class Stitcher(ImageToPatches):
     ''' Class to stitch detections of patches into original image
     coordinates system 
@@ -211,7 +202,6 @@ class Stitcher(ImageToPatches):
 
         return output
 
-@STITCHERS.register()
 class HerdNetStitcher(Stitcher):
 
     @torch.no_grad()
@@ -229,7 +219,8 @@ class HerdNetStitcher(Stitcher):
         maps = []
         for patch in dataloader:
             patch = patch[0].to(self.device)
-            outputs = self.model(patch)[0]
+            #outputs = self.model(patch)[0]
+            outputs = self.model(patch) # LossWrapper is not used
             heatmap = outputs[0]
             scale_factor = 16
             clsmap = F.interpolate(outputs[1], scale_factor=scale_factor, mode='nearest')
@@ -238,166 +229,3 @@ class HerdNetStitcher(Stitcher):
             maps = [*maps, *outmaps.unsqueeze(0)]
 
         return maps
-
-@STITCHERS.register()
-class FasterRCNNStitcher(Stitcher):
-
-    def __init__(
-        self,
-        model: torch.nn.Module, 
-        size: Tuple[int,int], 
-        overlap: int = 100,
-        nms_threshold: float = 0.5,
-        score_threshold: float = 0.0,
-        batch_size: int = 1,
-        device_name: str = 'cuda',
-        ) -> None:
-        super().__init__(model, size, overlap=overlap, batch_size=batch_size, device_name=device_name)
-        
-        self.nms_threshold = nms_threshold
-        self.score_threshold = score_threshold
-        self.up = False
-
-    @torch.no_grad()
-    def _inference(self, patches: torch.Tensor) -> List[dict]:
-        
-        self.model.eval()
-        dataset = TensorDataset(patches)
-        dataloader = DataLoader(
-            dataset,   
-            batch_size=self.batch_size,
-            sampler=SequentialSampler(dataset)
-            )
-
-        maps = []
-        for patch in dataloader:
-            patch = patch[0].to(self.device)
-            outputs, _ = self.model(patch)
-            maps.append(*outputs)
-
-        return maps
-    
-    def _patch_maps(self, maps: List[dict]) -> dict:
-        boxes, labels, scores = [], [], []
-        for map, limit in zip(maps, self.get_limits().values()):
-            for box in map['boxes'].tolist():
-                x1, y1, x2, y2 = box
-                new_box = [x1 + limit.x_min, y1 + limit.y_min, x2 + limit.x_min, y2 + limit.y_min]
-                boxes = [*boxes, new_box]
-
-            labels = [*labels, *map['labels'].tolist()]
-            scores = [*scores, *map['scores'].tolist()]
-
-        return dict(boxes=torch.Tensor(boxes), labels=torch.Tensor(labels), scores=torch.Tensor(scores)) 
-    
-    def _reduce(self, map: dict) -> dict:
-        if map['boxes'].nelement() == 0:
-            return map
-        else:
-            indices = torchvision.ops.nms(map['boxes'], map['scores'], self.nms_threshold)
-            reduced = dict(boxes=map['boxes'][indices], labels=map['labels'][indices], scores=map['scores'][indices]) 
-            # score thresholding
-            indices = torch.nonzero((reduced['scores'] > self.score_threshold), as_tuple=True)[0]
-            reduced = dict(
-                boxes=reduced['boxes'][indices], 
-                labels=reduced['labels'][indices], 
-                scores=reduced['scores'][indices]
-                )
-            
-            return reduced
-
-@STITCHERS.register()
-class DensityMapStitcher(Stitcher):
-
-    def __init__(
-        self,
-        model: torch.nn.Module, 
-        size: Tuple[int,int], 
-        overlap: int = 100,
-        batch_size: int = 1,
-        down_ratio: int = 2,
-        adapt_ts: float = 0.0,
-        reduction: str = 'mean',
-        device_name: str = 'cuda',
-        ) -> None:
-        super().__init__(model, size, overlap=overlap, batch_size=batch_size, 
-            down_ratio=down_ratio, reduction=reduction, device_name=device_name)
-        
-        self.adapt_ts = adapt_ts
-        self.up = False
-    
-    def __call__(
-        self, 
-        image: torch.Tensor
-        ) -> torch.Tensor:
-        ''' Apply the stitching algorithm to the image
-
-        Args:
-            image (torch.Tensor): image of shape [C,H,W]
-        
-        Returns:
-            torch.Tensor
-                the detections into the coordinate system of the original image
-        '''
-
-        patched_map = super(DensityMapStitcher, self).__call__(image)
-
-        B, C, H, W = patched_map.shape
-        
-        # thresholding
-        max_values = patched_map.max(3)[0].max(2)[0]
-        thresholds = (max_values * self.adapt_ts).repeat(B, H, W, 1).permute(0,3,1,2)
-        patched_map = patched_map * (patched_map > thresholds).float()
-        # outputs = F.threshold(outputs, self.adapt_ts * max_value, 0.0)
-
-        return patched_map
-
-    @torch.no_grad()
-    def _inference(self, patches: torch.Tensor) -> List[torch.Tensor]:
-        
-        self.model.eval()
-
-        dataset = TensorDataset(patches)
-        dataloader = DataLoader(
-            dataset,   
-            batch_size=self.batch_size,
-            sampler=SequentialSampler(dataset)
-            )
-
-        # 2D Hann windows matrix
-        self.hann_matrix = self._make_hann_matrix()
-        if len(patches) == 1:
-            hann = HannWindow2D(size = self.size[0] // self.down_ratio)
-            self.hann_matrix = [hann.get_window('original','up')]
-        
-        maps = []
-        for patch, hann_2D in zip(dataloader, self.hann_matrix):
-            patch = patch[0].to(self.device)
-            outputs, _ = self.model(patch)
-
-            # hann filter
-            outputs = outputs * hann_2D.to(outputs.device)
-
-            maps = [*maps, *outputs.unsqueeze(0)]
-
-        return maps
-    
-    def _make_hann_matrix(self) -> list:
-
-        hann = HannWindow2D(size = self.size[0] // self.down_ratio)
-
-        first_row = [hann.get_window('edge', 'up')] * self._nrow
-        first_row[0] = hann.get_window('corner', 'up_left')
-        first_row[-1] = hann.get_window('corner', 'up_right')
-
-        middle_row = [hann.get_window('original', 'up')] * self._nrow
-        middle_row[0] = hann.get_window('edge', 'left')
-        middle_row[-1] = hann.get_window('edge', 'right')
-
-        last_row = [hann.get_window('edge', 'down')] * self._nrow
-        last_row[0] = hann.get_window('corner', 'down_left')
-        last_row[-1] = hann.get_window('corner', 'down_right')
-
-        matrix = [*first_row, *middle_row * (self._ncol - 2), *last_row]
-
-        return matrix
