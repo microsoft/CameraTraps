@@ -29,7 +29,6 @@ setup(
         'ultralytics',
         'setuptools==59.5.0',
         'albumentations',
-        'wandb',
         'scikit-learn',
     ],
     classifiers=[
