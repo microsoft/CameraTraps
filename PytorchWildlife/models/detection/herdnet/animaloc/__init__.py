@@ -12,19 +12,3 @@ __copyright__ = \
 __author__ = "Alexandre Delplanque"
 __license__ = "MIT License"
 __version__ = "0.2.1"
-# TODO: manage imports for the animaloc module (registry error).
-#from ..animaloc import data
-#from ..animaloc import datasets
-#from ..animaloc import eval
-from ..animaloc import models
-#from ..animaloc import train
-#from ..animaloc import utils
-#from ..animaloc import vizual
-
-'''from animaloc import data
-from animaloc import datasets
-from animaloc import eval
-from animaloc import models
-from animaloc import train
-from animaloc import utils
-from animaloc import vizual'''
