@@ -1,20 +1,16 @@
 from ..base_detector import BaseDetector
 from ..herdnet.animaloc.eval import HerdNetStitcher, HerdNetLMDS
-from ....data import transforms as pw_trans
 from ....data import datasets as pw_data
-#from base_detector import BaseDetector # Comment this line
+from .model import HerdNet as HerdNetArch
 
 import torch
 from torch.hub import load_state_dict_from_url
-from torch import nn
 from torch.utils.data import DataLoader
 import torchvision.transforms as transforms  
 
-import os
 import numpy as np
 from PIL import Image
 from tqdm import tqdm
-import albumentations as A
 import supervision as sv
 
 class HerdNet(BaseDetector):
@@ -23,7 +19,7 @@ class HerdNet(BaseDetector):
     loading the model, generating results, and performing single and batch image detections.
     """
     
-    def __init__(self, weights=None, device="cpu", url=None, transform=None, model=None):
+    def __init__(self, weights=None, device="cpu", url=None, transform=None):
         """
         Initialize the HerdNet detector.
         
@@ -36,8 +32,8 @@ class HerdNet(BaseDetector):
                 URL to fetch the model weights. Defaults to None.
         """
         super(HerdNet, self).__init__(weights=weights, device=device, url=url)
-
-        self.model = model # This is the model architecture of HerdNet
+        self.model = HerdNetArch(num_classes=7, pretrained=False) # TODO: Do we want to keep the number of classes hardcoded or with an argument?
+        # TODO: We can also define self.model before super().__init__ and once again call the _load_model meethod in the BaseDetector class
         self._load_model(weights, device, url)
 
         self.stitcher = HerdNetStitcher( # This module enables patch-based inference
@@ -53,14 +49,12 @@ class HerdNet(BaseDetector):
         self.lmds_kwargs: dict = {'kernel_size': (3, 3), 'adapt_ts': 0.2, 'neg_ts': 0.1}
         self.lmds = HerdNetLMDS(up=False, **self.lmds_kwargs) # Local Maxima Detection Strategy
 
-        # TODO: Can we normalize the image with torchvision.transforms.Normalize?
         if not transform:
-            self.transforms = A.Compose([A.Normalize(mean=self.img_mean, std=self.img_std)])
             self.transforms = transforms.Compose([
                 transforms.ToTensor(),
                 transforms.Normalize(mean=self.img_mean, std=self.img_std)  
                 ]) 
-        else: # TODO: This is not used in the code (single_image_detection function assumes transforms is from albumentations library)
+        else:
             self.transforms = transform
 
     def _load_model(self, weights=None, device="cpu", url=None):
@@ -88,11 +82,10 @@ class HerdNet(BaseDetector):
         state_dict = checkpoint['model_state_dict']  
   
         # Remove 'model.' prefix from the state_dict keys  
-        #new_state_dict = {k.replace('model.', ''): v for k, v in state_dict.items()}  
+        new_state_dict = {k.replace('model.', ''): v for k, v in state_dict.items()}  
   
         # Load the new state_dict 
-        #self.model.load_state_dict(new_state_dict, strict=True)
-        self.model.load_state_dict(state_dict, strict=True)
+        self.model.load_state_dict(new_state_dict, strict=True)
 
         print(f"Model loaded from {weights}")
 
@@ -148,10 +141,8 @@ class HerdNet(BaseDetector):
             img_path = img_path or img  
             img = np.array(Image.open(img_path).convert("RGB"))  
         if self.transforms:  
-            #img = self.transforms(image=img)['image']
             img_tensor = self.transforms(img)  
 
-        #img_tensor = torch.from_numpy(img).permute(2, 0, 1).float()  
         preds = self.stitcher(img_tensor)  
         heatmap, clsmap = preds[:,:1,:,:], preds[:,1:,:,:]  
         counts, locs, labels, scores, dscores = self.lmds((heatmap, clsmap))   
@@ -196,8 +187,7 @@ class HerdNet(BaseDetector):
                 preds_array = self.process_lmds_results(counts, locs, labels, scores, dscores)
                 results_dict = self.results_generation(preds_array, paths[0], id_strip=id_strip)
                 pbar.update(1)
-                # Normalize coordinates for timelapse compatibility
-                sizes = sizes.numpy() # Convert to numpy array 
+                sizes = sizes.numpy()
                 normalized_coords = [[x1 / sizes[0][0], y1 / sizes[0][1], x2 / sizes[0][0], y2 / sizes[0][1]] for x1, y1, x2, y2 in preds_array[:, :4]] # TODO: Check if this is correct due to xy swapping 
                 results_dict['normalized_coords'] = normalized_coords
                 results.append(results_dict)
@@ -242,12 +232,11 @@ class HerdNet(BaseDetector):
     
             # Get the detections for this species  
             species_locs = np.array(locs[detection_idx : detection_idx + count])
-            # Swap x and y in species_locs
-            species_locs[:, [0, 1]] = species_locs[:, [1, 0]] # TODO: discuss this. This is a trick to swap x and y in the array for herdnet compatibility
+            species_locs[:, [0, 1]] = species_locs[:, [1, 0]] # Swap x and y in species_locs
             species_scores = np.array(scores[detection_idx : detection_idx + count])
             species_labels = np.array(labels[detection_idx : detection_idx + count])
     
-            # Populate the pre-allocated array  
+            # Populate the pre-allocated array (xyxy, confidence, class_id format)
             preds_array[detection_idx : detection_idx + count, :2] = species_locs - 1  
             preds_array[detection_idx : detection_idx + count, 2:4] = species_locs + 1  
             preds_array[detection_idx : detection_idx + count, 4] = species_scores  
