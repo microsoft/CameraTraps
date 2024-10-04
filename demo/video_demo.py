@@ -24,8 +24,11 @@ SOURCE_VIDEO_PATH = os.path.join(".","demo_data","videos","opossum_example.MP4")
 TARGET_VIDEO_PATH = os.path.join(".","demo_data","videos","opossum_example_processed.MP4")
 
 #%% 
-# Initializing the model for image detection
-detection_model = pw_detection.MegaDetectorV5(device=DEVICE, pretrained=True)
+# Initializing the MegaDetectorV6 model for image detection
+detection_model = pw_detection.MegaDetectorV6(device=DEVICE, pretrained=True, version="yolov9c")
+
+# Uncomment the following line to use MegaDetectorV5 instead of MegaDetectorV6
+#detection_model = pw_detection.MegaDetectorV5(device=DEVICE, pretrained=True, version="a")
 
 #%% 
 # Initializing the model for image classification

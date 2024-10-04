@@ -6,7 +6,6 @@
 #%% 
 # Importing necessary basic libraries and modules
 import os
-os.environ['WANDB_MODE'] = 'disabled'  
 # PyTorch imports 
 import torch
 
@@ -21,7 +20,10 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 #%% 
 # Initializing the MegaDetectorV6 model for image detection
-detection_model = pw_detection.MegaDetectorV6(device=DEVICE, weights='../MDV6b-yolov9c.pt', pretrained=False) # For beta testing, you need to specify the path to the weights file.
+detection_model = pw_detection.MegaDetectorV6(device=DEVICE, pretrained=True, version="yolov9c")
+
+# Uncomment the following line to use MegaDetectorV5 instead of MegaDetectorV6
+#detection_model = pw_detection.MegaDetectorV5(device=DEVICE, pretrained=True, version="a")
 
 #%% Single image detection
 # Specifying the path to the target image TODO: Allow argparsing

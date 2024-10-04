@@ -20,7 +20,7 @@ class MegaDetectorV6(YOLOV8Base):
         2: "vehicle"
     }
 
-    def __init__(self, weights='./MDV6b-yolov9c.pt', device="cpu", pretrained=True, version='yolov9c'):
+    def __init__(self, weights=None, device="cpu", pretrained=True, version='yolov9c'):
         """
         Initializes the MegaDetectorV5 model with the option to load pretrained weights.
         
@@ -33,7 +33,7 @@ class MegaDetectorV6(YOLOV8Base):
         
         if version == 'yolov9c':
             self.IMAGE_SIZE = 640
-            url = None 
+            url = "https://zenodo.org/records/13357337/files/MDV6b-yolov9c.pt?download=1" 
         elif version =='rtdetrl':
             self.IMAGE_SIZE = 640
             url = None

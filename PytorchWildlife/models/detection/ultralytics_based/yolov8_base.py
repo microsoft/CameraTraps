@@ -10,6 +10,8 @@ from glob import glob
 import supervision as sv
 import numpy as np
 from PIL import Image
+import wget
+import torch
 
 from ultralytics.models import yolo
 from torch.utils.data import DataLoader
@@ -66,7 +68,11 @@ class YOLOV8Base(BaseDetector):
         if weights:
             self.predictor.setup_model(weights)
         elif url:
-            raise Exception("URL weights loading not ready for beta testing.")
+            if not os.path.exists(os.path.join(torch.hub.get_dir(), "checkpoints", "MDV6b-yolov9c.pt")):
+                weights = wget.download(url, out=os.path.join(torch.hub.get_dir(), "checkpoints"))
+            else:
+                weights = os.path.join(torch.hub.get_dir(), "checkpoints", "MDV6b-yolov9c.pt")
+            self.predictor.setup_model(weights)
         else:
             raise Exception("Need weights for inference.")
         
