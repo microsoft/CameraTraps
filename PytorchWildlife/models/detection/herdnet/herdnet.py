@@ -121,8 +121,7 @@ class HerdNet(BaseDetector):
         ]
         return results
     
-    # TODO: see if it works in an image with multiple species
-    def single_image_detection(self, img, img_path=None, id_strip=None):
+    def single_image_detection(self, img, img_path=None, conf_thres=0.2, id_strip=None):
         """
         Perform detection on a single image.
 
@@ -131,6 +130,8 @@ class HerdNet(BaseDetector):
                 Image for inference.
             img_path (str, optional): 
                 Path to the image. Defaults to None.
+            conf_thres (float, optional):
+                Confidence threshold for predictions. Defaults to 0.2.
             id_strip (str, optional): 
                 Characters to strip from img_id. Defaults to None.
 
@@ -145,18 +146,20 @@ class HerdNet(BaseDetector):
 
         preds = self.stitcher(img_tensor)  
         heatmap, clsmap = preds[:,:1,:,:], preds[:,1:,:,:]  
-        counts, locs, labels, scores, dscores = self.lmds((heatmap, clsmap))   
-        preds_array = self.process_lmds_results(counts, locs, labels, scores, dscores)
+        counts, locs, labels, scores, dscores = self.lmds((heatmap, clsmap))
+        preds_array = self.process_lmds_results(counts, locs, labels, scores, dscores, conf_thres)
         return self.results_generation(preds_array, img_path, id_strip=id_strip)  
 
 
-    def batch_image_detection(self, data_path, batch_size=1, id_strip=None, extension='JPG'):
+    def batch_image_detection(self, data_path, conf_thres=0.2, batch_size=1, id_strip=None, extension='JPG'):
         """
         Perform detection on a batch of images.
         
         Args:
             data_path (str): 
                 Path containing all images for inference.
+            conf_thres (float, optional):
+                Confidence threshold for predictions. Defaults to 0.2.
             batch_size (int, optional):
                 Batch size for inference. Defaults to 1.
             id_strip (str, optional): 
@@ -184,7 +187,7 @@ class HerdNet(BaseDetector):
                 predictions = self.stitcher(imgs[0]).detach().cpu()
                 heatmap, clsmap = predictions[:,:1,:,:], predictions[:,1:,:,:]
                 counts, locs, labels, scores, dscores = self.lmds((heatmap, clsmap))
-                preds_array = self.process_lmds_results(counts, locs, labels, scores, dscores)
+                preds_array = self.process_lmds_results(counts, locs, labels, scores, dscores, conf_thres) 
                 results_dict = self.results_generation(preds_array, paths[0], id_strip=id_strip)
                 pbar.update(1)
                 sizes = sizes.numpy()
@@ -193,7 +196,7 @@ class HerdNet(BaseDetector):
                 results.append(results_dict)
         return results
 
-    def process_lmds_results(self, counts, locs, labels, scores, dscores):
+    def process_lmds_results(self, counts, locs, labels, scores, dscores, conf_thres=0.2):
         """
         Process the results from the Local Maxima Detection Strategy.
 
@@ -208,6 +211,8 @@ class HerdNet(BaseDetector):
                 Scores of the detections.
             dscores (list): 
                 Detection scores.
+            conf_thres (float, optional):
+                Confidence threshold for predictions. Defaults to 0.2.
 
         Returns:
             numpy.ndarray: Processed detection results.
@@ -223,7 +228,8 @@ class HerdNet(BaseDetector):
         
         # Pre-allocate based on total possible detections  
         preds_array = np.empty((total_detections, 6)) #xyxy, confidence, class_id format
-        detection_idx = 0  
+        detection_idx = 0
+        valid_detections_idx = 0 # Index for valid detections after applying the confidence threshold
         # Loop through each species  
         for specie_idx in range(len(counts)):  
             count = counts[specie_idx]  
@@ -235,16 +241,22 @@ class HerdNet(BaseDetector):
             species_locs[:, [0, 1]] = species_locs[:, [1, 0]] # Swap x and y in species_locs
             species_scores = np.array(scores[detection_idx : detection_idx + count])
             species_labels = np.array(labels[detection_idx : detection_idx + count])
-    
-            # Populate the pre-allocated array (xyxy, confidence, class_id format)
-            preds_array[detection_idx : detection_idx + count, :2] = species_locs - 1  
-            preds_array[detection_idx : detection_idx + count, 2:4] = species_locs + 1  
-            preds_array[detection_idx : detection_idx + count, 4] = species_scores  
-            preds_array[detection_idx : detection_idx + count, 5] = species_labels  
+
+            # Apply the confidence threshold
+            valid_detections = species_scores > conf_thres
+            valid_detections_count = np.sum(valid_detections)
+            valid_detections_idx += valid_detections_count
+            # Fill the preds_array with the valid detections
+            if valid_detections_count > 0:
+                preds_array[valid_detections_idx - valid_detections_count : valid_detections_idx, :2] = species_locs[valid_detections] - 1
+                preds_array[valid_detections_idx - valid_detections_count : valid_detections_idx, 2:4] = species_locs[valid_detections] + 1
+                preds_array[valid_detections_idx - valid_detections_count : valid_detections_idx, 4] = species_scores[valid_detections]
+                preds_array[valid_detections_idx - valid_detections_count : valid_detections_idx, 5] = species_labels[valid_detections]
             
-            detection_idx += count
+            detection_idx += count # Move to the next species 
         
-        preds_array = preds_array[:detection_idx]  # Trim to the actual number of detections 
+        preds_array = preds_array[:valid_detections_idx] # Remove the empty rows
+        
         return preds_array
 
     def forward(self, input: torch.Tensor):

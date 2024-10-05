@@ -80,16 +80,13 @@ def single_image_detection(input_img, det_conf_thres, clf_conf_thres, img_index=
     """
 
     input_img = np.array(input_img)
-    
-    # If the detection model is HerdNet, do not pass conf_thres
+    results_det = detection_model.single_image_detection(input_img,
+                                                             img_path=img_index,
+                                                             conf_thres = det_conf_thres)
+    # If the detection model is HerdNet, use dot annotator, else use box annotator
     if detection_model.__class__.__name__ == "HerdNet":
-        results_det = detection_model.single_image_detection(input_img,
-                                                             img_path=img_index)
         annotator = dot_annotator
     else:
-        results_det = detection_model.single_image_detection(input_img,
-                                                         img_path=img_index,
-                                                         conf_thres=det_conf_thres)
         annotator = box_annotator
     
     if classification_model is not None:
@@ -143,9 +140,9 @@ def batch_detection(zip_file, timelapse, det_conf_thres):
         tgt_folder_path = os.path.join(extract_path, extracted_files[0])
     else:
         tgt_folder_path = extract_path
-    # If the detection model is HerdNet, do not pass conf_thres and also set batch_size to 1
+    # If the detection model is HerdNet set batch_size to 1
     if detection_model.__class__.__name__ == "HerdNet":
-        det_results = detection_model.batch_image_detection(tgt_folder_path, batch_size=1, id_strip=tgt_folder_path) 
+        det_results = detection_model.batch_image_detection(tgt_folder_path, batch_size=1, conf_thres=det_conf_thres, id_strip=tgt_folder_path) 
     else:
         det_results = detection_model.batch_image_detection(tgt_folder_path, batch_size=16, conf_thres=det_conf_thres, id_strip=tgt_folder_path)
 
