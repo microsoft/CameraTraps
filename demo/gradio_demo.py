@@ -156,6 +156,7 @@ def batch_detection(zip_file, timelapse, det_conf_thres):
                                 pin_memory=True, num_workers=4, drop_last=False)
         clf_results = classification_model.batch_image_classification(clf_loader, id_strip=tgt_folder_path)
         if timelapse:
+            json_save_path = json_save_path.replace(".json", "_timelapse.json")
             pw_utils.save_detection_classification_timelapse_json(det_results=det_results,
                                                         clf_results=clf_results,
                                                         det_categories=detection_model.CLASS_NAMES,
@@ -169,6 +170,7 @@ def batch_detection(zip_file, timelapse, det_conf_thres):
                                                         output_path=json_save_path)
     else:
         if timelapse:
+            json_save_path = json_save_path.replace(".json", "_timelapse.json")
             pw_utils.save_detection_timelapse_json(det_results, json_save_path, categories=detection_model.CLASS_NAMES)
         elif detection_model.__class__.__name__ == "HerdNet":
             pw_utils.save_detection_json_as_dots(det_results, json_save_path, categories=detection_model.CLASS_NAMES)
@@ -234,6 +236,7 @@ with gr.Blocks() as demo:
         )
         clf_drop = gr.Dropdown(
             ["None", "AI4GOpossum", "AI4GAmazonRainforest", "AI4GSnapshotSerengeti", "CustomWeights"],
+            interactive=True,
             label="Classification model",
             info="Will add more classification models!",
             value="None"
@@ -244,6 +247,14 @@ with gr.Blocks() as demo:
         load_but = gr.Button("Load Models!")
         load_out = gr.Text("NO MODEL LOADED!!", label="Loaded models:")
     
+    def update_ui_elements(det_model):  
+        if det_model == "HerdNet": # Disable all the classification model dropdown because HerdNet does not require a classification model apart
+            return gr.Dropdown(choices=["None"], interactive=True, label="Classification model", value="None")
+        else:
+            return gr.Dropdown(choices=["None", "AI4GOpossum", "AI4GAmazonRainforest", "AI4GSnapshotSerengeti", "CustomWeights"], interactive=True, label="Classification model", value="None")
+
+    det_drop.change(update_ui_elements, det_drop, [clf_drop])
+
     def toggle_textboxes(model):
         if model == "CustomWeights":
             return gr.update(visible=True), gr.update(visible=True)
@@ -261,7 +272,8 @@ with gr.Blocks() as demo:
             with gr.Column():
                 sgl_in = gr.Image(type="pil")
                 sgl_conf_sl_det = gr.Slider(0, 1, label="Detection Confidence Threshold", value=0.2)
-                sgl_conf_sl_clf = gr.Slider(0, 1, label="Classification Confidence Threshold", value=0.7)
+                # The classification confidence slider is only visible when the detection model is not HerdNet
+                sgl_conf_sl_clf = gr.Slider(0, 1, label="Classification Confidence Threshold", value=0.7, visible=False)
             sgl_out = gr.Image() 
         sgl_but = gr.Button("Detect Animals!")
     with gr.Tab("Folder Separation"):
@@ -281,7 +293,8 @@ with gr.Blocks() as demo:
         with gr.Row():
             with gr.Column():
                 bth_in = gr.File(label="Upload zip file.")
-                chck_timelapse = gr.Checkbox(label="Timelapse Output", info="Output JSON for timelapse.")
+                # The timelapse checkbox is only visible when the detection model is not HerdNet
+                chck_timelapse = gr.Checkbox(label="Generate timelapse JSON", visible=False)
                 bth_conf_sl = gr.Slider(0, 1, label="Detection Confidence Threshold", value=0.2)
             bth_out = gr.File(label="Detection Results JSON.", height=200)
         bth_but = gr.Button("Detect Animals!")
@@ -300,6 +313,19 @@ with gr.Blocks() as demo:
                     )
             vid_out = gr.Video()
         vid_but = gr.Button("Detect Animals!")
+
+    # Show the sgl_conf_sl_clf slider only when detection model is not HerdNet
+    det_drop.change(
+        lambda model: gr.update(visible=True) if model != "HerdNet" else gr.update(visible=False),
+        det_drop,
+        [sgl_conf_sl_clf]
+    )
+    # Show timelapsed checkbox only when detection model is not HerdNet
+    det_drop.change(
+        lambda model: gr.update(visible=True) if model != "HerdNet" else gr.update(visible=False),
+        det_drop,
+        [chck_timelapse]
+    )
 
     load_but.click(load_models, inputs=[det_drop, clf_drop, custom_weights_path, custom_weights_class], outputs=load_out)
     sgl_but.click(single_image_detection, inputs=[sgl_in, sgl_conf_sl_det, sgl_conf_sl_clf], outputs=sgl_out)
