@@ -16,11 +16,9 @@ from PytorchWildlife import utils as pw_utils
 #%% 
 # Setting the device to use for computations ('cuda' indicates GPU)
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-
 #%% 
 # Initializing the HerdNet model for image detection
-weights_path = "../20220413_HerdNet_General_dataset_2022.pth"
-detection_model = pw_detection.HerdNet(weights=weights_path, device=DEVICE)
+detection_model = pw_detection.HerdNet(device=DEVICE)
 
 #%% Single image detection
 img_path = os.path.join(".","demo_data","herdnet_imgs","S_11_05_16_DSC01556.JPG")

@@ -12,6 +12,8 @@ import numpy as np
 from PIL import Image
 from tqdm import tqdm
 import supervision as sv
+import os
+import wget
 
 class HerdNet(BaseDetector):
     """
@@ -19,7 +21,7 @@ class HerdNet(BaseDetector):
     loading the model, generating results, and performing single and batch image detections.
     """
     
-    def __init__(self, weights=None, device="cpu", url=None, transform=None):
+    def __init__(self, weights=None, device="cpu", url="https://zenodo.org/records/13899852/files/20220413_HerdNet_General_dataset_2022.pth?download=1", transform=None):
         """
         Initialize the HerdNet detector.
         
@@ -74,7 +76,12 @@ class HerdNet(BaseDetector):
         if weights:
             checkpoint = torch.load(weights, map_location=torch.device(device))
         elif url:
-            checkpoint = load_state_dict_from_url(url, map_location=torch.device(self.device))
+            if not os.path.exists(os.path.join(torch.hub.get_dir(), "checkpoints", "20220413_HerdNet_General_dataset_2022.pth")):
+                weights = wget.download(url, out=os.path.join(torch.hub.get_dir(), "checkpoints"))
+            else:
+                weights = os.path.join(torch.hub.get_dir(), "checkpoints", "20220413_HerdNet_General_dataset_2022.pth")
+            checkpoint = torch.load(weights, map_location=torch.device(device))
+            #checkpoint = load_state_dict_from_url(url, map_location=torch.device(self.device)) # NOTE: This function is not used in the current implementation
         else:
             raise Exception("Need weights for inference.")
         
