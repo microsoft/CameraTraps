@@ -34,8 +34,6 @@ class HerdNet(BaseDetector):
                 URL to fetch the model weights. Defaults to None.
         """
         super(HerdNet, self).__init__(weights=weights, device=device, url=url)
-        self.model = HerdNetArch(num_classes=7, pretrained=False) # TODO: Do we want to keep the number of classes hardcoded or with an argument?
-        # TODO: We can also define self.model before super().__init__ and once again call the _load_model meethod in the BaseDetector class
         self._load_model(weights, device, url)
 
         self.stitcher = HerdNetStitcher( # This module enables patch-based inference
@@ -85,21 +83,23 @@ class HerdNet(BaseDetector):
         else:
             raise Exception("Need weights for inference.")
         
-        # Load checkpoint into model
-        state_dict = checkpoint['model_state_dict']  
-  
-        # Remove 'model.' prefix from the state_dict keys  
-        new_state_dict = {k.replace('model.', ''): v for k, v in state_dict.items()}  
-  
-        # Load the new state_dict 
-        self.model.load_state_dict(new_state_dict, strict=True)
-
-        print(f"Model loaded from {weights}")
-
+        # Load the class names and other metadata from the checkpoint
         self.CLASS_NAMES = checkpoint["classes"]
         self.num_classes = len(self.CLASS_NAMES) + 1
         self.img_mean = checkpoint['mean']
         self.img_std = checkpoint['std']
+
+        # Load the model architecture
+        self.model = HerdNetArch(num_classes=self.num_classes, pretrained=False)
+
+        # Load checkpoint into model
+        state_dict = checkpoint['model_state_dict']  
+        # Remove 'model.' prefix from the state_dict keys if the key starts with 'model.'
+        new_state_dict = {k.replace('model.', ''): v for k, v in state_dict.items() if k.startswith('model.')}
+        # Load the new state_dict 
+        self.model.load_state_dict(new_state_dict, strict=True)
+
+        print(f"Model loaded from {weights}")
 
     def results_generation(self, preds, img_id, id_strip=None):
         """
@@ -149,7 +149,7 @@ class HerdNet(BaseDetector):
             img_path = img_path or img  
             img = np.array(Image.open(img_path).convert("RGB"))  
         if self.transforms:  
-            img_tensor = self.transforms(img)  
+            img_tensor = self.transforms(img)
 
         preds = self.stitcher(img_tensor)  
         heatmap, clsmap = preds[:,:1,:,:], preds[:,1:,:,:]  
@@ -277,4 +277,6 @@ class HerdNet(BaseDetector):
         Returns:
             torch.Tensor: Model output.
         """
+        # Call the forward method of the model in evaluation mode
+        self.model.eval()
         return self.model(input)

@@ -48,8 +48,7 @@ def load_models(det, clf, wpath=None, wclass=None):
     global detection_model, classification_model
     if det != "None":
         if det == "HerdNet":
-            weights_path = "../20220413_HerdNet_General_dataset_2022.pth"
-            detection_model = pw_detection.__dict__[det](weights=weights_path, device=DEVICE)
+            detection_model = pw_detection.__dict__[det](device=DEVICE)
         elif det == "MegaDetectorV6":
             detection_model = pw_detection.__dict__[det](device=DEVICE, weights='../MDV6b-yolov9c.pt', pretrained=True)
         else:
