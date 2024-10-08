@@ -189,7 +189,7 @@ def batch_path_detection(tgt_folder_path, det_conf_thres):
     """
 
     json_save_path = os.path.join(tgt_folder_path, "results.json")
-    det_dataset = pw_data.DetectionImageFolder(tgt_folder_path, transform=trans_det) # FIXME: trans_det is not defined
+    det_dataset = pw_data.DetectionImageFolder(tgt_folder_path)
     det_loader = DataLoader(det_dataset, batch_size=32, shuffle=False, 
                             pin_memory=True, num_workers=2, drop_last=False)
     det_results = detection_model.batch_image_detection(det_loader, conf_thres=det_conf_thres, id_strip=tgt_folder_path)
