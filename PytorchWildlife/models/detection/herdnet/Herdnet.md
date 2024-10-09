@@ -1,6 +1,6 @@
 # HerdNet  
   
-HerdNet is an advanced deep learning model designed for the accurate detection and counting of African mammals in aerial images. This model is introduced in the research paper "From crowd to herd counting: How to precisely detect and count African mammals using aerial imagery and deep learning?" by Alexandre Delplanque and colleagues.  
+HerdNet is an advanced deep learning model designed for the accurate detection and counting of African mammals in aerial images. This model is introduced in the research paper ["From crowd to herd counting: How to precisely detect and count African mammals using aerial imagery and deep learning?"](https://www.sciencedirect.com/science/article/pii/S092427162300031X?via%3Dihub) by Alexandre Delplanque and colleagues.  
   
 ## Model Overview  
   
@@ -23,4 +23,4 @@ If you use HerdNet in your research, please cite the original paper by Alexandre
   
 ## License  
   
-Refer to the repository [link](https://github.com/Alexandre-Delplanque/HerdNet.git) for licensing information. # TODO: Verify this
+Refer to the repository [link](https://github.com/Alexandre-Delplanque/HerdNet.git) for licensing information.
