@@ -21,7 +21,7 @@ class HerdNet(BaseDetector):
     loading the model, generating results, and performing single and batch image detections.
     """
     
-    def __init__(self, weights=None, device="cpu", url="https://zenodo.org/records/13899852/files/20220413_HerdNet_General_dataset_2022.pth?download=1", transform=None):
+    def __init__(self, weights=None, device="cpu", dataset='general' ,url="https://zenodo.org/records/13899852/files/20220413_HerdNet_General_dataset_2022.pth?download=1", transform=None):
         """
         Initialize the HerdNet detector.
         
@@ -30,10 +30,19 @@ class HerdNet(BaseDetector):
                 Path to the model weights. Defaults to None.
             device (str, optional): 
                 Device for model inference. Defaults to "cpu".
+            dataset (str, optional):
+                Dataset for which the model is trained. It should be either 'general' or 'ennedi'. Defaults to 'general'.
             url (str, optional): 
                 URL to fetch the model weights. Defaults to None.
+            transform (torchvision.transforms.Compose, optional):
+                Image transformation for inference. Defaults to None.
         """
         super(HerdNet, self).__init__(weights=weights, device=device, url=url)
+        # Assert that the dataset is either 'general' or 'ennedi'
+        dataset = dataset.lower()
+        assert dataset in ['general', 'ennedi'], "Dataset should be either 'general' or 'ennedi'"
+        if dataset == 'ennedi':
+            url = "https://zenodo.org/records/13914287/files/20220329_HerdNet_Ennedi_dataset_2023.pth?download=1"
         self._load_model(weights, device, url)
 
         self.stitcher = HerdNetStitcher( # This module enables patch-based inference
@@ -74,10 +83,11 @@ class HerdNet(BaseDetector):
         if weights:
             checkpoint = torch.load(weights, map_location=torch.device(device))
         elif url:
-            if not os.path.exists(os.path.join(torch.hub.get_dir(), "checkpoints", "20220413_HerdNet_General_dataset_2022.pth")):
+            filename = url.split('/')[-1][:-11] # Splitting the URL to get the filename and removing the '?download=1' part
+            if not os.path.exists(os.path.join(torch.hub.get_dir(), "checkpoints", filename)):
                 weights = wget.download(url, out=os.path.join(torch.hub.get_dir(), "checkpoints"))
             else:
-                weights = os.path.join(torch.hub.get_dir(), "checkpoints", "20220413_HerdNet_General_dataset_2022.pth")
+                weights = os.path.join(torch.hub.get_dir(), "checkpoints", filename)
             checkpoint = torch.load(weights, map_location=torch.device(device))
             #checkpoint = load_state_dict_from_url(url, map_location=torch.device(self.device)) # NOTE: This function is not used in the current implementation
         else:
@@ -128,7 +138,7 @@ class HerdNet(BaseDetector):
         ]
         return results
     
-    def single_image_detection(self, img, img_path=None, conf_thres=0.2, id_strip=None):
+    def single_image_detection(self, img, img_path=None, det_conf_thres=0.2, clf_conf_thres=0.2, id_strip=None):
         """
         Perform detection on a single image.
 
@@ -137,8 +147,10 @@ class HerdNet(BaseDetector):
                 Image for inference.
             img_path (str, optional): 
                 Path to the image. Defaults to None.
-            conf_thres (float, optional):
-                Confidence threshold for predictions. Defaults to 0.2.
+            det_conf_thres (float, optional):
+                Confidence threshold for detections. Defaults to 0.2.
+            clf_conf_thres (float, optional):
+                Confidence threshold for classification. Defaults to 0.2.
             id_strip (str, optional): 
                 Characters to strip from img_id. Defaults to None.
 
@@ -154,19 +166,21 @@ class HerdNet(BaseDetector):
         preds = self.stitcher(img_tensor)  
         heatmap, clsmap = preds[:,:1,:,:], preds[:,1:,:,:]  
         counts, locs, labels, scores, dscores = self.lmds((heatmap, clsmap))
-        preds_array = self.process_lmds_results(counts, locs, labels, scores, dscores, conf_thres)
+        preds_array = self.process_lmds_results(counts, locs, labels, scores, dscores, det_conf_thres, clf_conf_thres)
         return self.results_generation(preds_array, img_path, id_strip=id_strip)  
 
 
-    def batch_image_detection(self, data_path, conf_thres=0.2, batch_size=1, id_strip=None, extension='JPG'):
+    def batch_image_detection(self, data_path, det_conf_thres=0.2, clf_conf_thres=0.2, batch_size=1, id_strip=None, extension='JPG'):
         """
         Perform detection on a batch of images.
         
         Args:
             data_path (str): 
                 Path containing all images for inference.
-            conf_thres (float, optional):
-                Confidence threshold for predictions. Defaults to 0.2.
+            det_conf_thres (float, optional):
+                Confidence threshold for detections. Defaults to 0.2.
+            clf_conf_thres (float, optional):
+                Confidence threshold for classification. Defaults to 0.2.
             batch_size (int, optional):
                 Batch size for inference. Defaults to 1.
             id_strip (str, optional): 
@@ -194,7 +208,7 @@ class HerdNet(BaseDetector):
                 predictions = self.stitcher(imgs[0]).detach().cpu()
                 heatmap, clsmap = predictions[:,:1,:,:], predictions[:,1:,:,:]
                 counts, locs, labels, scores, dscores = self.lmds((heatmap, clsmap))
-                preds_array = self.process_lmds_results(counts, locs, labels, scores, dscores, conf_thres) 
+                preds_array = self.process_lmds_results(counts, locs, labels, scores, dscores, det_conf_thres, clf_conf_thres) 
                 results_dict = self.results_generation(preds_array, paths[0], id_strip=id_strip)
                 pbar.update(1)
                 sizes = sizes.numpy()
@@ -203,7 +217,7 @@ class HerdNet(BaseDetector):
                 results.append(results_dict)
         return results
 
-    def process_lmds_results(self, counts, locs, labels, scores, dscores, conf_thres=0.2):
+    def process_lmds_results(self, counts, locs, labels, scores, dscores, det_conf_thres=0.2, clf_conf_thres=0.2):
         """
         Process the results from the Local Maxima Detection Strategy.
 
@@ -218,8 +232,10 @@ class HerdNet(BaseDetector):
                 Scores of the detections.
             dscores (list): 
                 Detection scores.
-            conf_thres (float, optional):
-                Confidence threshold for predictions. Defaults to 0.2.
+            det_conf_thres (float, optional):
+                Confidence threshold for detections. Defaults to 0.2.
+            clf_conf_thres (float, optional):
+                Confidence threshold for classification. Defaults to 0.2.
 
         Returns:
             numpy.ndarray: Processed detection results.
@@ -228,7 +244,8 @@ class HerdNet(BaseDetector):
         counts = counts[0]  
         locs = locs[0]  
         labels = labels[0]  
-        scores = scores[0]  
+        scores = scores[0]
+        dscores = dscores[0]  
     
         # Calculate the total number of detections  
         total_detections = sum(counts)  
@@ -242,15 +259,18 @@ class HerdNet(BaseDetector):
             count = counts[specie_idx]  
             if count == 0:  
                 continue  
-    
+            
             # Get the detections for this species  
             species_locs = np.array(locs[detection_idx : detection_idx + count])
             species_locs[:, [0, 1]] = species_locs[:, [1, 0]] # Swap x and y in species_locs
             species_scores = np.array(scores[detection_idx : detection_idx + count])
+            species_dscores = np.array(dscores[detection_idx : detection_idx + count])
             species_labels = np.array(labels[detection_idx : detection_idx + count])
 
             # Apply the confidence threshold
-            valid_detections = species_scores > conf_thres
+            valid_detections_by_clf_score = species_scores > clf_conf_thres
+            valid_detections_by_det_score = species_dscores > det_conf_thres
+            valid_detections = np.logical_and(valid_detections_by_clf_score, valid_detections_by_det_score)
             valid_detections_count = np.sum(valid_detections)
             valid_detections_idx += valid_detections_count
             # Fill the preds_array with the valid detections

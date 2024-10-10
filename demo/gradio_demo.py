@@ -47,8 +47,10 @@ def load_models(det, clf, wpath=None, wclass=None):
 
     global detection_model, classification_model
     if det != "None":
-        if det == "HerdNet":
-            detection_model = pw_detection.__dict__[det](device=DEVICE)
+        if det == "HerdNet General":
+            detection_model = pw_detection.HerdNet(device=DEVICE)
+        elif det == "HerdNet Ennedi":
+            detection_model = pw_detection.HerdNet(device=DEVICE, dataset="ennedi")
         elif det == "MegaDetectorV6":
             detection_model = pw_detection.__dict__[det](device=DEVICE, weights='../MDV6b-yolov9c.pt', pretrained=True)
         else:
@@ -79,14 +81,19 @@ def single_image_detection(input_img, det_conf_thres, clf_conf_thres, img_index=
     """
 
     input_img = np.array(input_img)
-    results_det = detection_model.single_image_detection(input_img,
-                                                             img_path=img_index,
-                                                             conf_thres = det_conf_thres)
     # If the detection model is HerdNet, use dot annotator, else use box annotator
-    if detection_model.__class__.__name__ == "HerdNet":
+    if detection_model.__class__.__name__.__contains__("HerdNet"):
         annotator = dot_annotator
+        # Herdnet receives both clf and det confidence thresholds
+        results_det = detection_model.single_image_detection(input_img,
+                                                             img_path=img_index,
+                                                             det_conf_thres=det_conf_thres,
+                                                             clf_conf_thres=clf_conf_thres)
     else:
         annotator = box_annotator
+        results_det = detection_model.single_image_detection(input_img,
+                                                             img_path=img_index,
+                                                             conf_thres = det_conf_thres)
     
     if classification_model is not None:
         labels = []
@@ -140,8 +147,8 @@ def batch_detection(zip_file, timelapse, det_conf_thres):
     else:
         tgt_folder_path = extract_path
     # If the detection model is HerdNet set batch_size to 1
-    if detection_model.__class__.__name__ == "HerdNet":
-        det_results = detection_model.batch_image_detection(tgt_folder_path, batch_size=1, conf_thres=det_conf_thres, id_strip=tgt_folder_path) 
+    if detection_model.__class__.__name__.__contains__("HerdNet"):
+        det_results = detection_model.batch_image_detection(tgt_folder_path, batch_size=1, det_conf_thres=det_conf_thres, id_strip=tgt_folder_path) 
     else:
         det_results = detection_model.batch_image_detection(tgt_folder_path, batch_size=16, conf_thres=det_conf_thres, id_strip=tgt_folder_path)
 
@@ -171,7 +178,7 @@ def batch_detection(zip_file, timelapse, det_conf_thres):
         if timelapse:
             json_save_path = json_save_path.replace(".json", "_timelapse.json")
             pw_utils.save_detection_timelapse_json(det_results, json_save_path, categories=detection_model.CLASS_NAMES)
-        elif detection_model.__class__.__name__ == "HerdNet":
+        elif detection_model.__class__.__name__.__contains__("HerdNet"):
             pw_utils.save_detection_json_as_dots(det_results, json_save_path, categories=detection_model.CLASS_NAMES)
         else: 
             pw_utils.save_detection_json(det_results, json_save_path, categories=detection_model.CLASS_NAMES)
@@ -192,8 +199,8 @@ def batch_path_detection(tgt_folder_path, det_conf_thres):
     det_dataset = pw_data.DetectionImageFolder(tgt_folder_path)
     det_loader = DataLoader(det_dataset, batch_size=32, shuffle=False, 
                             pin_memory=True, num_workers=2, drop_last=False)
-    det_results = detection_model.batch_image_detection(det_loader, conf_thres=det_conf_thres, id_strip=tgt_folder_path)
-    if detection_model.__class__.__name__ == "HerdNet":
+    det_results = detection_model.batch_image_detection(det_loader, det_conf_thres=det_conf_thres, id_strip=tgt_folder_path)
+    if detection_model.__class__.__name__.__contains__("HerdNet"):
         pw_utils.save_detection_json_as_dots(det_results, json_save_path, categories=detection_model.CLASS_NAMES)
     else:
         pw_utils.save_detection_json(det_results, json_save_path, categories=detection_model.CLASS_NAMES)
@@ -228,7 +235,7 @@ with gr.Blocks() as demo:
     gr.Markdown("# Pytorch-Wildlife Demo.")
     with gr.Row():
         det_drop = gr.Dropdown(
-            ["None", "MegaDetectorV5", "MegaDetectorV6", "HerdNet"],
+            ["None", "MegaDetectorV5", "MegaDetectorV6", "HerdNet General", "HerdNet Ennedi"],
             label="Detection model",
             info="Will add more detection models!",
             value="None" # Default 
@@ -247,7 +254,7 @@ with gr.Blocks() as demo:
         load_out = gr.Text("NO MODEL LOADED!!", label="Loaded models:")
     
     def update_ui_elements(det_model):  
-        if det_model == "HerdNet": # Disable all the classification model dropdown because HerdNet does not require a classification model apart
+        if "HerdNet" in det_model: # Disable all the classification model dropdown because HerdNet does not require a classification model apart
             return gr.Dropdown(choices=["None"], interactive=True, label="Classification model", value="None")
         else:
             return gr.Dropdown(choices=["None", "AI4GOpossum", "AI4GAmazonRainforest", "AI4GSnapshotSerengeti", "CustomWeights"], interactive=True, label="Classification model", value="None")
@@ -271,8 +278,7 @@ with gr.Blocks() as demo:
             with gr.Column():
                 sgl_in = gr.Image(type="pil")
                 sgl_conf_sl_det = gr.Slider(0, 1, label="Detection Confidence Threshold", value=0.2)
-                # The classification confidence slider is only visible when the detection model is not HerdNet
-                sgl_conf_sl_clf = gr.Slider(0, 1, label="Classification Confidence Threshold", value=0.7, visible=False)
+                sgl_conf_sl_clf = gr.Slider(0, 1, label="Classification Confidence Threshold", value=0.7, visible=True)
             sgl_out = gr.Image() 
         sgl_but = gr.Button("Detect Animals!")
     with gr.Tab("Folder Separation"):
@@ -312,16 +318,10 @@ with gr.Blocks() as demo:
                     )
             vid_out = gr.Video()
         vid_but = gr.Button("Detect Animals!")
-
-    # Show the sgl_conf_sl_clf slider only when detection model is not HerdNet
-    det_drop.change(
-        lambda model: gr.update(visible=True) if model != "HerdNet" else gr.update(visible=False),
-        det_drop,
-        [sgl_conf_sl_clf]
-    )
+        
     # Show timelapsed checkbox only when detection model is not HerdNet
     det_drop.change(
-        lambda model: gr.update(visible=True) if model != "HerdNet" else gr.update(visible=False),
+        lambda model: gr.update(visible=True) if "HerdNet" not in model else gr.update(visible=False),
         det_drop,
         [chck_timelapse]
     )
