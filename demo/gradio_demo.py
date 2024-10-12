@@ -52,7 +52,7 @@ def load_models(det, clf, wpath=None, wclass=None):
         elif det == "HerdNet Ennedi":
             detection_model = pw_detection.HerdNet(device=DEVICE, dataset="ennedi")
         elif det == "MegaDetectorV6":
-            detection_model = pw_detection.__dict__[det](device=DEVICE, weights='../MDV6b-yolov9c.pt', pretrained=True)
+            detection_model = pw_detection.__dict__[det](device=DEVICE, pretrained=True)
         else:
             detection_model = pw_detection.__dict__[det](device=DEVICE, pretrained=True)
 
