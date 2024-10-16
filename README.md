@@ -20,7 +20,7 @@
 ## 📣 Announcement
 
 ### 🎉🎉🎉 Pytorch-Wildlife Version 1.1.0 is out!
-- MegaDetectorV6 is finally out! Please refer to our [next section](#racing_car-dash-dash-megadetectorv6-smaller-better-and-faster) and our [release page](https://github.com/microsoft/CameraTraps/releases) for more details! 
+- MegaDetectorV6 is finally out! Please refer to our [next section](#racing-car-dash-dash-megadetectorv6-smaller-better-and-faster) and our [release page](https://github.com/microsoft/CameraTraps/releases) for more details! 
 - We have incorporated a point-based overhead animal detection model into our model zoo called [HerdNet (Delplanque et al. 2022)](https://www.sciencedirect.com/science/article/pii/S092427162300031X?via%3Dihub). This is the first third-party model in Pytorch-Wildlife and the foundation of our expansion to overhead/aerial animal detection and classification. Please see our [HerdNet demo](demo/image_detection_demo_herdnet.ipynb) on how to use it!
 - You can now load custom weights you fine-tuned on your own datasets using the [finetuning module](PW_FT_classification) directly in the Pytorch-Wildlife pipeline! Please see the [demo](demo/custom_weight_loading_v6.ipynb) on how to do it. You can also load it in our Gradio app!
 - You can now automatically separate your image detections into folders based on detection results! Please see our [folder separation demo](demo/image_separation_demo_v6.ipynb) on how to do it. You can also test it in our Gradio demo!
