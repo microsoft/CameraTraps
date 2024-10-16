@@ -34,7 +34,7 @@
 
 ### :racing_car::dash::dash: MegaDetectorV6: SMALLER, BETTER, and FASTER!  
 
-After a few months of public beta testing, we are finally ready to officially release our 6th version of MegaDetector, MegaDetectorV6! In the next generation of MegaDetector, we are focusing on computational efficiency, performance, mordernizing of model architectures, and licensing. We have trained multiple new models using different model architectures, including Yolo-v9 and RT-Detr. We have a [rolling release schedule](#mag-model-catalog) for different versions of MegaDetectorV6, and in the first step, we are releasing the compact version of MegaDetectorV6 with Yolo-v9 (MDv6-ultralytics-yolov9-c).  
+After a few months of public beta testing, we are finally ready to officially release our 6th version of MegaDetector, MegaDetectorV6! In the next generation of MegaDetector, we are focusing on computational efficiency, performance, mordernizing of model architectures, and licensing. We have trained multiple new models using different model architectures, including Yolo-v9 and RT-Detr. We have a [rolling release schedule](#mag-model-zoo) for different versions of MegaDetectorV6, and in the first step, we are releasing the compact version of MegaDetectorV6 with Yolo-v9 (MDv6-ultralytics-yolov9-c).  
 
 This MDv6-c model is optimized for performance and low-budget devices. It has only ***one-sixth (SMALLER)*** of the parameters of the previous MegaDetectorV5 and exhibits ***12% higher recall (BETTER)*** on animal detection in our validation datasets. In other words, MDv6-c has significantly fewer false negatives when detecting animals, making it a more robust animal detection model than MegaDetectorV5. Furthermore, one of our testers reported that the speed of MDv6-c is at least ***5 times FASTER*** than MegaDetectorV5 on their datasets.
 
@@ -47,9 +47,9 @@ Learn how to use MegaDetectorV6 in our [image demo](demo/image_detection_demo_v6
 
 ### :bangbang: Model licensing (IMPORTANT!!)
 
-The **Pytorch-Wildlife** package is under MIT, however some of the models in the model zoo are not. **For example, MegaDetectorV5, which is trained using the Ultralytics package, is under AGPL-3.0, and is not for closed-source comercial uses. This is true to all existing MegaDetectorV5 models in all existing forks, because MegaDetectorV5 is trained using YoloV5, an Ultralytics-developed model.** We want to make Pytorch-Wildlife a platform where different models with different licenses can be hosted and want to enable different usecases. To reduce user confusions, in out [model zoo](#mag-model-catalog) section, we list all existing and planed future models in our model zoo, their corresponding license, and release schedules. In addition, since the **Pytorch-Wildlife** package is under MIT, all the utility functions, including data pre-/post-processing functions and model fine-tuning functions in this packages are under MIT as well.
+The **Pytorch-Wildlife** package is under MIT, however some of the models in the model zoo are not. **For example, MegaDetectorV5, which is trained using the Ultralytics package, is under AGPL-3.0, and is not for closed-source comercial uses. This is true to all existing MegaDetectorV5 models in all existing forks, because MegaDetectorV5 is trained using YoloV5, an Ultralytics-developed model.** We want to make Pytorch-Wildlife a platform where different models with different licenses can be hosted and want to enable different usecases. To reduce user confusions, in our [model zoo](#mag-model-zoo) section, we list all existing and planed future models in our model zoo, their corresponding license, and release schedules. In addition, since the **Pytorch-Wildlife** package is under MIT, all the utility functions, including data pre-/post-processing functions and model fine-tuning functions in this packages are under MIT as well.
 
-### :mag: Model Catalog 
+### :mag: Model Zoo 
 
 #### Detection models
 |Models|Licence|Release|
