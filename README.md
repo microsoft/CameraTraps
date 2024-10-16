@@ -19,50 +19,67 @@
 
 ## 📣 Announcement
 
-### Version 1.1.0 is out 📣!
-- [X] MegaDetectorV6 is out for public use. This model is optimized for performance and low-budget devices like camera systems, learn how to use MegaDetectorv6-C in our [image demo](demo/image_detection_demo_v6.ipynb) and [video demo](demo/video_detection_demo_v6.ipynb).
-- [X] We have added a new overhead herd detection model called [HerdNet](https://www.sciencedirect.com/science/article/pii/S092427162300031X?via%3Dihub) from Delplanque et al. Please see our [HerdNet demo](demo/image_detection_demo_herdnet.ipynb) on how to use it!
-- [X] You can now load the custom weights from the [finetuning module](PW_FT_classification) directly to PytorchWildlife! Please see the [demo](demo/custom_weight_loading_v6.ipynb) on how to do it. You can also test it in our Gradio demo!
-- [X] You can now automatically separate your positive and negative detections into folders using MegaDetectorv5 or MegaDetectorv6! Please see our [demo](demo/image_separation_demo_v6.ipynb) on how to do it. You can also test it in our Gradio demo!
-- [X] PyTorchWildlife is now compatible with Supervision 0.23+ and Python 3.10+!
-- [X] Issues [#523](https://github.com/microsoft/CameraTraps/issues/523), [#524](https://github.com/microsoft/CameraTraps/issues/524) and [#526](https://github.com/microsoft/CameraTraps/issues/526) have been solved!
-      
-### 🤜🤛 Collaboration with EcoAssist!
-We are thrilled to announce our collaboration with [EcoAssist](https://addaxdatascience.com/ecoassist/#spp-models)---a powerful user interface software that enables users to directly load models from the PyTorch-Wildlife model zoo for image analysis on local computers. With EcoAssist, you can now utilize MegaDetectorV5 and the classification models---AI4GAmazonRainforest and AI4GOpossum---for automatic animal detection and identification, alongside a comprehensive suite of pre- and post-processing tools. This partnership aims to enhance the overall user experience with PyTorch-Wildlife models for a general audience. We will work closely to bring more features together for more efficient and effective wildlife analysis in the future.
+### 🎉🎉🎉 Pytorch-Wildlife Version 1.1.0 is out!
+- MegaDetectorV6 is finally out! Please refer to our [next section](#🏎️💨💨-megadetectorv6-smaller-better-and-faster) and our [release page](https://github.com/microsoft/CameraTraps/releases) for more details! 
+- We have incorporated a point-based overhead animal detection model into our model zoo called [HerdNet (Delplanque et al. 2022)](https://www.sciencedirect.com/science/article/pii/S092427162300031X?via%3Dihub). This is the first third-party model in Pytorch-Wildlife and the foundation of our expansion to overhead/aerial animal detection and classification. Please see our [HerdNet demo](demo/image_detection_demo_herdnet.ipynb) on how to use it!
+- You can now load custom weights you fine-tuned on your own datasets using the [finetuning module](PW_FT_classification) directly in the Pytorch-Wildlife pipeline! Please see the [demo](demo/custom_weight_loading_v6.ipynb) on how to do it. You can also load it in our Gradio app!
+- You can now automatically separate your image detections into folders based on detection results! Please see our [folder separation demo](demo/image_separation_demo_v6.ipynb) on how to do it. You can also test it in our Gradio demo!
 
-### 🏎️💨💨 SMALLER, BETTER, and FASTER! MegaDetectorV6 public beta testing started! 
-The public beta testing for MegaDetectorV6 has officially started! In the next generation of MegaDetector, we are focusing on computational efficiency and performance. We have trained multiple new models using the latest YOLO-v9 architecture, and in the public beta testing, we will allow people to test the compact version of MegaDetectorV6 (MDv6-c). We want to make sure these models work as expected on real-world datasets. 
+<details>
+<summary><font size="3">👉 Click for more updates</font></summary>
+  <li> Issues [#523](https://github.com/microsoft/CameraTraps/issues/523), [#524](https://github.com/microsoft/CameraTraps/issues/524) and [#526](https://github.com/microsoft/CameraTraps/issues/526) have been solved!
+  <li> PyTorchWildlife is now compatible with Supervision 0.23+ and Python 3.10+!
+  <li> CUDA 12.x compatibility. <br>
+</details>
 
-This MDv6-c model has only ***one-sixth (SMALLER)*** of the parameters of the current MegaDetectorV5 and exhibits ***12% higher recall (BETTER)*** on animal detection in our validation datasets. In other words, MDv6-c has significantly fewer false negatives when detecting animals, making it a more robust animal detection model than MegaDetectorV5. Furthermore, one of our testers reported that the speed of MDv6-c is at least ***5 times FASTER*** than MegaDetectorV5 on their datasets.
+### 🏎️💨💨 MegaDetectorV6: SMALLER, BETTER, and FASTER!  
+
+After a few months of public beta testing, we are finally ready to officially release our 6th version of MegaDetector, MegaDetectorV6! In the next generation of MegaDetector, we are focusing on computational efficiency, performance, mordernizing of model architectures, and licensing. We have trained multiple new models using different model architectures, including Yolo-v9 and RT-Detr. We have a [rolling release schedule](#🔍-model-catalog) for different versions of MegaDetectorV6, and in the first step, we are releasing the compact version of MegaDetectorV6 with Yolo-v9 (MDv6-ultralytics-yolov9-c).  
+
+This MDv6-c model is optimized for performance and low-budget devices. It has only ***one-sixth (SMALLER)*** of the parameters of the previous MegaDetectorV5 and exhibits ***12% higher recall (BETTER)*** on animal detection in our validation datasets. In other words, MDv6-c has significantly fewer false negatives when detecting animals, making it a more robust animal detection model than MegaDetectorV5. Furthermore, one of our testers reported that the speed of MDv6-c is at least ***5 times FASTER*** than MegaDetectorV5 on their datasets.
 
 |Models|Parameters|Precision|Recall|
 |---|---|---|---|
 |MegaDetectorV5|121M|0.96|0.73|
 |MegaDetectroV6-c|22M|0.92|0.85|
 
-We are also working on an extra-large version of MegaDetectorV6 for optimal performance and a transformer-based model using the RT-Detr architecture to prepare ourselves for the future of transformers. These models will be available in the official release of MegaDetectorV6.
+Learn how to use MegaDetectorV6 in our [image demo](demo/image_detection_demo_v6.ipynb) and [video demo](demo/video_detection_demo_v6.ipynb).
 
->If you want to join the beta testing, please come to our discord channel and DM the admins there: [![](https://img.shields.io/badge/any_text-Join_us!-blue?logo=discord&label=PytorchWildife)](https://discord.gg/TeEVxzaYtm)
+### ‼️ Model licensing (IMPORTANT!!)
+
+The **Pytorch-Wildlife** package is under MIT, however some of the models in the model zoo are not. **For example, MegaDetectorV5, which is trained using the Ultralytics package, is under AGPL-3.0, and is not for closed-source comercial uses. This is true to all existing MegaDetectorV5 models in all existing forks, because MegaDetectorV5 is trained using YoloV5, an Ultralytics-developed model.** We want to make Pytorch-Wildlife a platform where different models with different licenses can be hosted and want to enable different usecases. To reduce user confusions, in out [model zoo](#🔍-model-catalog) section, we list all existing and planed future models in our model zoo, their corresponding license, and release schedules. In addition, since the **Pytorch-Wildlife** package is under MIT, all the utility functions, including data pre-/post-processing functions and model fine-tuning functions in this packages are under MIT as well.
+
+### 🔍 Model Catalog 
+
+#### Detection models
+|Models|Licence|Release|
+|---|---|---|
+|MegaDetectorV5|AGPL-3.0|Released|
+|MegaDetectroV6-Ultralytics-YoloV9-Compact|AGPL-3.0|Released|
+|HerdNet|CC BY-NC-SA-4.0|Released|
+|MegaDetectroV6-Ultralytics-YoloV9-Extra|AGPL-3.0|November 2024|
+|MegaDetectroV6-MIT-YoloV9-Compact|MIT|November 2024|
+|MegaDetectroV6-MIT-YoloV9-Extra|MIT|November 2024|
+|MegaDetectroV6-Apache-RTDetr-Compact|Apache|December 2024|
+|MegaDetectroV6-Apache-RTDetr-Extra|Apache|December 2024|
+
+#### Classification models
+|Models|Licence|Release|
+|---|---|---|
+|AI4G-Oppossum|MIT|Released|
+|AI4G-Amazon|MIT|Released|
+|AI4G-Serengeti|MIT|Released|
+
+      
+### 🤜🤛 Collaboration with EcoAssist!
+We are thrilled to announce our collaboration with [EcoAssist](https://addaxdatascience.com/ecoassist/#spp-models)---a powerful user interface software that enables users to directly load models from the PyTorch-Wildlife model zoo for image analysis on local computers. With EcoAssist, you can now utilize MegaDetectorV5 and the classification models---AI4GAmazonRainforest and AI4GOpossum---for automatic animal detection and identification, alongside a comprehensive suite of pre- and post-processing tools. This partnership aims to enhance the overall user experience with PyTorch-Wildlife models for a general audience. We will work closely to bring more features together for more efficient and effective wildlife analysis in the future.
+
 
 ### 🎉 Pytorch-Wildlife ready for citation
 In addition, we have recently published a [summary paper on Pytorch-Wildlife](https://arxiv.org/abs/2405.12930). The paper has been accepted as an oral presentation at the [CV4Animals workshop](https://www.cv4animals.com/) at this year's CVPR. Please feel free to [cite us!](#cite-us)
 
 
-## ✅ Feature highlights (Version 1.0.2.15)
-- [x] Added a file separation function. You can now automatically separate your files between animals and non-animals into different folders using our `detection_folder_separation` function. Please see the [Python demo file](demo/image_separation_demo.py) and [Jupyter demo](demo/image_separation_demo.ipynb)!
-- [x] 🥳 Added Timelapse compatibility! Check the [Gradio interface](INSTALLATION.md) or [notebooks](https://github.com/microsoft/CameraTraps/blob/main/demo/image_detection_demo.ipynb).
-<details>
-<summary><font size="3">👉 Click for more</font></summary>
-  <li> CUDA 12.x compatibility. <br>
-  <li> Added Google Colab demos. <br>
-  <li> Added Snapshot Serengeti classification model into the model zoo. <br>
-  <li> Added Classification fine-tuning module. <br>
-  <li> Added a Docker Image for ease of installation. <br>
-</details>
-
 ## 🔥 Future highlights
-- [ ] MegaDetectorV6 with multiple model sizes for both optimized performance and low-budget devices like camera systems (***Public beta testing has started!!***).
-- [ ] Supervision 0.19+ and Python 3.10+ compatibility. 
 - [ ] A detection model fine-tuning module to fine-tune your own detection model for Pytorch-Wildlife.
 - [ ] Direct LILA connection for more training/validation data.
 - [ ] More pretrained detection and classification models to expand the current model zoo.
@@ -82,7 +99,7 @@ pip install PytorchWildlife
 To use the newest version of MegaDetector with all the existing functionalities, you can use our [Hugging Face interface](https://huggingface.co/spaces/ai-for-good-lab/pytorch-wildlife) or simply load the model with **Pytorch-Wildlife**. The weights will be automatically downloaded:
 ```python
 from PytorchWildlife.models import detection as pw_detection
-detection_model = pw_detection.MegaDetectorV5()
+detection_model = pw_detection.MegaDetectorV6()
 ```
 
 For those interested in accessing the previous MegaDetector repository, which utilizes the same `MegaDetector v5` model weights and was primarily developed by Dan Morris during his time at Microsoft, please visit the [archive](https://github.com/microsoft/CameraTraps/blob/main/archive) directory, or you can visit this [forked repository](https://github.com/agentmorris/MegaDetector/tree/main) that Dan Morris is actively maintaining.
@@ -90,12 +107,12 @@ For those interested in accessing the previous MegaDetector repository, which ut
 >[!TIP]
 >If you have any questions regarding MegaDetector and Pytorch-Wildlife, please [email us](zhongqimiao@microsoft.com) or join us in our discord channel: [![](https://img.shields.io/badge/any_text-Join_us!-blue?logo=discord&label=PytorchWildife)](https://discord.gg/TeEVxzaYtm)
 
-## 👋 Welcome to Pytorch-Wildlife Version 1.0
+## 👋 Welcome to Pytorch-Wildlife
 
 **PyTorch-Wildlife** is a platform to create, modify, and share powerful AI conservation models. These models can be used for a variety of applications, including camera trap images, overhead images, underwater images, or bioacoustics. Your engagement with our work is greatly appreciated, and we eagerly await any feedback you may have.
 
 
-The **Pytorch-Wildlife** library allows users to directly load the `MegaDetector v5` model weights for animal detection. We've fully refactored our codebase, prioritizing ease of use in model deployment and expansion. In addition to `MegaDetector v5`, **Pytorch-Wildlife** also accommodates a range of classification weights, such as those derived from the Amazon Rainforest dataset and the Opossum classification dataset. Explore the codebase and functionalities of **Pytorch-Wildlife** through our interactive [HuggingFace web app](https://huggingface.co/spaces/AndresHdzC/pytorch-wildlife) or local [demos and notebooks](https://github.com/microsoft/CameraTraps/tree/main/demo), designed to showcase the practical applications of our enhancements at [PyTorchWildlife](https://github.com/microsoft/CameraTraps/blob/main/INSTALLATION.md). You can find more information in our [documentation](https://cameratraps.readthedocs.io/en/latest/).
+The **Pytorch-Wildlife** library allows users to directly load the `MegaDetector` model weights for animal detection. We've fully refactored our codebase, prioritizing ease of use in model deployment and expansion. In addition to `MegaDetector`, **Pytorch-Wildlife** also accommodates a range of classification weights, such as those derived from the Amazon Rainforest dataset and the Opossum classification dataset. Explore the codebase and functionalities of **Pytorch-Wildlife** through our interactive [HuggingFace web app](https://huggingface.co/spaces/AndresHdzC/pytorch-wildlife) or local [demos and notebooks](https://github.com/microsoft/CameraTraps/tree/main/demo), designed to showcase the practical applications of our enhancements at [PyTorchWildlife](https://github.com/microsoft/CameraTraps/blob/main/INSTALLATION.md). You can find more information in our [documentation](https://cameratraps.readthedocs.io/en/latest/).
 
 👇 Here is a brief example on how to perform detection and classification on a single image using `PyTorch-wildlife`
 ```python
@@ -106,7 +123,7 @@ from PytorchWildlife.models import classification as pw_classification
 img = np.random.randn(3, 1280, 1280)
 
 # Detection
-detection_model = pw_detection.MegaDetectorV5() # Model weights are automatically downloaded.
+detection_model = pw_detection.MegaDetectorV6() # Model weights are automatically downloaded.
 detection_result = detection_model.single_image_detection(img)
 
 #Classification
@@ -122,7 +139,7 @@ Please refer to our [installation guide](https://github.com/microsoft/CameraTrap
 
 ## 🕵️ Explore Pytorch-Wildlife and MegaDetector with our Demo User Interface
 
-If you want to directly try **Pytorch-Wildlife** with the AI models available, including `MegaDetector v5`, you can use our [**Gradio** interface](https://github.com/microsoft/CameraTraps/tree/main/demo). This interface allows users to directly load the `MegaDetector v5` model weights for animal detection. In addition, **Pytorch-Wildlife** also has two classification models in our initial version. One is trained from an Amazon Rainforest camera trap dataset and the other from a Galapagos opossum classification dataset (more details of these datasets will be published soon). To start, please follow the [installation instructions](https://github.com/microsoft/CameraTraps/blob/main/INSTALLATION.md) on how to run the Gradio interface! We also provide multiple [**Jupyter** notebooks](https://github.com/microsoft/CameraTraps/tree/main/demo) for demonstration.
+If you want to directly try **Pytorch-Wildlife** with the AI models available, including `MegaDetector`, you can use our [**Gradio** interface](https://github.com/microsoft/CameraTraps/tree/main/demo). This interface allows users to directly load the `MegaDetector` model weights for animal detection. In addition, **Pytorch-Wildlife** also has two classification models in our initial version. One is trained from an Amazon Rainforest camera trap dataset and the other from a Galapagos opossum classification dataset (more details of these datasets will be published soon). To start, please follow the [installation instructions](https://github.com/microsoft/CameraTraps/blob/main/INSTALLATION.md) on how to run the Gradio interface! We also provide multiple [**Jupyter** notebooks](https://github.com/microsoft/CameraTraps/tree/main/demo) for demonstration.
 
 ![image](https://microsoft.github.io/CameraTraps/assets/gradio_UI.png)
 
@@ -145,7 +162,7 @@ If you want to directly try **Pytorch-Wildlife** with the AI models available, i
 
 
 ### 🚀 Inaugural Model:
-  We're kickstarting with YOLO as our first available model, complemented by pre-trained weights from `MegaDetector v5`. This is the same `MegaDetector v5` model from the previous repository.
+  We're kickstarting with YOLO as our first available model, complemented by pre-trained weights from `MegaDetector`. We have `MegaDetectorV5`, which is the same `MegaDetector v5` model from the previous repository, and many different versions of `MegaDetectorV6` for different usecases.
 
 
 ### 📚 Expandable Repository:
@@ -165,46 +182,6 @@ If you want to directly try **Pytorch-Wildlife** with the AI models available, i
 
 
 Let's shape the future of wildlife research, together! 🙌
-
-
-### 📈 Progress on core tasks
-
-<details>
-<summary> <font size="3"> ▪️ Packaging </font> </summary>
-
-- [ ] Animal detection fine-tuning<br>
-- [x] MegaDetectorV5 integration<br>
-- [ ] MegaDetectorV6 integration<br>
-- [x] User submitted weights<br>
-- [x] Animal classification fine-tuning<br>
-- [x] Amazon Rainforest classification<br>
-- [x] Amazon Opossum classification<br>
-- [ ] User submitted weights<br>
-</details><br>
-
-<details>
-<summary><font size="3">▪️ Utility Toolkit</font></summary>
-
-- [x] Visualization tools<br>
-- [x] MegaDetector utils<br>
-- [ ] User submitted utils<br>
-</details><br>
-
-<details>
-<summary><font size="3">▪️ Datasets</font></summary>
-
-- [ ] Animal Datasets<br>
-- [ ] LILA datasets<br>
-</details><br>
-
-<details>
-<summary><font size="3">▪️ Accessibility</font></summary>
-
-- [x] Basic user interface for demonstration<br>
-- [ ] UI Dev tools<br>
-- [ ] List of available UIs<br>
-</details><br>
-
 
 ## 🖼️ Examples
 
