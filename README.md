@@ -45,7 +45,7 @@ This MDv6-c model is optimized for performance and low-budget devices. It has on
 
 Learn how to use MegaDetectorV6 in our [image demo](demo/image_detection_demo_v6.ipynb) and [video demo](demo/video_detection_demo_v6.ipynb).
 
-### ‼️ Model licensing (IMPORTANT!!)
+### :bangbang: Model licensing (IMPORTANT!!)
 
 The **Pytorch-Wildlife** package is under MIT, however some of the models in the model zoo are not. **For example, MegaDetectorV5, which is trained using the Ultralytics package, is under AGPL-3.0, and is not for closed-source comercial uses. This is true to all existing MegaDetectorV5 models in all existing forks, because MegaDetectorV5 is trained using YoloV5, an Ultralytics-developed model.** We want to make Pytorch-Wildlife a platform where different models with different licenses can be hosted and want to enable different usecases. To reduce user confusions, in out [model zoo](#model-catalog) section, we list all existing and planed future models in our model zoo, their corresponding license, and release schedules. In addition, since the **Pytorch-Wildlife** package is under MIT, all the utility functions, including data pre-/post-processing functions and model fine-tuning functions in this packages are under MIT as well.
 
