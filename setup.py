@@ -28,7 +28,6 @@ setup(
         'wget',
         'ultralytics',
         'setuptools==59.5.0',
-        'albumentations',
         'scikit-learn',
     ],
     classifiers=[

@@ -39,7 +39,7 @@ pw_utils.save_detection_images_dots(results, os.path.join(".","herdnet_demo_outp
 folder_path = os.path.join(".","demo_data","herdnet_imgs")
 
 # Performing batch detection on the images
-results = detection_model.batch_image_detection(folder_path, batch_size=1, extension="JPG") # NOTE: Only use batch size 1 because each image is divided into patches and this batch is enough. 
+results = detection_model.batch_image_detection(folder_path, batch_size=1) # NOTE: Only use batch size 1 because each image is divided into patches and this batch is enough. 
 
 #%% Output to annotated images
 # Saving the batch detection results as annotated images

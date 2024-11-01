@@ -17,7 +17,6 @@ from PytorchWildlife import utils as pw_utils
 parser = argparse.ArgumentParser(description="Batch image detection and separation")
 parser.add_argument('--image_folder', type=str, default=os.path.join(".","demo_data","imgs"), help='Folder path containing images for detection')
 parser.add_argument('--output_path', type=str, default='folder_separation', help='Path where the outputs will be saved')
-parser.add_argument('--file_extension', type=str, default='JPG', help='File extension for images (case sensitive)')
 parser.add_argument('--threshold', type=float, default='0.2', help='Confidence threshold to consider a detection as positive')
 args = parser.parse_args()
 
@@ -36,7 +35,7 @@ detection_model = pw_detection.MegaDetectorV6(device=DEVICE, pretrained=True, ve
 """ Batch-detection demo """
 
 # Performing batch detection on the images
-results = detection_model.batch_image_detection(args.image_folder, batch_size=16, extension=args.file_extension)
+results = detection_model.batch_image_detection(args.image_folder, batch_size=16)
 
 #%% Output to JSON results
 # Saving the detection results in JSON format

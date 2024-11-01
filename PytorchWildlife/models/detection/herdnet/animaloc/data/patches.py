@@ -29,31 +29,7 @@ from tqdm import tqdm
 
 from .types import BoundingBox
 
-__all__ = ['save_batch_images', 'ImageToPatches']
-
-
-def save_batch_images(
-    batch: torch.Tensor,
-    basename: str,
-    dest_folder: str
-    ) -> None:
-    ''' Save mini-batch tensors into image files
-
-    Use torchvision save_image function,
-    see https://pytorch.org/vision/stable/utils.html#torchvision.utils.save_image
-
-    Args:
-        batch (torch.Tensor): mini-batch tensor
-        basename (str) : parent image name, with extension
-        dest_folder (str): destination folder path
-    '''
-
-    base_wo_extension, extension = basename.split('.')[0], basename.split('.')[1]
-    for i, b in enumerate(range(batch.shape[0])):
-        full_path = '_'.join([base_wo_extension, str(i) + '.']) + extension
-        save_path = os.path.join(dest_folder, full_path)
-        save_image(batch[b], fp=save_path)
-
+__all__ = ['ImageToPatches']
 
 class ImageToPatches:
     ''' Class to make patches from a tensor image '''

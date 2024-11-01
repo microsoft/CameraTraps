@@ -170,7 +170,7 @@ class HerdNet(BaseDetector):
         return self.results_generation(preds_array, img_path, id_strip=id_strip)  
 
 
-    def batch_image_detection(self, data_path, det_conf_thres=0.2, clf_conf_thres=0.2, batch_size=1, id_strip=None, extension='JPG'):
+    def batch_image_detection(self, data_path, det_conf_thres=0.2, clf_conf_thres=0.2, batch_size=1, id_strip=None):
         """
         Perform detection on a batch of images.
         
@@ -185,15 +185,12 @@ class HerdNet(BaseDetector):
                 Batch size for inference. Defaults to 1.
             id_strip (str, optional): 
                 Characters to strip from img_id. Defaults to None.
-            extension (str, optional):
-                Image extension to search for. Defaults to "JPG"
 
         Returns:
             list: List of detection results for all images.
         """
         dataset = pw_data.DetectionImageFolder(
             data_path,
-            extension=extension,
             transform=self.transforms
         )
         # Creating a Dataloader for batching and parallel processing of the images

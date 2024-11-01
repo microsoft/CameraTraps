@@ -45,7 +45,7 @@ pw_utils.save_crop_images(results, os.path.join(".","crop_output"), overwrite=Fa
 tgt_folder_path = os.path.join(".","demo_data","imgs")
 
 # Performing batch detection on the images
-results = detection_model.batch_image_detection(tgt_folder_path, batch_size=16, extension="JPG")
+results = detection_model.batch_image_detection(tgt_folder_path, batch_size=16)
 
 #%% Output to annotated images
 # Saving the batch detection results as annotated images

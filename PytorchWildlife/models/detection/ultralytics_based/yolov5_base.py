@@ -128,7 +128,7 @@ class YOLOV5Base(BaseDetector):
         preds[:, :4] = scale_coords([self.IMAGE_SIZE] * 2, preds[:, :4], img_size).round()
         return self.results_generation(preds.cpu().numpy(), img_path, id_strip)
 
-    def batch_image_detection(self, data_path, batch_size=16, conf_thres=0.2, id_strip=None, extension='JPG'):
+    def batch_image_detection(self, data_path, batch_size=16, conf_thres=0.2, id_strip=None):
         """
         Perform detection on a batch of images.
         
@@ -151,7 +151,6 @@ class YOLOV5Base(BaseDetector):
         dataset = pw_data.DetectionImageFolder(
             data_path,
             transform=self.transform,
-            extension=extension
         )
 
         # Creating a DataLoader for batching and parallel processing of the images
