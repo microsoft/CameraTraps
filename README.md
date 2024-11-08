@@ -42,9 +42,10 @@ For those interested in accessing the previous MegaDetector repository, which ut
 
 ### 🎉🎉🎉 Pytorch-Wildlife Version 1.1.0 is out!
 - MegaDetectorV6 is finally out! Please refer to our [next section](#racing_cardashdash-megadetectorv6-smaller-better-and-faster) and our [release page](https://github.com/microsoft/CameraTraps/releases) for more details! 
-- We have incorporated a point-based overhead animal detection model into our model zoo called [HerdNet (Delplanque et al. 2022)](https://www.sciencedirect.com/science/article/pii/S092427162300031X?via%3Dihub). This is the first third-party model in Pytorch-Wildlife and the foundation of our expansion to overhead/aerial animal detection and classification. Please see our [HerdNet demo](demo/image_detection_demo_herdnet.ipynb) on how to use it!
+- We have incorporated a point-based overhead animal detection model into our model zoo called [HerdNet (Delplanque et al. 2022)](https://www.sciencedirect.com/science/article/pii/S092427162300031X?via%3Dihub). Two model weights are incorporated in this release, `HerdNet-general` (their default weights) and `HerdNet-ennedi` (their model trained on Ennedi 2019 datasets). More details can be found [here](PytorchWildlife/models/detection/herdnet/Herdnet.md) and in their original [repo](https://github.com/Alexandre-Delplanque/HerdNet). This is the first third-party model in Pytorch-Wildlife and the foundation of our expansion to overhead/aerial animal detection and classification. Please see our [HerdNet demo](demo/image_detection_demo_herdnet.ipynb) on how to use it!
 - You can now load custom weights you fine-tuned on your own datasets using the [finetuning module](PW_FT_classification) directly in the Pytorch-Wildlife pipeline! Please see the [demo](demo/custom_weight_loading_v6.ipynb) on how to do it. You can also load it in our Gradio app!
 - You can now automatically separate your image detections into folders based on detection results! Please see our [folder separation demo](demo/image_separation_demo_v6.ipynb) on how to do it. You can also test it in our Gradio demo!
+- We have also simplified the batch detection pipeline. Now we do not need to define pytorch datasets and dataloaders specifically. Please make sure to change your code and check our [release notes]() and our [new demo](demo/image_demo.py#58) for more details.
 
 <details>
 <summary><font size="3">👉 Click for more updates</font></summary>
@@ -55,7 +56,7 @@ For those interested in accessing the previous MegaDetector repository, which ut
 
 ### :racing_car::dash::dash: MegaDetectorV6: SMALLER, BETTER, and FASTER!  
 
-After a few months of public beta testing, we are finally ready to officially release our 6th version of MegaDetector, MegaDetectorV6! In the next generation of MegaDetector, we are focusing on computational efficiency, performance, mordernizing of model architectures, and licensing. We have trained multiple new models using different model architectures, including Yolo-v9 and RT-Detr. We have a [rolling release schedule](#mag-model-zoo) for different versions of MegaDetectorV6, and in the first step, we are releasing the compact version of MegaDetectorV6 with Yolo-v9 (MDv6-ultralytics-yolov9-c).  
+After a few months of public beta testing, we are finally ready to officially release our 6th version of MegaDetector, MegaDetectorV6! In the next generation of MegaDetector, we are focusing on computational efficiency, performance, mordernizing of model architectures, and licensing. We have trained multiple new models using different model architectures, including Yolo-v9, Yolo-v11, and RT-Detr for maximum user flexibility. We have a [rolling release schedule](#mag-model-zoo) for different versions of MegaDetectorV6, and in the first step, we are releasing the compact version of MegaDetectorV6 with Yolo-v9 (MDv6-ultralytics-yolov9-compact, MDv6-c in short). From now on, we encourage our users to use MegaDetectorV6 as their default animal detection model.
 
 This MDv6-c model is optimized for performance and low-budget devices. It has only ***one-sixth (SMALLER)*** of the parameters of the previous MegaDetectorV5 and exhibits ***12% higher recall (BETTER)*** on animal detection in our validation datasets. In other words, MDv6-c has significantly fewer false negatives when detecting animals, making it a more robust animal detection model than MegaDetectorV5. Furthermore, one of our testers reported that the speed of MDv6-c is at least ***5 times FASTER*** than MegaDetectorV5 on their datasets.
 
@@ -76,15 +77,18 @@ We want to make Pytorch-Wildlife a platform where different models with differen
 
 In addition, since the **Pytorch-Wildlife** package is under MIT, all the utility functions, including data pre-/post-processing functions and model fine-tuning functions in this packages are under MIT as well.
 
-### :mag: Model Zoo 
+### :mag: Model Zoo and Release Schedules
 
 #### Detection models
 |Models|Licence|Release|
 |---|---|---|
 |MegaDetectorV5|AGPL-3.0|Released|
 |MegaDetectroV6-Ultralytics-YoloV9-Compact|AGPL-3.0|Released|
-|HerdNet|CC BY-NC-SA-4.0|Released|
+|HerdNet-general|CC BY-NC-SA-4.0|Released|
+|HerdNet-ennedi|CC BY-NC-SA-4.0|Released|
 |MegaDetectroV6-Ultralytics-YoloV9-Extra|AGPL-3.0|November 2024|
+|MegaDetectroV6-Ultralytics-YoloV11-Compact (even smaller and no NMS)|AGPL-3.0|November 2024|
+|MegaDetectroV6-Ultralytics-YoloV11-Extra (even smaller and no NMS)|AGPL-3.0|November 2024|
 |MegaDetectroV6-MIT-YoloV9-Compact|MIT|November 2024|
 |MegaDetectroV6-MIT-YoloV9-Extra|MIT|November 2024|
 |MegaDetectroV6-Apache-RTDetr-Compact|Apache|December 2024|
@@ -176,15 +180,15 @@ Let's shape the future of wildlife research, together! 🙌
 
 ## 🖼️ Examples
 
-### Image detection using `MegaDetector v5`
+### Image detection using `MegaDetector`
 <img src="https://microsoft.github.io/CameraTraps/assets/animal_det_1.JPG" alt="animal_det_1" width="400"/><br>
 *Credits to Universidad de los Andes, Colombia.*
 
-### Image classification with `MegaDetector v5` and `AI4GAmazonRainforest`
+### Image classification with `MegaDetector` and `AI4GAmazonRainforest`
 <img src="https://microsoft.github.io/CameraTraps/assets/animal_clas_1.png" alt="animal_clas_1" width="500"/><br>
 *Credits to Universidad de los Andes, Colombia.*
 
-### Opossum ID with `MegaDetector v5` and `AI4GOpossum`
+### Opossum ID with `MegaDetector` and `AI4GOpossum`
 <img src="https://microsoft.github.io/CameraTraps/assets/opossum_det.png" alt="opossum_det" width="500"/><br>
 *Credits to the Agency for Regulation and Control of Biosecurity and Quarantine for Galápagos (ABG), Ecuador.*
 
