@@ -4,7 +4,6 @@
 import numpy as np
 import torch
 from torchvision import transforms
-#from yolov5.utils.augmentations import letterbox
 import torchvision.transforms as T
 import torch.nn.functional as F
 from PIL import Image

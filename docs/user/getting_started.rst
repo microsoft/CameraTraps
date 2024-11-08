@@ -24,6 +24,6 @@ Tutorials
 
 To help you get hands-on with the package, we provide detailed tutorials that walk you through various functionalities of PytorchWildlife:
 
-3. **Gradio Interface**: Dive into an interactive demo using Gradio, which provides a user-friendly interface for quick demonstrations. [Link to the tutorial](./demo/gradio_demo.ipynb)
+3. **Gradio Interface**: Dive into an interactive demo using Gradio, which provides a user-friendly interface for quick demonstrations. `Link to the tutorial <./demo/gradio_demo.ipynb>`_  
 
 We recommend starting with the Gradio Interface tutorial for out-of-the-box inference and then progressing to the others as you become more familiar with the package.
