@@ -88,12 +88,14 @@ In addition, since the **Pytorch-Wildlife** package is under MIT, all the utilit
 |HerdNet-general|CC BY-NC-SA-4.0|Released|
 |HerdNet-ennedi|CC BY-NC-SA-4.0|Released|
 |MegaDetectroV6-Ultralytics-YoloV9-Extra|AGPL-3.0|November 2024|
-|MegaDetectroV6-Ultralytics-YoloV11-Compact (even smaller and no NMS)|AGPL-3.0|November 2024|
-|MegaDetectroV6-Ultralytics-YoloV11-Extra (even smaller and no NMS)|AGPL-3.0|November 2024|
-|MegaDetectroV6-MIT-YoloV9-Compact|MIT|November 2024|
-|MegaDetectroV6-MIT-YoloV9-Extra|MIT|November 2024|
-|MegaDetectroV6-Apache-RTDetr-Compact|Apache|December 2024|
-|MegaDetectroV6-Apache-RTDetr-Extra|Apache|December 2024|
+|MegaDetectroV6-Ultralytics-YoloV10-Compact (even smaller and no NMS)|AGPL-3.0|November 2024|
+|MegaDetectroV6-Ultralytics-YoloV10-Extra (extra large model and no NMS)|AGPL-3.0|November 2024|
+|MegaDetectroV6-MIT-YoloV9-Compact|MIT|December 2024|
+|MegaDetectroV6-MIT-YoloV9-Extra|MIT|December 2024|
+|MegaDetectroV6-Ultralytics-YoloV11-Compact (better performance)|AGPL-3.0|December 2024|
+|MegaDetectroV6-Ultralytics-YoloV11-Extra (better performance)|AGPL-3.0|December 2024|
+|MegaDetectroV6-Apache-RTDetr-Compact|Apache|January 2025|
+|MegaDetectroV6-Apache-RTDetr-Extra|Apache|January 2025|
 
 #### Classification models
 |Models|Licence|Release|
