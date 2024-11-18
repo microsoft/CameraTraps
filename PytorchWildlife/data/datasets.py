@@ -44,7 +44,6 @@ class DetectionImageFolder(Dataset):
         self.image_dir = image_dir
         self.transform = transform
         self.images = [os.path.join(dp, f) for dp, dn, filenames in os.walk(image_dir) for f in filenames if is_image_file(f)] # dp: directory path, dn: directory name, f: filename
-        self.images = sorted(self.images)
 
     def __getitem__(self, idx):
         """
@@ -78,7 +77,7 @@ class DetectionImageFolder(Dataset):
         """
         return len(self.images)
 
-
+# TODO: Under development for efficiency improvement
 class DetectionCrops(Dataset):
 
     def __init__(self, detection_results, transform=None, path_head=None, animal_cls_id=0):
