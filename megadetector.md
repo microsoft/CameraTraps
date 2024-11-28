@@ -219,6 +219,17 @@ We have recently published a [summary paper on Pytorch-Wildlife](https://arxiv.o
 }
 ```
 
+Also, don't forget to cite our original paper for MegaDetector: 
+
+```
+@article{beery2019efficient,
+  title={Efficient Pipeline for Camera Trap Image Review},
+  author={Beery, Sara and Morris, Dan and Yang, Siyu},
+  journal={arXiv preprint arXiv:1907.06772},
+  year={2019}
+}
+```
+
 ## 🤝 Contributing
 This project is open to your ideas and contributions. If you want to submit a pull request, we'll have some guidelines available soon.
 
