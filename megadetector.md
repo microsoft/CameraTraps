@@ -211,22 +211,22 @@ We have recently published a [summary paper on Pytorch-Wildlife](https://arxiv.o
 ```
 @misc{hernandez2024pytorchwildlife,
       title={Pytorch-Wildlife: A Collaborative Deep Learning Framework for Conservation}, 
-      author={Andres Hernandez and Zhongqi Miao and Luisa Vargas and Rahul Dodhia and Juan Lavista},
+      author={Andres Hernandez and Zhongqi Miao and Luisa Vargas and Sara Beery and Rahul Dodhia and Juan Lavista},
       year={2024},
       eprint={2405.12930},
       archivePrefix={arXiv},
-      primaryClass={cs.CV}
 }
 ```
 
 Also, don't forget to cite our original paper for MegaDetector: 
 
 ```
-@article{beery2019efficient,
-  title={Efficient Pipeline for Camera Trap Image Review},
-  author={Beery, Sara and Morris, Dan and Yang, Siyu},
-  journal={arXiv preprint arXiv:1907.06772},
-  year={2019}
+@misc{beery2019efficient,
+      title={Efficient Pipeline for Camera Trap Image Review},
+      author={Sara Beery and Dan Morris and Siyu Yang},
+      year={2019}
+      eprint={1907.06772},
+      archivePrefix={arXiv},
 }
 ```
 
