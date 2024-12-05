@@ -257,7 +257,7 @@ with gr.Blocks() as demo:
         if "HerdNet" in det_model: # Disable all the classification model dropdown because HerdNet does not require a classification model apart
             return gr.Dropdown(choices=["None"], interactive=True, label="Classification model", value="None")
         else:
-            return gr.Dropdown(choices=["None", "AI4GOpossum", "AI4GAmazonRainforest", "AI4GSnapshotSerengeti", "CustomWeights"], interactive=True, label="Classification model", value="None")
+            return gr.Dropdown(choices=["None", "AI4GOpossum", "AI4GAmazonRainforest", "AI4GAmazonRainforest_v2", "AI4GSnapshotSerengeti", "CustomWeights"], interactive=True, label="Classification model", value="None")
 
     det_drop.change(update_ui_elements, det_drop, [clf_drop])
 
