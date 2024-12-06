@@ -40,7 +40,7 @@ def save_crop_images(results, output_dir, original_csv_path, overwrite=False):
                         image=np.array(Image.open(entry["img_id"]).convert("RGB")), xyxy=xyxy
                     )
                     new_img_name = "{}_{}_{}".format(
-                            int(cat), i, entry["img_id"].rsplit("/", 1)[1])
+                            int(cat), i, entry["img_id"].rsplit(os.sep(), 1)[1])
                     sink.save_image(
                         image=cv2.cvtColor(cropped_img, cv2.COLOR_RGB2BGR),
                         image_name=new_img_name

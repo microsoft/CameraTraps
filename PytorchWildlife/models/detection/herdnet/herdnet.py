@@ -85,6 +85,7 @@ class HerdNet(BaseDetector):
         elif url:
             filename = url.split('/')[-1][:-11] # Splitting the URL to get the filename and removing the '?download=1' part
             if not os.path.exists(os.path.join(torch.hub.get_dir(), "checkpoints", filename)):
+                os.makedirs(os.path.join(torch.hub.get_dir(), "checkpoints"), exist_ok=True)
                 weights = wget.download(url, out=os.path.join(torch.hub.get_dir(), "checkpoints"))
             else:
                 weights = os.path.join(torch.hub.get_dir(), "checkpoints", filename)

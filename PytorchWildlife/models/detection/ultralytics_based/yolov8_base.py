@@ -69,6 +69,7 @@ class YOLOV8Base(BaseDetector):
             self.predictor.setup_model(weights)
         elif url:
             if not os.path.exists(os.path.join(torch.hub.get_dir(), "checkpoints", "MDV6b-yolov9c.pt")):
+                os.makedirs(os.path.join(torch.hub.get_dir(), "checkpoints"), exist_ok=True)
                 weights = wget.download(url, out=os.path.join(torch.hub.get_dir(), "checkpoints"))
             else:
                 weights = os.path.join(torch.hub.get_dir(), "checkpoints", "MDV6b-yolov9c.pt")
@@ -114,7 +115,7 @@ class YOLOV8Base(BaseDetector):
         return results
         
 
-    def single_image_detection(self, img, img_path=None, conf_thres=0.2, id_strip=None):
+    def single_image_detection(self, img, img_path=None, det_conf_thres=0.2, id_strip=None):
         """
         Perform detection on a single image.
         
@@ -123,7 +124,7 @@ class YOLOV8Base(BaseDetector):
                 Image path or ndarray of images.
             img_path (str, optional): 
                 Image path or identifier.
-            conf_thres (float, optional): 
+            det_conf_thres (float, optional): 
                 Confidence threshold for predictions. Defaults to 0.2.
             id_strip (str, optional): 
                 Characters to strip from img_id. Defaults to None.
@@ -139,12 +140,12 @@ class YOLOV8Base(BaseDetector):
         img_size = img.shape
 
         self.predictor.args.batch = 1
-        self.predictor.args.conf = conf_thres
+        self.predictor.args.conf = det_conf_thres
         det_results = list(self.predictor.stream_inference([img]))
         
         return self.results_generation(det_results[0], img_path, id_strip)
 
-    def batch_image_detection(self, data_path, batch_size=16, conf_thres=0.2, id_strip=None):
+    def batch_image_detection(self, data_path, batch_size=16, det_conf_thres=0.2, id_strip=None):
         """
         Perform detection on a batch of images.
         
@@ -153,7 +154,7 @@ class YOLOV8Base(BaseDetector):
                 Path containing all images for inference.
             batch_size (int, optional):
                 Batch size for inference. Defaults to 16.
-            conf_thres (float, optional): 
+            det_conf_thres (float, optional): 
                 Confidence threshold for predictions. Defaults to 0.2.
             id_strip (str, optional): 
                 Characters to strip from img_id. Defaults to None.
@@ -164,7 +165,7 @@ class YOLOV8Base(BaseDetector):
             list: List of detection results for all images.
         """
         self.predictor.args.batch = batch_size
-        self.predictor.args.conf = conf_thres
+        self.predictor.args.conf = det_conf_thres
 
         dataset = pw_data.DetectionImageFolder(
             data_path,

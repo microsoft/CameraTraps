@@ -1,5 +1,5 @@
 # training
-conf_id: Crop_Res18_plain_071824
+conf_id: Crop_res50_plain_082723
 algorithm: Plain
 log_dir: Crop
 num_epochs: 30
@@ -23,7 +23,7 @@ num_workers: 4 #40
 # model
 num_classes: 2 
 model_name: PlainResNetClassifier
-num_layers: 18
+num_layers: 50
 weights_init: ImageNet
 
 # optim

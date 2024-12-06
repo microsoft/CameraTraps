@@ -73,8 +73,8 @@ def single_image_detection(input_img, det_conf_thres, clf_conf_thres, img_index=
 
     Args:
         input_img (PIL.Image): Input image in PIL.Image format defaulted by Gradio.
-        det_conf_thre (float): Confidence threshold for detection.
-        clf_conf_thre (float): Confidence threshold for classification.
+        det_conf_thres (float): Confidence threshold for detection.
+        clf_conf_thres (float): Confidence threshold for classification.
         img_index: Image index identifier.
     Returns:
         annotated_img (PIL.Image.Image): Annotated image with bounding box instances.
@@ -93,7 +93,7 @@ def single_image_detection(input_img, det_conf_thres, clf_conf_thres, img_index=
         annotator = box_annotator
         results_det = detection_model.single_image_detection(input_img,
                                                              img_path=img_index,
-                                                             conf_thres = det_conf_thres)
+                                                             det_conf_thres = det_conf_thres)
     
     if classification_model is not None:
         labels = []
@@ -123,9 +123,9 @@ def batch_detection(zip_file, timelapse, det_conf_thres):
     
     Args:
         zip_file (File): Zip file containing images.
-        det_conf_thre (float): Confidence threshold for detection.
+        det_conf_thres (float): Confidence threshold for detection.
         timelapse (boolean): Flag to output JSON for timelapse.
-        clf_conf_thre (float): Confidence threshold for classification.
+        clf_conf_thres (float): Confidence threshold for classification.
 
     Returns:
         json_save_path (str): Path to the JSON file containing detection results.
@@ -150,7 +150,7 @@ def batch_detection(zip_file, timelapse, det_conf_thres):
     if detection_model.__class__.__name__.__contains__("HerdNet"):
         det_results = detection_model.batch_image_detection(tgt_folder_path, batch_size=1, det_conf_thres=det_conf_thres, id_strip=tgt_folder_path) 
     else:
-        det_results = detection_model.batch_image_detection(tgt_folder_path, batch_size=16, conf_thres=det_conf_thres, id_strip=tgt_folder_path)
+        det_results = detection_model.batch_image_detection(tgt_folder_path, batch_size=16, det_conf_thres=det_conf_thres, id_strip=tgt_folder_path)
 
     if classification_model is not None:
         clf_dataset = pw_data.DetectionCrops(
@@ -190,16 +190,13 @@ def batch_path_detection(tgt_folder_path, det_conf_thres):
     
     Args:
         tgt_folder_path (str): path to the folder containing the images.
-        det_conf_thre (float): Confidence threshold for detection.
+        det_conf_thres (float): Confidence threshold for detection.
     Returns:
         json_save_path (str): Path to the JSON file containing detection results.
     """
 
     json_save_path = os.path.join(tgt_folder_path, "results.json")
-    det_dataset = pw_data.DetectionImageFolder(tgt_folder_path)
-    det_loader = DataLoader(det_dataset, batch_size=32, shuffle=False, 
-                            pin_memory=True, num_workers=2, drop_last=False)
-    det_results = detection_model.batch_image_detection(det_loader, det_conf_thres=det_conf_thres, id_strip=tgt_folder_path)
+    det_results = detection_model.batch_image_detection(tgt_folder_path, det_conf_thres=det_conf_thres, id_strip=tgt_folder_path)
     if detection_model.__class__.__name__.__contains__("HerdNet"):
         pw_utils.save_detection_json_as_dots(det_results, json_save_path, categories=detection_model.CLASS_NAMES)
     else:
@@ -213,8 +210,8 @@ def video_detection(video, det_conf_thres, clf_conf_thres, target_fps, codec):
     
     Args:
         video (str): Video source path.
-        det_conf_thre (float): Confidence threshold for detection.
-        clf_conf_thre (float): Confidence threshold for classification.
+        det_conf_thres (float): Confidence threshold for detection.
+        clf_conf_thres (float): Confidence threshold for classification.
 
     """
     def callback(frame, index):

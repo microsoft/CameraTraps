@@ -52,20 +52,20 @@ To ensure the code works correctly, your annotation file should contain the foll
 3. label: name of the class (e.g., "cat", "dog", "bird", etc.)
 
 **Data splitting**
-If you want to split your data into training, validation, and test sets, you can use the `split_path` and `split_data` parameters in the `config.py` file. This `split_path` should point to a CSV file containing the image paths and their corresponding classification IDs and labels, while the `split_data` parameter should be set to `True`.
+If you want to split your data into training, validation, and test sets, you can use the `split_path` and `split_data` parameters in the `configs/Raw/Crop_res50_plain_082723.yaml` file. This `split_path` should point to a CSV file containing the image paths and their corresponding classification IDs and labels, while the `split_data` parameter should be set to `True`.
 
 Currently, pytorch-wildlife classification supports three types of data splitting: `random`, `location`, and `sequence`. Random splitting uses the class ID to randomly split the data into training, validation, and test sets while keeping a balanced class distribution. **Due to the nature of camera trap images, it is common to capture a burst of pictures when movement is detected. For this reason, using random splitting is not recommended. This is because similar-looking images of the same animal could end up in both training and validation sets, leading to overfitting.**
 
 Location splitting requires an additional "Location" column in the data, and it splits the data based on the location of the images, making sure that all images from one location will be in a single split; this splitting method does not guarantee a balanced class distribution. Finally, sequence splitting requires a "Photo_time" column containing the shooting time of the picture, it should be in YYYY-MM-DD HH:MM:SS format. This method will group images within a 30 second period in a "sequence", and then split the data based on these sequences; this splitting method does not guarantee a balanced class distribution.
 
 
-The CSV file should have the previously mentioned structure. The code will then split the data into training, validation, and test sets based on the proportions specified in the `config.py` file and the splitting type. [The annotation example](data/imgs/annotation_example.csv) shows how files should be annotated for each type of splitting.
+The CSV file should have the previously mentioned structure. The code will then split the data into training, validation, and test sets based on the proportions specified in the `configs/Raw/Crop_res50_plain_082723.yaml` file and the splitting type. [The annotation example](data/imgs/annotation_example.csv) shows how files should be annotated for each type of splitting.
 
-If you don't require data splitting, you can set the `split_data` parameter to `False` in the `config.py` file. 
+If you don't require data splitting, you can set the `split_data` parameter to `False` in the `configs/Raw/Crop_res50_plain_082723.yaml` file. 
 
 ### Configuration
 
-Before training your model, you need to configure the training and data parameters in the `config.py` file. Here's a brief explanation of the parameters to help both technical and non-technical users understand their purposes:
+Before training your model, you need to configure the training and data parameters in the `configs/Raw/Crop_res50_plain_082723.yaml` file. Here's a brief explanation of the parameters to help both technical and non-technical users understand their purposes:
 
 - **Training Parameters:**
   - `conf_id`: A unique identifier for your training configuration.
@@ -109,7 +109,7 @@ After configuring your `config.yaml` file, you can start training your model by 
 python main.py
 ```
 
-This command will initiate the training process based on the parameters specified in `config.py`. Make sure to monitor the output for any errors or important information regarding the training progress.
+This command will initiate the training process based on the parameters specified in `configs/Raw/Crop_res50_plain_082723.yaml`. Make sure to monitor the output for any errors or important information regarding the training progress.
 ### We have provided 10 example images and an annotation file in the `data` directory for code testing without needing to provide your own data.
 
 ## Output

@@ -97,7 +97,7 @@ class YOLOV5Base(BaseDetector):
         ]
         return results
 
-    def single_image_detection(self, img, img_path=None, conf_thres=0.2, id_strip=None):
+    def single_image_detection(self, img, img_path=None, det_conf_thres=0.2, id_strip=None):
         """
         Perform detection on a single image.
         
@@ -106,7 +106,7 @@ class YOLOV5Base(BaseDetector):
                 Image path or ndarray of images.
             img_path (str, optional): 
                 Image path or identifier.
-            conf_thres (float, optional): 
+            det_conf_thres (float, optional): 
                 Confidence threshold for predictions. Defaults to 0.2.
             id_strip (str, optional): 
                 Characters to strip from img_id. Defaults to None.
@@ -124,11 +124,11 @@ class YOLOV5Base(BaseDetector):
         if img_size is None:
             img_size = img.permute((1, 2, 0)).shape # We need hwc instead of chw for coord scaling
         preds = self.model(img.unsqueeze(0).to(self.device))[0]
-        preds = torch.cat(non_max_suppression(prediction=preds, conf_thres=conf_thres), axis=0)
+        preds = torch.cat(non_max_suppression(prediction=preds, det_conf_thres=det_conf_thres), axis=0)
         preds[:, :4] = scale_coords([self.IMAGE_SIZE] * 2, preds[:, :4], img_size).round()
         return self.results_generation(preds.cpu().numpy(), img_path, id_strip)
 
-    def batch_image_detection(self, data_path, batch_size=16, conf_thres=0.2, id_strip=None):
+    def batch_image_detection(self, data_path, batch_size=16, det_conf_thres=0.2, id_strip=None):
         """
         Perform detection on a batch of images.
         
@@ -137,7 +137,7 @@ class YOLOV5Base(BaseDetector):
                 Path containing all images for inference.
             batch_size (int, optional):
                 Batch size for inference. Defaults to 16.
-            conf_thres (float, optional): 
+            det_conf_thres (float, optional): 
                 Confidence threshold for predictions. Defaults to 0.2.
             id_strip (str, optional): 
                 Characters to strip from img_id. Defaults to None.
@@ -162,7 +162,7 @@ class YOLOV5Base(BaseDetector):
             for batch_index, (imgs, paths, sizes) in enumerate(loader):
                 imgs = imgs.to(self.device)
                 predictions = self.model(imgs)[0].detach().cpu()
-                predictions = non_max_suppression(predictions, conf_thres=conf_thres)
+                predictions = non_max_suppression(predictions, det_conf_thres=det_conf_thres)
 
                 batch_results = []
                 for i, pred in enumerate(predictions):
