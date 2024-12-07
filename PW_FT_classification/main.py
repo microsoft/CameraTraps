@@ -21,7 +21,7 @@ app = typer.Typer(pretty_exceptions_short=True, pretty_exceptions_show_locals=Fa
 # %%
 @app.command()
 def main(
-        config:str='./configs/Raw/Crop_res50_plain_082723.yaml',
+        config:str='./configs/config.yaml',
         project:str='Custom-classification',
         gpus:str='0', 
         logger_type:str='csv',
