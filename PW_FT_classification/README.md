@@ -111,7 +111,7 @@ After configuring your `config.yaml` file, you can start training your model by 
 python main.py
 ```
 
-This command will initiate the training process based on the parameters specified in `config.py`. Make sure to monitor the output for any errors or important information regarding the training progress.
+This command will initiate the training process based on the parameters specified in `config.yaml`. Make sure to monitor the output for any errors or important information regarding the training progress.
 
 **We have provided 10 example images and an annotation file in the `data` directory for code testing without needing to provide your own data.**
 
