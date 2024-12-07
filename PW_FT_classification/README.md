@@ -55,7 +55,7 @@ To ensure the code works correctly, your annotation file should contain the foll
 
 ### Data splitting
 
-If you want to split your data into training, validation, and test sets, you can use the `split_path` and `split_data` parameters in the `config.py` file. This `split_path` should point to a CSV file containing the image paths and their corresponding classification IDs and labels, while the `split_data` parameter should be set to `True`.
+If you want to split your data into training, validation, and test sets, you can use the `split_path` and `split_data` parameters in the `config.yaml` file. This `split_path` should point to a CSV file containing the image paths and their corresponding classification IDs and labels, while the `split_data` parameter should be set to `True`.
 
 Currently, pytorch-wildlife classification supports three types of data splitting: `random`, `location`, and `sequence`. Random splitting uses the class ID to randomly split the data into training, validation, and test sets while keeping a balanced class distribution. **Due to the nature of camera trap images, it is common to capture a burst of pictures when movement is detected. For this reason, using random splitting is not recommended. This is because similar-looking images of the same animal could end up in both training and validation sets, leading to overfitting.**
 
