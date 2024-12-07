@@ -1,0 +1,41 @@
+# training
+conf_id: Crop_Res18_plain_071824
+algorithm: Plain
+log_dir: Crop
+num_epochs: 30
+log_interval: 10
+parallel: 0
+
+# data
+dataset_root: ./data/imgs
+dataset_name: Custom_Crop
+# annotation directory (if you have train/val/test splits)
+annotation_dir: ./data/imgs
+# data splitting (if you don't have train/val/test splits)
+split_path: ./data/imgs/annotation_example.csv
+test_size: 0.2
+val_size: 0.2
+split_data: True
+split_type: location # options are: random, location, sequence
+# data loading
+batch_size: 32
+num_workers: 4 #40
+# model
+num_classes: 2 
+model_name: PlainResNetClassifier
+num_layers: 18
+weights_init: ImageNet
+
+# optim
+## feature
+lr_feature: 0.01
+momentum_feature: 0.9
+weight_decay_feature: 0.0005
+## classifier
+lr_classifier: 0.01
+momentum_classifier: 0.9
+weight_decay_classifier: 0.0005
+## lr_scheduler
+step_size: 10
+gamma: 0.1
+
