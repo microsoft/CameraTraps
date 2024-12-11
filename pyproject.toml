@@ -1,0 +1,36 @@
+[project]
+name = "PytorchWildlife"
+version = "1.1.0"
+description = "A PyTorch Collaborative Deep Learning Framework for Conservation."
+readme = "README.md"
+requires-python = ">=3.9,<3.13"
+dependencies = [
+    "numpy>=2.0.2",
+    "pillow>=11.0.0",
+    "pytest>=8.3.4",
+    "supervision>=0.22.0",
+    "torch>=2.5.1",
+    "torchvision>=0.20.1",
+    "tqdm>=4.67.1",
+    "ultralytics>=8.3.23",
+    "wget>=3.2",
+    "yolov5>=7.0.14",
+]
+
+[tool.uv.sources]
+torch = [
+  { index = "pytorch-cu121", marker = "platform_system != 'Darwin'"},
+]
+torchvision = [
+  { index = "pytorch-cu121", marker = "platform_system != 'Darwin'"},
+]
+
+[[tool.uv.index]]
+name = "pytorch-cu121"
+url = "https://download.pytorch.org/whl/cu121"
+explicit = true
+
+[tool.pytest.ini_options]
+filterwarnings = [
+    'ignore:::.*thop.*profile.*', 
+]

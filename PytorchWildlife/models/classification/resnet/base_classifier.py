@@ -140,7 +140,7 @@ class PlainResNetInference(nn.Module):
         return logits
 
     def single_image_classification(self, img, img_id=None, id_strip=None):
-        if type(img) == str:
+        if isinstance(img, str):
             img = Image.open(img)
         else:
             img = Image.fromarray(img)

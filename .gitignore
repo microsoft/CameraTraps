@@ -5,8 +5,7 @@ __pycache__
 *flagged*
 *temp*
 PytorchWildlife.egg-info/
-*dev*
-*test*
+*dev/
 *setup/*
 *dist/*
 *VSCodeCounter*
@@ -22,3 +21,7 @@ PytorchWildlife.egg-info/
 *.pth
 demo/demo_data/imgs/other_extensions/
 demo/folder_separation/
+.env
+.python-version
+uv.lock
+.vscode/
