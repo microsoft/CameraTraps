@@ -5,6 +5,7 @@ description = "A PyTorch Collaborative Deep Learning Framework for Conservation.
 readme = "README.md"
 requires-python = ">=3.9,<3.13"
 dependencies = [
+    "datasets>=3.2.0",
     "numpy>=2.0.2",
     "pillow>=11.0.0",
     "pytest>=8.3.4",
