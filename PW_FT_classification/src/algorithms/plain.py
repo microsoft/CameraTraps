@@ -258,15 +258,27 @@ class Plain(pl.LightningModule):
         self.log("valid_mic_acc", mic_acc * 100)
 
         if print_class_acc:
-            acc_list = [(class_acc[i], unique_eval_labels[i],
-                         self.id_to_labels[unique_eval_labels[i]],
-                         self.train_class_counts[unique_eval_labels[i]])
-                         for i in range(len(class_acc))]
 
-            print('\n')
-            for i in range(len(class_acc)):
-                info = '{:>20} ({:<3}, tr {:>3}) Acc: '.format(acc_list[i][2],
-                                                               acc_list[i][1],
-                                                               acc_list[i][3])
-                info += '{:.2f}'.format(acc_list[i][0] * 100)
-                print(info)
+            if self.train_class_counts:
+                acc_list = [(class_acc[i], unique_eval_labels[i],
+                             self.id_to_labels[unique_eval_labels[i]],
+                             self.train_class_counts[unique_eval_labels[i]])
+                             for i in range(len(class_acc))]
+
+                print('\n')
+                for i in range(len(class_acc)):
+                    info = '{:>20} ({:<3}, tr {:>3}) Acc: '.format(acc_list[i][2],
+                                                                   acc_list[i][1],
+                                                                   acc_list[i][3])
+                    info += '{:.2f}'.format(acc_list[i][0] * 100)
+                    print(info)
+            else:
+                acc_list = [(class_acc[i], unique_eval_labels[i],
+                             self.id_to_labels[unique_eval_labels[i]])
+                             for i in range(len(class_acc))]
+
+                print('\n')
+                for i in range(len(class_acc)):
+                    info = '{:>20} ({:<3}) Acc: '.format(acc_list[i][2], acc_list[i][1])
+                    info += '{:.2f}'.format(acc_list[i][0] * 100)
+                    print(info)
