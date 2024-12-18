@@ -166,7 +166,7 @@ class Custom_Base(pl.LightningDataModule):
         """
         super().__init__()
         self._log_hyperparams = True
-        self.id_to_labels = {i: l for i, l in np.unique(pd.Series(zip(self.dset_tr.label_ids, self.dset_tr.labels)))}
+        self.id_to_labels = None # We don't need this for predictions
         self.train_class_counts = None
 
         self.conf = conf
@@ -177,10 +177,12 @@ class Custom_Base(pl.LightningDataModule):
             self.dset_pr = self.ds(rootdir=self.conf.predict_root, dset='predict', transform=data_transforms['val'])
         elif self.conf.test:
             self.dset_te = self.ds(rootdir=self.conf.dataset_root, dset='test', transform=data_transforms['val'])
+            self.id_to_labels = {i: l for i, l in np.unique(pd.Series(zip(self.dset_te.label_ids, self.dset_te.labels)))}
         else:
             self.dset_tr = self.ds(rootdir=self.conf.dataset_root, dset='train', transform=data_transforms['train'])
             self.dset_val = self.ds(rootdir=self.conf.dataset_root, dset='val', transform=data_transforms['val'])
 
+            self.id_to_labels = {i: l for i, l in np.unique(pd.Series(zip(self.dset_tr.label_ids, self.dset_tr.labels)))}
             # Calculate class counts and label mappings
             self.unique_label_ids, self.train_class_counts = self.dset_tr.class_counts_cal()
 
