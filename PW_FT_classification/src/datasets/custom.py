@@ -166,7 +166,7 @@ class Custom_Base(pl.LightningDataModule):
         """
         super().__init__()
         self._log_hyperparams = True
-        self.id_to_labels = None # We don't need this for predictions
+        self.id_to_labels = None # We don't need this for evaluations. We should save this in model weights in the future
         self.train_class_counts = None
 
         self.conf = conf
