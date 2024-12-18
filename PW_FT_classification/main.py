@@ -69,7 +69,7 @@ def main(
         conf = Munch(yaml.load(f, Loader=yaml.FullLoader))
     conf.evaluate = evaluate
     conf.val = val
-    conf.test = test w
+    conf.test = test
     conf.predict = predict
     conf.predict_root = predict_root
 
