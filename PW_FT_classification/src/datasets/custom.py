@@ -14,6 +14,17 @@ __all__ = [
     'Custom_Crop'
 ]
 
+# Define the allowed image extensions  
+IMG_EXTENSIONS = (".jpg", ".jpeg", ".png", ".ppm", ".bmp", ".pgm", ".tif", ".tiff", ".webp")  
+  
+def has_file_allowed_extension(filename: str, extensions: tuple) -> bool:  
+    """Checks if a file is an allowed extension."""  
+    return filename.lower().endswith(extensions if isinstance(extensions, str) else tuple(extensions))
+  
+def is_image_file(filename: str) -> bool:  
+    """Checks if a file is an allowed image extension."""  
+    return has_file_allowed_extension(filename, IMG_EXTENSIONS) 
+
 # Define normalization mean and standard deviation for image preprocessing
 mean = [0.485, 0.456, 0.406]
 std = [0.229, 0.224, 0.225]
@@ -45,7 +56,7 @@ class Custom_Base_DS(Dataset):
         predict (bool): Flag to indicate if the dataset is used for prediction.
     """
 
-    def __init__(self, rootdir, transform=None, predict=False, extension="jpg"):
+    def __init__(self, rootdir, transform=None, predict=False):
         """
         Initialize the Custom_Base_DS with the directory, transformations, and mode.
 
@@ -68,7 +79,8 @@ class Custom_Base_DS(Dataset):
         """
         if self.predict:
             # Load data for prediction
-            self.data = glob(os.path.join(self.img_root,"*.{}".format(self.extension)))
+            # self.data = glob(os.path.join(self.img_root,"*.{}".format(self.extension)))
+            self.data = [os.path.join(dp, f) for dp, dn, filenames in os.walk(self.img_root) for f in filenames if is_image_file(f)] # dp: directory path, dn: directory name, f: filename
         else:
             # Load data for training/validation
             self.data = list(self.ann['path'])
