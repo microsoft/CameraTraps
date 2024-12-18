@@ -21,7 +21,7 @@ app = typer.Typer(pretty_exceptions_short=True, pretty_exceptions_show_locals=Fa
 # %%
 @app.command()
 def main(
-        config:str='./configs/Raw/Crop_res50_plain_082723.yaml',
+        config:str='./configs/config.yaml',
         project:str='Custom-classification',
         gpus:str='0', 
         logger_type:str='csv',
@@ -31,6 +31,7 @@ def main(
         seed:int=0,
         dev:bool=False,
         val:bool=False,
+        test:bool=False,
         predict:bool=False,
         predict_root:str=""
     ):
@@ -68,6 +69,7 @@ def main(
         conf = Munch(yaml.load(f, Loader=yaml.FullLoader))
     conf.evaluate = evaluate
     conf.val = val
+    conf.test = test
     conf.predict = predict
     conf.predict_root = predict_root
 
@@ -88,16 +90,19 @@ def main(
         else:
             raise ValueError('Invalid split type: {}. Available options: random, location, sequence.'.format(conf.split_type))
         
-    # Get the path to the annotation files
-    train_annotations = os.path.join(conf.dataset_root, 'train_annotations.csv')
-    test_annotations = os.path.join(conf.dataset_root, 'test_annotations.csv')
-    val_annotations = os.path.join(conf.dataset_root, 'val_annotations.csv')
-    # Crop training data
-    batch_detection_cropping.batch_detection_cropping(conf.dataset_root, os.path.join(conf.dataset_root, "cropped_resized"), train_annotations)
-    # Crop validation data
-    batch_detection_cropping.batch_detection_cropping(conf.dataset_root, os.path.join(conf.dataset_root, "cropped_resized"), val_annotations)
-    # Crop test data (most likely we don't need this)
-    batch_detection_cropping.batch_detection_cropping(conf.dataset_root, os.path.join(conf.dataset_root, "cropped_resized"), test_annotations)
+    if not conf.predict:
+        # Get the path to the annotation files, and we only want to do this if we are not predicting
+        if conf.test:
+            test_annotations = os.path.join(conf.dataset_root, 'test_annotations.csv')
+            # Crop test data (most likely we don't need this)
+            batch_detection_cropping.batch_detection_cropping(conf.dataset_root, os.path.join(conf.dataset_root, "cropped_resized"), test_annotations)
+        else:
+            train_annotations = os.path.join(conf.dataset_root, 'train_annotations.csv')
+            val_annotations = os.path.join(conf.dataset_root, 'val_annotations.csv')
+            # Crop training data
+            batch_detection_cropping.batch_detection_cropping(conf.dataset_root, os.path.join(conf.dataset_root, "cropped_resized"), train_annotations)
+            # Crop validation data
+            batch_detection_cropping.batch_detection_cropping(conf.dataset_root, os.path.join(conf.dataset_root, "cropped_resized"), val_annotations)
 
     # Dataset and algorithm loading based on the configuration
     dataset = datasets.__dict__[conf.dataset_name](conf=conf)
@@ -164,8 +169,10 @@ def main(
             trainer.validate(learner, dataloaders=[dataset.val_dataloader()], ckpt_path=evaluate)
         elif predict:
             trainer.predict(learner, dataloaders=[dataset.predict_dataloader()], ckpt_path=evaluate)
-        else:
+        elif test:
             trainer.test(learner, dataloaders=[dataset.test_dataloader()], ckpt_path=evaluate)
+        else:
+            print('Invalid mode for evaluation.')
     else:
         trainer.fit(learner, datamodule=dataset)
 # %%

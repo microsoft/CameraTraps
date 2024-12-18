@@ -1,5 +1,6 @@
 import os
 import numpy as np
+import json
 from datetime import datetime
 from tqdm import tqdm
 import random
@@ -199,12 +200,14 @@ class Plain(pl.LightningModule):
         feats = self.net.feature(data)
         logits = self.net.classifier(feats)
         preds = logits.argmax(dim=1)
+        probs = torch.softmax(logits, dim=1).max(dim=1)[0]
         
         self.pr_st_outs.append((preds.detach().cpu().numpy(),
-                               feats.detach().cpu().numpy(),
-                               logits.detach().cpu().numpy(), 
-                               file_ids 
-                               ))
+                                feats.detach().cpu().numpy(),
+                                logits.detach().cpu().numpy(), 
+                                probs.detach().cpu().numpy(),
+                                file_ids 
+                                ))
     
 
     def on_predict_epoch_end(self):
@@ -215,12 +218,29 @@ class Plain(pl.LightningModule):
         total_preds = np.concatenate([x[0] for x in self.pr_st_outs], axis=0)
         total_feats = np.concatenate([x[1] for x in self.pr_st_outs], axis=0)
         total_logits = np.concatenate([x[2] for x in self.pr_st_outs], axis=0)
-        total_file_ids = np.concatenate([x[3] for x in self.pr_st_outs], axis=0)
+        total_probs = np.concatenate([x[3] for x in self.pr_st_outs], axis=0)
+        total_file_ids = np.concatenate([x[4] for x in self.pr_st_outs], axis=0)
 
-        output_path = self.hparams.evaluate.replace('.ckpt', '_predict.npz') 
-        np.savez(output_path, preds=total_preds, feats=total_feats,
+        json_output = []
+        for i in range(len(total_preds)):
+            json_output.append({
+                "marker_id": "",
+                "survey_pic_id": total_file_ids[i],
+                "marker_confidence": float(total_probs[i]),
+                "marker_gear_type": "ghostnet" if total_preds[i] == 1 else "neg",
+                "marker_bounding_polygon": "",
+                "marker_status": "unverified",
+                "marker_ai_model": ""
+            })
+
+        output_path_full = self.hparams.evaluate.replace('.ckpt', '_predict.npz') 
+        np.savez(output_path_full, preds=total_preds, feats=total_feats,
                  logits=total_logits, file_ids=total_file_ids)  
-        print('Predict output saved to {}.'.format(output_path))
+        print('Predict output saved to {}.'.format(output_path_full))
+
+        output_path_json = self.hparams.evaluate.replace('.ckpt', '_predict.json') 
+        json.dump(json_output, open(output_path_json, 'w'))
+        print('Predict output json saved to {}.'.format(output_path_json))
 
 
     def eval_logging(self, preds, labels, print_class_acc=False):
@@ -239,15 +259,27 @@ class Plain(pl.LightningModule):
         self.log("valid_mic_acc", mic_acc * 100)
 
         if print_class_acc:
-            acc_list = [(class_acc[i], unique_eval_labels[i],
-                         self.id_to_labels[unique_eval_labels[i]],
-                         self.train_class_counts[unique_eval_labels[i]])
-                         for i in range(len(class_acc))]
 
-            print('\n')
-            for i in range(len(class_acc)):
-                info = '{:>20} ({:<3}, tr {:>3}) Acc: '.format(acc_list[i][2],
-                                                               acc_list[i][1],
-                                                               acc_list[i][3])
-                info += '{:.2f}'.format(acc_list[i][0] * 100)
-                print(info)
+            if self.train_class_counts:
+                acc_list = [(class_acc[i], unique_eval_labels[i],
+                             self.id_to_labels[unique_eval_labels[i]],
+                             self.train_class_counts[unique_eval_labels[i]])
+                             for i in range(len(class_acc))]
+
+                print('\n')
+                for i in range(len(class_acc)):
+                    info = '{:>20} ({:<3}, tr {:>3}) Acc: '.format(acc_list[i][2],
+                                                                   acc_list[i][1],
+                                                                   acc_list[i][3])
+                    info += '{:.2f}'.format(acc_list[i][0] * 100)
+                    print(info)
+            else:
+                acc_list = [(class_acc[i], unique_eval_labels[i],
+                             self.id_to_labels[unique_eval_labels[i]])
+                             for i in range(len(class_acc))]
+
+                print('\n')
+                for i in range(len(class_acc)):
+                    info = '{:>20} ({:<3}) Acc: '.format(acc_list[i][2], acc_list[i][1])
+                    info += '{:.2f}'.format(acc_list[i][0] * 100)
+                    print(info)
