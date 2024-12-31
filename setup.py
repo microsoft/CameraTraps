@@ -26,7 +26,7 @@ setup(
         'chardet',
         'wget',
         'ultralytics',
-        'setuptools==59.5.0',
+        'setuptools',
         'scikit-learn',
     ],
     classifiers=[
