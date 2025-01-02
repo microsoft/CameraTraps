@@ -13,12 +13,8 @@ import supervision as sv
 import torch
 from torch.utils.data import DataLoader
 from torch.hub import load_state_dict_from_url
-<<<<<<< HEAD:PytorchWildlife/models/detection/yolov5/base_detector.py
-from yolov5.utils.general import non_max_suppression, scale_boxes
-=======
 
 from yolov5.utils.general import non_max_suppression, scale_coords
->>>>>>> 6a67547afe5c0f6764d77f079b49519aa89e619d:PytorchWildlife/models/detection/ultralytics_based/yolov5_base.py
 
 from ..base_detector import BaseDetector
 from ....data import transforms as pw_trans
@@ -97,11 +93,7 @@ class YOLOV5Base(BaseDetector):
         )
         results["labels"] = [
             f"{self.CLASS_NAMES[class_id]} {confidence:0.2f}"
-<<<<<<< HEAD:PytorchWildlife/models/detection/yolov5/base_detector.py
-            for _, _, confidence, class_id, _, _ in results["detections"]
-=======
             for confidence, class_id in zip(results["detections"].confidence, results["detections"].class_id)
->>>>>>> 6a67547afe5c0f6764d77f079b49519aa89e619d:PytorchWildlife/models/detection/ultralytics_based/yolov5_base.py
         ]
         return results
 
@@ -132,13 +124,8 @@ class YOLOV5Base(BaseDetector):
         if img_size is None:
             img_size = img.permute((1, 2, 0)).shape # We need hwc instead of chw for coord scaling
         preds = self.model(img.unsqueeze(0).to(self.device))[0]
-<<<<<<< HEAD:PytorchWildlife/models/detection/yolov5/base_detector.py
-        preds = torch.cat(non_max_suppression(prediction=preds, conf_thres=conf_thres), axis=0)
-        preds[:, :4] = scale_boxes([self.IMAGE_SIZE] * 2, preds[:, :4], img_size).round()
-=======
         preds = torch.cat(non_max_suppression(prediction=preds, det_conf_thres=det_conf_thres), axis=0)
         preds[:, :4] = scale_coords([self.IMAGE_SIZE] * 2, preds[:, :4], img_size).round()
->>>>>>> 6a67547afe5c0f6764d77f079b49519aa89e619d:PytorchWildlife/models/detection/ultralytics_based/yolov5_base.py
         return self.results_generation(preds.cpu().numpy(), img_path, id_strip)
 
     def batch_image_detection(self, data_path, batch_size=16, det_conf_thres=0.2, id_strip=None):
@@ -185,7 +172,7 @@ class YOLOV5Base(BaseDetector):
                     size = sizes[i].numpy()
                     path = paths[i]
                     original_coords = pred[:, :4].copy()
-                    pred[:, :4] = scale_boxes([self.IMAGE_SIZE] * 2, pred[:, :4], size).round()
+                    pred[:, :4] = scale_coords([self.IMAGE_SIZE] * 2, pred[:, :4], size).round()
                     # Normalize the coordinates for timelapse compatibility
                     normalized_coords = [[x1 / size[1], y1 / size[0], x2 / size[1], y2 / size[0]] for x1, y1, x2, y2 in pred[:, :4]]
                     res = self.results_generation(pred, path, id_strip)
