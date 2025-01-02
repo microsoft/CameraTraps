@@ -29,7 +29,7 @@ class YOLOV8Base(BaseDetector):
     This base detector class is also compatible with all the new ultralytics models including YOLOV9, 
     RTDetr, and more.
     """
-    def __init__(self, weights=None, device="cpu", url=None, transform=None):
+    def __init__(self, weights=None, device="cpu", url=None, filename=None, transform=None):
         """
         Initialize the YOLOV8 detector.
         
@@ -43,9 +43,9 @@ class YOLOV8Base(BaseDetector):
         """
         self.transform = transform
         super(YOLOV8Base, self).__init__(weights=weights, device=device, url=url)
-        self._load_model(weights, self.device, url)
+        self._load_model(weights, self.device, url, filename)
 
-    def _load_model(self, weights=None, device="cpu", url=None):
+    def _load_model(self, weights=None, device="cpu", url=None, filename=None):
         """
         Load the YOLOV8 model weights.
         
@@ -60,7 +60,7 @@ class YOLOV8Base(BaseDetector):
             Exception: If weights are not provided.
         """
 
-        self.predictor = yolo.detect.DetectionPredictor()
+        self.predictor = yolo.detect.DetectionPredictor(overrides = dict(verbose=False))
         # self.predictor.args.device = device # Will uncomment later
         self.predictor.args.imgsz = self.IMAGE_SIZE
         self.predictor.args.save = False # Will see if we want to use ultralytics native inference saving functions.
@@ -68,11 +68,11 @@ class YOLOV8Base(BaseDetector):
         if weights:
             self.predictor.setup_model(weights)
         elif url:
-            if not os.path.exists(os.path.join(torch.hub.get_dir(), "checkpoints", "MDV6b-yolov9c.pt")):
+            if not os.path.exists(os.path.join(torch.hub.get_dir(), "checkpoints", filename)):
                 os.makedirs(os.path.join(torch.hub.get_dir(), "checkpoints"), exist_ok=True)
                 weights = wget.download(url, out=os.path.join(torch.hub.get_dir(), "checkpoints"))
             else:
-                weights = os.path.join(torch.hub.get_dir(), "checkpoints", "MDV6b-yolov9c.pt")
+                weights = os.path.join(torch.hub.get_dir(), "checkpoints", filename)
             self.predictor.setup_model(weights)
         else:
             raise Exception("Need weights for inference.")

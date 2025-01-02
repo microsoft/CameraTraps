@@ -20,7 +20,7 @@ class MegaDetectorV6(YOLOV8Base):
         2: "vehicle"
     }
 
-    def __init__(self, weights=None, device="cpu", pretrained=True, version='yolov9c'):
+    def __init__(self, weights=None, device="cpu", pretrained=True, version='yolov9c', filename="MDV6b-yolov9c.pt"):
         """
         Initializes the MegaDetectorV5 model with the option to load pretrained weights.
         
@@ -34,10 +34,24 @@ class MegaDetectorV6(YOLOV8Base):
         if version == 'yolov9c':
             self.IMAGE_SIZE = 640
             url = "https://zenodo.org/records/13357337/files/MDV6b-yolov9c.pt?download=1" 
+            filename = "MDV6b-yolov9c.pt"
+        elif version == 'yolov9e':
+            self.IMAGE_SIZE = 640
+            url = "https://zenodo.org/records/14567879/files/MDV6-yolov9e.pt?download=1"
+            filename = "MDV6-yolov9e.pt"
+        elif version == 'yolov10n':
+            self.IMAGE_SIZE = 640
+            url = "https://zenodo.org/records/14567879/files/MDV6-yolov10n.pt?download=1"
+            filename = "MDV6-yolov10n.pt"
+        elif version == 'yolov10x':
+            self.IMAGE_SIZE = 640
+            url = "https://zenodo.org/records/14567879/files/MDV6-yolov10x.pt?download=1"
+            filename = "MDV6-yolov10x.pt"
         elif version =='rtdetrl':
             self.IMAGE_SIZE = 640
             url = None
+            filename = "MDV6b-rtdetrl.pt"
         else:
-            print('Select a valid model version: yolov9c or rtdetrl')
+            print('Select a valid model version: yolov9c, yolov9e, yolov10n, yolov10x, or rtdetrl')
 
-        super(MegaDetectorV6, self).__init__(weights=weights, device=device, url=url)
+        super(MegaDetectorV6, self).__init__(weights=weights, device=device, url=url, filename=filename)
