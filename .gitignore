@@ -1,5 +1,5 @@
 __pycache__
-*weights*
+*weights/*
 *processed.*
 *output*
 *flagged*
@@ -11,5 +11,14 @@ PytorchWildlife.egg-info/
 *dist/*
 *VSCodeCounter*
 *build/*
+*bee*
+*Bee*
+*debug*
+*annotations.csv
+*cropped_resized*
 *log*
-*results*
+*.ckpt
+*.pt
+*.pth
+demo/demo_data/imgs/other_extensions/
+demo/folder_separation/

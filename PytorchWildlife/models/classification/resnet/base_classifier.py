@@ -2,12 +2,16 @@
 # Licensed under the MIT License.
 
 import numpy as np
+from PIL import Image
+from tqdm import tqdm
+from collections import OrderedDict
+
 import torch
 import torch.nn as nn
 from torchvision.models.resnet import BasicBlock, Bottleneck, ResNet
 from torch.hub import load_state_dict_from_url
-from tqdm import tqdm
-from collections import OrderedDict
+
+from ....data import transforms as pw_trans
 
 # Making the PlainResNetInference class available for import from this module
 __all__ = ["PlainResNetInference"]
@@ -97,7 +101,7 @@ class PlainResNetInference(nn.Module):
     """
     Inference module for the PlainResNet Classifier.
     """
-    def __init__(self, num_cls=36, num_layers=50, weights=None, device="cpu", url=None):
+    def __init__(self, num_cls=36, num_layers=50, weights=None, device="cpu", url=None, transform=None):
         super(PlainResNetInference, self).__init__()
         self.device = device
         self.net = PlainResNetClassifier(num_cls=num_cls, num_layers=num_layers)
@@ -110,6 +114,11 @@ class PlainResNetInference(nn.Module):
         self.load_state_dict(clf_weights["state_dict"], strict=True)
         self.eval()
         self.net.to(self.device)
+
+        if transform:
+            self.transform = transform
+        else:
+            self.transform = pw_trans.Classification_Inference_Transform(target_size=224)
 
     def results_generation(self, logits, img_id, id_strip=None):
         """
@@ -131,6 +140,11 @@ class PlainResNetInference(nn.Module):
         return logits
 
     def single_image_classification(self, img, img_id=None, id_strip=None):
+        if type(img) == str:
+            img = Image.open(img)
+        else:
+            img = Image.fromarray(img)
+        img = self.transform(img)
         logits = self.forward(img.unsqueeze(0).to(self.device))
         return self.results_generation(logits.cpu(), [img_id], id_strip=id_strip)[0]
 

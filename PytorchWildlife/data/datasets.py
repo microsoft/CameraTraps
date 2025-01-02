@@ -14,6 +14,16 @@ __all__ = [
     "DetectionImageFolder",
     ]
 
+# Define the allowed image extensions  
+IMG_EXTENSIONS = (".jpg", ".jpeg", ".png", ".ppm", ".bmp", ".pgm", ".tif", ".tiff", ".webp")  
+  
+def has_file_allowed_extension(filename: str, extensions: tuple) -> bool:  
+    """Checks if a file is an allowed extension."""  
+    return filename.lower().endswith(extensions if isinstance(extensions, str) else tuple(extensions))
+  
+def is_image_file(filename: str) -> bool:  
+    """Checks if a file is an allowed image extension."""  
+    return has_file_allowed_extension(filename, IMG_EXTENSIONS) 
 
 class DetectionImageFolder(Dataset):
     """
@@ -22,7 +32,7 @@ class DetectionImageFolder(Dataset):
     the image's path, and the original size of the image.
     """
 
-    def __init__(self, image_dir, transform=None, extension="JPG"):
+    def __init__(self, image_dir, transform=None):
         """
         Initializes the dataset.
 
@@ -30,11 +40,10 @@ class DetectionImageFolder(Dataset):
             image_dir (str): Path to the directory containing the images.
             transform (callable, optional): Optional transform to be applied on the image.
         """
+        super(DetectionImageFolder, self).__init__()
         self.image_dir = image_dir
-        # Listing and sorting all image files in the specified directory
-        self.images = sorted(glob(os.path.join(self.image_dir, "**/*." + extension),
-                                  recursive=True))
         self.transform = transform
+        self.images = [os.path.join(dp, f) for dp, dn, filenames in os.walk(image_dir) for f in filenames if is_image_file(f)] # dp: directory path, dn: directory name, f: filename
 
     def __getitem__(self, idx):
         """
@@ -68,7 +77,7 @@ class DetectionImageFolder(Dataset):
         """
         return len(self.images)
 
-
+# TODO: Under development for efficiency improvement
 class DetectionCrops(Dataset):
 
     def __init__(self, detection_results, transform=None, path_head=None, animal_cls_id=0):

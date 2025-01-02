@@ -144,7 +144,7 @@ class PlainResNetClassifier(nn.Module):
         Set up the criterion for the classifier.
         """
         # Criterion for binary classification
-        self.criterion_cls = nn.BCEWithLogitsLoss()
+        self.criterion_cls = nn.CrossEntropyLoss()
 
     def feat_init(self):
         """
@@ -167,4 +167,3 @@ class PlainResNetClassifier(nn.Module):
         unused_keys = load_keys - self_keys
         print('missing keys: {}'.format(sorted(list(missing_keys))))
         print('unused_keys: {}'.format(sorted(list(unused_keys))))
-        pass

@@ -14,6 +14,17 @@ __all__ = [
     'Custom_Crop'
 ]
 
+# Define the allowed image extensions  
+IMG_EXTENSIONS = (".jpg", ".jpeg", ".png", ".ppm", ".bmp", ".pgm", ".tif", ".tiff", ".webp")  
+  
+def has_file_allowed_extension(filename: str, extensions: tuple) -> bool:  
+    """Checks if a file is an allowed extension."""  
+    return filename.lower().endswith(extensions if isinstance(extensions, str) else tuple(extensions))
+  
+def is_image_file(filename: str) -> bool:  
+    """Checks if a file is an allowed image extension."""  
+    return has_file_allowed_extension(filename, IMG_EXTENSIONS) 
+
 # Define normalization mean and standard deviation for image preprocessing
 mean = [0.485, 0.456, 0.406]
 std = [0.229, 0.224, 0.225]
@@ -45,7 +56,7 @@ class Custom_Base_DS(Dataset):
         predict (bool): Flag to indicate if the dataset is used for prediction.
     """
 
-    def __init__(self, rootdir, transform=None, predict=False, extension="jpg"):
+    def __init__(self, rootdir, transform=None, predict=False):
         """
         Initialize the Custom_Base_DS with the directory, transformations, and mode.
 
@@ -68,7 +79,8 @@ class Custom_Base_DS(Dataset):
         """
         if self.predict:
             # Load data for prediction
-            self.data = glob(os.path.join(self.img_root,"*.{}".format(self.extension)))
+            # self.data = glob(os.path.join(self.img_root,"*.{}".format(self.extension)))
+            self.data = [os.path.join(dp, f) for dp, dn, filenames in os.walk(self.img_root) for f in filenames if is_image_file(f)] # dp: directory path, dn: directory name, f: filename
         else:
             # Load data for training/validation
             self.data = list(self.ann['path'])
@@ -122,6 +134,7 @@ class Custom_Base_DS(Dataset):
 
         return sample, label_id, label, file_dir
 
+
 class Custom_Crop_DS(Custom_Base_DS):
     """
     Dataset class for handling custom cropped datasets.
@@ -146,6 +159,7 @@ class Custom_Crop_DS(Custom_Base_DS):
                                                 .format('test' if dset == 'test' else dset)))
         self.load_data()
 
+
 class Custom_Base(pl.LightningDataModule):
     """
     Base data module for handling custom datasets in PyTorch Lightning.
@@ -164,18 +178,27 @@ class Custom_Base(pl.LightningDataModule):
         """
         super().__init__()
         self._log_hyperparams = True
+        self.id_to_labels = None # We don't need this for evaluations. We should save this in model weights in the future
+        self.train_class_counts = None
+
         self.conf = conf
 
+        print('Loading datasets...')
         # Load datasets for different modes (training, validation, testing, prediction)
-        self.dset_tr = self.ds(rootdir=self.conf.output_dir, dset='train', transform=data_transforms['train'])
-        self.dset_val = self.ds(rootdir=self.conf.output_dir, dset='val', transform=data_transforms['val'])
-        self.dset_te = self.ds(rootdir=self.conf.output_dir, dset='test', transform=data_transforms['val'])
         if self.conf.predict:
             self.dset_pr = self.ds(rootdir=self.conf.predict_root, dset='predict', transform=data_transforms['val'])
+        elif self.conf.test:
+            self.dset_te = self.ds(rootdir=self.conf.dataset_root, dset='test', transform=data_transforms['val'])
+            self.id_to_labels = {i: l for i, l in np.unique(pd.Series(zip(self.dset_te.label_ids, self.dset_te.labels)))}
+        else:
+            self.dset_tr = self.ds(rootdir=self.conf.dataset_root, dset='train', transform=data_transforms['train'])
+            self.dset_val = self.ds(rootdir=self.conf.dataset_root, dset='val', transform=data_transforms['val'])
 
-        # Calculate class counts and label mappings
-        self.unique_label_ids, self.train_class_counts = self.dset_tr.class_counts_cal()
-        self.id_to_labels = {i: l for i, l in np.unique(pd.Series(zip(self.dset_tr.label_ids, self.dset_tr.labels)))}
+            self.id_to_labels = {i: l for i, l in np.unique(pd.Series(zip(self.dset_tr.label_ids, self.dset_tr.labels)))}
+            # Calculate class counts and label mappings
+            self.unique_label_ids, self.train_class_counts = self.dset_tr.class_counts_cal()
+
+        print('Datasets loaded.')
 
     def train_dataloader(self):
         """
@@ -212,6 +235,7 @@ class Custom_Base(pl.LightningDataModule):
             DataLoader: DataLoader for the prediction dataset.
         """
         return DataLoader(self.dset_pr, batch_size=64, shuffle=False, pin_memory=True, num_workers=self.conf.num_workers, drop_last=False)
+
 
 class Custom_Crop(Custom_Base):
     """
