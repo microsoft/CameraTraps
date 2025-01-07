@@ -1,0 +1,4 @@
+PytorchWildlife
+ultralytics
+hydra
+wget
