@@ -1,10 +1,14 @@
 from ultralytics import YOLO, RTDETR
 from utils import get_model_path
-from omegaconf import DictConfig  
-import hydra
+from munch import Munch
+import yaml
+import os
 
-@hydra.main(config_path="configs", config_name="config")
-def main(cfg: DictConfig):
+def main(config:str='./config.yaml'):
+
+    # Load and set configurations from the YAML file
+    with open(config) as f:
+        cfg = Munch(yaml.load(f, Loader=yaml.FullLoader))
 
     if cfg.resume:  
         model_path = cfg.weights  

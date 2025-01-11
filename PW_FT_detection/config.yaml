@@ -1,7 +1,8 @@
+# General
 model: YOLO #YOLO or RTDETR
 model_name: MDV6-yolov9e.pt 
-data: /home/v-druizlopez/ssdprivate/CameraTraps/PW_FT_detection/data/data_example.yaml # Fix to relative path
-test_data: /home/v-druizlopez/ssdprivate/CameraTraps/PW_FT_detection/data/data_example/images/test # Fix to relative path
+data: ./data/data_example.yaml 
+test_data: ./data/data_example/images/test 
 task: train
 exp_name: MDV6-yolov9e
 
