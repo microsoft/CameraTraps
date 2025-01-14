@@ -32,22 +32,22 @@ class MegaDetectorV6(YOLOV8Base):
         """
         self.IMAGE_SIZE = 640
 
-        if version == 'yolov9c':            
+        if version == 'MDV6-yolov9c':            
             url = "https://zenodo.org/records/14567879/files/MDV6b-yolov9c.pt?download=1" 
             self.MODEL_NAME = "MDV6b-yolov9c.pt"
-        elif version == 'yolov9e':
+        elif version == 'MDV6-yolov9e':
             url = "https://zenodo.org/records/14567879/files/MDV6-yolov9e.pt?download=1"
             self.MODEL_NAME = "MDV6-yolov9e.pt"
-        elif version == 'yolov10n':
+        elif version == 'MDV6-yolov10n':
             url = "https://zenodo.org/records/14567879/files/MDV6-yolov10n.pt?download=1"
             self.MODEL_NAME = "MDV6-yolov10n.pt"
-        elif version == 'yolov10x':
+        elif version == 'MDV6-yolov10x':
             url = "https://zenodo.org/records/14567879/files/MDV6-yolov10x.pt?download=1"
             self.MODEL_NAME = "MDV6-yolov10x.pt"
-        elif version =='rtdetrl':
+        elif version == 'MDV6-rtdetrl':
             url = "https://zenodo.org/records/14567879/files/MDV6b-rtdetrl.pt?download=1"
             self.MODEL_NAME = "MDV6b-rtdetrl.pt"
         else:
-            print('Select a valid model version: yolov9c, yolov9e, yolov10n, yolov10x or rtdetrl')
+            raise ValueError('Select a valid model version: MDV6-yolov9c, MDV6-yolov9e, MDV6-yolov10n, MDV6-yolov10x or MDV6-rtdetrl')
 
         super(MegaDetectorV6, self).__init__(weights=weights, device=device, url=url)

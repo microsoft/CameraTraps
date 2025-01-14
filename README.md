@@ -78,24 +78,27 @@ We want to make Pytorch-Wildlife a platform where different models with differen
 
 In addition, since the **Pytorch-Wildlife** package is under MIT, all the utility functions, including data pre-/post-processing functions and model fine-tuning functions in this packages are under MIT as well.
 
-### :mag: Model Zoo and Release Schedules
+### :mag: Comparative Model Zoo and Release Schedules
 
 #### Detection models
-|Models|Licence|Release|
-|---|---|---|
-|MegaDetectorV5|AGPL-3.0|Released|
-|MegaDetectroV6-Ultralytics-YoloV9-Compact|AGPL-3.0|Released|
+|Models|Licence|Release|Parameters (M)|mAP<sup>val<br>50-95|
+|---|---|---|---|---|
+|MegaDetectorV5|AGPL-3.0|Released|121|74.7|
+|MegaDetectorV6-Ultralytics-YoloV9-Compact|AGPL-3.0|Released|25.5|73.8|
 |HerdNet-general|CC BY-NC-SA-4.0|Released|
 |HerdNet-ennedi|CC BY-NC-SA-4.0|Released|
-|MegaDetectroV6-Ultralytics-YoloV9-Extra|AGPL-3.0|November 2024|
-|MegaDetectroV6-Ultralytics-YoloV10-Compact (even smaller and no NMS)|AGPL-3.0|November 2024|
-|MegaDetectroV6-Ultralytics-YoloV10-Extra (extra large model and no NMS)|AGPL-3.0|November 2024|
-|MegaDetectroV6-MIT-YoloV9-Compact|MIT|December 2024|
-|MegaDetectroV6-MIT-YoloV9-Extra|MIT|December 2024|
-|MegaDetectroV6-Ultralytics-YoloV11-Compact (better performance)|AGPL-3.0|December 2024|
-|MegaDetectroV6-Ultralytics-YoloV11-Extra (better performance)|AGPL-3.0|December 2024|
-|MegaDetectroV6-Apache-RTDetr-Compact|Apache|January 2025|
-|MegaDetectroV6-Apache-RTDetr-Extra|Apache|January 2025|
+|MegaDetectorV6-Ultralytics-YoloV9-Extra|AGPL-3.0|Released|58.1|80.2|
+|MegaDetectorV6-Ultralytics-YoloV10-Compact (even smaller and no NMS)|AGPL-3.0|Released|2.3|71.8|
+|MegaDetectorV6-Ultralytics-YoloV10-Extra (extra large model and no NMS)|AGPL-3.0|Released|29.5|79.9|
+|MegaDetectorV6-MIT-YoloV9-Compact|MIT|February 2025|
+|MegaDetectorV6-MIT-YoloV9-Extra|MIT|February 2025|
+|MegaDetectorV6-Apache-RTDetr-Compact|Apache|February 2025|
+|MegaDetectorV6-Apache-RTDetr-Extra|Apache|February 2025|
+
+|Models|Parameters (M)|mAP<sup>val<br>50-95|
+|---|---|---|
+|MegaDetectorV6-Ultralytics-YoloV11-Compact|2.6|71.9|
+|MegaDetectorV6-Ultralytics-YoloV11-Extra|56.9|79.3|
 
 #### Classification models
 |Models|Licence|Release|

@@ -18,7 +18,7 @@ patience: 5
 save_period: 1
 val: True
 resume: False
-weights: # Path to weight to resume training
+weights: None # Path to weight to resume training
 
 # Validation
 save_json: True

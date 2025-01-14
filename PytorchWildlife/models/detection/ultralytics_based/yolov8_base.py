@@ -13,7 +13,7 @@ from PIL import Image
 import wget
 import torch
 
-from ultralytics.models import yolo
+from ultralytics.models import yolo, rtdetr
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
@@ -60,7 +60,10 @@ class YOLOV8Base(BaseDetector):
             Exception: If weights are not provided.
         """
 
-        self.predictor = yolo.detect.DetectionPredictor()
+        if self.MODEL_NAME == 'MDV6b-rtdetrl.pt':
+            self.predictor = rtdetr.RTDETRPredictor()
+        else:
+            self.predictor = yolo.detect.DetectionPredictor()
         # self.predictor.args.device = device # Will uncomment later
         self.predictor.args.imgsz = self.IMAGE_SIZE
         self.predictor.args.save = False # Will see if we want to use ultralytics native inference saving functions.
