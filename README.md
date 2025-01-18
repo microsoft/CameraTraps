@@ -81,15 +81,16 @@ In addition, since the **Pytorch-Wildlife** package is under MIT, all the utilit
 ### :mag: Comparative Model Zoo and Release Schedules
 
 #### Detection models
-|Models|Licence|Release|Parameters (M)|mAP<sup>val<br>50-95|
-|---|---|---|---|---|
-|MegaDetectorV5|AGPL-3.0|Released|121|74.7|
-|MegaDetectorV6-Ultralytics-YoloV9-Compact|AGPL-3.0|Released|25.5|73.8|
+|Models|Licence|Release|Parameters (M)|mAP<sup>val<br>50-95|Recall|
+|---|---|---|---|---|---|
+|MegaDetectorV5|AGPL-3.0|Released|121|74.7|80.8|
+|MegaDetectorV6-Ultralytics-YoloV9-Compact|AGPL-3.0|Released|25.5|73.8|81.8|
+|MegaDetectorV6-Ultralytics-YoloV9-Extra|AGPL-3.0|Released|58.1|80.2|86.6|
+|MegaDetectorV6-Ultralytics-YoloV10-Compact (even smaller and no NMS)|AGPL-3.0|Released|2.3|71.8|79.0|
+|MegaDetectorV6-Ultralytics-YoloV10-Extra (extra large model and no NMS)|AGPL-3.0|Released|29.5|79.9|84.9|
+|MegaDetectorV6-Ultralytics-RtDetr-l|AGPL-3.0|Released|31.9|73.9|83.3|
 |HerdNet-general|CC BY-NC-SA-4.0|Released|
 |HerdNet-ennedi|CC BY-NC-SA-4.0|Released|
-|MegaDetectorV6-Ultralytics-YoloV9-Extra|AGPL-3.0|Released|58.1|80.2|
-|MegaDetectorV6-Ultralytics-YoloV10-Compact (even smaller and no NMS)|AGPL-3.0|Released|2.3|71.8|
-|MegaDetectorV6-Ultralytics-YoloV10-Extra (extra large model and no NMS)|AGPL-3.0|Released|29.5|79.9|
 |MegaDetectorV6-MIT-YoloV9-Compact|MIT|February 2025|
 |MegaDetectorV6-MIT-YoloV9-Extra|MIT|February 2025|
 |MegaDetectorV6-Apache-RTDetr-Compact|Apache|February 2025|

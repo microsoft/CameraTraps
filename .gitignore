@@ -20,5 +20,7 @@ PytorchWildlife.egg-info/
 *.ckpt
 *.pt
 *.pth
+*.cache
 demo/demo_data/imgs/other_extensions/
 demo/folder_separation/
+PW_FT_detection/runs/

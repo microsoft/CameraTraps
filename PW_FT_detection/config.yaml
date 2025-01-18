@@ -1,6 +1,6 @@
 # General
-model: YOLO #YOLO or RTDETR
-model_name: MDV6-yolov9e.pt 
+model: RTDETR #YOLO or RTDETR
+model_name: MDV6-rtdetrl
 data: ./data/data_example.yaml 
 test_data: ./data/data_example/images/test 
 task: train
