@@ -32,19 +32,19 @@ class MegaDetectorV6(YOLOV8Base):
         """
         self.IMAGE_SIZE = 640
 
-        if version == 'MDV6-yolov9c':            
+        if version == 'MDV6-yolov9-c':            
             url = "https://zenodo.org/records/14567879/files/MDV6b-yolov9c.pt?download=1" 
             self.MODEL_NAME = "MDV6b-yolov9c.pt"
-        elif version == 'MDV6-yolov9e':
+        elif version == 'MDV6-yolov9-e':
             url = "https://zenodo.org/records/14567879/files/MDV6-yolov9e.pt?download=1"
             self.MODEL_NAME = "MDV6-yolov9e.pt"
-        elif version == 'MDV6-yolov10n':
+        elif version == 'MDV6-yolov10-c':
             url = "https://zenodo.org/records/14567879/files/MDV6-yolov10n.pt?download=1"
             self.MODEL_NAME = "MDV6-yolov10n.pt"
-        elif version == 'MDV6-yolov10x':
+        elif version == 'MDV6-yolov10-e':
             url = "https://zenodo.org/records/14567879/files/MDV6-yolov10x.pt?download=1"
             self.MODEL_NAME = "MDV6-yolov10x.pt"
-        elif version == 'MDV6-rtdetrl':
+        elif version == 'MDV6-rtdetr-c':
             url = "https://zenodo.org/records/14567879/files/MDV6b-rtdetrl.pt?download=1"
             self.MODEL_NAME = "MDV6b-rtdetrl.pt"
         else:
