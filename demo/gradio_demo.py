@@ -267,7 +267,7 @@ with gr.Blocks() as demo:
         elif det_model == "MegaDetectorV5":  
             return gr.Dropdown(choices=["a", "b"], interactive=True, label="Model version", value="a"), gr.update(visible=True)
         else:
-            return gr.Dropdown(choices=["None"], interactive=True, label="Model version", value="None"), gr.update(value="None",visible=False) 
+            return gr.Dropdown(choices=["None"], interactive=True, label="Model version", value="None"), gr.update(value="None", visible=False) 
     
     det_drop.change(update_ui_elements, det_drop, [det_version, clf_drop])
 
