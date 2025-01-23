@@ -50,7 +50,7 @@ def load_models(det, version, clf, wpath=None, wclass=None):
         if det == "HerdNet General":
             detection_model = pw_detection.HerdNet(device=DEVICE)
         elif det == "HerdNet Ennedi":
-            detection_model = pw_detection.HerdNet(device=DEVICE, dataset="ennedi")
+            detection_model = pw_detection.HerdNet(device=DEVICE, version="ennedi")
         else:
             detection_model = pw_detection.__dict__[det](device=DEVICE, pretrained=True, version=version)
     else:
@@ -263,7 +263,7 @@ with gr.Blocks() as demo:
    
     def update_ui_elements(det_model):  
         if det_model == "MegaDetectorV6":  
-            return gr.Dropdown(choices=["MDV6-yolov9c", "MDV6-yolov9e", "MDV6-yolov10n", "MDV6-yolov10x", "MDV6-rtdetrl"], interactive=True, label="Model version", value="MDV6-yolov9e"), gr.update(visible=True)  
+            return gr.Dropdown(choices=["MDV6-yolov9-c", "MDV6-yolov9-e", "MDV6-yolov10-c", "MDV6-yolov10-e", "MDV6-rtdetr-c"], interactive=True, label="Model version", value="MDV6-yolov9e"), gr.update(visible=True)  
         elif det_model == "MegaDetectorV5":  
             return gr.Dropdown(choices=["a", "b"], interactive=True, label="Model version", value="a"), gr.update(visible=True)
         else:
