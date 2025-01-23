@@ -21,7 +21,7 @@ class HerdNet(BaseDetector):
     loading the model, generating results, and performing single and batch image detections.
     """
     
-    def __init__(self, weights=None, device="cpu", dataset='general' ,url="https://zenodo.org/records/13899852/files/20220413_HerdNet_General_dataset_2022.pth?download=1", transform=None):
+    def __init__(self, weights=None, device="cpu", version='general' ,url="https://zenodo.org/records/13899852/files/20220413_HerdNet_General_dataset_2022.pth?download=1", transform=None):
         """
         Initialize the HerdNet detector.
         
@@ -30,8 +30,8 @@ class HerdNet(BaseDetector):
                 Path to the model weights. Defaults to None.
             device (str, optional): 
                 Device for model inference. Defaults to "cpu".
-            dataset (str, optional):
-                Dataset for which the model is trained. It should be either 'general' or 'ennedi'. Defaults to 'general'.
+            version (str, optional):
+                Version name based on what dataset the model is trained on. It should be either 'general' or 'ennedi'. Defaults to 'general'.
             url (str, optional): 
                 URL to fetch the model weights. Defaults to None.
             transform (torchvision.transforms.Compose, optional):
@@ -39,9 +39,9 @@ class HerdNet(BaseDetector):
         """
         super(HerdNet, self).__init__(weights=weights, device=device, url=url)
         # Assert that the dataset is either 'general' or 'ennedi'
-        dataset = dataset.lower()
-        assert dataset in ['general', 'ennedi'], "Dataset should be either 'general' or 'ennedi'"
-        if dataset == 'ennedi':
+        version = version.lower()
+        assert version in ['general', 'ennedi'], "Dataset should be either 'general' or 'ennedi'"
+        if version == 'ennedi':
             url = "https://zenodo.org/records/13914287/files/20220329_HerdNet_Ennedi_dataset_2023.pth?download=1"
         self._load_model(weights, device, url)
 

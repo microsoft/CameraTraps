@@ -4,12 +4,12 @@ with open('README.md', encoding="utf8") as file:
         long_description = file.read()
 setup(
     name='PytorchWildlife',
-    version='1.1.0', 
+    version='1.2.0', 
     packages=find_packages(),
     url='https://github.com/microsoft/CameraTraps/',  
     license='MIT',
-    author='Andres Hernandez, Zhongqi Miao',
-    author_email='v-herandres@microsoft.com, zhongqimiao@microsoft.com',  
+    author='Andres Hernandez, Zhongqi Miao, Daniela Ruiz Lopez, Isai Daniel Chacon Silva',
+    author_email='v-herandres@microsoft.com, zhongqimiao@microsoft.com, v-druizlopez@microsoft.com, v-ichaconsil@microsoft.com',  
     description='a PyTorch Collaborative Deep Learning Framework for Conservation.',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -26,7 +26,7 @@ setup(
         'chardet',
         'wget',
         'ultralytics',
-        'setuptools==59.5.0',
+        'setuptools',
         'scikit-learn',
     ],
     classifiers=[

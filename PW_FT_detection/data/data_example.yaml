@@ -1,0 +1,10 @@
+path: /home/v-druizlopez/ssdprivate/CameraTraps/PW_FT_detection/data/data_example # Fix to relative path
+train: images/train 
+val: images/val 
+test: images/test  
+
+# Classes
+names:
+  0: animal
+  1: person
+  2: vehicle

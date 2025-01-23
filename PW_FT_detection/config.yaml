@@ -1,0 +1,31 @@
+# General
+model: RTDETR #YOLO or RTDETR
+model_name: MDV6-rtdetrl
+data: ./data/data_example.yaml 
+test_data: ./data/data_example/images/test 
+task: train
+exp_name: MDV6-yolov9e
+
+# Train
+epochs: 20
+batch_size_train: 16
+imgsz: 640
+device_train: 0
+workers: 8
+optimizer: auto
+lr0: 0.01
+patience: 5
+save_period: 1
+val: True
+resume: False
+weights: None # Path to weight to resume training
+
+# Validation
+save_json: True
+plot: True
+device_val: 0
+batch_size_val: 12
+
+
+
+

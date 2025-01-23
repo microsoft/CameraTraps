@@ -13,7 +13,7 @@ from PIL import Image
 import wget
 import torch
 
-from ultralytics.models import yolo
+from ultralytics.models import yolo, rtdetr
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
@@ -60,7 +60,10 @@ class YOLOV8Base(BaseDetector):
             Exception: If weights are not provided.
         """
 
-        self.predictor = yolo.detect.DetectionPredictor()
+        if self.MODEL_NAME == 'MDV6b-rtdetrl.pt':
+            self.predictor = rtdetr.RTDETRPredictor()
+        else:
+            self.predictor = yolo.detect.DetectionPredictor()
         # self.predictor.args.device = device # Will uncomment later
         self.predictor.args.imgsz = self.IMAGE_SIZE
         self.predictor.args.save = False # Will see if we want to use ultralytics native inference saving functions.
@@ -68,11 +71,11 @@ class YOLOV8Base(BaseDetector):
         if weights:
             self.predictor.setup_model(weights)
         elif url:
-            if not os.path.exists(os.path.join(torch.hub.get_dir(), "checkpoints", "MDV6b-yolov9c.pt")):
+            if not os.path.exists(os.path.join(torch.hub.get_dir(), "checkpoints", self.MODEL_NAME)):
                 os.makedirs(os.path.join(torch.hub.get_dir(), "checkpoints"), exist_ok=True)
                 weights = wget.download(url, out=os.path.join(torch.hub.get_dir(), "checkpoints"))
             else:
-                weights = os.path.join(torch.hub.get_dir(), "checkpoints", "MDV6b-yolov9c.pt")
+                weights = os.path.join(torch.hub.get_dir(), "checkpoints", self.MODEL_NAME)
             self.predictor.setup_model(weights)
         else:
             raise Exception("Need weights for inference.")

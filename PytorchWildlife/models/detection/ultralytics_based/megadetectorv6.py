@@ -30,14 +30,24 @@ class MegaDetectorV6(YOLOV8Base):
             pretrained (bool, optional): Whether to load the pretrained model. Default is True.
             version (str, optional): Version of the model to load. Default is 'yolov9c'.
         """
-        
-        if version == 'yolov9c':
-            self.IMAGE_SIZE = 640
-            url = "https://zenodo.org/records/13357337/files/MDV6b-yolov9c.pt?download=1" 
-        elif version =='rtdetrl':
-            self.IMAGE_SIZE = 640
-            url = None
+        self.IMAGE_SIZE = 640
+
+        if version == 'MDV6-yolov9-c':            
+            url = "https://zenodo.org/records/14567879/files/MDV6b-yolov9c.pt?download=1" 
+            self.MODEL_NAME = "MDV6b-yolov9c.pt"
+        elif version == 'MDV6-yolov9-e':
+            url = "https://zenodo.org/records/14567879/files/MDV6-yolov9e.pt?download=1"
+            self.MODEL_NAME = "MDV6-yolov9e.pt"
+        elif version == 'MDV6-yolov10-c':
+            url = "https://zenodo.org/records/14567879/files/MDV6-yolov10n.pt?download=1"
+            self.MODEL_NAME = "MDV6-yolov10n.pt"
+        elif version == 'MDV6-yolov10-e':
+            url = "https://zenodo.org/records/14567879/files/MDV6-yolov10x.pt?download=1"
+            self.MODEL_NAME = "MDV6-yolov10x.pt"
+        elif version == 'MDV6-rtdetr-c':
+            url = "https://zenodo.org/records/14567879/files/MDV6b-rtdetrl.pt?download=1"
+            self.MODEL_NAME = "MDV6b-rtdetrl.pt"
         else:
-            print('Select a valid model version: yolov9c or rtdetrl')
+            raise ValueError('Select a valid model version: MDV6-yolov9-c, MDV6-yolov9-e, MDV6-yolov10-c, MDV6-yolov10-e or MDV6-rtdetr-c')
 
         super(MegaDetectorV6, self).__init__(weights=weights, device=device, url=url)

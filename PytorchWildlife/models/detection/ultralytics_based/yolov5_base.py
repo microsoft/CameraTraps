@@ -124,7 +124,7 @@ class YOLOV5Base(BaseDetector):
         if img_size is None:
             img_size = img.permute((1, 2, 0)).shape # We need hwc instead of chw for coord scaling
         preds = self.model(img.unsqueeze(0).to(self.device))[0]
-        preds = torch.cat(non_max_suppression(prediction=preds, det_conf_thres=det_conf_thres), axis=0)
+        preds = torch.cat(non_max_suppression(prediction=preds, conf_thres=det_conf_thres), axis=0)
         preds[:, :4] = scale_coords([self.IMAGE_SIZE] * 2, preds[:, :4], img_size).round()
         return self.results_generation(preds.cpu().numpy(), img_path, id_strip)
 
@@ -162,7 +162,7 @@ class YOLOV5Base(BaseDetector):
             for batch_index, (imgs, paths, sizes) in enumerate(loader):
                 imgs = imgs.to(self.device)
                 predictions = self.model(imgs)[0].detach().cpu()
-                predictions = non_max_suppression(predictions, det_conf_thres=det_conf_thres)
+                predictions = non_max_suppression(predictions, conf_thres=det_conf_thres)
 
                 batch_results = []
                 for i, pred in enumerate(predictions):

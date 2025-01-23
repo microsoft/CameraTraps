@@ -1,0 +1,4 @@
+PytorchWildlife
+ultralytics
+munch
+wget

@@ -20,7 +20,7 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 # Initializing the HerdNet model for image detection
 detection_model = pw_detection.HerdNet(device=DEVICE)
 # If you want to use ennedi dataset weigths, you can use the following line:
-# detection_model = pw_detection.HerdNet(device=DEVICE, dataset="ennedi")
+# detection_model = pw_detection.HerdNet(device=DEVICE, version="ennedi")
 
 #%% Single image detection
 img_path = os.path.join(".","demo_data","herdnet_imgs","S_11_05_16_DSC01556.JPG")

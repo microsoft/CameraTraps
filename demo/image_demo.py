@@ -20,7 +20,8 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 #%% 
 # Initializing the MegaDetectorV6 model for image detection
-detection_model = pw_detection.MegaDetectorV6(device=DEVICE, pretrained=True, version="yolov9c")
+# Valid versions are MDV6-yolov9-c, MDV6-yolov9-e, MDV6-yolov10-c, MDV6-yolov10-e or MDV6-rtdetr-c
+detection_model = pw_detection.MegaDetectorV6(device=DEVICE, pretrained=True, version="MDV6-yolov10-e")
 
 # Uncomment the following line to use MegaDetectorV5 instead of MegaDetectorV6
 #detection_model = pw_detection.MegaDetectorV5(device=DEVICE, pretrained=True, version="a")

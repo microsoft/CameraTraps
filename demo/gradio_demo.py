@@ -43,18 +43,19 @@ detection_model = None
 classification_model = None
     
 # Defining functions for different detection scenarios
-def load_models(det, clf, wpath=None, wclass=None):
+def load_models(det, version, clf, wpath=None, wclass=None):
 
     global detection_model, classification_model
     if det != "None":
         if det == "HerdNet General":
             detection_model = pw_detection.HerdNet(device=DEVICE)
         elif det == "HerdNet Ennedi":
-            detection_model = pw_detection.HerdNet(device=DEVICE, dataset="ennedi")
-        elif det == "MegaDetectorV6":
-            detection_model = pw_detection.__dict__[det](device=DEVICE, pretrained=True)
+            detection_model = pw_detection.HerdNet(device=DEVICE, version="ennedi")
         else:
-            detection_model = pw_detection.__dict__[det](device=DEVICE, pretrained=True)
+            detection_model = pw_detection.__dict__[det](device=DEVICE, pretrained=True, version=version)
+    else:
+        detection_model = None
+        return "NO MODEL LOADED!!"
 
     if clf != "None":
         # Create an exception for custom weights
@@ -64,8 +65,10 @@ def load_models(det, clf, wpath=None, wclass=None):
                 classification_model = pw_classification.__dict__[clf](weights=wpath, class_names=wclass, device=DEVICE)
         else:
             classification_model = pw_classification.__dict__[clf](device=DEVICE, pretrained=True)
+    else:
+        classification_model = None
 
-    return "Loaded Detector: {}. Loaded Classifier: {}".format(det, clf)
+    return "Loaded Detector: {}. Version: {}. Loaded Classifier: {}".format(det, version, clf)
 
 
 def single_image_detection(input_img, det_conf_thres, clf_conf_thres, img_index=None):
@@ -237,26 +240,36 @@ with gr.Blocks() as demo:
             info="Will add more detection models!",
             value="None" # Default 
         )
+        det_version = gr.Dropdown(  
+            ["None"],  
+            label="Model version",  
+            info="Select the version of the model",
+            value="None",
+        )
+    
+    with gr.Column():
         clf_drop = gr.Dropdown(
             ["None", "AI4GOpossum", "AI4GAmazonRainforest", "AI4GSnapshotSerengeti", "CustomWeights"],
             interactive=True,
             label="Classification model",
             info="Will add more classification models!",
+            visible=False,
             value="None"
         )
-    with gr.Column():
         custom_weights_path = gr.Textbox(label="Custom Weights Path", visible=False, interactive=True, placeholder="./weights/my_weight.pt")
         custom_weights_class = gr.Textbox(label="Custom Weights Class", visible=False, interactive=True, placeholder="{1:'ocelot', 2:'cow', 3:'bear'}")
         load_but = gr.Button("Load Models!")
         load_out = gr.Text("NO MODEL LOADED!!", label="Loaded models:")
-    
+   
     def update_ui_elements(det_model):  
-        if "HerdNet" in det_model: # Disable all the classification model dropdown because HerdNet does not require a classification model apart
-            return gr.Dropdown(choices=["None"], interactive=True, label="Classification model", value="None")
+        if det_model == "MegaDetectorV6":  
+            return gr.Dropdown(choices=["MDV6-yolov9-c", "MDV6-yolov9-e", "MDV6-yolov10-c", "MDV6-yolov10-e", "MDV6-rtdetr-c"], interactive=True, label="Model version", value="MDV6-yolov9e"), gr.update(visible=True)  
+        elif det_model == "MegaDetectorV5":  
+            return gr.Dropdown(choices=["a", "b"], interactive=True, label="Model version", value="a"), gr.update(visible=True)
         else:
-            return gr.Dropdown(choices=["None", "AI4GOpossum", "AI4GAmazonRainforest", "AI4GAmazonRainforest_v2", "AI4GSnapshotSerengeti", "CustomWeights"], interactive=True, label="Classification model", value="None")
-
-    det_drop.change(update_ui_elements, det_drop, [clf_drop])
+            return gr.Dropdown(choices=["None"], interactive=True, label="Model version", value="None"), gr.update(value="None", visible=False) 
+    
+    det_drop.change(update_ui_elements, det_drop, [det_version, clf_drop])
 
     def toggle_textboxes(model):
         if model == "CustomWeights":
@@ -323,7 +336,7 @@ with gr.Blocks() as demo:
         [chck_timelapse]
     )
 
-    load_but.click(load_models, inputs=[det_drop, clf_drop, custom_weights_path, custom_weights_class], outputs=load_out)
+    load_but.click(load_models, inputs=[det_drop, det_version, clf_drop, custom_weights_path, custom_weights_class], outputs=load_out)
     sgl_but.click(single_image_detection, inputs=[sgl_in, sgl_conf_sl_det, sgl_conf_sl_clf], outputs=sgl_out)
     bth_but.click(batch_detection, inputs=[bth_in, chck_timelapse, bth_conf_sl], outputs=bth_out)
     vid_but.click(video_detection, inputs=[vid_in, vid_conf_sl_det, vid_conf_sl_clf, vid_fr, vid_enc], outputs=vid_out)

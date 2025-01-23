@@ -58,7 +58,7 @@ class AI4GAmazonRainforest(PlainResNetInference):
         35: 'Unknown'
     }
 
-    def __init__(self, weights=None, device="cpu", pretrained=True):
+    def __init__(self, weights=None, device="cpu", pretrained=True, version="v2"):
         """
         Initialize the Amazon animal Classifier.
 
@@ -66,11 +66,15 @@ class AI4GAmazonRainforest(PlainResNetInference):
             weights (str, optional): Path to the model weights. Defaults to None.
             device (str, optional): Device for model inference. Defaults to "cpu".
             pretrained (bool, optional): Whether to use pretrained weights. Defaults to True.
+            version (str, optional): Version of the model to load. Default is 'v2'.
         """
 
         # If pretrained, use the provided URL to fetch the weights
         if pretrained:
-            url = "https://zenodo.org/records/10042023/files/AI4GAmazonClassification_v0.0.0.ckpt?download=1"
+            if version == 'v1':
+                url = "https://zenodo.org/records/10042023/files/AI4GAmazonClassification_v0.0.0.ckpt?download=1"
+            elif version == 'v2':
+                url = "https://zenodo.org/records/14252214/files/AI4GAmazonDeforestationv2?download=1"
         else:
             url = None
 

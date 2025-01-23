@@ -25,7 +25,8 @@ TARGET_VIDEO_PATH = os.path.join(".","demo_data","videos","opossum_example_proce
 
 #%% 
 # Initializing the MegaDetectorV6 model for image detection
-detection_model = pw_detection.MegaDetectorV6(device=DEVICE, pretrained=True, version="yolov9c")
+# Valid versions are MDV6-yolov9-c, MDV6-yolov9-e, MDV6-yolov10-c, MDV6-yolov10-e or MDV6-rtdetr-c
+detection_model = pw_detection.MegaDetectorV6(device=DEVICE, pretrained=True, version="MDV6-yolov10-e")
 
 # Uncomment the following line to use MegaDetectorV5 instead of MegaDetectorV6
 #detection_model = pw_detection.MegaDetectorV5(device=DEVICE, pretrained=True, version="a")
@@ -73,5 +74,3 @@ def callback(frame: np.ndarray, index: int) -> np.ndarray:
 
 # Processing the video and saving the result with annotated detections and classifications
 pw_utils.process_video(source_path=SOURCE_VIDEO_PATH, target_path=TARGET_VIDEO_PATH, callback=callback, target_fps=10)
-
-# %%
