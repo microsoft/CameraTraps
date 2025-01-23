@@ -87,22 +87,23 @@ In addition, since the **Pytorch-Wildlife** package is under MIT, all the utilit
 |MegaDetectorV6-Apache-RTDetr-Extra|MDV6-apa-redetr-c|Apache|February 2025|76|80.8|-|
 
 #### Other detection models 
-|Models|Version Names|Licence|Release|
-|---|---|---|---|
-|HerdNet-general|general|CC BY-NC-SA-4.0|Released|
-|HerdNet-ennedi|ennedi|CC BY-NC-SA-4.0|Released|
-|MegaDetector-Overhead|-|MIT|Mid 2025|
-|MegaDetector-Bioacoustics|-|MIT|Late 2025|
+|Models|Version Names|Licence|Release|Reference|
+|---|---|---|---|---|
+|HerdNet-general|general|CC BY-NC-SA-4.0|Released|[Alexandre et. al. 2023](https://github.com/Alexandre-Delplanque/HerdNet)|
+|HerdNet-ennedi|ennedi|CC BY-NC-SA-4.0|Released|[Alexandre et. al. 2023](https://github.com/Alexandre-Delplanque/HerdNet)|
+|MegaDetector-Overhead|-|MIT|Mid 2025|-|
+|MegaDetector-Bioacoustics|-|MIT|Late 2025|-|
 
 #### Classification models
-|Models|Licence|Release|
-|---|---|---|
-|AI4G-Oppossum|MIT|Released|
-|AI4G-Amazon-V2|MIT|Released|
-|AI4G-Serengeti|MIT|Released|
+|Models|Version Names|Licence|Release|
+|---|---|---|---|
+|AI4G-Oppossum|-|MIT|Released|
+|AI4G-Amazon-V1|v1|MIT|Released|
+|AI4G-Amazon-V2|v2|MIT|Released|
+|AI4G-Serengeti|-|MIT|Released|
 
 >[!TIP]
->Some models, such as MegaDetectorV6 and HerdNet, have different versions, and they are loaded by their corresponding version names. Here is an example: `detection_model = pw_detection.MegaDetectorV6(version="MDV6-yolov10-e")`
+>Some models, such as MegaDetectorV6, HerdNet, and AI4G-Amazon, have different versions, and they are loaded by their corresponding version names. Here is an example: `detection_model = pw_detection.MegaDetectorV6(version="MDV6-yolov10-e")`.
 
 ## 👋 Welcome to Pytorch-Wildlife
 
