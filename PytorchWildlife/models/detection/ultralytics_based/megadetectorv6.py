@@ -48,6 +48,6 @@ class MegaDetectorV6(YOLOV8Base):
             url = "https://zenodo.org/records/14567879/files/MDV6b-rtdetrl.pt?download=1"
             self.MODEL_NAME = "MDV6b-rtdetrl.pt"
         else:
-            raise ValueError('Select a valid model version: MDV6-yolov9c, MDV6-yolov9e, MDV6-yolov10n, MDV6-yolov10x or MDV6-rtdetrl')
+            raise ValueError('Select a valid model version: MDV6-yolov9-c, MDV6-yolov9-e, MDV6-yolov10-c, MDV6-yolov10-e or MDV6-rtdetr-c')
 
         super(MegaDetectorV6, self).__init__(weights=weights, device=device, url=url)
