@@ -5,7 +5,7 @@ import torch
 from .base_classifier import PlainResNetInference
 
 __all__ = [
-    "AI4GAmazonRainforest_v1"
+    "AI4GAmazonRainforest"
 ]
 
 
