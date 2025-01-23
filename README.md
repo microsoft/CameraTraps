@@ -77,14 +77,14 @@ In addition, since the **Pytorch-Wildlife** package is under MIT, all the utilit
 |MegaDetectorV6-Ultralytics-YoloV9-Compact|MDV6-yolov9-c|AGPL-3.0|Released|25.5|73.8|82.6|
 |MegaDetectorV6-Ultralytics-YoloV9-Extra|MDV6-yolov9-e|AGPL-3.0|Released|58.1|80.2|87.1|
 |MegaDetectorV6-Ultralytics-YoloV10-Compact (even smaller and no NMS)|MDV6-yolov10-c|AGPL-3.0|Released|2.3|71.8|78.8|
-|MegaDetectorV6-Ultralytics-YoloV10-Extra (extra large model and no NMS)|MDV6-yolov10-c|AGPL-3.0|Released|29.5|79.9|85.2|
-|MegaDetectorV6-Ultralytics-RtDetr-Compact|MDV6-redetr-c|AGPL-3.0|Released|31.9|73.9|83.4|
+|MegaDetectorV6-Ultralytics-YoloV10-Extra (extra large model and no NMS)|MDV6-yolov10-e|AGPL-3.0|Released|29.5|79.9|85.2|
+|MegaDetectorV6-Ultralytics-RtDetr-Compact|MDV6-rtdetr-c|AGPL-3.0|Released|31.9|73.9|83.4|
 |MegaDetectorV6-Ultralytics-YoloV11-Compact|-|AGPL-3.0|Will Not Release|2.6|71.9|79.8|
 |MegaDetectorV6-Ultralytics-YoloV11-Extra|-|AGPL-3.0|Will Not Release|56.9|79.3|86.0|
-|MegaDetectorV6-MIT-YoloV9-Compact|MDV6-mit-yolov9-c|MIT|MDV6-mit-yolov9-c|February 2025|9.7|73.84|-|
-|MegaDetectorV6-MIT-YoloV9-Extra|MDV6-mit-yolov9-c|MIT|February 2025|51|Training|Training|
-|MegaDetectorV6-Apache-RTDetr-Compact|MDV6-apa-redetr-c|Apache|February 2025|20|76.3|-|
-|MegaDetectorV6-Apache-RTDetr-Extra|MDV6-apa-redetr-c|Apache|February 2025|76|80.8|-|
+|MegaDetectorV6-MIT-YoloV9-Compact|MDV6-mit-yolov9-c|MIT|February 2025|9.7|73.8|-|
+|MegaDetectorV6-MIT-YoloV9-Extra|MDV6-mit-yolov9-e|MIT|February 2025|51|75.2|-|
+|MegaDetectorV6-Apache-RTDetr-Compact|MDV6-apa-rtdetr-c|Apache|February 2025|20|76.3|-|
+|MegaDetectorV6-Apache-RTDetr-Extra|MDV6-apa-rtdetr-e|Apache|February 2025|76|80.8|-|
 
 #### Other detection models 
 |Models|Version Names|Licence|Release|Reference|
