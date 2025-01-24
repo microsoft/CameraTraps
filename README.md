@@ -55,7 +55,7 @@ MegaDetectorV6 models are based on architectures optimized for performance and l
 ![image](assets/ParamPerf.png)
 
 >[!TIP]
->From now on, we encourage our users to use MegaDetectorV6 as their default animal detection model and choose whichever model that fits the project needs. To reduce potential confusion, we have also standardized the model names into MDV6-Compact and MDV6-Extra for two model sizes using the same architecture. Learn how to use MegaDetectorV6 in our [image demo](demo/image_detection_demo_v6.ipynb) and [video demo](demo/video_detection_demo_v6.ipynb).
+>From now on, we encourage our users to use MegaDetectorV6 as their default animal detection model and choose whichever model that fits the project needs. To reduce potential confusion, we have also standardized the model names into MDV6-Compact and MDV6-Extra for two model sizes using the same architecture. Learn how to use MegaDetectorV6 in our [image demo](demo/image_detection_demo.ipynb) and [video demo](demo/video_detection_demo.ipynb).
 
 
 ### :bangbang: Model licensing  `(IMPORTANT!!)`
