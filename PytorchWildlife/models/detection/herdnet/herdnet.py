@@ -6,7 +6,7 @@ from .model import HerdNet as HerdNetArch
 import torch
 from torch.hub import load_state_dict_from_url
 from torch.utils.data import DataLoader
-import torchvision.transforms as transforms  
+import torchvision.transforms as transforms
 
 import numpy as np
 from PIL import Image
@@ -14,6 +14,24 @@ from tqdm import tqdm
 import supervision as sv
 import os
 import wget
+import cv2
+  
+class ResizeIfSmaller:  
+    def __init__(self, min_size, interpolation=Image.BILINEAR):  
+        self.min_size = min_size  
+        self.interpolation = interpolation  
+  
+    def __call__(self, img):
+        if isinstance(img, np.ndarray):
+            img = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+        assert isinstance(img, Image.Image), "Image should be a PIL Image"  
+        width, height = img.size
+        if height < self.min_size or width < self.min_size:  
+            ratio = max(self.min_size / height, self.min_size / width)  
+            new_height = int(height * ratio)  
+            new_width = int(width * ratio)  
+            img = img.resize((new_width, new_height), self.interpolation)  
+        return img 
 
 class HerdNet(BaseDetector):
     """
@@ -60,6 +78,7 @@ class HerdNet(BaseDetector):
 
         if not transform:
             self.transforms = transforms.Compose([
+                ResizeIfSmaller(512),
                 transforms.ToTensor(),
                 transforms.Normalize(mean=self.img_mean, std=self.img_std)  
                 ]) 
@@ -90,7 +109,6 @@ class HerdNet(BaseDetector):
             else:
                 weights = os.path.join(torch.hub.get_dir(), "checkpoints", filename)
             checkpoint = torch.load(weights, map_location=torch.device(device))
-            #checkpoint = load_state_dict_from_url(url, map_location=torch.device(self.device)) # NOTE: This function is not used in the current implementation
         else:
             raise Exception("Need weights for inference.")
         
@@ -112,13 +130,15 @@ class HerdNet(BaseDetector):
 
         print(f"Model loaded from {weights}")
 
-    def results_generation(self, preds, img_id, id_strip=None):
+    def results_generation(self, preds, img=None, img_id=None, id_strip=None):
         """
         Generate results for detection based on model predictions.
         
         Args:
             preds (numpy.ndarray): 
                 Model predictions.
+            img (numpy.ndarray, optional):
+                Image for inference. Defaults to None.
             img_id (str): 
                 Image identifier.
             id_strip (str, optional): 
@@ -127,7 +147,13 @@ class HerdNet(BaseDetector):
         Returns:
             dict: Dictionary containing image ID, detections, and labels.
         """
-        results = {"img_id": str(img_id).strip(id_strip) if id_strip else str(img_id)}
+        assert img is not None or img_id is not None, "Either img or img_id should be provided."
+        if img_id is not None:
+            img_id = str(img_id).strip(id_strip) if id_strip else str(img_id)
+            results = {"img_id": img_id}
+        elif img is not None:
+            results = {"img": img}
+
         results["detections"] = sv.Detections(
             xyxy=preds[:, :4],
             confidence=preds[:, 4],
@@ -157,7 +183,7 @@ class HerdNet(BaseDetector):
 
         Returns:
             dict: Detection results for the image.
-        """  
+        """
         if isinstance(img, str):  
             img_path = img_path or img  
             img = np.array(Image.open(img_path).convert("RGB"))  
@@ -168,8 +194,11 @@ class HerdNet(BaseDetector):
         heatmap, clsmap = preds[:,:1,:,:], preds[:,1:,:,:]  
         counts, locs, labels, scores, dscores = self.lmds((heatmap, clsmap))
         preds_array = self.process_lmds_results(counts, locs, labels, scores, dscores, det_conf_thres, clf_conf_thres)
-        return self.results_generation(preds_array, img_path, id_strip=id_strip)  
-
+        if img_path:
+            results_dict = self.results_generation(preds_array, img_id=img_path, id_strip=id_strip)
+        else:
+            results_dict = self.results_generation(preds_array, img=img)
+        return results_dict
 
     def batch_image_detection(self, data_path, det_conf_thres=0.2, clf_conf_thres=0.2, batch_size=1, id_strip=None):
         """
@@ -207,7 +236,7 @@ class HerdNet(BaseDetector):
                 heatmap, clsmap = predictions[:,:1,:,:], predictions[:,1:,:,:]
                 counts, locs, labels, scores, dscores = self.lmds((heatmap, clsmap))
                 preds_array = self.process_lmds_results(counts, locs, labels, scores, dscores, det_conf_thres, clf_conf_thres) 
-                results_dict = self.results_generation(preds_array, paths[0], id_strip=id_strip)
+                results_dict = self.results_generation(preds_array, img_id=paths[0], id_strip=id_strip)
                 pbar.update(1)
                 sizes = sizes.numpy()
                 normalized_coords = [[x1 / sizes[0][0], y1 / sizes[0][1], x2 / sizes[0][0], y2 / sizes[0][1]] for x1, y1, x2, y2 in preds_array[:, :4]] # TODO: Check if this is correct due to xy swapping 
