@@ -98,10 +98,17 @@ def save_detection_images_dots(results, output_dir, input_dir = None, overwrite=
     
     with sv.ImageSink(target_dir_path=output_dir, overwrite=overwrite) as sink:
         if isinstance(results, list):
-            for entry in results:
+            for i, entry in enumerate(results):
+                if "img_id" in entry:
+                    scene = np.array(Image.open(entry["img_id"]).convert("RGB"))
+                    image_name = os.path.basename(entry["img_id"])
+                else:
+                    scene = entry["img"]
+                    image_name = f"output_image_{i}.jpg" # default name if no image id is provided
+
                 annotated_img = lab_annotator.annotate(
                     scene=dot_annotator.annotate(
-                        scene=np.array(Image.open(entry["img_id"]).convert("RGB")),
+                        scene=scene,
                         detections=entry["detections"],
                     ),
                     detections=entry["detections"],
@@ -111,23 +118,28 @@ def save_detection_images_dots(results, output_dir, input_dir = None, overwrite=
                     relative_path = os.path.relpath(entry["img_id"], input_dir)
                     save_path = os.path.join(output_dir, relative_path)
                     os.makedirs(os.path.dirname(save_path), exist_ok=True) 
-                    image_name = relative_path 
-                else:
-                    image_name = os.path.basename(entry["img_id"])
+                    image_name = relative_path
                 sink.save_image(
                     image=cv2.cvtColor(annotated_img, cv2.COLOR_RGB2BGR), image_name=image_name
                 )
         else:
+            if "img_id" in results:
+                scene = np.array(Image.open(results["img_id"]).convert("RGB"))
+                image_name = os.path.basename(results["img_id"])
+            else:
+                scene = results["img"]
+                image_name = "output_image.jpg" # default name if no image id is provided
+            
             annotated_img = lab_annotator.annotate(
                 scene=dot_annotator.annotate(
-                    scene=np.array(Image.open(results["img_id"]).convert("RGB")),
+                    scene=scene,
                     detections=results["detections"],
                 ),
                 detections=results["detections"],
                 labels=results["labels"],
-            )
+            )   
             sink.save_image(
-                image=cv2.cvtColor(annotated_img, cv2.COLOR_RGB2BGR), image_name=os.path.basename(results["img_id"])
+                image=cv2.cvtColor(annotated_img, cv2.COLOR_RGB2BGR), image_name=image_name
             )
 
 
