@@ -69,11 +69,11 @@ Below you find the models that you can use for fine-tuning, along with their res
 
 |Model|Name|License|
 |---|---|---|
-|MegaDetectroV6-Ultralytics-YoloV9-Compact|MDV6-yolov9c|AGPL-3.0|
-|MegaDetectorV6-Ultralytics-YoloV9-Extra|MDV6-yolov9e|AGPL-3.0|
-|MegaDetectorV6-Ultralytics-YoloV10-Compact|MDV6-yolov10n|AGPL-3.0|
-|MegaDetectorV6-Ultralytics-YoloV10-Extra|MDV6-yolov10x|AGPL-3.0|
-|MegaDetectorV6-Ultralytics-RtDetr-l|MDV6-rtdetrl|AGPL-3.0|
+|MegaDetectroV6-Ultralytics-YoloV9-Compact|MDV6-yolov9-c|AGPL-3.0|
+|MegaDetectorV6-Ultralytics-YoloV9-Extra|MDV6-yolov9-e|AGPL-3.0|
+|MegaDetectorV6-Ultralytics-YoloV10-Compact|MDV6-yolov10-c|AGPL-3.0|
+|MegaDetectorV6-Ultralytics-YoloV10-Extra|MDV6-yolov10-e|AGPL-3.0|
+|MegaDetectorV6-Ultralytics-RtDetr-Compact|MDV6-rtdetr-c|AGPL-3.0|
 
 ## Configuration
 
@@ -81,7 +81,7 @@ Before training your model, you need to configure the training and data paramete
 
 - **General Parameters:**  
   - `model`: The type of model used (YOLO or RTDETR). Default: YOLO  
-  - `model_name`: The name of the model [see availbale names here](#detection-models-available-for-finetuning). Default: MDV6-yolov9e.pt  
+  - `model_name`: The name of the model [see availbale names here](#detection-models-available-for-finetuning). Default: MDV6-yolov9-e.pt  
   - `data`: Path to the dataset configuration file. Default: ./data/data_example.yaml  
   - `test_data`: Path to the test data directory. Default: ./data/data_example/images/test  
   - `task`: The task to perform (train, validation or inference). Default: train  

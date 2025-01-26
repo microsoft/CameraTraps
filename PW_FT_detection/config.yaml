@@ -1,10 +1,10 @@
 # General
-model: RTDETR #YOLO or RTDETR
-model_name: MDV6-rtdetrl
+model: YOLO #YOLO or RTDETR
+model_name: MDV6-yolov9-e
 data: ./data/data_example.yaml 
 test_data: ./data/data_example/images/test 
 task: train
-exp_name: MDV6-yolov9e
+exp_name: MDV6-yolov9-e
 
 # Train
 epochs: 20
