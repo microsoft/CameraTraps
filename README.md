@@ -45,6 +45,9 @@ For those interested in accessing the previous MegaDetector repository, which ut
 - We have also released additional MegaDetectorV6 models based on Yolo-v10 and RtDetr. We have skipped Yolo-v11 models because of limited performance and architectural gains. Most of the MIT and Apache versions have also finished training but are waiting for internal review before they can be released.
 - We have also updated our AI4G-Amazon model with bigger datasets and it has a better performance compared to previous iterations. Please feel free to test it or fine-tune on it. 
 - We will also make a new roadmap for 2025 in the next couple of updates.
+- Special thanks to [José Díaz](https://github.com/jdiaz97) for his great cross-platform app, [BoquilaHUB](https://github.com/boquila/boquilahub), that is even working on ios and android! Please check his repo out! In the future, we will create a project gallery showcasing projects that use or are build upon Pytorch-Wildlife. If you want your projects to be included, please feel free to reach out to us on [![](https://img.shields.io/badge/any_text-Join_us!-blue?logo=discord&label=PytorchWildife)](https://discord.gg/TeEVxzaYtm)
+
+<img src="https://github.com/boquila/boquilahub/blob/main/readme.jpg?raw=true" alt="animal_det_1" width="300"/><br>
 
 
 ### :racing_car::dash::dash: MegaDetectorV6: SMALLER, BETTER, FASTER!  
