@@ -517,7 +517,8 @@ def detection_folder_separation(json_file, img_path, destination_path, confidenc
         
         # Construct the source and destination file paths
         src_file_path = os.path.join(img_path, img_id)
-        dest_file_path = os.path.join(target_folder, os.path.basename(img_id))
+        dest_file_path = os.path.join(target_folder, os.path.dirname(img_id))
+        os.makedirs(dest_file_path, exist_ok=True)
         
         # Copy the file to the appropriate directory
         shutil.copy(src_file_path, dest_file_path)
