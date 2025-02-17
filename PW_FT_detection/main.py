@@ -21,6 +21,14 @@ def main(config:str='./config.yaml'):
         model = RTDETR(model_path)  
     else:  
         raise ValueError("Model not supported")  
+
+    with open(cfg.data) as f:
+        data = yaml.safe_load(f)
+
+    if not os.path.isabs(data["path"]):
+        data["path"] = os.path.abspath(data["path"])
+        with open(cfg.data, 'w') as f:
+            yaml.dump(data, f)
     
     model.info()
 
@@ -35,7 +43,8 @@ def main(config:str='./config.yaml'):
             workers=cfg.workers, 
             batch=cfg.batch_size_train, 
             val=cfg.val,
-            name=f"train_{cfg.exp_name}",
+            project=f"train_{cfg.exp_name}",
+            name="exp",
             patience=cfg.patience,
             resume=cfg.resume
             )
@@ -47,7 +56,8 @@ def main(config:str='./config.yaml'):
             save_json=cfg.save_json, 
             plots=cfg.plots, 
             device=cfg.device_val, 
-            name=f'val_{cfg.exp_name}', 
+            project=f'val_{cfg.exp_name}', 
+            name="exp",
             batch=cfg.batch_size_val) 
 
         metrics.box.map    # map50-95
