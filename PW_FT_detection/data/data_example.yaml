@@ -1,4 +1,4 @@
-path: /home/v-druizlopez/ssdprivate/CameraTraps/PW_FT_detection/data/data_example # Fix to relative path
+path: ./data/data_example
 train: images/train 
 val: images/val 
 test: images/test  
