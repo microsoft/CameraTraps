@@ -43,7 +43,7 @@ def main(config:str='./config.yaml'):
             workers=cfg.workers, 
             batch=cfg.batch_size_train, 
             val=cfg.val,
-            project=f"train_{cfg.exp_name}",
+            project=f"runs/train_{cfg.exp_name}",
             name="exp",
             patience=cfg.patience,
             resume=cfg.resume
@@ -56,7 +56,7 @@ def main(config:str='./config.yaml'):
             save_json=cfg.save_json, 
             plots=cfg.plots, 
             device=cfg.device_val, 
-            project=f'val_{cfg.exp_name}', 
+            project=f'runs/val_{cfg.exp_name}', 
             name="exp",
             batch=cfg.batch_size_val) 
 
