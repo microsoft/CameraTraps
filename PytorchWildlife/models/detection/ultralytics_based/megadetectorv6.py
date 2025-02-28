@@ -20,7 +20,11 @@ class MegaDetectorV6(YOLOV8Base):
         2: "vehicle"
     }
 
+<<<<<<< HEAD
     def __init__(self, weights=None, device="cpu", pretrained=True, version='yolov9c', filename="MDV6b-yolov9c.pt"):
+=======
+    def __init__(self, weights=None, device="cpu", version='yolov9c'):
+>>>>>>> cbb5a95549386d46e2b7380220e510d46b14c6f6
         """
         Initializes the MegaDetectorV5 model with the option to load pretrained weights.
         
