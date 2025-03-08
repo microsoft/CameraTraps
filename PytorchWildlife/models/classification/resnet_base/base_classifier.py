@@ -11,6 +11,7 @@ import torch.nn as nn
 from torchvision.models.resnet import BasicBlock, Bottleneck, ResNet
 from torch.hub import load_state_dict_from_url
 
+from ..base_classifier import BaseClassifierInference 
 from ....data import transforms as pw_trans
 
 # Making the PlainResNetInference class available for import from this module
@@ -97,7 +98,7 @@ class PlainResNetClassifier(nn.Module):
         print("unused_keys:", sorted(list(unused_keys)))
 
 
-class PlainResNetInference(nn.Module):
+class PlainResNetInference(BaseClassifierInference):
     """
     Inference module for the PlainResNet Classifier.
     """
