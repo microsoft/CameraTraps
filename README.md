@@ -40,6 +40,9 @@ For those interested in accessing the previous MegaDetector repository, which ut
 
 ## 📣 Announcements
 
+### SpeciesNet is available in Pytorch-Wildlife for testing! 
+- Please refer to [this document](https://github.com/microsoft/CameraTraps/blob/SppNet_TF/PytorchWildlife/models/classification/speciesnet_base/sppnet_readme.md) for more details!
+
 ### Pytorch-Wildlife Version 1.2.0
 - In this version of Pytorch-Wildlife, we are happy to release our [detection fine-tuning module](PW_FT_detection), with which users can fine-tune their own detection model from any released pre-trained MegaDetectorV6 models. Besides, this module also has functionalities that help users to prepare their datasets for the fine-tuning, just as our classification fine-tuning modules. For more details, please check the [readme](PW_FT_detection/README.md). Currently the fine-tuning is based on [Ultralytics](https://www.ultralytics.com/) with AGPL. We will release MIT versions in the future. Here is the [release page](https://github.com/microsoft/CameraTraps/releases).
 - We have also released additional MegaDetectorV6 models based on Yolo-v10 and RtDetr. We have skipped Yolo-v11 models because of limited performance and architectural gains. Most of the MIT and Apache versions have also finished training but are waiting for internal review before they can be released.
