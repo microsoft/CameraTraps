@@ -148,13 +148,13 @@ class YOLOV8Base(BaseDetector):
         
         return self.results_generation(det_results[0], img_path, id_strip)
 
-    def batch_image_detection(self, data_path, batch_size=16, det_conf_thres=0.2, id_strip=None):
+    def batch_image_detection(self, data_source, batch_size=16, det_conf_thres=0.2, id_strip=None):
         """
         Perform detection on a batch of images.
         
         Args:
-            data_path (str): 
-                Path containing all images for inference.
+            data_source (str or List[np.ndarray]): 
+                Either path containing images for inference or list of numpy arrays (RGB format, shape: H×W×3)
             batch_size (int, optional):
                 Batch size for inference. Defaults to 16.
             det_conf_thres (float, optional): 
@@ -170,8 +170,30 @@ class YOLOV8Base(BaseDetector):
         self.predictor.args.batch = batch_size
         self.predictor.args.conf = det_conf_thres
 
+        # Handle numpy array input
+        if isinstance(data_source, (list, np.ndarray)):
+            results = []
+            num_batches = (len(data_source) + batch_size - 1) // batch_size  # Calculate total batches
+            
+            with tqdm(total=num_batches) as pbar:
+                for start_idx in range(0, len(data_source), batch_size):
+                    batch_arrays = data_source[start_idx:start_idx + batch_size]
+                    det_results = self.predictor.stream_inference(batch_arrays)
+                    
+                    for idx, preds in enumerate(det_results):
+                        res = self.results_generation(preds, f"{start_idx + idx}", id_strip)
+                        # Get size directly from numpy array
+                        img_height, img_width = batch_arrays[idx].shape[:2]
+                        normalized_coords = [[x1/img_width, y1/img_height, x2/img_width, y2/img_height] 
+                                        for x1, y1, x2, y2 in res["detections"].xyxy]
+                        res["normalized_coords"] = normalized_coords
+                        results.append(res)
+                    pbar.update(1)
+            return results
+        
+        # Handle image directory input
         dataset = pw_data.DetectionImageFolder(
-            data_path,
+            data_source,
             transform=self.transform,
         )
 
