@@ -10,9 +10,11 @@ import torch
 import torch.nn as nn
 from torchvision.models.resnet import BasicBlock, Bottleneck, ResNet
 from torch.hub import load_state_dict_from_url
+from torch.utils.data import DataLoader
 
 from ..base_classifier import BaseClassifierInference 
 from ....data import transforms as pw_trans
+from ....data import datasets as pw_data 
 
 # Making the PlainResNetInference class available for import from this module
 __all__ = ["PlainResNetInference"]
@@ -102,6 +104,7 @@ class PlainResNetInference(BaseClassifierInference):
     """
     Inference module for the PlainResNet Classifier.
     """
+    IMAGE_SIZE = None
     def __init__(self, num_cls=36, num_layers=50, weights=None, device="cpu", url=None, transform=None):
         super(PlainResNetInference, self).__init__()
         self.device = device
@@ -119,7 +122,7 @@ class PlainResNetInference(BaseClassifierInference):
         if transform:
             self.transform = transform
         else:
-            self.transform = pw_trans.Classification_Inference_Transform(target_size=224)
+            self.transform = pw_trans.Classification_Inference_Transform(target_size=self.IMAGE_SIZE)
 
     def results_generation(self, logits, img_id, id_strip=None):
         """
@@ -149,10 +152,28 @@ class PlainResNetInference(BaseClassifierInference):
         logits = self.forward(img.unsqueeze(0).to(self.device))
         return self.results_generation(logits.cpu(), [img_id], id_strip=id_strip)[0]
 
-    def batch_image_classification(self, dataloader, id_strip=None):
+    def batch_image_classification(self, data_path=None, det_results=None, id_strip=None):
         """
         Process a batch of images for classification.
         """
+
+        if data_path:
+            dataset = pw_data.ImageFolder(
+                data_path,
+                transform=self.transform,
+                path_head='.'
+            )
+        elif det_results:
+            dataset = pw_data.DetectionCrops(
+                det_results,
+                transform=self.transform,
+                path_head='.'
+            )
+        else:
+            raise Exception("Need data for inference.")
+
+        dataloader = DataLoader(dataset, batch_size=32, shuffle=False, 
+                                pin_memory=True, num_workers=4, drop_last=False)
         total_logits = []
         total_paths = []
 

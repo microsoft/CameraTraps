@@ -1,5 +1,5 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
-# Licensed under the MIT License.
+# Licensed under the AGPL License.
 
 """ YoloV5 base detector class. """
 
@@ -15,8 +15,7 @@ from torch.utils.data import DataLoader
 from torch.hub import load_state_dict_from_url
 
 from yolov5.utils.general import non_max_suppression, scale_boxes
-# from yolov5.utils.general import non_max_suppression, scale_coords
-
+# from .yolov5_utils import non_max_suppression, scale_boxes
 from ..base_detector import BaseDetector
 from ....data import transforms as pw_trans
 from ....data import datasets as pw_data

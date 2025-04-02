@@ -30,19 +30,19 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 #%% 
 # Initializing the MegaDetectorV6 model for image detection
 # Valid versions are MDV6-yolov9-c, MDV6-yolov9-e, MDV6-yolov10-c, MDV6-yolov10-e or MDV6-rtdetr-c
-# detection_model = pw_detection.MegaDetectorV6(device=DEVICE, pretrained=True, version="MDV6-yolov10-e")
+detection_model = pw_detection.MegaDetectorV6(device=DEVICE, pretrained=True, version="MDV6-yolov10-e")
 
 # Uncomment the following line to use MegaDetectorV5 instead of MegaDetectorV6
-detection_model = pw_detection.MegaDetectorV5(device=DEVICE, pretrained=True, version="a")
+# detection_model = pw_detection.MegaDetectorV5(device=DEVICE, pretrained=True, version="a")
 
 # %%
 # Initializing a classification model for image classification
-classification_model = pw_classification.AI4GAmazonRainforest(version='v2')
+# classification_model = pw_classification.DFNE(device=DEVICE)
+classification_model = pw_classification.AI4GAmazonRainforest(device=DEVICE, version='v2')
 
 #%% Single image detection
 # Specifying the path to the target image TODO: Allow argparsing
-# tgt_img_path = os.path.join(".","demo_data","imgs","10050028_0.JPG")
-tgt_img_path = os.path.join("./demo/demo_data/imgs/10050028_0.JPG")
+tgt_img_path = os.path.join(".","demo_data","imgs","10050028_0.JPG")
 
 # Performing the detection on the single image
 results = detection_model.single_image_detection(tgt_img_path)
@@ -64,12 +64,10 @@ results["labels"] = clf_labels
 
 # %%
 # Saving the detection results 
-# pw_utils.save_detection_images(results, os.path.join(".","demo_output"), overwrite=False)
-pw_utils.save_detection_images(results, os.path.join("./demo/demo_output"), overwrite=False)
+pw_utils.save_detection_images(results, os.path.join(".","demo_output"), overwrite=False)
 
 # %%# Saving the detected objects as cropped images
-# pw_utils.save_crop_images(results, os.path.join(".","crop_output"), overwrite=False)
-pw_utils.save_crop_images(results, os.path.join("./demo/crop_output"), overwrite=False)
+pw_utils.save_crop_images(results, os.path.join(".","crop_output"), overwrite=False)
 
 
 # %%
@@ -77,20 +75,12 @@ pw_utils.save_crop_images(results, os.path.join("./demo/crop_output"), overwrite
 """ Batch-detection demo """
 
 # Specifying the folder path containing multiple images for batch detection
-# tgt_folder_path = os.path.join(".","demo_data","imgs")
-tgt_folder_path = os.path.join("./demo/demo_data/imgs")
+tgt_folder_path = os.path.join(".","demo_data","imgs")
 
 # Performing batch detection on the images
 det_results = detection_model.batch_image_detection(tgt_folder_path, batch_size=16)
 
-clf_dataset = pw_data.DetectionCrops(
-    det_results,
-    transform=pw_trans.Classification_Inference_Transform(target_size=224),
-    path_head='.'
-)
-clf_loader = DataLoader(clf_dataset, batch_size=32, shuffle=False, 
-                        pin_memory=True, num_workers=4, drop_last=False)
-clf_results = classification_model.batch_image_classification(clf_loader, id_strip=tgt_folder_path)
+clf_results = classification_model.batch_image_classification(det_results=det_results, id_strip=tgt_folder_path)
 
 # %%
 merged_results = det_results.copy()
