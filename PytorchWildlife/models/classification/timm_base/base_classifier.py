@@ -56,11 +56,15 @@ class TIMM_BaseClassifierInference(BaseClassifierInference):
 
     def _load_model(self, weights=None, device="cpu", url=None):
         """
-        Load the DeepFaune NE model weights
+        Load TIMM based model weights
         
         Args:
         weights (str, optional): 
-            Path to the model weights. (defaults to DFNE weights)
+            Path to the model weights. (defaults to None)
+        device (str, optional): 
+            Running device. (defaults to cpu)
+        url (str, optional): 
+            url to the model weights. (defaults to None)
         """
 
         self.predictor = timm.create_model(
@@ -144,7 +148,8 @@ class TIMM_BaseClassifierInference(BaseClassifierInference):
         logits = self.predictor(img.unsqueeze(0).to(self.device))
         return self.results_generation(logits.cpu(), [img_id], id_strip=id_strip)[0]
 
-    def batch_image_classification(self, data_path=None, det_results=None, id_strip=None):
+    def batch_image_classification(self, data_path=None, det_results=None, id_strip=None,
+                                   batch_size=32, num_workers=0, **kwargs):
         """
         Perform classification on a batch of images.
         
@@ -153,10 +158,12 @@ class TIMM_BaseClassifierInference(BaseClassifierInference):
                 Path containing all images for inference. Defaults to None. 
             det_results (dict):
                 Dirct outputs from detectors. Defaults to None.
+            id_strip (str, optional):
+                Whether to strip stings in id. Defaults to None.
             batch_size (int, optional):
-                Batch size for inference. Defaults to 16.
-            softmax (logical, optional):
-                Whether to return softmax values. Defaults to False.
+                Batch size for inference. Defaults to 32.
+            num_workers (int, optional):
+                Number of workers for dataloader. Defaults to 0.
 
         Returns:
             (dict): Classification results.
@@ -177,8 +184,8 @@ class TIMM_BaseClassifierInference(BaseClassifierInference):
         else:
             raise Exception("Need data for inference.")
 
-        dataloader = DataLoader(dataset, batch_size=32, shuffle=False, 
-                                pin_memory=True, num_workers=4, drop_last=False)
+        dataloader = DataLoader(dataset=dataset, batch_size=batch_size, num_workers=num_workers,
+                                shuffle=False, pin_memory=True, drop_last=False, **kwargs)
         
         total_logits = []
         total_paths = []
