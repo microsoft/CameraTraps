@@ -11,3 +11,7 @@ wget
 ultralytics
 setuptools
 scikit-learn
+lightning
+einops
+wandb
+pycocotools
