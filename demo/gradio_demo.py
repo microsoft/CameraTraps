@@ -29,6 +29,11 @@ from PytorchWildlife.models import classification as pw_classification
 from PytorchWildlife.data import transforms as pw_trans
 from PytorchWildlife.data import datasets as pw_data 
 
+# Importing the library for video processing
+from tqdm import tqdm
+from typing import Callable
+from supervision import VideoInfo, VideoSink, get_video_frames_generator
+import json
 # Setting the device to use for computations ('cuda' indicates GPU)
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 # Initializing a supervision box annotator for visualizing detections
@@ -207,8 +212,63 @@ def batch_path_detection(tgt_folder_path, det_conf_thres):
 
     return json_save_path
 
+def process_video_timelapse(
+    source_path: str,
+    target_path: str,
+    callback: Callable[[np.ndarray, int], np.ndarray],
+    target_fps: int = 1,
+    codec: str = "mp4v",
+    detection_categories: dict = {0: 'animal', 1: 'person', 2: 'vehicle'},
+    clf_categories: dict = {0: 'opossum', 1: 'other'}
+) -> None:
+    """
+    Process a video frame-by-frame, applying a callback function to each frame and saving the results 
+    to a new video. This version includes a progress bar and allows codec selection.
+    
+    Args:
+        source_path (str): 
+            Path to the source video file.
+        target_path (str): 
+            Path to save the processed video.
+        callback (Callable[[np.ndarray, int], np.ndarray]): 
+            A function that takes a video frame and its index as input and returns the processed frame.
+        codec (str, optional): 
+            Codec used to encode the processed video. Default is "avc1".
+    """
+    source_video_info = VideoInfo.from_video_path(video_path=source_path)
+    
+    if source_video_info.fps > target_fps:
+        stride = int(source_video_info.fps / target_fps)
+        source_video_info.fps = target_fps
+    else:
+        stride = 1
 
-def video_detection(video, det_conf_thres, clf_conf_thres, target_fps, codec):
+    json_results = {
+        "info": {"detector": "MDV6-yolov10-e"},
+        "detection_categories": detection_categories,
+        "classification_categories": clf_categories,
+        "images": []
+    }
+    detections = []
+    with VideoSink(target_path=target_path, video_info=source_video_info, codec=codec) as sink:
+        with tqdm(total=int(source_video_info.total_frames / stride)) as pbar: 
+            for index, frame in enumerate(
+                get_video_frames_generator(source_path=source_path, stride=stride)
+            ):
+                result_frame = callback(frame, index)
+                detections.append(result_frame)
+                pbar.update(1)
+    image_info = {"file": os.path.basename(target_path), "frame_rate":target_fps, "detections": detections}
+    json_results["images"].append(image_info)
+
+    # Save the json
+    json_path = target_path.replace(".{}".format(target_path.split(".")[-1]), "_detection.json")
+    with open(json_path, "w") as f:
+        json.dump(json_results, f, indent=4)
+    print(f"JSON results saved to {json_path}")
+    return json_path
+
+def video_detection(video, det_conf_thres, clf_conf_thres, target_fps, codec, timelapse):
     """Perform detection on a video and return path to processed video.
     
     Args:
@@ -217,17 +277,60 @@ def video_detection(video, det_conf_thres, clf_conf_thres, target_fps, codec):
         clf_conf_thres (float): Confidence threshold for classification.
 
     """
-    def callback(frame, index):
-        annotated_frame = single_image_detection(frame,
-                                                 img_index=index,
-                                                 det_conf_thres=det_conf_thres,
-                                                 clf_conf_thres=clf_conf_thres)
-        return annotated_frame 
-    
-    target_path = os.path.join("..","temp","video_detection.mp4")
-    pw_utils.process_video(source_path=video, target_path=target_path,
-                           callback=callback, target_fps=int(target_fps), codec=codec)
-    return target_path
+    if not timelapse:
+        def callback(frame, index):
+            annotated_frame = single_image_detection(frame,
+                                                    img_index=index,
+                                                    det_conf_thres=det_conf_thres,
+                                                    clf_conf_thres=clf_conf_thres)
+            return annotated_frame 
+        
+        target_path = os.path.join("..","temp","video_detection.mp4")
+        pw_utils.process_video(source_path=video, target_path=target_path,
+                            callback=callback, target_fps=int(target_fps), codec=codec)
+        return target_path
+    else:
+        def callback(frame: np.ndarray, index: int) -> np.ndarray:
+            """
+            Callback function to process each video frame for detection and classification.
+            
+            Parameters:
+            - frame (np.ndarray): Video frame as a numpy array.
+            - index (int): Frame index.
+            
+            Returns:
+            annotated_frame (np.ndarray): Annotated video frame.
+            """
+            
+            results_det = detection_model.single_image_detection(frame, img_path=index)
+            labels = []
+            normalized_coords = []
+            classifications = []
+            frame_width, frame_height = frame.shape[1], frame.shape[0]
+            for xyxy in results_det["detections"].xyxy:
+                x_min, y_min, x_max, y_max = xyxy
+                cropped_image = sv.crop_image(image=frame, xyxy=xyxy)
+                results_clf = classification_model.single_image_classification(cropped_image)
+                labels.append("{} {:.2f}".format(results_clf["prediction"], results_clf["confidence"]))
+                norm_bbox = [
+                    x_min / frame_width,  # Normalize x_min
+                    y_min / frame_height, # Normalize y_min
+                    (x_max - x_min) / frame_width,  # Normalize width
+                    (y_max - y_min) / frame_height  # Normalize height
+                ]
+                classifications.append([str(results_clf["class_id"]), float(results_clf["confidence"])])
+                normalized_coords.append(norm_bbox)
+
+            annotation = {
+            "category": [str(i) for i in results_det["detections"].class_id],
+            "conf": [float(j) for j in results_det["detections"].confidence],
+            "bbox": normalized_coords,
+            "classifications": classifications,
+            "frame_number": index
+            }
+
+            return annotation
+        process_video_timelapse(source_path=video, target_path=target_path, callback=callback, target_fps=int(target_fps), detection_categories=detection_model.CLASS_NAMES, clf_categories=classification_model.CLASS_NAMES)
 
 # Building Gradio UI
 
@@ -319,6 +422,7 @@ with gr.Blocks() as demo:
                 vid_in = gr.Video(label="Upload a video.")
                 vid_conf_sl_det = gr.Slider(0, 1, label="Detection Confidence Threshold", value=0.2)
                 vid_conf_sl_clf = gr.Slider(0, 1, label="Classification Confidence Threshold", value=0.7)
+                chck_timelapse_video = gr.Checkbox(label="Generate timelapse JSON")
                 vid_fr = gr.Dropdown([5, 10, 30], label="Output video framerate", value=30)
                 vid_enc = gr.Dropdown(
                     ["mp4v", "avc1"],
@@ -326,7 +430,9 @@ with gr.Blocks() as demo:
                     info="mp4v is default, av1c is faster (needs conda install opencv)",
                     value="mp4v"
                     )
+                vid_timelapse_out = gr.File(label="Detection Results JSON.", height=200)
             vid_out = gr.Video()
+            
         vid_but = gr.Button("Detect Animals!")
         
     # Show timelapsed checkbox only when detection model is not HerdNet
@@ -339,7 +445,10 @@ with gr.Blocks() as demo:
     load_but.click(load_models, inputs=[det_drop, det_version, clf_drop, custom_weights_path, custom_weights_class], outputs=load_out)
     sgl_but.click(single_image_detection, inputs=[sgl_in, sgl_conf_sl_det, sgl_conf_sl_clf], outputs=sgl_out)
     bth_but.click(batch_detection, inputs=[bth_in, chck_timelapse, bth_conf_sl], outputs=bth_out)
-    vid_but.click(video_detection, inputs=[vid_in, vid_conf_sl_det, vid_conf_sl_clf, vid_fr, vid_enc], outputs=vid_out)
+    if chck_timelapse_video:
+        vid_but.click(video_detection, inputs=[vid_in, vid_conf_sl_det, vid_conf_sl_clf, vid_fr, vid_enc, chck_timelapse_video], outputs=vid_timelapse_out)
+    else:
+        vid_but.click(video_detection, inputs=[vid_in, vid_conf_sl_det, vid_conf_sl_clf, vid_fr, vid_enc, chck_timelapse_video], outputs=vid_out)
 
 if __name__ == "__main__":
     demo.launch(share=True)

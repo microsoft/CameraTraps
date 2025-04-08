@@ -20,7 +20,7 @@ from PytorchWildlife import utils as pw_utils
 #%% 
 # Setting the device to use for computations ('cuda' indicates GPU)
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-SOURCE_VIDEO_PATH = os.path.join(".","demo_data","videos","opossum_example.MP4")
+SOURCE_VIDEO_PATH = os.path.join("/home/investigacion/Andres_2/PytorchWildlife_March_2025/CameraTraps/demo/demo_data/videos/opossum_example.MP4")
 TARGET_VIDEO_PATH = os.path.join(".","demo_data","videos","opossum_example_processed.MP4")
 
 #%% 
@@ -53,7 +53,7 @@ def callback(frame: np.ndarray, index: int) -> np.ndarray:
     """
     
     results_det = detection_model.single_image_detection(frame, img_path=index)
-
+    breakpoint()
     labels = []
 
     for xyxy in results_det["detections"].xyxy:
