@@ -4,6 +4,9 @@
 
 from .base_classifier import TIMM_BaseClassifierInference
 
+__all__ = [
+    "DFNE"
+]
 
 class DFNE(TIMM_BaseClassifierInference):
     """
@@ -44,5 +47,5 @@ class DFNE(TIMM_BaseClassifierInference):
 
     def __init__(self, weights=None, device="cpu", transform=None):
         url = 'https://prod-is-usgs-sb-prod-publish.s3.amazonaws.com/67ae17fcd34e3f09c0e0f002/dfne_weights_v1_0.pth'
-        super(DFNE, self).__init__(weights=weights, device=device, url=url, transform=transform)
+        super(DFNE, self).__init__(weights=weights, device=device, url=url, transform=transform, weights_key='model_state_dict')    
         

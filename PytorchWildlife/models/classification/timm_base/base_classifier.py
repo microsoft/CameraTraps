@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 from PIL import Image
+from collections import OrderedDict
 
 import torch
 from torch.utils.data import DataLoader
@@ -32,7 +33,8 @@ class TIMM_BaseClassifierInference(BaseClassifierInference):
     MODEL_NAME = None
     IMAGE_SIZE = None
 
-    def __init__(self, weights=None, device="cpu", url=None, transform=None):
+    def __init__(self, weights=None, device="cpu", url=None, transform=None,
+                 weights_key='model_state_dict', weights_prefix=''):
         """
         Initialize the model.
         
@@ -43,6 +45,10 @@ class TIMM_BaseClassifierInference(BaseClassifierInference):
                 Device for model inference. Defaults to "cpu".
             url (str, optional): 
                 URL to fetch the model weights. Defaults to None.
+            weights_key (str, optional): 
+                Key to fetch the model weights. Defaults to None.
+            weights_prefix (str, optional): 
+                prefix of model weight keys. Defaults to None.
         """
         super(TIMM_BaseClassifierInference, self).__init__()
         self.device = device
@@ -52,17 +58,15 @@ class TIMM_BaseClassifierInference(BaseClassifierInference):
         else:
             self.transform = pw_trans.Classification_Inference_Transform(target_size=self.IMAGE_SIZE)
 
-        self._load_model(weights, self.device, url)
+        self._load_model(weights, url, weights_key, weights_prefix)
 
-    def _load_model(self, weights=None, device="cpu", url=None):
+    def _load_model(self, weights=None, url=None, weights_key='model_state_dict', weights_prefix=''):
         """
         Load TIMM based model weights
         
         Args:
         weights (str, optional): 
             Path to the model weights. (defaults to None)
-        device (str, optional): 
-            Running device. (defaults to cpu)
         url (str, optional): 
             url to the model weights. (defaults to None)
         """
@@ -86,11 +90,15 @@ class TIMM_BaseClassifierInference(BaseClassifierInference):
         checkpoint = torch.load(
             f = weights,
             map_location = self.device,
-            weights_only = True
-        )
+            weights_only = False
+        )[weights_key]
+
+        checkpoint = OrderedDict({k.replace("{}".format(weights_prefix), ""): checkpoint[k]
+                                    for k in checkpoint})
+
+        self.predictor.load_state_dict(checkpoint)
         print("Model loaded from {}".format(os.path.join(torch.hub.get_dir(), "checkpoints", self.MODEL_NAME)))
-        
-        self.predictor.load_state_dict(checkpoint['model_state_dict'])
+
         self.predictor.to(self.device)
         self.eval()
 
