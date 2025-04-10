@@ -136,7 +136,7 @@ In addition, since the **Pytorch-Wildlife** package is under MIT, all the utilit
 #### Other detection models 
 |Models|Version Names|Licence|Release|Reference|
 |---|---|---|---|---|
-|Deepfaune-detection|-|CC BY-NC-SA-4.0|Released|[Deepfaune](https://plmlab.math.cnrs.fr/deepfaune/software)|
+|Deepfaune-detection|-|CC BY-SA 4.0|Released|[Deepfaune](https://plmlab.math.cnrs.fr/deepfaune/software)|
 |HerdNet-general|general|CC BY-NC-SA-4.0|Released|[Alexandre et. al. 2023](https://github.com/Alexandre-Delplanque/HerdNet)|
 |HerdNet-ennedi|ennedi|CC BY-NC-SA-4.0|Released|[Alexandre et. al. 2023](https://github.com/Alexandre-Delplanque/HerdNet)|
 |MegaDetector-Overhead|-|MIT|Mid 2025|-|
