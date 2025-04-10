@@ -81,7 +81,7 @@ Before training your model, you need to configure the training and data paramete
 
 - **General Parameters:**  
   - `model`: The type of model used (YOLO or RTDETR). Default: YOLO  
-  - `model_name`: The name of the model [see availbale names here](#detection-models-available-for-finetuning). Default: MDV6-yolov9-e.pt  
+  - `model_name`: The name of the model [see available names here](#detection-models-available-for-finetuning). Default: MDV6-yolov9-e.pt  
   - `data`: Path to the dataset configuration file. Default: ./data/data_example.yaml  
   - `test_data`: Path to the test data directory. Default: ./data/data_example/images/test  
   - `task`: The task to perform (train, validation or inference). Default: train  
@@ -121,7 +121,7 @@ This command will initiate the training process based on the parameters specifie
 
 ## Output
 
-Once training is complete, the output weights will be saved in the `./runs/detect` directory acoording to the experiment name you configured in the `config.yaml`. These weights can be used to classify new images using [Pytorch-Wildlife](https://github.com/microsoft/CameraTraps/).
+Once training is complete, the output weights will be saved in the `./runs/detect` directory according to the experiment name you configured in the `config.yaml`. These weights can be used to classify new images using [Pytorch-Wildlife](https://github.com/microsoft/CameraTraps/).
 
 We are working on adding a feature in a future release to directly integrate the output weights with the Pytorch-Wildlife framework and the Gradio App.
 
