@@ -149,7 +149,7 @@ In addition, since the **Pytorch-Wildlife** package is under MIT, all the utilit
 |AI4G-Amazon-V1|v1|MIT|Released|
 |AI4G-Amazon-V2|v2|MIT|Released|
 |AI4G-Serengeti|-|MIT|Released|
-|Deepfaune-classification|v1.3|CC BY-NC-SA-4.0|Released|[Deepfaune](https://plmlab.math.cnrs.fr/deepfaune/software)|
+|Deepfaune-classification|v1.3|CC BY-SA 4.0|Released|[Deepfaune](https://plmlab.math.cnrs.fr/deepfaune/software)|
 
 >[!TIP]
 >Some models, such as MegaDetectorV6, HerdNet, and AI4G-Amazon, have different versions, and they are loaded by their corresponding version names. Here is an example: `detection_model = pw_detection.MegaDetectorV6(version="MDV6-yolov10-e")`.
