@@ -1,7 +1,9 @@
 """
 This is a Pytorch-Wildlife loader for the Deepfaune detector.
 The original Deepfaune model is available at: https://plmlab.math.cnrs.fr/deepfaune/software
-Model WEIGHTS LICENCE: CC BY-SA 4.0
+Model Weights Licence: CC BY-SA 4.0
+Model Weights Copyright CNRS 2024
+simon.chamaille@cefe.cnrs.fr; vincent.miele@univ-lyon1.fr
 """
 
 from .yolov8_base import YOLOV8Base

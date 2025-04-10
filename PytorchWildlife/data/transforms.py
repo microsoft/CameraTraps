@@ -130,7 +130,7 @@ class Classification_Inference_Transform:
     mean = [0.485, 0.456, 0.406]
     std = [0.229, 0.224, 0.225]
 
-    def __init__(self, target_size=224):
+    def __init__(self, target_size=224, **kwargs):
         """
         Initializes the transform.
 
@@ -139,7 +139,8 @@ class Classification_Inference_Transform:
         """
         # Define the sequence of transformations
         self.trans = transforms.Compose([
-            transforms.Resize((target_size, target_size)),
+            # transforms.Resize((target_size, target_size)),
+            transforms.Resize((target_size, target_size), **kwargs),
             transforms.ToTensor(),
             transforms.Normalize(self.mean, self.std)
         ])

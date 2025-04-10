@@ -1,12 +1,16 @@
 """
 This is a Pytorch-Wildlife loader for the Deepfaune classifier.
 The original Deepfaune model is available at: https://plmlab.math.cnrs.fr/deepfaune/software
-Model WEIGHTS LICENCE: CC BY-SA 4.0
+Model Weights Licence: CC BY-SA 4.0
+Model Weights Copyright CNRS 2024
+simon.chamaille@cefe.cnrs.fr; vincent.miele@univ-lyon1.fr
 """
 
 # Import libraries
 
+from torchvision.transforms.functional import InterpolationMode
 from .base_classifier import TIMM_BaseClassifierInference
+from ....data import transforms as pw_trans
 
 __all__ = [
     "DeepfauneClassifier"
@@ -33,6 +37,13 @@ class DeepfauneClassifier(TIMM_BaseClassifierInference):
     def __init__(self, weights=None, device="cpu", transform=None, class_name_lang='en'):
         url = 'https://pbil.univ-lyon1.fr/software/download/deepfaune/v1.3/deepfaune-vit_large_patch14_dinov2.lvd142m.v3.pt'
         self.CLASS_NAMES = {i: c for i, c in enumerate(self.CLASS_NAMES[class_name_lang])}
+        if transform:
+            self.transform = transform
+        else:
+            self.transform = pw_trans.Classification_Inference_Transform(target_size=self.IMAGE_SIZE, 
+                                                                         interpolation=InterpolationMode.BICUBIC, 
+                                                                         max_size=None,
+                                                                         antialias=None)
         super(DeepfauneClassifier, self).__init__(weights=weights, device=device, url=url, transform=transform,
                                                   weights_key='state_dict', weights_prefix='base_model.')
         
