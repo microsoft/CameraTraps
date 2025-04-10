@@ -1,4 +1,8 @@
-""" model class for loading the DFNE classifier. """
+"""
+This is a Pytorch-Wildlife loader for the Deepfaune-New England (DFNE) classifier.
+The original DFNE model is available at: https://code.usgs.gov/vtcfwru/deepfaune-new-england/-/tree/main?ref_type=heads
+Model WEIGHTS LICENCE: CC BY-SA 4.0
+"""
 
 # Import libraries
 

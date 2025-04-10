@@ -1,4 +1,8 @@
-""" model class for loading the DFNE classifier. """
+"""
+This is a Pytorch-Wildlife loader for the Deepfaune classifier.
+The original Deepfaune model is available at: https://plmlab.math.cnrs.fr/deepfaune/software
+Model WEIGHTS LICENCE: CC BY-SA 4.0
+"""
 
 # Import libraries
 
