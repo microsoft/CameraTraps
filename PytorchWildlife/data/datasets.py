@@ -25,7 +25,7 @@ def is_image_file(filename: str) -> bool:
     """Checks if a file is an allowed image extension."""  
     return has_file_allowed_extension(filename, IMG_EXTENSIONS) 
 
-class DetectionImageFolder(Dataset):
+class ImageFolder(Dataset):
     """
     A PyTorch Dataset for loading images from a specified directory.
     Each item in the dataset is a tuple containing the image data, 
@@ -40,10 +40,88 @@ class DetectionImageFolder(Dataset):
             image_dir (str): Path to the directory containing the images.
             transform (callable, optional): Optional transform to be applied on the image.
         """
-        super(DetectionImageFolder, self).__init__()
+        super(ImageFolder, self).__init__()
         self.image_dir = image_dir
         self.transform = transform
         self.images = [os.path.join(dp, f) for dp, dn, filenames in os.walk(image_dir) for f in filenames if is_image_file(f)] # dp: directory path, dn: directory name, f: filename
+
+    def __getitem__(self, idx):
+        """
+        Retrieves an image from the dataset.
+
+        Parameters:
+            idx (int): Index of the image to retrieve.
+
+        Returns:
+            tuple: Contains the image data, the image's path, and its original size.
+        """
+        pass
+    
+    def __len__(self):
+        """
+        Returns the total number of images in the dataset.
+
+        Returns:
+            int: Total number of images.
+        """
+        return len(self.images)
+
+class ClassificationImageFolder(ImageFolder):
+    """
+    A PyTorch Dataset for loading images from a specified directory.
+    Each item in the dataset is a tuple containing the image data, 
+    the image's path, and the original size of the image.
+    """
+
+    def __init__(self, image_dir, transform=None):
+        """
+        Initializes the dataset.
+
+        Parameters:
+            image_dir (str): Path to the directory containing the images.
+            transform (callable, optional): Optional transform to be applied on the image.
+        """
+        super(ClassificationImageFolder, self).__init__(image_dir, transform)
+
+    def __getitem__(self, idx):
+        """
+        Retrieves an image from the dataset.
+
+        Parameters:
+            idx (int): Index of the image to retrieve.
+
+        Returns:
+            tuple: Contains the image data, the image's path, and its original size.
+        """
+        # Get image filename and path
+        img_path = self.images[idx]
+
+        # Load and convert image to RGB
+        img = Image.open(img_path).convert("RGB")
+        
+        # Apply transformation if specified
+        if self.transform:
+            img = self.transform(img)
+
+        return img, img_path
+
+
+class DetectionImageFolder(ImageFolder):
+    """
+    A PyTorch Dataset for loading images from a specified directory.
+    Each item in the dataset is a tuple containing the image data, 
+    the image's path, and the original size of the image.
+    """
+
+    def __init__(self, image_dir, transform=None):
+        """
+        Initializes the dataset.
+
+        Parameters:
+            image_dir (str): Path to the directory containing the images.
+            transform (callable, optional): Optional transform to be applied on the image.
+        """
+        super(DetectionImageFolder, self).__init__(image_dir, transform)
 
     def __getitem__(self, idx):
         """
@@ -68,14 +146,6 @@ class DetectionImageFolder(Dataset):
 
         return img, img_path, torch.tensor(img_size_ori)
     
-    def __len__(self):
-        """
-        Returns the total number of images in the dataset.
-
-        Returns:
-            int: Total number of images.
-        """
-        return len(self.images)
 
 # TODO: Under development for efficiency improvement
 class DetectionCrops(Dataset):

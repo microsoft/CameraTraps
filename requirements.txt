@@ -5,9 +5,10 @@ tqdm
 Pillow
 supervision==0.23.0
 gradio
-ultralytics-yolov5
 chardet
 wget
 ultralytics
+yolov5
 setuptools
 scikit-learn
+timm
