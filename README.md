@@ -40,6 +40,9 @@ For those interested in accessing the previous MegaDetector repository, which ut
 
 ## 📣 Announcements
 
+### SpeciesNet is available in Pytorch-Wildlife for testing! 
+- Please refer to [this document](https://github.com/microsoft/CameraTraps/blob/SppNet_TF/PytorchWildlife/models/classification/speciesnet_base/sppnet_readme.md) for more details!
+
 ### Deepfaune in Our Model Zoo!! 
 - We are excited to announce the release of the Deepfaune models—both the detector and classifier—within PyTorch-Wildlife, adding to our growing model zoo. A huge thank you to the Deepfaune team for your support! Deepfaune is one of the most comprehensive detection and classification models focused on the European ecosystem. It serves as a great complement to MegaDetector, which has primarily been trained on datasets from North America, South America, and Africa. The Deepfaune detector is also our first third-party camera trap detection model integrated into PyTorch-Wildlife!
 - To use the model, you just need to load them as any other Pytorch-Wildife models: 
