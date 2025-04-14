@@ -40,7 +40,7 @@ For those interested in accessing the previous MegaDetector repository, which ut
 
 ## 📣 Announcements
 
-### New Third-Party Models in Our Model Zoo!! 
+### Deepfaune in Our Model Zoo!! 
 - We are excited to announce the release of the Deepfaune models—both the detector and classifier—within PyTorch-Wildlife, adding to our growing model zoo. A huge thank you to the Deepfaune team for your support! Deepfaune is one of the most comprehensive detection and classification models focused on the European ecosystem. It serves as a great complement to MegaDetector, which has primarily been trained on datasets from North America, South America, and Africa. The Deepfaune detector is also our first third-party camera trap detection model integrated into PyTorch-Wildlife!
 - To use the model, you just need to load them as any other Pytorch-Wildife models: 
 ```
@@ -48,7 +48,11 @@ detection_model = pw_detection.DeepfauneDetector(device=DEVICE)
 classification_model = pw_classification.DeepfauneClassifier(device=DEVICE)
 ```
 - You can also use the `detection_classification_pipeline_demo.py` script in the demo folder to test the whole detection + classification pipeline. 
-- Please also take a look at the original [Deepfaune repo](https://plmlab.math.cnrs.fr/deepfaune/software) and give them a star! 
+- Please also take a look at the original [Deepfaune website](https://www.deepfaune.cnrs.fr/en/) and give them a star! 
+
+### Deepfaune-New-England in Our Model Zoo Too!!
+- Besides the original 
+
 
 ### Pytorch-Wildlife Version 1.2.0
 - In this version of Pytorch-Wildlife, we are happy to release our [detection fine-tuning module](PW_FT_detection), with which users can fine-tune their own detection model from any released pre-trained MegaDetectorV6 models. Besides, this module also has functionalities that help users to prepare their datasets for the fine-tuning, just as our classification fine-tuning modules. For more details, please check the [readme](PW_FT_detection/README.md). Currently the fine-tuning is based on [Ultralytics](https://www.ultralytics.com/) with AGPL. We will release MIT versions in the future. Here is the [release page](https://github.com/microsoft/CameraTraps/releases).
@@ -136,7 +140,7 @@ In addition, since the **Pytorch-Wildlife** package is under MIT, all the utilit
 #### Other detection models 
 |Models|Version Names|Licence|Release|Reference|
 |---|---|---|---|---|
-|Deepfaune-detection|-|CC BY-SA 4.0|Released|[Deepfaune](https://plmlab.math.cnrs.fr/deepfaune/software)|
+|Deepfaune-detection|-|CC BY-SA 4.0|Released|[Deepfaune](https://www.deepfaune.cnrs.fr/en/)|
 |HerdNet-general|general|CC BY-NC-SA-4.0|Released|[Alexandre et. al. 2023](https://github.com/Alexandre-Delplanque/HerdNet)|
 |HerdNet-ennedi|ennedi|CC BY-NC-SA-4.0|Released|[Alexandre et. al. 2023](https://github.com/Alexandre-Delplanque/HerdNet)|
 |MegaDetector-Overhead|-|MIT|Mid 2025|-|
@@ -149,7 +153,8 @@ In addition, since the **Pytorch-Wildlife** package is under MIT, all the utilit
 |AI4G-Amazon-V1|v1|MIT|Released|
 |AI4G-Amazon-V2|v2|MIT|Released|
 |AI4G-Serengeti|-|MIT|Released|
-|Deepfaune-classification|v1.3|CC BY-SA 4.0|Released|[Deepfaune](https://plmlab.math.cnrs.fr/deepfaune/software)|
+|Deepfaune-classification|v1.3|CC BY-SA 4.0|Released|[Deepfaune](https://www.deepfaune.cnrs.fr/en/)|
+|Deepfaune-New-England|v1.0|CC0 1.0 Universal|Released|[Deepfaune-New-England](https://code.usgs.gov/vtcfwru/deepfaune-new-england)|
 
 >[!TIP]
 >Some models, such as MegaDetectorV6, HerdNet, and AI4G-Amazon, have different versions, and they are loaded by their corresponding version names. Here is an example: `detection_model = pw_detection.MegaDetectorV6(version="MDV6-yolov10-e")`.

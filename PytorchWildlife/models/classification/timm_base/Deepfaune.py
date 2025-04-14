@@ -1,6 +1,6 @@
 """
 This is a Pytorch-Wildlife loader for the Deepfaune classifier.
-The original Deepfaune model is available at: https://plmlab.math.cnrs.fr/deepfaune/software
+The original Deepfaune model is available at: https://www.deepfaune.cnrs.fr/en/
 Licence: CC BY-SA 4.0
 Copyright CNRS 2024
 simon.chamaille@cefe.cnrs.fr; vincent.miele@univ-lyon1.fr
