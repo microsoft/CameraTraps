@@ -6,19 +6,13 @@
 # Importing basic libraries
 
 import os
-from glob import glob
 import supervision as sv
 import numpy as np
 from PIL import Image
 import wget
 import torch
 
-from ultralytics.models import yolo, rtdetr
-from torch.utils.data import DataLoader
-from tqdm import tqdm
-
 from ..base_detector import BaseDetector
-from ....data import transforms as pw_trans
 from ....data import datasets as pw_data
 
 import sys
@@ -34,14 +28,11 @@ sys.path.append(str(project_root))
 from yolo.tools.solver import InferenceModel
 from yolo.utils.logging_utils import setup
 
-import torch
-
 class YOLOMITBase(BaseDetector):
     """
     Base detector class for YOLO MIT framework. This class provides utility methods for
     loading the model, generating results, and performing single and batch image detections.
     """
-    # FIXME: relative path
     def __init__(self, weights=None, device="cpu", url=None, transform=None):
         """
         Initialize the YOLO MIT detector.
