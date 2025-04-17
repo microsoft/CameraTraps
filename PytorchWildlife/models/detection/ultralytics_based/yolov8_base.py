@@ -6,16 +6,16 @@
 # Importing basic libraries
 
 import os
-from glob import glob
-import supervision as sv
-import numpy as np
-from PIL import Image
 import wget
+import numpy as np
+from tqdm import tqdm
+from PIL import Image
+import supervision as sv
+
 import torch
+from torch.utils.data import DataLoader
 
 from ultralytics.models import yolo, rtdetr
-from torch.utils.data import DataLoader
-from tqdm import tqdm
 
 from ..base_detector import BaseDetector
 from ....data import transforms as pw_trans
@@ -41,8 +41,8 @@ class YOLOV8Base(BaseDetector):
             url (str, optional): 
                 URL to fetch the model weights. Defaults to None.
         """
-        self.transform = transform
         super(YOLOV8Base, self).__init__(weights=weights, device=device, url=url)
+        self.transform = transform
         self._load_model(weights, self.device, url)
 
     def _load_model(self, weights=None, device="cpu", url=None):
