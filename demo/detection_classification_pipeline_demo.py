@@ -85,20 +85,17 @@ clf_results = classification_model.batch_image_classification(det_results=det_re
 # %%
 merged_results = det_results.copy()
 clf_conf_thres = 0.8
+clf_counter = 0
 
 for det in merged_results:
-    clf_counter = 0
     clf_labels = []
-
     for i, (xyxy, det_id) in enumerate(zip(det["detections"].xyxy, det["detections"].class_id)):
         if det_id == 0:
             clf_labels.append("{} {:.2f}".format(clf_results[clf_counter]["prediction"] if clf_results[clf_counter]["confidence"] > clf_conf_thres else "Unknown",
                                                  clf_results[clf_counter]["confidence"]))
         else:
             clf_labels.append(det["labels"][i])
-
         clf_counter += 1
-
     det["labels"] = clf_labels
 
 #%% Output to annotated images
