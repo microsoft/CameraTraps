@@ -6,7 +6,7 @@ import requests
 from rich.progress import BarColumn, Progress, TextColumn, TimeRemainingColumn
 
 from yolo.config.config import DatasetConfig
-from yolo.utils.logger import logger
+#from yolo.utils.logger import logger
 
 
 def download_file(url, destination: Path):
@@ -30,18 +30,18 @@ def download_file(url, destination: Path):
                 for data in response.iter_content(chunk_size=1024 * 1024):  # 1 MB chunks
                     file.write(data)
                     progress.update(task, advance=len(data))
-    logger.info(":white_check_mark: Download completed.")
+    #logger.info(":white_check_mark: Download completed.")
 
 
 def unzip_file(source: Path, destination: Path):
     """
     Extracts a ZIP file to the specified directory and removes the ZIP file after extraction.
     """
-    logger.info(f"Unzipping {source.name}...")
+    #logger.info(f"Unzipping {source.name}...")
     with zipfile.ZipFile(source, "r") as zip_ref:
         zip_ref.extractall(destination)
     source.unlink()
-    logger.info(f"Removed {source}.")
+    #logger.info(f"Removed {source}.")
 
 
 def check_files(directory, expected_count=None):
@@ -71,7 +71,8 @@ def prepare_dataset(dataset_cfg: DatasetConfig, task: str):
 
             final_place.mkdir(parents=True, exist_ok=True)
             if check_files(final_place, dataset_args.get("file_num")):
-                logger.info(f":white_check_mark: Dataset {dataset_type: <12} already verified.")
+                raise RuntimeError(f"Error verifying the {dataset_type} dataset after extraction.")
+                #logger.info(f":white_check_mark: Dataset {dataset_type: <12} already verified.")
                 continue
 
             if not local_zip_path.exists():
@@ -79,7 +80,8 @@ def prepare_dataset(dataset_cfg: DatasetConfig, task: str):
             unzip_file(local_zip_path, extract_to)
 
             if not check_files(final_place, dataset_args.get("file_num")):
-                logger.error(f"Error verifying the {dataset_type} dataset after extraction.")
+                raise RuntimeError(f"Error verifying the {dataset_type} dataset after extraction.")
+                #logger.error(f"Error verifying the {dataset_type} dataset after extraction.")
 
 
 def prepare_weight(download_link: Optional[str] = None, weight_path: Path = Path("v9-c.pt")):
@@ -91,9 +93,10 @@ def prepare_weight(download_link: Optional[str] = None, weight_path: Path = Path
     if not weight_path.parent.is_dir():
         weight_path.parent.mkdir(parents=True, exist_ok=True)
 
-    if weight_path.exists():
-        logger.info(f"Weight file '{weight_path}' already exists.")
+    #if weight_path.exists():
+        #logger.info(f"Weight file '{weight_path}' already exists.")
     try:
         download_file(weight_link, weight_path)
     except requests.exceptions.RequestException as e:
-        logger.warning(f"Failed to download the weight file: {e}")
+        raise RuntimeError(f"Failed to download the weight file: {e}")
+        #logger.warning(f"Failed to download the weight file: {e}")

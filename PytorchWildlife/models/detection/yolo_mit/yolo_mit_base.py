@@ -98,7 +98,8 @@ class YOLOMITBase(BaseDetector):
             deterministic=True,
             enable_progress_bar=not getattr(self.cfg, "quite", False),
             devices=1, 
-            num_nodes=1
+            num_nodes=1,
+            logger=False,
         )
 
         self.model = InferenceModel(self.cfg)

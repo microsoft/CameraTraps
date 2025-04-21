@@ -12,5 +12,5 @@ ultralytics
 setuptools
 scikit-learn
 lightning
-einops
+omegaconf
 pycocotools

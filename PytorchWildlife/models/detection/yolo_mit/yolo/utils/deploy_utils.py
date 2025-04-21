@@ -5,7 +5,6 @@ from torch import Tensor
 
 from yolo.config.config import Config
 from yolo.model.yolo import create_model
-from yolo.utils.logger import logger
 
 
 class FastModelLoader:
@@ -21,10 +20,8 @@ class FastModelLoader:
 
     def _validate_compiler(self):
         if self.compiler not in ["onnx", "trt", "deploy"]:
-            logger.warning(f":warning: Compiler '{self.compiler}' is not supported. Using original model.")
             self.compiler = None
         if self.cfg.device == "mps" and self.compiler == "trt":
-            logger.warning(":red_apple: TensorRT does not support MPS devices. Using original model.")
             self.compiler = None
 
     def load_model(self, device):
@@ -59,9 +56,7 @@ class FastModelLoader:
             providers = ["CUDAExecutionProvider"]
         try:
             ort_session = InferenceSession(self.model_path, providers=providers)
-            logger.info(":rocket: Using ONNX as MODEL frameworks!")
         except Exception as e:
-            logger.warning(f"🈳 Error loading ONNX model: {e}")
             ort_session = self._create_onnx_model(providers)
         return ort_session
 
@@ -79,7 +74,6 @@ class FastModelLoader:
             output_names=["output"],
             dynamic_axes={"input": {0: "batch_size"}, "output": {0: "batch_size"}},
         )
-        logger.info(f":inbox_tray: ONNX model saved to {self.model_path}")
         return InferenceSession(self.model_path, providers=providers)
 
     def _load_trt_model(self):
@@ -88,9 +82,7 @@ class FastModelLoader:
         try:
             model_trt = TRTModule()
             model_trt.load_state_dict(torch.load(self.model_path))
-            logger.info(":rocket: Using TensorRT as MODEL frameworks!")
         except FileNotFoundError:
-            logger.warning(f"🈳 No found model weight at {self.model_path}")
             model_trt = self._create_trt_model()
         return model_trt
 
@@ -99,8 +91,6 @@ class FastModelLoader:
 
         model = create_model(self.cfg.model, class_num=self.class_num, weight_path=self.cfg.weight).eval()
         dummy_input = torch.ones((1, 3, *self.cfg.image_size)).cuda()
-        logger.info(f"♻️ Creating TensorRT model")
         model_trt = torch2trt(model.cuda(), [dummy_input])
         torch.save(model_trt.state_dict(), self.model_path)
-        logger.info(f":inbox_tray: TensorRT model saved to {self.model_path}")
         return model_trt

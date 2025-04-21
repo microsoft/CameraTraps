@@ -8,7 +8,7 @@ import numpy as np
 import torch
 
 from yolo.tools.data_conversion import discretize_categories
-from yolo.utils.logger import logger
+#from yolo.utils.logger import logger
 
 
 def locate_label_paths(dataset_path: Path, phase_name: Path) -> Tuple[Path, Path]:
@@ -34,7 +34,7 @@ def locate_label_paths(dataset_path: Path, phase_name: Path) -> Tuple[Path, Path
         if txt_files:
             return txt_labels_path, "txt"
 
-    logger.warning("No labels found in the specified dataset path and phase name.")
+    #logger.warning("No labels found in the specified dataset path and phase name.")
     return [], None
 
 
@@ -120,10 +120,10 @@ def tensorlize(data):
     try:
         img_paths, bboxes, img_ratios = zip(*data)
     except ValueError as e:
-        logger.error(
-            ":rotating_light: This may be caused by using old cache or another version of YOLO's cache.\n"
-            ":rotating_light: Please clean the cache and try running again."
-        )
+        # logger.error(
+        #     ":rotating_light: This may be caused by using old cache or another version of YOLO's cache.\n"
+        #     ":rotating_light: Please clean the cache and try running again."
+        # )
         raise e
     max_box = max(bbox.size(0) for bbox in bboxes)
     padded_bbox_list = []

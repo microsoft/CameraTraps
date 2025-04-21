@@ -8,7 +8,7 @@ from torchvision.transforms.functional import to_pil_image
 
 from yolo.config.config import ModelConfig
 from yolo.model.yolo import YOLO
-from yolo.utils.logger import logger
+#from yolo.utils.logger import logger
 
 
 def draw_bboxes(
@@ -28,7 +28,7 @@ def draw_bboxes(
     # Convert tensor image to PIL Image if necessary
     if isinstance(img, torch.Tensor):
         if img.dim() > 3:
-            logger.warning("🔍 >3 dimension tensor detected, using the 0-idx image.")
+            #logger.warning("🔍 >3 dimension tensor detected, using the 0-idx image.")
             img = img[0]
         img = to_pil_image(img)
 
@@ -121,6 +121,7 @@ def draw_model(*, model_cfg: ModelConfig = None, model: YOLO = None, v7_base=Fal
                 dot.edge(str(idx), str(jdx))
     try:
         dot.render("Model-arch", format="png", cleanup=True)
-        logger.info(":artist_palette: Drawing Model Architecture at Model-arch.png")
+        #logger.info(":artist_palette: Drawing Model Architecture at Model-arch.png")
     except:
-        logger.warning(":warning: Could not find graphviz backend, continue without drawing the model architecture")
+        raise warning("Could not find graphviz backend, continue without drawing the model architecture")
+        #logger.warning(":warning: Could not find graphviz backend, continue without drawing the model architecture")

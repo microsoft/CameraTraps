@@ -1,12 +1,8 @@
 from typing import Any, Dict, List, Optional, Tuple
-
 import torch
 import torch.nn.functional as F
-from einops import rearrange
 from torch import Tensor, nn
 from torch.nn.common_types import _size_2_t
-
-from yolo.utils.logger import logger
 from yolo.utils.module_utils import auto_pad, create_activation_function, round_up
 
 
@@ -171,7 +167,11 @@ class Anchor2Vec(nn.Module):
         self.anc2vec.weight = nn.Parameter(reverse_reg, requires_grad=False)
 
     def forward(self, anchor_x: Tensor) -> Tensor:
-        anchor_x = rearrange(anchor_x, "B (P R) h w -> B R P h w", P=4)
+        #anchor_x = rearrange(anchor_x, "B (P R) h w -> B R P h w", P=4)
+        B, PR, h, w = anchor_x.shape
+        P = 4
+        R = PR // P
+        anchor_x = anchor_x.reshape(B, P, R, h, w).permute(0, 2, 1, 3, 4) 
         vector_x = anchor_x.softmax(dim=1)
         vector_x = self.anc2vec(vector_x)[:, 0]
         return anchor_x, vector_x
@@ -234,9 +234,6 @@ class Bottleneck(nn.Module):
 
         if residual and (in_channels != out_channels):
             self.residual = False
-            logger.warning(
-                "Residual connection disabled: in_channels ({}) != out_channels ({})", in_channels, out_channels
-            )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         y = self.conv2(self.conv1(x))

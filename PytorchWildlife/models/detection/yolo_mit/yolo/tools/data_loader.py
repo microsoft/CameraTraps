@@ -21,7 +21,6 @@ from yolo.utils.dataset_utils import (
     scale_segmentation,
     tensorlize,
 )
-from yolo.utils.logger import logger
 
 
 class YoloDataset(Dataset):
@@ -52,20 +51,14 @@ class YoloDataset(Dataset):
         cache_path = dataset_path / f"{phase_name}.cache"
 
         if not cache_path.exists():
-            logger.info(f":factory: Generating {phase_name} cache")
             data = self.filter_data(dataset_path, phase_name, self.dynamic_shape)
             torch.save(data, cache_path)
         else:
             try:
                 data = torch.load(cache_path, weights_only=False)
             except Exception as e:
-                logger.error(
-                    f":rotating_light: Failed to load the cache at '{cache_path}'.\n"
-                    ":rotating_light: This may be caused by using cache from different other YOLO.\n"
-                    ":rotating_light: Please clean the cache and try running again."
-                )
                 raise e
-            logger.info(f":package: Loaded {phase_name} cache")
+
         return data
 
     def filter_data(self, dataset_path: Path, phase_name: str, sort_image: bool = False) -> list:
@@ -121,7 +114,6 @@ class YoloDataset(Dataset):
 
         data = sorted(data, key=lambda x: x[2], reverse=True)
 
-        logger.info(f"Recorded {valid_inputs}/{len(images_list)} valid inputs")
         return data
 
     def load_valid_labels(self, label_path: str, seg_data_one_img: list) -> Union[Tensor, None]:
@@ -149,7 +141,6 @@ class YoloDataset(Dataset):
         if bboxes:
             return torch.stack(bboxes)
         else:
-            logger.warning(f"No valid BBox in {label_path}")
             return torch.zeros((0, 5))
 
     def adapt_labels(self, bboxes: Tensor) -> Tensor: 

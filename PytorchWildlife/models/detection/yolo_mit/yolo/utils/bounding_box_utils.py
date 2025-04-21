@@ -2,14 +2,13 @@ import math
 from typing import Dict, List, Optional, Tuple, Union
 
 import torch
-from einops import rearrange
 from torch import Tensor, tensor
 from torchmetrics.detection import MeanAveragePrecision
 from torchvision.ops import batched_nms
 
 from yolo.config.config import AnchorConfig, MatcherConfig, NMSConfig
 from yolo.model.yolo import YOLO
-from yolo.utils.logger import logger
+#from yolo.utils.logger import logger
 
 
 def calculate_iou(bbox1, bbox2, metrics="iou") -> Tensor:
@@ -340,10 +339,10 @@ class Vec2Box:
         self.device = device
 
         if hasattr(anchor_cfg, "strides"):
-            logger.info(f":japanese_not_free_of_charge_button: Found stride of model {anchor_cfg.strides}")
+            #logger.info(f":japanese_not_free_of_charge_button: Found stride of model {anchor_cfg.strides}")
             self.strides = anchor_cfg.strides
         else:
-            logger.info(":teddy_bear: Found no stride of model, performed a dummy test for auto-anchor size")
+            #logger.info(":teddy_bear: Found no stride of model, performed a dummy test for auto-anchor size")
             self.strides = self.create_auto_anchor(model, image_size)
 
         anchor_grid, scaler = generate_anchors(image_size, self.strides)
@@ -375,9 +374,17 @@ class Vec2Box:
         preds_cls, preds_anc, preds_box = [], [], []
         for layer_output in predicts:
             pred_cls, pred_anc, pred_box = layer_output
-            preds_cls.append(rearrange(pred_cls, "B C h w -> B (h w) C"))
-            preds_anc.append(rearrange(pred_anc, "B A R h w -> B (h w) R A"))
-            preds_box.append(rearrange(pred_box, "B X h w -> B (h w) X"))
+            B, C, h, w = pred_cls.shape
+            pred_cls = pred_cls.permute(0, 2, 3, 1).reshape(B, h * w, C)
+            preds_cls.append(pred_cls)
+
+            B, A, R, h, w = pred_anc.shape
+            pred_anc = pred_anc.permute(0, 3, 4, 2, 1).reshape(B, h * w, R, A)
+            preds_anc.append(pred_anc)
+
+            B, X, h, w = pred_box.shape
+            pred_box = pred_box.permute(0, 2, 3, 1).reshape(B, h * w, X)
+            preds_box.append(pred_box)
         preds_cls = torch.concat(preds_cls, dim=1)
         preds_anc = torch.concat(preds_anc, dim=1)
         preds_box = torch.concat(preds_box, dim=1)
@@ -393,10 +400,10 @@ class Anc2Box:
         self.device = device
 
         if hasattr(anchor_cfg, "strides"):
-            logger.info(f":japanese_not_free_of_charge_button: Found stride of model {anchor_cfg.strides}")
+            #logger.info(f":japanese_not_free_of_charge_button: Found stride of model {anchor_cfg.strides}")
             self.strides = anchor_cfg.strides
         else:
-            logger.info(":teddy_bear: Found no stride of model, performed a dummy test for auto-anchor size")
+            #logger.info(":teddy_bear: Found no stride of model, performed a dummy test for auto-anchor size")
             self.strides = self.create_auto_anchor(model, image_size)
 
         self.head_num = len(anchor_cfg.anchor)
@@ -430,16 +437,28 @@ class Anc2Box:
     def __call__(self, predicts: List[Tensor]):
         preds_box, preds_cls, preds_cnf = [], [], []
         for layer_idx, predict in enumerate(predicts):
-            predict = rearrange(predict, "B (L C) h w -> B L h w C", L=self.anchor_num)
+            B, LC, h, w = predict.shape
+            L = self.anchor_num
+            C = LC // L
+            predict = predict.view(B, L, C, h, w).permute(0, 1, 3, 4, 2)  # B, L, h, w, C
+
             pred_box, pred_cnf, pred_cls = predict.split((4, 1, self.class_num), dim=-1)
             pred_box = pred_box.sigmoid()
-            pred_box[..., 0:2] = (pred_box[..., 0:2] * 2.0 - 0.5 + self.anchor_grids[layer_idx]) * self.strides[
-                layer_idx
-            ]
-            pred_box[..., 2:4] = (pred_box[..., 2:4] * 2) ** 2 * self.anchor_scale[layer_idx]
-            preds_box.append(rearrange(pred_box, "B L h w A -> B (L h w) A"))
-            preds_cls.append(rearrange(pred_cls, "B L h w C -> B (L h w) C"))
-            preds_cnf.append(rearrange(pred_cnf, "B L h w C -> B (L h w) C"))
+
+            pred_box[..., 0:2] = (
+                (pred_box[..., 0:2] * 2.0 - 0.5 + self.anchor_grids[layer_idx]) * self.strides[layer_idx]
+            )
+            pred_box[..., 2:4] = (
+                (pred_box[..., 2:4] * 2) ** 2 * self.anchor_scale[layer_idx]
+            )
+
+            B, L, h, w, A = pred_box.shape
+            preds_box.append(pred_box.reshape(B, L * h * w, A))
+
+            B, L, h, w, C = pred_cls.shape
+            preds_cls.append(pred_cls.reshape(B, L * h * w, C))
+
+            preds_cnf.append(pred_cnf.reshape(B, L * h * w, C))
 
         preds_box = torch.concat(preds_box, dim=1)
         preds_cls = torch.concat(preds_cls, dim=1)

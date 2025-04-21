@@ -1,16 +1,11 @@
-from math import ceil
 from pathlib import Path
-
 from lightning import LightningModule
-from torchmetrics.detection import MeanAveragePrecision
-
 from yolo.config.config import Config
 from yolo.model.yolo import create_model
 from yolo.tools.data_loader import create_dataloader
 from yolo.tools.drawer import draw_bboxes
-from yolo.tools.loss_functions import create_loss_function
-from yolo.utils.bounding_box_utils import create_converter, to_metrics_format
-from yolo.utils.model_utils import PostProcess, create_optimizer, create_scheduler
+from yolo.utils.bounding_box_utils import create_converter
+from yolo.utils.model_utils import PostProcess
 
 
 class BaseModel(LightningModule):
