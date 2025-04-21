@@ -26,7 +26,6 @@ project_root = Path(__file__).resolve().parent
 sys.path.append(str(project_root))
 
 from yolo.tools.solver import InferenceModel
-from yolo.utils.logging_utils import setup
 
 class YOLOMITBase(BaseDetector):
     """
@@ -88,20 +87,16 @@ class YOLOMITBase(BaseDetector):
             Exception: If weights are not provided.
         """
         self.cfg.image_size = [self.IMAGE_SIZE, self.IMAGE_SIZE]
-        callbacks, loggers, save_path = setup(self.cfg)
 
         self.trainer = Trainer(
             accelerator="auto",
             max_epochs=getattr(self.cfg.task, "epoch", None),
             precision="16-mixed",
-            callbacks=callbacks,
-            logger=loggers,
             log_every_n_steps=1,
             gradient_clip_val=10,
             gradient_clip_algorithm="value",
             deterministic=True,
             enable_progress_bar=not getattr(self.cfg, "quite", False),
-            default_root_dir=save_path,
             devices=1, 
             num_nodes=1
         )
