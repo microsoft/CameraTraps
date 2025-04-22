@@ -19,10 +19,10 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 #%% 
 # Initializing the MegaDetectorV6 model for image detection
 # Valid versions are MDV6-yolov9-c, MDV6-yolov9-e, MDV6-yolov10-c, MDV6-yolov10-e or MDV6-rtdetr-c
-# detection_model = pw_detection.MegaDetectorV6(device=DEVICE, pretrained=True, version="MDV6-yolov10-e")
+detection_model = pw_detection.MegaDetectorV6(device=DEVICE, pretrained=True, version="MDV6-yolov10-e")
 
 # Uncomment the following line to use MegaDetectorV5 instead of MegaDetectorV6
-detection_model = pw_detection.MegaDetectorV5(device=DEVICE, pretrained=True, version="a")
+# detection_model = pw_detection.MegaDetectorV5(device=DEVICE, pretrained=True, version="a")
 
 # %%
 classification_model = pw_classification.SpeciesNetTFInference(version='v4.0.0a', run_mode='multi_thread')
@@ -67,9 +67,9 @@ clf_results = classification_model.batch_image_classification(tgt_folder_path, d
 # %%
 merged_results = det_results.copy()
 clf_conf_thres = 0.8
+clf_counter = 0
 
 for det in merged_results:
-    clf_counter = 0
     clf_labels = []
 
     for i, (xyxy, det_id) in enumerate(zip(det["detections"].xyxy, det["detections"].class_id)):
