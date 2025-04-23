@@ -12,3 +12,8 @@ yolov5
 setuptools
 scikit-learn
 timm
+mkdocs
+mkdocs-get-deps
+mkdocs-material
+mkdocs-material-extensions
+pymdown-extensions
