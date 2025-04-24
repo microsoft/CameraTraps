@@ -144,9 +144,16 @@ class YOLOV8Base(BaseDetector):
 
         self.predictor.args.batch = 1
         self.predictor.args.conf = det_conf_thres
-        det_results = list(self.predictor.stream_inference([img]))
         
-        return self.results_generation(det_results[0], img_path, id_strip)
+        det_results = list(self.predictor.stream_inference([img]))
+
+        res = self.results_generation(det_results[0], img_path, id_strip)
+
+        normalized_coords = [[x1 / img_size[1], y1 / img_size[0], x2 / img_size[1], y2 / img_size[0]] 
+                             for x1, y1, x2, y2 in res["detections"].xyxy]
+        res["normalized_coords"] = normalized_coords
+        
+        return res
 
     def batch_image_detection(self, data_path, batch_size=16, det_conf_thres=0.2, id_strip=None):
         """
