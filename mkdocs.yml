@@ -1,22 +1,132 @@
 site_name: Pytorch Wildlife
 docs_dir: mkdocs
+repo_url: https://github.com/microsoft/CameraTraps
+repo_name: microsoft/CameraTraps
 theme:
   name: material
+  favicon: assets/images/paw.png
+  icon:
+    logo: material/paw
+    menu: material/menu
+    alternate: material/translate
+    search: material/magnify
+    share: material/share-variant
+    close: material/close
+    top: material/arrow-up
+    edit: material/pencil
+    view: material/eye
+    repo: fontawesome/brands/git-alt
+    admonition:
+      note: material/note
+      abstract: material/lightbulb
+      info: material/information
+      tip: material/lightbulb-on
+      success: material/check-circle
+      question: material/help-circle
+      warning: material/alert
+      failure: material/alert-circle
+      danger: material/alert-octagon
+      bug: material/bug
+      example: material/format-list-bulleted
+      quote: material/format-quote-open
+    tag:
+      default: material/tag
+      info: material/information
+      warning: material/alert
+      danger: material/alert-octagon
+    previous: material/arrow-left
+    next: material/arrow-right
   palette:
-    - scheme: default
+    - media: "(prefers-color-scheme: light)" 
+      scheme: default
+      primary: green
+      accent: deep orange
       toggle:
         icon: material/weather-sunny
         name: Switch to dark mode
-    - scheme: slate
+        
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: teal
+      accent: deep orange
       toggle:
         icon: material/weather-night
         name: Switch to light mode
+  features:
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.sections
+    - navigation.path
+    - toc.follow
+    - toc.integrate
+    - navigation.top
+    - search.suggest
+    - search.share
+    - navigation.footer
+
 nav:
   - Home: index.md
+  - Latest Release: latest.md
+  - Previous version: prev_announcement.md
+  - PytorchWildlife:
+      - PytorchWildlife/PytorchWildlife.md
+      - Datasets: PytorchWildlife/data/datasets.md
+      - Transforms: PytorchWildlife/data/transforms.md
+  - Models:
+      - Classification:
+          - Base Classifier:
+              - PytorchWildlife/models/classification/base_classifier.md
+          - ResNet Base:
+              - PytorchWildlife/models/classification/resnet_base/base_classifier.md
+              - PytorchWildlife/models/classification/resnet_base/amazon.md
+              - PytorchWildlife/models/classification/resnet_base/custom_weights.md
+              - PytorchWildlife/models/classification/resnet_base/opossum.md
+              - PytorchWildlife/models/classification/resnet_base/serengeti.md
+          - TIMM Base:
+              - PytorchWildlife/models/classification/timm_base/base_classifier.md
+              - PytorchWildlife/models/classification/timm_base/DFNE.md
+              - PytorchWildlife/models/classification/timm_base/Deepfaune.md
+      - Detection:
+          - Base Detector:
+              - PytorchWildlife/models/detection/base_detector.md
+          - HerdNet:
+              - PytorchWildlife/models/detection/herdnet.md
+              - PytorchWildlife/models/detection/herdnet/dla.md
+              - PytorchWildlife/models/detection/herdnet/model.md
+              - Animaloc:
+                  - Data:
+                      - PytorchWildlife/models/detection/herdnet/animaloc/data/patches.md
+                      - PytorchWildlife/models/detection/herdnet/animaloc/data/types.md
+                  - Eval:
+                      - PytorchWildlife/models/detection/herdnet/animaloc/eval/lmds.md
+                      - PytorchWildlife/models/detection/herdnet/animaloc/eval/stitchers.md
+          - Ultralytics Based:
+              - PytorchWildlife/models/detection/ultralytics_based/Deepfaune.md
+              - MegaDetector v5:
+                  - PytorchWildlife/models/detection/ultralytics_based/megadetectorv5.md
+              - MegaDetector v6:
+                  - PytorchWildlife/models/detection/ultralytics_based/megadetectorv6.md
+                  - PytorchWildlife/models/detection/ultralytics_based/megadetectorv6_distributed.md
+              - YOLOv5 Base:
+                  - PytorchWildlife/models/detection/ultralytics_based/yolov5_base.md
+              - YOLOv8 Base:
+                  - PytorchWildlife/models/detection/ultralytics_based/yolov8_base.md
+              - YOLOv8 Distributed:
+                  - PytorchWildlife/models/detection/ultralytics_based/yolov8_distributed.md
 markdown_extensions:
   - admonition
   - pymdownx.details
   - pymdownx.superfences
   - md_in_html
-
+  - attr_list
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: google
 
