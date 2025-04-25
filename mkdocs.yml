@@ -70,49 +70,53 @@ nav:
   - Previous version: prev_announcement.md
   - PytorchWildlife:
       - PytorchWildlife/PytorchWildlife.md
-      - Datasets: PytorchWildlife/data/datasets.md
-      - Transforms: PytorchWildlife/data/transforms.md
-  - Models:
-      - Classification:
-          - Base Classifier:
-              - PytorchWildlife/models/classification/base_classifier.md
-          - ResNet Base:
-              - PytorchWildlife/models/classification/resnet_base/base_classifier.md
-              - PytorchWildlife/models/classification/resnet_base/amazon.md
-              - PytorchWildlife/models/classification/resnet_base/custom_weights.md
-              - PytorchWildlife/models/classification/resnet_base/opossum.md
-              - PytorchWildlife/models/classification/resnet_base/serengeti.md
-          - TIMM Base:
-              - PytorchWildlife/models/classification/timm_base/base_classifier.md
-              - PytorchWildlife/models/classification/timm_base/DFNE.md
-              - PytorchWildlife/models/classification/timm_base/Deepfaune.md
-      - Detection:
-          - Base Detector:
-              - PytorchWildlife/models/detection/base_detector.md
-          - HerdNet:
-              - PytorchWildlife/models/detection/herdnet.md
-              - PytorchWildlife/models/detection/herdnet/dla.md
-              - PytorchWildlife/models/detection/herdnet/model.md
-              - Animaloc:
-                  - Data:
-                      - PytorchWildlife/models/detection/herdnet/animaloc/data/patches.md
-                      - PytorchWildlife/models/detection/herdnet/animaloc/data/types.md
-                  - Eval:
-                      - PytorchWildlife/models/detection/herdnet/animaloc/eval/lmds.md
-                      - PytorchWildlife/models/detection/herdnet/animaloc/eval/stitchers.md
-          - Ultralytics Based:
-              - PytorchWildlife/models/detection/ultralytics_based/Deepfaune.md
-              - MegaDetector v5:
-                  - PytorchWildlife/models/detection/ultralytics_based/megadetectorv5.md
-              - MegaDetector v6:
-                  - PytorchWildlife/models/detection/ultralytics_based/megadetectorv6.md
-                  - PytorchWildlife/models/detection/ultralytics_based/megadetectorv6_distributed.md
-              - YOLOv5 Base:
-                  - PytorchWildlife/models/detection/ultralytics_based/yolov5_base.md
-              - YOLOv8 Base:
-                  - PytorchWildlife/models/detection/ultralytics_based/yolov8_base.md
-              - YOLOv8 Distributed:
-                  - PytorchWildlife/models/detection/ultralytics_based/yolov8_distributed.md
+      - Data:
+        - Datasets: PytorchWildlife/data/datasets.md
+        - Transforms: PytorchWildlife/data/transforms.md
+      - Models:
+        - Classification:
+            - Base Classifier:
+                - PytorchWildlife/models/classification/base_classifier.md
+            - ResNet Base:
+                - PytorchWildlife/models/classification/resnet_base/base_classifier.md
+                - PytorchWildlife/models/classification/resnet_base/amazon.md
+                - PytorchWildlife/models/classification/resnet_base/custom_weights.md
+                - PytorchWildlife/models/classification/resnet_base/opossum.md
+                - PytorchWildlife/models/classification/resnet_base/serengeti.md
+            - TIMM Base:
+                - PytorchWildlife/models/classification/timm_base/base_classifier.md
+                - PytorchWildlife/models/classification/timm_base/DFNE.md
+                - PytorchWildlife/models/classification/timm_base/Deepfaune.md
+        - Detection:
+            - Base Detector:
+                - PytorchWildlife/models/detection/base_detector.md
+            - HerdNet:
+                - PytorchWildlife/models/detection/herdnet.md
+                - PytorchWildlife/models/detection/herdnet/dla.md
+                - PytorchWildlife/models/detection/herdnet/model.md
+                - Animaloc:
+                    - Data:
+                        - PytorchWildlife/models/detection/herdnet/animaloc/data/patches.md
+                        - PytorchWildlife/models/detection/herdnet/animaloc/data/types.md
+                    - Eval:
+                        - PytorchWildlife/models/detection/herdnet/animaloc/eval/lmds.md
+                        - PytorchWildlife/models/detection/herdnet/animaloc/eval/stitchers.md
+            - Ultralytics Based:
+                - PytorchWildlife/models/detection/ultralytics_based/Deepfaune.md
+                - MegaDetector v5:
+                    - PytorchWildlife/models/detection/ultralytics_based/megadetectorv5.md
+                - MegaDetector v6:
+                    - PytorchWildlife/models/detection/ultralytics_based/megadetectorv6.md
+                    - PytorchWildlife/models/detection/ultralytics_based/megadetectorv6_distributed.md
+                - YOLOv5 Base:
+                    - PytorchWildlife/models/detection/ultralytics_based/yolov5_base.md
+                - YOLOv8 Base:
+                    - PytorchWildlife/models/detection/ultralytics_based/yolov8_base.md
+                - YOLOv8 Distributed:
+                    - PytorchWildlife/models/detection/ultralytics_based/yolov8_distributed.md
+      - Utils:
+          - PytorchWildlife/utils/misc.md
+          - PytorchWildlife/utils/post_process.md
 markdown_extensions:
   - admonition
   - pymdownx.details
