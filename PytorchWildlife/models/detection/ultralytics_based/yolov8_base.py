@@ -6,16 +6,16 @@
 # Importing basic libraries
 
 import os
-from glob import glob
-import supervision as sv
-import numpy as np
-from PIL import Image
 import wget
+import numpy as np
+from tqdm import tqdm
+from PIL import Image
+import supervision as sv
+
 import torch
+from torch.utils.data import DataLoader
 
 from ultralytics.models import yolo, rtdetr
-from torch.utils.data import DataLoader
-from tqdm import tqdm
 
 from ..base_detector import BaseDetector
 from ....data import transforms as pw_trans
@@ -41,8 +41,8 @@ class YOLOV8Base(BaseDetector):
             url (str, optional): 
                 URL to fetch the model weights. Defaults to None.
         """
-        self.transform = transform
         super(YOLOV8Base, self).__init__(weights=weights, device=device, url=url)
+        self.transform = transform
         self._load_model(weights, self.device, url)
 
     def _load_model(self, weights=None, device="cpu", url=None):
@@ -144,9 +144,16 @@ class YOLOV8Base(BaseDetector):
 
         self.predictor.args.batch = 1
         self.predictor.args.conf = det_conf_thres
-        det_results = list(self.predictor.stream_inference([img]))
         
-        return self.results_generation(det_results[0], img_path, id_strip)
+        det_results = list(self.predictor.stream_inference([img]))
+
+        res = self.results_generation(det_results[0], img_path, id_strip)
+
+        normalized_coords = [[x1 / img_size[1], y1 / img_size[0], x2 / img_size[1], y2 / img_size[0]] 
+                             for x1, y1, x2, y2 in res["detections"].xyxy]
+        res["normalized_coords"] = normalized_coords
+        
+        return res
 
     def batch_image_detection(self, data_source, batch_size=16, det_conf_thres=0.2, id_strip=None):
         """

@@ -1,5 +1,5 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
-# Licensed under the MIT License.
+# Licensed under the AGPL License.
 
 from .yolov5_base import YOLOV5Base
 
@@ -44,6 +44,10 @@ class MegaDetectorV5(YOLOV5Base):
                 url = "https://zenodo.org/records/10023414/files/MegaDetector_v5b.0.0.pt?download=1"
         else:
             url = None
+
+        import site 
+        import sys
+        sys.path.insert(0, site.getsitepackages()[0]+'/yolov5')
 
         super(MegaDetectorV5, self).__init__(weights=weights, device=device, url=url)
         
