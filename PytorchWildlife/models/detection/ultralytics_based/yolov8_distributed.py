@@ -84,7 +84,7 @@ class YOLOV8_Distributed(BaseDetector):
             self.transform = pw_trans.MegaDetector_v5_Transform(target_size=self.IMAGE_SIZE,
                                                                 stride=self.STRIDE)
         
-    def results_generation(self, preds, img_id, id_strip=None):
+    def results_generation(self, preds, img_id, id_strip=None) -> dict:
         """
         Generate results for detection based on model predictions.
         

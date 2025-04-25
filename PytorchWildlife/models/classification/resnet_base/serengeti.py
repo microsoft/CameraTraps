@@ -51,13 +51,13 @@ class AI4GSnapshotSerengeti(PlainResNetInference):
         super(AI4GSnapshotSerengeti, self).__init__(weights=weights, device=device,
                                                    num_cls=10, num_layers=18, url=url)
 
-    def results_generation(self, logits, img_ids, id_strip=None):
+    def results_generation(self, logits: torch.Tensor, img_ids: list[str], id_strip: str = None) -> list[dict]:
         """
         Generate results for classification.
 
         Args:
             logits (torch.Tensor): Output tensor from the model.
-            img_id (str): Image identifier.
+            img_ids (str): Image identifier.
             id_strip (str): stiping string for better image id saving.       
 
         Returns:

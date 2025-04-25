@@ -43,13 +43,13 @@ class AI4GOpossum(PlainResNetInference):
         super(AI4GOpossum, self).__init__(weights=weights, device=device,
                                           num_cls=1, num_layers=50, url=url)
 
-    def results_generation(self, logits, img_ids, id_strip=None):
+    def results_generation(self, logits: torch.Tensor, img_ids: list[str], id_strip: str = None) -> list[dict]:
         """
         Generate results for classification.
 
         Args:
             logits (torch.Tensor): Output tensor from the model.
-            img_id (list): List of image identifier.
+            img_ids (list): List of image identifier.
             id_strip (str): stiping string for better image id saving.       
 
         Returns:

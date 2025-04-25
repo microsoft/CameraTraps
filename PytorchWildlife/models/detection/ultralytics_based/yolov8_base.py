@@ -84,7 +84,7 @@ class YOLOV8Base(BaseDetector):
             self.transform = pw_trans.MegaDetector_v5_Transform(target_size=self.IMAGE_SIZE,
                                                                 stride=self.STRIDE)
 
-    def results_generation(self, preds, img_id, id_strip=None):
+    def results_generation(self, preds, img_id, id_strip=None) -> dict:
         """
         Generate results for detection based on model predictions.
         
@@ -118,7 +118,7 @@ class YOLOV8Base(BaseDetector):
         return results
         
 
-    def single_image_detection(self, img, img_path=None, det_conf_thres=0.2, id_strip=None):
+    def single_image_detection(self, img, img_path=None, det_conf_thres=0.2, id_strip=None) -> dict:
         """
         Perform detection on a single image.
         
@@ -155,24 +155,18 @@ class YOLOV8Base(BaseDetector):
         
         return res
 
-    def batch_image_detection(self, data_source, batch_size=16, det_conf_thres=0.2, id_strip=None):
+    def batch_image_detection(self, data_source, batch_size: int = 16, det_conf_thres: float = 0.2, id_strip: str = None) -> list[dict]:
         """
         Perform detection on a batch of images.
-        
+
         Args:
-            data_source (str or List[np.ndarray]): 
-                Either path containing images for inference or list of numpy arrays (RGB format, shape: H×W×3)
-            batch_size (int, optional):
-                Batch size for inference. Defaults to 16.
-            det_conf_thres (float, optional): 
-                Confidence threshold for predictions. Defaults to 0.2.
-            id_strip (str, optional): 
-                Characters to strip from img_id. Defaults to None.
-            extension (str, optional):
-                Image extension to search for. Defaults to "JPG"
+            data_source (str or List[np.ndarray]): Either path containing images for inference or list of numpy arrays (RGB format, shape: H×W×3).
+            batch_size (int, optional): Batch size for inference. Defaults to 16.
+            det_conf_thres (float, optional): Confidence threshold for predictions. Defaults to 0.2.
+            id_strip (str, optional): Characters to strip from img_id. Defaults to None.
 
         Returns:
-            list: List of detection results for all images.
+            list[dict]: List of detection results for all images.
         """
         self.predictor.args.batch = batch_size
         self.predictor.args.conf = det_conf_thres

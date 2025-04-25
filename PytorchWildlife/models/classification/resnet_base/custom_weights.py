@@ -21,29 +21,29 @@ class CustomWeights(PlainResNetInference):
 
     def __init__(self, weights=None, class_names=None, device="cpu"):
         """
-        Initialize the Amazon animal Classifier.
+        Initialize the CustomWeights Classifier.
 
         Args:
             weights (str, optional): Path to the model weights. Defaults to None.
+            class_names (list[str]): List of class names for the classifier.
             device (str, optional): Device for model inference. Defaults to "cpu".
-            pretrained (bool, optional): Whether to use pretrained weights. Defaults to True.
         """
         self.CLASS_NAMES = class_names
         self.num_cls = len(self.CLASS_NAMES)
         super(CustomWeights, self).__init__(weights=weights, device=device,
                                                    num_cls=self.num_cls, num_layers=50, url=None)
 
-    def results_generation(self, logits, img_ids, id_strip=None):
+    def results_generation(self, logits: torch.Tensor, img_ids: list[str], id_strip: str = None) -> list[dict]:
         """
         Generate results for classification.
 
         Args:
             logits (torch.Tensor): Output tensor from the model.
-            img_id (str): Image identifier.
-            id_strip (str): stiping string for better image id saving.       
+            img_ids (list[str]): List of image identifiers.
+            id_strip (str): Stripping string for better image ID saving.
 
         Returns:
-            dict: Dictionary containing image ID, prediction, and confidence score.
+            list[dict]: List of dictionaries containing image ID, prediction, and confidence score.
         """
         
         probs = torch.softmax(logits, dim=1)

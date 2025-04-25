@@ -15,27 +15,24 @@ __all__ = [
 ]
 
 
-def letterbox(im, new_shape=(640, 640), color=(114, 114, 114), auto=False, scaleFill=False, scaleup=True, stride=32):
+def letterbox(im, new_shape=(640, 640), color=(114, 114, 114), auto=False, scaleFill=False, scaleup=True, stride=32) -> torch.Tensor:
     """
-    Resize and pad an image to a desired shape while keeping the aspect ratio unchanged. 
+    Resize and pad an image to a desired shape while keeping the aspect ratio unchanged.
 
     This function is commonly used in object detection tasks to prepare images for models like YOLOv5. 
     It resizes the image to fit into the new shape with the correct aspect ratio and then pads the rest.
 
-    Parameters:
-    im (PIL.Image.Image or torch.Tensor): The input image. It can be a PIL image or a PyTorch tensor.
-    new_shape (tuple, optional): The target size of the image, in the form (height, width). Defaults to (640, 640).
-    color (tuple, optional): The color used for padding. Defaults to (114, 114, 114).
-    auto (bool, optional): Adjust padding to ensure the padded image is a multiple of stride. Defaults to True.
-    scaleFill (bool, optional): If True, scales the image to fill the new shape, ignoring the aspect ratio. Defaults to False.
-    scaleup (bool, optional): Allow the function to scale up the image. Defaults to True.
-    stride (int, optional): The stride used in the model. The padding is adjusted to be a multiple of this stride. Defaults to 32.
+    Args:
+        im (PIL.Image.Image or torch.Tensor): The input image. It can be a PIL image or a PyTorch tensor.
+        new_shape (tuple, optional): The target size of the image, in the form (height, width). Defaults to (640, 640).
+        color (tuple, optional): The color used for padding. Defaults to (114, 114, 114).
+        auto (bool, optional): Adjust padding to ensure the padded image dimensions are a multiple of the stride. Defaults to False.
+        scaleFill (bool, optional): If True, scales the image to fill the new shape, ignoring the aspect ratio. Defaults to False.
+        scaleup (bool, optional): Allow the function to scale up the image. Defaults to True.
+        stride (int, optional): The stride used in the model. The padding is adjusted to be a multiple of this stride. Defaults to 32.
 
     Returns:
-    tuple: A tuple containing:
-        - The transformed image as a torch.Tensor.
-        - The scale ratios as a tuple (width_ratio, height_ratio).
-        - The padding applied as a tuple (width_padding, height_padding).
+        torch.Tensor: The transformed image with padding applied.
     """
 
     # Convert PIL Image to Torch Tensor
@@ -99,7 +96,7 @@ class MegaDetector_v5_Transform:
         self.target_size = target_size
         self.stride = stride
 
-    def __call__(self, np_img):
+    def __call__(self, np_img) -> torch.Tensor:
         """
         Applies the transformation on the provided image.
 
@@ -145,7 +142,7 @@ class Classification_Inference_Transform:
             transforms.Normalize(self.mean, self.std)
         ])
 
-    def __call__(self, img):
+    def __call__(self, img) -> torch.Tensor:
         """
         Applies the transformation on the provided image.
 
