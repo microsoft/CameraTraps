@@ -95,7 +95,7 @@ There may be a confusion because YOLOv5 was initially released before the establ
 <!-- > [!IMPORTANT]
 > THIS IS TRUE TO ALL EXISTING MEGADETECTORV5 MODELS IN ALL EXISTING FORKS THAT ARE TRAINED USING YOLOV5, AN ULTRALYTICS-DEVELOPED MODEL. -->
 
-We want to make Pytorch-Wildlife a platform where different models with different licenses can be hosted and want to enable different use cases. To reduce user confusions, in our [model zoo](#mag-model-zoo-and-release-schedules) section, we list all existing and planed future models in our model zoo, their corresponding license, and release schedules. 
+We want to make Pytorch-Wildlife a platform where different models with different licenses can be hosted and want to enable different use cases. To reduce user confusions, in our [model zoo](#mag-model-zoo-and-release-schedules) section, we list all existing and planned future models in our model zoo, their corresponding license, and release schedules. 
 
 In addition, since the **Pytorch-Wildlife** package is under MIT, all the utility functions, including data pre-/post-processing functions and model fine-tuning functions in this packages are under MIT as well.
 

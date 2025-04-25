@@ -155,7 +155,7 @@ class DetectionCrops(Dataset):
         self.detection_results = detection_results
         self.transform = transform
         self.path_head = path_head
-        self.animal_cls_id = animal_cls_id # This determins which detection class id represents animals.
+        self.animal_cls_id = animal_cls_id # This determines which detection class id represents animals.
         self.img_ids = []
         self.xyxys = []
 
