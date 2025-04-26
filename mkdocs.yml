@@ -4,9 +4,9 @@ repo_url: https://github.com/microsoft/CameraTraps
 repo_name: microsoft/CameraTraps
 theme:
   name: material
-  favicon: assets/images/paw.png
+  favicon: assets/images/cat.png
+  logo: assets/images/cat.png
   icon:
-    logo: material/paw
     menu: material/menu
     alternate: material/translate
     search: material/magnify
@@ -42,7 +42,7 @@ theme:
       primary: green
       accent: deep orange
       toggle:
-        icon: material/weather-sunny
+        icon: material/paw-off
         name: Switch to dark mode
         
     - media: "(prefers-color-scheme: dark)"
@@ -50,7 +50,7 @@ theme:
       primary: teal
       accent: deep orange
       toggle:
-        icon: material/weather-night
+        icon: material/paw
         name: Switch to light mode
   features:
     - navigation.tracking
@@ -117,11 +117,21 @@ nav:
       - Utils:
           - PytorchWildlife/utils/misc.md
           - PytorchWildlife/utils/post_process.md
-  - Classification Fine-Tuning:
-      - PW_FT_Classfication/algorithms.md
-      - PW_FT_Classfication/main.md
-      - PW_FT_Classfication/utils.md
-  - Detection Fine-Tuning:
+  # - Classification Fine-Tuning:
+  #     - Algorithms:
+  #       - PW_FT_classification/algorithms/algorithms.md
+  #       - PW_FT_classification/algorithms/utils.md
+  #   #   - Datasets:
+    #     - PW_FT_classification/datasets/datasets.md
+    #   - Models:
+    #     - PW_FT_classification/models/plain_resnet.md
+    #   - Utils:
+    #     - PW_FT_classification/utils/utils.md
+    #     - PW_FT_classification/utils/data_splitting.md
+    #   - PW_FT_classification/main.md
+    
+      
+      
 markdown_extensions:
   - admonition
   - pymdownx.details
