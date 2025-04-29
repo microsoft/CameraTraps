@@ -1,13 +1,8 @@
 __include__: [
-  '../dataset/megadetector640_detection.yml',
+  '../dataset/megadetector_detection.yml',
   '../runtime.yml',
-  './include/dataloader.yml',
-  './include/optimizer.yml',
   './include/rtdetrv2_r50vd.yml',
 ]
-
-
-output_dir: ./output/rtdetrv2_r101vd_6x_megadetector640
 
 
 PResNet:

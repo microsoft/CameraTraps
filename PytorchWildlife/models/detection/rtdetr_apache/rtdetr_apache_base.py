@@ -74,12 +74,12 @@ class RTDETRApacheBase(BaseDetector):
             raise Exception("Need weights for inference.")
 
         if self.MODEL_NAME == "MDV6-rtdetr_s.pth":
-            config = os.path.join(project_root, "rtdetrv2_pytorch/configs/rtdetrv2/rtdetrv2_r18vd_120e_megadetector640.yml")
+            config = os.path.join(project_root, "rtdetrv2_pytorch/configs/rtdetrv2/rtdetrv2_r18vd_120e_megadetector.yml")
         elif self.MODEL_NAME == "MDV6-rtdetr_x.pth":
-            config = os.path.join(project_root, "rtdetrv2_pytorch/configs/rtdetrv2/rtdetrv2_r101vd_6x_megadetector640.yml")
+            config = os.path.join(project_root, "rtdetrv2_pytorch/configs/rtdetrv2/rtdetrv2_r101vd_6x_megadetector.yml")
         else:
             raise ValueError('Select a valid model version: MDV6-rtdetr-s-apache or MDV6-rtdetr-x-apache')
-
+        
         cfg = YAMLConfig(config, resume=resume)
         
         checkpoint = torch.load(resume, map_location='cpu') 
@@ -100,7 +100,7 @@ class RTDETRApacheBase(BaseDetector):
                 outputs = self.model(images)
                 outputs = self.postprocessor(outputs, orig_target_sizes)
                 return outputs
-
+        
         self.model = Model().to(self.device)
 
     def results_generation(self, preds, img_id, id_strip=None):
@@ -164,7 +164,6 @@ class RTDETRApacheBase(BaseDetector):
         w, h = im_pil.size
         orig_size = torch.tensor([w, h])[None].to(self.device)
         im_data = self.transform(im_pil)[None].to(self.device)
-
         labels, boxes, scores = self.model(im_data, orig_size)
 
         scr = scores[0]
