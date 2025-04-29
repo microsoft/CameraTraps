@@ -21,182 +21,165 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
 from torch.utils.data import DistributedSampler
-# from torch.utils.data.dataloader import DataLoader
-from ..data import DataLoader 
 
-
-def setup_distributed(print_rank: int=0, print_method: str='builtin', seed: int=None, ):
-    """
-    env setup
-    args:
-        print_rank, 
-        print_method, (builtin, rich)
-        seed, 
-    """
-    try:
-        # https://pytorch.org/docs/stable/elastic/run.html
-        RANK = int(os.getenv('RANK', -1))
-        LOCAL_RANK = int(os.getenv('LOCAL_RANK', -1))  
-        WORLD_SIZE = int(os.getenv('WORLD_SIZE', 1))
+# def setup_distributed(print_rank: int=0, print_method: str='builtin', seed: int=None, ):
+#     """
+#     env setup
+#     args:
+#         print_rank, 
+#         print_method, (builtin, rich)
+#         seed, 
+#     """
+#     try:
+#         # https://pytorch.org/docs/stable/elastic/run.html
+#         RANK = int(os.getenv('RANK', -1))
+#         LOCAL_RANK = int(os.getenv('LOCAL_RANK', -1))  
+#         WORLD_SIZE = int(os.getenv('WORLD_SIZE', 1))
         
-        # torch.distributed.init_process_group(backend=backend, init_method='env://')
-        torch.distributed.init_process_group(init_method='env://')
-        torch.distributed.barrier()
+#         # torch.distributed.init_process_group(backend=backend, init_method='env://')
+#         torch.distributed.init_process_group(init_method='env://')
+#         torch.distributed.barrier()
 
-        rank = torch.distributed.get_rank()
-        torch.cuda.set_device(rank)
-        torch.cuda.empty_cache()
-        enabled_dist = True
-        print('Initialized distributed mode...')
+#         rank = torch.distributed.get_rank()
+#         torch.cuda.set_device(rank)
+#         torch.cuda.empty_cache()
+#         enabled_dist = True
+#         print('Initialized distributed mode...')
 
-    except:
-        enabled_dist = False
-        print('Not init distributed mode.')
+#     except:
+#         enabled_dist = False
+#         print('Not init distributed mode.')
 
-    setup_print(get_rank() == print_rank, method=print_method)
-    if seed is not None:
-        setup_seed(seed)
+#     setup_print(get_rank() == print_rank, method=print_method)
+#     if seed is not None:
+#         setup_seed(seed)
 
-    return enabled_dist
-
-
-def setup_print(is_main, method='builtin'):
-    """This function disables printing when not in master process
-    """
-    import builtins as __builtin__
-
-    if method == 'builtin':
-        builtin_print = __builtin__.print
-
-    elif method == 'rich':
-        import rich 
-        builtin_print = rich.print
-
-    else:
-        raise AttributeError('')
-
-    def print(*args, **kwargs):
-        force = kwargs.pop('force', False)
-        if is_main or force:
-            builtin_print(*args, **kwargs)
-
-    __builtin__.print = print
+#     return enabled_dist
 
 
-def is_dist_available_and_initialized():
-    if not torch.distributed.is_available():
-        return False
-    if not torch.distributed.is_initialized():
-        return False
-    return True
+# def setup_print(is_main, method='builtin'):
+#     """This function disables printing when not in master process
+#     """
+#     import builtins as __builtin__
+
+#     if method == 'builtin':
+#         builtin_print = __builtin__.print
+
+#     elif method == 'rich':
+#         import rich 
+#         builtin_print = rich.print
+
+#     else:
+#         raise AttributeError('')
+
+#     def print(*args, **kwargs):
+#         force = kwargs.pop('force', False)
+#         if is_main or force:
+#             builtin_print(*args, **kwargs)
+
+#     __builtin__.print = print
 
 
-@atexit.register
-def cleanup():
-    """cleanup distributed environment
-    """
-    if is_dist_available_and_initialized():
-        torch.distributed.barrier()
-        torch.distributed.destroy_process_group()
+# def is_dist_available_and_initialized():
+#     if not torch.distributed.is_available():
+#         return False
+#     if not torch.distributed.is_initialized():
+#         return False
+#     return True
 
 
-def get_rank():
-    if not is_dist_available_and_initialized():
-        return 0
-    return torch.distributed.get_rank()
+# @atexit.register
+# def cleanup():
+#     """cleanup distributed environment
+#     """
+#     if is_dist_available_and_initialized():
+#         torch.distributed.barrier()
+#         torch.distributed.destroy_process_group()
 
 
-def get_world_size():
-    if not is_dist_available_and_initialized():
-        return 1
-    return torch.distributed.get_world_size()
+# def get_rank():
+#     if not is_dist_available_and_initialized():
+#         return 0
+#     return torch.distributed.get_rank()
+
+
+# def get_world_size():
+#     if not is_dist_available_and_initialized():
+#         return 1
+#     return torch.distributed.get_world_size()
 
     
-def is_main_process():
-    return get_rank() == 0
+# def is_main_process():
+#     return get_rank() == 0
 
 
-def save_on_master(*args, **kwargs):
-    if is_main_process():
-        torch.save(*args, **kwargs)
-
-
-
-def warp_model(
-    model: torch.nn.Module, 
-    sync_bn: bool=False, 
-    dist_mode: str='ddp', 
-    find_unused_parameters: bool=False, 
-    compile: bool=False, 
-    compile_mode: str='reduce-overhead', 
-    **kwargs
-):
-    if is_dist_available_and_initialized():
-        rank = get_rank()
-        model = nn.SyncBatchNorm.convert_sync_batchnorm(model) if sync_bn else model 
-        if dist_mode == 'dp':
-            model = DP(model, device_ids=[rank], output_device=rank)
-        elif dist_mode == 'ddp':
-            model = DDP(model, device_ids=[rank], output_device=rank, find_unused_parameters=find_unused_parameters)
-        else:
-            raise AttributeError('')
-
-    if compile:
-        model = torch.compile(model, mode=compile_mode)
-
-    return model
-
-def de_model(model):
-    return de_parallel(de_complie(model))
-
-
-def warp_loader(loader, shuffle=False):        
-    if is_dist_available_and_initialized():
-        sampler = DistributedSampler(loader.dataset, shuffle=shuffle)
-        loader = DataLoader(loader.dataset, 
-                            loader.batch_size, 
-                            sampler=sampler, 
-                            drop_last=loader.drop_last, 
-                            collate_fn=loader.collate_fn, 
-                            pin_memory=loader.pin_memory,
-                            num_workers=loader.num_workers, )
-    return loader
+# def save_on_master(*args, **kwargs):
+#     if is_main_process():
+#         torch.save(*args, **kwargs)
 
 
 
-def is_parallel(model) -> bool:
-    # Returns True if model is of type DP or DDP
-    return type(model) in (torch.nn.parallel.DataParallel, torch.nn.parallel.DistributedDataParallel)
+# def warp_model(
+#     model: torch.nn.Module, 
+#     sync_bn: bool=False, 
+#     dist_mode: str='ddp', 
+#     find_unused_parameters: bool=False, 
+#     compile: bool=False, 
+#     compile_mode: str='reduce-overhead', 
+#     **kwargs
+# ):
+#     if is_dist_available_and_initialized():
+#         rank = get_rank()
+#         model = nn.SyncBatchNorm.convert_sync_batchnorm(model) if sync_bn else model 
+#         if dist_mode == 'dp':
+#             model = DP(model, device_ids=[rank], output_device=rank)
+#         elif dist_mode == 'ddp':
+#             model = DDP(model, device_ids=[rank], output_device=rank, find_unused_parameters=find_unused_parameters)
+#         else:
+#             raise AttributeError('')
+
+#     if compile:
+#         model = torch.compile(model, mode=compile_mode)
+
+#     return model
+
+# def de_model(model):
+#     return de_parallel(de_complie(model))
 
 
-def de_parallel(model) -> nn.Module:
-    # De-parallelize a model: returns single-GPU model if model is of type DP or DDP
-    return model.module if is_parallel(model) else model
+# def is_parallel(model) -> bool:
+#     # Returns True if model is of type DP or DDP
+#     return type(model) in (torch.nn.parallel.DataParallel, torch.nn.parallel.DistributedDataParallel)
 
 
-def reduce_dict(data, avg=True):
-    """
-    Args 
-        data dict: input, {k: v, ...}
-        avg bool: true
-    """
-    world_size = get_world_size()
-    if world_size < 2:
-        return data
+# def de_parallel(model) -> nn.Module:
+#     # De-parallelize a model: returns single-GPU model if model is of type DP or DDP
+#     return model.module if is_parallel(model) else model
+
+
+# def reduce_dict(data, avg=True):
+#     """
+#     Args 
+#         data dict: input, {k: v, ...}
+#         avg bool: true
+#     """
+#     world_size = get_world_size()
+#     if world_size < 2:
+#         return data
     
-    with torch.no_grad():
-        keys, values = [], []
-        for k in sorted(data.keys()):
-            keys.append(k)
-            values.append(data[k])
+#     with torch.no_grad():
+#         keys, values = [], []
+#         for k in sorted(data.keys()):
+#             keys.append(k)
+#             values.append(data[k])
 
-        values = torch.stack(values, dim=0)
-        torch.distributed.all_reduce(values)
+#         values = torch.stack(values, dim=0)
+#         torch.distributed.all_reduce(values)
 
-        if avg is True:
-            values /= world_size
+#         if avg is True:
+#             values /= world_size
         
-        return {k: v for k, v in zip(keys, values)}
+#         return {k: v for k, v in zip(keys, values)}
         
 
 def all_gather(data):

@@ -48,7 +48,7 @@ class CocoDetection(torchvision.datasets.CocoDetection, DetDataset):
 
         if self.remap_mscoco_category:
             image, target = self.prepare(image, target, category2label=mscoco_category2label)
-            #image, target = self.prepare(image, target, category2label=self.category2label)
+            # image, target = self.prepare(image, target, category2label=self.category2label)
         else:
             image, target = self.prepare(image, target)
 
@@ -127,7 +127,6 @@ class ConvertCocoPolysToMask(object):
         boxes[:, 1::2].clamp_(min=0, max=h)
 
         category2label = kwargs.get('category2label', None)
-        
         if category2label is not None:
             labels = [category2label[obj["category_id"]] for obj in anno]
         else:
@@ -165,10 +164,10 @@ class ConvertCocoPolysToMask(object):
             target["keypoints"] = keypoints
 
         # for conversion to coco api
-        #area = torch.tensor([obj["area"] for obj in anno])
-        #iscrowd = torch.tensor([obj["iscrowd"] if "iscrowd" in obj else 0 for obj in anno])
-        #target["area"] = area[keep]
-        #target["iscrowd"] = iscrowd[keep]
+        area = torch.tensor([obj["area"] for obj in anno])
+        iscrowd = torch.tensor([obj["iscrowd"] if "iscrowd" in obj else 0 for obj in anno])
+        target["area"] = area[keep]
+        target["iscrowd"] = iscrowd[keep]
 
         target["orig_size"] = torch.as_tensor([int(w), int(h)])
         # target["size"] = torch.as_tensor([int(w), int(h)])
