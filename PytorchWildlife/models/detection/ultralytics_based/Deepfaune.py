@@ -30,12 +30,10 @@ class DeepfauneDetector(YOLOV8Base):
     def __init__(self, weights=None, device="cpu"):
         """
         Initializes the MegaDetectorV5 model with the option to load pretrained weights.
-        
+
         Args:
             weights (str, optional): Path to the weights file.
             device (str, optional): Device to load the model on (e.g., "cpu" or "cuda"). Default is "cpu".
-            pretrained (bool, optional): Whether to load the pretrained model. Default is True.
-            version (str, optional): Version of the model to load. Default is 'yolov9c'.
         """
         self.IMAGE_SIZE = 960
 

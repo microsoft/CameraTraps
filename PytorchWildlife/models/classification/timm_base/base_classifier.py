@@ -1,4 +1,3 @@
-
 """ model class for loading the DFNE classifier. """
 
 # Import libraries
@@ -102,17 +101,17 @@ class TIMM_BaseClassifierInference(BaseClassifierInference):
         self.predictor.to(self.device)
         self.eval()
 
-    def results_generation(self, logits, img_ids, id_strip=None):
+    def results_generation(self, logits: torch.Tensor, img_ids: list[str], id_strip: str = None) -> list[dict]:
         """
         Generate results for classification.
 
         Args:
             logits (torch.Tensor): Output tensor from the model.
-            img_id (str): Image identifier.
-            id_strip (str): stiping string for better image id saving.       
+            img_ids (list[str]): List of image identifiers.
+            id_strip (str): Stripping string for better image ID saving.
 
         Returns:
-            dict: Dictionary containing image ID, prediction, and confidence score.
+            list[dict]: List of dictionaries containing image ID, prediction, and confidence score.
         """
         
         probs = torch.softmax(logits, dim=1)

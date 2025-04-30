@@ -70,7 +70,7 @@ class YOLOV5Base(BaseDetector):
             self.transform = pw_trans.MegaDetector_v5_Transform(target_size=self.IMAGE_SIZE,
                                                                 stride=self.STRIDE)
 
-    def results_generation(self, preds, img_id, id_strip=None):
+    def results_generation(self, preds, img_id, id_strip=None) -> dict:
         """
         Generate results for detection based on model predictions.
         
@@ -97,7 +97,7 @@ class YOLOV5Base(BaseDetector):
         ]
         return results
 
-    def single_image_detection(self, img, img_path=None, det_conf_thres=0.2, id_strip=None):
+    def single_image_detection(self, img, img_path=None, det_conf_thres=0.2, id_strip=None) -> dict:
         """
         Perform detection on a single image.
         
@@ -134,24 +134,18 @@ class YOLOV5Base(BaseDetector):
 
         return res
 
-    def batch_image_detection(self, data_path, batch_size=16, det_conf_thres=0.2, id_strip=None):
+    def batch_image_detection(self, data_path, batch_size: int = 16, det_conf_thres: float = 0.2, id_strip: str = None) -> list[dict]:
         """
         Perform detection on a batch of images.
-        
+
         Args:
-            data_path (str): 
-                Path containing all images for inference.
-            batch_size (int, optional):
-                Batch size for inference. Defaults to 16.
-            det_conf_thres (float, optional): 
-                Confidence threshold for predictions. Defaults to 0.2.
-            id_strip (str, optional): 
-                Characters to strip from img_id. Defaults to None.
-            extension (str, optional):
-                Image extension to search for. Defaults to "JPG"
+            data_path (str): Path containing all images for inference.
+            batch_size (int, optional): Batch size for inference. Defaults to 16.
+            det_conf_thres (float, optional): Confidence threshold for predictions. Defaults to 0.2.
+            id_strip (str, optional): Characters to strip from img_id. Defaults to None.
 
         Returns:
-            list: List of detection results for all images.
+            list[dict]: List of detection results for all images.
         """
 
         dataset = pw_data.DetectionImageFolder(
