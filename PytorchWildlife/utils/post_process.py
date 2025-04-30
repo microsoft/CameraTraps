@@ -25,7 +25,7 @@ __all__ = [
 ]
 
 
-def save_detection_images(results, output_dir, input_dir = None, overwrite=False):
+def save_detection_images(results, output_dir, input_dir=None, overwrite=False):
     """
     Save detected images with bounding boxes and labels annotated.
 
@@ -78,7 +78,7 @@ def save_detection_images(results, output_dir, input_dir = None, overwrite=False
                 image=cv2.cvtColor(annotated_img, cv2.COLOR_RGB2BGR), image_name=os.path.basename(results["img_id"])
             )
 
-def save_detection_images_dots(results, output_dir, input_dir = None, overwrite=False):
+def save_detection_images_dots(results, output_dir, input_dir=None, overwrite=False):
     """
     Save detected images with bounding boxes and labels annotated.
 
@@ -144,7 +144,7 @@ def save_detection_images_dots(results, output_dir, input_dir = None, overwrite=
 
 
 # !!! Output paths need to be optimized !!!
-def save_crop_images(results, output_dir, input_dir = None, overwrite=False):
+def save_crop_images(results, output_dir, input_dir=None, overwrite=False):
     """
     Save cropped images based on the detection bounding boxes.
 
@@ -194,7 +194,7 @@ def save_detection_json(det_results, output_dir, categories=None, exclude_catego
     Save detection results to a JSON file.
 
     Args:
-        results (list):
+        det_results (list):
             Detection results containing image ID, bounding boxes, category, and confidence.
         output_dir (str):
             Path to save the output JSON file.
@@ -235,7 +235,7 @@ def save_detection_json_as_dots(det_results, output_dir, categories=None, exclud
     Save detection results to a JSON file in dots format.
 
     Args:
-        results (list):
+        det_results (list):
             Detection results containing image ID, bounding boxes, category, and confidence.
         output_dir (str):
             Path to save the output JSON file.
@@ -281,7 +281,7 @@ def save_detection_timelapse_json(
     Save detection results to a JSON file.
 
     Args:
-        results (list):
+        det_results (list):
             Detection results containing image ID, bounding boxes, category, and confidence.
         output_dir (str):
             Path to save the output JSON file.
@@ -291,7 +291,7 @@ def save_detection_timelapse_json(
             List of category IDs to exclude from the output. Defaults to []. Category IDs can be found in the definition of each models.
         exclude_file_path (str, optional):
             Some time, Timelapse has path issues. We can exclude the some path sections from the image ID. Defaults to None.
-        detector (dict, optional):
+        info (dict, optional):
             Default Timelapse info. Defaults to {"detector": "megadetector_v5}.
     """
 
@@ -345,7 +345,7 @@ def save_detection_classification_json(
             Detection results containing image ID, bounding boxes, detection category, and confidence.
         clf_results (list):
             classification results containing image ID, classification category, and confidence.
-        output_dir (str):
+        output_path (str):
             Path to save the output JSON file.
         det_categories (list, optional):
             List of categories for detected objects. Defaults to None.

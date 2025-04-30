@@ -17,3 +17,5 @@ mkdocs-get-deps
 mkdocs-material
 mkdocs-material-extensions
 pymdown-extensions
+mkdocstrings
+mkdocstrings-python

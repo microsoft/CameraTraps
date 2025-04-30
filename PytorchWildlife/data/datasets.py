@@ -45,7 +45,7 @@ class ImageFolder(Dataset):
         self.transform = transform
         self.images = [os.path.join(dp, f) for dp, dn, filenames in os.walk(image_dir) for f in filenames if is_image_file(f)] # dp: directory path, dn: directory name, f: filename
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx) -> tuple:
         """
         Retrieves an image from the dataset.
 
@@ -57,7 +57,7 @@ class ImageFolder(Dataset):
         """
         pass
     
-    def __len__(self):
+    def __len__(self) -> int:
         """
         Returns the total number of images in the dataset.
 
@@ -83,7 +83,7 @@ class ClassificationImageFolder(ImageFolder):
         """
         super(ClassificationImageFolder, self).__init__(image_dir, transform)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx) -> tuple:
         """
         Retrieves an image from the dataset.
 
@@ -123,7 +123,7 @@ class DetectionImageFolder(ImageFolder):
         """
         super(DetectionImageFolder, self).__init__(image_dir, transform)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx) -> tuple:
         """
         Retrieves an image from the dataset.
 
@@ -169,7 +169,7 @@ class DetectionCrops(Dataset):
                     self.img_ids.append(det["img_id"])
                     self.xyxys.append(xyxy)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx) -> tuple:
         """
         Retrieves an image from the dataset.
 
@@ -196,5 +196,5 @@ class DetectionCrops(Dataset):
 
         return img, img_path
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.img_ids)

@@ -124,17 +124,17 @@ class PlainResNetInference(BaseClassifierInference):
         else:
             self.transform = pw_trans.Classification_Inference_Transform(target_size=self.IMAGE_SIZE)
 
-    def results_generation(self, logits, img_id, id_strip=None):
+    def results_generation(self, logits: torch.Tensor, img_ids: list[str], id_strip: str = None) -> list[dict]:
         """
         Process logits to produce final results. 
 
         Args:
             logits (torch.Tensor): Logits from the network.
-            img_id (str): image path.       
-            id_strip (str): stiping string for better image id saving.       
+            img_ids (list[str]): List of image paths.
+            id_strip (str): Stripping string for better image ID saving.       
 
         Returns:
-            dict: Dictionary containing the results.
+            list[dict]: List of dictionaries containing the results.
         """
         pass
 
