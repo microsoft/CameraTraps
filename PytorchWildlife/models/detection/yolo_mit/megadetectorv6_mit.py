@@ -32,13 +32,13 @@ class MegaDetectorV6MIT(YOLOMITBase):
         """
         self.IMAGE_SIZE = 640
 
-        if version == 'MDV6-yolov9-s-mit':
+        if version == 'MDV6-yolov9-c-mit':
             url = "https://zenodo.org/records/15150394/files/MDV6-yolov9s-mit.ckpt?download=1"
             self.MODEL_NAME = "MDV6-yolov9s-mit.ckpt"
-        elif version == 'MDV6-yolov9-c-mit':
+        elif version == 'MDV6-yolov9-e-mit':
             url = "https://zenodo.org/records/15150394/files/MDV6-yolov9c-mit.ckpt?download=1"
             self.MODEL_NAME = "MDV6-yolov9c-mit.ckpt"
         else:
-            raise ValueError('Select a valid model version: MDV6-yolov9-s-mit or MDV6-yolov9-c-mit')
+            raise ValueError('Select a valid model version: MDV6-yolov9-c-mit or MDV6-yolov9-e-mit')
 
         super(MegaDetectorV6MIT, self).__init__(weights=weights, device=device, url=url)

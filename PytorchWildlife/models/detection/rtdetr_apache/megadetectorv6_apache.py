@@ -32,13 +32,13 @@ class MegaDetectorV6Apache(RTDETRApacheBase):
         """
         self.IMAGE_SIZE = 640
 
-        if version == "MDV6-rtdetr-s-apache":
+        if version == "MDV6-rtdetr-c-apache":
             url = "https://zenodo.org/records/15178680/files/MDV6-rtdetr_s.pth?download=1"
             self.MODEL_NAME = "MDV6-rtdetr_s.pth"
-        elif version == "MDV6-rtdetr-x-apache":
+        elif version == "MDV6-rtdetr-e-apache":
             url = "https://zenodo.org/records/15178680/files/MDV6-rtdetr_x.pth?download=1"
             self.MODEL_NAME = "MDV6-rtdetr_x.pth"
         else:
-            raise ValueError('Select a valid model version: MDV6-rtdetr-s-apache or MDV6-rtdetr-x-apache')
+            raise ValueError('Select a valid model version: MDV6-rtdetr-c-apache or MDV6-rtdetr-e-apache')
 
         super(MegaDetectorV6Apache, self).__init__(weights=weights, device=device, url=url)

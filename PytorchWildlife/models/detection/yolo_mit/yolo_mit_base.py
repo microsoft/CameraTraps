@@ -25,7 +25,7 @@ from omegaconf import OmegaConf
 project_root = Path(__file__).resolve().parent
 sys.path.append(str(project_root))
 
-from yolo.tools.solver import InferenceModel
+from yolo import create_model, create_converter, AugmentationComposer, PostProcess
 
 class YOLOMITBase(BaseDetector):
     """
@@ -44,8 +44,9 @@ class YOLOMITBase(BaseDetector):
             url (str, optional): 
                 URL to fetch the model weights. Defaults to None.
         """
-        self.transform = transform
+        
         self.cfg = self._load_cfg()
+        self.transform = AugmentationComposer([], self.cfg.image_size, self.cfg.image_size[0])
         self.weights = weights
         self.device = device
         self.url = url
@@ -86,42 +87,19 @@ class YOLOMITBase(BaseDetector):
         Raises:
             Exception: If weights are not provided.
         """
-        self.cfg.image_size = [self.IMAGE_SIZE, self.IMAGE_SIZE]
-
-        self.trainer = Trainer(
-            accelerator="auto",
-            max_epochs=getattr(self.cfg.task, "epoch", None),
-            precision="16-mixed",
-            log_every_n_steps=1,
-            gradient_clip_val=10,
-            gradient_clip_algorithm="value",
-            deterministic=True,
-            enable_progress_bar=not getattr(self.cfg, "quite", False),
-            devices=1, 
-            num_nodes=1,
-            logger=False,
-        )
-
-        self.model = InferenceModel(self.cfg)
-
-        if weights:
-            ckpt = torch.load(weights, map_location=torch.device('cpu'))  
-            state_dict = {k: v for k, v in ckpt['state_dict'].items() if not k.startswith("ema.")}
-            self.model.load_state_dict(state_dict)
-        elif url:
+        if url:
             if not os.path.exists(os.path.join(torch.hub.get_dir(), "checkpoints", self.MODEL_NAME)):
                 os.makedirs(os.path.join(torch.hub.get_dir(), "checkpoints"), exist_ok=True)
                 weights = wget.download(url, out=os.path.join(torch.hub.get_dir(), "checkpoints"))
             else:
                 weights = os.path.join(torch.hub.get_dir(), "checkpoints", self.MODEL_NAME)
-            ckpt = torch.load(weights, map_location=torch.device('cpu'))
-            state_dict = {k: v for k, v in ckpt['state_dict'].items() if not k.startswith("ema.")}
-            self.model.load_state_dict(state_dict)
         else:
             raise Exception("Need weights for inference.")
-
-        results = self.trainer.predict(self.model, return_predictions=True)
-        return results
+        
+        self.cfg.image_size = [self.IMAGE_SIZE, self.IMAGE_SIZE]
+        self.model = create_model(self.cfg.model, weight_path=weights, class_num=3).to(self.device)
+        self.converter = create_converter(self.cfg.model.name, self.model, self.cfg.model.anchor, self.cfg.image_size, self.device)
+        self.post_proccess = PostProcess(self.converter, self.cfg.task.nms)
 
     def results_generation(self, preds, img_id, id_strip=None):
         """
@@ -138,9 +116,10 @@ class YOLOMITBase(BaseDetector):
         Returns:
             dict: Dictionary containing image ID, detections, and labels.
         """
+        #preds: [cls, x1, y1, x2, y2, conf]
         class_id = preds[0][:,0].cpu().numpy().astype(int)
         xyxy = preds[0][:,1:5].cpu().numpy()
-        confidence = preds[0][:,5].numpy()
+        confidence = preds[0][:,5].cpu().numpy()
 
         results = {"img_id": str(img_id).strip(id_strip)}
         results["detections"] = sv.Detections(
@@ -153,17 +132,19 @@ class YOLOMITBase(BaseDetector):
             f"{self.CLASS_NAMES[class_id]} {confidence:0.2f}"  
             for _, _, confidence, class_id, _, _ in results["detections"] 
         ]
-        
+        results
         return results
         
 
-    def single_image_detection(self, img_path, det_conf_thres=0.2, id_strip=None):
+    def single_image_detection(self, img, img_path=None, det_conf_thres=0.2, id_strip=None):
         """
         Perform detection on a single image.
         
         Args:
+            img (str or ndarray): 
+                Image path or ndarray of images.
             img_path (str, optional): 
-                Image path.
+                Image path or identifier.
             det_conf_thres (float, optional): 
                 Confidence threshold for predictions. Defaults to 0.2.
             id_strip (str, optional): 
@@ -174,8 +155,24 @@ class YOLOMITBase(BaseDetector):
         """
         self.cfg.task.data.source = img_path
         self.cfg.task.nms.min_confidence = det_conf_thres
-        det_results = self._load_model(weights=self.weights, device=self.device, url=self.url)
-        return self.results_generation(det_results[0][2], img_path, id_strip)
+        self._load_model(weights=self.weights, device=self.device, url=self.url)
+
+        if type(img) == str:
+            if img_path is None:
+                img_path = img
+            im_pil = Image.open(img_path).convert('RGB')
+        else:
+            im_pil = Image.fromarray(img)
+
+        image, bbox, rev_tensor = self.transform(im_pil)
+        image = image.to(self.device)[None]
+        rev_tensor = rev_tensor.to(self.device)[None]
+        
+        with torch.no_grad():
+            predict = self.model(image)
+            det_results = self.post_proccess(predict, rev_tensor) #pred_box: [cls, x1, y1, x2, y2, conf]
+        
+        return self.results_generation(det_results, img_path, id_strip)
 
     def batch_image_detection(self, data_path, batch_size=16, det_conf_thres=0.2, id_strip=None):
         """
@@ -198,7 +195,7 @@ class YOLOMITBase(BaseDetector):
         """
         self.cfg.task.data.source = data_path
         self.cfg.task.nms.min_confidence = det_conf_thres
-        det_results = self._load_model(weights=self.weights, device=self.device, url=self.url)
+        self._load_model(weights=self.weights, device=self.device, url=self.url)
         
         dataset = pw_data.DetectionImageFolder(
             data_path,
@@ -206,8 +203,8 @@ class YOLOMITBase(BaseDetector):
         )
         
         results = []
-        for i in range(len(det_results)):
-            res = self.results_generation(det_results[i][2], dataset.images[i], id_strip)
+        for i in range(len(dataset.images)):
+            res = self.single_image_detection(dataset.images[i], img_path=dataset.images[i], det_conf_thres=det_conf_thres, id_strip=id_strip)
             # Upload the original image and get the size in the format (height, width)
             img = Image.open(dataset.images[i])
             img = np.asarray(img)

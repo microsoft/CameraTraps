@@ -129,8 +129,12 @@ class YOLO(nn.Module):
         """
         if isinstance(weights, Path):
             weights = torch.load(weights, map_location=torch.device("cpu"), weights_only=False)
-        if "model_state_dict" in weights:
-            weights = weights["model_state_dict"]
+        if "state_dict" in weights:
+            weights = weights["state_dict"]
+
+        # Drop the prefix 'model.model.' from the keys
+        if "model.model." in list(weights.keys())[0]: 
+            weights = {k.replace("model.model.", ""): v for k, v in weights.items()}
 
         model_state_dict = self.model.state_dict()
 
@@ -138,6 +142,7 @@ class YOLO(nn.Module):
         # TODO2: weight transform if num_class difference
 
         error_dict = {"Mismatch": set(), "Not Found": set()}
+        
         for model_key, model_weight in model_state_dict.items():
             if model_key not in weights:
                 error_dict["Not Found"].add(tuple(model_key.split(".")[:-2]))
