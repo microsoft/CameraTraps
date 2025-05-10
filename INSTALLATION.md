@@ -51,7 +51,7 @@ brew install ffmpeg
 ```
 
 ### Windows
-Windows installation is a bit more complicated due to operating system differences. Please refer to our [Windows installation guide](assets/PytorchWildlife_Windows_installation_tutorial.pdf) for details.
+Windows installation is a bit more complicated due to operating system differences. Please refer to our [Windows installation guide](https://zenodo.org/records/15376499/files/PytorchWildlife_Windows_installation_tutorial.pdf) for details.
 
 ### CUDA for Windows
 If you want to use your CUDA-compatible GPU and you are using Windows. Please run the following commands (CUDA 12.1 is required):

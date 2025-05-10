@@ -4,8 +4,8 @@ repo_url: https://github.com/microsoft/CameraTraps
 repo_name: microsoft/CameraTraps
 theme:
   name: material
-  favicon: assets/images/cat.png
-  logo: assets/images/cat.png
+  favicon: https://zenodo.org/records/15376499/files/cat.png
+  logo: https://zenodo.org/records/15376499/files/cat.png
   icon:
     menu: material/menu
     alternate: material/translate
