@@ -1,7 +1,9 @@
 site_name: Pytorch Wildlife
+site_url: https://microsoft.github.io/CameraTraps/ 
+site_description: Collaborative Deep Learning Framework for Conservation. 
 docs_dir: docs
 site_dir: site
-repo_url: https://microsoft.github.io/CameraTraps/ 
+repo_url: https://github.com/microsoft/CameraTraps 
 repo_name: microsoft/CameraTraps
 copyright: Copyright (c) 2023 Microsoft Corporation
 
