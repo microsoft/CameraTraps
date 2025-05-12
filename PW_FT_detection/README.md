@@ -63,6 +63,9 @@ The `.data/data_example.yaml` file shows an example of the structure.
 
 The .txt files inside each folder of `./data/labels/` must be structured containing each object on a separate line, following the format: class x_center y_center width height. The coordinates for the bounding box should be normalized in the xywh format, with values ranging from 0 to 1.
 
+### Demo data
+You can download some example [demo data](https://zenodo.org/records/15376499/files/demo_data_det.zip?download=1) to test the codebase. Before using the data, make sure to decompress the zip file following the [data directory structure](#data-structure), and check if the `data` and `test_data` entries in the [config file](./config.yaml) are pointing to the data directory. The testing demo data also has ***an annotation example*** shows how the prefered annotation format looks like.
+
 ## Detection models available for Finetuning
 
 Below you find the models that you can use for fine-tuning, along with their respective names to use in the configuration file.

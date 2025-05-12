@@ -7,7 +7,7 @@ log_interval: 10
 parallel: 0
 
 # data
-dataset_root: ./demo_data/imgs
+dataset_root: ./data/imgs
 dataset_name: Custom_Crop
 # annotation directory (if you have train/val/test splits)
 annotation_dir: ./data/imgs

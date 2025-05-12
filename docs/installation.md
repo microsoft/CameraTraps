@@ -1,29 +1,5 @@
-# Pytorch-Wildlife: A Collaborative Deep Learning Framework for Conservation
-
-## Welcome to Version 1.0
-
-The **Pytorch-Wildlife** library allows users to directly load the MegadetectorV5 model weights for animal detection. We've fully refactored our codebase, prioritizing ease of use in model deployment and expansion. In addition to `MegadetectorV5`, **Pytorch-Wildlife** also accommodates a range of classification weights, such as those derived from the Amazon Rainforest dataset and the Opossum classification dataset. Explore the codebase and functionalities of **Pytorch-Wildlife** through our interactive `Gradio` web app and detailed Jupyter notebooks, designed to showcase the practical applications of our enhancements. You can find more information in our [documentation](https://cameratraps.readthedocs.io/en/latest/).
-
-## Table of Contents
-- [Pytorch-Wildlife: A Collaborative Deep Learning Framework for Conservation](#pytorch-wildlife-a-collaborative-deep-learning-framework-for-conservation)
-  - [Welcome to Version 1.0](#welcome-to-version-10)
-  - [Table of Contents](#table-of-contents)
-  - [Prerequisites](#prerequisites)
-    - [Create environment](#create-environment)
-    - [Ubuntu](#ubuntu)
-    - [MacOS](#macos)
-    - [Windows](#windows)
-  - [Installation](#installation)
-    - [Install through pip:](#install-through-pip)
-  - [Using Docker](#using-docker)
-  - [Running the Demo](#running-the-demo)
-  - [Using Jupyter](#using-jupyter)
-  - [License](#license)
-  - [Copyright](#copyright)
- 
 ## Prerequisites
- 
-1. Python 3.10 
+1. Python 
 2. NVIDIA GPU for CUDA support (Optional, the code and demo also supports cpu calculation).
 3. `conda` or `mamba` for python environment management and specific version of `opencv`.
 4. If you are using CUDA. [CudaToolkit 12.1](https://developer.nvidia.com/cuda-12-1-0-download-archive) is required.
@@ -91,7 +67,7 @@ from PytorchWildlife.models import classification as pw_classification
 img = np.random.randn(3, 1280, 1280)
 
 # Detection
-detection_model = pw_detection.MegaDetectorV5() # Model weights are automatically downloaded.
+detection_model = pw_detection.MegaDetectorV6() # Model weights are automatically downloaded.
 detection_result = detection_model.single_image_detection(img)
 
 #Classification
@@ -126,19 +102,15 @@ pip uninstall opencv-python
 conda install -c conda-forge opencv
 ```
 
-<img src="assets/gradio_UI.png">
+![image](https://zenodo.org/records/15376499/files/gradio_UI.png)
 
 **NOTE: Windows may encounter some errors with large file uploads making Batch Image Detection and Video Detection unable to process. It is a Gradio issue. Newer versions of Gradio in the future may fix this problem.**
 
 
-## Using Jupyter
+## Using Jupyter Notebooks
 [Juptyer](https://jupyter.org/) helps to progressively understand what each code block does. We have provided a set of demo files that can be read using Jupyter. If you have the Anaconda Navigator installed, you should have the option to run Jupyter. To make sure that the PytorchWildlife environment is recognized by Jupyter, please run the following code while your `pytorch-wildlife` environment is active:
 ```bash
 conda install ipykernel
 python -m ipykernel install --user --name pytorch-wildlife --display-name "Python (PytorchWildlife)"
 ```
 Once you execute the commands, you should be able to choose the `Python (PytorchWildlife)` kernel to start running the code!
-## License
-This project is licensed under the MIT License. Refer to the LICENSE file for more details.
-## Copyright
-Copyright (c) Microsoft Corporation. All rights reserved.

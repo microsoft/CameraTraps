@@ -1,0 +1,2 @@
+# Prepare data for demos
+Before we run any demos, please download some demo data for our demo notebooks and webapps from this [link](https://zenodo.org/records/15376499/files/demo_data_base.zip?download=1) and decompress the data in the [demo folder](https://github.com/microsoft/CameraTraps/tree/main/demo). 

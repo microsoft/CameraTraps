@@ -1,0 +1,2 @@
+# Pytorch-Wildlife and TimeLapse
+Pytorch-Wildlife offers native output formats that are directly compatible with TimeLapse. We will provide more details on this in future releases! We will keep you posted! 

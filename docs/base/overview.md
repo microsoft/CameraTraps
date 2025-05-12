@@ -1,6 +1,6 @@
-# PytorchWildlife Module
+# PytorchWildlife Base Module
 
-The `PytorchWildlife` module is a core component of this repository, designed to facilitate wildlife detection and classification tasks using PyTorch. It provides utilities for data processing, model implementation, and post-processing.
+The `PytorchWildlife` base module is the core component of this repository, designed to facilitate wildlife detection and classification tasks using PyTorch. It provides utilities for data processing, model implementation, and post-processing. It is also what is currently packaged in our Python package.
 
 ## Overview
 

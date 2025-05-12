@@ -1,8 +1,8 @@
 # General
 model: YOLO #YOLO or RTDETR
 model_name: MDV6-yolov9-e
-data: ./demo_data/data_example.yaml 
-test_data: ./demo_data/data_example/images/test 
+data: ./data/data_example.yaml 
+test_data: ./data/data_example/images/test 
 task: train
 exp_name: MDV6-yolov9-e
 
