@@ -68,15 +68,17 @@ theme:
     - navigation.footer
 
 nav:
-  - Pytorch-Wildlife: 
+  - Pytorch Wildlife: 
     - Overview: index.md
     - Core Features: core_features.md
     - MegaDetector: megadetector.md
+    - Installation: installation.md
     - Existing Collaborators: collaborators.md
+    - Contributors: contributors.md
     - Cite Us: cite.md
   - What's New?:
-    - Latest Release: release_notes.md
-    - Past Releases: past_releases.md
+    - Latest Release: releases/release_notes.md
+    - Past Releases: releases/past_releases.md
   - Model Zoo: 
     - MegaDetector: model_zoo/megadetector.md
     - Other Detectors: model_zoo/other_detectors.md
