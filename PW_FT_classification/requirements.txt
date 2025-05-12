@@ -1,5 +1,0 @@
-PytorchWildlife
-scikit_learn
-lightning
-munch
-typer
