@@ -571,6 +571,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#quick-start" class="md-nav__link">
+    <span class="md-ellipsis">
+      🚀 Quick Start
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#install-pytorch-wildlife" class="md-nav__link">
     <span class="md-ellipsis">
       ⚙️ Install Pytorch-Wildlife
@@ -712,6 +721,29 @@
   
   <span class="md-ellipsis">
     Existing Collaborators
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="contributors/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Contributors
     
   </span>
   
@@ -3221,6 +3253,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#quick-start" class="md-nav__link">
+    <span class="md-ellipsis">
+      🚀 Quick Start
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#install-pytorch-wildlife" class="md-nav__link">
     <span class="md-ellipsis">
       ⚙️ Install Pytorch-Wildlife
@@ -3308,8 +3349,8 @@
 </div>
 
 <h2 id="welcome-to-pytorch-wildlife">👋 Welcome to Pytorch-Wildlife<a class="headerlink" href="#welcome-to-pytorch-wildlife" title="Permanent link">&para;</a></h2>
-<p><strong>PyTorch-Wildlife</strong> is a platform to create, modify, and share powerful AI conservation models. These models can be used for a variety of applications, including camera trap images, overhead images, underwater images, or bioacoustics. Your engagement with our work is greatly appreciated, and we eagerly await any feedback you may have.</p>
-<p>The <strong>Pytorch-Wildlife</strong> library allows users to directly load the <code>MegaDetector</code> model weights for animal detection. We've fully refactored our codebase, prioritizing ease of use in model deployment and expansion. In addition to <code>MegaDetector</code>, <strong>Pytorch-Wildlife</strong> also accommodates a range of classification weights, such as those derived from the Amazon Rainforest dataset and the Opossum classification dataset. Explore the codebase and functionalities of <strong>Pytorch-Wildlife</strong> through our interactive <a href="https://huggingface.co/spaces/AndresHdzC/pytorch-wildlife">HuggingFace web app</a> or local <a href="./demo">demos and notebooks</a>, designed to showcase the practical applications of our enhancements at <a href="docs/installation.md">PyTorchWildlife</a>. You can find more information in our <a href="https://cameratraps.readthedocs.io/en/latest/">documentation</a>.</p>
+<p><strong>PyTorch-Wildlife</strong> is an AI platform designed for the AI for Conservation community to create, modify, and share powerful AI conservation models. It allows users to directly load a variety of models including <a href="https://microsoft.github.io/CameraTraps/megadetector/">MegaDetector</a>, <a href="https://microsoft.github.io/CameraTraps/megadetector/">DeepFaune</a>, and <a href="https://github.com/Alexandre-Delplanque/HerdNet">HerdNet</a> from our ever expanding <a href="model_zoo/megadetector/">model zoo</a> for both animal detection and classification. In the future, we will also include models that can be used for applications, including underwater images and bioacoustics. We want to provide a unified and straightforward experience for both practicioners and developers in the AI for conservation field. Your engagement with our work is greatly appreciated, and we eagerly await any feedback you may have.</p>
+<h2 id="quick-start">🚀 Quick Start<a class="headerlink" href="#quick-start" title="Permanent link">&para;</a></h2>
 <p>👇 Here is a brief example on how to perform detection and classification on a single image using <code>PyTorch-wildlife</code>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">PytorchWildlife.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">detection</span> <span class="k">as</span> <span class="n">pw_detection</span>
