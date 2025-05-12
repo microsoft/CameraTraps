@@ -1,6 +1,7 @@
 site_name: Pytorch Wildlife
 docs_dir: docs
-repo_url: https://github.com/microsoft/CameraTraps
+site_dir: site
+repo_url: https://microsoft.github.io/CameraTraps/ 
 repo_name: microsoft/CameraTraps
 copyright: Copyright (c) 2023 Microsoft Corporation
 
