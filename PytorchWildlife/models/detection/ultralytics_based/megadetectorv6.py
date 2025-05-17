@@ -30,7 +30,7 @@ class MegaDetectorV6(YOLOV8Base):
             pretrained (bool, optional): Whether to load the pretrained model. Default is True.
             version (str, optional): Version of the model to load. Default is 'yolov9c'.
         """
-        self.IMAGE_SIZE = 640
+        self.IMAGE_SIZE = 1280
 
         if version == 'MDV6-yolov9-c':            
             url = "https://zenodo.org/records/15398270/files/MDV6-yolov9-c.pt?download=1" 

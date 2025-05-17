@@ -22,7 +22,11 @@
 
 - We have fully recreated our [documentation page](https://microsoft.github.io/CameraTraps/) with [MKDocs](https://squidfunk.github.io/mkdocs-material/). Please take a look and let us know what you think! (Special thanks to @ss26 for creating the foundation of this documentation page!)  
 
-- We will also be releasing new MegaDetectorV6 model weights this coming week and add new performance numbers in our [model zoo](https://microsoft.github.io/CameraTraps/model_zoo/megadetector/). We did make a mistake when evaluating the V5 model because of input resolution mismatch as the V5 model was trained using 1280 size inputs and V6 models were trained using 640 models. Now we have retrained 1280 V6 models to keep everything consistent. We also evaluated our models using [pycocotool](https://pypi.org/project/pycocotools/) this time instead of Ultralytics evaluation functions to make the evaluations on the MIT and Apache models more easier. 
+- We have released new MegaDetector V6 model weights. MDV6-yolov9-e and MDV6-yolov10-e are now retrained at 1280 input resolution to match the original V5 setup. In addition, we have added both compact and extra versions for [YOLOv9 MIT](https://github.com/MultimediaTechLab/YOLO?tab=readme-ov-file) and [RT-DETR Apache](https://github.com/lyuwenyu/RT-DETR/tree/main) implementations, expanding the range of V6 options for different deployment needs.
+
+- Our [Model Zoo](https://microsoft.github.io/CameraTraps/model_zoo/megadetector/) includes new performance numbers evaluated using [pycocotools](https://pypi.org/project/pycocotools/), enabling easier and more standardized comparisons with MIT and Apache models. All metrics are reported on 1280-sized images to ensure consistency across versions. While V5 and V6 now deliver comparable performance, V6 models are significantly smaller. Model weights for all versions, including MIT and Apache variants, are available for download, and we’ll be releasing the inference code for MIT and Apache models soon.
+
+- Our next iteration of V6 training will incorporate several currently missing public camera trap datasets from LILA, which will further improve the generalization performance of the V6 models across a wider range of deployment scenarios.
 
 #### Previous versions:
 - [What's New](https://microsoft.github.io/CameraTraps/releases/release_notes/)
