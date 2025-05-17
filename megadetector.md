@@ -8,18 +8,20 @@ We've been inspired by the potential and capabilities of Megadetector, and we de
 
 
 ## :racing_car::dash::dash: MegaDetectorV6: SMALLER, FASTER, BETTER!  
-We have officially released our 6th version of MegaDetector, MegaDetectorV6! In the next generation of MegaDetector, we are focusing on computational efficiency, performance, modernizing of model architectures, and licensing. We have trained multiple new models using different model architectures, including Yolo-v9, Yolo-v10, and RT-Detr for maximum user flexibility. We have a [rolling release schedule](https://microsoft.github.io/CameraTraps/model_zoo/megadetector/) for different versions of MegaDetectorV6.
+We have officially released our 6th version of MegaDetector, MegaDetectorV6! In the next generation of MegaDetector, we are focusing on computational efficiency, performance, modernizing of model architectures, and licensing. We have trained multiple new models using different model architectures that are optimized for performance and low-budget devices, including Yolo-v9, Yolo-v10, and RT-Detr for maximum user flexibility. For example, the MegaDetectorV6-Ultralytics-YoloV10-Compact (MDV6-yolov10-c) model only have ***2% of the parameters*** of the previous MegaDetectorV5 and still exhibits comparable performance on our validation datasets. 
 
-MegaDetectorV6 models are based on architectures optimized for performance and low-budget devices. For example, the MegaDetectorV6-Ultralytics-YoloV10-Compact (MDV6-yolov10-c) model only have ***2% of the parameters*** of the previous MegaDetectorV5 and still exhibits comparable animal recall on our validation datasets. 
-
-To use the newest version of MegaDetector with all the existing functionalities, you can use our [Hugging Face interface](https://huggingface.co/spaces/ai-for-good-lab/pytorch-wildlife) or simply load the model with **Pytorch-Wildlife**. The weights will be automatically downloaded: 
+To test the newest version of MegaDetector with all the existing functionalities, you can use our [Hugging Face interface](https://huggingface.co/spaces/ai-for-good-lab/pytorch-wildlife) or simply load the model with **Pytorch-Wildlife**. The weights will be automatically downloaded: 
 ```python
 from PytorchWildlife.models import detection as pw_detection
 detection_model = pw_detection.MegaDetectorV6()
 ```
 
+We will also continuously fine-tune our V6 models on newly collected public and private data to further improve the generalization performance.
+
 > [!TIP]
-> All versions of MegaDetectorV6 can be found in the [model zoo](https://microsoft.github.io/CameraTraps/model_zoo/megadetector/).
+> All versions of MegaDetector and corresponding performance can be found in the [model zoo](https://microsoft.github.io/CameraTraps/model_zoo/megadetector/).
+
+> From now on, we encourage our users to use MegaDetectorV6 as their default animal detection model and choose whichever model that fits the project needs. To reduce potential confusion, we have also standardized the model names into MDV6-Compact and MDV6-Extra for two model sizes using the same architecture. Learn how to use MegaDetectorV6 in our [image demo](https://github.com/microsoft/CameraTraps/blob/main/demo/image_demo.py) and our [demo data installtion guideline](https://microsoft.github.io/CameraTraps/demo_and_ui/demo_data/).
 
 <!-- In the following figure, we can see the Performance to Parameter metric of each released MegaDetector model. All of the V6 models, extra large or compact, have at least 50% less parameters compared to MegaDetectorV5 but with much higher animal detection performance. -->
 
@@ -27,12 +29,6 @@ detection_model = pw_detection.MegaDetectorV6()
 
 <!-- >[!TIP] -->
 <!-- >From now on, we encourage our users to use MegaDetectorV6 as their default animal detection model and choose whichever model that fits the project needs. To reduce potential confusion, we have also standardized the model names into MDV6-Compact and MDV6-Extra for two model sizes using the same architecture. Learn how to use MegaDetectorV6 in our [image demo](demo/image_detection_demo_v6.ipynb) and [video demo](demo/video_detection_demo_v6.ipynb). -->
-
->[!NOTE]
-> - Following our initial release, we’ve been delighted to see so many people explore our new models. We’d like to extend our heartfelt thanks to everyone who has shown interest in our latest models—your support means a great deal to us!
-> - That said, we’ve received a number of feedback comments highlighting a discrepancy between the reported performance (particularly MDV5) and the actual performance observed. We are actively investigating this issue and have identified a potential error or corruption in the validation data we used. For the time being, we’ll remove our current performance numbers from the model zoo for now to avoid confusion.
-> - We sincerely apologize for any confusion or inconvenience this may have caused. Our team is working diligently to address this matter, and we will update our experiments—and potentially retrain the model if data corruption is confirmed—as soon as possible. Thank you for your patience and understanding!
-
 
 ## MegaDetectorV5 and Archive Repos
 

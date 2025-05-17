@@ -30,24 +30,24 @@ class MegaDetectorV6_Distributed(YOLOV8_Distributed):
             pretrained (bool, optional): Whether to load the pretrained model. Default is True.
             version (str, optional): Version of the model to load. Default is 'yolov9c'.
         """
-        self.IMAGE_SIZE = 640
+        self.IMAGE_SIZE = 1280
 
         if version == 'MDV6-yolov9-c':            
-            url = "https://zenodo.org/records/14567879/files/MDV6b-yolov9c.pt?download=1" 
-            self.MODEL_NAME = "MDV6b-yolov9c.pt"
+            url = "https://zenodo.org/records/15398270/files/MDV6-yolov9-c.pt?download=1" 
+            self.MODEL_NAME = "MDV6b-yolov9-c.pt"
         elif version == 'MDV6-yolov9-e':
-            url = "https://zenodo.org/records/14567879/files/MDV6-yolov9e.pt?download=1"
-            self.MODEL_NAME = "MDV6-yolov9e.pt"
+            url = "https://zenodo.org/records/15398270/files/MDV6-yolov9-e-1280.pt?download=1"
+            self.MODEL_NAME = "MDV6-yolov9-e-1280.pt"
         elif version == 'MDV6-yolov10-c':
-            url = "https://zenodo.org/records/14567879/files/MDV6-yolov10n.pt?download=1"
-            self.MODEL_NAME = "MDV6-yolov10n.pt"
+            url = "https://zenodo.org/records/15398270/files/MDV6-yolov10-c.pt?download=1"
+            self.MODEL_NAME = "MDV6-yolov10-c.pt"
         elif version == 'MDV6-yolov10-e':
-            url = "https://zenodo.org/records/14567879/files/MDV6-yolov10x.pt?download=1"
-            self.MODEL_NAME = "MDV6-yolov10x.pt"
+            url = "https://zenodo.org/records/15398270/files/MDV6-yolov10-e-1280.pt?download=1"
+            self.MODEL_NAME = "MDV6-yolov10-e-1280.pt"
         elif version == 'MDV6-rtdetr-c':
-            url = "https://zenodo.org/records/14567879/files/MDV6b-rtdetrl.pt?download=1"
-            self.MODEL_NAME = "MDV6b-rtdetrl.pt"
+            url = "https://zenodo.org/records/15398270/files/MDV6-rtdetr-c.pt?download=1"
+            self.MODEL_NAME = "MDV6b-rtdetr-c.pt"
         else:
-            raise ValueError('Select a valid model version: MDV6-yolov9-c, MDV6-yolov9-e, MDV6-yolov10-c, MDV6-yolov10-e or MDV6-rtdetr-c')
+            raise ValueError('Select a valid model version: MDV6-yolov9-c, MDV6-yolov9-e, MDV6-yolov10-c, MDV6-yolov10-e, MDV6-rtdetr-c')
 
         super(MegaDetectorV6_Distributed, self).__init__(weights=weights, device=device, url=url)
