@@ -11,6 +11,7 @@ from PIL import Image
 import supervision as sv
 import shutil
 from pathlib import Path
+import csv
 
 __all__ = [
     "save_detection_images",
@@ -21,7 +22,9 @@ __all__ = [
     "save_detection_classification_json",
     "save_detection_timelapse_json",
     "save_detection_classification_timelapse_json",
-    "detection_folder_separation"
+    "save_detection_classification_csv_dwc",
+    "detection_folder_separation",
+    "detection_classification_folder_separation",
 ]
 
 
@@ -453,6 +456,87 @@ def save_detection_classification_timelapse_json(
         json.dump(json_results, f, indent=4)
 
 
+def save_detection_classification_csv_dwc(
+    det_results,
+    clf_results,
+    output_path,
+    model_name,
+    det_categories=None,
+    clf_categories=None,
+    exclude_file_path=None
+):
+    """
+    Save detection and classification results in Darwin Core (DwC)-like CSV format.
+
+    Args:
+        det_results (list): Detection results with image ID, bounding boxes, class IDs, and confidence.
+        clf_results (list): Classification results with image ID, class ID, and confidence.
+        output_path (str): Path to save the output CSV file.
+        det_categories (list, optional): List of detection category names.
+        clf_categories (list, optional): List of classification category names.
+        exclude_file_path (str, optional): If provided, strip this prefix from image paths.
+    """
+
+    headers = [
+        "occurrenceID", "eventID", "scientificName",
+        "occurrenceRemarks", "recordedBy", "identifiedBy",
+        "classificationConfidence"
+    ]
+
+    rows = []
+    detection_id = 1
+
+    # Index classification results by img_id
+    clf_dict = {}
+    for clf in clf_results:
+        clf_dict.setdefault(clf["img_id"], []).append(clf)
+
+    for det_r in det_results:
+        img_path = str(det_r["img_id"])
+        display_path = img_path.replace(exclude_file_path + os.sep, '') if exclude_file_path else img_path
+
+        detections = det_r["detections"]
+        bboxes = detections.xyxy.astype(int)
+        det_classes = detections.class_id
+        det_confidences = detections.confidence
+
+        # Get classification results for this image
+        clf_entries = clf_dict.get(det_r["img_id"], [])
+
+        for i in range(len(bboxes)):
+            cat_id = det_classes[i]
+            cat_name = det_categories[cat_id] if det_categories else f"Category_{cat_id}"
+            box = bboxes[i]
+            confidence = det_confidences[i]
+
+            occurrence_remarks = f"BBox(xmin={box[0]}, ymin={box[1]}, xmax={box[2]}, ymax={box[3]})"
+
+            # Use the first classification result, or leave blank if none
+            if clf_entries:
+                clf_label = clf_entries[0]["class_id"]
+                clf_name = clf_categories[clf_label] if clf_categories else f"Class_{clf_label}"
+                clf_conf = clf_entries[0]["confidence"]
+            else:
+                clf_name = ""
+                clf_conf = ""
+
+            rows.append({
+                "occurrenceID": f"det-{detection_id}",
+                "eventID": display_path,
+                "scientificName": clf_name,
+                "occurrenceRemarks": occurrence_remarks,
+                "identifiedBy": model_name,
+                "classificationConfidence": f"{clf_conf:.2f}" if clf_conf != "" else ""
+            })
+
+            detection_id += 1
+
+    with open(output_path, mode='w', newline='', encoding='utf-8') as f:
+        writer = csv.DictWriter(f, fieldnames=headers)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
 def detection_folder_separation(json_file, img_path, destination_path, confidence_threshold):
     """
     Processes detection data from a JSON file to sort images into 'Animal' or 'No_animal' directories
@@ -522,5 +606,109 @@ def detection_folder_separation(json_file, img_path, destination_path, confidenc
         
         # Copy the file to the appropriate directory
         shutil.copy(src_file_path, dest_file_path)
+
+    return "{} files were successfully separated".format(i)
+
+def detection_classification_folder_separation(json_file, img_path, destination_path, det_conf_threshold, clf_conf_threshold):
+    """
+    Processes detection and classification data from a JSON file and saves images with annotated
+    bounding boxes into structured directories based on classification categories and confidence levels.
+    If a detection has an associated classification confidence ≥ `clf_conf_threshold`, the label
+    shown on the image will be the classification category name (e.g., "Leptotila").
+    If classification is not available or below threshold, the detection category name is used instead (e.g., "animal").
+    Confidence values are shown alongside labels
+
+    Parameters:
+    - json_file (str): Path to the JSON file containing detection and classification data.
+    - img_path (str): Path to the directory containing the source images.
+    - destination_path (str): Base path to save annotated images into structured folders.
+    - det_conf_threshold (float): Threshold for detection filtering.
+    - clf_conf_threshold (float): Threshold for classification filtering.
+    """
+
+    # Load detection data
+    with open(json_file, 'r') as file:
+        data = json.load(file)
+
+    det_category_map = data.get("det_categories", {})
+    clf_category_map = data.get("clf_categories", {})
+
+    # Create base folders
+    os.makedirs(destination_path, exist_ok=True)
+    base_animal_path = os.path.join(destination_path, "Animal")
+    base_no_animal_path = os.path.join(destination_path, "No_animal")
+    os.makedirs(base_animal_path, exist_ok=True)
+    os.makedirs(base_no_animal_path, exist_ok=True)
+
+    # Annotators
+    box_annotator = sv.BoxAnnotator(thickness=4)
+    lab_annotator = sv.LabelAnnotator(
+        text_color=sv.Color.BLACK,
+        text_thickness=4,
+        text_scale=2,
+        text_position=sv.Position.TOP_LEFT,  # safer placement
+    )
+
+    count = 0
+    for item in data['annotations']:
+        count += 1
+        img_id = item['img_id']
+        det_categories = item['det_category']
+        det_confidences = item['det_confidence']
+        bboxes = item['bbox']
+        clf_categories = item.get('clf_category', [])
+        clf_confidences = item.get('clf_confidence', [])
+
+        # Determine if image contains animal
+        has_animal = any(c == 0 and conf > det_conf_threshold for c, conf in zip(det_categories, det_confidences))
+        base_folder = base_animal_path if has_animal else base_no_animal_path
+
+        # Filter clf categories by confidence
+        filtered_clf = [
+            clf_category_map.get(str(cat), "Unknown")
+            for cat, conf in zip(clf_categories, clf_confidences)
+            if conf >= clf_conf_threshold
+        ]
+        clf_folders = filtered_clf if filtered_clf else ['Unknown']
+
+        # Prepare detections and labels
+        xyxy_boxes = np.array(bboxes, dtype=np.float32)
+        detection_obj = sv.Detections(xyxy=xyxy_boxes, class_id=np.array(det_categories, dtype=int))
+        # Generate classification-based labels for each detection
+        labels = []
+        for i in range(len(det_categories)):
+            if det_confidences[i] < det_conf_threshold:
+                continue  # skip low-confidence detection
+
+            label = clf_category_map.get(str(clf_categories[i]), "Unknown")
+            label = f"{label} {clf_confidences[i]:.2f}"
+
+            labels.append(label)
+
+        # Load and annotate image
+        try:
+            image = np.array(Image.open(img_id).convert("RGB"))
+        except FileNotFoundError:
+            print(f"Image not found: {img_id}")
+            continue
+        except Exception as e:
+            print(f"Error loading image {img_id}: {e}")
+            continue
+
+        annotated_img = lab_annotator.annotate(
+            scene=box_annotator.annotate(scene=image.copy(), detections=detection_obj),
+            detections=detection_obj,
+            labels=labels
+        )
+
+        # Save to each classification subfolder
+        for clf_folder in clf_folders:
+            target_folder = os.path.join(base_folder, clf_folder)
+            os.makedirs(target_folder, exist_ok=True)
+            save_path = os.path.join(target_folder, os.path.basename(img_id))
+            try:
+                cv2.imwrite(save_path, cv2.cvtColor(annotated_img, cv2.COLOR_RGB2BGR))
+            except Exception as e:
+                print(f"Error saving image {save_path}: {e}")
 
     return "{} files were successfully separated".format(i)

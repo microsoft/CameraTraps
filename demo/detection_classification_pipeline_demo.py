@@ -69,33 +69,33 @@ pw_utils.save_detection_images(results, os.path.join(".","demo_output"), overwri
 # %%# Saving the detected objects as cropped images
 pw_utils.save_crop_images(results, os.path.join(".","crop_output"), overwrite=False)
 
-
-# %%
 #%% Batch detection
 """ Batch-detection demo """
 
 # Specifying the folder path containing multiple images for batch detection
-tgt_folder_path = os.path.join(".","demo_data","imgs")
+tgt_folder_path = os.path.join(os.getcwd(),"demo_data","classification_examples")
 
 # Performing batch detection on the images
 det_results = detection_model.batch_image_detection(tgt_folder_path, batch_size=16)
 
-clf_results = classification_model.batch_image_classification(det_results=det_results, id_strip=tgt_folder_path)
+clf_results = classification_model.batch_image_classification(det_results=det_results)
 
 # %%
 merged_results = det_results.copy()
 clf_conf_thres = 0.8
 clf_counter = 0
 
+# %%
 for det in merged_results:
     clf_labels = []
     for i, (xyxy, det_id) in enumerate(zip(det["detections"].xyxy, det["detections"].class_id)):
         if det_id == 0:
             clf_labels.append("{} {:.2f}".format(clf_results[clf_counter]["prediction"] if clf_results[clf_counter]["confidence"] > clf_conf_thres else "Unknown",
                                                  clf_results[clf_counter]["confidence"]))
+            clf_counter += 1
         else:
             clf_labels.append(det["labels"][i])
-        clf_counter += 1
+        
     det["labels"] = clf_labels
 
 #%% Output to annotated images
@@ -121,3 +121,18 @@ pw_utils.save_detection_classification_timelapse_json(det_results=det_results,
                                             det_categories=detection_model.CLASS_NAMES,
                                             clf_categories=classification_model.CLASS_NAMES,
                                             output_path=os.path.join(".","batch_output_classification_timelapse.json"))
+# %%
+# Saving the detection results in darwin core CSV format
+pw_utils.save_detection_classification_csv_dwc(det_results=det_results,
+                                            clf_results=clf_results,
+                                            det_categories=detection_model.CLASS_NAMES,
+                                            clf_categories=classification_model.CLASS_NAMES,
+                                            output_path=os.path.join(".","batch_output_classification_darwincore.csv"),
+                                            model_name="MDV6-yolov10-e")
+# %%
+# Separate the positive and negative detections through file copying
+json_file = os.path.join(".","batch_output_classification.json")
+output_path = os.path.join(".","folder_separation")
+det_threshold = 0.2
+clf_threshold = 0.2
+pw_utils.detection_classification_folder_separation(json_file, tgt_folder_path, output_path, det_threshold, clf_threshold)
