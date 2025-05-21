@@ -7,7 +7,6 @@ from .utils import inverse_sigmoid
 from .box_ops import box_cxcywh_to_xyxy, box_xyxy_to_cxcywh
 
 
-
 def get_contrastive_denoising_training_group(targets,
                                              num_classes,
                                              num_queries,
@@ -97,8 +96,4 @@ def get_contrastive_denoising_training_group(targets,
         "dn_num_split": [num_denoising, num_queries]
     }
 
-    # print(input_query_class.shape) # torch.Size([4, 196, 256])
-    # print(input_query_bbox.shape) # torch.Size([4, 196, 4])
-    # print(attn_mask.shape) # torch.Size([496, 496])
-    
     return input_query_logits, input_query_bbox_unact, attn_mask, dn_meta

@@ -9,7 +9,7 @@ import random
 import numpy as np 
 from typing import List 
 
-from ...core import register
+from ..core import register
 
 
 __all__ = ['RTDETR', ]

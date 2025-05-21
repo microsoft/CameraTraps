@@ -154,9 +154,7 @@ def create(type_or_name, global_cfg=GLOBAL_CONFIG, **kwargs):
             if _type not in global_cfg:
                 raise ValueError(f'Missing {_type} in inspect stage.')
 
-            # TODO 
             _cfg: dict = global_cfg[_type]
-            # clean args
             _keys = [k for k in _cfg.keys() if not k.startswith('_')]
             for _arg in _keys:
                 del _cfg[_arg]
@@ -168,12 +166,6 @@ def create(type_or_name, global_cfg=GLOBAL_CONFIG, **kwargs):
         else:
             raise ValueError(f'Inject does not support {_k}')
     
-    # TODO hard code
     module_kwargs = {k: v for k, v in module_kwargs.items() if not k.startswith('_')}
-
-    # TODO for **kwargs
-    # extra_args = set(module_kwargs.keys()) - set(arg_names)
-    # if len(extra_args) > 0:
-    #     raise RuntimeError(f'Error: unknown args {extra_args} for {module}')
 
     return module(**module_kwargs)

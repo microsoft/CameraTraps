@@ -8,7 +8,7 @@ from collections import OrderedDict
 
 from .common import get_activation, FrozenBatchNorm2d
 
-from ...core import register
+from ..core import register
 
 
 __all__ = ['PResNet']
@@ -19,7 +19,6 @@ ResNet_cfg = {
     34: [3, 4, 6, 3],
     50: [3, 4, 6, 3],
     101: [3, 4, 23, 3],
-    # 152: [3, 8, 36, 3],
 }
 
 

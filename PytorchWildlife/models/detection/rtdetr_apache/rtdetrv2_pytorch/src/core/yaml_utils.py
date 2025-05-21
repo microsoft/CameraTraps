@@ -12,7 +12,6 @@ __all__ = [
     'load_config', 
     'merge_config', 
     'merge_dict', 
-    'parse_cli',
 ]
 
 
@@ -62,32 +61,6 @@ def merge_dict(dct, another_dct, inplace=True) -> Dict:
         dct = copy.deepcopy(dct)
     
     return _merge(dct, another_dct)
-
-
-def dictify(s: str, v: Any) -> Dict:
-    if '.' not in s:
-        return {s: v}
-    key, rest = s.split('.', 1)
-    return {key: dictify(rest, v)}
-
-
-def parse_cli(nargs: List[str]) -> Dict:
-    """
-    parse command-line arguments
-        convert `a.c=3 b=10` to `{'a': {'c': 3}, 'b': 10}`
-    """
-    cfg = {}
-    if nargs is None or len(nargs) == 0:
-        return cfg
-
-    for s in nargs:
-        s = s.strip()
-        k, v = s.split('=', 1)
-        d = dictify(k, yaml.load(v, Loader=yaml.Loader))
-        cfg = merge_dict(cfg, d)
-
-    return cfg
-
 
 
 def merge_config(cfg, another_cfg=GLOBAL_CONFIG, inplace: bool=False, overwrite: bool=False):

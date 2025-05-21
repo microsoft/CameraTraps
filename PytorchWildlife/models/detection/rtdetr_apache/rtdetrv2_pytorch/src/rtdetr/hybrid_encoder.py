@@ -10,7 +10,7 @@ import torch.nn.functional as F
 
 from .utils import get_activation
 
-from ...core import register
+from ..core import register
 
 
 __all__ = ['HybridEncoder']

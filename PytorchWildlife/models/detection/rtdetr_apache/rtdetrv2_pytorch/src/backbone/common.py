@@ -48,17 +48,6 @@ class FrozenBatchNorm2d(nn.Module):
             "{num_features}, eps={eps}".format(**self.__dict__)
         )
 
-def freeze_batch_norm2d(module: nn.Module) -> nn.Module:
-    if isinstance(module, nn.BatchNorm2d):
-        module = FrozenBatchNorm2d(module.num_features)
-    else:
-        for name, child in module.named_children():
-            _child = freeze_batch_norm2d(child)
-            if _child is not child:
-                setattr(module, name, _child)
-    return module
-
-
 def get_activation(act: str, inplace: bool=True):
     """get activation
     """

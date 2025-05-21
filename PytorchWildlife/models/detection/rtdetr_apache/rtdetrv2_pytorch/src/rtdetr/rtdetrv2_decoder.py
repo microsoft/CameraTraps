@@ -13,10 +13,9 @@ import torch.nn.init as init
 from typing import List
 
 from .denoising import get_contrastive_denoising_training_group
-from .utils import deformable_attention_core_func_v2, get_activation, inverse_sigmoid
-from .utils import bias_init_with_prob
+from .utils import deformable_attention_core_func_v2, get_activation, inverse_sigmoid, bias_init_with_prob
 
-from ...core import register
+from ..core import register
 
 __all__ = ['RTDETRTransformerv2']
 

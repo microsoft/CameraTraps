@@ -2,6 +2,5 @@
 """
 
 # for register purpose
-from . import data 
-from . import nn
-from . import zoo
+from . import backbone
+from . import rtdetr

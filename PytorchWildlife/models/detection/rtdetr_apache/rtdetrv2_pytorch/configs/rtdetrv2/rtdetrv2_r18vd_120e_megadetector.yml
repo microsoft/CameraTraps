@@ -1,6 +1,5 @@
 __include__: [
   '../dataset/megadetector_detection.yml',
-  '../runtime.yml',
   './include/rtdetrv2_r50vd.yml',
 ]
 
@@ -20,22 +19,3 @@ HybridEncoder:
 
 RTDETRTransformerv2:
   num_layers: 3
-
-
-epoches: 20 
-
-optimizer:
-  type: AdamW
-  params:
-    - 
-      params: '^(?=.*(?:norm|bn)).*$'
-      weight_decay: 0.
-
-
-train_dataloader: 
-  dataset: 
-    transforms:
-      policy:
-        epoch: 117
-  collate_fn:
-    scales: ~

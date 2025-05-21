@@ -73,12 +73,12 @@ class RTDETRApacheBase(BaseDetector):
         else:
             raise Exception("Need weights for inference.")
 
-        if self.MODEL_NAME == "MDV6-rtdetr_s.pth":
+        if self.MODEL_NAME == "MDV6-apa-rtdetr-c.pth":
             config = os.path.join(project_root, "rtdetrv2_pytorch/configs/rtdetrv2/rtdetrv2_r18vd_120e_megadetector.yml")
-        elif self.MODEL_NAME == "MDV6-rtdetr_x.pth":
+        elif self.MODEL_NAME == "MDV6-apa-rtdetr-e.pth":
             config = os.path.join(project_root, "rtdetrv2_pytorch/configs/rtdetrv2/rtdetrv2_r101vd_6x_megadetector.yml")
         else:
-            raise ValueError('Select a valid model version: MDV6-rtdetr-s-apache or MDV6-rtdetr-x-apache')
+            raise ValueError('Select a valid model version: MDV6-apa-rtdetr-c or MDV6-apa-rtdetr-e')
         
         cfg = YAMLConfig(config, resume=resume)
         
