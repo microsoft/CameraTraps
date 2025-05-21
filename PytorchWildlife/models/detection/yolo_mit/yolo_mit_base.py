@@ -25,14 +25,14 @@ from omegaconf import OmegaConf
 project_root = Path(__file__).resolve().parent
 sys.path.append(str(project_root))
 
-from yolo import create_model, create_converter, AugmentationComposer, PostProcess
+from yolo import create_model, create_converter, PostProcess, AugmentationComposer
 
 class YOLOMITBase(BaseDetector):
     """
     Base detector class for YOLO MIT framework. This class provides utility methods for
     loading the model, generating results, and performing single and batch image detections.
     """
-    def __init__(self, weights=None, device="cpu", url=None, transform=None):
+    def __init__(self, weights=None, device="cpu", url=None):
         """
         Initialize the YOLO MIT detector.
         
@@ -53,14 +53,14 @@ class YOLOMITBase(BaseDetector):
         super(YOLOMITBase, self).__init__(weights=self.weights, device=self.device, url=self.url)
 
     def _load_cfg(self):
-        if self.MODEL_NAME == "MDV6-yolov9s-mit.ckpt":
+        if self.MODEL_NAME == "MDV6-mit-yolov9-c.ckpt":
             if not os.path.exists(os.path.join(torch.hub.get_dir(), "checkpoints", "config_v9s.yaml")):
                 os.makedirs(os.path.join(torch.hub.get_dir(), "checkpoints"), exist_ok=True)
                 url = "https://zenodo.org/records/15178680/files/config_v9s.yaml?download=1"
                 config_path = wget.download(url, out=os.path.join(torch.hub.get_dir(), "checkpoints"))
             else:
                 config_path = os.path.join(torch.hub.get_dir(), "checkpoints", "config_v9s.yaml")
-        elif self.MODEL_NAME == "MDV6-yolov9c-mit.ckpt":
+        elif self.MODEL_NAME == "MDV6-mit-yolov9-e.ckpt":
             if not os.path.exists(os.path.join(torch.hub.get_dir(), "checkpoints", "config_v9c.yaml")):
                 os.makedirs(os.path.join(torch.hub.get_dir(), "checkpoints"), exist_ok=True)
                 url = "https://zenodo.org/records/15178680/files/config_v9c.yaml?download=1"

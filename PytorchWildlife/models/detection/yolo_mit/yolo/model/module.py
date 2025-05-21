@@ -1,9 +1,63 @@
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 import torch
 import torch.nn.functional as F
 from torch import Tensor, nn
 from torch.nn.common_types import _size_2_t
-from yolo.utils.module_utils import auto_pad, create_activation_function, round_up
+import inspect
+
+# ----------- Utils ----------- #
+def get_layer_map():
+    """
+    Dynamically generates a dictionary mapping class names to classes,
+    filtering to include only those that are subclasses of nn.Module,
+    ensuring they are relevant neural network layers.
+    """
+    layer_map = {}
+    from yolo.model import module
+
+    for name, obj in inspect.getmembers(module, inspect.isclass):
+        if issubclass(obj, nn.Module) and obj is not nn.Module:
+            layer_map[name] = obj
+    return layer_map
+
+
+def auto_pad(kernel_size: _size_2_t, dilation: _size_2_t = 1, **kwargs) -> Tuple[int, int]:
+    """
+    Auto Padding for the convolution blocks
+    """
+    if isinstance(kernel_size, int):
+        kernel_size = (kernel_size, kernel_size)
+    if isinstance(dilation, int):
+        dilation = (dilation, dilation)
+
+    pad_h = ((kernel_size[0] - 1) * dilation[0]) // 2
+    pad_w = ((kernel_size[1] - 1) * dilation[1]) // 2
+    return (pad_h, pad_w)
+
+
+def create_activation_function(activation: str) -> nn.Module:
+    """
+    Retrieves an activation function from the PyTorch nn module based on its name, case-insensitively.
+    """
+    if not activation or activation.lower() in ["false", "none"]:
+        return nn.Identity()
+
+    activation_map = {
+        name.lower(): obj
+        for name, obj in nn.modules.activation.__dict__.items()
+        if isinstance(obj, type) and issubclass(obj, nn.Module)
+    }
+    if activation.lower() in activation_map:
+        return activation_map[activation.lower()](inplace=True)
+    else:
+        raise ValueError(f"Activation function '{activation}' is not found in torch.nn")
+
+
+def round_up(x: Union[int, Tensor], div: int = 1) -> Union[int, Tensor]:
+    """
+    Rounds up `x` to the bigger-nearest multiple of `div`.
+    """
+    return x + (-x % div)
 
 
 # ----------- Basic Class ----------- #
@@ -86,28 +140,6 @@ class Detection(nn.Module):
         return class_x, anchor_x, vector_x
 
 
-class IDetection(nn.Module):
-    def __init__(self, in_channels: Tuple[int], num_classes: int, *args, anchor_num: int = 3, **kwargs):
-        super().__init__()
-
-        if isinstance(in_channels, tuple):
-            in_channels = in_channels[1]
-
-        out_channel = num_classes + 5
-        out_channels = out_channel * anchor_num
-        self.head_conv = nn.Conv2d(in_channels, out_channels, 1)
-
-        self.implicit_a = ImplicitA(in_channels)
-        self.implicit_m = ImplicitM(out_channels)
-
-    def forward(self, x):
-        x = self.implicit_a(x)
-        x = self.head_conv(x)
-        x = self.implicit_m(x)
-
-        return x
-
-
 class MultiheadDetection(nn.Module):
     """Mutlihead Detection module for Dual detect or Triple detect"""
 
@@ -121,39 +153,6 @@ class MultiheadDetection(nn.Module):
         self.heads = nn.ModuleList(
             [DetectionHead((in_channels[0], in_channel), num_classes, **head_kwargs) for in_channel in in_channels]
         )
-
-    def forward(self, x_list: List[torch.Tensor]) -> List[torch.Tensor]:
-        return [head(x) for x, head in zip(x_list, self.heads)]
-
-
-# ----------- Segmentation Class ----------- #
-class Segmentation(nn.Module):
-    def __init__(self, in_channels: Tuple[int], num_maskes: int):
-        super().__init__()
-        first_neck, in_channels = in_channels
-
-        mask_neck = max(first_neck // 4, num_maskes)
-        self.mask_conv = nn.Sequential(
-            Conv(in_channels, mask_neck, 3), Conv(mask_neck, mask_neck, 3), nn.Conv2d(mask_neck, num_maskes, 1)
-        )
-
-    def forward(self, x: Tensor) -> Tuple[Tensor]:
-        x = self.mask_conv(x)
-        return x
-
-
-class MultiheadSegmentation(nn.Module):
-    """Mutlihead Segmentation module for Dual segment or Triple segment"""
-
-    def __init__(self, in_channels: List[int], num_classes: int, num_maskes: int, **head_kwargs):
-        super().__init__()
-        mask_channels, proto_channels = in_channels[:-1], in_channels[-1]
-
-        self.detect = MultiheadDetection(mask_channels, num_classes, **head_kwargs)
-        self.heads = nn.ModuleList(
-            [Segmentation((in_channels[0], in_channel), num_maskes) for in_channel in mask_channels]
-        )
-        self.heads.append(Conv(proto_channels, num_maskes, 1))
 
     def forward(self, x_list: List[torch.Tensor]) -> List[torch.Tensor]:
         return [head(x) for x, head in zip(x_list, self.heads)]
@@ -175,20 +174,6 @@ class Anchor2Vec(nn.Module):
         vector_x = anchor_x.softmax(dim=1)
         vector_x = self.anc2vec(vector_x)[:, 0]
         return anchor_x, vector_x
-
-
-# ----------- Classification Class ----------- #
-class Classification(nn.Module):
-    def __init__(self, in_channel: int, num_classes: int, *, neck_channels=1024, **head_args):
-        super().__init__()
-        self.conv = Conv(in_channel, neck_channels, 1)
-        self.pool = nn.AdaptiveAvgPool2d(1)
-        self.head = nn.Linear(neck_channels, num_classes)
-
-    def forward(self, x: Tensor) -> Tuple[Tensor]:
-        x = self.pool(self.conv(x))
-        x = self.head(x.flatten(start_dim=1))
-        return x
 
 
 # ----------- Backbone Class ----------- #
@@ -353,7 +338,6 @@ class AConv(nn.Module):
         x = self.conv(x)
         return x
 
-
 class ADown(nn.Module):
     """Downsampling module combining average and max pooling with convolution for feature reduction."""
 
@@ -389,33 +373,20 @@ class CBLinear(nn.Module):
         x = self.conv(x)
         return x.split(self.out_channels, dim=1)
 
-
-class SPPCSPConv(nn.Module):
-    # CSP https://github.com/WongKinYiu/CrossStagePartialNetworks
-    def __init__(self, in_channels: int, out_channels: int, expand: float = 0.5, kernel_sizes: Tuple[int] = (5, 9, 13)):
+class CBFuse(nn.Module):
+    def __init__(self, index: List[int], mode: str = "nearest"):
         super().__init__()
-        neck_channels = int(2 * out_channels * expand)
-        self.pre_conv = nn.Sequential(
-            Conv(in_channels, neck_channels, 1),
-            Conv(neck_channels, neck_channels, 3),
-            Conv(neck_channels, neck_channels, 1),
-        )
-        self.short_conv = Conv(in_channels, neck_channels, 1)
-        self.pools = nn.ModuleList([Pool(kernel_size=kernel_size, stride=1) for kernel_size in kernel_sizes])
-        self.post_conv = nn.Sequential(Conv(4 * neck_channels, neck_channels, 1), Conv(neck_channels, neck_channels, 3))
-        self.merge_conv = Conv(2 * neck_channels, out_channels, 1)
+        self.idx = index
+        self.mode = mode
 
-    def forward(self, x):
-        features = [self.pre_conv(x)]
-        for pool in self.pools:
-            features.append(pool(features[-1]))
-        features = torch.cat(features, dim=1)
-        y1 = self.post_conv(features)
-        y2 = self.short_conv(x)
-        y = torch.cat((y1, y2), dim=1)
-        return self.merge_conv(y)
+    def forward(self, x_list: List[torch.Tensor]) -> List[Tensor]:
+        target = x_list[-1]
+        target_size = target.shape[2:]  # Batch, Channel, H, W
 
-
+        res = [F.interpolate(x[pick_id], size=target_size, mode=self.mode) for pick_id, x in zip(self.idx, x_list)]
+        out = torch.stack(res + [target]).sum(dim=0)
+        return out
+        
 class SPPELAN(nn.Module):
     """SPPELAN module comprising multiple pooling and convolution layers."""
 
@@ -441,87 +412,3 @@ class UpSample(nn.Module):
 
     def forward(self, x):
         return self.UpSample(x)
-
-
-class CBFuse(nn.Module):
-    def __init__(self, index: List[int], mode: str = "nearest"):
-        super().__init__()
-        self.idx = index
-        self.mode = mode
-
-    def forward(self, x_list: List[torch.Tensor]) -> List[Tensor]:
-        target = x_list[-1]
-        target_size = target.shape[2:]  # Batch, Channel, H, W
-
-        res = [F.interpolate(x[pick_id], size=target_size, mode=self.mode) for pick_id, x in zip(self.idx, x_list)]
-        out = torch.stack(res + [target]).sum(dim=0)
-        return out
-
-
-class ImplicitA(nn.Module):
-    """
-    Implement YOLOR - implicit knowledge(Add), paper: https://arxiv.org/abs/2105.04206
-    """
-
-    def __init__(self, channel: int, mean: float = 0.0, std: float = 0.02):
-        super().__init__()
-        self.channel = channel
-        self.mean = mean
-        self.std = std
-
-        self.implicit = nn.Parameter(torch.empty(1, channel, 1, 1))
-        nn.init.normal_(self.implicit, mean=self.mean, std=self.std)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.implicit + x
-
-
-class ImplicitM(nn.Module):
-    """
-    Implement YOLOR - implicit knowledge(multiply), paper: https://arxiv.org/abs/2105.04206
-    """
-
-    def __init__(self, channel: int, mean: float = 1.0, std: float = 0.02):
-        super().__init__()
-        self.channel = channel
-        self.mean = mean
-        self.std = std
-
-        self.implicit = nn.Parameter(torch.empty(1, channel, 1, 1))
-        nn.init.normal_(self.implicit, mean=self.mean, std=self.std)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.implicit * x
-
-
-class DConv(nn.Module):
-    def __init__(self, in_channels=512, alpha=0.8, atoms=512):
-        super().__init__()
-        self.alpha = alpha
-
-        self.CG = Conv(in_channels, atoms, 1)
-        self.GIE = Conv(atoms, atoms, 5, groups=atoms, activation=False)
-        self.D = Conv(atoms, in_channels, 1, activation=False)
-
-    def PONO(self, x):
-        mean = x.mean(dim=1, keepdim=True)
-        std = x.std(dim=1, keepdim=True)
-        x = (x - mean) / (std + 1e-5)
-        return x
-
-    def forward(self, r):
-        x = self.CG(r)
-        x = self.GIE(x)
-        x = self.PONO(x)
-        x = self.D(x)
-        return self.alpha * x + (1 - self.alpha) * r
-
-
-class RepNCSPELAND(RepNCSPELAN):
-    def __init__(self, *args, atoms: 512, rd_args={}, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.dconv = DConv(atoms=atoms, **rd_args)
-
-    def forward(self, x):
-        x = super().forward(x)
-        return self.dconv(x)

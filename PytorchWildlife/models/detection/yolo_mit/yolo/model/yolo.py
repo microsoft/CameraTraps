@@ -6,9 +6,9 @@ import torch
 from omegaconf import ListConfig, OmegaConf
 from torch import nn
 
-from yolo.config.config import ModelConfig, YOLOLayer
+from yolo.config import ModelConfig, YOLOLayer
 from yolo.tools.dataset_preparation import prepare_weight
-from yolo.utils.module_utils import get_layer_map
+from yolo.model.module import get_layer_map
 
 
 class YOLO(nn.Module):
