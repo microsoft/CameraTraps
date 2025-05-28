@@ -135,4 +135,5 @@ json_file = os.path.join(".","batch_output_classification.json")
 output_path = os.path.join(".","folder_separation")
 det_threshold = 0.2
 clf_threshold = 0.2
-pw_utils.detection_classification_folder_separation(json_file, tgt_folder_path, output_path, det_threshold, clf_threshold)
+overwrite = True
+pw_utils.detection_classification_folder_separation(json_file, tgt_folder_path, output_path, det_threshold, clf_threshold, overwrite)
