@@ -64,7 +64,7 @@ class BaseDetector(nn.Module):
         """
         pass
 
-    def single_image_detection(self, img, img_size=None, img_path=None, conf_thres=0.2, id_strip=None) -> dict:
+    def single_image_detection(self, img, img_size=None, img_path=None, det_conf_thres=0.2, id_strip=None) -> dict:
         """
         Perform detection on a single image.
         
@@ -75,7 +75,7 @@ class BaseDetector(nn.Module):
                 Original image size.
             img_path (str): 
                 Image path or identifier.
-            conf_thres (float, optional): 
+            det_conf_thres (float, optional): 
                 Confidence threshold for predictions. Defaults to 0.2.
             id_strip (str, optional): 
                 Characters to strip from img_id. Defaults to None.
@@ -85,13 +85,13 @@ class BaseDetector(nn.Module):
         """
         pass
 
-    def batch_image_detection(self, dataloader, conf_thres: float = 0.2, id_strip: str = None) -> list[dict]:
+    def batch_image_detection(self, dataloader, det_conf_thres: float = 0.2, id_strip: str = None) -> list[dict]:
         """
         Perform detection on a batch of images.
 
         Args:
             dataloader (DataLoader): DataLoader containing image batches.
-            conf_thres (float, optional): Confidence threshold for predictions. Defaults to 0.2.
+            det_conf_thres (float, optional): Confidence threshold for predictions. Defaults to 0.2.
             id_strip (str, optional): Characters to strip from img_id. Defaults to None.
 
         Returns:
