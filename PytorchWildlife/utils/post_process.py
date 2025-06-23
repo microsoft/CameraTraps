@@ -7,11 +7,13 @@ import os
 import numpy as np
 import json
 import cv2
-from PIL import Image
 import supervision as sv
 import shutil
-from pathlib import Path
 import csv
+
+from PIL import Image
+from PIL.ExifTags import TAGS
+from pathlib import Path
 
 __all__ = [
     "save_detection_images",
@@ -22,7 +24,7 @@ __all__ = [
     "save_detection_classification_json",
     "save_detection_timelapse_json",
     "save_detection_classification_timelapse_json",
-    "save_detection_classification_csv_dwc",
+    "save_detection_classification_csv",
     "detection_folder_separation",
     "detection_classification_folder_separation",
 ]
@@ -512,7 +514,7 @@ def save_detection_classification_timelapse_json(
         json.dump(json_results, f, indent=4)
 
 
-def save_detection_classification_csv_dwc(
+def save_detection_classification_csv(
     det_results,
     clf_results,
     output_path,
@@ -522,7 +524,7 @@ def save_detection_classification_csv_dwc(
     exclude_file_path=None
 ):
     """
-    Save detection and classification results in Darwin Core (DwC)-like CSV format.
+    Save detection and classification results in CSV format.
 
     Args:
         det_results (list): Detection results with image ID, bounding boxes, class IDs, and confidence.
@@ -534,13 +536,15 @@ def save_detection_classification_csv_dwc(
     """
 
     headers = [
-        "occurrenceID", "eventID", "scientificName",
-        "occurrenceRemarks", "recordedBy", "identifiedBy",
-        "classificationConfidence"
+        "FileName", 
+        "CaptureDate",
+        "Title",
+        "BoundingBox",
+        "classificationConfidence",
+        "Model",
     ]
 
     rows = []
-    detection_id = 1
 
     # Index classification results by img_id
     clf_dict = {}
@@ -550,6 +554,14 @@ def save_detection_classification_csv_dwc(
     for det_r in det_results:
         img_path = str(det_r["img_id"])
         display_path = img_path.replace(exclude_file_path + os.sep, '') if exclude_file_path else img_path
+        
+        imagen = Image.open(display_path)
+        exif_data = imagen._getexif()
+        if exif_data:
+            for tag_id, value in exif_data.items():
+                tag = TAGS.get(tag_id, tag_id)
+                if tag == "DateTimeOriginal":
+                    capture_date = value
 
         detections = det_r["detections"]
         bboxes = detections.xyxy.astype(int)
@@ -577,15 +589,15 @@ def save_detection_classification_csv_dwc(
                 clf_conf = ""
 
             rows.append({
-                "occurrenceID": f"det-{detection_id}",
-                "eventID": display_path,
-                "scientificName": clf_name,
-                "occurrenceRemarks": occurrence_remarks,
-                "identifiedBy": model_name,
-                "classificationConfidence": f"{clf_conf:.2f}" if clf_conf != "" else ""
+                "FileName": display_path,
+                "CaptureDate": capture_date,
+                "Title": clf_name,
+                "BoundingBox": occurrence_remarks,
+                "classificationConfidence": f"{clf_conf:.2f}" if clf_conf != "" else "",
+                "Model": model_name,
             })
-
-            detection_id += 1
+    
+    rows.sort(key=lambda x: x["CaptureDate"] or "")
 
     with open(output_path, mode='w', newline='', encoding='utf-8') as f:
         writer = csv.DictWriter(f, fieldnames=headers)
@@ -665,28 +677,25 @@ def detection_folder_separation(json_file, img_path, destination_path, confidenc
 
     return "{} files were successfully separated".format(i)
 
-def detection_classification_folder_separation(json_file, img_path, destination_path, det_conf_threshold, clf_conf_threshold, overwrite=False):
+def detection_classification_folder_separation(json_file, img_path, destination_path, det_conf_threshold, clf_conf_threshold, overwrite=False, draw_bboxes=True):
     """
-    Processes detection and classification data from a JSON file and saves images with annotated
-    bounding boxes into structured directories based on classification categories and confidence levels.
-    If a detection has an associated classification confidence ≥ `clf_conf_threshold`, the label
-    shown on the image will be the classification category name (e.g., "Leptotila").
-    If classification is not available or below threshold, the detection category name is used instead (e.g., "animal").
-    Confidence values are shown alongside labels
+    Processes detection and classification data from a JSON file and saves images into structured
+    directories based on classification categories and confidence levels. Optionally draws bounding
+    boxes and labels on images.
 
     Parameters:
     - json_file (str): Path to the JSON file containing detection and classification data.
     - img_path (str): Path to the directory containing the source images.
-    - destination_path (str): Base path to save annotated images into structured folders.
+    - destination_path (str): Base path to save images into structured folders.
     - det_conf_threshold (float): Threshold for detection filtering.
     - clf_conf_threshold (float): Threshold for classification filtering.
     - overwrite (bool): If True, overwrite existing output folders/images.
+    - draw_bboxes (bool): If True, draw bounding boxes and labels on images; otherwise, copy original image.
 
     Returns:
     - str: Summary of processed files.
     """
 
-    # Load detection data
     with open(json_file, 'r') as file:
         data = json.load(file)
 
@@ -698,96 +707,90 @@ def detection_classification_folder_separation(json_file, img_path, destination_
     no_animal_root = os.path.join(destination_path, 'No_animal')
     for root in (animal_root, no_animal_root):
         if overwrite and os.path.exists(root):
-            # Clear folder
             for dirpath, _, filenames in os.walk(root):
                 for file in filenames:
                     os.remove(os.path.join(dirpath, file))
         os.makedirs(root, exist_ok=True)
 
-    # Box Annotator
-    box_annotator = sv.BoxAnnotator(thickness=4)
+    if draw_bboxes:
+        box_annotator = sv.BoxAnnotator(thickness=4)
 
     processed = 0
     for ann in data.get('annotations', []):
         img_id = ann['img_id']
         det_cats = ann['det_category']
         det_confs = ann['det_confidence']
-        bboxes   = np.array(ann['bbox'], dtype=float)
+        bboxes = np.array(ann['bbox'], dtype=float)
         clf_cats = ann.get('clf_category', [])
-        clf_confs= ann.get('clf_confidence', [])
+        clf_confs = ann.get('clf_confidence', [])
 
-        # decide root folder by animal presence
-        has_animal = any(c==0 and conf >= det_conf_threshold for c, conf in zip(det_cats, det_confs))
+        has_animal = any(c == 0 and conf >= det_conf_threshold for c, conf in zip(det_cats, det_confs))
         root_folder = animal_root if has_animal else no_animal_root
 
-        # classification subdirs
         valid_clfs = [clf_map.get(str(c), 'Unknown') for c, conf in zip(clf_cats, clf_confs) if conf >= clf_conf_threshold]
         clf_dirs = valid_clfs or ['Unknown']
 
-        # load image
+        src_img_path = os.path.join(img_path, img_id)
         try:
-            img = np.array(Image.open(os.path.join(img_path, img_id)).convert('RGB'))
+            img = np.array(Image.open(src_img_path).convert('RGB'))
         except Exception as e:
             print(f"Skipping {img_id}: {e}")
             continue
 
-        # annotate boxes first
-        detections = sv.Detections(xyxy=bboxes, class_id=np.array(det_cats, dtype=int))
-        frame = box_annotator.annotate(scene=img.copy(), detections=detections)
-        h, w = frame.shape[:2]
+        frame = img.copy()
 
-        # dynamic text parameters
-        font = cv2.FONT_HERSHEY_DUPLEX
-        ref_h = 1280.0
-        base_scale = 2.0
-        scale = max(0.5, (h / ref_h) * base_scale)
-        thickness = max(1, int(round(scale)))
-        padding = max(2, int(round(scale * 2)))
-        text_color = (255,255,255)
+        if draw_bboxes:
+            detections = sv.Detections(xyxy=bboxes, class_id=np.array(det_cats, dtype=int))
+            frame = box_annotator.annotate(scene=frame, detections=detections)
+            h, w = frame.shape[:2]
 
-        # draw labels per detection
-        for idx, (box, cat_id, det_conf) in enumerate(zip(bboxes, det_cats, det_confs)):
-            if det_conf < det_conf_threshold:
-                continue
-            # choose label
-            cls_label = clf_map.get(str(clf_cats[idx]), det_map.get(str(cat_id), 'Unknown'))
-            cls_conf  = clf_confs[idx] if idx < len(clf_confs) else None
-            label = f"{cls_label} {cls_conf:.2f}" if cls_conf is not None else cls_label
+            font = cv2.FONT_HERSHEY_DUPLEX
+            ref_h = 1280.0
+            base_scale = 2.0
+            scale = max(0.5, (h / ref_h) * base_scale)
+            thickness = max(1, int(round(scale)))
+            padding = max(2, int(round(scale * 2)))
+            text_color = (255, 255, 255)
 
-            x1, y1, x2, y2 = map(int, box)
-            # measure text size
-            (tw, th), baseline = cv2.getTextSize(label, font, scale, thickness)
-            block_h = th + baseline + 2*padding
+            for idx, (box, cat_id, det_conf) in enumerate(zip(bboxes, det_cats, det_confs)):
+                if det_conf < det_conf_threshold:
+                    continue
+                cls_label = clf_map.get(str(clf_cats[idx]), det_map.get(str(cat_id), 'Unknown')) if idx < len(clf_cats) else det_map.get(str(cat_id), 'Unknown')
+                cls_conf = clf_confs[idx] if idx < len(clf_confs) else None
+                label = f"{cls_label} {cls_conf:.2f}" if cls_conf is not None else cls_label
 
-            # vertical placement
-            if y1 - block_h >= 0:
-                top = y1 - block_h
-                bottom = y1
-                text_y = y1 - padding
-            else:
-                top = y2
-                bottom = y2 + block_h
-                text_y = y2 + th + padding
+                x1, y1, x2, y2 = map(int, box)
+                (tw, th), baseline = cv2.getTextSize(label, font, scale, thickness)
+                block_h = th + baseline + 2 * padding
 
-            # horizontal placement
-            text_x = x1
-            if text_x - padding < 0:
-                text_x = padding
-            if text_x + tw + padding > w:
-                text_x = w - tw - padding
+                if y1 - block_h >= 0:
+                    top = y1 - block_h
+                    bottom = y1
+                    text_y = y1 - padding
+                else:
+                    top = y2
+                    bottom = y2 + block_h
+                    text_y = y2 + th + padding
 
-            # background rect
-            color = box_annotator.color.by_idx(int(cat_id)).as_bgr()
-            cv2.rectangle(frame, (text_x - padding, top), (text_x + tw + padding, bottom), color, -1)
-            # text
-            cv2.putText(frame, label, (text_x, text_y), font, scale, text_color, thickness)
+                text_x = x1
+                if text_x - padding < 0:
+                    text_x = padding
+                if text_x + tw + padding > w:
+                    text_x = w - tw - padding
 
-        # save per classification folder
+                color = box_annotator.color.by_idx(int(cat_id)).as_bgr()
+                cv2.rectangle(frame, (text_x - padding, top), (text_x + tw + padding, bottom), color, -1)
+                cv2.putText(frame, label, (text_x, text_y), font, scale, text_color, thickness)
+
         for clf_dir in clf_dirs:
             dest = os.path.join(root_folder, clf_dir)
             os.makedirs(dest, exist_ok=True)
             out_path = os.path.join(dest, os.path.basename(img_id))
-            cv2.imwrite(out_path, cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
+
+            if draw_bboxes:
+                cv2.imwrite(out_path, cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
+            else:
+                shutil.copy2(src_img_path, out_path)
 
         processed += 1
 

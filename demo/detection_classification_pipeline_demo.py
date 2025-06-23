@@ -122,12 +122,12 @@ pw_utils.save_detection_classification_timelapse_json(det_results=det_results,
                                             clf_categories=classification_model.CLASS_NAMES,
                                             output_path=os.path.join(".","batch_output_classification_timelapse.json"))
 # %%
-# Saving the detection results in darwin core CSV format
-pw_utils.save_detection_classification_csv_dwc(det_results=det_results,
+# Saving the detection and classification results in CSV format
+pw_utils.save_detection_classification_csv(det_results=det_results,
                                             clf_results=clf_results,
                                             det_categories=detection_model.CLASS_NAMES,
                                             clf_categories=classification_model.CLASS_NAMES,
-                                            output_path=os.path.join(".","batch_output_classification_darwincore.csv"),
+                                            output_path=os.path.join(".","batch_output_classification.csv"),
                                             model_name="MDV6-yolov10-e")
 # %%
 # Separate the positive and negative detections through file copying
@@ -136,4 +136,13 @@ output_path = os.path.join(".","folder_separation")
 det_threshold = 0.2
 clf_threshold = 0.2
 overwrite = True
-pw_utils.detection_classification_folder_separation(json_file, tgt_folder_path, output_path, det_threshold, clf_threshold, overwrite)
+draw_bboxes = True
+pw_utils.detection_classification_folder_separation(
+    json_file, 
+    tgt_folder_path, 
+    output_path, 
+    det_threshold, 
+    clf_threshold, 
+    overwrite, 
+    draw_bboxes
+    )
