@@ -2,210 +2,210 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://microsoft.github.io/CameraTraps/</loc>
-         <lastmod>2025-05-17</lastmod>
+         <lastmod>2025-06-23</lastmod>
     </url>
     <url>
          <loc>https://microsoft.github.io/CameraTraps/build_mkdocs/</loc>
-         <lastmod>2025-05-17</lastmod>
+         <lastmod>2025-06-23</lastmod>
     </url>
     <url>
          <loc>https://microsoft.github.io/CameraTraps/cite/</loc>
-         <lastmod>2025-05-17</lastmod>
+         <lastmod>2025-06-23</lastmod>
     </url>
     <url>
          <loc>https://microsoft.github.io/CameraTraps/collaborators/</loc>
-         <lastmod>2025-05-17</lastmod>
+         <lastmod>2025-06-23</lastmod>
     </url>
     <url>
          <loc>https://microsoft.github.io/CameraTraps/contribute/</loc>
-         <lastmod>2025-05-17</lastmod>
+         <lastmod>2025-06-23</lastmod>
     </url>
     <url>
          <loc>https://microsoft.github.io/CameraTraps/contributors/</loc>
-         <lastmod>2025-05-17</lastmod>
+         <lastmod>2025-06-23</lastmod>
     </url>
     <url>
          <loc>https://microsoft.github.io/CameraTraps/core_features/</loc>
-         <lastmod>2025-05-17</lastmod>
+         <lastmod>2025-06-23</lastmod>
     </url>
     <url>
          <loc>https://microsoft.github.io/CameraTraps/installation/</loc>
-         <lastmod>2025-05-17</lastmod>
+         <lastmod>2025-06-23</lastmod>
     </url>
     <url>
          <loc>https://microsoft.github.io/CameraTraps/license/</loc>
-         <lastmod>2025-05-17</lastmod>
+         <lastmod>2025-06-23</lastmod>
     </url>
     <url>
          <loc>https://microsoft.github.io/CameraTraps/megadetector/</loc>
-         <lastmod>2025-05-17</lastmod>
+         <lastmod>2025-06-23</lastmod>
     </url>
     <url>
          <loc>https://microsoft.github.io/CameraTraps/base/overview/</loc>
-         <lastmod>2025-05-17</lastmod>
+         <lastmod>2025-06-23</lastmod>
     </url>
     <url>
          <loc>https://microsoft.github.io/CameraTraps/base/data/datasets/</loc>
-         <lastmod>2025-05-17</lastmod>
+         <lastmod>2025-06-23</lastmod>
     </url>
     <url>
          <loc>https://microsoft.github.io/CameraTraps/base/data/transforms/</loc>
-         <lastmod>2025-05-17</lastmod>
+         <lastmod>2025-06-23</lastmod>
     </url>
     <url>
          <loc>https://microsoft.github.io/CameraTraps/base/models/classification/base_classifier/</loc>
-         <lastmod>2025-05-17</lastmod>
+         <lastmod>2025-06-23</lastmod>
     </url>
     <url>
          <loc>https://microsoft.github.io/CameraTraps/base/models/classification/resnet_base/amazon/</loc>
-         <lastmod>2025-05-17</lastmod>
+         <lastmod>2025-06-23</lastmod>
     </url>
     <url>
          <loc>https://microsoft.github.io/CameraTraps/base/models/classification/resnet_base/base_classifier/</loc>
-         <lastmod>2025-05-17</lastmod>
+         <lastmod>2025-06-23</lastmod>
     </url>
     <url>
          <loc>https://microsoft.github.io/CameraTraps/base/models/classification/resnet_base/custom_weights/</loc>
-         <lastmod>2025-05-17</lastmod>
+         <lastmod>2025-06-23</lastmod>
     </url>
     <url>
          <loc>https://microsoft.github.io/CameraTraps/base/models/classification/resnet_base/opossum/</loc>
-         <lastmod>2025-05-17</lastmod>
+         <lastmod>2025-06-23</lastmod>
     </url>
     <url>
          <loc>https://microsoft.github.io/CameraTraps/base/models/classification/resnet_base/serengeti/</loc>
-         <lastmod>2025-05-17</lastmod>
+         <lastmod>2025-06-23</lastmod>
     </url>
     <url>
          <loc>https://microsoft.github.io/CameraTraps/base/models/classification/timm_base/DFNE/</loc>
-         <lastmod>2025-05-17</lastmod>
+         <lastmod>2025-06-23</lastmod>
     </url>
     <url>
          <loc>https://microsoft.github.io/CameraTraps/base/models/classification/timm_base/Deepfaune/</loc>
-         <lastmod>2025-05-17</lastmod>
+         <lastmod>2025-06-23</lastmod>
     </url>
     <url>
          <loc>https://microsoft.github.io/CameraTraps/base/models/classification/timm_base/base_classifier/</loc>
-         <lastmod>2025-05-17</lastmod>
+         <lastmod>2025-06-23</lastmod>
     </url>
     <url>
          <loc>https://microsoft.github.io/CameraTraps/base/models/detection/base_detector/</loc>
-         <lastmod>2025-05-17</lastmod>
+         <lastmod>2025-06-23</lastmod>
     </url>
     <url>
          <loc>https://microsoft.github.io/CameraTraps/base/models/detection/herdnet/</loc>
-         <lastmod>2025-05-17</lastmod>
+         <lastmod>2025-06-23</lastmod>
     </url>
     <url>
          <loc>https://microsoft.github.io/CameraTraps/base/models/detection/herdnet/dla/</loc>
-         <lastmod>2025-05-17</lastmod>
+         <lastmod>2025-06-23</lastmod>
     </url>
     <url>
          <loc>https://microsoft.github.io/CameraTraps/base/models/detection/herdnet/model/</loc>
-         <lastmod>2025-05-17</lastmod>
+         <lastmod>2025-06-23</lastmod>
     </url>
     <url>
          <loc>https://microsoft.github.io/CameraTraps/base/models/detection/herdnet/animaloc/data/patches/</loc>
-         <lastmod>2025-05-17</lastmod>
+         <lastmod>2025-06-23</lastmod>
     </url>
     <url>
          <loc>https://microsoft.github.io/CameraTraps/base/models/detection/herdnet/animaloc/data/types/</loc>
-         <lastmod>2025-05-17</lastmod>
+         <lastmod>2025-06-23</lastmod>
     </url>
     <url>
          <loc>https://microsoft.github.io/CameraTraps/base/models/detection/herdnet/animaloc/eval/lmds/</loc>
-         <lastmod>2025-05-17</lastmod>
+         <lastmod>2025-06-23</lastmod>
     </url>
     <url>
          <loc>https://microsoft.github.io/CameraTraps/base/models/detection/herdnet/animaloc/eval/stitchers/</loc>
-         <lastmod>2025-05-17</lastmod>
+         <lastmod>2025-06-23</lastmod>
     </url>
     <url>
          <loc>https://microsoft.github.io/CameraTraps/base/models/detection/ultralytics_based/Deepfaune/</loc>
-         <lastmod>2025-05-17</lastmod>
+         <lastmod>2025-06-23</lastmod>
     </url>
     <url>
          <loc>https://microsoft.github.io/CameraTraps/base/models/detection/ultralytics_based/megadetectorv5/</loc>
-         <lastmod>2025-05-17</lastmod>
+         <lastmod>2025-06-23</lastmod>
     </url>
     <url>
          <loc>https://microsoft.github.io/CameraTraps/base/models/detection/ultralytics_based/megadetectorv6/</loc>
-         <lastmod>2025-05-17</lastmod>
+         <lastmod>2025-06-23</lastmod>
     </url>
     <url>
          <loc>https://microsoft.github.io/CameraTraps/base/models/detection/ultralytics_based/megadetectorv6_distributed/</loc>
-         <lastmod>2025-05-17</lastmod>
+         <lastmod>2025-06-23</lastmod>
     </url>
     <url>
          <loc>https://microsoft.github.io/CameraTraps/base/models/detection/ultralytics_based/yolov5_base/</loc>
-         <lastmod>2025-05-17</lastmod>
+         <lastmod>2025-06-23</lastmod>
     </url>
     <url>
          <loc>https://microsoft.github.io/CameraTraps/base/models/detection/ultralytics_based/yolov8_base/</loc>
-         <lastmod>2025-05-17</lastmod>
+         <lastmod>2025-06-23</lastmod>
     </url>
     <url>
          <loc>https://microsoft.github.io/CameraTraps/base/models/detection/ultralytics_based/yolov8_distributed/</loc>
-         <lastmod>2025-05-17</lastmod>
+         <lastmod>2025-06-23</lastmod>
     </url>
     <url>
          <loc>https://microsoft.github.io/CameraTraps/base/utils/misc/</loc>
-         <lastmod>2025-05-17</lastmod>
+         <lastmod>2025-06-23</lastmod>
     </url>
     <url>
          <loc>https://microsoft.github.io/CameraTraps/base/utils/post_process/</loc>
-         <lastmod>2025-05-17</lastmod>
+         <lastmod>2025-06-23</lastmod>
     </url>
     <url>
          <loc>https://microsoft.github.io/CameraTraps/demo_and_ui/demo_data/</loc>
-         <lastmod>2025-05-17</lastmod>
+         <lastmod>2025-06-23</lastmod>
     </url>
     <url>
          <loc>https://microsoft.github.io/CameraTraps/demo_and_ui/ecoassist/</loc>
-         <lastmod>2025-05-17</lastmod>
+         <lastmod>2025-06-23</lastmod>
     </url>
     <url>
          <loc>https://microsoft.github.io/CameraTraps/demo_and_ui/gradio/</loc>
-         <lastmod>2025-05-17</lastmod>
+         <lastmod>2025-06-23</lastmod>
     </url>
     <url>
          <loc>https://microsoft.github.io/CameraTraps/demo_and_ui/notebook/</loc>
-         <lastmod>2025-05-17</lastmod>
+         <lastmod>2025-06-23</lastmod>
     </url>
     <url>
          <loc>https://microsoft.github.io/CameraTraps/demo_and_ui/timelapse/</loc>
-         <lastmod>2025-05-17</lastmod>
+         <lastmod>2025-06-23</lastmod>
     </url>
     <url>
          <loc>https://microsoft.github.io/CameraTraps/fine_tuning_modules/overview/</loc>
-         <lastmod>2025-05-17</lastmod>
+         <lastmod>2025-06-23</lastmod>
     </url>
     <url>
          <loc>https://microsoft.github.io/CameraTraps/fine_tuning_modules/classification/overview/</loc>
-         <lastmod>2025-05-17</lastmod>
+         <lastmod>2025-06-23</lastmod>
     </url>
     <url>
          <loc>https://microsoft.github.io/CameraTraps/fine_tuning_modules/detection/overview/</loc>
-         <lastmod>2025-05-17</lastmod>
+         <lastmod>2025-06-23</lastmod>
     </url>
     <url>
          <loc>https://microsoft.github.io/CameraTraps/model_zoo/classifiers/</loc>
-         <lastmod>2025-05-17</lastmod>
+         <lastmod>2025-06-23</lastmod>
     </url>
     <url>
          <loc>https://microsoft.github.io/CameraTraps/model_zoo/megadetector/</loc>
-         <lastmod>2025-05-17</lastmod>
+         <lastmod>2025-06-23</lastmod>
     </url>
     <url>
          <loc>https://microsoft.github.io/CameraTraps/model_zoo/other_detectors/</loc>
-         <lastmod>2025-05-17</lastmod>
+         <lastmod>2025-06-23</lastmod>
     </url>
     <url>
          <loc>https://microsoft.github.io/CameraTraps/releases/past_releases/</loc>
-         <lastmod>2025-05-17</lastmod>
+         <lastmod>2025-06-23</lastmod>
     </url>
     <url>
          <loc>https://microsoft.github.io/CameraTraps/releases/release_notes/</loc>
-         <lastmod>2025-05-17</lastmod>
+         <lastmod>2025-06-23</lastmod>
     </url>
 </urlset>
