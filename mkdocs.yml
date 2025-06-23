@@ -158,6 +158,7 @@ markdown_extensions:
   - pymdownx.superfences
   - md_in_html
   - attr_list
+  - sane_lists
   - pymdownx.tabbed:
       alternate_style: true
   - toc:
