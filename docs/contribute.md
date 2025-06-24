@@ -4,15 +4,13 @@ Thanks for your interest in collaborating on Pytorch-Wildlife! Here you can find
 
 ## How to participate
 
-1. Visit our project board: [Pytorch-Wildlife](https://github.com/orgs/microsoft/projects/1833)  
-2. Look under the **“Ready”** column for issues open to contributors.  
-3. Pick an issue from the **“Ready”** column and add a comment expressing your interest!
-4. Once we receive your email, we’ll move the issue to **“In progress”** and assign you as the collaborator.  
-5. **Once your code is ready, please open a pull request targeting the `Collaborations` branch.**  
-   We’ll review your PR promptly, run some tests, and **merge it into our pre‑release branch** ahead of each major version update.
-6. We’ll review, run tests, and merge your PR.  
-7. After merging, we’ll mark the task as **“Done”** and include your contribution credit in the next release.
-
+1. 💡 Browse our project board: [Pytorch-Wildlife](https://github.com/orgs/microsoft/projects/1833)! 
+2. 📋 Look under the **“Ready”** column for issues/tasks open to contributors.  
+3. 💬 Pick an issue from the **“Ready”** column and add a comment expressing your interest!
+4. 🤝 Once we get your comments, we’ll move the issue to **“In progress”** and assign you as the collaborator.  
+5. 🛠 Work on it at your own pace, and when it’s ready, submit a pull request to the **`Collaborations`** branch. 
+6. 🔍 We’ll review your PR, run tests, and merge it into our **pre‑release** branch ahead of the next version.
+7. 🎉 After merging, we’ll mark the issue/task as **“Done”** and credit your contribution in the release notes—thank you!
 
 ---
 
