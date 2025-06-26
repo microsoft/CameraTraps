@@ -34,7 +34,7 @@ class MegaDetectorV6(YOLOV8Base):
 
         if version == 'MDV6-yolov9-c':            
             url = "https://zenodo.org/records/15398270/files/MDV6-yolov9-c.pt?download=1" 
-            self.MODEL_NAME = "MDV6b-yolov9-c.pt"
+            self.MODEL_NAME = "MDV6-yolov9-c.pt"
         elif version == 'MDV6-yolov9-e':
             url = "https://zenodo.org/records/15398270/files/MDV6-yolov9-e-1280.pt?download=1"
             self.MODEL_NAME = "MDV6-yolov9-e-1280.pt"
@@ -46,7 +46,7 @@ class MegaDetectorV6(YOLOV8Base):
             self.MODEL_NAME = "MDV6-yolov10-e-1280.pt"
         elif version == 'MDV6-rtdetr-c':
             url = "https://zenodo.org/records/15398270/files/MDV6-rtdetr-c.pt?download=1"
-            self.MODEL_NAME = "MDV6b-rtdetr-c.pt"
+            self.MODEL_NAME = "MDV6-rtdetr-c.pt"
         else:
             raise ValueError('Select a valid model version: MDV6-yolov9-c, MDV6-yolov9-e, MDV6-yolov10-c, MDV6-yolov10-e, MDV6-rtdetr-c')
 
