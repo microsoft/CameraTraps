@@ -20,6 +20,18 @@
 
 ## 📣 Announcements
 
+### 🚀 We’re Open for Contributions!
+
+We’re excited to announce that **Pytorch-Wildlife** is now open to community contributions!  
+If you’d like to get involved and help improve the project, we’d love to have you on board.
+
+👉 **Check out our Contribution Guidelines:**  
+
+[📚 How to Participate](https://microsoft.github.io/CameraTraps/contribute/#how-to-participate)
+
+You’ll find everything you need there — from how to pick an issue, to submitting your first pull request.  
+Let’s build this together! 🐾🌱
+
 ### V 1.2.3
 
 - We have fully recreated our [documentation page](https://microsoft.github.io/CameraTraps/) with [MKDocs](https://squidfunk.github.io/mkdocs-material/). Please take a look and let us know what you think! (Special thanks to @ss26 for creating the foundation of this documentation page!)  
