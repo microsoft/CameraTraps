@@ -10,24 +10,32 @@ from PytorchWildlife.models import detection as pw_detection
 from PytorchWildlife.models import classification as pw_classification
 from PytorchWildlife import utils as pw_utils
 
+#%% Set the name of the species to track
+SPECIES_NAME = None
+if SPECIES_NAME:
+    if SPECIES_NAME in pw_utils.REAL_ANIMAL_HEIGHT_M:
+        print(f"Tracking species: {SPECIES_NAME}")
+        animal_height_m = pw_utils.REAL_ANIMAL_HEIGHT_M[SPECIES_NAME]
+    else:
+        raise ValueError(f"Species '{SPECIES_NAME}' not found in the classification model.")
+else:
+    animal_height_m = None
+    print("No specific species selected for tracking. Speed will be calculated in pixels per second.")
+
+#%% Input and output paths
+SOURCE_FOLDER_PATH = os.path.join(".", "demo_data", "speed_tracking_videos")
+if not os.path.exists(SOURCE_FOLDER_PATH):
+    raise FileNotFoundError(f"Source video not found at {SOURCE_FOLDER_PATH}. Please check the path.")
+
+OUTPUT_FOLDER = os.path.join(".", "speed_tracking_output")
+os.makedirs(OUTPUT_FOLDER, exist_ok=True)
+
 #%% Set the device
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 #%% Load models
 detection_model = pw_detection.MegaDetectorV6(device=DEVICE, pretrained=True, version="MDV6-yolov9-c")
 classification_model = pw_classification.AI4GAmazonRainforest(device=DEVICE, version='v2')
-
-#%% Input and output paths
-VIDEO_NAME = "03100028"
-VIDEO_EXT = "MP4"
-SOURCE_VIDEO_PATH = os.path.join(".", "demo_data", "videos", f"{VIDEO_NAME}.{VIDEO_EXT}")
-OUTPUT_FOLDER = os.path.join(".", "speed_tracking_output")
-os.makedirs(OUTPUT_FOLDER, exist_ok=True)
-TARGET_VIDEO_PATH = os.path.join(OUTPUT_FOLDER, f"{VIDEO_NAME}_tracked.{VIDEO_EXT}")
-
-#%% Verify if the source video exists
-if not os.path.exists(SOURCE_VIDEO_PATH):
-    raise FileNotFoundError(f"Source video not found at {SOURCE_VIDEO_PATH}. Please check the path.")
 
 #%% Annotators
 box_annotator = sv.BoxAnnotator(thickness=4)
@@ -51,17 +59,48 @@ def callback(frame: np.ndarray, index: int) -> Tuple[np.ndarray, sv.Detections, 
 
     return annotated_frame, results_det["detections"], clf_labels
 
-#%% Run tracking and compute 2D speed
-image_width_px, t1, x1, y1, t2, x2, y2, speed_px_s = pw_utils.speed_in_video(
-    source_path=SOURCE_VIDEO_PATH,
-    target_path=TARGET_VIDEO_PATH,
-    callback=callback,
-    target_fps=10,
-    codec="mp4v"
-)
+#%% Initialize DataFrame to store speed data
+if animal_height_m:
+    print(f"Using animal height for speed calculation: {animal_height_m} m")
+    df = pd.DataFrame(columns=["Video", "Image Width (px)", "t1 (s)", "x1 (px)", "y1 (px)", "t2 (s)", "x2 (px)", "y2 (px)", "speed (m/s)"])
+else:
+    df = pd.DataFrame(columns=["Video", "Image Width (px)", "t1 (s)", "x1 (px)", "y1 (px)", "t2 (s)", "x2 (px)", "y2 (px)", "speed (px/s)"])
+
+#%% Run tracking and compute 2D speed for each video in the source folder
+tracks = 0
+
+for video_name in os.listdir(SOURCE_FOLDER_PATH):
+    if not video_name.lower().endswith((".mp4", ".avi", ".mov")):
+        continue  # Skip non-video files
+
+    SOURCE_VIDEO_PATH = os.path.join(SOURCE_FOLDER_PATH, video_name)
+    TARGET_VIDEO_PATH = os.path.join(OUTPUT_FOLDER, f"{os.path.splitext(video_name)[0]}_tracked.mp4")
+    print(f"Processing video: {video_name}")
+
+    try:
+        image_width_px, track_summaries = pw_utils.speed_in_video(
+            source_path=SOURCE_VIDEO_PATH,
+            target_path=TARGET_VIDEO_PATH,
+            callback=callback,
+            target_fps=10,
+            codec="mp4v"
+        )
+        for i, key in enumerate(track_summaries):
+            t1, x1, y1 = track_summaries[key]['points'][0]
+            t2, x2, y2 = track_summaries[key]['points'][1]
+            speed_px_s = track_summaries[key]['speed']
+            if animal_height_m:
+                # Convert speed from pixels per second to meters per second
+                speed = (speed_px_s * animal_height_m) / image_width_px
+            else:
+                speed = speed_px_s
+            # Append data to DataFrame
+            df.loc[tracks] = [video_name, image_width_px, t1, x1, y1, t2, x2, y2, speed]
+            tracks += 1
+    except Exception as e:
+        print(f"Error processing video {video_name}: {e}")
+        continue
 
 #%% Save CSV with the points x, y, speed
-df = pd.DataFrame(columns=["Image Width (px)", "t1 (s)", "x1 (px)", "y1 (px)", "t2 (s)", "x2 (px)", "y2 (px)", "speed (px/s)"])
-df.loc[0] = [image_width_px, t1, x1, y1,t2,x2,y2,speed_px_s]
-csv_path = os.path.join(OUTPUT_FOLDER, f"{VIDEO_NAME}_speed.csv")
+csv_path = os.path.join(OUTPUT_FOLDER,"speed.csv")
 df.to_csv(csv_path, index=False, float_format="%.3f")

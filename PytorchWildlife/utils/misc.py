@@ -17,10 +17,8 @@ from tqdm import tqdm
 
 __all__ = [
     "process_video",
-    "approach_speed_video",
-    "get_exif_info",
-    "REAL_OBJECT_HEIGHTS_M",
-    "speed_in_video"
+    "speed_in_video",
+    "REAL_ANIMAL_HEIGHT_M",
 ]
 
 
@@ -68,14 +66,14 @@ def speed_in_video(
     callback: Callable[[np.ndarray, int], Tuple[np.ndarray, sv.Detections, List[Tuple[str, float]]]],
     target_fps: int = 1,
     codec: str = "mp4v"
-) -> Tuple[int, float]:
+) -> Tuple[int, dict]:
     """
     Tracks animal in video and estimates 2D movement speed (px/s) using only first and last point of the longest track.
     Saves the full video but only overlays bounding boxes on first and last detection.
 
     Returns:
         width (int): Image width in pixels.
-        speed_px_s (float): Speed in pixels per second based on 2D tracking.
+        track_summaries (dict): Dictionary of track_id -> dict with speed and key points.
     """
     cap = cv2.VideoCapture(source_path)
     input_fps = cap.get(cv2.CAP_PROP_FPS)
@@ -109,13 +107,11 @@ def speed_in_video(
 
             if detections:
                 tracked = tracker.update_with_detections(detections)
-                i = 0
-                for xyxy, track_id in zip(tracked.xyxy, tracked.tracker_id):
+                for i, (xyxy, track_id) in enumerate(zip(tracked.xyxy, tracked.tracker_id)):
                     x1, y1, x2, y2 = xyxy
                     cx, cy = (x1 + x2) / 2, (y1 + y2) / 2
                     positions_by_id[track_id].append((timestamp, cx, cy))
                     frames_by_id[track_id].append((frame_rgb.copy(), xyxy, labels[i][0], frame_idx))
-                    i += 1
             all_frames.append(frame_rgb)
             processed_frame_idxs.append(frame_idx)
         frame_idx += 1
@@ -128,195 +124,107 @@ def speed_in_video(
     if not positions_by_id:
         raise ValueError("No tracks found.")
 
-    longest_id = max(positions_by_id.items(), key=lambda x: len(x[1]))[0]
-    track_points = positions_by_id[longest_id]
+    track_summaries = {}
 
-    if len(track_points) < 2:
-        raise ValueError("Track too short for speed calculation.")
+    # Compute speed + summary info for each track
+    for track_id, points in positions_by_id.items():
+        if len(points) < 2:
+            continue  # skip short tracks
 
-    # Speed calculation
-    (t1, x1, y1), (t2, x2, y2) = track_points[0], track_points[-1]
-    dt = t2 - t1
-    distance = np.sqrt((x2 - x1)**2 + (y2 - y1)**2)
-    speed = distance / dt if dt > 0 else 0
+        (t1, x1, y1), (t2, x2, y2) = points[0], points[-1]
+        dt = t2 - t1
+        distance = np.sqrt((x2 - x1)**2 + (y2 - y1)**2)
+        speed = distance / dt if dt > 0 else 0
 
-    # First and last frame info
-    (frame1, box1, label1, idx1), (frame2, box2, label2, idx2) = frames_by_id[longest_id][0], frames_by_id[longest_id][-1]
+        (frame1, box1, label1, idx1) = frames_by_id[track_id][0]
+        (frame2, box2, label2, idx2) = frames_by_id[track_id][-1]
 
-    # Prepare annotations
-    box_annotator = sv.BoxAnnotator(thickness=3, color_lookup=sv.ColorLookup.INDEX)
-    label_annotator = sv.LabelAnnotator(text_color=sv.Color.BLACK, text_thickness=2, text_scale=1, color_lookup=sv.ColorLookup.INDEX)
+        track_summaries[track_id] = {
+            'speed': speed,
+            'points': ((t1, x1, y1), (t2, x2, y2)),
+            'boxes': (box1, box2),
+            'idxs': (idx1, idx2)
+        }
 
-    idx1_in_all = processed_frame_idxs.index(idx1)
-    idx2_in_all = processed_frame_idxs.index(idx2)
+    # Assign colors
+    colors = {track_id: tuple(np.random.randint(0, 256, size=3).tolist())
+              for track_id in track_summaries}
 
+    # Define visual parameters based on video width
+    scale = width / 1920
+    box_thickness = max(int(3 * scale), 1)
+    point_radius = int(6 * scale)
+    line_thickness = int(3 * scale)
+    font_scale = 1.0 * scale
+    font_thickness = int(3 * scale)
+
+    # Write frames with annotations
     for idx, frame in enumerate(all_frames):
         annotated = frame.copy()
-        if idx >= idx1_in_all:
-            det = sv.Detections(xyxy=np.array([box1]))
-            annotated = label_annotator.annotate(box_annotator.annotate(annotated, det), det, labels=[label1])
-        if idx >= idx2_in_all:
-            det = sv.Detections(xyxy=np.array([box2]))
-            annotated = label_annotator.annotate(box_annotator.annotate(annotated, det), det, labels=[label2])
-        
-        # Dibuja la trayectoria acumulada hasta este frame
-        for i in range(1, len(track_points)):
-            (t_prev, x_prev, y_prev) = track_points[i - 1]
-            (t_curr, x_curr, y_curr) = track_points[i]
 
-            # Recupera frame_idx del punto actual en la trayectoria
-            frame_curr = frames_by_id[longest_id][i][3]  # índice de frame del punto actual
+        for i, (track_id, summary) in enumerate(track_summaries.items()):
+            box1, box2 = summary['boxes']
+            (_, c1_x, c1_y), (_, c2_x, c2_y) = summary['points']
+            idx1, idx2 = summary['idxs']
+            speed = summary['speed']
+            color = colors[track_id]
 
-            if frame_curr <= processed_frame_idxs[idx]:
-                cv2.line(
-                    annotated,
-                    (int(x_prev), int(y_prev)),
-                    (int(x_curr), int(y_curr)),
-                    (0, 255, 0),
-                    2
+            if idx >= processed_frame_idxs.index(idx1):
+                x1_box1, y1_box1, x2_box1, y2_box1 = [int(v) for v in box1]
+                cv2.rectangle(annotated, (x1_box1, y1_box1), (x2_box1, y2_box1), color, box_thickness)
+                cv2.circle(annotated, (int(c1_x), int(c1_y)), point_radius, color, -1)
+
+            if idx >= processed_frame_idxs.index(idx2):
+                x1_box2, y1_box2, x2_box2, y2_box2 = [int(v) for v in box2]
+                cv2.rectangle(annotated, (x1_box2, y1_box2), (x2_box2, y2_box2), color, box_thickness)
+                cv2.circle(annotated, (int(c2_x), int(c2_y)), point_radius, color, -1)
+                cv2.line(annotated, (int(c1_x), int(c1_y)), (int(c2_x), int(c2_y)), color, line_thickness)
+                cv2.putText(
+                    annotated, f"Speed: {speed:.2f} px/s",
+                    (10, int(30 * scale) + int(40 * scale) * int(i)),
+                    cv2.FONT_HERSHEY_SIMPLEX, font_scale, color, font_thickness, cv2.LINE_AA
                 )
 
-            # write the speed in a text box at track point idx2_in_all
-            cv2.putText(annotated, f"Speed: {speed:.2f} px/s", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
-        
         out.write(cv2.cvtColor(annotated, cv2.COLOR_RGB2BGR))
 
     out.release()
-    return width, t1, x1, y1, t2, x2, y2, speed
+    return width, track_summaries
 
-def approach_speed_video(
-    source_path: str,
-    target_path: str,
-    callback: Callable[[np.ndarray, int], Tuple[np.ndarray, bool]],
-    target_fps: int = 1,
-    codec: str = "mp4v"
-) -> Tuple[List[float], List[int], List[float]]:
-    """
-    Processes a video frame-by-frame using a callback, saving the result to a video,
-    and returns timestamps and frame indices where animals were detected.
-
-    Args:
-        source_path (str): Path to the source video.
-        target_path (str): Path to save the processed video.
-        callback (Callable): A function taking (frame, index) and returning (annotated_frame, detected_flag).
-        target_fps (int): Output FPS. Default is 1.
-        codec (str): FourCC codec string for output video. Default is 'mp4v'.
-
-    Returns:
-        Tuple[List[float], List[int]]: Timestamps and frame indices where animals were detected.
-    """
-    cap = cv2.VideoCapture(source_path)
-    input_fps = cap.get(cv2.CAP_PROP_FPS)
-    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-
-    stride = int(input_fps / target_fps) if input_fps > target_fps else 1
-    output_fps = input_fps / stride
-
-    fourcc = cv2.VideoWriter_fourcc(*codec)
-    out = cv2.VideoWriter(target_path, fourcc, output_fps, (width, height))
-
-    timestamps = []
-    bounding_heights = []
-    species = []
-
-    frame_idx = 0
-    pbar = tqdm(total=total_frames // stride)
-
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            break
-
-        if frame_idx % stride == 0:
-            timestamp = frame_idx / input_fps
-
-            annotated_frame, detected, height, specie = callback(frame, frame_idx)
-
-            if detected:
-                timestamps.append(timestamp)
-                bounding_heights.append(height)
-                species.append(specie)
-
-            out.write(cv2.cvtColor(annotated_frame, cv2.COLOR_RGB2BGR))
-            pbar.update(1)
-
-        frame_idx += 1
-    
-    cap.release()
-    out.release()
-    pbar.close()
-
-    all_labels = [label for dets in species for (label, _) in dets]
-    label_counts = Counter(all_labels)
-    most_voted_class = label_counts.most_common(1)[0]  # (label, count)
-
-    # Find highest confidence
-    max_conf = -1
-    best_detection = None
-    for dets in species:
-        for label, conf in dets:
-            if conf > max_conf:
-                max_conf = conf
-                best_detection = (label, conf)
-
-    print(f"✅ Most voted class: {most_voted_class[0]} ({most_voted_class[1]} votes)")
-    print(f"⭐ Highest confidence detection: {best_detection[0]} ({best_detection[1]:.2f})")
-    
-    return width, timestamps, bounding_heights, most_voted_class[0], best_detection[0]
-
-def get_exif_info(img_path):
-    img = Image.open(img_path)
-    exif_data = img._getexif()
-
-    if exif_data is None:
-        print("No EXIF data found.")
-        return None
-
-    exif = {}
-    for tag, value in exif_data.items():
-        tag_name = TAGS.get(tag, tag)
-        exif[tag_name] = value
-
-    return exif
-
-REAL_OBJECT_HEIGHTS_M = {
-    'Dasyprocta': 0.3,      # agouti
-    'Bos': 1.4,             # cattle
-    'Pecari': 0.5,          # peccary
-    'Mazama': 0.6,          # brocket deer
-    'Cuniculus': 0.3,       # paca
-    'Leptotila': 0.2,       # dove
-    'Human': 1.6,           # adult human (shoulder-ish)
-    'Aramides': 0.3,        # wood-rail
-    'Tinamus': 0.3,         # tinamou
-    'Eira': 0.3,            # tayra
-    'Crax': 0.5,            # curassow
-    'Procyon': 0.4,         # raccoon
-    'Capra': 0.8,           # goat
-    'Dasypus': 0.25,        # armadillo
-    'Sciurus': 0.2,         # squirrel
-    'Crypturellus': 0.3,    # small tinamou
-    'Tamandua': 0.4,        # lesser anteater
-    'Proechimys': 0.2,      # spiny rat
-    'Leopardus': 0.4,       # ocelot/margay
-    'Equus': 1.5,           # horse
-    'Columbina': 0.15,      # ground dove
-    'Nyctidromus': 0.15,    # nightjar
-    'Ortalis': 0.4,         # chachalaca
-    'Emballonura': 0.1,     # bat
-    'Odontophorus': 0.3,    # quail
-    'Geotrygon': 0.2,       # quail-dove
-    'Metachirus': 0.25,     # opossum
-    'Catharus': 0.1,        # small thrush
-    'Cerdocyon': 0.4,       # crab-eating fox
-    'Momotus': 0.25,        # motmot
-    'Tapirus': 1.0,         # tapir (shoulder)
-    'Canis': 0.7,           # dog
-    'Furnarius': 0.15,      # ovenbird
-    'Didelphis': 0.3,       # opossum
-    'Sylvilagus': 0.25,     # cottontail
-    'Opossum': 0.3,         # Opossum   
-    'Unknown': 0.25         # default fallback value
+REAL_ANIMAL_HEIGHT_M = {
+    'Dasyprocta': 0.3,      
+    'Bos': 1.4,             
+    'Pecari': 0.5,          
+    'Mazama': 0.6,          
+    'Cuniculus': 0.3,       
+    'Leptotila': 0.2,       
+    'Human': 1.6,          
+    'Aramides': 0.3,        
+    'Tinamus': 0.3,         
+    'Eira': 0.3,           
+    'Crax': 0.5,           
+    'Procyon': 0.4,         
+    'Capra': 0.8,           
+    'Dasypus': 0.25,        
+    'Sciurus': 0.2,        
+    'Crypturellus': 0.3,    
+    'Tamandua': 0.4,        
+    'Proechimys': 0.2,     
+    'Leopardus': 0.4,       
+    'Equus': 1.5,           
+    'Columbina': 0.15,      
+    'Nyctidromus': 0.15,    
+    'Ortalis': 0.4,        
+    'Emballonura': 0.1,     
+    'Odontophorus': 0.3,    
+    'Geotrygon': 0.2,      
+    'Metachirus': 0.25,     
+    'Catharus': 0.1,        
+    'Cerdocyon': 0.4,      
+    'Momotus': 0.25,        
+    'Tapirus': 1.0,        
+    'Canis': 0.7,          
+    'Furnarius': 0.15,      
+    'Didelphis': 0.3,       
+    'Sylvilagus': 0.25,     
+    'Unknown': 0.25         
 }
