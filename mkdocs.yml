@@ -1,0 +1,184 @@
+site_name: Pytorch Wildlife
+site_url: https://microsoft.github.io/CameraTraps/ 
+site_description: Collaborative Deep Learning Framework for Conservation. 
+docs_dir: docs
+site_dir: site
+repo_url: https://github.com/microsoft/CameraTraps 
+repo_name: microsoft/CameraTraps
+copyright: Copyright (c) 2023 Microsoft Corporation
+
+theme:
+  name: material
+  favicon: https://zenodo.org/records/15376499/files/cat.png
+  logo: https://zenodo.org/records/15376499/files/cat.png
+  icon:
+    menu: material/menu
+    alternate: material/translate
+    search: material/magnify
+    share: material/share-variant
+    close: material/close
+    top: material/arrow-up
+    edit: material/pencil
+    view: material/eye
+    repo: fontawesome/brands/git-alt
+    admonition:
+      note: material/note
+      abstract: material/lightbulb
+      info: material/information
+      tip: material/lightbulb-on
+      success: material/check-circle
+      question: material/help-circle
+      warning: material/alert
+      failure: material/alert-circle
+      danger: material/alert-octagon
+      bug: material/bug
+      example: material/format-list-bulleted
+      quote: material/format-quote-open
+    tag:
+      default: material/tag
+      info: material/information
+      warning: material/alert
+      danger: material/alert-octagon
+    previous: material/arrow-left
+    next: material/arrow-right
+  palette:
+    - media: "(prefers-color-scheme: light)" 
+      scheme: default
+      primary: green
+      accent: deep orange
+      toggle:
+        icon: material/paw-off
+        name: Switch to dark mode
+        
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: teal
+      accent: deep orange
+      toggle:
+        icon: material/paw
+        name: Switch to light mode
+  features:
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.sections
+    - navigation.path
+    - toc.follow
+    # - toc.integrate
+    - navigation.top
+    - search.suggest
+    - search.share
+    - navigation.footer
+
+nav:
+  - Pytorch Wildlife: 
+    - Overview: index.md
+    - Core Features: core_features.md
+    - MegaDetector: megadetector.md
+    - Installation: installation.md
+    - Existing Collaborators: collaborators.md
+    - Contributors: contributors.md
+    - Cite Us: cite.md
+  - What's New?:
+    - Latest Release: releases/release_notes.md
+    - Past Releases: releases/past_releases.md
+  - Model Zoo: 
+    - MegaDetector: model_zoo/megadetector.md
+    - Other Detectors: model_zoo/other_detectors.md
+    - Classifiers: model_zoo/classifiers.md
+  - Demo and UI:
+    - Demo Data: demo_and_ui/demo_data.md
+    - Noteboodk: demo_and_ui/notebook.md
+    - Gradio App: demo_and_ui/gradio.md
+    - AddaxAI (formerly known as EcoAssist): demo_and_ui/ecoassist.md
+    - TimeLapse: demo_and_ui/timelapse.md
+  - Contribute:
+    - Contribute Guidelines: contribute.md
+    - License: license.md
+  - Reference - Code API:
+      - Base Module:
+        - Overview: base/overview.md
+        - Data:
+          - Datasets: base/data/datasets.md
+          - Transforms: base/data/transforms.md
+        - Models:
+          - Classification:
+              - Base Classifier:
+                  - base/models/classification/base_classifier.md
+              - ResNet Base:
+                  - base/models/classification/resnet_base/base_classifier.md
+                  - base/models/classification/resnet_base/amazon.md
+                  - base/models/classification/resnet_base/custom_weights.md
+                  - base/models/classification/resnet_base/opossum.md
+                  - base/models/classification/resnet_base/serengeti.md
+              - TIMM Base:
+                  - base/models/classification/timm_base/base_classifier.md
+                  - base/models/classification/timm_base/DFNE.md
+                  - base/models/classification/timm_base/Deepfaune.md
+          - Detection:
+              - Base Detector:
+                  - base/models/detection/base_detector.md
+              - HerdNet:
+                  - base/models/detection/herdnet.md
+                  - base/models/detection/herdnet/dla.md
+                  - base/models/detection/herdnet/model.md
+                  - Animaloc:
+                      - Data:
+                          - base/models/detection/herdnet/animaloc/data/patches.md
+                          - base/models/detection/herdnet/animaloc/data/types.md
+                      - Eval:
+                          - base/models/detection/herdnet/animaloc/eval/lmds.md
+                          - base/models/detection/herdnet/animaloc/eval/stitchers.md
+              - Ultralytics Based:
+                  - base/models/detection/ultralytics_based/Deepfaune.md
+                  - MegaDetector v5:
+                      - base/models/detection/ultralytics_based/megadetectorv5.md
+                  - MegaDetector v6:
+                      - base/models/detection/ultralytics_based/megadetectorv6.md
+                      - base/models/detection/ultralytics_based/megadetectorv6_distributed.md
+                  - YOLOv5 Base:
+                      - base/models/detection/ultralytics_based/yolov5_base.md
+                  - YOLOv8 Base:
+                      - base/models/detection/ultralytics_based/yolov8_base.md
+                  - YOLOv8 Distributed:
+                      - base/models/detection/ultralytics_based/yolov8_distributed.md
+        - Utils:
+            - base/utils/misc.md
+            - base/utils/post_process.md
+
+      - Model Fine-tuning: 
+        - Overview: fine_tuning_modules/overview.md
+        - Classification Fine-tuning:
+            - Overview: fine_tuning_modules/classification/overview.md
+        - Detection Fine-tuning:
+            - Overview: fine_tuning_modules/detection/overview.md
+    
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - md_in_html
+  - attr_list
+  - sane_lists
+  - pymdownx.tabbed:
+      alternate_style: true
+  - toc:
+      permalink: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.snippets:
+      check_paths: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: google
+

@@ -8,6 +8,7 @@ import os
 
 # PyTorch imports 
 import torch
+from torch.utils.data import DataLoader
 
 # Importing the model, dataset, transformations and utility functions from PytorchWildlife
 from PytorchWildlife.models import detection as pw_detection
@@ -20,7 +21,6 @@ from PIL import Image
 import supervision as sv
 import gradio as gr
 from zipfile import ZipFile
-from torch.utils.data import DataLoader
 import numpy as np
 import ast
 
@@ -104,7 +104,7 @@ def single_image_detection(input_img, det_conf_thres, clf_conf_thres, img_index=
     
     if classification_model is not None:
         labels = []
-        for xyxy, det_id in zip(results_det["detections"].xyxy, results_det["detections"].class_id):
+        for i, (xyxy, det_id) in enumerate(zip(results_det["detections"].xyxy, results_det["detections"].class_id)):
             # Only run classifier when detection class is animal
             if det_id == 0:
                 cropped_image = sv.crop_image(image=input_img, xyxy=xyxy)
@@ -112,9 +112,10 @@ def single_image_detection(input_img, det_conf_thres, clf_conf_thres, img_index=
                 labels.append("{} {:.2f}".format(results_clf["prediction"] if results_clf["confidence"] > clf_conf_thres else "Unknown",
                                                  results_clf["confidence"]))
             else:
-                labels = results_det["labels"]
+                labels.append(results_det["labels"][i])
     else:
         labels = results_det["labels"]
+
     annotated_img = lab_annotator.annotate(
         scene=annotator.annotate(
             scene=input_img,

@@ -1,5 +1,5 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
-# Licensed under the MIT License.
+# Licensed under the AGPL License.
 
 """ YoloV5 base detector class. """
 
@@ -15,7 +15,6 @@ from torch.utils.data import DataLoader
 from torch.hub import load_state_dict_from_url
 
 from yolov5.utils.general import non_max_suppression, scale_boxes
-
 from ..base_detector import BaseDetector
 from ....data import transforms as pw_trans
 from ....data import datasets as pw_data
@@ -70,7 +69,7 @@ class YOLOV5Base(BaseDetector):
             self.transform = pw_trans.MegaDetector_v5_Transform(target_size=self.IMAGE_SIZE,
                                                                 stride=self.STRIDE)
 
-    def results_generation(self, preds, img_id, id_strip=None):
+    def results_generation(self, preds, img_id, id_strip=None) -> dict:
         """
         Generate results for detection based on model predictions.
         
@@ -97,7 +96,7 @@ class YOLOV5Base(BaseDetector):
         ]
         return results
 
-    def single_image_detection(self, img, img_path=None, det_conf_thres=0.2, id_strip=None):
+    def single_image_detection(self, img, img_path=None, det_conf_thres=0.2, id_strip=None) -> dict:
         """
         Perform detection on a single image.
         
@@ -124,28 +123,28 @@ class YOLOV5Base(BaseDetector):
         if img_size is None:
             img_size = img.permute((1, 2, 0)).shape # We need hwc instead of chw for coord scaling
         preds = self.model(img.unsqueeze(0).to(self.device))[0]
-        preds = torch.cat(non_max_suppression(prediction=preds, conf_thres=det_conf_thres), axis=0)
-        preds[:, :4] = scale_coords([self.IMAGE_SIZE] * 2, preds[:, :4], img_size).round()
-        return self.results_generation(preds.cpu().numpy(), img_path, id_strip)
+        preds = torch.cat(non_max_suppression(prediction=preds, conf_thres=det_conf_thres), axis=0).cpu().numpy()
+        # preds[:, :4] = scale_coords([self.IMAGE_SIZE] * 2, preds[:, :4], img_size).round()
+        preds[:, :4] = scale_boxes([self.IMAGE_SIZE] * 2, preds[:, :4], img_size).round()
+        res = self.results_generation(preds, img_path, id_strip)
 
-    def batch_image_detection(self, data_path, batch_size=16, det_conf_thres=0.2, id_strip=None):
+        normalized_coords = [[x1 / img_size[1], y1 / img_size[0], x2 / img_size[1], y2 / img_size[0]] for x1, y1, x2, y2 in preds[:, :4]]
+        res["normalized_coords"] = normalized_coords
+
+        return res
+
+    def batch_image_detection(self, data_path, batch_size: int = 16, det_conf_thres: float = 0.2, id_strip: str = None) -> list[dict]:
         """
         Perform detection on a batch of images.
-        
+
         Args:
-            data_path (str): 
-                Path containing all images for inference.
-            batch_size (int, optional):
-                Batch size for inference. Defaults to 16.
-            det_conf_thres (float, optional): 
-                Confidence threshold for predictions. Defaults to 0.2.
-            id_strip (str, optional): 
-                Characters to strip from img_id. Defaults to None.
-            extension (str, optional):
-                Image extension to search for. Defaults to "JPG"
+            data_path (str): Path containing all images for inference.
+            batch_size (int, optional): Batch size for inference. Defaults to 16.
+            det_conf_thres (float, optional): Confidence threshold for predictions. Defaults to 0.2.
+            id_strip (str, optional): Characters to strip from img_id. Defaults to None.
 
         Returns:
-            list: List of detection results for all images.
+            list[dict]: List of detection results for all images.
         """
 
         dataset = pw_data.DetectionImageFolder(
@@ -172,7 +171,8 @@ class YOLOV5Base(BaseDetector):
                     size = sizes[i].numpy()
                     path = paths[i]
                     original_coords = pred[:, :4].copy()
-                    pred[:, :4] = scale_coords([self.IMAGE_SIZE] * 2, pred[:, :4], size).round()
+                    # pred[:, :4] = scale_coords([self.IMAGE_SIZE] * 2, pred[:, :4], size).round()
+                    pred[:, :4] = scale_boxes([self.IMAGE_SIZE] * 2, pred[:, :4], size).round()
                     # Normalize the coordinates for timelapse compatibility
                     normalized_coords = [[x1 / size[1], y1 / size[0], x2 / size[1], y2 / size[0]] for x1, y1, x2, y2 in pred[:, :4]]
                     res = self.results_generation(pred, path, id_strip)

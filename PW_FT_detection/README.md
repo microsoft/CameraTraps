@@ -63,6 +63,9 @@ The `.data/data_example.yaml` file shows an example of the structure.
 
 The .txt files inside each folder of `./data/labels/` must be structured containing each object on a separate line, following the format: class x_center y_center width height. The coordinates for the bounding box should be normalized in the xywh format, with values ranging from 0 to 1.
 
+### Demo data
+You can download some example [demo data](https://zenodo.org/records/15376499/files/demo_data_det.zip?download=1) to test the codebase. Before using the data, make sure to decompress the zip file following the [data directory structure](#data-structure), and check if the `data` and `test_data` entries in the [config file](./config.yaml) are pointing to the data directory. The testing demo data also has ***an annotation example*** shows how the prefered annotation format looks like.
+
 ## Detection models available for Finetuning
 
 Below you find the models that you can use for fine-tuning, along with their respective names to use in the configuration file.
@@ -81,7 +84,7 @@ Before training your model, you need to configure the training and data paramete
 
 - **General Parameters:**  
   - `model`: The type of model used (YOLO or RTDETR). Default: YOLO  
-  - `model_name`: The name of the model [see availbale names here](#detection-models-available-for-finetuning). Default: MDV6-yolov9-e.pt  
+  - `model_name`: The name of the model [see available names here](#detection-models-available-for-finetuning). Default: MDV6-yolov9-e.pt  
   - `data`: Path to the dataset configuration file. Default: ./data/data_example.yaml  
   - `test_data`: Path to the test data directory. Default: ./data/data_example/images/test  
   - `task`: The task to perform (train, validation or inference). Default: train  
@@ -121,7 +124,7 @@ This command will initiate the training process based on the parameters specifie
 
 ## Output
 
-Once training is complete, the output weights will be saved in the `./runs/detect` directory acoording to the experiment name you configured in the `config.yaml`. These weights can be used to classify new images using [Pytorch-Wildlife](https://github.com/microsoft/CameraTraps/).
+Once training is complete, the output weights will be saved in the `./runs/detect` directory according to the experiment name you configured in the `config.yaml`. These weights can be used to classify new images using [Pytorch-Wildlife](https://github.com/microsoft/CameraTraps/).
 
 We are working on adding a feature in a future release to directly integrate the output weights with the Pytorch-Wildlife framework and the Gradio App.
 

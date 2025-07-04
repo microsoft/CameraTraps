@@ -1,4 +1,4 @@
-![image](https://microsoft.github.io/CameraTraps/assets/Pytorch_Banner_transparentbk.png)
+![image](https://zenodo.org/records/15376499/files/Pytorch_Banner_transparentbk.png)
 
 <div align="center"> 
 <font size="6"> A Collaborative Deep Learning Framework for Conservation </font>
@@ -10,149 +10,52 @@
 <a href="https://huggingface.co/spaces/ai-for-good-lab/pytorch-wildlife"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Demo-blue" /></a>
 <a href="https://colab.research.google.com/drive/1rjqHrTMzEHkMualr4vB55dQWCsCKMNXi?usp=sharing"><img src="https://img.shields.io/badge/Colab-Demo-blue?logo=GoogleColab" /></a>
 <!-- <a href="https://colab.research.google.com/drive/16-OjFVQ6nopuP-gfqofYBBY00oIgbcr1?usp=sharing"><img src="https://img.shields.io/badge/Colab-Video detection-blue?logo=GoogleColab" /></a> -->
-<a href="https://cameratraps.readthedocs.io/en/latest/"><img src="https://img.shields.io/badge/read-docs-yellow?logo=ReadtheDocs" /></a>
 <a href="https://github.com/microsoft/CameraTraps/blob/main/LICENSE"><img src="https://img.shields.io/pypi/l/PytorchWildlife" /></a>
 <a href="https://discord.gg/TeEVxzaYtm"><img src="https://img.shields.io/badge/any_text-Join_us!-blue?logo=discord&label=Discord" /></a>
+<a href="https://microsoft.github.io/CameraTraps/"><img src="https://img.shields.io/badge/Docs-526CFE?logo=MaterialForMkDocs&logoColor=white" /></a>
 <br><br>
 </div>
 
-## 🐾 Introduction
-
-At the core of our mission is the desire to create a harmonious space where conservation scientists from all over the globe can unite. Where they're able to share, grow, use datasets and deep learning architectures for wildlife conservation.
-We've been inspired by the potential and capabilities of Megadetector, and we deeply value its contributions to the community. As we forge ahead with Pytorch-Wildlife, under which Megadetector now resides, please know that we remain committed to supporting, maintaining, and developing Megadetector, ensuring its continued relevance, expansion, and utility.
-
-Pytorch-Wildlife is pip installable:
-```
-pip install PytorchWildlife
-```
-
-To use the newest version of MegaDetector with all the existing functionalities, you can use our [Hugging Face interface](https://huggingface.co/spaces/ai-for-good-lab/pytorch-wildlife) or simply load the model with **Pytorch-Wildlife**. The weights will be automatically downloaded:
-```python
-from PytorchWildlife.models import detection as pw_detection
-detection_model = pw_detection.MegaDetectorV6()
-```
-
-For those interested in accessing the previous MegaDetector repository, which utilizes the same `MegaDetectorV5` model weights and was primarily developed by Dan Morris during his time at Microsoft, please visit the [archive](https://github.com/microsoft/CameraTraps/blob/main/archive) directory, or you can visit this [forked repository](https://github.com/agentmorris/MegaDetector/tree/main) that Dan Morris is actively maintaining.
-
->[!TIP]
->If you have any questions regarding MegaDetector and Pytorch-Wildlife, please [email us](zhongqimiao@microsoft.com) or join us in our discord channel: [![](https://img.shields.io/badge/any_text-Join_us!-blue?logo=discord&label=PytorchWildife)](https://discord.gg/TeEVxzaYtm)
 
 
 ## 📣 Announcements
 
-### SpeciesNet is available in Pytorch-Wildlife for testing! 
-- Please refer to [this document](https://github.com/microsoft/CameraTraps/blob/SppNet_TF/PytorchWildlife/models/classification/speciesnet_base/sppnet_readme.md) for more details!
+### 🚀 We’re Open for Contributions!
 
-### Pytorch-Wildlife Version 1.2.0
-- In this version of Pytorch-Wildlife, we are happy to release our [detection fine-tuning module](PW_FT_detection), with which users can fine-tune their own detection model from any released pre-trained MegaDetectorV6 models. Besides, this module also has functionalities that help users to prepare their datasets for the fine-tuning, just as our classification fine-tuning modules. For more details, please check the [readme](PW_FT_detection/README.md). Currently the fine-tuning is based on [Ultralytics](https://www.ultralytics.com/) with AGPL. We will release MIT versions in the future. Here is the [release page](https://github.com/microsoft/CameraTraps/releases).
-- We have also released additional MegaDetectorV6 models based on Yolo-v10 and RtDetr. We have skipped Yolo-v11 models because of limited performance and architectural gains. Most of the MIT and Apache versions have also finished training but are waiting for internal review before they can be released.
-- We have also updated our AI4G-Amazon model with bigger datasets and it has a better performance compared to previous iterations. Please feel free to test it or fine-tune on it. 
-- We will also make a new roadmap for 2025 in the next couple of updates.
-- Special thanks to [José Díaz](https://github.com/jdiaz97) for his great cross-platform app, [BoquilaHUB](https://github.com/boquila/boquilahub), that is even working on ios and android! Please check his repo out! In the future, we will create a project gallery showcasing projects that use or are build upon Pytorch-Wildlife. If you want your projects to be included, please feel free to reach out to us on [![](https://img.shields.io/badge/any_text-Join_us!-blue?logo=discord&label=PytorchWildife)](https://discord.gg/TeEVxzaYtm)
+We’re excited to announce that **Pytorch-Wildlife** is now open to community contributions!  
+If you’d like to get involved and help improve the project, we’d love to have you on board.
 
-<img src="https://github.com/boquila/boquilahub/blob/main/readme.jpg?raw=true" alt="animal_det_1" width="300"/><br>
+👉 **Check out our Contribution Guidelines:**  
 
+[📚 How to Participate](https://microsoft.github.io/CameraTraps/contribute/#how-to-participate)
 
-### :racing_car::dash::dash: MegaDetectorV6: SMALLER, FASTER, BETTER!  
-We have officially released our 6th version of MegaDetector, MegaDetectorV6! In the next generation of MegaDetector, we are focusing on computational efficiency, performance, modernizing of model architectures, and licensing. We have trained multiple new models using different model architectures, including Yolo-v9, Yolo-v10, and RT-Detr for maximum user flexibility. We have a [rolling release schedule](#mag-model-zoo-and-release-schedules) for different versions of MegaDetectorV6.
+You’ll find everything you need there — from how to pick an issue, to submitting your first pull request.  
+Let’s build this together! 🐾🌱
 
->[!NOTE]
-> - Following our initial release, we’ve been delighted to see so many people explore our new models. We’d like to extend our heartfelt thanks to everyone who has shown interest in our latest models—your support means a great deal to us!
-> - That said, we’ve received a number of feedback comments highlighting a discrepancy between the reported performance (particularly MDV5) and the actual performance observed. We are actively investigating this issue and have identified a potential error or corruption in the validation data we used. For the time being, we’ll remove our current performance numbers from the model zoo for now to avoid confusion.
-> - We sincerely apologize for any confusion or inconvenience this may have caused. Our team is working diligently to address this matter, and we will update our experiments—and potentially retrain the model if data corruption is confirmed—as soon as possible. Thank you for your patience and understanding!
+### V 1.2.3
 
+- We have fully recreated our [documentation page](https://microsoft.github.io/CameraTraps/) with [MKDocs](https://squidfunk.github.io/mkdocs-material/). Please take a look and let us know what you think! (Special thanks to @ss26 for creating the foundation of this documentation page!)  
 
+- We have released new MegaDetector V6 model weights. MDV6-yolov9-e and MDV6-yolov10-e are now retrained at 1280 input resolution to match the original V5 setup. In addition, we have added both compact and extra versions for [YOLOv9 MIT](https://github.com/MultimediaTechLab/YOLO?tab=readme-ov-file) and [RT-DETR Apache](https://github.com/lyuwenyu/RT-DETR/tree/main) implementations, expanding the range of V6 options for different deployment needs.
 
-MegaDetectorV6 models are based on architectures optimized for performance and low-budget devices. For example, the MegaDetectorV6-Ultralytics-YoloV10-Compact (MDV6-yolov10-c) model only have ***2% of the parameters*** of the previous MegaDetectorV5 and still exhibits comparable animal recall on our validation datasets. 
+- Our [Model Zoo](https://microsoft.github.io/CameraTraps/model_zoo/megadetector/) now includes new performance numbers evaluated using [pycocotools](https://pypi.org/project/pycocotools/), enabling easier and more standardized comparisons with MIT and Apache models. All metrics are reported on 1280-sized input images to ensure consistency across versions. While V5 and V6 now deliver comparable performance, V6 models are still significantly smaller. Model weights for all versions, including MIT and Apache variants, are available for download, and we’ll be releasing the inference code for MIT and Apache models soon.
 
-<!-- In the following figure, we can see the Performance to Parameter metric of each released MegaDetector model. All of the V6 models, extra large or compact, have at least 50% less parameters compared to MegaDetectorV5 but with much higher animal detection performance. -->
-
-<!-- ![image](assets/ParamPerf.png) -->
-
-<!-- >[!TIP] -->
-<!-- >From now on, we encourage our users to use MegaDetectorV6 as their default animal detection model and choose whichever model that fits the project needs. To reduce potential confusion, we have also standardized the model names into MDV6-Compact and MDV6-Extra for two model sizes using the same architecture. Learn how to use MegaDetectorV6 in our [image demo](demo/image_detection_demo_v6.ipynb) and [video demo](demo/video_detection_demo_v6.ipynb). -->
+- To further improve V6 model generalization performance, our next iteration of V6 training will incorporate some new public camera trap datasets from LILA, including [Orinoquía Camera Traps](https://lila.science/datasets/orinoquia-camera-traps/) and other datasets that have bounding boxes and are currently not in V6's training pool.
 
 
-### :bangbang: Model licensing 
+#### Previous versions:
+- [What's New](https://microsoft.github.io/CameraTraps/releases/release_notes/)
 
-The **Pytorch-Wildlife** package is under MIT, however some of the models in the model zoo are not. For example, MegaDetectorV5, which is trained using the Ultralytics package, a package under AGPL-3.0, and is not for closed-source commercial uses if they are using updated 'ultralytics' packages. 
-
-There may be a confusion because YOLOv5 was initially released before the establishment of the AGPL-3.0 license. According to the official [Ultralytics-Yolov5](https://github.com/ultralytics/yolov5) package, it is under AGPL-3.0 now, and the maintainers have discussed how their licensing policy has evolved over time in their issues section. 
-
-<!-- We aim to prevent any confusion or potential issues for our users. -->
-
-<!-- > [!IMPORTANT]
-> THIS IS TRUE TO ALL EXISTING MEGADETECTORV5 MODELS IN ALL EXISTING FORKS THAT ARE TRAINED USING YOLOV5, AN ULTRALYTICS-DEVELOPED MODEL. -->
-
-We want to make Pytorch-Wildlife a platform where different models with different licenses can be hosted and want to enable different use cases. To reduce user confusions, in our [model zoo](#mag-model-zoo-and-release-schedules) section, we list all existing and planed future models in our model zoo, their corresponding license, and release schedules. 
-
-In addition, since the **Pytorch-Wildlife** package is under MIT, all the utility functions, including data pre-/post-processing functions and model fine-tuning functions in this packages are under MIT as well.
-
-### :mag: Model Zoo and Release Schedules
-
-#### MegaDetectors 
-|Models|Version Names|Licence|Release|Parameters (M)|
-|---|---|---|---|---|
-|MegaDetectorV5|-|AGPL-3.0|Released|121|
-|MegaDetectorV6-Ultralytics-YoloV9-Compact|MDV6-yolov9-c|AGPL-3.0|Released|25.5|
-|MegaDetectorV6-Ultralytics-YoloV9-Extra|MDV6-yolov9-e|AGPL-3.0|Released|58.1|
-|MegaDetectorV6-Ultralytics-YoloV10-Compact (even smaller and no NMS)|MDV6-yolov10-c|AGPL-3.0|Released|2.3|
-|MegaDetectorV6-Ultralytics-YoloV10-Extra (extra large model and no NMS)|MDV6-yolov10-c|AGPL-3.0|Released|29.5|
-|MegaDetectorV6-Ultralytics-RtDetr-Compact|MDV6-redetr-c|AGPL-3.0|Released|31.9|
-|MegaDetectorV6-Ultralytics-YoloV11-Compact|-|AGPL-3.0|Will Not Release|2.6|
-|MegaDetectorV6-Ultralytics-YoloV11-Extra|-|AGPL-3.0|Will Not Release|56.9|
-|MegaDetectorV6-MIT-YoloV9-Compact|MDV6-mit-yolov9-c|MIT|Training|9.7|
-|MegaDetectorV6-MIT-YoloV9-Extra|MDV6-mit-yolov9-c|MIT|Training|51|
-|MegaDetectorV6-Apache-RTDetr-Compact|MDV6-apa-redetr-c|Apache|Training|20|
-|MegaDetectorV6-Apache-RTDetr-Extra|MDV6-apa-redetr-c|Apache|Training|76|
-
-<!-- |Models|Version Names|Licence|Release|Parameters (M)|mAP<sup>val<br>50-95|Animal Recall|
-|---|---|---|---|---|---|---|
-|MegaDetectorV5|-|AGPL-3.0|Released|121|74.7|74.9|
-|MegaDetectorV6-Ultralytics-YoloV9-Compact|MDV6-yolov9-c|AGPL-3.0|Released|25.5|73.8|82.6|
-|MegaDetectorV6-Ultralytics-YoloV9-Extra|MDV6-yolov9-e|AGPL-3.0|Released|58.1|80.2|87.1|
-|MegaDetectorV6-Ultralytics-YoloV10-Compact (even smaller and no NMS)|MDV6-yolov10-c|AGPL-3.0|Released|2.3|71.8|78.8|
-|MegaDetectorV6-Ultralytics-YoloV10-Extra (extra large model and no NMS)|MDV6-yolov10-c|AGPL-3.0|Released|29.5|79.9|85.2|
-|MegaDetectorV6-Ultralytics-RtDetr-Compact|MDV6-redetr-c|AGPL-3.0|Released|31.9|73.9|83.4|
-|MegaDetectorV6-Ultralytics-YoloV11-Compact|-|AGPL-3.0|Will Not Release|2.6|71.9|79.8|
-|MegaDetectorV6-Ultralytics-YoloV11-Extra|-|AGPL-3.0|Will Not Release|56.9|79.3|86.0|
-|MegaDetectorV6-MIT-YoloV9-Compact|MDV6-mit-yolov9-c|MIT|MDV6-mit-yolov9-c|February 2025|9.7|73.84|-|
-|MegaDetectorV6-MIT-YoloV9-Extra|MDV6-mit-yolov9-c|MIT|February 2025|51|Training|Training|
-|MegaDetectorV6-Apache-RTDetr-Compact|MDV6-apa-redetr-c|Apache|February 2025|20|76.3|-|
-|MegaDetectorV6-Apache-RTDetr-Extra|MDV6-apa-redetr-c|Apache|February 2025|76|80.8|-| -->
-
-> [!TIP]
-> We are specifically reporting `Animal Recall` as our primary performance metric, even though it is not commonly used in traditional object detection studies, which typically focus on balancing overall model performance. For MegaDetector, our goal is to optimize for animal recall—in other words, minimizing false negative detections of animals or, more simply, ensuring our model misses as few animals as possible. While this may result in a higher false positive rate, we rely on downstream classification models to further filter the detected objects. We believe this approach is more practical for real-world animal monitoring scenarios.
-
- 
-
-#### Other detection models 
-|Models|Version Names|Licence|Release|Reference|
-|---|---|---|---|---|
-|HerdNet-general|general|CC BY-NC-SA-4.0|Released|[Alexandre et. al. 2023](https://github.com/Alexandre-Delplanque/HerdNet)|
-|HerdNet-ennedi|ennedi|CC BY-NC-SA-4.0|Released|[Alexandre et. al. 2023](https://github.com/Alexandre-Delplanque/HerdNet)|
-|MegaDetector-Overhead|-|MIT|Mid 2025|-|
-|MegaDetector-Bioacoustics|-|MIT|Late 2025|-|
-
-#### Classification models
-|Models|Version Names|Licence|Release|
-|---|---|---|---|
-|AI4G-Oppossum|-|MIT|Released|
-|AI4G-Amazon-V1|v1|MIT|Released|
-|AI4G-Amazon-V2|v2|MIT|Released|
-|AI4G-Serengeti|-|MIT|Released|
-
->[!TIP]
->Some models, such as MegaDetectorV6, HerdNet, and AI4G-Amazon, have different versions, and they are loaded by their corresponding version names. Here is an example: `detection_model = pw_detection.MegaDetectorV6(version="MDV6-yolov10-e")`.
 
 ## 👋 Welcome to Pytorch-Wildlife
 
-**PyTorch-Wildlife** is a platform to create, modify, and share powerful AI conservation models. These models can be used for a variety of applications, including camera trap images, overhead images, underwater images, or bioacoustics. Your engagement with our work is greatly appreciated, and we eagerly await any feedback you may have.
+**PyTorch-Wildlife** is an AI platform designed for the AI for Conservation community to create, modify, and share powerful AI conservation models. It allows users to directly load a variety of models including [MegaDetector](https://microsoft.github.io/CameraTraps/megadetector/), [DeepFaune](https://microsoft.github.io/CameraTraps/megadetector/), and [HerdNet](https://github.com/Alexandre-Delplanque/HerdNet) from our ever expanding [model zoo](https://microsoft.github.io/CameraTraps/model_zoo/megadetector/) for both animal detection and classification. In the future, we will also include models that can be used for applications, including underwater images and bioacoustics. We want to provide a unified and straightforward experience for both practicioners and developers in the AI for conservation field. Your engagement with our work is greatly appreciated, and we eagerly await any feedback you may have.
 
+Explore the codebase, functionalities and user interfaces of **Pytorch-Wildlife** through our [documentation](https://microsoft.github.io/CameraTraps/), interactive [HuggingFace web app](https://huggingface.co/spaces/AndresHdzC/pytorch-wildlife) or local [demos and notebooks](./demo). 
 
-The **Pytorch-Wildlife** library allows users to directly load the `MegaDetector` model weights for animal detection. We've fully refactored our codebase, prioritizing ease of use in model deployment and expansion. In addition to `MegaDetector`, **Pytorch-Wildlife** also accommodates a range of classification weights, such as those derived from the Amazon Rainforest dataset and the Opossum classification dataset. Explore the codebase and functionalities of **Pytorch-Wildlife** through our interactive [HuggingFace web app](https://huggingface.co/spaces/AndresHdzC/pytorch-wildlife) or local [demos and notebooks](https://github.com/microsoft/CameraTraps/tree/main/demo), designed to showcase the practical applications of our enhancements at [PyTorchWildlife](https://github.com/microsoft/CameraTraps/blob/main/INSTALLATION.md). You can find more information in our [documentation](https://cameratraps.readthedocs.io/en/latest/).
+## 🚀 Quick Start
 
-👇 Here is a brief example on how to perform detection and classification on a single image using `PyTorch-wildlife`
+👇 Here is a quick example on how to perform detection and classification on a single image using `PyTorch-wildlife`
 ```python
 import numpy as np
 from PytorchWildlife.models import detection as pw_detection
@@ -168,76 +71,30 @@ detection_result = detection_model.single_image_detection(img)
 classification_model = pw_classification.AI4GAmazonRainforest() # Model weights are automatically downloaded.
 classification_results = classification_model.single_image_classification(img)
 ```
+More models can be found in our [model zoo](https://microsoft.github.io/CameraTraps/model_zoo/megadetector/)
 
 ## ⚙️ Install Pytorch-Wildlife
 ```
 pip install PytorchWildlife
 ```
-Please refer to our [installation guide](https://github.com/microsoft/CameraTraps/blob/main/INSTALLATION.md) for more installation information.
+Please refer to our [installation guide](https://microsoft.github.io/CameraTraps/installation/) for more installation information.
 
-## 🕵️ Explore Pytorch-Wildlife and MegaDetector with our Demo User Interface
-
-If you want to directly try **Pytorch-Wildlife** with the AI models available, including `MegaDetector`, you can use our [**Gradio** interface](https://github.com/microsoft/CameraTraps/tree/main/demo). This interface allows users to directly load the `MegaDetector` model weights for animal detection. In addition, **Pytorch-Wildlife** also has two classification models in our initial version. One is trained from an Amazon Rainforest camera trap dataset and the other from a Galapagos opossum classification dataset (more details of these datasets will be published soon). To start, please follow the [installation instructions](https://github.com/microsoft/CameraTraps/blob/main/INSTALLATION.md) on how to run the Gradio interface! We also provide multiple [**Jupyter** notebooks](https://github.com/microsoft/CameraTraps/tree/main/demo) for demonstration.
-
-![image](https://microsoft.github.io/CameraTraps/assets/gradio_UI.png)
-
-
-## 🛠️ Core Features
-   What are the core components of Pytorch-Wildlife?
-![Pytorch-core-diagram](https://microsoft.github.io/CameraTraps/assets/Pytorch_Wildlife_core_figure.jpg)
-
-
-### 🌐 Unified Framework:
-  Pytorch-Wildlife integrates **four pivotal elements:**
-
-▪ Machine Learning Models<br>
-▪ Pre-trained Weights<br>
-▪ Datasets<br>
-▪ Utilities<br>
-
-### 👷 Our work:
-  In the provided graph, boxes outlined in red represent elements that will be added and remained fixed, while those in blue will be part of our development.
-
-
-### 🚀 Inaugural Model:
-  We're kickstarting with YOLO as our first available model, complemented by pre-trained weights from `MegaDetector`. We have `MegaDetectorV5`, which is the same `MegaDetectorV5` model from the previous repository, and many different versions of `MegaDetectorV6` for different usecases.
-
-
-### 📚 Expandable Repository:
-  As we move forward, our platform will welcome new models and pre-trained weights for camera traps and bioacoustic analysis. We're excited to host contributions from global researchers through a dedicated submission platform.
-
-
-### 📊 Datasets from LILA:
-  Pytorch-Wildlife will also incorporate the vast datasets hosted on LILA, making it a treasure trove for conservation research.
-
-
-### 🧰 Versatile Utilities:
-  Our set of utilities spans from visualization tools to task-specific utilities, many inherited from Megadetector.
-
-
-### 💻 User Interface Flexibility:
-  While we provide a foundational user interface, our platform is designed to inspire. We encourage researchers to craft and share their unique interfaces, and we'll list both existing and new UIs from other collaborators for the community's benefit.
-
-
-Let's shape the future of wildlife research, together! 🙌
+## 📃 Documentation
+Please also go to our newly made dofumentation page for more information: [![](https://img.shields.io/badge/Docs-526CFE?logo=MaterialForMkDocs&logoColor=white)](https://microsoft.github.io/CameraTraps/)
 
 ## 🖼️ Examples
 
 ### Image detection using `MegaDetector`
-<img src="https://microsoft.github.io/CameraTraps/assets/animal_det_1.JPG" alt="animal_det_1" width="400"/><br>
+<img src="https://zenodo.org/records/15376499/files/animal_det_1.JPG" alt="animal_det_1" width="300"/><br>
 *Credits to Universidad de los Andes, Colombia.*
 
 ### Image classification with `MegaDetector` and `AI4GAmazonRainforest`
-<img src="https://microsoft.github.io/CameraTraps/assets/animal_clas_1.png" alt="animal_clas_1" width="500"/><br>
+<img src="https://zenodo.org/records/15376499/files/animal_clas_1.png" alt="animal_clas_1" width="300"/><br>
 *Credits to Universidad de los Andes, Colombia.*
 
 ### Opossum ID with `MegaDetector` and `AI4GOpossum`
-<img src="https://microsoft.github.io/CameraTraps/assets/opossum_det.png" alt="opossum_det" width="500"/><br>
+<img src="https://zenodo.org/records/15376499/files/opossum_det.png" alt="opossum_det" width="300"/><br>
 *Credits to the Agency for Regulation and Control of Biosecurity and Quarantine for Galápagos (ABG), Ecuador.*
-
-
-## 🤜🤛 Collaboration with AddaxAI (formerly EcoAssist)!
-We are thrilled to announce our collaboration with [AddaxAI](https://addaxdatascience.com/addaxai/#spp-models)---a powerful user interface software that enables users to directly load models from the PyTorch-Wildlife model zoo for image analysis on local computers. With AddaxAI, you can now utilize MegaDetectorV5 and the classification models---AI4GAmazonRainforest and AI4GOpossum---for automatic animal detection and identification, alongside a comprehensive suite of pre- and post-processing tools. This partnership aims to enhance the overall user experience with PyTorch-Wildlife models for a general audience. We will work closely to bring more features together for more efficient and effective wildlife analysis in the future.
 
 
 ## :fountain_pen: Cite us!
@@ -265,149 +122,82 @@ Also, don't forget to cite our original paper for MegaDetector:
 }
 ```
 
-## 🤝 Contributing
-This project is open to your ideas and contributions. If you want to submit a pull request, we'll have some guidelines available soon.
-
-We have adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/). For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or contact [us](zhongqimiao@microsoft.com) with any additional questions or comments.
-
-## License
-This repository is licensed with the [MIT license](https://github.com/Microsoft/dotnet/blob/main/LICENSE).
-
-
-## 👥 Existing Collaborators
+## 🤝 Existing Collaborators and Contributors
 
 The extensive collaborative efforts of Megadetector have genuinely inspired us, and we deeply value its significant contributions to the community. As we continue to advance with Pytorch-Wildlife, our commitment to delivering technical support to our existing partners on MegaDetector remains the same.
 
 Here we list a few of the organizations that have used MegaDetector. We're only listing organizations who have given us permission to refer to them here or have posted publicly about their use of MegaDetector.
 
+We are also building a list of contributors and will release in future updates! Thank you for your efforts!
+
 <details>
 <summary><font size="3">👉 Full list of organizations</font></summary>
 
-(Newly Added) [TerrOïko](https://www.terroiko.fr/) ([OCAPI platform](https://www.terroiko.fr/ocapi))
-
-[Arizona Department of Environmental Quality](http://azdeq.gov/)
-
-[Blackbird Environmental](https://blackbirdenv.com/)
-
-[Camelot](https://camelotproject.org/)
-
-[Canadian Parks and Wilderness Society (CPAWS) Northern Alberta Chapter](https://cpawsnab.org/)
-
-[Conservation X Labs](https://conservationxlabs.com/)
-
-[Czech University of Life Sciences Prague](https://www.czu.cz/en)
-
-[EcoLogic Consultants Ltd.](https://www.consult-ecologic.com/)
-
-[Estación Biológica de Doñana](http://www.ebd.csic.es/inicio)
-
-[Idaho Department of Fish and Game](https://idfg.idaho.gov/)
-
-[Island Conservation](https://www.islandconservation.org/)
-
-[Myall Lakes Dingo Project](https://carnivorecoexistence.info/myall-lakes-dingo-project/)
-
-[Point No Point Treaty Council](https://pnptc.org/)
-
-[Ramat Hanadiv Nature Park](https://www.ramat-hanadiv.org.il/en/)
-
-[SPEA (Portuguese Society for the Study of Birds)](https://spea.pt/en/)
-
-[Synthetaic](https://www.synthetaic.com/)
-
-[Taronga Conservation Society](https://taronga.org.au/)
-
-[The Nature Conservancy in Wyoming](https://www.nature.org/en-us/about-us/where-we-work/united-states/wyoming/)
-
-[TrapTagger](https://wildeyeconservation.org/trap-tagger-about/)
-
-[Upper Yellowstone Watershed Group](https://www.upperyellowstone.org/)
-
-[Applied Conservation Macro Ecology Lab](http://www.acmelab.ca/), University of Victoria
-
-[Banff National Park Resource Conservation](https://www.pc.gc.ca/en/pn-np/ab/banff/nature/conservation), Parks Canada(https://www.pc.gc.ca/en/pn-np/ab/banff/nature/conservation)
-
-[Blumstein Lab](https://blumsteinlab.eeb.ucla.edu/), UCLA
-
-[Borderlands Research Institute](https://bri.sulross.edu/), Sul Ross State University
-
-[Capitol Reef National Park](https://www.nps.gov/care/index.htm) / Utah Valley University
-
-[Center for Biodiversity and Conservation](https://www.amnh.org/research/center-for-biodiversity-conservation), American Museum of Natural History
-
-[Centre for Ecosystem Science](https://www.unsw.edu.au/research/), UNSW Sydney
-
-[Cross-Cultural Ecology Lab](https://crossculturalecology.net/), Macquarie University
-
-[DC Cat Count](https://hub.dccatcount.org/), led by the Humane Rescue Alliance
-
-[Department of Fish and Wildlife Sciences](https://www.uidaho.edu/cnr/departments/fish-and-wildlife-sciences), University of Idaho
-
-[Department of Wildlife Ecology and Conservation](https://wec.ifas.ufl.edu/), University of Florida
-
-[Ecology and Conservation of Amazonian Vertebrates Research Group](https://www.researchgate.net/lab/Fernanda-Michalski-Lab-4), Federal University of Amapá
-
-[Gola Forest Programma](https://www.rspb.org.uk/our-work/conservation/projects/scientific-support-for-the-gola-forest-programme/), Royal Society for the Protection of Birds (RSPB)
-
-[Graeme Shannon's Research Group](https://wildliferesearch.co.uk/group-1), Bangor University
-
-[Hamaarag](https://hamaarag.org.il/), The Steinhardt Museum of Natural History, Tel Aviv University
-
-[Institut des Science de la Forêt Tempérée (ISFORT)](https://isfort.uqo.ca/), Université du Québec en Outaouais
-
-[Lab of Dr. Bilal Habib](https://bhlab.in/about), the Wildlife Institute of India
-
-[Mammal Spatial Ecology and Conservation Lab](https://labs.wsu.edu/dthornton/), Washington State University
-
-[McLoughlin Lab in Population Ecology](http://mcloughlinlab.ca/lab/), University of Saskatchewan
-
-[National Wildlife Refuge System, Southwest Region](https://www.fws.gov/about/region/southwest), U.S. Fish & Wildlife Service
-
-[Northern Great Plains Program](https://nationalzoo.si.edu/news/restoring-americas-prairie), Smithsonian
-
-[Quantitative Ecology Lab](https://depts.washington.edu/sefsqel/), University of Washington
-
-[Santa Monica Mountains Recreation Area](https://www.nps.gov/samo/index.htm), National Park Service
-
-[Seattle Urban Carnivore Project](https://www.zoo.org/seattlecarnivores), Woodland Park Zoo
-
-[Serra dos Órgãos National Park](https://www.icmbio.gov.br/parnaserradosorgaos/), ICMBio
-
-[Snapshot USA](https://emammal.si.edu/snapshot-usa), Smithsonian
-
-[Wildlife Coexistence Lab](https://wildlife.forestry.ubc.ca/), University of British Columbia
-
-[Wildlife Research](https://www.dfw.state.or.us/wildlife/research/index.asp), Oregon Department of Fish and Wildlife
-
-[Wildlife Division](https://www.michigan.gov/dnr/about/contact/wildlife), Michigan Department of Natural Resources
-
-Department of Ecology, TU Berlin
-
-Ghost Cat Analytics
-
-Protected Areas Unit, Canadian Wildlife Service
-
-[School of Natural Sciences](https://www.utas.edu.au/natural-sciences), University of Tasmania [(story)](https://www.utas.edu.au/about/news-and-stories/articles/2022/1204-innovative-camera-network-keeps-close-eye-on-tassie-wildlife)
-
-[Kenai National Wildlife Refuge](https://www.fws.gov/refuge/kenai), U.S. Fish & Wildlife Service [(story)](https://www.peninsulaclarion.com/sports/refuge-notebook-new-technology-increases-efficiency-of-refuge-cameras/)
-
-[Australian Wildlife Conservancy](https://www.australianwildlife.org/) [(blog](https://www.australianwildlife.org/cutting-edge-technology-delivering-efficiency-gains-in-conservation/), [blog)](https://www.australianwildlife.org/efficiency-gains-at-the-cutting-edge-of-technology/)
-
-[Felidae Conservation Fund](https://felidaefund.org/) [(WildePod platform)](https://wildepod.org/) [(blog post)](https://abhaykashyap.com/blog/ai-powered-camera-trap-image-annotation-system/)
-
-[Alberta Biodiversity Monitoring Institute (ABMI)](https://www.abmi.ca/home.html) [(WildTrax platform)](https://www.wildtrax.ca/) [(blog post)](https://wildcams.ca/blog/the-abmi-visits-the-zoo/)
-
-[Shan Shui Conservation Center](http://en.shanshui.org/) [(blog post)](https://mp.weixin.qq.com/s/iOIQF3ckj0-rEG4yJgerYw?fbclid=IwAR0alwiWbe3udIcFvqqwm7y5qgr9hZpjr871FZIa-ErGUukZ7yJ3ZhgCevs) [(translated blog post)](https://mp-weixin-qq-com.translate.goog/s/iOIQF3ckj0-rEG4yJgerYw?fbclid=IwAR0alwiWbe3udIcFvqqwm7y5qgr9hZpjr871FZIa-ErGUukZ7yJ3ZhgCevs&_x_tr_sl=auto&_x_tr_tl=en&_x_tr_hl=en&_x_tr_pto=wapp)
-
-[Irvine Ranch Conservancy](http://www.irconservancy.org/) [(story)](https://www.ocregister.com/2022/03/30/ai-software-is-helping-researchers-focus-on-learning-about-ocs-wild-animals/)
-
-[Wildlife Protection Solutions](https://wildlifeprotectionsolutions.org/) [(story](https://customers.microsoft.com/en-us/story/1384184517929343083-wildlife-protection-solutions-nonprofit-ai-for-earth), [story)](https://www.enterpriseai.news/2023/02/20/ai-helps-wildlife-protection-solutions-safeguard-endangered-species/)
-
-[Road Ecology Center](https://roadecology.ucdavis.edu/), University of California, Davis [(Wildlife Observer Network platform)](https://wildlifeobserver.net/)
-
-[The Nature Conservancy in California](https://www.nature.org/en-us/about-us/where-we-work/united-states/california/) [(Animl platform)](https://github.com/tnc-ca-geo/animl-frontend)
-
-[San Diego Zoo Wildlife Alliance](https://science.sandiegozoo.org/) [(Animl R package)](https://github.com/conservationtechlab/animl)
+<ul>
+  <li>(Newly Added) <a href="https://www.terroiko.fr/">TerrOïko</a> (<a href="https://www.terroiko.fr/ocapi">OCAPI platform</a>)</li>
+  <li><a href="http://azdeq.gov/">Arizona Department of Environmental Quality</a></li>
+  <li><a href="https://blackbirdenv.com/">Blackbird Environmental</a></li>
+  <li><a href="https://camelotproject.org/">Camelot</a></li>
+  <li><a href="https://cpawsnab.org/">Canadian Parks and Wilderness Society (CPAWS) Northern Alberta Chapter</a></li>
+  <li><a href="https://conservationxlabs.com/">Conservation X Labs</a></li>
+  <li><a href="https://www.czu.cz/en">Czech University of Life Sciences Prague</a></li>
+  <li><a href="https://www.consult-ecologic.com/">EcoLogic Consultants Ltd.</a></li>
+  <li><a href="http://www.ebd.csic.es/inicio">Estación Biológica de Doñana</a></li>
+  <li><a href="https://idfg.idaho.gov/">Idaho Department of Fish and Game</a></li>
+  <li><a href="https://www.islandconservation.org/">Island Conservation</a></li>
+  <li><a href="https://carnivorecoexistence.info/myall-lakes-dingo-project/">Myall Lakes Dingo Project</a></li>
+  <li><a href="https://pnptc.org/">Point No Point Treaty Council</a></li>
+  <li><a href="https://www.ramat-hanadiv.org.il/en/">Ramat Hanadiv Nature Park</a></li>
+  <li><a href="https://spea.pt/en/">SPEA (Portuguese Society for the Study of Birds)</a></li>
+  <li><a href="https://www.synthetaic.com/">Synthetaic</a></li>
+  <li><a href="https://taronga.org.au/">Taronga Conservation Society</a></li>
+  <li><a href="https://www.nature.org/en-us/about-us/where-we-work/united-states/wyoming/">The Nature Conservancy in Wyoming</a></li>
+  <li><a href="https://wildeyeconservation.org/trap-tagger-about/">TrapTagger</a></li>
+  <li><a href="https://www.upperyellowstone.org/">Upper Yellowstone Watershed Group</a></li>
+  <li><a href="http://www.acmelab.ca/">Applied Conservation Macro Ecology Lab</a>, University of Victoria</li>
+  <li><a href="https://www.pc.gc.ca/en/pn-np/ab/banff/nature/conservation">Banff National Park Resource Conservation</a>, <a href="https://www.pc.gc.ca/en/pn-np/ab/banff/nature/conservation">Parks Canada</a></li>
+  <li><a href="https://blumsteinlab.eeb.ucla.edu/">Blumstein Lab</a>, UCLA</li>
+  <li><a href="https://bri.sulross.edu/">Borderlands Research Institute</a>, Sul Ross State University</li>
+  <li><a href="https://www.nps.gov/care/index.htm">Capitol Reef National Park</a> / Utah Valley University</li>
+  <li><a href="https://www.amnh.org/research/center-for-biodiversity-conservation">Center for Biodiversity and Conservation</a>, American Museum of Natural History</li>
+  <li><a href="https://www.unsw.edu.au/research/">Centre for Ecosystem Science</a>, UNSW Sydney</li>
+  <li><a href="https://crossculturalecology.net/">Cross-Cultural Ecology Lab</a>, Macquarie University</li>
+  <li><a href="https://hub.dccatcount.org/">DC Cat Count</a>, led by the Humane Rescue Alliance</li>
+  <li><a href="https://www.uidaho.edu/cnr/departments/fish-and-wildlife-sciences">Department of Fish and Wildlife Sciences</a>, University of Idaho</li>
+  <li><a href="https://wec.ifas.ufl.edu/">Department of Wildlife Ecology and Conservation</a>, University of Florida</li>
+  <li><a href="https://www.researchgate.net/lab/Fernanda-Michalski-Lab-4">Ecology and Conservation of Amazonian Vertebrates Research Group</a>, Federal University of Amapá</li>
+  <li><a href="https://www.rspb.org.uk/our-work/conservation/projects/scientific-support-for-the-gola-forest-programme/">Gola Forest Programme</a>, Royal Society for the Protection of Birds (RSPB)</li>
+  <li><a href="https://wildliferesearch.co.uk/group-1">Graeme Shannon's Research Group</a>, Bangor University</li>
+  <li><a href="https://hamaarag.org.il/">Hamaarag</a>, The Steinhardt Museum of Natural History, Tel Aviv University</li>
+  <li><a href="https://isfort.uqo.ca/">Institut des Science de la Forêt Tempérée (ISFORT)</a>, Université du Québec en Outaouais</li>
+  <li><a href="https://bhlab.in/about">Lab of Dr. Bilal Habib</a>, the Wildlife Institute of India</li>
+  <li><a href="https://labs.wsu.edu/dthornton/">Mammal Spatial Ecology and Conservation Lab</a>, Washington State University</li>
+  <li><a href="http://mcloughlinlab.ca/lab/">McLoughlin Lab in Population Ecology</a>, University of Saskatchewan</li>
+  <li><a href="https://www.fws.gov/about/region/southwest">National Wildlife Refuge System, Southwest Region</a>, U.S. Fish & Wildlife Service</li>
+  <li><a href="https://nationalzoo.si.edu/news/restoring-americas-prairie">Northern Great Plains Program</a>, Smithsonian</li>
+  <li><a href="https://depts.washington.edu/sefsqel/">Quantitative Ecology Lab</a>, University of Washington</li>
+  <li><a href="https://www.nps.gov/samo/index.htm">Santa Monica Mountains Recreation Area</a>, National Park Service</li>
+  <li><a href="https://www.zoo.org/seattlecarnivores">Seattle Urban Carnivore Project</a>, Woodland Park Zoo</li>
+  <li><a href="https://www.icmbio.gov.br/parnaserradosorgaos/">Serra dos Órgãos National Park</a>, ICMBio</li>
+  <li><a href="https://emammal.si.edu/snapshot-usa">Snapshot USA</a>, Smithsonian</li>
+  <li><a href="https://wildlife.forestry.ubc.ca/">Wildlife Coexistence Lab</a>, University of British Columbia</li>
+  <li><a href="https://www.dfw.state.or.us/wildlife/research/index.asp">Wildlife Research</a>, Oregon Department of Fish and Wildlife</li>
+  <li><a href="https://www.michigan.gov/dnr/about/contact/wildlife">Wildlife Division</a>, Michigan Department of Natural Resources</li>
+  <li>Department of Ecology, TU Berlin</li>
+  <li>Ghost Cat Analytics</li>
+  <li>Protected Areas Unit, Canadian Wildlife Service</li>
+  <li><a href="https://www.utas.edu.au/natural-sciences">School of Natural Sciences</a>, University of Tasmania (<a href="https://www.utas.edu.au/about/news-and-stories/articles/2022/1204-innovative-camera-network-keeps-close-eye-on-tassie-wildlife">story</a>)</li>
+  <li><a href="https://www.fws.gov/refuge/kenai">Kenai National Wildlife Refuge</a>, U.S. Fish & Wildlife Service (<a href="https://www.peninsulaclarion.com/sports/refuge-notebook-new-technology-increases-efficiency-of-refuge-cameras/">story</a>)</li>
+  <li><a href="https://www.australianwildlife.org/">Australian Wildlife Conservancy</a> (<a href="https://www.australianwildlife.org/cutting-edge-technology-delivering-efficiency-gains-in-conservation/">blog</a>, <a href="https://www.australianwildlife.org/efficiency-gains-at-the-cutting-edge-of-technology/">blog</a>)</li>
+  <li><a href="https://felidaefund.org/">Felidae Conservation Fund</a> (<a href="https://wildepod.org/">WildePod platform</a>) (<a href="https://abhaykashyap.com/blog/ai-powered-camera-trap-image-annotation-system/">blog post</a>)</li>
+  <li><a href="https://www.abmi.ca/home.html">Alberta Biodiversity Monitoring Institute (ABMI)</a> (<a href="https://www.wildtrax.ca/">WildTrax platform</a>) (<a href="https://wildcams.ca/blog/the-abmi-visits-the-zoo/">blog post</a>)</li>
+  <li><a href="http://en.shanshui.org/">Shan Shui Conservation Center</a> (<a href="https://mp.weixin.qq.com/s/iOIQF3ckj0-rEG4yJgerYw?fbclid=IwAR0alwiWbe3udIcFvqqwm7y5qgr9hZpjr871FZIa-ErGUukZ7yJ3ZhgCevs">blog post</a>) (<a href="https://mp-weixin-qq-com.translate.goog/s/iOIQF3ckj0-rEG4yJgerYw?fbclid=IwAR0alwiWbe3udIcFvqqwm7y5qgr9hZpjr871FZIa-ErGUukZ7yJ3ZhgCevs&_x_tr_sl=auto&_x_tr_tl=en&_x_tr_hl=en&_x_tr_pto=wapp">translated blog post</a>)</li>
+  <li><a href="http://www.irconservancy.org/">Irvine Ranch Conservancy</a> (<a href="https://www.ocregister.com/2022/03/30/ai-software-is-helping-researchers-focus-on-learning-about-ocs-wild-animals/">story</a>)</li>
+  <li><a href="https://wildlifeprotectionsolutions.org/">Wildlife Protection Solutions</a> (<a href="https://customers.microsoft.com/en-us/story/1384184517929343083-wildlife-protection-solutions-nonprofit-ai-for-earth">story</a>, <a href="https://www.enterpriseai.news/2023/02/20/ai-helps-wildlife-protection-solutions-safeguard-endangered-species/">story</a>)</li>
+  <li><a href="https://roadecology.ucdavis.edu/">Road Ecology Center</a>, University of California, Davis (<a href="https://wildlifeobserver.net/">Wildlife Observer Network platform</a>)</li>
+  <li><a href="https://www.nature.org/en-us/about-us/where-we-work/united-states/california/">The Nature Conservancy in California</a> (<a href="https://github.com/tnc-ca-geo/animl-frontend">Animl platform</a>)</li>
+  <li><a href="https://science.sandiegozoo.org/">San Diego Zoo Wildlife Alliance</a> (<a href="https://github.com/conservationtechlab/animl">Animl R package</a>)</li>
+</ul>
 
 </details><br>
 

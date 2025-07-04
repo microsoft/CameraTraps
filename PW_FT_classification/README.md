@@ -61,9 +61,12 @@ Currently, pytorch-wildlife classification supports three types of data splittin
 
 Location splitting requires an additional "Location" column in the data, and it splits the data based on the location of the images, making sure that all images from one location will be in a single split; this splitting method does not guarantee a balanced class distribution. Finally, sequence splitting requires a "Photo_time" column containing the shooting time of the picture, it should be in YYYY-MM-DD HH:MM:SS format. This method will group images within a 30 second period in a "sequence", and then split the data based on these sequences; this splitting method does not guarantee a balanced class distribution.
 
-The CSV file should have the previously mentioned structure. The code will then split the data into training, validation, and test sets based on the proportions specified in the `config.py` file and the splitting type. [The annotation example](data/imgs/annotation_example.csv) shows how files should be annotated for each type of splitting.
+The CSV file should have the previously mentioned structure. The code will then split the data into training, validation, and test sets based on the proportions specified in the `config.py` file and the splitting type. 
 
 If you don't require data splitting, you can set the `split_data` parameter to `False` in the `config.yaml` file.
+
+### Demo data
+You can download some example [demo data](https://zenodo.org/records/15376499/files/demo_data_clf.zip?download=1) to test the codebase. Before using the data, make sure to decompress the zip file following the [data directory structure](#data-structure), and check if the `dataset_root` entry in the [config file](./configs/config.yaml) is pointing to the data directory. The testing demo data also has ***an annotation example*** shows how the prefered annotation format looks like.
 
 ## Configuration
 

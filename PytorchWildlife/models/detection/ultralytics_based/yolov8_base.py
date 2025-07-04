@@ -6,16 +6,16 @@
 # Importing basic libraries
 
 import os
-from glob import glob
-import supervision as sv
-import numpy as np
-from PIL import Image
 import wget
+import numpy as np
+from tqdm import tqdm
+from PIL import Image
+import supervision as sv
+
 import torch
+from torch.utils.data import DataLoader
 
 from ultralytics.models import yolo, rtdetr
-from torch.utils.data import DataLoader
-from tqdm import tqdm
 
 from ..base_detector import BaseDetector
 from ....data import transforms as pw_trans
@@ -41,8 +41,8 @@ class YOLOV8Base(BaseDetector):
             url (str, optional): 
                 URL to fetch the model weights. Defaults to None.
         """
-        self.transform = transform
         super(YOLOV8Base, self).__init__(weights=weights, device=device, url=url)
+        self.transform = transform
         self._load_model(weights, self.device, url)
 
     def _load_model(self, weights=None, device="cpu", url=None):
@@ -84,7 +84,7 @@ class YOLOV8Base(BaseDetector):
             self.transform = pw_trans.MegaDetector_v5_Transform(target_size=self.IMAGE_SIZE,
                                                                 stride=self.STRIDE)
 
-    def results_generation(self, preds, img_id, id_strip=None):
+    def results_generation(self, preds, img_id, id_strip=None) -> dict:
         """
         Generate results for detection based on model predictions.
         
@@ -118,7 +118,7 @@ class YOLOV8Base(BaseDetector):
         return results
         
 
-    def single_image_detection(self, img, img_path=None, det_conf_thres=0.2, id_strip=None):
+    def single_image_detection(self, img, img_path=None, det_conf_thres=0.2, id_strip=None) -> dict:
         """
         Perform detection on a single image.
         
@@ -144,34 +144,57 @@ class YOLOV8Base(BaseDetector):
 
         self.predictor.args.batch = 1
         self.predictor.args.conf = det_conf_thres
-        det_results = list(self.predictor.stream_inference([img]))
         
-        return self.results_generation(det_results[0], img_path, id_strip)
+        det_results = list(self.predictor.stream_inference([img]))
 
-    def batch_image_detection(self, data_path, batch_size=16, det_conf_thres=0.2, id_strip=None):
+        res = self.results_generation(det_results[0], img_path, id_strip)
+
+        normalized_coords = [[x1 / img_size[1], y1 / img_size[0], x2 / img_size[1], y2 / img_size[0]] 
+                             for x1, y1, x2, y2 in res["detections"].xyxy]
+        res["normalized_coords"] = normalized_coords
+        
+        return res
+
+    def batch_image_detection(self, data_source, batch_size: int = 16, det_conf_thres: float = 0.2, id_strip: str = None) -> list[dict]:
         """
         Perform detection on a batch of images.
-        
+
         Args:
-            data_path (str): 
-                Path containing all images for inference.
-            batch_size (int, optional):
-                Batch size for inference. Defaults to 16.
-            det_conf_thres (float, optional): 
-                Confidence threshold for predictions. Defaults to 0.2.
-            id_strip (str, optional): 
-                Characters to strip from img_id. Defaults to None.
-            extension (str, optional):
-                Image extension to search for. Defaults to "JPG"
+            data_source (str or List[np.ndarray]): Either path containing images for inference or list of numpy arrays (RGB format, shape: H×W×3).
+            batch_size (int, optional): Batch size for inference. Defaults to 16.
+            det_conf_thres (float, optional): Confidence threshold for predictions. Defaults to 0.2.
+            id_strip (str, optional): Characters to strip from img_id. Defaults to None.
 
         Returns:
-            list: List of detection results for all images.
+            list[dict]: List of detection results for all images.
         """
         self.predictor.args.batch = batch_size
         self.predictor.args.conf = det_conf_thres
 
+        # Handle numpy array input
+        if isinstance(data_source, (list, np.ndarray)):
+            results = []
+            num_batches = (len(data_source) + batch_size - 1) // batch_size  # Calculate total batches
+            
+            with tqdm(total=num_batches) as pbar:
+                for start_idx in range(0, len(data_source), batch_size):
+                    batch_arrays = data_source[start_idx:start_idx + batch_size]
+                    det_results = self.predictor.stream_inference(batch_arrays)
+                    
+                    for idx, preds in enumerate(det_results):
+                        res = self.results_generation(preds, f"{start_idx + idx}", id_strip)
+                        # Get size directly from numpy array
+                        img_height, img_width = batch_arrays[idx].shape[:2]
+                        normalized_coords = [[x1/img_width, y1/img_height, x2/img_width, y2/img_height] 
+                                        for x1, y1, x2, y2 in res["detections"].xyxy]
+                        res["normalized_coords"] = normalized_coords
+                        results.append(res)
+                    pbar.update(1)
+            return results
+        
+        # Handle image directory input
         dataset = pw_data.DetectionImageFolder(
-            data_path,
+            data_source,
             transform=self.transform,
         )
 

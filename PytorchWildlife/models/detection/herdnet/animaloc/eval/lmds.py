@@ -164,16 +164,16 @@ class HerdNetLMDS(LMDS):
         self.up = up
     
     def __call__(self, outputs: List[torch.Tensor]) -> Tuple[list, list, list, list, list]:
-        '''
+        """
         Args:
-            outmaps (torch.Tensor): outputs of HerdNet, i.e. 2 tensors:
-                - heatmap: [B,1,H,W], 
-                - class map: [B,C,H/16,W/16],
-        
+            outputs (List[torch.Tensor]): Outputs of HerdNet, i.e., 2 tensors:
+                - heatmap: [B,1,H,W],
+                - class map: [B,C,H/16,W/16].
+
         Returns:
-            Tuple[list,list,list,list,list]
-                counts, locations, labels, class scores and detection scores per batch
-        '''
+            Tuple[list, list, list, list, list]:
+                Counts, locations, labels, class scores, and detection scores per batch.
+        """
 
         heatmap, clsmap = outputs
         

@@ -130,19 +130,15 @@ class HerdNet(BaseDetector):
 
         print(f"Model loaded from {weights}")
 
-    def results_generation(self, preds, img=None, img_id=None, id_strip=None):
+    def results_generation(self, preds: np.ndarray, img: np.ndarray = None, img_id: str = None, id_strip: str = None) -> dict:
         """
         Generate results for detection based on model predictions.
-        
+
         Args:
-            preds (numpy.ndarray): 
-                Model predictions.
-            img (numpy.ndarray, optional):
-                Image for inference. Defaults to None.
-            img_id (str): 
-                Image identifier.
-            id_strip (str, optional): 
-                Strip specific characters from img_id. Defaults to None.
+            preds (numpy.ndarray): Model predictions.
+            img (numpy.ndarray, optional): Image for inference. Defaults to None.
+            img_id (str, optional): Image identifier. Defaults to None.
+            id_strip (str, optional): Strip specific characters from img_id. Defaults to None.
 
         Returns:
             dict: Dictionary containing image ID, detections, and labels.
@@ -165,7 +161,7 @@ class HerdNet(BaseDetector):
         ]
         return results
     
-    def single_image_detection(self, img, img_path=None, det_conf_thres=0.2, clf_conf_thres=0.2, id_strip=None):
+    def single_image_detection(self, img, img_path=None, det_conf_thres=0.2, clf_conf_thres=0.2, id_strip=None) -> dict:
         """
         Perform detection on a single image.
 
@@ -200,24 +196,19 @@ class HerdNet(BaseDetector):
             results_dict = self.results_generation(preds_array, img=img)
         return results_dict
 
-    def batch_image_detection(self, data_path, det_conf_thres=0.2, clf_conf_thres=0.2, batch_size=1, id_strip=None):
+    def batch_image_detection(self, data_path: str, det_conf_thres: float = 0.2, clf_conf_thres: float = 0.2, batch_size: int = 1, id_strip: str = None) -> list[dict]:
         """
         Perform detection on a batch of images.
-        
+
         Args:
-            data_path (str): 
-                Path containing all images for inference.
-            det_conf_thres (float, optional):
-                Confidence threshold for detections. Defaults to 0.2.
-            clf_conf_thres (float, optional):
-                Confidence threshold for classification. Defaults to 0.2.
-            batch_size (int, optional):
-                Batch size for inference. Defaults to 1.
-            id_strip (str, optional): 
-                Characters to strip from img_id. Defaults to None.
+            data_path (str): Path containing all images for inference.
+            det_conf_thres (float, optional): Confidence threshold for detections. Defaults to 0.2.
+            clf_conf_thres (float, optional): Confidence threshold for classification. Defaults to 0.2.
+            batch_size (int, optional): Batch size for inference. Defaults to 1.
+            id_strip (str, optional): Characters to strip from img_id. Defaults to None.
 
         Returns:
-            list: List of detection results for all images.
+            list[dict]: List of detection results for all images.
         """
         dataset = pw_data.DetectionImageFolder(
             data_path,
@@ -244,25 +235,18 @@ class HerdNet(BaseDetector):
                 results.append(results_dict)
         return results
 
-    def process_lmds_results(self, counts, locs, labels, scores, dscores, det_conf_thres=0.2, clf_conf_thres=0.2):
+    def process_lmds_results(self, counts: list, locs: list, labels: list, scores: list, dscores: list, det_conf_thres: float = 0.2, clf_conf_thres: float = 0.2) -> np.ndarray:
         """
         Process the results from the Local Maxima Detection Strategy.
 
         Args:
-            counts (list): 
-                Number of detections for each species.
-            locs (list): 
-                Locations of the detections.
-            labels (list): 
-                Labels of the detections.
-            scores (list): 
-                Scores of the detections.
-            dscores (list): 
-                Detection scores.
-            det_conf_thres (float, optional):
-                Confidence threshold for detections. Defaults to 0.2.
-            clf_conf_thres (float, optional):
-                Confidence threshold for classification. Defaults to 0.2.
+            counts (list): Number of detections for each species.
+            locs (list): Locations of the detections.
+            labels (list): Labels of the detections.
+            scores (list): Scores of the detections.
+            dscores (list): Detection scores.
+            det_conf_thres (float, optional): Confidence threshold for detections. Defaults to 0.2.
+            clf_conf_thres (float, optional): Confidence threshold for classification. Defaults to 0.2.
 
         Returns:
             numpy.ndarray: Processed detection results.
@@ -313,7 +297,7 @@ class HerdNet(BaseDetector):
         
         return preds_array
 
-    def forward(self, input: torch.Tensor):
+    def forward(self, input: torch.Tensor) -> torch.Tensor:
         """
         Forward pass of the model.
         

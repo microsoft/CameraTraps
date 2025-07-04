@@ -1,4 +1,3 @@
-
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
@@ -51,24 +50,21 @@ class BaseDetector(nn.Module):
         """
         pass
 
-    def results_generation(self, preds, img_id, id_strip=None):
+    def results_generation(self, preds, img_id: str, id_strip: str = None) -> dict:
         """
         Generate results for detection based on model predictions.
-        
+
         Args:
-            preds (numpy.ndarray): 
-                Model predictions.
-            img_id (str): 
-                Image identifier.
-            id_strip (str, optional): 
-                Strip specific characters from img_id. Defaults to None.
+            preds (numpy.ndarray): Model predictions.
+            img_id (str): Image identifier.
+            id_strip (str, optional): Strip specific characters from img_id. Defaults to None.
 
         Returns:
             dict: Dictionary containing image ID, detections, and labels.
         """
         pass
 
-    def single_image_detection(self, img, img_size=None, img_path=None, conf_thres=0.2, id_strip=None):
+    def single_image_detection(self, img, img_size=None, img_path=None, conf_thres=0.2, id_strip=None) -> dict:
         """
         Perform detection on a single image.
         
@@ -89,19 +85,16 @@ class BaseDetector(nn.Module):
         """
         pass
 
-    def batch_image_detection(self, dataloader, conf_thres=0.2, id_strip=None):
+    def batch_image_detection(self, dataloader, conf_thres: float = 0.2, id_strip: str = None) -> list[dict]:
         """
         Perform detection on a batch of images.
-        
+
         Args:
-            dataloader (DataLoader): 
-                DataLoader containing image batches.
-            conf_thres (float, optional): 
-                Confidence threshold for predictions. Defaults to 0.2.
-            id_strip (str, optional): 
-                Characters to strip from img_id. Defaults to None.
+            dataloader (DataLoader): DataLoader containing image batches.
+            conf_thres (float, optional): Confidence threshold for predictions. Defaults to 0.2.
+            id_strip (str, optional): Characters to strip from img_id. Defaults to None.
 
         Returns:
-            list: List of detection results for all images.
+            list[dict]: List of detection results for all images.
         """
         pass
