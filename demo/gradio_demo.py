@@ -52,7 +52,12 @@ def load_models(det, version, clf, wpath=None, wclass=None):
         elif det == "HerdNet Ennedi":
             detection_model = pw_detection.HerdNet(device=DEVICE, version="ennedi")
         else:
-            detection_model = pw_detection.__dict__[det](device=DEVICE, pretrained=True, version=version)
+            if "mit" in version:
+                detection_model = pw_detection.MegaDetectorV6MIT(device=DEVICE, pretrained=True, version=version)
+            elif "apache" in version:
+                detection_model = pw_detection.MegaDetectorV6Apache(device=DEVICE, pretrained=True, version=version)
+            else:
+                detection_model = pw_detection.__dict__[det](device=DEVICE, pretrained=True, version=version)
     else:
         detection_model = None
         return "NO MODEL LOADED!!"
@@ -82,7 +87,6 @@ def single_image_detection(input_img, det_conf_thres, clf_conf_thres, img_index=
     Returns:
         annotated_img (PIL.Image.Image): Annotated image with bounding box instances.
     """
-
     input_img = np.array(input_img)
     # If the detection model is HerdNet, use dot annotator, else use box annotator
     if detection_model.__class__.__name__.__contains__("HerdNet"):
@@ -264,7 +268,7 @@ with gr.Blocks() as demo:
    
     def update_ui_elements(det_model):  
         if det_model == "MegaDetectorV6":  
-            return gr.Dropdown(choices=["MDV6-yolov9-c", "MDV6-yolov9-e", "MDV6-yolov10-c", "MDV6-yolov10-e", "MDV6-rtdetr-c"], interactive=True, label="Model version", value="MDV6-yolov9e"), gr.update(visible=True)  
+            return gr.Dropdown(choices=["MDV6-yolov9-c", "MDV6-yolov9-e", "MDV6-yolov10-c", "MDV6-yolov10-e", "MDV6-rtdetr-c", "MDV6-yolov9-c-mit", "MDV6-yolov9-e-mit", "MDV6-rtdetr-c-apache", "MDV6-rtdetr-e-apache"], interactive=True, label="Model version", value="MDV6-yolov9e"), gr.update(visible=True)  
         elif det_model == "MegaDetectorV5":  
             return gr.Dropdown(choices=["a", "b"], interactive=True, label="Model version", value="a"), gr.update(visible=True)
         else:
@@ -336,7 +340,7 @@ with gr.Blocks() as demo:
         det_drop,
         [chck_timelapse]
     )
-
+    
     load_but.click(load_models, inputs=[det_drop, det_version, clf_drop, custom_weights_path, custom_weights_class], outputs=load_out)
     sgl_but.click(single_image_detection, inputs=[sgl_in, sgl_conf_sl_det, sgl_conf_sl_clf], outputs=sgl_out)
     bth_but.click(batch_detection, inputs=[bth_in, chck_timelapse, bth_conf_sl], outputs=bth_out)

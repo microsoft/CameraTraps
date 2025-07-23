@@ -1,0 +1,3 @@
+task: detection
+num_classes: 3
+remap_mscoco_category: False

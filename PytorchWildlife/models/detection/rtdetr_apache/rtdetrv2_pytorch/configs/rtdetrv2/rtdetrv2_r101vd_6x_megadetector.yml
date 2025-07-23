@@ -1,0 +1,18 @@
+__include__: [
+  '../dataset/megadetector_detection.yml',
+  './include/rtdetrv2_r50vd.yml',
+]
+
+
+PResNet:
+  depth: 101
+
+
+HybridEncoder:
+  # intra
+  hidden_dim: 384
+  dim_feedforward: 2048
+
+
+RTDETRTransformerv2:
+  feat_channels: [384, 384, 384]
