@@ -15,7 +15,7 @@ In the provided graph, boxes outlined in red represent elements that will be add
 
 
 ### 🚀 Inaugural Model:
-We're kickstarting with YOLO as our first available model, complemented by pre-trained weights from `MegaDetector`. We have `MegaDetectorV5`, which is the same `MegaDetectorV5` model from the previous repository, and many different versions of `MegaDetectorV6` for different usecases.
+We're kickstarting with YOLO as our first available model, complemented by pre-trained weights from `MegaDetector`. We have `MegaDetectorV5`, which is the same `MegaDetectorV5` model from the previous repository, and many different versions of `MegaDetectorV6` for different use cases.
 
 
 ### 📚 Expandable Repository:

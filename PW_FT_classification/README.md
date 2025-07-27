@@ -66,7 +66,7 @@ The CSV file should have the previously mentioned structure. The code will then 
 If you don't require data splitting, you can set the `split_data` parameter to `False` in the `config.yaml` file.
 
 ### Demo data
-You can download some example [demo data](https://zenodo.org/records/15376499/files/demo_data_clf.zip?download=1) to test the codebase. Before using the data, make sure to decompress the zip file following the [data directory structure](#data-structure), and check if the `dataset_root` entry in the [config file](./configs/config.yaml) is pointing to the data directory. The testing demo data also has ***an annotation example*** shows how the prefered annotation format looks like.
+You can download some example [demo data](https://zenodo.org/records/15376499/files/demo_data_clf.zip?download=1) to test the codebase. Before using the data, make sure to decompress the zip file following the [data directory structure](#data-structure), and check if the `dataset_root` entry in the [config file](./configs/config.yaml) is pointing to the data directory. The testing demo data also has ***an annotation example*** which shows what the preferred annotation format looks like.
 
 ## Configuration
 

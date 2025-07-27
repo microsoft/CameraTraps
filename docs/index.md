@@ -18,12 +18,12 @@
 
 
 ## 👋 Welcome to Pytorch-Wildlife
-**PyTorch-Wildlife** is an AI platform designed for the AI for Conservation community to create, modify, and share powerful AI conservation models. It allows users to directly load a variety of models including [MegaDetector](https://microsoft.github.io/CameraTraps/megadetector/), [DeepFaune](https://microsoft.github.io/CameraTraps/megadetector/), and [HerdNet](https://github.com/Alexandre-Delplanque/HerdNet) from our ever expanding [model zoo](model_zoo/megadetector.md) for both animal detection and classification. In the future, we will also include models that can be used for applications, including underwater images and bioacoustics. We want to provide a unified and straightforward experience for both practicioners and developers in the AI for conservation field. Your engagement with our work is greatly appreciated, and we eagerly await any feedback you may have.
+**PyTorch-Wildlife** is an AI platform designed for the AI for Conservation community to create, modify, and share powerful AI conservation models. It allows users to directly load a variety of models including [MegaDetector](https://microsoft.github.io/CameraTraps/megadetector/), [DeepFaune](https://microsoft.github.io/CameraTraps/megadetector/), and [HerdNet](https://github.com/Alexandre-Delplanque/HerdNet) from our ever expanding [model zoo](model_zoo/megadetector.md) for both animal detection and classification. In the future, we will also include models that can be used for applications, including underwater images and bioacoustics. We want to provide a unified and straightforward experience for both practitioners and developers in the AI for conservation field. Your engagement with our work is greatly appreciated, and we eagerly await any feedback you may have.
 
 
 ## 🚀 Quick Start
 
-👇 Here is a brief example on how to perform detection and classification on a single image using `PyTorch-wildlife`
+👇 Here is a brief example of how to perform detection and classification on a single image using `PyTorch-wildlife`
 ```python
 import numpy as np
 from PytorchWildlife.models import detection as pw_detection
