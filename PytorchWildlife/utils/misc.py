@@ -11,14 +11,14 @@ from PIL import Image
 from PIL.ExifTags import TAGS
 from collections import Counter
 from collections import defaultdict
-from typing import Callable, Tuple, Optional, List
+from typing import Callable, Tuple, Optional, List, Dict
 from tqdm import tqdm
+from bisect import bisect_left
 
 
 __all__ = [
     "process_video",
     "speed_in_video",
-    "REAL_ANIMAL_HEIGHT_M",
 ]
 
 
@@ -65,166 +65,237 @@ def speed_in_video(
     target_path: str,
     callback: Callable[[np.ndarray, int], Tuple[np.ndarray, sv.Detections, List[Tuple[str, float]]]],
     target_fps: int = 1,
-    codec: str = "mp4v"
-) -> Tuple[int, dict]:
+    codec: str = "mp4v",
+    *,
+    # selection
+    longest: bool = False,
+    # filters
+    min_points: int = 2,
+    min_duration_s: float | None = None,
+    min_displacement_px: float | None = None,
+    # subtrack cleanup
+    suppress_subtracks: bool = False,
+    subtrack_radius_px: float = 30.0,
+    # UX
+    show_progress: bool = False,
+) -> Tuple[int, Dict[int, dict]]:
     """
-    Tracks animal in video and estimates 2D movement speed (px/s) using only first and last point of the longest track.
-    Saves the full video but only overlays bounding boxes on first and last detection.
+    Track animals and estimate speed (px/s) from first->last observation of each track,
+    or only the single longest track when `longest=True`.
+
+    Filters:
+      - min_points: require at least N observations
+      - min_duration_s: require duration >= this
+      - min_displacement_px: require end-to-end displacement >= this
+    Cleanup:
+      - suppress_subtracks: remove tracks contained in time within a longer track whose
+        mean temporal nearest-neighbor distance is <= subtrack_radius_px
 
     Returns:
-        width (int): Image width in pixels.
-        track_summaries (dict): Dictionary of track_id -> dict with speed and key points.
+      width, track_summaries: {track_id: {'speed', 'points', 'boxes', 'idxs'}}
     """
     cap = cv2.VideoCapture(source_path)
-    input_fps = cap.get(cv2.CAP_PROP_FPS)
-    stride = int(input_fps / target_fps) if input_fps > target_fps else 1
+    if not cap.isOpened():
+        raise FileNotFoundError(f"Could not open video: {source_path}")
+
+    input_fps = cap.get(cv2.CAP_PROP_FPS) or 0.0
+    if not input_fps or np.isnan(input_fps) or input_fps <= 0:
+        input_fps = float(target_fps) if target_fps and target_fps > 0 else 30.0
+
+    stride = max(1, int(round(input_fps / max(target_fps, 1))))
     output_fps = input_fps / stride
 
-    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    width  = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
     fourcc = cv2.VideoWriter_fourcc(*codec)
     out = cv2.VideoWriter(target_path, fourcc, output_fps, (width, height))
 
     tracker = sv.ByteTrack()
-    positions_by_id = defaultdict(list)
-    frames_by_id = defaultdict(list)
-    all_frames = []
-    processed_frame_idxs = []
+
+    positions_by_id: Dict[int, List[Tuple[float, float, float]]] = defaultdict(list)
+    frames_by_id: Dict[int, List[Tuple[np.ndarray, np.ndarray, str, int]]] = defaultdict(list)
+    all_frames: List[np.ndarray] = []
+
+    pbar = None
+    if show_progress:
+        try:
+            from tqdm.auto import tqdm
+            total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) or None
+            pbar = tqdm(total=total, desc="Reading frames", leave=False, dynamic_ncols=True)
+        except Exception:
+            pbar = None
 
     frame_idx = 0
-    pbar = tqdm()
-
     while True:
-        ret, frame = cap.read()
+        ret, frame_bgr = cap.read()
         if not ret:
             break
 
-        if frame_idx % stride == 0:
-            timestamp = frame_idx / input_fps
-            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
+        all_frames.append(frame_rgb)
 
-            annotated_frame, detections, labels = callback(frame_rgb.copy(), frame_idx)
+        if (frame_idx % stride) == 0:
+            t = frame_idx / input_fps
+            _, detections, labels = callback(frame_rgb.copy(), frame_idx)
 
-            if detections:
+            if detections is not None and len(detections) > 0:
                 tracked = tracker.update_with_detections(detections)
                 for i, (xyxy, track_id) in enumerate(zip(tracked.xyxy, tracked.tracker_id)):
                     x1, y1, x2, y2 = xyxy
                     cx, cy = (x1 + x2) / 2, (y1 + y2) / 2
-                    positions_by_id[track_id].append((timestamp, cx, cy))
-                    frames_by_id[track_id].append((frame_rgb.copy(), xyxy, labels[i][0], frame_idx))
-            all_frames.append(frame_rgb)
-            processed_frame_idxs.append(frame_idx)
+                    tid = int(track_id)
+                    positions_by_id[tid].append((t, cx, cy))
+                    label_text = labels[i][0] if (labels and i < len(labels)) else ""
+                    frames_by_id[tid].append((frame_rgb.copy(), xyxy, label_text, frame_idx))
+
         frame_idx += 1
-        pbar.update(1)
+        if pbar is not None:
+            pbar.update(1)
 
     cap.release()
-    pbar.close()
+    if pbar is not None:
+        pbar.close()
 
-    # Get longest track
     if not positions_by_id:
+        out.release()
         raise ValueError("No tracks found.")
 
-    track_summaries = {}
+    # ----- Filter by points/duration/displacement/speed -----
+    def stats_for(pts):
+        (t1, x1, y1), (t2, x2, y2) = pts[0], pts[-1]
+        duration = t2 - t1
+        disp = float(np.hypot(x2 - x1, y2 - y1))
+        speed = (disp / duration) if duration > 0 else 0.0
+        return t1, t2, duration, disp, speed
 
-    # Compute speed + summary info for each track
-    for track_id, points in positions_by_id.items():
-        if len(points) < 2:
-            continue  # skip short tracks
+    kept_ids = []
+    track_pts = {}
+    for tid, pts in positions_by_id.items():
+        if len(pts) < min_points:
+            continue
+        t1, t2, dur, disp, spd = stats_for(pts)
+        if (min_duration_s is not None) and (dur < float(min_duration_s)):
+            continue
+        if (min_displacement_px is not None) and (disp < float(min_displacement_px)):
+            continue
+        kept_ids.append(tid)
+        track_pts[tid] = pts
 
-        (t1, x1, y1), (t2, x2, y2) = points[0], points[-1]
-        dt = t2 - t1
-        distance = np.sqrt((x2 - x1)**2 + (y2 - y1)**2)
-        speed = distance / dt if dt > 0 else 0
+    if not kept_ids:
+        out.release()
+        raise ValueError("No tracks passed the thresholds.")
 
-        (frame1, box1, label1, idx1) = frames_by_id[track_id][0]
-        (frame2, box2, label2, idx2) = frames_by_id[track_id][-1]
+    # ----- Optional sub-track suppression (temporal containment + spatial proximity) -----
+    def mean_temporal_nn_distance(A, B):
+        # A, B: [(t,x,y), ...] sorted by t
+        tB = [p[0] for p in B]
+        if not tB:
+            return float("inf")
+        dists = []
+        for t, x, y in A:
+            if t < tB[0] or t > tB[-1]:
+                continue  # only compare where time overlaps
+            j = bisect_left(tB, t)
+            cand = []
+            for k in (j - 1, j):
+                if 0 <= k < len(B):
+                    tb, xb, yb = B[k]
+                    cand.append(np.hypot(x - xb, y - yb))
+            if cand:
+                dists.append(min(cand))
+        return (sum(dists) / len(dists)) if dists else float("inf")
 
-        track_summaries[track_id] = {
-            'speed': speed,
-            'points': ((t1, x1, y1), (t2, x2, y2)),
-            'boxes': (box1, box2),
-            'idxs': (idx1, idx2)
+    if suppress_subtracks and len(kept_ids) > 1:
+        # Sort by (num points, duration) descending → prefer keeping longer, more stable tracks
+        order = sorted(
+            kept_ids,
+            key=lambda tid: (len(track_pts[tid]), track_pts[tid][-1][0] - track_pts[tid][0][0]),
+            reverse=True,
+        )
+        to_drop = set()
+        for i, tid_main in enumerate(order):
+            if tid_main in to_drop:
+                continue
+            t1m, t2m, _, _, _ = stats_for(track_pts[tid_main])
+            for tid_other in order[i + 1:]:
+                if tid_other in to_drop:
+                    continue
+                t1o, t2o, _, _, _ = stats_for(track_pts[tid_other])
+                # temporal containment: other is fully inside main
+                if t1m <= t1o and t2o <= t2m:
+                    md = mean_temporal_nn_distance(track_pts[tid_other], track_pts[tid_main])
+                    if md <= subtrack_radius_px:
+                        to_drop.add(tid_other)
+        kept_ids = [tid for tid in kept_ids if tid not in to_drop]
+
+    # ----- Optionally keep only the single longest among remaining -----
+    if longest and len(kept_ids) > 1:
+        kept_ids = sorted(
+            kept_ids,
+            key=lambda tid: (len(track_pts[tid]), track_pts[tid][-1][0] - track_pts[tid][0][0]),
+            reverse=True,
+        )[:1]
+
+    # ----- Build summaries -----
+    track_summaries: Dict[int, dict] = {}
+    for tid in kept_ids:
+        pts = track_pts[tid]
+        (t1, x1, y1), (t2, x2, y2) = pts[0], pts[-1]
+        dt = max(t2 - t1, 0.0)
+        disp = float(np.hypot(x2 - x1, y2 - y1))
+        spd = (disp / dt) if dt > 0 else 0.0
+
+        (frame1, box1, label1, idx1) = frames_by_id[tid][0]
+        (frame2, box2, label2, idx2) = frames_by_id[tid][-1]
+
+        track_summaries[int(tid)] = {
+            "speed": spd,
+            "points": ((t1, x1, y1), (t2, x2, y2)),
+            "boxes": (box1, box2),
+            "idxs": (idx1, idx2),
         }
 
-    # Assign colors
-    colors = {track_id: tuple(np.random.randint(0, 256, size=3).tolist())
-              for track_id in track_summaries}
+    if not track_summaries:
+        out.release()
+        raise ValueError("No tracks left after filtering.")
 
-    # Define visual parameters based on video width
-    scale = width / 1920
-    box_thickness = max(int(3 * scale), 1)
-    point_radius = int(6 * scale)
-    line_thickness = int(3 * scale)
-    font_scale = 1.0 * scale
-    font_thickness = int(3 * scale)
+    # ----- Render -----
+    rng = np.random.default_rng(0)
+    colors = {tid: tuple(int(c) for c in rng.integers(0, 256, size=3)) for tid in track_summaries}
 
-    # Write frames with annotations
+    scale = max(width, 1) / 1920.0
+    box_thickness  = max(int(3 * scale), 1)
+    point_radius   = max(int(6 * scale), 2)
+    line_thickness = max(int(3 * scale), 1)
+    font_scale     = 1.0 * scale
+    font_thickness = max(int(3 * scale), 1)
+
     for idx, frame in enumerate(all_frames):
         annotated = frame.copy()
+        for i, (tid, summary) in enumerate(track_summaries.items()):
+            box1, box2 = summary["boxes"]
+            (_, c1x, c1y), (_, c2x, c2y) = summary["points"]
+            idx1, idx2 = summary["idxs"]
+            spd = summary["speed"]
+            color = colors[tid]
 
-        for i, (track_id, summary) in enumerate(track_summaries.items()):
-            box1, box2 = summary['boxes']
-            (_, c1_x, c1_y), (_, c2_x, c2_y) = summary['points']
-            idx1, idx2 = summary['idxs']
-            speed = summary['speed']
-            color = colors[track_id]
+            if idx >= idx1:
+                x1b, y1b, x2b, y2b = [int(v) for v in box1]
+                cv2.rectangle(annotated, (x1b, y1b), (x2b, y2b), color, box_thickness)
+                cv2.circle(annotated, (int(c1x), int(c1y)), point_radius, color, -1)
 
-            if idx >= processed_frame_idxs.index(idx1):
-                x1_box1, y1_box1, x2_box1, y2_box1 = [int(v) for v in box1]
-                cv2.rectangle(annotated, (x1_box1, y1_box1), (x2_box1, y2_box1), color, box_thickness)
-                cv2.circle(annotated, (int(c1_x), int(c1_y)), point_radius, color, -1)
-
-            if idx >= processed_frame_idxs.index(idx2):
-                x1_box2, y1_box2, x2_box2, y2_box2 = [int(v) for v in box2]
-                cv2.rectangle(annotated, (x1_box2, y1_box2), (x2_box2, y2_box2), color, box_thickness)
-                cv2.circle(annotated, (int(c2_x), int(c2_y)), point_radius, color, -1)
-                cv2.line(annotated, (int(c1_x), int(c1_y)), (int(c2_x), int(c2_y)), color, line_thickness)
+            if idx >= idx2:
+                x1b, y1b, x2b, y2b = [int(v) for v in box2]
+                cv2.rectangle(annotated, (x1b, y1b), (x2b, y2b), color, box_thickness)
+                cv2.circle(annotated, (int(c2x), int(c2y)), point_radius, color, -1)
+                cv2.line(annotated, (int(c1x), int(c1y)), (int(c2x), int(c2y)), color, line_thickness)
                 cv2.putText(
-                    annotated, f"Speed: {speed:.2f} px/s",
+                    annotated, f"Speed: {spd:.2f} px/s",
                     (10, int(30 * scale) + int(40 * scale) * int(i)),
                     cv2.FONT_HERSHEY_SIMPLEX, font_scale, color, font_thickness, cv2.LINE_AA
                 )
-
         out.write(cv2.cvtColor(annotated, cv2.COLOR_RGB2BGR))
 
     out.release()
     return width, track_summaries
-
-REAL_ANIMAL_HEIGHT_M = {
-    'Dasyprocta': 0.3,      
-    'Bos': 1.4,             
-    'Pecari': 0.5,          
-    'Mazama': 0.6,          
-    'Cuniculus': 0.3,       
-    'Leptotila': 0.2,       
-    'Human': 1.6,          
-    'Aramides': 0.3,        
-    'Tinamus': 0.3,         
-    'Eira': 0.3,           
-    'Crax': 0.5,           
-    'Procyon': 0.4,         
-    'Capra': 0.8,           
-    'Dasypus': 0.25,        
-    'Sciurus': 0.2,        
-    'Crypturellus': 0.3,    
-    'Tamandua': 0.4,        
-    'Proechimys': 0.2,     
-    'Leopardus': 0.4,       
-    'Equus': 1.5,           
-    'Columbina': 0.15,      
-    'Nyctidromus': 0.15,    
-    'Ortalis': 0.4,        
-    'Emballonura': 0.1,     
-    'Odontophorus': 0.3,    
-    'Geotrygon': 0.2,      
-    'Metachirus': 0.25,     
-    'Catharus': 0.1,        
-    'Cerdocyon': 0.4,      
-    'Momotus': 0.25,        
-    'Tapirus': 1.0,        
-    'Canis': 0.7,          
-    'Furnarius': 0.15,      
-    'Didelphis': 0.3,       
-    'Sylvilagus': 0.25,     
-    'Unknown': 0.25         
-}

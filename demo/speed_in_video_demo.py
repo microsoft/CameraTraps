@@ -5,22 +5,27 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import supervision as sv
 import torch
+from tqdm import tqdm
 from typing import Tuple, List
 from PytorchWildlife.models import detection as pw_detection
 from PytorchWildlife.models import classification as pw_classification
 from PytorchWildlife import utils as pw_utils
 
-#%% Set the name of the species to track
-SPECIES_NAME = None
-if SPECIES_NAME:
-    if SPECIES_NAME in pw_utils.REAL_ANIMAL_HEIGHT_M:
-        print(f"Tracking species: {SPECIES_NAME}")
-        animal_height_m = pw_utils.REAL_ANIMAL_HEIGHT_M[SPECIES_NAME]
-    else:
-        raise ValueError(f"Species '{SPECIES_NAME}' not found in the classification model.")
+#%% Set the animal height in meters
+animal_height_m = 1.5
+if animal_height_m:
+    cols = ["Video", "Image Width (px)", "t1 (s)", "x1 (px)", "y1 (px)", "t2 (s)", "x2 (px)", "y2 (px)", "speed (m/s)"]
+    print(f"Using height ~ {animal_height_m} m for conversion.")
+    df = pd.DataFrame(columns=cols)
+    using_meters = True
 else:
-    animal_height_m = None
-    print("No specific species selected for tracking. Speed will be calculated in pixels per second.")
+    cols = ["Video", "Image Width (px)", "t1 (s)", "x1 (px)", "y1 (px)", "t2 (s)", "x2 (px)", "y2 (px)", "speed (px/s)"]
+    print("No animal height specified. Speed will be in pixels/second.")
+    df = pd.DataFrame(columns=cols)
+    using_meters = False
+
+#%% Set whether to assume a single individual (True) or a group (False) in the video
+assume_single_individual = False
 
 #%% Input and output paths
 SOURCE_FOLDER_PATH = os.path.join(".", "demo_data", "speed_tracking_videos")
@@ -59,48 +64,60 @@ def callback(frame: np.ndarray, index: int) -> Tuple[np.ndarray, sv.Detections, 
 
     return annotated_frame, results_det["detections"], clf_labels
 
-#%% Initialize DataFrame to store speed data
-if animal_height_m:
-    print(f"Using animal height for speed calculation: {animal_height_m} m")
-    df = pd.DataFrame(columns=["Video", "Image Width (px)", "t1 (s)", "x1 (px)", "y1 (px)", "t2 (s)", "x2 (px)", "y2 (px)", "speed (m/s)"])
-else:
-    df = pd.DataFrame(columns=["Video", "Image Width (px)", "t1 (s)", "x1 (px)", "y1 (px)", "t2 (s)", "x2 (px)", "y2 (px)", "speed (px/s)"])
-
 #%% Run tracking and compute 2D speed for each video in the source folder
 tracks = 0
+video_files = [f for f in os.listdir(SOURCE_FOLDER_PATH) if f.lower().endswith((".mp4", ".avi", ".mov"))]
 
-for video_name in os.listdir(SOURCE_FOLDER_PATH):
-    if not video_name.lower().endswith((".mp4", ".avi", ".mov")):
-        continue  # Skip non-video files
+if not video_files:
+    print("No video files found. Add videos to the source folder and re-run this cell.")
+else:
+    iterator = video_files
+    if tqdm is not None:
+        iterator = tqdm(video_files, desc="Processing videos")
 
-    SOURCE_VIDEO_PATH = os.path.join(SOURCE_FOLDER_PATH, video_name)
-    TARGET_VIDEO_PATH = os.path.join(OUTPUT_FOLDER, f"{os.path.splitext(video_name)[0]}_tracked.mp4")
-    print(f"Processing video: {video_name}")
+    for video_name in iterator:
+        SOURCE_VIDEO_PATH = os.path.join(SOURCE_FOLDER_PATH, video_name)
+        TARGET_VIDEO_PATH = os.path.join(OUTPUT_FOLDER, f"{os.path.splitext(video_name)[0]}_tracked.mp4")
+        print(f"\nProcessing: {video_name}")
 
-    try:
-        image_width_px, track_summaries = pw_utils.speed_in_video(
-            source_path=SOURCE_VIDEO_PATH,
-            target_path=TARGET_VIDEO_PATH,
-            callback=callback,
-            target_fps=10,
-            codec="mp4v"
-        )
-        for i, key in enumerate(track_summaries):
-            t1, x1, y1 = track_summaries[key]['points'][0]
-            t2, x2, y2 = track_summaries[key]['points'][1]
-            speed_px_s = track_summaries[key]['speed']
-            if animal_height_m:
-                # Convert speed from pixels per second to meters per second
-                speed = (speed_px_s * animal_height_m) / image_width_px
-            else:
-                speed = speed_px_s
-            # Append data to DataFrame
-            df.loc[tracks] = [video_name, image_width_px, t1, x1, y1, t2, x2, y2, speed]
-            tracks += 1
-    except Exception as e:
-        print(f"Error processing video {video_name}: {e}")
-        continue
+        try:
+            image_width_px, track_summaries = pw_utils.speed_in_video(
+                source_path=SOURCE_VIDEO_PATH,
+                target_path=TARGET_VIDEO_PATH,
+                callback=callback,
+                target_fps=10,
+                codec="mp4v",
+                longest=assume_single_individual,
+                min_points=6,
+                min_duration_s=0.5,
+                min_displacement_px=20,
+                suppress_subtracks=True,
+                subtrack_radius_px=50,
+            )
+
+            # Each 'track' has two points (t1,x1,y1) and (t2,x2,y2) and a speed in px/s
+            for i, key in enumerate(track_summaries):
+                t1, x1, y1 = track_summaries[key]['points'][0]
+                t2, x2, y2 = track_summaries[key]['points'][1]
+                speed_px_s = track_summaries[key]['speed']
+
+                if using_meters and animal_height_m:
+                    # Convert px/s to m/s using width-scale (height_m / image_width_px)
+                    speed_val = (speed_px_s * animal_height_m) / image_width_px
+                else:
+                    speed_val = speed_px_s
+
+                df.loc[tracks] = [video_name, image_width_px, t1, x1, y1, t2, x2, y2, speed_val]
+                tracks += 1
+
+        except Exception as e:
+            print(f"⚠️ Error processing {video_name}: {e}")
+            continue
 
 #%% Save CSV with the points x, y, speed
-csv_path = os.path.join(OUTPUT_FOLDER,"speed.csv")
-df.to_csv(csv_path, index=False, float_format="%.3f")
+csv_path = os.path.join(OUTPUT_FOLDER, "speed.csv")
+if len(df) > 0:
+    df.to_csv(csv_path, index=False, float_format="%.3f")
+    print(f"Saved: {csv_path}")
+else:
+    print("Speed table is empty—nothing to save yet.")
