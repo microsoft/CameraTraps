@@ -703,14 +703,15 @@ def detection_classification_folder_separation(json_file, img_path, destination_
     clf_map = data.get("clf_categories", {})
 
     # Prepare output roots
-    animal_root = os.path.join(destination_path, 'Animal')
-    no_animal_root = os.path.join(destination_path, 'No_animal')
-    for root in (animal_root, no_animal_root):
-        if overwrite and os.path.exists(root):
-            for dirpath, _, filenames in os.walk(root):
-                for file in filenames:
-                    os.remove(os.path.join(dirpath, file))
-        os.makedirs(root, exist_ok=True)
+    # animal_root = os.path.join(destination_path, 'Animal')
+    # no_animal_root = os.path.join(destination_path, 'No_animal')
+    # for root in (animal_root, no_animal_root):
+    #     if overwrite and os.path.exists(root):
+    #         for dirpath, _, filenames in os.walk(root):
+    #             for file in filenames:
+    #                 os.remove(os.path.join(dirpath, file))
+    #     os.makedirs(root, exist_ok=True)
+    os.makedirs(destination_path, exist_ok=True)
 
     if draw_bboxes:
         box_annotator = sv.BoxAnnotator(thickness=4)
@@ -725,7 +726,12 @@ def detection_classification_folder_separation(json_file, img_path, destination_
         clf_confs = ann.get('clf_confidence', [])
 
         has_animal = any(c == 0 and conf >= det_conf_threshold for c, conf in zip(det_cats, det_confs))
-        root_folder = animal_root if has_animal else no_animal_root
+
+        #root_folder = animal_root if has_animal else no_animal_root
+        src_img_path = os.path.join(img_path, img_id)
+        rel_dir = os.path.relpath(os.path.dirname(src_img_path), img_path)  # p.ej. "cam01/2025/08/21"
+        leaf_root = os.path.join(destination_path, rel_dir,
+                                 'Animal' if has_animal else 'No_animal')
 
         valid_clfs = [clf_map.get(str(c), 'Unknown') for c, conf in zip(clf_cats, clf_confs) if conf >= clf_conf_threshold]
         clf_dirs = valid_clfs or ['Unknown']
@@ -783,7 +789,8 @@ def detection_classification_folder_separation(json_file, img_path, destination_
                 cv2.putText(frame, label, (text_x, text_y), font, scale, text_color, thickness)
 
         for clf_dir in clf_dirs:
-            dest = os.path.join(root_folder, clf_dir)
+            #dest = os.path.join(root_folder, clf_dir)
+            dest = os.path.join(leaf_root, clf_dir)
             os.makedirs(dest, exist_ok=True)
             out_path = os.path.join(dest, os.path.basename(img_id))
 
