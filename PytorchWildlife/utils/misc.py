@@ -103,7 +103,7 @@ def speed_in_video(
         input_fps = float(target_fps) if target_fps and target_fps > 0 else 30.0
 
     stride = max(1, int(round(input_fps / max(target_fps, 1))))
-    output_fps = input_fps / stride
+    output_fps = input_fps
 
     width  = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -254,6 +254,7 @@ def speed_in_video(
             "points": ((t1, x1, y1), (t2, x2, y2)),
             "boxes": (box1, box2),
             "idxs": (idx1, idx2),
+            "labels": (label1, label2),
         }
 
     if not track_summaries:
@@ -292,7 +293,7 @@ def speed_in_video(
                 cv2.line(annotated, (int(c1x), int(c1y)), (int(c2x), int(c2y)), color, line_thickness)
                 cv2.putText(
                     annotated, f"Speed: {spd:.2f} px/s",
-                    (10, int(30 * scale) + int(40 * scale) * int(i)),
+                    (10, int(90 * scale) + int(40 * scale) * int(i)),
                     cv2.FONT_HERSHEY_SIMPLEX, font_scale, color, font_thickness, cv2.LINE_AA
                 )
         out.write(cv2.cvtColor(annotated, cv2.COLOR_RGB2BGR))

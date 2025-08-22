@@ -1,56 +1,84 @@
 #%% Importing necessary libraries
-import numpy as np
 import os
+import sys
+from pathlib import Path
+from typing import Tuple, List
+
+import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import supervision as sv
-import torch
+
 from tqdm import tqdm
-from typing import Tuple, List
+import torch
+import supervision as sv
+
 from PytorchWildlife.models import detection as pw_detection
 from PytorchWildlife.models import classification as pw_classification
 from PytorchWildlife import utils as pw_utils
 
+print("Torch version:", torch.__version__)
+print("CUDA available:", torch.cuda.is_available())
+
 #%% Set the animal height in meters
-animal_height_m = 1.5
-if animal_height_m:
-    cols = ["Video", "Image Width (px)", "t1 (s)", "x1 (px)", "y1 (px)", "t2 (s)", "x2 (px)", "y2 (px)", "speed (m/s)"]
-    print(f"Using height ~ {animal_height_m} m for conversion.")
-    df = pd.DataFrame(columns=cols)
-    using_meters = True
-else:
-    cols = ["Video", "Image Width (px)", "t1 (s)", "x1 (px)", "y1 (px)", "t2 (s)", "x2 (px)", "y2 (px)", "speed (px/s)"]
-    print("No animal height specified. Speed will be in pixels/second.")
-    df = pd.DataFrame(columns=cols)
-    using_meters = False
+animal_height_m = None
 
 #%% Set whether to assume a single individual (True) or a group (False) in the video
 assume_single_individual = False
 
 #%% Input and output paths
 SOURCE_FOLDER_PATH = os.path.join(".", "demo_data", "speed_tracking_videos")
-if not os.path.exists(SOURCE_FOLDER_PATH):
-    raise FileNotFoundError(f"Source video not found at {SOURCE_FOLDER_PATH}. Please check the path.")
-
 OUTPUT_FOLDER = os.path.join(".", "speed_tracking_output")
-os.makedirs(OUTPUT_FOLDER, exist_ok=True)
+
+Path(OUTPUT_FOLDER).mkdir(parents=True, exist_ok=True)
+
+print(f"SOURCE_FOLDER_PATH = {SOURCE_FOLDER_PATH}")
+print(f"OUTPUT_FOLDER      = {OUTPUT_FOLDER}")
 
 #%% Set the device
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+if DEVICE == "cuda":
+    try:
+        dev_name = torch.cuda.get_device_name(0)
+    except Exception:
+        dev_name = "CUDA device"
+    print(f"Using GPU: {dev_name}")
+else:
+    print("Using CPU (this may be slower).")
 
 #%% Load models
-detection_model = pw_detection.MegaDetectorV6(device=DEVICE, pretrained=True, version="MDV6-yolov9-c")
-classification_model = pw_classification.AI4GAmazonRainforest(device=DEVICE, version='v2')
+DETECTION_VERSION = "MDV6-yolov9-c"
+CLASSIFICATION_VERSION = "v2"
+
+try:
+    detection_model = pw_detection.MegaDetectorV6(device=DEVICE, pretrained=True, version=DETECTION_VERSION)
+    classification_model = pw_classification.AI4GAmazonRainforest(device=DEVICE, version=CLASSIFICATION_VERSION)
+    print("✅ Models loaded")
+except Exception as e:
+    raise RuntimeError(
+        "Failed to load models. Verify your PyTorchWildlife install and network access for weights."
+    ) from e
 
 #%% Annotators
 box_annotator = sv.BoxAnnotator(thickness=4)
 lab_annotator = sv.LabelAnnotator(text_color=sv.Color.BLACK, text_thickness=4, text_scale=2)
+print("Annotators ready.")
 
 #%% Callback for tracking
-def callback(frame: np.ndarray, index: int) -> Tuple[np.ndarray, sv.Detections, List[Tuple[str, float]]]:
-    results_det = detection_model.single_image_detection(frame, img_path=index)
+from typing import Dict
 
-    clf_labels = []
+def callback(frame: np.ndarray, index: int) -> Tuple[np.ndarray, sv.Detections, List[Tuple[str, float]]]:
+    """
+    Args:
+        frame: Current video frame (H,W,3)
+        index: Frame index or identifier (passed to detector for metadata)
+    Returns:
+        annotated_frame: Frame with boxes+labels
+        detections: Supervision Detections object
+        clf_labels: List of (prediction, confidence) per detection in the same order
+    """
+    results_det: Dict = detection_model.single_image_detection(frame, img_path=index)
+
+    clf_labels: List[Tuple[str, float]] = []
     for xyxy in results_det["detections"].xyxy:
         cropped_image = sv.crop_image(image=frame, xyxy=xyxy)
         results_clf = classification_model.single_image_classification(cropped_image)
@@ -64,7 +92,29 @@ def callback(frame: np.ndarray, index: int) -> Tuple[np.ndarray, sv.Detections, 
 
     return annotated_frame, results_det["detections"], clf_labels
 
+print("Callback ready.")
+
+#%% Prepare speed table
+def init_speed_df(species_name: str):
+    if animal_height_m:
+        cols = ["Video", "Image Width (px)", "t1 (s)", "x1 (px)", "y1 (px)", "label1", "t2 (s)", "x2 (px)", "y2 (px)", "label2", "speed (m/s)"]
+        print(f"Using height ~ {animal_height_m} m for conversion.")
+        return pd.DataFrame(columns=cols), animal_height_m, True
+    else:
+        cols = ["Video", "Image Width (px)", "t1 (s)", "x1 (px)", "y1 (px)", "label1", "t2 (s)", "x2 (px)", "y2 (px)", "label2", "speed (px/s)"]
+        print("No animal height specified. Speed will be in pixels/second.")
+        return pd.DataFrame(columns=cols), None, False
+
+df, animal_height_m, using_meters = init_speed_df(animal_height_m)
+
 #%% Run tracking and compute 2D speed for each video in the source folder
+import os, uuid, cv2
+import logging
+logging.getLogger("ultralytics").setLevel(logging.CRITICAL)
+
+if not os.path.exists(SOURCE_FOLDER_PATH):
+    raise FileNotFoundError(f"Source video folder not found at {SOURCE_FOLDER_PATH}. Please create it and add videos.")
+
 tracks = 0
 video_files = [f for f in os.listdir(SOURCE_FOLDER_PATH) if f.lower().endswith((".mp4", ".avi", ".mov"))]
 
@@ -78,12 +128,14 @@ else:
     for video_name in iterator:
         SOURCE_VIDEO_PATH = os.path.join(SOURCE_FOLDER_PATH, video_name)
         TARGET_VIDEO_PATH = os.path.join(OUTPUT_FOLDER, f"{os.path.splitext(video_name)[0]}_tracked.mp4")
+        temp_basename = f"{os.path.splitext(video_name)[0]}_{uuid.uuid4().hex}.tmp.mp4"
+        TEMP_VIDEO_PATH = os.path.join(OUTPUT_FOLDER, temp_basename)
         print(f"\nProcessing: {video_name}")
 
         try:
             image_width_px, track_summaries = pw_utils.speed_in_video(
                 source_path=SOURCE_VIDEO_PATH,
-                target_path=TARGET_VIDEO_PATH,
+                target_path=TEMP_VIDEO_PATH,
                 callback=callback,
                 target_fps=10,
                 codec="mp4v",
@@ -95,11 +147,14 @@ else:
                 subtrack_radius_px=50,
             )
 
+            os.replace(TEMP_VIDEO_PATH, TARGET_VIDEO_PATH)
+
             # Each 'track' has two points (t1,x1,y1) and (t2,x2,y2) and a speed in px/s
             for i, key in enumerate(track_summaries):
                 t1, x1, y1 = track_summaries[key]['points'][0]
                 t2, x2, y2 = track_summaries[key]['points'][1]
                 speed_px_s = track_summaries[key]['speed']
+                label1, label2 = track_summaries[key]['labels']
 
                 if using_meters and animal_height_m:
                     # Convert px/s to m/s using width-scale (height_m / image_width_px)
@@ -107,12 +162,16 @@ else:
                 else:
                     speed_val = speed_px_s
 
-                df.loc[tracks] = [video_name, image_width_px, t1, x1, y1, t2, x2, y2, speed_val]
+                df.loc[tracks] = [video_name, image_width_px, t1, x1, y1, label1, t2, x2, y2, label2, speed_val]
                 tracks += 1
 
         except Exception as e:
             print(f"⚠️ Error processing {video_name}: {e}")
+            if os.path.exists(TEMP_VIDEO_PATH):
+                    os.remove(TEMP_VIDEO_PATH)
             continue
+
+print("\nDone.")
 
 #%% Save CSV with the points x, y, speed
 csv_path = os.path.join(OUTPUT_FOLDER, "speed.csv")
