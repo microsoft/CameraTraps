@@ -703,14 +703,6 @@ def detection_classification_folder_separation(json_file, img_path, destination_
     clf_map = data.get("clf_categories", {})
 
     # Prepare output roots
-    # animal_root = os.path.join(destination_path, 'Animal')
-    # no_animal_root = os.path.join(destination_path, 'No_animal')
-    # for root in (animal_root, no_animal_root):
-    #     if overwrite and os.path.exists(root):
-    #         for dirpath, _, filenames in os.walk(root):
-    #             for file in filenames:
-    #                 os.remove(os.path.join(dirpath, file))
-    #     os.makedirs(root, exist_ok=True)
     os.makedirs(destination_path, exist_ok=True)
 
     if draw_bboxes:
@@ -718,7 +710,7 @@ def detection_classification_folder_separation(json_file, img_path, destination_
 
     processed = 0
     for ann in data.get('annotations', []):
-        img_id = ann['img_id']
+        src_img_path = ann['img_id']
         det_cats = ann['det_category']
         det_confs = ann['det_confidence']
         bboxes = np.array(ann['bbox'], dtype=float)
@@ -727,8 +719,6 @@ def detection_classification_folder_separation(json_file, img_path, destination_
 
         has_animal = any(c == 0 and conf >= det_conf_threshold for c, conf in zip(det_cats, det_confs))
 
-        #root_folder = animal_root if has_animal else no_animal_root
-        src_img_path = os.path.join(img_path, img_id)
         rel_dir = os.path.relpath(os.path.dirname(src_img_path), img_path)  # p.ej. "cam01/2025/08/21"
         leaf_root = os.path.join(destination_path, rel_dir,
                                  'Animal' if has_animal else 'No_animal')
@@ -736,11 +726,10 @@ def detection_classification_folder_separation(json_file, img_path, destination_
         valid_clfs = [clf_map.get(str(c), 'Unknown') for c, conf in zip(clf_cats, clf_confs) if conf >= clf_conf_threshold]
         clf_dirs = valid_clfs or ['Unknown']
 
-        src_img_path = os.path.join(img_path, img_id)
         try:
             img = np.array(Image.open(src_img_path).convert('RGB'))
         except Exception as e:
-            print(f"Skipping {img_id}: {e}")
+            print(f"Skipping {src_img_path}: {e}")
             continue
 
         frame = img.copy()
@@ -789,10 +778,9 @@ def detection_classification_folder_separation(json_file, img_path, destination_
                 cv2.putText(frame, label, (text_x, text_y), font, scale, text_color, thickness)
 
         for clf_dir in clf_dirs:
-            #dest = os.path.join(root_folder, clf_dir)
             dest = os.path.join(leaf_root, clf_dir)
             os.makedirs(dest, exist_ok=True)
-            out_path = os.path.join(dest, os.path.basename(img_id))
+            out_path = os.path.join(dest, os.path.basename(src_img_path))
 
             if draw_bboxes:
                 cv2.imwrite(out_path, cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
@@ -800,5 +788,21 @@ def detection_classification_folder_separation(json_file, img_path, destination_
                 shutil.copy2(src_img_path, out_path)
 
         processed += 1
+    
+    # For processing no annotated images
+    annotated_imgs = {os.path.basename(ann['img_id']) for ann in data.get('annotations', [])}
+
+    for root, _, files in os.walk(img_path):
+        for fname in files:
+            if not fname.lower().endswith((".jpg", ".jpeg", ".png")):
+                continue
+
+            if fname not in annotated_imgs:
+                src_img_path = os.path.join(root, fname)
+                rel_dir = os.path.relpath(root, img_path)  # ej: "cam01/2025/08/21"
+                dest = os.path.join(destination_path, rel_dir, 'No_animal')
+                os.makedirs(dest, exist_ok=True)
+                shutil.copy2(src_img_path, os.path.join(dest, fname))
+                processed += 1
 
     return f"{processed} files were successfully separated"

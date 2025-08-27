@@ -167,13 +167,14 @@ class PlainResNetInference(BaseClassifierInference):
             dataset = pw_data.DetectionCrops(
                 det_results,
                 transform=self.transform,
-                path_head='.'
+                #path_head='.',
+                path_head=None,
             )
         else:
             raise Exception("Need data for inference.")
 
         dataloader = DataLoader(dataset, batch_size=32, shuffle=False, 
-                                pin_memory=True, num_workers=4, drop_last=False)
+                                pin_memory=True, num_workers=0, drop_last=False)
         total_logits = []
         total_paths = []
 
