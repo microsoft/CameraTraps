@@ -299,4 +299,4 @@ def speed_in_video(
         out.write(cv2.cvtColor(annotated, cv2.COLOR_RGB2BGR))
 
     out.release()
-    return width, track_summaries
+    return width, height, track_summaries
