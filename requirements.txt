@@ -13,7 +13,8 @@ setuptools
 scikit-learn
 lightning
 omegaconf
-pycocotoolstimm
+pycocotools
+timm
 mkdocs
 mkdocs-get-deps
 mkdocs-material
