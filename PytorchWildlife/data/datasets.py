@@ -3,11 +3,14 @@
 
 import os
 from glob import glob
-from PIL import Image
+from PIL import Image, ImageFile
 import numpy as np
 import supervision as sv
 import torch
 from torch.utils.data import Dataset
+
+# To handle truncated images during loading
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 # Making the DetectionImageFolder class available for import from this module
 __all__ = [
