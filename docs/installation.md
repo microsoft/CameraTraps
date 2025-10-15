@@ -57,7 +57,7 @@ docker run -p 80:80 andreshdz/pytorchwildlife:1.0.2.3 python demo/gradio_demo.py
 4. If you want to run any code using the docker image,  please use `docker run andreshdz/pytorchwildlife:1.0.2.3` followed by the command that you want to execute.
 
 ## Running the Demo
-Here is a brief example on how to perform detection and classification on a single image using `PyTorch-wildlife`:
+Here is a brief example of how to perform detection and classification on a single image using `PyTorch-wildlife`:
 
 ```python
 import numpy as np
