@@ -27,18 +27,18 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 #%% 
 # Initializing the MegaDetectorV6 model for image detection
 # Valid versions are MDV6-yolov9-c, MDV6-yolov9-e, MDV6-yolov10-c, MDV6-yolov10-e or MDV6-rtdetr-c
-#detection_model = pw_detection.MegaDetectorV6(device=DEVICE, pretrained=True, version="MDV6-yolov10-e")
+detection_model = pw_detection.MegaDetectorV6(device=DEVICE, pretrained=True, version="MDV6-yolov10-e")
 
 # Uncomment the following line to use MegaDetectorV6 with yolo v9 MIT weights
-# Valid versions are MDV6-yolov9-s-mit, MDV6-yolov9-c-mit
-#detection_model = pw_detection.MegaDetectorV6MIT(device=DEVICE, pretrained=True, version="MDV6-yolov9-c-mit")
+# Valid versions are MDV6-mit-yolov9-c, MDV6-mit-yolov9-e
+# detection_model = pw_detection.MegaDetectorV6MIT(device=DEVICE, pretrained=True, version="MDV6-mit-yolov9-e")
 
 # Uncomment the following line to use MegaDetectorV6 with RT-DETR Apache weights
-# Valid versions are MDV6-rtdetr-s-apache, MDV6-rtdetr-x-apache
-detection_model = pw_detection.MegaDetectorV6Apache(device=DEVICE, pretrained=True, version="MDV6-rtdetr-s-apache")
+# Valid versions are MDV6-apa-rtdetr-c or MDV6-apa-rtdetr-e
+# detection_model = pw_detection.MegaDetectorV6Apache(device=DEVICE, pretrained=True, version="MDV6-apa-rtdetr-e")
 
 # Uncomment the following line to use MegaDetectorV5 instead of MegaDetectorV6
-#detection_model = pw_detection.MegaDetectorV5(device=DEVICE, pretrained=True, version="a")
+# detection_model = pw_detection.MegaDetectorV5(device=DEVICE, pretrained=True, version="a")
 
 #%% Batch detection
 """ Batch-detection demo """
