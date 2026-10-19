@@ -28,6 +28,14 @@ Over time, our scope grew well beyond camera-trap imagery. We now have active wo
 
 So we made a deliberate decision: break the work into focused, dedicated repositories — one per project — where the code in each repo is concentrated, the ownership is clear, and future contributors know exactly where to go. This repository is the hub that ties them together. PyTorch-Wildlife now lives at [microsoft/Pytorch-Wildlife](https://github.com/microsoft/Pytorch-Wildlife), MegaDetector at [microsoft/MegaDetector](https://github.com/microsoft/MegaDetector), and everything else is linked in the table below.
 
+### PyTorch-Wildlife is becoming SPARROW-Playground
+
+PyTorch-Wildlife is being fully revamped as **[SPARROW-Playground](https://github.com/microsoft/SPARROW-Playground)**, an inference-only playground for the SPARROW ecosystem. Inference moves from PyTorch to the [SPARROW-Engine](https://github.com/microsoft/SPARROW-Engine) Python package (`pip install sparrow-engine`), which gives direct access to the full model zoo without a deep-learning framework. Notebooks are rewritten around SPARROW-Engine and will add data ingestion from cellular (4G) cameras, FTPS cameras, and SPARROW devices.
+
+- The `PytorchWildlife` PyPI package will get a final 2.0 release that transitions to SPARROW-Engine.
+- Fine-tuning has moved to [microsoft/MegaDetector-Classifier](https://github.com/microsoft/MegaDetector-Classifier).
+- [microsoft/Pytorch-Wildlife](https://github.com/microsoft/Pytorch-Wildlife) will be archived. Its documentation pages, and the PyTorch-Wildlife pages on this site, will redirect to SPARROW-Playground.
+
 #### Previous versions:
 - [Release notes](https://microsoft.github.io/Biodiversity/releases/release_notes/)
 
@@ -40,7 +48,9 @@ So we made a deliberate decision: break the work into focused, dedicated reposit
 | [microsoft/MegaDetector-Classifier](https://github.com/microsoft/MegaDetector-Classifier) | Camera-trap species classification fine-tuning — adapt classifiers to your own datasets and geographic regions |
 | [microsoft/MegaDetector-Overhead](https://github.com/microsoft/MegaDetector-Overhead) | Overhead imagery detection — point-based wildlife localization from aerial views |
 | [microsoft/MegaDetector-Sonar](https://github.com/microsoft/MegaDetector-Sonar) | Sonar-based wildlife detection — processing and feature detection in sidescan sonar imagery |
-| [microsoft/Pytorch-Wildlife](https://github.com/microsoft/Pytorch-Wildlife) | The collaborative deep learning framework and model zoo for conservation AI |
+| [microsoft/SPARROW-Playground](https://github.com/microsoft/SPARROW-Playground) | Inference playground for the SPARROW ecosystem, built on SPARROW-Engine — successor to PyTorch-Wildlife |
+| [microsoft/SPARROW-Engine](https://github.com/microsoft/SPARROW-Engine) | Framework-free inference engine and Python package with the full conservation model zoo |
+| [microsoft/Pytorch-Wildlife](https://github.com/microsoft/Pytorch-Wildlife) | *(being archived — see SPARROW-Playground)* The original PyTorch framework and model zoo for conservation AI |
 | [microsoft/SPARROW](https://github.com/microsoft/SPARROW) | Solar-Powered Acoustic and Remote Recording Observation Watch — AI edge device for remote field deployments |
 
 ## Cite us

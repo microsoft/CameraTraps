@@ -28,6 +28,9 @@ tags:
 </div>
 
 
+> [!IMPORTANT]
+> **PyTorch-Wildlife is becoming [SPARROW-Playground](https://github.com/microsoft/SPARROW-Playground)**, an inference-only playground built on the [SPARROW-Engine](https://github.com/microsoft/SPARROW-Engine) Python package. The PyTorch-Wildlife pages on this site will redirect there once it is public. Fine-tuning has moved to [microsoft/MegaDetector-Classifier](https://github.com/microsoft/MegaDetector-Classifier).
+
 ## 👋 Welcome to PyTorch-Wildlife
 **PyTorch-Wildlife** is an AI platform designed for the AI for Conservation community to create, modify, and share powerful AI conservation models. It allows users to directly load a variety of models including [MegaDetector](https://github.com/microsoft/MegaDetector), [DeepFaune](https://www.deepfaune.cnrs.fr/en/), and [HerdNet](https://github.com/Alexandre-Delplanque/HerdNet) from our ever expanding [model zoo](model_zoo/megadetector.md) for both animal detection and classification.
 
