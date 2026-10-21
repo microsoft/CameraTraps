@@ -32,7 +32,7 @@ So we made a deliberate decision: break the work into focused, dedicated reposit
 
 PyTorch-Wildlife is being fully revamped as **[SPARROW-Playground](https://github.com/microsoft/SPARROW-Playground)**, an inference-only playground for the SPARROW ecosystem. Inference moves from PyTorch to the [SPARROW-Engine](https://github.com/microsoft/SPARROW-Engine) Python package (`pip install sparrow-engine`), which gives direct access to the full model zoo without a deep-learning framework. Notebooks are rewritten around SPARROW-Engine and will add data ingestion from cellular (4G) cameras, FTPS cameras, and SPARROW devices.
 
-- The `PytorchWildlife` PyPI package will get a final 2.0 release that transitions to SPARROW-Engine.
+- The `PytorchWildlife` PyPI package is no longer maintained. Its final release (1.3.1) warns on import and points to `sparrow-engine`; there will be no further releases.
 - Fine-tuning has moved to [microsoft/MegaDetector-Classifier](https://github.com/microsoft/MegaDetector-Classifier).
 - [microsoft/Pytorch-Wildlife](https://github.com/microsoft/Pytorch-Wildlife) will be archived. Its documentation pages, and the PyTorch-Wildlife pages on this site, will redirect to SPARROW-Playground.
 
